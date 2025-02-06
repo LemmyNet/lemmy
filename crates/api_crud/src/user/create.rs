@@ -414,7 +414,7 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let actor_id = generate_local_apub_endpoint(
+  let ap_id = generate_local_apub_endpoint(
     EndpointType::Person,
     &username,
     &context.settings().get_protocol_and_hostname(),
@@ -422,7 +422,7 @@ async fn create_person(
 
   // Register the new person
   let person_form = PersonInsertForm {
-    actor_id: Some(actor_id.clone()),
+    ap_id: Some(ap_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)

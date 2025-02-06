@@ -77,9 +77,9 @@ impl UndoDelete {
       UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
+    let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(UndoDelete {
-      actor: actor.actor_id.clone().into(),
+      actor: actor.ap_id.clone().into(),
       to,
       object,
       cc: cc.into_iter().collect(),

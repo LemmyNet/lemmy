@@ -32,7 +32,7 @@ pub(crate) async fn get_apub_person_http(
 
     create_apub_response(&apub)
   } else {
-    create_apub_tombstone_response(person.actor_id.clone())
+    create_apub_tombstone_response(person.ap_id.clone())
   }
 }
 
@@ -43,7 +43,7 @@ pub(crate) async fn get_apub_person_outbox(
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  let outbox_id = generate_outbox_url(&person.actor_id)?.into();
+  let outbox_id = generate_outbox_url(&person.ap_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
   create_apub_response(&outbox)
 }

@@ -568,7 +568,7 @@ pub async fn send_application_approved_email(
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
-  let subject = lang.registration_approved_subject(&user.person.actor_id);
+  let subject = lang.registration_approved_subject(&user.person.ap_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings).await
 }
@@ -633,14 +633,14 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
-/// Read the site for an actor_id.
+/// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
 pub async fn read_site_for_actor(
-  actor_id: DbUrl,
+  ap_id: DbUrl,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Site>> {
-  let site_id = Site::instance_actor_id_from_url(actor_id.clone().into());
+  let site_id = Site::instance_ap_id_from_url(ap_id.clone().into());
   let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
   Ok(site)
 }
@@ -979,8 +979,8 @@ pub fn generate_local_apub_endpoint(
   Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
 }
 
-pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
+pub fn generate_followers_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{ap_id}/followers"))?.into())
 }
 
 pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
@@ -988,12 +988,12 @@ pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
   Ok(Url::parse(&url)?.into())
 }
 
-pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
+pub fn generate_outbox_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{ap_id}/outbox"))?.into())
 }
 
-pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
+pub fn generate_featured_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{ap_id}/featured"))?.into())
 }
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> LemmyResult<DbUrl> {

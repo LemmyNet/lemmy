@@ -107,8 +107,8 @@ impl Object for ApubPrivateMessage {
     let note = PrivateMessage {
       kind,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
-      to: [recipient.actor_id.into()],
+      attributed_to: creator.ap_id.into(),
+      to: [recipient.ap_id.into()],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
@@ -131,7 +131,7 @@ impl Object for ApubPrivateMessage {
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
       Err(FederationError::PersonIsBannedFromSite(
-        person.actor_id.to_string(),
+        person.ap_id.to_string(),
       ))?
     } else {
       Ok(())

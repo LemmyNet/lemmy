@@ -108,7 +108,7 @@ impl Object for ApubSite {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
-      outbox: Url::parse(&format!("{}site_outbox", self.actor_id))?,
+      outbox: Url::parse(&format!("{}site_outbox", self.ap_id))?,
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),
@@ -159,7 +159,7 @@ impl Object for ApubSite {
       icon,
       banner,
       description: apub.summary,
-      actor_id: Some(apub.id.clone().into()),
+      ap_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(apub.inbox.clone().into()),
       public_key: Some(apub.public_key.public_key_pem.clone()),
@@ -178,7 +178,7 @@ impl Object for ApubSite {
 
 impl Actor for ApubSite {
   fn id(&self) -> Url {
-    self.actor_id.inner().clone()
+    self.ap_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {
@@ -205,7 +205,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   context: &Data<LemmyContext>,
 ) -> LemmyResult<InstanceId> {
   let object_id: Url = object_id.clone().into();
-  let instance_id = Site::instance_actor_id_from_url(object_id);
+  let instance_id = Site::instance_ap_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::from(instance_id.clone())
     .dereference(context)
     .await;

@@ -175,7 +175,7 @@ impl LocalUser {
       .filter(community_actions::followed.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
-      .select(community::actor_id)
+      .select(community::ap_id)
       .get_results(conn)
       .await?;
 
@@ -199,7 +199,7 @@ impl LocalUser {
       .filter(community_actions::blocked.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
-      .select(community::actor_id)
+      .select(community::ap_id)
       .get_results(conn)
       .await?;
 
@@ -207,7 +207,7 @@ impl LocalUser {
       .filter(person_actions::blocked.is_not_null())
       .filter(person_actions::person_id.eq(person_id_))
       .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
-      .select(person::actor_id)
+      .select(person::ap_id)
       .get_results(conn)
       .await?;
 

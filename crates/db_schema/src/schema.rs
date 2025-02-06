@@ -199,7 +199,7 @@ diesel::table! {
         deleted -> Bool,
         nsfw -> Bool,
         #[max_length = 255]
-        actor_id -> Varchar,
+        ap_id -> Varchar,
         local -> Bool,
         private_key -> Nullable<Text>,
         public_key -> Text,
@@ -745,7 +745,7 @@ diesel::table! {
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         #[max_length = 255]
-        actor_id -> Varchar,
+        ap_id -> Varchar,
         bio -> Nullable<Text>,
         local -> Bool,
         private_key -> Nullable<Text>,
@@ -1046,7 +1046,7 @@ diesel::table! {
         #[max_length = 150]
         description -> Nullable<Varchar>,
         #[max_length = 255]
-        actor_id -> Varchar,
+        ap_id -> Varchar,
         last_refreshed_at -> Timestamptz,
         #[max_length = 255]
         inbox_url -> Varchar,

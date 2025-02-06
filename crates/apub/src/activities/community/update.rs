@@ -80,7 +80,7 @@ impl ActivityHandler for UpdateCommunity {
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
-    ApubCommunity::verify(&self.object, &community.actor_id.clone().into(), context).await?;
+    ApubCommunity::verify(&self.object, &community.ap_id.clone().into(), context).await?;
     Ok(())
   }
 
@@ -98,7 +98,7 @@ impl ActivityHandler for UpdateCommunity {
       published: self.object.published,
       updated: Some(self.object.updated),
       nsfw: Some(self.object.sensitive.unwrap_or(false)),
-      actor_id: Some(self.object.id.into()),
+      ap_id: Some(self.object.id.into()),
       public_key: Some(self.object.public_key.public_key_pem),
       last_refreshed_at: Some(Utc::now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
