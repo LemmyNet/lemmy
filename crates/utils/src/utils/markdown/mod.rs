@@ -8,7 +8,6 @@ mod link_rule;
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
-  /*
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);
   markdown_it_block_spoiler::add(&mut parser);
@@ -16,8 +15,6 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   markdown_it_sup::add(&mut parser);
   markdown_it_ruby::add(&mut parser);
   markdown_it_footnote::add(&mut parser);
-  */
-  markdown_it::plugins::cmark::inline::image::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
