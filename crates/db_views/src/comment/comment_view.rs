@@ -142,6 +142,7 @@ impl CommentView {
       saved: self.saved.is_some(),
       creator_blocked: self.creator_blocked,
       my_vote: self.my_vote,
+      can_mod: self.can_mod,
     }
   }
 }

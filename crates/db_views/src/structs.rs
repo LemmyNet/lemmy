@@ -223,6 +223,7 @@ pub struct CommentSlimView {
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -640,6 +641,7 @@ pub struct PersonCommentMentionView {
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -670,6 +672,7 @@ pub struct PersonPostMentionView {
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
   pub post_tags: PostTags,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -695,6 +698,7 @@ pub struct CommentReplyView {
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -788,6 +792,7 @@ pub struct InboxCombinedViewInternal {
   pub item_creator_banned_from_community: bool,
   pub item_creator_blocked: bool,
   pub banned_from_community: bool,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
