@@ -20,7 +20,11 @@ pub async fn user_block_keyword_for_posts(
   };
   if data.block {
     //Get number of post keyword block for that user
-    if PostKeywordBlock::for_person(&mut context.pool(), person_id).await?.len() >= 15 {
+    if PostKeywordBlock::for_person(&mut context.pool(), person_id)
+      .await?
+      .len()
+      >= 15
+    {
       Err(LemmyErrorType::BlockKeywordLimitReached)?;
     }
     PostKeywordBlock::block_keyword(&mut context.pool(), &post_keyword_block_form).await?;

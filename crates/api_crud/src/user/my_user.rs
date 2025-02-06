@@ -5,7 +5,7 @@ use lemmy_db_schema::source::{
   community_block::CommunityBlock,
   instance_block::InstanceBlock,
   person_block::PersonBlock,
-  post_keyword_block::PostKeywordBlock
+  post_keyword_block::PostKeywordBlock,
 };
 use lemmy_db_views::structs::{CommunityFollowerView, CommunityModeratorView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

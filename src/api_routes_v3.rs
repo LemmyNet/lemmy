@@ -223,7 +223,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .route("/report", post().to(create_post_report))
             .route("/report/resolve", put().to(resolve_post_report))
             .route("/site_metadata", get().to(get_link_metadata))
-            .route("/block",post().to(user_block_keyword_for_posts)),
+            .route("/block", post().to(user_block_keyword_for_posts)),
         )
         // Comment
         .service(
