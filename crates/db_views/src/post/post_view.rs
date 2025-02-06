@@ -367,7 +367,7 @@ fn queries<'a>() -> Queries<
           ),
         ));
       }
-      if let Some(person_id) = options.local_user.person_id() {
+      if let Some(person_id) = o.local_user.person_id() {
         let mut blocked_keywords: Vec<String> = post_keyword_block::table
           .filter(post_keyword_block::person_id.eq(person_id))
           .select(post_keyword_block::keyword)
