@@ -384,15 +384,11 @@ impl ModlogCombinedQuery<'_> {
     let is_subscribed = community_actions::followed.is_not_null();
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::Subscribed => query.filter(is_subscribed),
-      ListingType::Local => {
-        query
-          .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed))
-      }
+      ListingType::Local => query
+        .filter(community::local.eq(true))
+        .filter(community::hidden.eq(false).or(is_subscribed)),
       ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
-      ListingType::ModeratorView => {
-        query.filter(community_actions::became_moderator.is_not_null())
-      }
+      ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 
     let mut query = PaginatedQueryBuilder::new(query);
