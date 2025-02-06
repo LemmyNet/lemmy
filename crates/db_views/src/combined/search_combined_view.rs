@@ -22,7 +22,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
+  aliases::{creator_community_actions, creator_local_user},
+  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::{CommunityId, PersonId},
   schema::{
     comment,
@@ -43,10 +44,7 @@ use lemmy_db_schema::{
     search_combined,
     tag,
   },
-  source::{
-    combined::search::{search_combined_keys as key, SearchCombined},
-    community::CommunityFollower,
-  },
+  source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::InternalToCombinedView,
   utils::{functions::coalesce, fuzzy_search, get_conn, DbPool, ReverseTimestampKey},
   ListingType,
@@ -110,10 +108,13 @@ impl SearchCombinedViewInternal {
             .eq(item_creator),
         ),
     );
-    let local_user_join = local_user::table.on(
+
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
+    let creator_local_user_join = creator_local_user.on(
       item_creator
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
     );
 
     let community_actions_join = community_actions::table.on(
@@ -161,6 +162,7 @@ impl SearchCombinedViewInternal {
       .left_join(community_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
+      .left_join(creator_local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
@@ -270,7 +272,7 @@ impl SearchCombinedQuery {
         community::all_columns.nullable(),
         community_aggregates::all_columns.nullable(),
         community_actions::blocked.nullable().is_not_null(),
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         // Person
         person_aggregates::all_columns.nullable(),
         // // Shared
@@ -286,6 +288,7 @@ impl SearchCombinedQuery {
           .is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         community_actions::received_ban.nullable().is_not_null(),
+        local_user_can_mod(),
       ))
       .into_boxed();
 
@@ -445,6 +448,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         saved: v.comment_saved,
         my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else if let (
       Some(post),
@@ -477,6 +481,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
         tags: v.post_tags,
+        can_mod: v.can_mod,
       }))
     } else if let (Some(community), Some(counts)) = (v.community, v.community_counts) {
       Some(SearchCombinedView::Community(CommunityView {
@@ -485,6 +490,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         subscribed: v.subscribed,
         blocked: v.community_blocked,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else if let (Some(person), Some(counts)) = (v.item_creator, v.item_creator_counts) {
       Some(SearchCombinedView::Person(PersonView {

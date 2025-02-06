@@ -12,10 +12,11 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_actions, person},
   source::{
-    community::{Community, CommunityFollower, CommunityFollowerState},
+    community::{Community, CommunityFollowerState},
     person::Person,
   },
   utils::{get_conn, limit_and_offset, DbPool},
@@ -150,7 +151,7 @@ impl CommunityFollowerView {
         person::all_columns,
         community::all_columns,
         is_new_instance,
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
       ))
       .into_boxed();
     if all_communities {

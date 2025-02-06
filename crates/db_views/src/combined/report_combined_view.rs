@@ -22,6 +22,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
+  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityId, PersonId, PostId},
   schema::{
     comment,
@@ -43,10 +44,7 @@ use lemmy_db_schema::{
     private_message_report,
     report_combined,
   },
-  source::{
-    combined::report::{report_combined_keys as key, ReportCombined},
-    community::CommunityFollower,
-  },
+  source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::InternalToCombinedView,
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
@@ -301,7 +299,7 @@ impl ReportCombinedQuery {
         person::all_columns,
         aliases::person1.fields(person::all_columns.nullable()),
         community::all_columns.nullable(),
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         aliases::person2.fields(person::all_columns.nullable()),
         local_user::admin.nullable().is_not_null(),
         creator_community_actions

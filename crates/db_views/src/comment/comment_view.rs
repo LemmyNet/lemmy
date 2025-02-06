@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     community,
     community_actions,
     instance_actions,
+    local_user,
     local_user_language,
     person,
     person_actions,
@@ -75,6 +76,8 @@ impl CommentView {
         ),
     );
 
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
     comment::table
       .inner_join(person::table)
       .inner_join(post::table)
@@ -85,6 +88,7 @@ impl CommentView {
       .left_join(person_actions_join)
       .left_join(instance_actions_join)
       .left_join(comment_creator_community_actions_join)
+      .left_join(local_user_join)
   }
 
   pub async fn read(
@@ -557,6 +561,7 @@ mod tests {
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
+    expected_comment_view_with_person.can_mod = true;
 
     let read_comment_views_no_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
@@ -896,6 +901,7 @@ mod tests {
       subscribed: SubscribedType::NotSubscribed,
       saved: None,
       creator_blocked: false,
+      can_mod: false,
       comment: Comment {
         id: data.inserted_comment_0.id,
         content: "Comment 0".into(),

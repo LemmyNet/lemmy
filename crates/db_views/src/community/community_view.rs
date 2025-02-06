@@ -12,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, community_aggregates, instance_actions},
+  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
   source::{
     community::{Community, CommunityFollowerState},
     local_user::LocalUser,
@@ -38,10 +38,13 @@ impl CommunityView {
         .and(instance_actions::person_id.nullable().eq(person_id)),
     );
 
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
+
     community::table
       .inner_join(community_aggregates::table)
       .left_join(community_actions_join)
       .left_join(instance_actions_join)
+      .left_join(local_user_join)
   }
 
   pub async fn read(
@@ -202,6 +205,8 @@ mod tests {
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
         CommunityUpdateForm,
       },
       instance::Instance,
@@ -209,7 +214,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Followable},
+    traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
     SubscribedType,
@@ -436,6 +441,65 @@ mod tests {
       let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_le());
     }
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn can_mod() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let not_mod_query = CommunityQuery {
+      local_user: Some(&data.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|c| (c.community.name, c.can_mod))
+    .collect::<Vec<_>>();
+
+    let expected_communities = vec![
+      ("test_community_1".to_owned(), false),
+      ("test_community_2".to_owned(), false),
+      ("test_community_3".to_owned(), false),
+    ];
+    assert_eq!(expected_communities, not_mod_query);
+
+    let person_id = data.local_user.person_id;
+
+    // Now join the mod team of test community 1 and 2
+    let mod_form_1 = CommunityModeratorForm {
+      community_id: data.communities[0].id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &mod_form_1).await?;
+
+    let mod_form_2 = CommunityModeratorForm {
+      community_id: data.communities[1].id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &mod_form_2).await?;
+
+    let mod_query = CommunityQuery {
+      local_user: Some(&data.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|c| (c.community.name, c.can_mod))
+    .collect::<Vec<_>>();
+
+    let expected_communities = vec![
+      ("test_community_1".to_owned(), true),
+      ("test_community_2".to_owned(), true),
+      ("test_community_3".to_owned(), false),
+    ];
+    assert_eq!(expected_communities, mod_query);
 
     cleanup(data, pool).await
   }

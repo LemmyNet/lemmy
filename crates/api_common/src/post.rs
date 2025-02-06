@@ -4,13 +4,7 @@ use lemmy_db_schema::{
   PostFeatureType,
   PostSortType,
 };
-use lemmy_db_views::structs::{
-  CommunityModeratorView,
-  CommunityView,
-  PaginationCursor,
-  PostView,
-  VoteView,
-};
+use lemmy_db_views::structs::{CommunityView, PaginationCursor, PostView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -77,7 +71,6 @@ pub struct GetPost {
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
-  pub moderators: Vec<CommunityModeratorView>,
   /// A list of cross-posts, or other times / communities this link has been posted to.
   pub cross_posts: Vec<PostView>,
 }

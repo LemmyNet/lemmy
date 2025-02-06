@@ -23,9 +23,10 @@ pub mod sensitive;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::{community_actions, person};
+  use crate::schema::{community_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
+    local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
   );
