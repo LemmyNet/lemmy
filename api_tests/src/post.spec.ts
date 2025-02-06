@@ -39,14 +39,12 @@ import {
   listReports,
   getMyUser,
   listInbox,
-  allowInstance,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import {
   AddModToCommunity,
   EditSite,
-  LemmyHttp,
   PersonPostMentionView,
   PostReport,
   PostReportView,
@@ -98,7 +96,7 @@ async function assertPostFederation(
   expect(postOne?.post.embed_description).toBe(postTwo?.post.embed_description);
   expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
   expect(postOne?.post.published).toBe(postTwo?.post.published);
-  expect(postOne?.community.actor_id).toBe(postTwo?.community.actor_id);
+  expect(postOne?.community.ap_id).toBe(postTwo?.community.ap_id);
   expect(postOne?.post.locked).toBe(postTwo?.post.locked);
   expect(postOne?.post.removed).toBe(postTwo?.post.removed);
   expect(postOne?.post.deleted).toBe(postTwo?.post.deleted);
@@ -262,7 +260,7 @@ test("Collection of featured posts gets federated", async () => {
   // fetch the community, ensure that post is also fetched and marked as featured
   let betaCommunity = await resolveCommunity(
     beta,
-    community.community_view.community.actor_id,
+    community.community_view.community.ap_id,
   );
   expect(betaCommunity).toBeDefined();
 
@@ -368,7 +366,7 @@ test("Remove a post from admin and community on different instance", async () =>
   }
 
   let gammaCommunity = (
-    await resolveCommunity(gamma, betaCommunity.community.actor_id)
+    await resolveCommunity(gamma, betaCommunity.community.ap_id)
   ).community?.community;
   if (!gammaCommunity) {
     throw "Missing gamma community";
@@ -407,7 +405,7 @@ test("Remove a post from admin and community on same instance", async () => {
   await followBeta(alpha);
   let gammaCommunity = await resolveCommunity(
     gamma,
-    betaCommunity.community.actor_id,
+    betaCommunity.community.ap_id,
   );
   let postRes = await createPost(gamma, gammaCommunity.community!.community.id);
   expect(postRes.post_view.post).toBeDefined();
@@ -469,7 +467,7 @@ test("Enforce site ban federation for local user", async () => {
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
   let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
-  let alphaUserActorId = alphaUserPerson?.actor_id;
+  let alphaUserActorId = alphaUserPerson?.ap_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
   }
@@ -549,7 +547,7 @@ test("Enforce site ban federation for federated user", async () => {
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
   let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
-  let alphaUserActorId = alphaUserPerson?.actor_id;
+  let alphaUserActorId = alphaUserPerson?.ap_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
   }

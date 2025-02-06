@@ -82,7 +82,7 @@ pub(crate) async fn verify_person_in_community(
   let person = person_id.dereference(context).await?;
   if person.banned {
     Err(FederationError::PersonIsBannedFromSite(
-      person.actor_id.to_string(),
+      person.ap_id.to_string(),
     ))?
   }
   let person_id = person.id;
@@ -103,7 +103,7 @@ pub(crate) async fn verify_mod_action(
   // mod action comes from the same instance as the community, so it was presumably done
   // by an instance admin.
   // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == community.actor_id.domain() {
+  if mod_id.inner().domain() == community.ap_id.domain() {
     return Ok(());
   }
 
@@ -134,13 +134,13 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
 
 /// Marks object as public only if the community is public
 pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
-  let actor_id = community.actor_id.clone().into();
+  let ap_id = community.ap_id.clone().into();
   if community.visibility == CommunityVisibility::Public {
-    Ok(vec![actor_id, public()])
+    Ok(vec![ap_id, public()])
   } else {
     Ok(vec![
-      actor_id.clone(),
-      Url::parse(&format!("{}/followers", actor_id))?,
+      ap_id.clone(),
+      Url::parse(&format!("{}/followers", ap_id))?,
     ])
   }
 }

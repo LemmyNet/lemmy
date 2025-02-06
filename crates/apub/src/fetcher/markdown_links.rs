@@ -150,7 +150,7 @@ mod tests {
       ),
       (
         "rewrite community link",
-        format!("[link]({})", community.actor_id),
+        format!("[link]({})", community.ap_id),
         "[link](https://lemmy-alpha/c/my_community@example.com)",
       ),
       (

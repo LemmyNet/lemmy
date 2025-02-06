@@ -1,7 +1,7 @@
 use super::comment_sort_type_with_default;
 use crate::{
   api::listing_type_with_default,
-  fetcher::resolve_actor_identifier,
+  fetcher::resolve_ap_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
@@ -32,7 +32,7 @@ async fn list_comments_common(
 
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
     .map(|c| c.id)

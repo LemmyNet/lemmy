@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
+use crate::{fetcher::resolve_ap_identifier, objects::community::ApubCommunity};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -33,7 +33,7 @@ pub async fn get_community(
     Some(id) => id,
     None => {
       let name = data.name.clone().unwrap_or_else(|| "main".to_string());
-      resolve_actor_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
         .await?
         .id
     }
@@ -57,7 +57,7 @@ pub async fn get_community(
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
-  let site = read_site_for_actor(community_view.community.actor_id.clone(), &context).await?;
+  let site = read_site_for_actor(community_view.community.ap_id.clone(), &context).await?;
 
   let community_id = community_view.community.id;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
