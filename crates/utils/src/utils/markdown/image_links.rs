@@ -1,8 +1,11 @@
 use super::link_rule::Link;
-use crate::settings::SETTINGS;
+use crate::{settings::SETTINGS, utils::markdown::link_rule};
 use markdown_it::{
   parser::linkfmt::LinkFormatter,
-  plugins::cmark::inline::image::Image,
+  plugins::cmark::{
+    block::fence,
+    inline::{image, image::Image},
+  },
   MarkdownIt,
   NodeValue,
 };
@@ -66,9 +69,9 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   static PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
     let mut p = MarkdownIt::new();
     p.link_formatter = Box::new(NoopLinkFormatter {});
-    markdown_it::plugins::cmark::inline::image::add(&mut p);
-    markdown_it::plugins::cmark::inline::link::add(&mut p);
-
+    image::add(&mut p);
+    fence::add(&mut p);
+    link_rule::add(&mut p);
     p
   });
 
