@@ -131,6 +131,8 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub listing_type: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
