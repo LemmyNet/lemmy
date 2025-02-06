@@ -133,7 +133,8 @@ pub struct GetModlog {
   /// Filter by the modlog action type.
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
-  /// Filter by listing type. When not using All, it will remove the non-community modlog entries.
+  /// Filter by listing type. When not using All, it will remove the non-community modlog entries,
+  /// such as site bans, instance blocks, adding an admin, etc.
   #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
   /// Filter by the other / modded person.
