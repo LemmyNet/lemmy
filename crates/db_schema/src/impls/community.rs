@@ -280,7 +280,7 @@ impl Community {
 
   pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 
