@@ -133,7 +133,7 @@ FROM (
     GROUP BY
         parent_id) AS diff
 WHERE
-    a.comment_id = diff.parent_id
+    a.id = diff.parent_id
     AND diff.child_count != 0;
 
 WITH post_diff AS (
@@ -404,7 +404,7 @@ BEGIN
             (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved), 0) AS unresolved_report_count
     FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.comment_id = diff.comment_id;
+    AND a.id = diff.comment_id;
 
 RETURN NULL;
 
