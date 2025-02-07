@@ -120,7 +120,7 @@ pub struct SaveUserSettings {
   /// The default post sort, usually "active"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
-  /// A default time range limit to apply to post sorts, in seconds.
+  /// A default time range limit to apply to post sorts, in seconds. 0 means none.
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_time_range_seconds: Option<i32>,
   /// The default comment sort, usually "hot"
