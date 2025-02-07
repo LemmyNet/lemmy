@@ -105,7 +105,9 @@ pub struct CommentReportView {
   pub creator_is_admin: bool,
   pub creator_blocked: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -180,6 +182,7 @@ pub struct CommentView {
         comment_actions::saved.nullable()
     )
   )]
+  /// The time when the comment was saved.
   pub saved: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
@@ -219,7 +222,9 @@ pub struct CommentSlimView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
@@ -274,7 +279,9 @@ pub struct PostReportView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -332,6 +339,7 @@ pub struct PostView {
   pub counts: PostAggregates,
   pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
   pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
@@ -442,7 +450,7 @@ pub struct ReportCombinedViewInternal {
   pub post: Option<Post>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -450,7 +458,7 @@ pub struct ReportCombinedViewInternal {
   pub comment_report: Option<CommentReport>,
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
@@ -637,7 +645,9 @@ pub struct PersonCommentMentionView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
@@ -664,7 +674,9 @@ pub struct PersonPostMentionView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -694,7 +706,9 @@ pub struct CommentReplyView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
@@ -769,7 +783,7 @@ pub struct InboxCombinedViewInternal {
   pub person_post_mention: Option<PersonPostMention>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -782,7 +796,7 @@ pub struct InboxCombinedViewInternal {
   pub community: Option<Community>,
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   pub subscribed: SubscribedType,
   pub item_creator: Person,
