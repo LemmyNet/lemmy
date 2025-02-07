@@ -25,6 +25,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 impl Comment {
@@ -115,6 +116,11 @@ impl Comment {
     } else {
       None
     }
+  }
+
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?.into())
   }
 }
 

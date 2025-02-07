@@ -24,7 +24,11 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
+use url::Url;
 
 #[async_trait]
 impl Crud for Person {
@@ -137,6 +141,11 @@ impl Person {
     .await?
     .then_some(())
     .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
+  }
+
+  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
   }
 }
 
