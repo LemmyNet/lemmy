@@ -289,7 +289,7 @@ impl InboxCombinedQuery {
           post_aggregates::comments,
         )
         .nullable(),
-        post_actions::saved.nullable().is_not_null(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
@@ -300,7 +300,7 @@ impl InboxCombinedQuery {
         post::all_columns.nullable(),
         community::all_columns.nullable(),
         comment::all_columns.nullable(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         CommunityFollower::select_subscribed_type(),
         person::all_columns,
