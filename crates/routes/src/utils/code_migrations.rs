@@ -11,7 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
-  utils::{generate_followers_url, generate_inbox_url, generate_local_apub_endpoint, EndpointType},
+  utils::{generate_followers_url, generate_inbox_url},
 };
 use lemmy_db_schema::{
   source::{
@@ -41,11 +41,11 @@ pub async fn run_advanced_migrations(
   settings: &Settings,
 ) -> LemmyResult<()> {
   let protocol_and_hostname = &settings.get_protocol_and_hostname();
-  user_updates_2020_04_02(pool, protocol_and_hostname).await?;
-  community_updates_2020_04_02(pool, protocol_and_hostname).await?;
-  post_updates_2020_04_03(pool, protocol_and_hostname).await?;
-  comment_updates_2020_04_03(pool, protocol_and_hostname).await?;
-  private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
+  user_updates_2020_04_02(pool, settings).await?;
+  community_updates_2020_04_02(pool, settings).await?;
+  post_updates_2020_04_03(pool, settings).await?;
+  comment_updates_2020_04_03(pool, settings).await?;
+  private_message_updates_2020_05_05(pool, settings).await?;
   post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
   apub_columns_2021_02_02(pool).await?;
   instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
@@ -55,10 +55,7 @@ pub async fn run_advanced_migrations(
   Ok(())
 }
 
-async fn user_updates_2020_04_02(
-  pool: &mut DbPool<'_>,
-  protocol_and_hostname: &str,
-) -> LemmyResult<()> {
+async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
   use lemmy_db_schema::schema::person::dsl::{ap_id, local, person};
   let conn = &mut get_conn(pool).await?;
 
@@ -75,11 +72,7 @@ async fn user_updates_2020_04_02(
     let keypair = generate_actor_keypair()?;
 
     let form = PersonUpdateForm {
-      ap_id: Some(generate_local_apub_endpoint(
-        EndpointType::Person,
-        &cperson.name,
-        protocol_and_hostname,
-      )?),
+      ap_id: Some(Person::local_url(&cperson.name, settings)?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(Utc::now()),
@@ -96,7 +89,7 @@ async fn user_updates_2020_04_02(
 
 async fn community_updates_2020_04_02(
   pool: &mut DbPool<'_>,
-  protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> LemmyResult<()> {
   use lemmy_db_schema::schema::community::dsl::{ap_id, community, local};
   let conn = &mut get_conn(pool).await?;
@@ -112,11 +105,7 @@ async fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_ap_id = generate_local_apub_endpoint(
-      EndpointType::Community,
-      &ccommunity.name,
-      protocol_and_hostname,
-    )?;
+    let community_ap_id = Community::local_url(&ccommunity.name, settings)?;
 
     let form = CommunityUpdateForm {
       ap_id: Some(community_ap_id.clone()),
@@ -134,10 +123,7 @@ async fn community_updates_2020_04_02(
   Ok(())
 }
 
-async fn post_updates_2020_04_03(
-  pool: &mut DbPool<'_>,
-  protocol_and_hostname: &str,
-) -> LemmyResult<()> {
+async fn post_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
   use lemmy_db_schema::schema::post::dsl::{ap_id, local, post};
   let conn = &mut get_conn(pool).await?;
 
@@ -151,11 +137,7 @@ async fn post_updates_2020_04_03(
     .await?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::Post,
-      &cpost.id.to_string(),
-      protocol_and_hostname,
-    )?;
+    let apub_id = cpost.local_url(settings)?;
     Post::update(
       pool,
       cpost.id,
@@ -172,10 +154,7 @@ async fn post_updates_2020_04_03(
   Ok(())
 }
 
-async fn comment_updates_2020_04_03(
-  pool: &mut DbPool<'_>,
-  protocol_and_hostname: &str,
-) -> LemmyResult<()> {
+async fn comment_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
   use lemmy_db_schema::schema::comment::dsl::{ap_id, comment, local};
   let conn = &mut get_conn(pool).await?;
 
@@ -189,11 +168,7 @@ async fn comment_updates_2020_04_03(
     .await?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::Comment,
-      &ccomment.id.to_string(),
-      protocol_and_hostname,
-    )?;
+    let apub_id = ccomment.local_url(settings)?;
     Comment::update(
       pool,
       ccomment.id,
@@ -212,7 +187,7 @@ async fn comment_updates_2020_04_03(
 
 async fn private_message_updates_2020_05_05(
   pool: &mut DbPool<'_>,
-  protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> LemmyResult<()> {
   use lemmy_db_schema::schema::private_message::dsl::{ap_id, local, private_message};
   let conn = &mut get_conn(pool).await?;
@@ -227,11 +202,7 @@ async fn private_message_updates_2020_05_05(
     .await?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::PrivateMessage,
-      &cpm.id.to_string(),
-      protocol_and_hostname,
-    )?;
+    let apub_id = cpm.local_url(settings)?;
     PrivateMessage::update(
       pool,
       cpm.id,
@@ -431,11 +402,7 @@ async fn initialize_local_site_2022_10_10(
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
-    let person_ap_id = generate_local_apub_endpoint(
-      EndpointType::Person,
-      &setup.admin_username,
-      &settings.get_protocol_and_hostname(),
-    )?;
+    let person_ap_id = Person::local_url(&setup.admin_username, settings)?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
