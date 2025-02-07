@@ -433,7 +433,6 @@ $$);
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
-
 CREATE FUNCTION r.community_aggregates_from_community ()
     RETURNS TRIGGER
     LANGUAGE plpgsql

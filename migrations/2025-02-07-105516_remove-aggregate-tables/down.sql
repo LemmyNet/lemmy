@@ -14,15 +14,17 @@ CREATE TABLE comment_aggregates (
 INSERT INTO comment_aggregates
 SELECT
     id AS comment_id,
-        score,
-        upvotes,
-        downvotes,
-        published,
-        child_count,
-        hot_rank,
-        controversy_rank,
-        report_count,
-        unresolved_report_count from comment;
+    score,
+    upvotes,
+    downvotes,
+    published,
+    child_count,
+    hot_rank,
+    controversy_rank,
+    report_count,
+    unresolved_report_count
+FROM
+    comment;
 
 ALTER TABLE comment
     DROP COLUMN score,
