@@ -547,7 +547,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let expected_comment_view_no_person = expected_comment_view(&data).await?;
+    let expected_comment_view_no_person = expected_comment_view(&data);
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
@@ -693,7 +693,7 @@ mod tests {
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view(&data).await?,
+      expected_comment_view(&data),
       read_comment_views_top_max_depth[0]
     );
     assert_length!(1, read_comment_views_top_max_depth);
@@ -879,8 +879,8 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_comment_view(data: &Data) -> LemmyResult<CommentView> {
-    Ok(CommentView {
+  fn expected_comment_view(data: &Data) -> CommentView {
+    CommentView {
       creator_banned_from_community: false,
       banned_from_community: false,
       creator_is_moderator: false,
@@ -988,7 +988,7 @@ mod tests {
         visibility: CommunityVisibility::Public,
         random_number: data.inserted_community.random_number,
       },
-    })
+    }
   }
 
   #[tokio::test]
