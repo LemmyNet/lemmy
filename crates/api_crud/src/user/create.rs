@@ -19,6 +19,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
+    actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -166,11 +167,18 @@ pub async fn register(
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
+
+  // Enable languages from `Accept-Language` header
   for l in language_tags {
     if let Some(found) = all_languages.iter().find(|all| all.code == l) {
       language_ids.insert(found.id);
     }
   }
+
+  // Enable site languages. Ignored if all languages are enabled.
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
+  language_ids.extend(discussion_languages);
+
   let language_ids = language_ids.into_iter().collect();
 
   let inserted_local_user =
