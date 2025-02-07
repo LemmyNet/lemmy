@@ -503,7 +503,7 @@ mod tests {
     },
   };
   use lemmy_db_schema::{
-    aggregates::structs::{CommentAggregates, PostAggregates},
+    aggregates::structs::PostAggregates,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
@@ -1011,12 +1011,12 @@ mod tests {
 
     let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
 
-    let agg = CommentAggregates::read(pool, data.comment.id).await?;
-    assert_eq!(agg.report_count, 2);
+    let comment = Comment::read(pool, data.comment.id).await?;
+    assert_eq!(comment.report_count, 2);
 
     let read_jessica_report_view =
       CommentReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
-    assert_eq!(read_jessica_report_view.counts.unresolved_report_count, 2);
+    assert_eq!(read_jessica_report_view.comment.unresolved_report_count, 2);
 
     // Do a batch read of timmys reports
     let reports = ReportCombinedQuery::default()

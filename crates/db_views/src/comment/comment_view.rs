@@ -547,7 +547,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let expected_comment_view_no_person = expected_comment_view(&data, pool).await?;
+    let expected_comment_view_no_person = expected_comment_view(&data).await?;
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
@@ -693,7 +693,7 @@ mod tests {
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view(&data, pool).await?,
+      expected_comment_view(&data).await?,
       read_comment_views_top_max_depth[0]
     );
     assert_length!(1, read_comment_views_top_max_depth);
@@ -879,8 +879,7 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<CommentView> {
-    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id).await?;
+  async fn expected_comment_view(data: &Data) -> LemmyResult<CommentView> {
     Ok(CommentView {
       creator_banned_from_community: false,
       banned_from_community: false,
@@ -904,6 +903,14 @@ mod tests {
         distinguished: false,
         path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(37),
+        score: 1,
+        upvotes: 1,
+        downvotes: 0,
+        child_count: 5,
+        hot_rank: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       creator: Person {
         id: data.timmy_local_user_view.person.id,
@@ -980,18 +987,6 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: data.inserted_community.random_number,
-      },
-      counts: CommentAggregates {
-        comment_id: data.inserted_comment_0.id,
-        score: 1,
-        upvotes: 1,
-        downvotes: 0,
-        published: agg.published,
-        child_count: 5,
-        hot_rank: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        report_count: 0,
-        unresolved_report_count: 0,
       },
     })
   }
