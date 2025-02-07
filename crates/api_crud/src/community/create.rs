@@ -11,9 +11,7 @@ use lemmy_api_common::{
     get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,
-    local_url,
     process_markdown_opt,
-    ObjectType,
   },
 };
 use lemmy_db_schema::{
@@ -82,7 +80,7 @@ pub async fn create_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
-  let community_ap_id = local_url(ObjectType::Community(data.name.clone()), context.settings())?;
+  let community_ap_id = Community::local_url(&data.name, context.settings())?;
   let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
     Err(LemmyErrorType::CommunityAlreadyExists)?

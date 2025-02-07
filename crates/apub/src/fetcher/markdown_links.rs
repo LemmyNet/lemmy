@@ -1,7 +1,7 @@
 use super::{search::SearchableObjects, user_or_community::UserOrCommunity};
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::{context::LemmyContext, utils::local_url};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::{
   error::LemmyResult,
@@ -58,8 +58,8 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   let dereferenced = object_id.dereference(context).await.ok()?;
   match dereferenced {
     SearchableObjects::PostOrComment(pc) => match *pc {
-      PostOrComment::Post(post) => local_url(post.id, context.settings()),
-      PostOrComment::Comment(comment) => local_url(comment.id, context.settings()),
+      PostOrComment::Post(post) => post.local_url(context.settings()),
+      PostOrComment::Comment(comment) => comment.local_url(context.settings()),
     }
     .ok()
     .map(Into::into),

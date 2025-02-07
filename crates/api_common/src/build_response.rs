@@ -7,7 +7,6 @@ use crate::{
     check_person_instance_community_block,
     get_interface_language,
     is_mod_or_admin,
-    local_url,
     send_email_to_user,
   },
 };
@@ -171,7 +170,7 @@ pub async fn send_local_notifs(
           .await
           .ok();
         (
-          local_url(comment.id, context.settings())?,
+          comment.local_url(context.settings())?,
           comment.content.clone(),
         )
       } else {
@@ -186,7 +185,7 @@ pub async fn send_local_notifs(
           .await
           .ok();
         (
-          local_url(post.id, context.settings())?,
+          post.local_url(context.settings())?,
           post.body.clone().unwrap_or_default(),
         )
       };
@@ -252,7 +251,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
                 &lang.notification_comment_reply_body(
-                  local_url(comment.id, context.settings())?,
+                  comment.local_url(context.settings())?,
                   &content,
                   &inbox_link,
                   &parent_comment.content,
@@ -305,7 +304,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_post_reply_subject(&person.name),
                 &lang.notification_post_reply_body(
-                  local_url(comment.id, context.settings())?,
+                  comment.local_url(context.settings())?,
                   &content,
                   &inbox_link,
                   &post.name,

@@ -12,11 +12,9 @@ use lemmy_api_common::{
     generate_inbox_url,
     honeypot_check,
     local_site_to_slur_regex,
-    local_url,
     password_length_check,
     send_new_applicant_email_to_admins,
     send_verification_email,
-    ObjectType,
   },
 };
 use lemmy_db_schema::{
@@ -414,7 +412,7 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let ap_id = local_url(ObjectType::Person(username.clone()), context.settings())?;
+  let ap_id = Person::local_url(&username, context.settings())?;
 
   // Register the new person
   let person_form = PersonInsertForm {

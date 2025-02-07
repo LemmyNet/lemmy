@@ -11,7 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
-  utils::{generate_followers_url, generate_inbox_url, local_url, ObjectType},
+  utils::{generate_followers_url, generate_inbox_url},
 };
 use lemmy_db_schema::{
   source::{
@@ -72,10 +72,7 @@ async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> 
     let keypair = generate_actor_keypair()?;
 
     let form = PersonUpdateForm {
-      ap_id: Some(local_url(
-        ObjectType::Person(cperson.name.clone()),
-        settings,
-      )?),
+      ap_id: Some(Person::local_url(&cperson.name, settings)?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(Utc::now()),
@@ -108,7 +105,7 @@ async fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_ap_id = local_url(ObjectType::Community(ccommunity.name.clone()), settings)?;
+    let community_ap_id = Community::local_url(&ccommunity.name, settings)?;
 
     let form = CommunityUpdateForm {
       ap_id: Some(community_ap_id.clone()),
@@ -140,7 +137,7 @@ async fn post_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> 
     .await?;
 
   for cpost in &incorrect_posts {
-    let apub_id = local_url(cpost.id, settings)?;
+    let apub_id = cpost.local_url(settings)?;
     Post::update(
       pool,
       cpost.id,
@@ -171,7 +168,7 @@ async fn comment_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) 
     .await?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = local_url(ccomment.id, settings)?;
+    let apub_id = ccomment.local_url(settings)?;
     Comment::update(
       pool,
       ccomment.id,
@@ -205,7 +202,7 @@ async fn private_message_updates_2020_05_05(
     .await?;
 
   for cpm in &incorrect_pms {
-    let apub_id = local_url(cpm.id, settings)?;
+    let apub_id = cpm.local_url(settings)?;
     PrivateMessage::update(
       pool,
       cpm.id,
@@ -405,7 +402,7 @@ async fn initialize_local_site_2022_10_10(
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
-    let person_ap_id = local_url(ObjectType::Person(setup.admin_username.clone()), settings)?;
+    let person_ap_id = Person::local_url(&setup.admin_username, settings)?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {

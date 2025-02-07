@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_private_instance, local_url, local_user_view_from_jwt, ObjectType},
+  utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -389,7 +389,7 @@ fn create_reply_and_mention_items(
     .iter()
     .map(|r| match r {
       InboxCombinedView::CommentReply(v) => {
-        let reply_url = local_url(v.comment.id, context.settings())?;
+        let reply_url = v.comment.local_url(context.settings())?;
         build_item(
           &v.creator.name,
           &v.comment.published,
@@ -399,7 +399,7 @@ fn create_reply_and_mention_items(
         )
       }
       InboxCombinedView::CommentMention(v) => {
-        let mention_url = local_url(v.comment.id, context.settings())?;
+        let mention_url = v.comment.local_url(context.settings())?;
         build_item(
           &v.creator.name,
           &v.comment.published,
@@ -409,7 +409,7 @@ fn create_reply_and_mention_items(
         )
       }
       InboxCombinedView::PostMention(v) => {
-        let mention_url = local_url(v.post.id, context.settings())?;
+        let mention_url = v.post.local_url(context.settings())?;
         build_item(
           &v.creator.name,
           &v.post.published,
@@ -467,8 +467,8 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    let post_url = local_url(p.post.id, settings)?;
-    let community_url = local_url(ObjectType::Community(p.community.name.clone()), settings)?;
+    let post_url = p.post.local_url(settings)?;
+    let community_url = Community::local_url(&p.community.name, settings)?;
     let dublin_core_ext = Some(DublinCoreExtension {
       creators: vec![p.creator.ap_id.to_string()],
       ..DublinCoreExtension::default()
