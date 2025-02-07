@@ -1,6 +1,6 @@
 use crate::{
   api::{listing_type_with_default, post_sort_type_with_default},
-  fetcher::resolve_actor_identifier,
+  fetcher::resolve_ap_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
@@ -33,7 +33,7 @@ pub async fn list_posts(
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
     .map(|c| c.id)

@@ -487,9 +487,9 @@ mod test {
       let instance = Instance::read_or_create(&mut context.pool(), "localhost".to_string()).await?;
 
       let actor_keypair = generate_actor_keypair()?;
-      let actor_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
+      let ap_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
       let person_form = PersonInsertForm {
-        actor_id: Some(actor_id.clone()),
+        ap_id: Some(ap_id.clone()),
         private_key: (Some(actor_keypair.private_key)),
         inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
@@ -571,7 +571,7 @@ mod test {
     tracing::debug!("received first stats");
     assert_eq!(data.instance.id, rcv.state.instance_id);
 
-    let sent = send_activity(data.person.actor_id.clone(), &data.context, true).await?;
+    let sent = send_activity(data.person.ap_id.clone(), &data.context, true).await?;
     tracing::debug!("sent activity");
     // receive for successfully sent activity
     let inbox_rcv = data.inbox_receiver.recv().await.unwrap();
@@ -614,7 +614,7 @@ mod test {
     // let last_id_before = rcv.state.last_successful_id.unwrap();
     let mut sent = Vec::new();
     for _ in 0..40 {
-      sent.push(send_activity(data.person.actor_id.clone(), &data.context, false).await?);
+      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
     }
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
@@ -643,7 +643,7 @@ mod test {
       tracing::debug!("sending {} activities", count);
       let mut sent = Vec::new();
       for _ in 0..count {
-        sent.push(send_activity(data.person.actor_id.clone(), &data.context, false).await?);
+        sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
       }
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
@@ -660,7 +660,7 @@ mod test {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
-    send_activity(data.person.actor_id.clone(), &data.context, true).await?;
+    send_activity(data.person.ap_id.clone(), &data.context, true).await?;
     data.inbox_receiver.recv().await.unwrap();
 
     let instance =
@@ -702,7 +702,7 @@ mod test {
   }
 
   async fn send_activity(
-    actor_id: DbUrl,
+    ap_id: DbUrl,
     context: &LemmyContext,
     wait: bool,
   ) -> LemmyResult<SentActivity> {
@@ -725,7 +725,7 @@ mod test {
       send_all_instances: false,
       send_community_followers_of: None,
       actor_type: ActorType::Person,
-      actor_apub_id: actor_id,
+      actor_apub_id: ap_id,
     };
     let sent = SentActivity::create(&mut context.pool(), form).await?;
 

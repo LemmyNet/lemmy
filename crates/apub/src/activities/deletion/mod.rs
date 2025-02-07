@@ -180,7 +180,7 @@ pub(in crate::activities) async fn verify_delete_activity(
     DeletableObjects::Person(person) => {
       verify_is_public(&activity.to, &[])?;
       verify_person(&activity.actor, context).await?;
-      verify_urls_match(person.actor_id.inner(), activity.object.id())?;
+      verify_urls_match(person.ap_id.inner(), activity.object.id())?;
     }
     DeletableObjects::Post(p) => {
       let community = activity.community(context).await?;

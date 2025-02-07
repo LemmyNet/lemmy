@@ -133,7 +133,7 @@ impl Community {
     timestamp: DateTime<Utc>,
     form: &CommunityInsertForm,
   ) -> Result<Self, Error> {
-    let is_new_community = match &form.actor_id {
+    let is_new_community = match &form.ap_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
@@ -142,7 +142,7 @@ impl Community {
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(community::actor_id)
+      .on_conflict(community::ap_id)
       .filter_target(coalesce(community::updated, community::published).lt(timestamp))
       .do_update()
       .set(form)
@@ -500,7 +500,7 @@ impl ApubActor for Community {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::actor_id.eq(object_id))
+      .filter(community::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -600,7 +600,7 @@ mod tests {
       deleted: false,
       published: inserted_community.published,
       updated: None,
-      actor_id: inserted_community.actor_id.clone(),
+      ap_id: inserted_community.ap_id.clone(),
       local: true,
       private_key: None,
       public_key: "pubkey".to_owned(),

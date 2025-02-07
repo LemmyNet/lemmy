@@ -414,11 +414,11 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let actor_id = local_url(ObjectType::Person(username.clone()), context.settings())?;
+  let ap_id = local_url(ObjectType::Person(username.clone()), context.settings())?;
 
   // Register the new person
   let person_form = PersonInsertForm {
-    actor_id: Some(actor_id.clone()),
+    ap_id: Some(ap_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)

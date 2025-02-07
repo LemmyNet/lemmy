@@ -56,14 +56,14 @@ pub async fn run_advanced_migrations(
 }
 
 async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::person::dsl::{actor_id, local, person};
+  use lemmy_db_schema::schema::person::dsl::{ap_id, local, person};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
 
-  // Update the actor_id, private_key, and public_key, last_refreshed_at
+  // Update the ap_id, private_key, and public_key, last_refreshed_at
   let incorrect_persons = person
-    .filter(actor_id.like("http://changeme%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Person>(conn)
     .await?;
@@ -72,7 +72,7 @@ async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> 
     let keypair = generate_actor_keypair()?;
 
     let form = PersonUpdateForm {
-      actor_id: Some(local_url(
+      ap_id: Some(local_url(
         ObjectType::Person(cperson.name.clone()),
         settings,
       )?),
@@ -94,24 +94,24 @@ async fn community_updates_2020_04_02(
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::community::dsl::{actor_id, community, local};
+  use lemmy_db_schema::schema::community::dsl::{ap_id, community, local};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
 
-  // Update the actor_id, private_key, and public_key, last_refreshed_at
+  // Update the ap_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.like("http://changeme%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Community>(conn)
     .await?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = local_url(ObjectType::Community(ccommunity.name.clone()), settings)?;
+    let community_ap_id = local_url(ObjectType::Community(ccommunity.name.clone()), settings)?;
 
     let form = CommunityUpdateForm {
-      actor_id: Some(community_actor_id.clone()),
+      ap_id: Some(community_ap_id.clone()),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(Utc::now()),
@@ -281,7 +281,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> LemmyResult<()> {
       .await?;
 
     for c in &communities {
-      let followers_url_ = generate_followers_url(&c.actor_id)?;
+      let followers_url_ = generate_followers_url(&c.ap_id)?;
       let inbox_url_ = generate_inbox_url()?;
       diesel::update(community.find(c.id))
         .set((followers_url.eq(followers_url_), inbox_url.eq(inbox_url_)))
@@ -309,9 +309,9 @@ async fn instance_actor_2022_01_28(
       return Ok(());
     }
     let key_pair = generate_actor_keypair()?;
-    let actor_id = Url::parse(protocol_and_hostname)?;
+    let ap_id = Url::parse(protocol_and_hostname)?;
     let site_form = SiteUpdateForm {
-      actor_id: Some(actor_id.clone().into()),
+      ap_id: Some(ap_id.clone().into()),
       last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(generate_inbox_url()?),
       private_key: Some(Some(key_pair.private_key)),
@@ -405,11 +405,11 @@ async fn initialize_local_site_2022_10_10(
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
-    let person_actor_id = local_url(ObjectType::Person(setup.admin_username.clone()), settings)?;
+    let person_ap_id = local_url(ObjectType::Person(setup.admin_username.clone()), settings)?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
-      actor_id: Some(person_actor_id.clone()),
+      ap_id: Some(person_ap_id.clone()),
       inbox_url: Some(generate_inbox_url()?),
       private_key: Some(person_keypair.private_key),
       ..PersonInsertForm::new(
@@ -430,7 +430,7 @@ async fn initialize_local_site_2022_10_10(
 
   // Add an entry for the site table
   let site_key_pair = generate_actor_keypair()?;
-  let site_actor_id = Url::parse(&settings.get_protocol_and_hostname())?;
+  let site_ap_id = Url::parse(&settings.get_protocol_and_hostname())?;
 
   let name = settings
     .setup
@@ -438,7 +438,7 @@ async fn initialize_local_site_2022_10_10(
     .map(|s| s.site_name)
     .unwrap_or_else(|| "New Site".to_string());
   let site_form = SiteInsertForm {
-    actor_id: Some(site_actor_id.clone().into()),
+    ap_id: Some(site_ap_id.clone().into()),
     last_refreshed_at: Some(Utc::now()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(site_key_pair.private_key),

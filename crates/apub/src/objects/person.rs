@@ -100,7 +100,7 @@ impl Object for ApubPerson {
 
     let person = Person {
       kind,
-      id: self.actor_id.clone().into(),
+      id: self.ap_id.clone().into(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -109,7 +109,7 @@ impl Object for ApubPerson {
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(self.published),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
+      outbox: generate_outbox_url(&self.ap_id)?.into(),
       endpoints: None,
       public_key: self.public_key(),
       updated: self.updated,
@@ -163,7 +163,7 @@ impl Object for ApubPerson {
       banner,
       published: person.published,
       updated: person.updated,
-      actor_id: Some(person.id.into()),
+      ap_id: Some(person.id.into()),
       bio,
       local: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
@@ -188,7 +188,7 @@ impl Object for ApubPerson {
 
 impl Actor for ApubPerson {
   fn id(&self) -> Url {
-    self.actor_id.inner().clone()
+    self.ap_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {
@@ -268,7 +268,7 @@ pub(crate) mod tests {
     ApubPerson::verify(&json, &url, &context).await?;
     let person = ApubPerson::from_json(json, &context).await?;
 
-    assert_eq!(person.actor_id, url.into());
+    assert_eq!(person.ap_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);

@@ -341,7 +341,7 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::banned>,
   AliasedField<aliases::Person1, person::published>,
   AliasedField<aliases::Person1, person::updated>,
-  AliasedField<aliases::Person1, person::actor_id>,
+  AliasedField<aliases::Person1, person::ap_id>,
   AliasedField<aliases::Person1, person::bio>,
   AliasedField<aliases::Person1, person::local>,
   AliasedField<aliases::Person1, person::private_key>,
