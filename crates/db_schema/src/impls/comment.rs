@@ -12,7 +12,14 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    functions::{coalesce, hot_rank},
+    get_conn,
+    now,
+    uplete,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -115,6 +122,17 @@ impl Comment {
     } else {
       None
     }
+  }
+  pub async fn update_hot_rank(
+    pool: &mut DbPool<'_>,
+    comment_id: CommentId,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    diesel::update(comment::table.find(comment_id))
+      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
+      .get_result::<Self>(conn)
+      .await
   }
 }
 

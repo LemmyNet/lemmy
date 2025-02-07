@@ -14,13 +14,7 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
-  aggregates::structs::{
-    CommentAggregates,
-    CommunityAggregates,
-    PersonAggregates,
-    PostAggregates,
-    SiteAggregates,
-  },
+  aggregates::structs::{CommunityAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -97,7 +91,6 @@ pub struct CommentReportView {
   pub community: Community,
   pub creator: Person,
   pub comment_creator: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
@@ -125,8 +118,6 @@ pub struct CommentView {
   pub post: Post,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: CommentAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression =
@@ -209,7 +200,6 @@ pub struct CommentView {
 pub struct CommentSlimView {
   pub comment: Comment,
   pub creator: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -443,7 +433,6 @@ pub struct ReportCombinedViewInternal {
   // Comment-specific
   pub comment_report: Option<CommentReport>,
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: bool,
   pub my_comment_vote: Option<i16>,
   // Private-message-specific
@@ -492,7 +481,6 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared
@@ -617,7 +605,6 @@ pub struct PersonCommentMentionView {
   pub post: Post,
   pub community: Community,
   pub recipient: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -672,7 +659,6 @@ pub struct CommentReplyView {
   pub post: Post,
   pub community: Community,
   pub recipient: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -764,7 +750,6 @@ pub struct InboxCombinedViewInternal {
   pub post: Option<Post>,
   pub community: Option<Community>,
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: bool,
   pub my_comment_vote: Option<i16>,
   pub subscribed: SubscribedType,
@@ -1136,7 +1121,6 @@ pub(crate) struct SearchCombinedViewInternal {
   pub post_tags: PostTags,
   // // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // // Community-specific

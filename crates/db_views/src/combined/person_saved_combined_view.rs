@@ -18,7 +18,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     image_details,
@@ -117,7 +116,6 @@ impl PersonSavedCombinedQuery {
         post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Shared

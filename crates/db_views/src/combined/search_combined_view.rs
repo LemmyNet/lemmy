@@ -27,7 +27,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     community_aggregates,
@@ -142,9 +141,6 @@ impl SearchCombinedViewInternal {
 
     let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
 
-    let comment_aggregates_join = comment_aggregates::table
-      .on(search_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
     let community_aggregates_join = community_aggregates::table
       .on(search_combined::community_id.eq(community_aggregates::community_id.nullable()));
 
@@ -166,7 +162,6 @@ impl SearchCombinedViewInternal {
       .left_join(person_actions_join)
       .left_join(person_aggregates_join)
       .left_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
@@ -263,7 +258,6 @@ impl SearchCombinedQuery {
         post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Community-specific
@@ -424,16 +418,14 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
+    if let (Some(comment), Some(creator), Some(post), Some(community)) = (
       v.comment,
-      v.comment_counts,
       v.item_creator.clone(),
       v.post.clone(),
       v.community.clone(),
     ) {
       Some(SearchCombinedView::Comment(CommentView {
         comment,
-        counts,
         post,
         community,
         creator,

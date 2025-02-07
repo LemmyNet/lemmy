@@ -1,7 +1,6 @@
-use crate::newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId, SiteId};
+use crate::newtypes::{CommunityId, InstanceId, PersonId, PostId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::{
-  comment_aggregates,
   community_aggregates,
   person_aggregates,
   post_actions,
@@ -16,32 +15,6 @@ use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(primary_key(comment_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Aggregate data for a comment.
-pub struct CommentAggregates {
-  pub comment_id: CommentId,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
-  pub published: DateTime<Utc>,
-  /// The total number of children in this comment branch.
-  pub child_count: i32,
-  #[serde(skip)]
-  pub hot_rank: f64,
-  #[serde(skip)]
-  pub controversy_rank: f64,
-  pub report_count: i16,
-  pub unresolved_report_count: i16,
-}
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(

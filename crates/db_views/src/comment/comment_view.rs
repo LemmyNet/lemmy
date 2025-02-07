@@ -19,7 +19,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     instance_actions,
@@ -48,7 +47,7 @@ impl CommentView {
 
     let comment_actions_join = comment_actions::table.on(
       comment_actions::comment_id
-        .eq(comment_aggregates::comment_id)
+        .eq(comment::id)
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
@@ -79,7 +78,6 @@ impl CommentView {
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community_join)
-      .inner_join(comment_aggregates::table)
       .left_join(community_actions_join)
       .left_join(comment_actions_join)
       .left_join(person_actions_join)
@@ -129,7 +127,6 @@ impl CommentView {
     CommentSlimView {
       comment: self.comment,
       creator: self.creator,
-      counts: self.counts,
       creator_banned_from_community: self.creator_banned_from_community,
       banned_from_community: self.banned_from_community,
       creator_is_moderator: self.creator_is_moderator,
@@ -306,14 +303,12 @@ impl CommentQuery<'_> {
 
     query = match o.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
-        .then_order_by(comment_aggregates::hot_rank.desc())
-        .then_order_by(comment_aggregates::score.desc()),
-      CommentSortType::Controversial => {
-        query.then_order_by(comment_aggregates::controversy_rank.desc())
-      }
+        .then_order_by(comment::hot_rank.desc())
+        .then_order_by(comment::score.desc()),
+      CommentSortType::Controversial => query.then_order_by(comment::controversy_rank.desc()),
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
+      CommentSortType::Top => query.then_order_by(comment::score.desc()),
     };
 
     let res = query
@@ -351,7 +346,6 @@ mod tests {
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
-    aggregates::structs::CommentAggregates,
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,

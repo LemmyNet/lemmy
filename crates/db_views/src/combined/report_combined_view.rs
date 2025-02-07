@@ -26,7 +26,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     comment_report,
     community,
     community_actions,
@@ -143,9 +142,6 @@ impl ReportCombinedViewInternal {
     let post_aggregates_join =
       post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
 
-    let comment_aggregates_join =
-      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
-
     let community_aggregates_join = community_aggregates::table
       .on(community_report::community_id.eq(community_aggregates::community_id));
 
@@ -167,7 +163,6 @@ impl ReportCombinedViewInternal {
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
   }
@@ -288,7 +283,6 @@ impl ReportCombinedQuery {
         // Comment-specific
         comment_report::all_columns.nullable(),
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable().is_not_null(),
         comment_actions::like_score.nullable(),
         // Private-message-specific
@@ -436,14 +430,12 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
     } else if let (
       Some(comment_report),
       Some(comment),
-      Some(counts),
       Some(post),
       Some(community),
       Some(comment_creator),
     ) = (
       v.comment_report,
       v.comment,
-      v.comment_counts,
       v.post,
       v.community.clone(),
       v.item_creator.clone(),
@@ -451,7 +443,6 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
       Some(ReportCombinedView::Comment(CommentReportView {
         comment_report,
         comment,
-        counts,
         post,
         community,
         creator: v.report_creator,

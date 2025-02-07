@@ -1,6 +1,4 @@
 #[cfg(feature = "full")]
-pub mod comment_aggregates;
-#[cfg(feature = "full")]
 pub mod community_aggregates;
 #[cfg(feature = "full")]
 pub mod person_aggregates;
