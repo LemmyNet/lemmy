@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use diesel::{
   deserialize::FromSqlRow,
   dsl::exists,
+
   dsl::Nullable,
   expression::AsExpression,
   sql_types,
@@ -75,6 +76,7 @@ use lemmy_db_schema::{
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user, person1},
+  impls::comment::comment_select_remove_deletes,
   impls::community::community_follower_select_subscribed_type,
   impls::local_user::local_user_can_mod,
   schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
@@ -121,7 +123,11 @@ pub struct CommentReportView {
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment view.
 pub struct CommentView {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = comment_select_remove_deletes()
+    )
+  )]
   pub comment: Comment,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
