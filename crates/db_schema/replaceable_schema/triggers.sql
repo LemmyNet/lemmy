@@ -22,16 +22,6 @@
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
     RETURNS int IMMUTABLE PARALLEL SAFE RETURN agg.creator_id;
 
-CREATE FUNCTION r.creator_id_from_comment_aggregates (agg comment_aggregates)
-    RETURNS int IMMUTABLE PARALLEL SAFE RETURN (
-        SELECT
-            creator_id
-        FROM
-            comment
-        WHERE
-            comment.id = agg.comment_id LIMIT 1
-);
-
 CREATE PROCEDURE r.post_or_comment (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -109,7 +99,7 @@ WHERE
         AND diff.comment_count != 0;
 
 UPDATE
-    comment_aggregates AS a
+    comment AS a
 SET
     child_count = a.child_count + diff.child_count
 FROM (
@@ -406,7 +396,7 @@ $$);
 CALL r.create_triggers ('comment_report', $$
 BEGIN
     UPDATE
-        comment_aggregates AS a
+        comment AS a
     SET
         report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
     FROM (
@@ -443,25 +433,6 @@ $$);
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
-CREATE FUNCTION r.comment_aggregates_from_comment ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    INSERT INTO comment_aggregates (comment_id, published)
-    SELECT
-        id,
-        published
-    FROM
-        new_comment;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON comment REFERENCING NEW TABLE AS new_comment
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.comment_aggregates_from_comment ();
 
 CREATE FUNCTION r.community_aggregates_from_community ()
     RETURNS TRIGGER
@@ -1004,7 +975,7 @@ END
 $$;
 
 CREATE TRIGGER search_combined_comment_score
-    AFTER UPDATE OF score ON comment_aggregates
+    AFTER UPDATE OF score ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_comment_score_update ();
 
