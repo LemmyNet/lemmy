@@ -86,6 +86,7 @@ pub struct LocalSite {
   /// If this is true, users will never see the dialog asking to support Lemmy development with
   /// donations.
   pub disable_donation_dialog: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
 }

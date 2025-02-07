@@ -76,6 +76,7 @@ pub struct LocalUser {
   pub last_donation_notification: DateTime<Utc>,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
 }
