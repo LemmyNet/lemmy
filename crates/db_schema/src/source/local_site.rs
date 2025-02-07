@@ -86,6 +86,8 @@ pub struct LocalSite {
   /// If this is true, users will never see the dialog asking to support Lemmy development with
   /// donations.
   pub disable_donation_dialog: bool,
+  /// A default time range limit to apply to post sorts, in seconds.
+  pub default_post_time_range_seconds: Option<i32>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -147,6 +149,8 @@ pub struct LocalSiteInsertForm {
   pub comment_downvotes: Option<FederationMode>,
   #[new(default)]
   pub disable_donation_dialog: Option<bool>,
+  #[new(default)]
+  pub default_post_time_range_seconds: Option<Option<i32>>,
 }
 
 #[derive(Clone, Default)]
@@ -181,4 +185,5 @@ pub struct LocalSiteUpdateForm {
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
   pub disable_donation_dialog: Option<bool>,
+  pub default_post_time_range_seconds: Option<Option<i32>>,
 }

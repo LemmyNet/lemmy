@@ -224,7 +224,7 @@ pub struct SearchCombinedQuery {
   pub creator_id: Option<PersonId>,
   pub type_: Option<SearchType>,
   pub sort: Option<SearchSortType>,
-  pub time_range_seconds: Option<i64>,
+  pub time_range_seconds: Option<i32>,
   pub listing_type: Option<ListingType>,
   pub title_only: Option<bool>,
   pub post_url_only: Option<bool>,

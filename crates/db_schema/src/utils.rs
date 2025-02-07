@@ -303,6 +303,16 @@ pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
   }
 }
 
+/// Takes an API optional number, and converts it to an optional diesel DB update. Zero means erase.
+pub fn diesel_opt_number_update(opt: Option<i32>) -> Option<Option<i32>> {
+  match opt {
+    // Zero is an erase
+    Some(0) => Some(None),
+    Some(num) => Some(Some(num)),
+    None => None,
+  }
+}
+
 /// Takes an API optional text input, and converts it to an optional diesel DB update (for non
 /// nullable properties).
 pub fn diesel_required_string_update(opt: Option<&str>) -> Option<String> {
@@ -545,8 +555,8 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-pub fn seconds_to_pg_interval(seconds: i64) -> PgInterval {
-  PgInterval::from_microseconds(seconds * 1_000_000)
+pub fn seconds_to_pg_interval(seconds: i32) -> PgInterval {
+  PgInterval::from_microseconds((seconds * 1_000_000).into())
 }
 
 /// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`

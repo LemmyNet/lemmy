@@ -1,3 +1,4 @@
+use super::post_time_range_seconds_with_default;
 use crate::{
   api::{listing_type_with_default, post_sort_type_with_default},
   fetcher::resolve_ap_identifier,
@@ -25,9 +26,9 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostsResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &site_view.local_site)?;
 
   let page = data.page;
   let limit = data.limit;
@@ -55,16 +56,20 @@ pub async fn list_posts(
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user,
-    &local_site.local_site,
+    &site_view.local_site,
     community_id,
   ));
 
   let sort = Some(post_sort_type_with_default(
     data.sort,
     local_user,
-    &local_site.local_site,
+    &site_view.local_site,
   ));
-  let time_range_seconds = data.time_range_seconds;
+  let time_range_seconds = post_time_range_seconds_with_default(
+    data.time_range_seconds,
+    local_user,
+    &site_view.local_site,
+  );
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
@@ -92,7 +97,7 @@ pub async fn list_posts(
     no_comments_only,
     ..Default::default()
   }
-  .list(&local_site.site, &mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 

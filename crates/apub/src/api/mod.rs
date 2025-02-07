@@ -54,6 +54,18 @@ fn post_sort_type_with_default(
   )
 }
 
+/// Returns a default post_time_range.
+/// Order is the given, then local user default, then site default.
+fn post_time_range_seconds_with_default(
+  secs: Option<i32>,
+  local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
+) -> Option<i32> {
+  secs
+    .or(local_user.and_then(|u| u.default_post_time_range_seconds))
+    .or(local_site.default_post_time_range_seconds)
+}
+
 /// Returns a default instance-level comment sort type, if none is given by the user.
 /// Order is type, local user default, then site default.
 fn comment_sort_type_with_default(

@@ -146,7 +146,7 @@ impl CommentView {
 pub struct CommentQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommentSortType>,
-  pub time_range_seconds: Option<i64>,
+  pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,

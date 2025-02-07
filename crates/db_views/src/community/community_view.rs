@@ -107,7 +107,7 @@ impl CommunityView {
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommunitySortType>,
-  pub time_range_seconds: Option<i64>,
+  pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
   pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,

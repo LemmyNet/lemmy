@@ -260,7 +260,7 @@ pub struct PaginationCursorData {
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<PostSortType>,
-  pub time_range_seconds: Option<i64>,
+  pub time_range_seconds: Option<i32>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   // if true, the query should be handled as if community_id was not given except adding the
