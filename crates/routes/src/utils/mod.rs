@@ -15,7 +15,10 @@ pub fn cors_config(settings: &Settings) -> Cors {
     .expose_any_header()
     .max_age(3600);
 
-  if cfg!(debug_assertions) || cors_origin_setting.contains(&"*".to_string()) {
+  if cfg!(debug_assertions)
+    || cors_origin_setting.is_empty()
+    || cors_origin_setting.contains(&"*".to_string())
+  {
     cors = cors.allow_any_origin();
   } else {
     cors = cors.allowed_origin(&self_origin);
