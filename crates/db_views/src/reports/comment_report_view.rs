@@ -136,7 +136,7 @@ impl CommentReportView {
         local_user::admin.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))

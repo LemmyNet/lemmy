@@ -135,7 +135,7 @@ impl CommentView {
       creator_is_moderator: self.creator_is_moderator,
       creator_is_admin: self.creator_is_admin,
       subscribed: self.subscribed,
-      saved: self.saved.is_some(),
+      saved: self.saved,
       creator_blocked: self.creator_blocked,
       my_vote: self.my_vote,
     }
