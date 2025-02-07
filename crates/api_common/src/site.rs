@@ -69,6 +69,10 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<SearchSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,

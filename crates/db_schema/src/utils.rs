@@ -1,13 +1,13 @@
 pub mod uplete;
 
-use crate::{newtypes::DbUrl, schema_setup, CommentSortType, PostSortType};
+use crate::{newtypes::DbUrl, schema_setup};
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
   dsl,
   expression::AsExpression,
   helper_types::AsExprOf,
-  pg::Pg,
+  pg::{data_types::PgInterval, Pg},
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
@@ -495,18 +495,6 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }
 
-pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
-  use PostSortType::*;
-  match sort {
-    Active | Hot | Scaled => CommentSortType::Hot,
-    New | NewComments | MostComments => CommentSortType::New,
-    Old => CommentSortType::Old,
-    Controversial => CommentSortType::Controversial,
-    TopHour | TopSixHour | TopTwelveHour | TopDay | TopAll | TopWeek | TopYear | TopMonth
-    | TopThreeMonths | TopSixMonths | TopNineMonths => CommentSortType::Top,
-  }
-}
-
 #[allow(clippy::expect_used)]
 static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
@@ -555,6 +543,10 @@ pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
 pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   // https://github.com/diesel-rs/diesel/issues/1514
   diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
+pub fn seconds_to_pg_interval(seconds: i64) -> PgInterval {
+  PgInterval::from_microseconds(seconds * 1_000_000)
 }
 
 /// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`

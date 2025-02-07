@@ -64,6 +64,7 @@ pub async fn list_posts(
     local_user,
     &local_site.local_site,
   ));
+  let time_range_seconds = data.time_range_seconds;
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
@@ -76,6 +77,7 @@ pub async fn list_posts(
     local_user,
     listing_type,
     sort,
+    time_range_seconds,
     community_id,
     read_only,
     liked_only,
