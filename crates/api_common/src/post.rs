@@ -26,12 +26,6 @@ pub struct UpdatePostTags {
   pub tags: Vec<TagId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct UpdatePostTagsResponse {
-  pub post_view: PostView,
-}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

@@ -1,15 +1,16 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
-  post::{UpdatePostTags, UpdatePostTagsResponse},
+  post::{PostResponse, UpdatePostTags},
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{community::Community, post::Post, post_tag::PostTag, tag::PostTagInsertForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
@@ -17,13 +18,13 @@ pub async fn update_post_tags(
   data: Json<UpdatePostTags>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<UpdatePostTagsResponse>> {
+) -> LemmyResult<Json<PostResponse>> {
   let post = Post::read(&mut context.pool(), data.post_id).await?;
-  let community = Community::read(&mut context.pool(), post.community_id).await?;
-
+  
   let is_author = local_user_view.person.id == post.creator_id;
-
+  
   if !is_author {
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
     // Check if user is either the post author or a community mod
     check_community_mod_action(
       &local_user_view.person,
@@ -46,14 +47,5 @@ pub async fn update_post_tags(
     PostTag::create(&mut context.pool(), &form).await?;
   }
 
-  // Get updated post view
-  let post_view = PostView::read(
-    &mut context.pool(),
-    data.post_id,
-    Some(&local_user_view.local_user),
-    false,
-  )
-  .await?;
-
-  Ok(Json(UpdatePostTagsResponse { post_view }))
+  build_post_response(&context, post.community_id, local_user_view, data.post_id).await
 }

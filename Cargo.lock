@@ -2563,6 +2563,7 @@ dependencies = [
  "sitemap-rs",
  "tokio",
  "totp-rs",
+ "tracing",
  "url",
 ]
 
@@ -2623,7 +2624,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "tracing",
  "url",
  "uuid",
 ]

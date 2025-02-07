@@ -23,7 +23,6 @@ actix-web = { workspace = true }
 url = { workspace = true }
 futures.workspace = true
 uuid = { workspace = true }
-tracing = { workspace = true }
 anyhow.workspace = true
 chrono.workspace = true
 accept-language = "3.1.0"

@@ -215,7 +215,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
           .route("/delete", post().to(delete_community))
-          .route("/post_tags", get().to(list_community_tags))
+          .route("/post_tag/list", get().to(list_community_tags))
           // Mod Actions
           .route("/remove", post().to(remove_community))
           .route("/transfer", post().to(transfer_community))
@@ -250,7 +250,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", put().to(update_post))
           .route("/delete", post().to(delete_post))
           .route("/remove", post().to(remove_post))
-          .route("/update_tags", post().to(update_post_tags))
+          .route("/tags", put().to(update_post_tags))
           .route("/mark_as_read", post().to(mark_post_as_read))
           .route("/mark_as_read/many", post().to(mark_posts_as_read))
           .route("/hide", post().to(hide_post))

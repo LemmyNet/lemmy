@@ -17,7 +17,7 @@ impl FromSql<Nullable<sql_types::Json>, Pg> for PostTags {
   ) -> diesel::deserialize::Result<Self> {
     match bytes {
       Some(bytes) => Self::from_sql(bytes),
-      None => Ok(Self { tags: vec![] }),
+      None => Ok(Self(vec![])),
     }
   }
 }

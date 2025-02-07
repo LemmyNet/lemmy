@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId, TagId},
+  newtypes::{CommunityId, DbUrl, LanguageId, PersonId, TagId},
   source::site::Site,
   CommunityVisibility,
   ListingType,
@@ -32,6 +32,7 @@ pub struct CreateCommunityTag {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityTagResponse {
   pub id: TagId,
+  pub ap_id: DbUrl,
   pub name: String,
   pub community_id: CommunityId,
 }

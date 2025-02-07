@@ -1168,10 +1168,9 @@ pub enum SearchCombinedView {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
-#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 /// we wrap this in a struct so we can implement FromSqlRow<Json> for it
-pub struct PostTags {
-  pub tags: Vec<Tag>,
-}
+pub struct PostTags(pub Vec<Tag>);
+

@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   community::{
     CommunityTagResponse,
@@ -56,6 +56,7 @@ pub async fn create_community_tag(
 
   Ok(Json(CommunityTagResponse {
     id: tag.id,
+    ap_id: tag.ap_id,
     name: tag.name,
     community_id: tag.community_id,
   }))
@@ -93,6 +94,7 @@ pub async fn update_community_tag(
 
   Ok(Json(CommunityTagResponse {
     id: tag.id,
+    ap_id: tag.ap_id,
     name: tag.name,
     community_id: tag.community_id,
   }))
@@ -130,6 +132,7 @@ pub async fn delete_community_tag(
 
   Ok(Json(CommunityTagResponse {
     id: tag.id,
+    ap_id: tag.ap_id,
     name: tag.name,
     community_id: tag.community_id,
   }))
@@ -137,7 +140,7 @@ pub async fn delete_community_tag(
 
 #[tracing::instrument(skip(context))]
 pub async fn list_community_tags(
-  data: Json<ListCommunityTags>,
+  data: Query<ListCommunityTags>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<ListCommunityTagsResponse>> {
   let tags = Tag::get_by_community(&mut context.pool(), data.community_id).await?;
@@ -146,6 +149,7 @@ pub async fn list_community_tags(
     .into_iter()
     .map(|t| CommunityTagResponse {
       id: t.id,
+      ap_id: t.ap_id,
       name: t.name,
       community_id: t.community_id,
     })

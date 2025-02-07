@@ -2294,14 +2294,14 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(2, post_view.tags.tags.len());
-    assert_eq!(data.tag_1.name, post_view.tags.tags[0].name);
-    assert_eq!(data.tag_2.name, post_view.tags.tags[1].name);
+    assert_eq!(2, post_view.tags.0.len());
+    assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
+    assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(2, all_posts[0].tags.tags.len()); // post with tags
-    assert_eq!(0, all_posts[1].tags.tags.len()); // bot post
-    assert_eq!(0, all_posts[2].tags.tags.len()); // normal post
+    assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
+    assert_eq!(0, all_posts[1].tags.0.len()); // bot post
+    assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
     Ok(())
   }

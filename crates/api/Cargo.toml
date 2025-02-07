@@ -23,6 +23,7 @@ lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
+tracing = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
 base64 = { workspace = true }
