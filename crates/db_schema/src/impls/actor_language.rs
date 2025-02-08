@@ -1,7 +1,7 @@
 use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
-  schema::{local_site, site, site_language},
+  schema::{community, community_language, local_site, local_user_language, site, site_language},
   source::{
     actor_language::{
       CommunityLanguage,
@@ -226,22 +226,19 @@ impl CommunityLanguage {
     conn: &mut AsyncPgConnection,
     for_instance_id: InstanceId,
   ) -> Result<(), Error> {
-    use crate::schema::{
-      community::dsl as c,
-      community_language::dsl as cl,
-      site_language::dsl as sl,
-    };
-    let community_languages: Vec<LanguageId> = cl::community_language
-      .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
-      .inner_join(c::community)
-      .filter(c::instance_id.eq(for_instance_id))
-      .filter(sl::language_id.is_null())
-      .select(cl::language_id)
+    let community_languages: Vec<LanguageId> = community_language::table
+      .left_join(
+        site_language::table.on(community_language::language_id.eq(site_language::language_id)),
+      )
+      .inner_join(community::table)
+      .filter(community::instance_id.eq(for_instance_id))
+      .filter(site_language::language_id.is_null())
+      .select(community_language::language_id)
       .get_results(conn)
       .await?;
 
     for c in community_languages {
-      delete(cl::community_language.filter(cl::language_id.eq(c)))
+      delete(community_language::table.filter(community_language::language_id.eq(c)))
         .execute(conn)
         .await?;
     }
@@ -325,15 +322,17 @@ pub async fn validate_post_language(
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> LemmyResult<LanguageId> {
-  use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
   let language_id = match language_id {
     None | Some(LanguageId(0)) => {
-      let mut intersection = ul::local_user_language
-        .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
-        .filter(ul::local_user_id.eq(local_user_id))
-        .filter(cl::community_id.eq(community_id))
-        .select(cl::language_id)
+      let mut intersection = local_user_language::table
+        .inner_join(
+          community_language::table
+            .on(local_user_language::language_id.eq(community_language::language_id)),
+        )
+        .filter(local_user_language::local_user_id.eq(local_user_id))
+        .filter(community_language::community_id.eq(community_id))
+        .select(community_language::language_id)
         .get_results::<LanguageId>(conn)
         .await?;
 
