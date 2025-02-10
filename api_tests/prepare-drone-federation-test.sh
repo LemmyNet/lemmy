@@ -23,7 +23,7 @@ if [ ! -f "$PICTRS_PATH" ]; then
   while $retry && [ "$count" -lt 3 ]
   do
     # This one sometimes goes down
-    curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.17-pre.8/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.17-pre.9/pict-rs-linux-amd64" -o "$PICTRS_PATH"
     # curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
     PICTRS_HASH=$(sha256sum "$PICTRS_PATH")
     [[ "$PICTRS_HASH" != "$PICTRS_EXPECTED_HASH" ]] && retry=true || retry=false
