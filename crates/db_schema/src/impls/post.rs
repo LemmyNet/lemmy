@@ -463,8 +463,8 @@ impl PostActionsCursor {
 
 #[cfg(test)]
 mod tests {
-
   use crate::{
+    newtypes::InstanceId,
     source::{
       comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
@@ -485,7 +485,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::{build_db_pool_for_tests, uplete},
   };
-  use chrono::DateTime;
+  use chrono::{DateTime, Utc};
   use diesel::result::Error;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -532,6 +532,44 @@ mod tests {
       ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
     };
     let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await?;
+
+    let expected_post = Post {
+      id: inserted_post.id,
+      name: "A test post".into(),
+      url: None,
+      body: None,
+      alt_text: None,
+      creator_id: inserted_person.id,
+      community_id: inserted_community.id,
+      published: inserted_post.published,
+      removed: false,
+      locked: false,
+      nsfw: false,
+      deleted: false,
+      updated: None,
+      embed_title: None,
+      embed_description: None,
+      embed_video_url: None,
+      thumbnail_url: None,
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))?.into(),
+      local: true,
+      language_id: Default::default(),
+      featured_community: false,
+      featured_local: false,
+      url_content_type: None,
+      scheduled_publish_time: None,
+      comments: 0,
+      controversy_rank: 0.0,
+      downvotes: 0,
+      upvotes: 0,
+      score: 0,
+      hot_rank: 0.0,
+      hot_rank_active: 0.0,
+      instance_id: InstanceId(0),
+      newest_comment_time: Utc::now(),
+      newest_comment_time_necro: Utc::now(),
+      report_count: 0,scaled_rank: 0.0,unresolved_report_count: 0
+    };
 
     // Post Like
     let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
@@ -596,45 +634,13 @@ mod tests {
     Person::delete(pool, inserted_person.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
 
-    expect_post(&inserted_post, &read_post);
-    expect_post(&inserted_post, &updated_post);
+    assert_eq!(expected_post, read_post);
+    assert_eq!(expected_post, inserted_post);
+    assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
 
     Ok(())
-  }
-
-  fn expect_post(inserted_post: &Post, expected_post: &Post) {
-    assert_eq!(inserted_post.id, expected_post.id);
-    todo!()
-    /*
-    let expected_post = Post {
-      id: inserted_post.id,
-      name: "A test post".into(),
-      url: None,
-      body: None,
-      alt_text: None,
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      published: inserted_post.published,
-      removed: false,
-      locked: false,
-      nsfw: false,
-      deleted: false,
-      updated: None,
-      embed_title: None,
-      embed_description: None,
-      embed_video_url: None,
-      thumbnail_url: None,
-      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))?.into(),
-      local: true,
-      language_id: Default::default(),
-      featured_community: false,
-      featured_local: false,
-      url_content_type: None,
-      scheduled_publish_time: None,
-    };
-    */
   }
 
   #[tokio::test]

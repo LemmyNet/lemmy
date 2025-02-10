@@ -14,7 +14,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable, TS)
@@ -63,40 +63,6 @@ pub struct Comment {
   pub report_count: i16,
   pub unresolved_report_count: i16,
 }
-
-impl PartialEq for Comment {
-  fn eq(&self, _other: &Self) -> bool {
-    // TODO: is this really needed? seems only for tests, so we could rewrite
-    //       them to compare individual fields. or use `derivative` crate
-    todo!()
-    /*
-    self.id == other.id
-      && self.creator_id == other.creator_id
-      && self.post_id == other.post_id
-      && self.content == other.content
-      && self.removed == other.removed
-      && self.published == other.published
-      && self.updated == other.updated
-      && self.deleted == other.deleted
-      && self.ap_id == other.ap_id
-      && self.local == other.local
-      && self.path == other.path
-      && self.path == other.path
-      && self.distinguished == other.distinguished
-      && self.language_id == other.language_id
-      && self.score == other.score
-      && self.upvotes == other.upvotes
-      && self.downvotes == other.downvotes
-      && self.child_count == other.child_count
-      && self.hot_rank == other.hot_rank
-      && self.controversy_rank == other.controversy_rank
-      && self.report_count == other.report_count
-      && self.unresolved_report_count == other.unresolved_report_count
-      */
-  }
-}
-
-impl Eq for Comment {}
 
 #[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

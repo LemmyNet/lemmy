@@ -11,7 +11,7 @@ use {
 };
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
@@ -95,17 +95,6 @@ pub struct Post {
   pub report_count: i16,
   pub unresolved_report_count: i16,
 }
-
-impl PartialEq for Post {
-  fn eq(&self, other: &Self) -> bool {
-    todo!()
-    /*
-    self.id == other.id && self.name == other.name && self.url == other.url && self.body == other.body && self.creator_id == other.creator_id && self.community_id == other.community_id && self.removed == other.removed && self.locked == other.locked && self.published == other.published && self.updated == other.updated && self.deleted == other.deleted && self.nsfw == other.nsfw && self.embed_title == other.embed_title && self.embed_description == other.embed_description && self.thumbnail_url == other.thumbnail_url && self.ap_id == other.ap_id && self.local == other.local && self.embed_video_url == other.embed_video_url && self.language_id == other.language_id && self.featured_community == other.featured_community && self.featured_local == other.featured_local && self.url_content_type == other.url_content_type && self.alt_text == other.alt_text && self.scheduled_publish_time == other.scheduled_publish_time && self.comments == other.comments && self.score == other.score && self.upvotes == other.upvotes && self.downvotes == other.downvotes && self.newest_comment_time_necro == other.newest_comment_time_necro && self.newest_comment_time == other.newest_comment_time && self.hot_rank == other.hot_rank && self.hot_rank_active == other.hot_rank_active && self.controversy_rank == other.controversy_rank && self.instance_id == other.instance_id && self.scaled_rank == other.scaled_rank && self.report_count == other.report_count && self.unresolved_report_count == other.unresolved_report_count
-    */
-  }
-}
-
-impl Eq for Post {}
 
 #[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

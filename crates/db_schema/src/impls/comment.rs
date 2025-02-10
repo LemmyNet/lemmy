@@ -280,6 +280,30 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
+    let expected_comment = Comment {
+      id: inserted_comment.id,
+      content: "A test comment".into(),
+      creator_id: inserted_person.id,
+      post_id: inserted_post.id,
+      removed: false,
+      deleted: false,
+      path: Ltree(format!("0.{}", inserted_comment.id)),
+      published: inserted_comment.published,
+      updated: None,
+      ap_id: Url::parse(&format!(
+        "https://lemmy-alpha/comment/{}",
+        inserted_comment.id
+      ))?
+      .into(),
+      distinguished: false,
+      local: true,
+      language_id: LanguageId::default(),
+      child_count: 0,
+      controversy_rank: 0.0,
+      downvotes: 0,
+      upvotes: 0,score: 0, hot_rank: 0.0, report_count: 0, unresolved_report_count: 0
+    };
+
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
@@ -331,41 +355,19 @@ mod tests {
     Person::delete(pool, inserted_person.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
 
-    expect_comment(&inserted_comment, &read_comment)?;
-    expect_comment(&inserted_comment, &updated_comment)?;
+    assert_eq!(expected_comment, read_comment);
+    assert_eq!(expected_comment, inserted_comment);
+    assert_eq!(expected_comment, updated_comment);
     assert_eq!(expected_comment_like, inserted_comment_like);
     assert_eq!(expected_comment_saved, inserted_comment_saved);
     assert_eq!(
-      format!("0.{}.{}", read_comment.id, inserted_child_comment.id),
+      format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
     assert_eq!(uplete::Count::only_updated(1), like_removed);
     assert_eq!(uplete::Count::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
 
-    Ok(())
-  }
-
-  fn expect_comment(inserted_comment: &Comment, comment: &Comment) -> LemmyResult<()> {
-    assert_eq!(inserted_comment.id, comment.id);
-    assert_eq!("A test comment".to_string(), comment.content);
-    assert_eq!(inserted_comment.post_id, comment.post_id);
-    assert_eq!(inserted_comment.creator_id, comment.creator_id);
-    assert!(!comment.removed);
-    assert!(!comment.deleted);
-    assert_eq!(Ltree(format!("0.{}", inserted_comment.id)), comment.path);
-    assert_eq!(inserted_comment.published, comment.published);
-    assert_eq!(None, comment.updated);
-    assert_eq!(
-      &Url::parse(&format!(
-        "https://lemmy-alpha/comment/{}",
-        inserted_comment.id
-      ))?,
-      comment.ap_id.inner()
-    );
-    assert!(!comment.distinguished);
-    assert!(comment.local);
-    assert_eq!(LanguageId::default(), comment.language_id);
     Ok(())
   }
 
