@@ -14,7 +14,7 @@ export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LE
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 PICTRS_PATH="api_tests/pict-rs"
-PICTRS_EXPECTED_HASH="d5e6ceb49d955e9f839a191f88ae86d744c291fbca295bba0029518770634e38  api_tests/pict-rs"
+PICTRS_EXPECTED_HASH="7f7ac2a45ef9b13403ee139b7512135be6b060ff2f6460e0c800e18e1b49d2fd  api_tests/pict-rs"
 
 # Pictrs setup. Download file with hash check and up to 3 retries. 
 if [ ! -f "$PICTRS_PATH" ]; then
