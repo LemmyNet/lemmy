@@ -350,6 +350,8 @@ diesel::table! {
         width -> Int4,
         height -> Int4,
         content_type -> Text,
+        #[max_length = 50]
+        blurhash -> Nullable<Varchar>,
     }
 }
 
