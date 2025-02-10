@@ -18,10 +18,11 @@ pub async fn get_mod_log(
   check_private_instance(&local_user_view, &local_site)?;
 
   let type_ = data.type_;
+  let listing_type = data.listing_type;
   let community_id = data.community_id;
 
-  let is_mod_or_admin = if let Some(local_user_view) = local_user_view {
-    check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool())
+  let is_mod_or_admin = if let Some(local_user_view) = &local_user_view {
+    check_community_mod_of_any_or_admin_action(local_user_view, &mut context.pool())
       .await
       .is_ok()
   } else {
@@ -37,6 +38,7 @@ pub async fn get_mod_log(
   let other_person_id = data.other_person_id;
   let post_id = data.post_id;
   let comment_id = data.comment_id;
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
@@ -48,9 +50,11 @@ pub async fn get_mod_log(
 
   let modlog = ModlogCombinedQuery {
     type_,
+    listing_type,
     community_id,
     mod_person_id,
     other_person_id,
+    local_user,
     post_id,
     comment_id,
     hide_modlog_names: Some(hide_modlog_names),
