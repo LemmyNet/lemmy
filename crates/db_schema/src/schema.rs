@@ -850,6 +850,19 @@ diesel::table! {
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
         scheduled_publish_time -> Nullable<Timestamptz>,
+        comments -> Int8,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        newest_comment_time_necro -> Timestamptz,
+        newest_comment_time -> Timestamptz,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
+        controversy_rank -> Float8,
+        instance_id -> Int4,
+        scaled_rank -> Float8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -864,30 +877,6 @@ diesel::table! {
         liked -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    post_aggregates (post_id) {
-        post_id -> Int4,
-        comments -> Int8,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
-        published -> Timestamptz,
-        newest_comment_time_necro -> Timestamptz,
-        newest_comment_time -> Timestamptz,
-        featured_community -> Bool,
-        featured_local -> Bool,
-        hot_rank -> Float8,
-        hot_rank_active -> Float8,
-        community_id -> Int4,
-        creator_id -> Int4,
-        controversy_rank -> Float8,
-        instance_id -> Int4,
-        scaled_rank -> Float8,
-        report_count -> Int2,
-        unresolved_report_count -> Int2,
     }
 }
 
@@ -1187,10 +1176,6 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
-diesel::joinable!(post_aggregates -> community (community_id));
-diesel::joinable!(post_aggregates -> instance (instance_id));
-diesel::joinable!(post_aggregates -> person (creator_id));
-diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
@@ -1272,7 +1257,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_saved_combined,
   post,
   post_actions,
-  post_aggregates,
   post_report,
   post_tag,
   previously_run_sql,

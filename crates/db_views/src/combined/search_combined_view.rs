@@ -37,7 +37,6 @@ use lemmy_db_schema::{
     person_aggregates,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     search_combined,
     tag,
@@ -139,8 +138,6 @@ impl SearchCombinedViewInternal {
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
     let community_aggregates_join = community_aggregates::table
       .on(search_combined::community_id.eq(community_aggregates::community_id.nullable()));
 
@@ -161,7 +158,6 @@ impl SearchCombinedViewInternal {
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(person_aggregates_join)
-      .left_join(post_aggregates_join)
       .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
@@ -244,10 +240,9 @@ impl SearchCombinedQuery {
       .select((
         // Post-specific
         post::all_columns.nullable(),
-        post_aggregates::all_columns.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         )
         .nullable(),
         post_actions::saved.nullable(),
@@ -440,13 +435,11 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       }))
     } else if let (
       Some(post),
-      Some(counts),
       Some(creator),
       Some(community),
       Some(unread_comments),
     ) = (
       v.post,
-      v.post_counts,
       v.item_creator.clone(),
       v.community.clone(),
       v.post_unread_comments,
@@ -454,7 +447,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Post(PostView {
         post,
         community,
-        counts,
         unread_comments,
         creator,
         creator_banned_from_community: v.item_creator_banned_from_community,

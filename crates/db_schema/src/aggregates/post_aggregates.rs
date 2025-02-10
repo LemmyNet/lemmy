@@ -1,4 +1,4 @@
-use crate::{
+/*use crate::{
   aggregates::structs::PostAggregates,
   newtypes::PostId,
   schema::{community_aggregates, post, post_aggregates},
@@ -17,36 +17,6 @@ impl PostAggregates {
     post_aggregates::table.find(post_id).first(conn).await
   }
 
-  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    // Diesel can't update based on a join, which is necessary for the scaled_rank
-    // https://github.com/diesel-rs/diesel/issues/1478
-    // Just select the metrics we need manually, for now, since its a single post anyway
-
-    let interactions_month = community_aggregates::table
-      .select(community_aggregates::interactions_month)
-      .inner_join(post::table.on(community_aggregates::community_id.eq(post::community_id)))
-      .filter(post::id.eq(post_id))
-      .first::<i64>(conn)
-      .await?;
-
-    diesel::update(post_aggregates::table.find(post_id))
-      .set((
-        post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
-        post_aggregates::hot_rank_active.eq(hot_rank(
-          post_aggregates::score,
-          post_aggregates::newest_comment_time_necro,
-        )),
-        post_aggregates::scaled_rank.eq(scaled_rank(
-          post_aggregates::score,
-          post_aggregates::published,
-          interactions_month,
-        )),
-      ))
-      .get_result::<Self>(conn)
-      .await
-  }
 }
 
 #[cfg(test)]
@@ -268,3 +238,4 @@ mod tests {
     Ok(())
   }
 }
+*/

@@ -27,7 +27,6 @@ use lemmy_db_schema::{
     person_saved_combined,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     tag,
   },
@@ -103,10 +102,9 @@ impl PersonSavedCombinedQuery {
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select((
         // Post-specific
-        post_aggregates::all_columns,
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),

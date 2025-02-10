@@ -1,7 +1,7 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, person, post, post_actions},
+  schema::{community, community_aggregates, person, post, post_actions},
   source::post::{
     Post,
     PostActionsCursor,
@@ -18,7 +18,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::coalesce,
+    functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
     uplete,
@@ -37,6 +37,7 @@ use diesel::{
   result::Error,
   DecoratableTarget,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
   TextExpressionMethods,
 };
@@ -268,6 +269,34 @@ impl Post {
       .filter(post::creator_id.eq(person_id))
       .select(count(post::id))
       .first::<i64>(conn)
+      .await
+  }
+
+  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Diesel can't update based on a join, which is necessary for the scaled_rank
+    // https://github.com/diesel-rs/diesel/issues/1478
+    // Just select the metrics we need manually, for now, since its a single post anyway
+
+    let interactions_month = community_aggregates::table
+      .select(community_aggregates::interactions_month)
+      .inner_join(post::table.on(community_aggregates::community_id.eq(post::community_id)))
+      .filter(post::id.eq(post_id))
+      .first::<i64>(conn)
+      .await?;
+
+    diesel::update(post::table.find(post_id))
+      .set((
+        post::hot_rank.eq(hot_rank(post::score, post::published)),
+        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro)),
+        post::scaled_rank.eq(scaled_rank(
+          post::score,
+          post::published,
+          interactions_month,
+        )),
+      ))
+      .get_result::<Self>(conn)
       .await
   }
 }

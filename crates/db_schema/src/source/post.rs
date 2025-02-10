@@ -1,22 +1,25 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{post, post_actions};
+use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods};
-#[cfg(feature = "full")]
-use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  crate::schema::{post, post_actions},
+  diesel::{dsl, expression_methods::NullableExpressionMethods},
+  i_love_jesus::CursorKeysModule,
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 /// A post.
 pub struct Post {
   pub id: PostId,
@@ -69,7 +72,40 @@ pub struct Post {
   /// Time at which the post will be published. None means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
+  pub comments: i64,
+  pub score: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  #[serde(skip)]
+  /// A newest comment time, limited to 2 days, to prevent necrobumping
+  pub newest_comment_time_necro: DateTime<Utc>,
+  /// The time of the newest comment in the post.
+  pub newest_comment_time: DateTime<Utc>,
+  #[serde(skip)]
+  pub hot_rank: f64,
+  #[serde(skip)]
+  pub hot_rank_active: f64,
+  #[serde(skip)]
+  pub controversy_rank: f64,
+  #[serde(skip)]
+  pub instance_id: InstanceId,
+  /// A rank that amplifies smaller communities
+  #[serde(skip)]
+  pub scaled_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
 }
+
+impl PartialEq for Post {
+  fn eq(&self, other: &Self) -> bool {
+    todo!()
+    /*
+    self.id == other.id && self.name == other.name && self.url == other.url && self.body == other.body && self.creator_id == other.creator_id && self.community_id == other.community_id && self.removed == other.removed && self.locked == other.locked && self.published == other.published && self.updated == other.updated && self.deleted == other.deleted && self.nsfw == other.nsfw && self.embed_title == other.embed_title && self.embed_description == other.embed_description && self.thumbnail_url == other.thumbnail_url && self.ap_id == other.ap_id && self.local == other.local && self.embed_video_url == other.embed_video_url && self.language_id == other.language_id && self.featured_community == other.featured_community && self.featured_local == other.featured_local && self.url_content_type == other.url_content_type && self.alt_text == other.alt_text && self.scheduled_publish_time == other.scheduled_publish_time && self.comments == other.comments && self.score == other.score && self.upvotes == other.upvotes && self.downvotes == other.downvotes && self.newest_comment_time_necro == other.newest_comment_time_necro && self.newest_comment_time == other.newest_comment_time && self.hot_rank == other.hot_rank && self.hot_rank_active == other.hot_rank_active && self.controversy_rank == other.controversy_rank && self.instance_id == other.instance_id && self.scaled_rank == other.scaled_rank && self.report_count == other.report_count && self.unresolved_report_count == other.unresolved_report_count
+    */
+  }
+}
+
+impl Eq for Post {}
 
 #[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

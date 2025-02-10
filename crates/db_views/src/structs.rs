@@ -14,7 +14,7 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
-  aggregates::structs::{CommunityAggregates, PersonAggregates, PostAggregates, SiteAggregates},
+  aggregates::structs::{CommunityAggregates, PersonAggregates, SiteAggregates},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -273,7 +273,6 @@ pub struct PostReportView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub counts: PostAggregates,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
@@ -321,7 +320,6 @@ pub struct PostView {
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
-  pub counts: PostAggregates,
   pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The time when the post was saved.
@@ -432,7 +430,6 @@ pub struct ReportCombinedViewInternal {
   // Post-specific
   pub post_report: Option<PostReport>,
   pub post: Option<Post>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -479,7 +476,6 @@ pub enum ReportCombinedView {
 /// A combined person_content view
 pub(crate) struct PersonContentCombinedViewInternal {
   // Post-specific
-  pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -640,7 +636,6 @@ pub struct PersonPostMentionView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
   pub recipient: Person,
-  pub counts: PostAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -750,7 +745,6 @@ pub struct InboxCombinedViewInternal {
   pub person_comment_mention: Option<PersonCommentMention>,
   // Person post mention
   pub person_post_mention: Option<PersonPostMention>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -1125,7 +1119,6 @@ pub struct SearchCombinedPaginationCursor(pub String);
 pub(crate) struct SearchCombinedViewInternal {
   // Post-specific
   pub post: Option<Post>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,

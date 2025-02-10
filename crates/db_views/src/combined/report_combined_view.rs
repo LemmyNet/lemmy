@@ -36,7 +36,6 @@ use lemmy_db_schema::{
     person_actions,
     post,
     post_actions,
-    post_aggregates,
     post_report,
     private_message,
     private_message_report,
@@ -139,9 +138,6 @@ impl ReportCombinedViewInternal {
         .and(comment_actions::person_id.eq(my_person_id)),
     );
 
-    let post_aggregates_join =
-      post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
-
     let community_aggregates_join = community_aggregates::table
       .on(community_report::community_id.eq(community_aggregates::community_id));
 
@@ -162,7 +158,6 @@ impl ReportCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .left_join(post_aggregates_join)
       .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
   }
@@ -270,10 +265,9 @@ impl ReportCombinedQuery {
         // Post-specific
         post_report::all_columns.nullable(),
         post::all_columns.nullable(),
-        post_aggregates::all_columns.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         )
         .nullable(),
         post_actions::saved.nullable(),
@@ -398,14 +392,12 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
       Some(post),
       Some(community),
       Some(unread_comments),
-      Some(counts),
       Some(post_creator),
     ) = (
       v.post_report,
       v.post.clone(),
       v.community.clone(),
       v.post_unread_comments,
-      v.post_counts,
       v.item_creator.clone(),
     ) {
       Some(ReportCombinedView::Post(PostReportView {
@@ -413,7 +405,6 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         post,
         community,
         unread_comments,
-        counts,
         creator: v.report_creator,
         post_creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
@@ -503,7 +494,6 @@ mod tests {
     },
   };
   use lemmy_db_schema::{
-    aggregates::structs::PostAggregates,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},

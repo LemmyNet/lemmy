@@ -66,13 +66,7 @@ pub async fn get_post(
     let read_form = PostReadForm::new(post_id, person_id);
     PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
-    update_read_comments(
-      person_id,
-      post_id,
-      post_view.counts.comments,
-      &mut context.pool(),
-    )
-    .await?;
+    update_read_comments(person_id, post_id, post_view.post.comments, &mut context.pool()).await?;
   }
 
   // Necessary for the sidebar subscribed
