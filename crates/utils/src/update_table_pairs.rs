@@ -17,7 +17,10 @@ fn main() -> std::io::Result<()> {
       if dir_entry.file_type()?.is_dir() {
         remaining_dir_paths.push(dir_entry.path());
       } else if dir_entry.path().extension().map(OsStr::as_encoded_bytes) == Some(b"rs") {
-        files.push(read_to_string(dir_entry.path())?);
+        let contents = read_to_string(dir_entry.path())?;
+        if !contents.starts_with("// @generated") {
+          files.push(contents);
+        }
       }
     }
   }
@@ -49,6 +52,7 @@ fn main() -> std::io::Result<()> {
         })
     })
     .collect::<BTreeSet<_>>();
+  println!("{} pairs", pairs.len());
   for [a, b] in pairs {
     write!(
       &mut result,
