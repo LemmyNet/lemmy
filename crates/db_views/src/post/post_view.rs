@@ -16,7 +16,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases::creator_community_actions, impls::local_user::LocalUserOptionHelper, newtypes::{CommunityId, PersonId, PostId}, schema::{
+  aliases::creator_community_actions,
+  impls::local_user::LocalUserOptionHelper,
+  newtypes::{CommunityId, PersonId, PostId},
+  schema::{
     community,
     community_actions,
     image_details,
@@ -29,12 +32,15 @@ use lemmy_db_schema::{
     post_actions,
     post_tag,
     tag,
-  }, source::{
+  },
+  source::{
     community::{CommunityFollower, CommunityFollowerState},
     local_user::LocalUser,
     post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,
-  }, traits::Crud, utils::{
+  },
+  traits::Crud,
+  utils::{
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -44,7 +50,10 @@ use lemmy_db_schema::{
     Commented,
     DbPool,
     ReverseTimestampKey,
-  }, CommunityVisibility, ListingType, PostSortType
+  },
+  CommunityVisibility,
+  ListingType,
+  PostSortType,
 };
 use tracing::debug;
 use PostSortType::*;

@@ -6,7 +6,7 @@
 -- before the automatic deletion of the row that references it. This is not a problem for insert or delete.
 --
 -- Triggers that update multiple tables should use this order: person_aggregates, comment_aggregates,
--- post_aggregates, community_aggregates, site_aggregates
+-- post, community_aggregates, site_aggregates
 --   * The order matters because the updated rows are locked until the end of the transaction, and statements
 --     in a trigger don't use separate transactions. This means that updates closer to the beginning cause
 --     longer locks because the duration of each update extends the durations of the locks caused by previous
@@ -19,7 +19,7 @@
 --
 --
 -- Create triggers for both post and comments
-CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
+CREATE FUNCTION r.creator_id_from_post (agg post)
     RETURNS int IMMUTABLE PARALLEL SAFE RETURN agg.creator_id;
 
 CREATE PROCEDURE r.post_or_comment (table_name text)
@@ -138,7 +138,7 @@ WHERE
 
 WITH post_diff AS (
     UPDATE
-        post_aggregates AS a
+        post AS a
     SET
         comments = a.comments + diff.comments,
         newest_comment_time = GREATEST (a.newest_comment_time, diff.newest_comment_time),
@@ -163,7 +163,7 @@ WITH post_diff AS (
     GROUP BY
         post.id) AS diff
     WHERE
-        a.post_id = diff.post_id
+        a.id = diff.post_id
         AND (diff.comments,
             GREATEST (a.newest_comment_time, diff.newest_comment_time),
             GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
@@ -328,12 +328,12 @@ BEGIN
                     1
                 ELSE
                     -1
-                END) * post_aggregates.comments) AS comments
+                END) * post.comments) AS comments
         FROM
             new_post
             INNER JOIN old_post ON new_post.id = old_post.id
                 AND (r.is_counted (new_post.*) != r.is_counted (old_post.*))
-                INNER JOIN post_aggregates ON post_aggregates.post_id = new_post.id
+                INNER JOIN post ON post.id = new_post.id
             GROUP BY
                 old_post.community_id) AS diff
 WHERE
@@ -377,7 +377,7 @@ $$);
 CALL r.create_triggers ('post_report', $$
 BEGIN
     UPDATE
-        post_aggregates AS a
+        post AS a
     SET
         report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
     FROM (
@@ -385,7 +385,7 @@ BEGIN
             (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved), 0) AS unresolved_report_count
     FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.post_id = diff.post_id;
+    AND a.id = diff.post_id;
 
 RETURN NULL;
 
@@ -472,12 +472,12 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.person_aggregates_from_person ();
 
-CREATE FUNCTION r.post_aggregates_from_post ()
+CREATE FUNCTION r.post_from_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO post_aggregates (post_id, published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local)
+    INSERT INTO post (post_id, published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local)
     SELECT
         new_post.id,
         new_post.published,
@@ -498,15 +498,15 @@ $$;
 CREATE TRIGGER aggregates
     AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
-    EXECUTE FUNCTION r.post_aggregates_from_post ();
+    EXECUTE FUNCTION r.post_from_post ();
 
-CREATE FUNCTION r.post_aggregates_from_post_update ()
+CREATE FUNCTION r.post_from_post_update ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
     UPDATE
-        post_aggregates
+        post
     SET
         featured_community = new_post.featured_community,
         featured_local = new_post.featured_local
@@ -517,7 +517,7 @@ BEGIN
                 old_post.featured_local) != (new_post.featured_community,
                 new_post.featured_local)
     WHERE
-        post_aggregates.post_id = new_post.id;
+        post.id = new_post.id;
     RETURN NULL;
 END;
 $$;
@@ -525,7 +525,7 @@ $$;
 CREATE TRIGGER aggregates_update
     AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
-    EXECUTE FUNCTION r.post_aggregates_from_post_update ();
+    EXECUTE FUNCTION r.post_from_post_update ();
 
 CREATE FUNCTION r.site_aggregates_from_site ()
     RETURNS TRIGGER
@@ -931,7 +931,7 @@ CALL r.create_search_combined_trigger ('community');
 CALL r.create_search_combined_trigger ('person');
 
 -- You also need to triggers to update the `score` column.
--- post | post_aggregates::score
+-- post | post::score
 -- comment | comment_aggregates::score
 -- community | community_aggregates::users_active_monthly
 -- person | person_aggregates::post_score
@@ -953,7 +953,7 @@ END
 $$;
 
 CREATE TRIGGER search_combined_post_score
-    AFTER UPDATE OF score ON post_aggregates
+    AFTER UPDATE OF score ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_post_score_update ();
 
