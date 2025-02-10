@@ -32,6 +32,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 impl Comment {
@@ -133,6 +134,10 @@ impl Comment {
       .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
       .get_result::<Self>(conn)
       .await
+  }
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?.into())
   }
 }
 
@@ -301,7 +306,11 @@ mod tests {
       child_count: 0,
       controversy_rank: 0.0,
       downvotes: 0,
-      upvotes: 0,score: 0, hot_rank: 0.0, report_count: 0, unresolved_report_count: 0
+      upvotes: 0,
+      score: 0,
+      hot_rank: 0.0,
+      report_count: 0,
+      unresolved_report_count: 0,
     };
 
     let child_comment_form = CommentInsertForm::new(

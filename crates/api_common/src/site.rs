@@ -124,16 +124,26 @@ pub struct ResolveObjectResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches the modlog.
 pub struct GetModlog {
+  /// Filter by the moderator.
   #[cfg_attr(feature = "full", ts(optional))]
   pub mod_person_id: Option<PersonId>,
+  /// Filter by the community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  /// Filter by the modlog action type.
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
+  /// Filter by listing type. When not using All, it will remove the non-community modlog entries,
+  /// such as site bans, instance blocks, adding an admin, etc.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub listing_type: Option<ListingType>,
+  /// Filter by the other / modded person.
   #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
+  /// Filter by post. Will include comments of that post.
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
+  /// Filter by comment.
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
