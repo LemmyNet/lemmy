@@ -10,13 +10,11 @@ use lemmy_api_common::{
     check_registration_application,
     check_user_valid,
     generate_inbox_url,
-    generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
     send_verification_email,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -193,7 +191,6 @@ pub async fn register(
   Ok(Json(login_response))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn authenticate_with_oauth(
   data: Json<AuthenticateWithOauth>,
   req: HttpRequest,
@@ -404,7 +401,7 @@ pub async fn authenticate_with_oauth(
     login_response.jwt = Some(jwt);
   }
 
-  return Ok(Json(login_response));
+  Ok(Json(login_response))
 }
 
 async fn create_person(
@@ -415,15 +412,11 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let actor_id = generate_local_apub_endpoint(
-    EndpointType::Person,
-    &username,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let ap_id = Person::local_url(&username, context.settings())?;
 
   // Register the new person
   let person_form = PersonInsertForm {
-    actor_id: Some(actor_id.clone()),
+    ap_id: Some(ap_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)

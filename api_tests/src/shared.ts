@@ -83,6 +83,7 @@ import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
+import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_types";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
@@ -199,7 +200,7 @@ export async function setupLogins() {
   }
 }
 
-async function allowInstance(api: LemmyHttp, instance: string) {
+export async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,
@@ -324,9 +325,8 @@ export async function searchPostLocal(
   post: Post,
 ): Promise<SearchResponse> {
   let form: Search = {
-    q: post.name,
+    search_term: post.name,
     type_: "Posts",
-    sort: "TopAll",
     listing_type: "All",
   };
   return api.search(form);
@@ -339,7 +339,7 @@ export async function waitForPost(
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
   return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.posts[0]),
+    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
     checker,
   );
 }
@@ -883,7 +883,8 @@ export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
   community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  return api.getCommunityPendingFollowsCount(community_id);
+  let form: GetCommunityPendingFollowsCountI = { community_id };
+  return api.getCommunityPendingFollowsCount(form);
 }
 
 export function approveCommunityPendingFollow(

@@ -1,5 +1,3 @@
-#![recursion_limit = "256"]
-
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;
@@ -41,6 +39,10 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
+#[cfg(feature = "full")]
+use diesel::query_source::AliasedField;
+#[cfg(feature = "full")]
+use schema::person;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -99,6 +101,19 @@ pub enum CommentSortType {
   New,
   Old,
   Controversial,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search sort types.
+pub enum SearchSortType {
+  #[default]
+  New,
+  Top,
+  Old,
 }
 
 #[derive(
@@ -166,11 +181,14 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
+  #[default]
   All,
   Comments,
   Posts,
@@ -229,11 +247,23 @@ pub enum InboxDataType {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A list of possible types for the various modlog actions.
+/// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
   Comments,
   Posts,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for reports.
+pub enum ReportType {
+  All,
+  Posts,
+  Comments,
+  PrivateMessages,
+  Communities,
 }
 
 #[derive(
@@ -300,3 +330,28 @@ macro_rules! assert_length {
     assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
   }};
 }
+
+#[cfg(feature = "full")]
+/// A helper tuple for person alias columns
+pub type Person1AliasAllColumnsTuple = (
+  AliasedField<aliases::Person1, person::id>,
+  AliasedField<aliases::Person1, person::name>,
+  AliasedField<aliases::Person1, person::display_name>,
+  AliasedField<aliases::Person1, person::avatar>,
+  AliasedField<aliases::Person1, person::banned>,
+  AliasedField<aliases::Person1, person::published>,
+  AliasedField<aliases::Person1, person::updated>,
+  AliasedField<aliases::Person1, person::ap_id>,
+  AliasedField<aliases::Person1, person::bio>,
+  AliasedField<aliases::Person1, person::local>,
+  AliasedField<aliases::Person1, person::private_key>,
+  AliasedField<aliases::Person1, person::public_key>,
+  AliasedField<aliases::Person1, person::last_refreshed_at>,
+  AliasedField<aliases::Person1, person::banner>,
+  AliasedField<aliases::Person1, person::deleted>,
+  AliasedField<aliases::Person1, person::inbox_url>,
+  AliasedField<aliases::Person1, person::matrix_user_id>,
+  AliasedField<aliases::Person1, person::bot_account>,
+  AliasedField<aliases::Person1, person::ban_expires>,
+  AliasedField<aliases::Person1, person::instance_id>,
+);

@@ -15,6 +15,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
+use lemmy_utils::error::LemmyResult;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -154,6 +155,14 @@ pub trait Reportable {
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
+  where
+    Self: Sized;
+  async fn resolve_apub(
+    pool: &mut DbPool<'_>,
+    object_id: Self::ObjectIdType,
+    report_creator_id: PersonId,
+    resolver_id: PersonId,
+  ) -> LemmyResult<usize>
   where
     Self: Sized;
   async fn resolve_all_for_object(

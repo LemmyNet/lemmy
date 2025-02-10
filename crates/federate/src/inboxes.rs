@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
@@ -284,7 +284,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site")?.into(),
+      ap_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,
@@ -407,7 +407,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site")?.into(),
+      ap_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,
@@ -524,7 +524,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site")?.into(),
+      ap_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,

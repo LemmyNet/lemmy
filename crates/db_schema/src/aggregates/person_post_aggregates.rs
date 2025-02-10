@@ -3,7 +3,7 @@ use crate::{
   diesel::OptionalExtension,
   newtypes::{PersonId, PostId},
   schema::post_actions,
-  utils::{find_action, get_conn, now, DbPool},
+  utils::{get_conn, now, DbPool},
 };
 use diesel::{
   expression::SelectableHelper,
@@ -37,7 +37,9 @@ impl PersonPostAggregates {
     post_id_: PostId,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    find_action(post_actions::read_comments, (person_id_, post_id_))
+    post_actions::table
+      .find((person_id_, post_id_))
+      .filter(post_actions::read_comments.is_not_null())
       .select(Self::as_select())
       .first(conn)
       .await

@@ -49,7 +49,6 @@ impl Object for SiteOrCommunity {
   type Kind = InstanceOrGroup;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(match self {
       SiteOrCommunity::Site(i) => i.last_refreshed_at,
@@ -57,7 +56,6 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>>
   where
     Self: Sized,
@@ -85,7 +83,6 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -97,7 +94,6 @@ impl Object for SiteOrCommunity {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self>
   where
     Self: Sized,
@@ -114,8 +110,8 @@ impl Object for SiteOrCommunity {
 impl SiteOrCommunity {
   fn id(&self) -> ObjectId<SiteOrCommunity> {
     match self {
-      SiteOrCommunity::Site(s) => ObjectId::from(s.actor_id.clone()),
-      SiteOrCommunity::Community(c) => ObjectId::from(c.actor_id.clone()),
+      SiteOrCommunity::Site(s) => ObjectId::from(s.ap_id.clone()),
+      SiteOrCommunity::Community(c) => ObjectId::from(c.ap_id.clone()),
     }
   }
 }
@@ -125,7 +121,7 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyRe
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
       .into_iter()
-      .map(|s| s.actor_id.into())
+      .map(|s| s.ap_id.into())
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.id()],
   })

@@ -1,6 +1,6 @@
 use crate::{
   api::{listing_type_with_default, post_sort_type_with_default},
-  fetcher::resolve_actor_identifier,
+  fetcher::resolve_ap_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
@@ -15,12 +15,11 @@ use lemmy_db_schema::{
   source::{community::Community, post::PostRead},
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
+  post::post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn list_posts(
   data: Query<GetPosts>,
   context: Data<LemmyContext>,
@@ -34,7 +33,7 @@ pub async fn list_posts(
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
     .map(|c| c.id)

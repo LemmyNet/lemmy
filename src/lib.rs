@@ -52,12 +52,16 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   VERSION,
 };
+use mimalloc::MiMalloc;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
 use std::{ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
@@ -138,9 +142,6 @@ enum MigrationSubcommand {
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
-  // Print version number to log
-  println!("Starting Lemmy v{VERSION}");
-
   if let Some(CmdSubcommand::Migration {
     subcommand,
     all,
@@ -150,7 +151,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     let mut options = match subcommand {
       MigrationSubcommand::Run => schema_setup::Options::default().run(),
       MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
-    };
+    }
+    .print_output();
 
     if !all {
       options = options.limit(number);
@@ -160,6 +162,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
     return Ok(());
   }
+
+  // Print version number to log
+  println!("Starting Lemmy v{VERSION}");
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;

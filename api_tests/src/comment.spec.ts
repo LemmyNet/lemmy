@@ -69,7 +69,7 @@ function assertCommentFederation(
   expect(commentOne?.comment.ap_id).toBe(commentTwo?.comment.ap_id);
   expect(commentOne?.comment.content).toBe(commentTwo?.comment.content);
   expect(commentOne?.creator.name).toBe(commentTwo?.creator.name);
-  expect(commentOne?.community.actor_id).toBe(commentTwo?.community.actor_id);
+  expect(commentOne?.community.ap_id).toBe(commentTwo?.community.ap_id);
   expect(commentOne?.comment.published).toBe(commentTwo?.comment.published);
   expect(commentOne?.comment.updated).toBe(commentOne?.comment.updated);
   expect(commentOne?.comment.deleted).toBe(commentOne?.comment.deleted);
@@ -581,7 +581,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // follow community from beta so that it accepts the mention
   let betaCommunity = await resolveCommunity(
     beta,
-    alphaCommunity.community.actor_id,
+    alphaCommunity.community.ap_id,
   );
   await followCommunity(beta, true, betaCommunity.community!.community.id);
 

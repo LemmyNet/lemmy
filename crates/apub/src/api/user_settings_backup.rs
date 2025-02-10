@@ -70,7 +70,6 @@ pub struct UserSettingsBackup {
   pub blocked_instances: Vec<String>,
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
@@ -96,7 +95,6 @@ pub async fn export_settings(
   }))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn import_settings(
   data: Json<UserSettingsBackup>,
   local_user_view: LocalUserView,
@@ -323,8 +321,7 @@ pub(crate) mod tests {
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::structs::LocalUserView;
-  use lemmy_db_views_actor::structs::CommunityFollowerView;
+  use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
@@ -371,7 +368,7 @@ pub(crate) mod tests {
 
     let follows = CommunityFollowerView::for_person(pool, import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
-    assert_eq!(follows[0].community.actor_id, community.actor_id);
+    assert_eq!(follows[0].community.ap_id, community.ap_id);
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;

@@ -9,7 +9,7 @@ then
 fi
 
 export RUST_BACKTRACE=1
-export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LEVEL,lemmy_api=$LEMMY_LOG_LEVEL,lemmy_api_common=$LEMMY_LOG_LEVEL,lemmy_api_crud=$LEMMY_LOG_LEVEL,lemmy_apub=$LEMMY_LOG_LEVEL,lemmy_db_schema=$LEMMY_LOG_LEVEL,lemmy_db_views=$LEMMY_LOG_LEVEL,lemmy_db_views_actor=$LEMMY_LOG_LEVEL,lemmy_db_views_moderator=$LEMMY_LOG_LEVEL,lemmy_routes=$LEMMY_LOG_LEVEL,lemmy_utils=$LEMMY_LOG_LEVEL,lemmy_websocket=$LEMMY_LOG_LEVEL"
+export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LEVEL,lemmy_api=$LEMMY_LOG_LEVEL,lemmy_api_common=$LEMMY_LOG_LEVEL,lemmy_api_crud=$LEMMY_LOG_LEVEL,lemmy_apub=$LEMMY_LOG_LEVEL,lemmy_db_schema=$LEMMY_LOG_LEVEL,lemmy_db_views=$LEMMY_LOG_LEVEL,lemmy_routes=$LEMMY_LOG_LEVEL,lemmy_utils=$LEMMY_LOG_LEVEL,lemmy_websocket=$LEMMY_LOG_LEVEL"
 
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
@@ -85,13 +85,11 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_gamma.hjson \
   target/lemmy_server >$LOG_DIR/lemmy_gamma.out 2>&1 &
 
 echo "start delta"
-# An instance with only an allowlist for beta
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_delta" \
   target/lemmy_server >$LOG_DIR/lemmy_delta.out 2>&1 &
 
 echo "start epsilon"
-# An instance who has a blocklist, with lemmy-alpha blocked
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
   target/lemmy_server >$LOG_DIR/lemmy_epsilon.out 2>&1 &

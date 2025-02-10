@@ -16,7 +16,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn create_pm_report(
   data: Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,

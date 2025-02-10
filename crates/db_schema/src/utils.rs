@@ -9,22 +9,15 @@ use diesel::{
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
-  query_dsl::methods::{FilterDsl, FindDsl, LimitDsl},
-  query_source::{Alias, AliasSource, AliasedField},
+  query_dsl::methods::LimitDsl,
   result::{
     ConnectionError,
     ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
-  sql_types::{self, SingleValue, Timestamptz},
-  Column,
+  sql_types::{self, Timestamptz},
   Expression,
-  ExpressionMethods,
   IntoSql,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QuerySource,
-  Table,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -35,8 +28,7 @@ use diesel_async::{
   },
   AsyncConnection,
 };
-use diesel_bind_if_some::BindIfSome;
-use futures_util::{future::BoxFuture, Future, FutureExt};
+use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -531,7 +523,7 @@ pub mod functions {
 
   define_sql_function! {
     #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
+    fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
   }
 
   define_sql_function! {
@@ -580,102 +572,6 @@ impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T
 /// Output of `IntoSql::into_sql` for a type that implements `AsRecord`
 pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
 
-/// Output of `t.on((l0, l1).into_sql().eq((r0, r1)))`
-type OnTupleEq<T, L0, L1, R0, R1> = dsl::On<T, dsl::Eq<AsRecordOutput<(L0, L1)>, (R0, R1)>>;
-
-/// Creates an `ON` clause for a table where a person ID and another column are used as the
-/// primary key. Use with the `QueryDsl::left_join` method.
-///
-/// This example modifies a query to make columns in `community_actions` available:
-///
-/// ```
-/// community::table
-///   .left_join(actions(
-///     community_actions::table,
-///     my_person_id,
-///     community::id,
-///   ))
-/// ```
-pub fn actions<T, P, C, K0, K1>(
-  actions_table: T,
-  person_id: Option<P>,
-  target_id: C,
-) -> OnTupleEq<T, dsl::Nullable<K0>, K1, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C>
-where
-  T: Table<PrimaryKey = (K0, K1)> + Copy,
-  K0: Expression,
-  P: AsExpression<sql_types::Integer>,
-  (dsl::Nullable<K0>, K1): AsRecord,
-  (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C):
-    AsExpression<<AsRecordOutput<(dsl::Nullable<K0>, K1)> as Expression>::SqlType>,
-{
-  let (k0, k1) = actions_table.primary_key();
-  actions_table.on((k0.nullable(), k1).into_sql().eq((
-    BindIfSome(person_id.map(diesel::IntoSql::into_sql)),
-    target_id,
-  )))
-}
-
-/// Like `actions` but `actions_table` is an alias and person id is not nullable
-#[allow(clippy::type_complexity)]
-pub fn actions_alias<T, P, C, K0, K1>(
-  actions_table: Alias<T>,
-  person_id: P,
-  target_id: C,
-) -> OnTupleEq<Alias<T>, AliasedField<T, K0>, AliasedField<T, K1>, P, C>
-where
-  Alias<T>: QuerySource + Copy,
-  T: AliasSource<Target: Table<PrimaryKey = (K0, K1)>> + Default,
-  K0: Column<Table = T::Target>,
-  K1: Column<Table = T::Target>,
-  (AliasedField<T, K0>, AliasedField<T, K1>): AsRecord,
-  (P, C): AsExpression<
-    <AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)> as Expression>::SqlType,
-  >,
-{
-  let (k0, k1) = T::default().target().primary_key();
-  actions_table.on(
-    (actions_table.field(k0), actions_table.field(k1))
-      .into_sql()
-      .eq((person_id, target_id)),
-  )
-}
-
-/// `action_query(table_name::action_name)` is the same as
-/// `table_name::table.filter(table_name::action_name.is_not_null())`.
-pub fn action_query<C>(column: C) -> dsl::Filter<C::Table, dsl::IsNotNull<C>>
-where
-  C: Column<Table: Default + FilterDsl<dsl::IsNotNull<C>>, SqlType: SingleValue>,
-{
-  action_query_with_fn(column, |t| t)
-}
-
-/// `find_action(table_name::action_name, key)` is the same as
-/// `table_name::table.find(key).filter(table_name::action_name.is_not_null())`.
-pub fn find_action<C, K>(
-  column: C,
-  key: K,
-) -> dsl::Filter<dsl::Find<C::Table, K>, dsl::IsNotNull<C>>
-where
-  C:
-    Column<Table: Default + FindDsl<K, Output: FilterDsl<dsl::IsNotNull<C>>>, SqlType: SingleValue>,
-{
-  action_query_with_fn(column, |t| t.find(key))
-}
-
-/// `action_query_with_fn(table_name::action_name, f)` is the same as
-/// `f(table_name::table).filter(table_name::action_name.is_not_null())`.
-fn action_query_with_fn<C, Q>(
-  column: C,
-  f: impl FnOnce(C::Table) -> Q,
-) -> dsl::Filter<Q, dsl::IsNotNull<C>>
-where
-  C: Column<Table: Default, SqlType: SingleValue>,
-  Q: FilterDsl<dsl::IsNotNull<C>>,
-{
-  f(C::Table::default()).filter(column.is_not_null())
-}
-
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
 pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
@@ -685,58 +581,6 @@ impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, 
 pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
 
 impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
-
-/// Allows read and list functions to capture a shared closure that has an inferred return type,
-/// which is useful for join logic
-pub struct Queries<RF, LF> {
-  pub read_fn: RF,
-  pub list_fn: LF,
-}
-
-// `()` is used to prevent type inference error
-impl Queries<(), ()> {
-  pub fn new<'a, RFut, LFut, RT, LT, RA, LA, RF2, LF2>(
-    read_fn: RF2,
-    list_fn: LF2,
-  ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
-  where
-    RFut: Future<Output = Result<RT, DieselError>> + Sized + Send + 'a,
-    LFut: Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
-    RF2: Fn(DbConn<'a>, RA) -> RFut,
-    LF2: Fn(DbConn<'a>, LA) -> LFut,
-  {
-    Queries {
-      read_fn: move |conn, args| read_fn(conn, args).boxed(),
-      list_fn: move |conn, args| list_fn(conn, args).boxed(),
-    }
-  }
-}
-
-impl<RF, LF> Queries<RF, LF> {
-  pub async fn read<'a, T, Args>(
-    self,
-    pool: &'a mut DbPool<'_>,
-    args: Args,
-  ) -> Result<T, DieselError>
-  where
-    RF: ReadFn<'a, T, Args>,
-  {
-    let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await
-  }
-
-  pub async fn list<'a, T, Args>(
-    self,
-    pool: &'a mut DbPool<'_>,
-    args: Args,
-  ) -> Result<Vec<T>, DieselError>
-  where
-    LF: ListFn<'a, T, Args>,
-  {
-    let conn = get_conn(pool).await?;
-    (self.list_fn)(conn, args).await
-  }
-}
 
 pub fn paginate<Q, C>(
   query: Q,
