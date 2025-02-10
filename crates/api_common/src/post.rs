@@ -95,6 +95,7 @@ pub struct GetPosts {
   #[cfg_attr(feature = "full", ts(optional))]
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.
+  /// Use Zero to override the local_site and local_user time_range.
   pub time_range_seconds: Option<i32>,
   /// DEPRECATED, use page_cursor
   #[cfg_attr(feature = "full", ts(optional))]
