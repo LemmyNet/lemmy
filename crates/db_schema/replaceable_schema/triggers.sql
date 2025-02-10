@@ -474,20 +474,22 @@ CREATE FUNCTION r.post_from_post ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO post (post_id, published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local)
-    SELECT
-        new_post.id,
-        new_post.published,
-        new_post.published,
-        new_post.published,
-        new_post.community_id,
-        new_post.creator_id,
-        community.instance_id,
-        new_post.featured_community,
-        new_post.featured_local
+    UPDATE
+        post
+    SET
+        published = new_post.published,
+        newest_comment_time = new_post.published,
+        newest_comment_time_necro = new_post.published,
+        community_id = new_post.community_id,
+        creator_id = new_post.creator_id,
+        instance_id = community.instance_id,
+        featured_community = new_post.featured_community,
+        featured_local = new_post.featured_local
     FROM
         new_post
-        INNER JOIN community ON community.id = new_post.community_id;
+        INNER JOIN community ON community.id = new_post.community_id
+    WHERE
+        post.id = new_post.id;
     RETURN NULL;
 END;
 $$;
@@ -495,6 +497,7 @@ $$;
 CREATE TRIGGER aggregates
     AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
+    WHEN (pg_trigger_depth() = 0)
     EXECUTE FUNCTION r.post_from_post ();
 
 CREATE FUNCTION r.post_from_post_update ()
@@ -522,6 +525,7 @@ $$;
 CREATE TRIGGER aggregates_update
     AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
+    WHEN (pg_trigger_depth() = 0)
     EXECUTE FUNCTION r.post_from_post_update ();
 
 CREATE FUNCTION r.site_aggregates_from_site ()
@@ -965,7 +969,7 @@ BEGIN
     SET
         score = NEW.score
     WHERE
-        comment_id = NEW.comment_id;
+        comment_id = NEW.id;
     RETURN NULL;
 END
 $$;
