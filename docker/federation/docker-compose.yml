@@ -49,7 +49,7 @@ services:
 
   pictrs:
     restart: always
-    image: asonix/pictrs:0.5.16
+    image: asonix/pictrs:0.5.17-pre.9
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt:Z

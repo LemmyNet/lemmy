@@ -97,6 +97,10 @@ pub struct ListCommunities {
   #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<CommunitySortType>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,

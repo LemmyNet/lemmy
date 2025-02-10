@@ -46,7 +46,15 @@ use lemmy_db_schema::{
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::InternalToCombinedView,
-  utils::{functions::coalesce, fuzzy_search, get_conn, DbPool, ReverseTimestampKey},
+  utils::{
+    functions::coalesce,
+    fuzzy_search,
+    get_conn,
+    now,
+    seconds_to_pg_interval,
+    DbPool,
+    ReverseTimestampKey,
+  },
   ListingType,
   SearchSortType,
   SearchType,
@@ -218,6 +226,7 @@ pub struct SearchCombinedQuery {
   pub creator_id: Option<PersonId>,
   pub type_: Option<SearchType>,
   pub sort: Option<SearchSortType>,
+  pub time_range_seconds: Option<i32>,
   pub listing_type: Option<ListingType>,
   pub title_only: Option<bool>,
   pub post_url_only: Option<bool>,
@@ -405,6 +414,13 @@ impl SearchCombinedQuery {
       Old => query.then_desc(ReverseTimestampKey(key::published)),
       Top => query.then_desc(key::score),
     };
+
+    // Filter by the time range
+    if let Some(time_range_seconds) = self.time_range_seconds {
+      query = query
+        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
     // finally use unique id as tie breaker
     query = query.then_desc(key::id);
 

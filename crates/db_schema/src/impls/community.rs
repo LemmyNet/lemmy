@@ -47,7 +47,11 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
+use url::Url;
 
 #[async_trait]
 impl Crud for Community {
@@ -272,6 +276,11 @@ impl Community {
     community::removed
       .eq(false)
       .and(community::deleted.eq(false))
+  }
+
+  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 
