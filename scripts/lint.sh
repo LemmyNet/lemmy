@@ -14,4 +14,6 @@ taplo format
 # Format sql files
 find migrations crates/db_schema/replaceable_schema -type f -name '*.sql' -exec pg_format -i {} +
 
+cargo run --package=lemmy_utils --bin=lemmy_update_table_pairs --features=full
+
 cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-targets --all-features -- -D warnings

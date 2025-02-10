@@ -18,6 +18,11 @@ name = "lemmy_util_bin"
 path = "src/main.rs"
 required-features = ["full"]
 
+[[bin]]
+name = "lemmy_update_table_pairs"
+path = "src/update_table_pairs.rs"
+required-features = ["full"]
+
 [lints]
 workspace = true
 
