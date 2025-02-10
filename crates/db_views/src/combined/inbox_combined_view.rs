@@ -460,12 +460,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           banned_from_community: v.banned_from_community,
         },
       ))
-    } else if let (
-      Some(person_post_mention),
-      Some(post),
-      Some(unread_comments),
-      Some(community),
-    ) = (
+    } else if let (Some(person_post_mention), Some(post), Some(unread_comments), Some(community)) = (
       v.person_post_mention,
       v.post,
       v.post_unread_comments,

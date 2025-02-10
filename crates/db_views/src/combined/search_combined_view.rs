@@ -433,12 +433,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
       }))
-    } else if let (
-      Some(post),
-      Some(creator),
-      Some(community),
-      Some(unread_comments),
-    ) = (
+    } else if let (Some(post), Some(creator), Some(community), Some(unread_comments)) = (
       v.post,
       v.item_creator.clone(),
       v.community.clone(),
