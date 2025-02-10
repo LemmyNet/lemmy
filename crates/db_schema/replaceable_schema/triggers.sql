@@ -19,9 +19,6 @@
 --
 --
 -- Create triggers for both post and comments
-CREATE FUNCTION r.creator_id_from_post (agg post)
-    RETURNS int IMMUTABLE PARALLEL SAFE RETURN agg.creator_id;
-
 CREATE PROCEDURE r.post_or_comment (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -31,7 +28,7 @@ BEGIN
         CALL r.create_triggers ('thing_actions', $$
             BEGIN
                 WITH thing_diff AS ( UPDATE
-                        thing_aggregates AS a
+                        thing AS a
                     SET
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
@@ -39,10 +36,10 @@ BEGIN
                             (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
                 WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
-                a.thing_id = diff.thing_id
+                a.id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
                 RETURNING
-                    r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+                    a.creator_id AS creator_id, diff.upvotes - diff.downvotes AS score)
             UPDATE
                 person_aggregates AS a
             SET
@@ -947,7 +944,7 @@ BEGIN
     SET
         score = NEW.score
     WHERE
-        post_id = NEW.post_id;
+        post_id = NEW.id;
     RETURN NULL;
 END
 $$;

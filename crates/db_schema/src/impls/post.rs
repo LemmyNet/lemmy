@@ -301,7 +301,7 @@ impl Post {
       ))
       .get_result::<Self>(conn)
       .await
-    }
+  }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
@@ -575,7 +575,9 @@ mod tests {
       instance_id: InstanceId(0),
       newest_comment_time: Utc::now(),
       newest_comment_time_necro: Utc::now(),
-      report_count: 0,scaled_rank: 0.0,unresolved_report_count: 0
+      report_count: 0,
+      scaled_rank: 0.0,
+      unresolved_report_count: 0,
     };
 
     // Post Like
