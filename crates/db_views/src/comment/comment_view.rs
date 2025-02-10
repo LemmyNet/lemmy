@@ -29,7 +29,7 @@ use lemmy_db_schema::{
     post,
   },
   source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
@@ -146,6 +146,7 @@ impl CommentView {
 pub struct CommentQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommentSortType>,
+  pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
@@ -315,6 +316,13 @@ impl CommentQuery<'_> {
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
     };
+
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(
+        comment_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
+    }
 
     let res = query
       .limit(limit)

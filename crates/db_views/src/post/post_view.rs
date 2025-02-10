@@ -1,7 +1,7 @@
 use crate::structs::{PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{exists, not, IntervalDsl},
+  dsl::{exists, not},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
@@ -48,6 +48,7 @@ use lemmy_db_schema::{
     limit_and_offset,
     now,
     paginate,
+    seconds_to_pg_interval,
     Commented,
     DbPool,
     ReverseTimestampKey,
@@ -259,6 +260,7 @@ pub struct PaginationCursorData {
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<PostSortType>,
+  pub time_range_seconds: Option<i32>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   // if true, the query should be handled as if community_id was not given except adding the
@@ -595,8 +597,6 @@ impl<'a> PostQuery<'a> {
         query.then_desc(key::featured_community)
       };
 
-      let time = |interval| post_aggregates::published.gt(now() - interval);
-
       // then use the main sort
       query = match o.sort.unwrap_or(Hot) {
         Active => query.then_desc(key::hot_rank_active),
@@ -607,18 +607,15 @@ impl<'a> PostQuery<'a> {
         Old => query.then_desc(ReverseTimestampKey(key::published)),
         NewComments => query.then_desc(key::newest_comment_time),
         MostComments => query.then_desc(key::comments),
-        TopAll => query.then_desc(key::score),
-        TopYear => query.then_desc(key::score).filter(time(1.years())),
-        TopMonth => query.then_desc(key::score).filter(time(1.months())),
-        TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-        TopDay => query.then_desc(key::score).filter(time(1.days())),
-        TopHour => query.then_desc(key::score).filter(time(1.hours())),
-        TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-        TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-        TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-        TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-        TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+        Top => query.then_desc(key::score),
       };
+
+      // Filter by the time range
+      if let Some(time_range_seconds) = o.time_range_seconds {
+        query = query.filter(
+          post_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+        );
+      }
 
       // use publish as fallback. especially useful for hot rank which reaches zero after some days.
       // necessary because old posts can be fetched over federation and inserted with high post id

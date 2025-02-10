@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  utils::{functions::lower, get_conn, limit_and_offset, DbPool},
+  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -107,6 +107,7 @@ impl CommunityView {
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommunitySortType>,
+  pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
   pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
@@ -176,6 +177,12 @@ impl CommunityQuery<'_> {
       NameAsc => query = query.order_by(lower(community::name).asc()),
       NameDesc => query = query.order_by(lower(community::name).desc()),
     };
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(
+        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
+    }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 

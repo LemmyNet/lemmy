@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::diesel_string_update,
+  utils::{diesel_opt_number_update, diesel_string_update},
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -68,6 +68,8 @@ pub async fn update_site(
       .await?
       .as_deref(),
   );
+  let default_post_time_range_seconds =
+    diesel_opt_number_update(data.default_post_time_range_seconds);
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
@@ -93,6 +95,7 @@ pub async fn update_site(
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_post_sort_type: data.default_post_sort_type,
+    default_post_time_range_seconds,
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
