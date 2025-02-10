@@ -878,14 +878,14 @@ mod tests {
       PostReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
 
     // Make sure the triggers are reading the aggregates correctly.
-    let agg_1 = PostAggregates::read(pool, data.post.id).await?;
-    let agg_2 = PostAggregates::read(pool, data.post_2.id).await?;
+    let agg_1 = Post::read(pool, data.post.id).await?;
+    let agg_2 = Post::read(pool, data.post_2.id).await?;
 
     assert_eq!(
       read_jessica_report_view.post_report,
       inserted_jessica_report
     );
-    assert_eq!(read_jessica_report_view.post, data.post_2);
+    assert_eq!(read_jessica_report_view.post.id, data.post_2.id);
     assert_eq!(read_jessica_report_view.community.id, data.community.id);
     assert_eq!(read_jessica_report_view.creator.id, data.jessica.id);
     assert_eq!(read_jessica_report_view.post_creator.id, data.timmy.id);
@@ -939,12 +939,12 @@ mod tests {
     );
 
     // Make sure the unresolved_post report got decremented in the trigger
-    let agg_2 = PostAggregates::read(pool, data.post_2.id).await?;
+    let agg_2 = Post::read(pool, data.post_2.id).await?;
     assert_eq!(agg_2.report_count, 1);
     assert_eq!(agg_2.unresolved_report_count, 0);
 
     // Make sure the other unresolved report isn't changed
-    let agg_1 = PostAggregates::read(pool, data.post.id).await?;
+    let agg_1 = Post::read(pool, data.post.id).await?;
     assert_eq!(agg_1.report_count, 1);
     assert_eq!(agg_1.unresolved_report_count, 1);
 

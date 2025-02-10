@@ -348,7 +348,7 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::LanguageId,
+    newtypes::{CommentId, LanguageId},
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
@@ -387,6 +387,7 @@ mod tests {
     inserted_comment_0: Comment,
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
+    inserted_comment_5: Comment,
     inserted_post: Post,
     timmy_local_user_view: LocalUserView,
     inserted_sara_person: Person,
@@ -494,7 +495,7 @@ mod tests {
       inserted_post.id,
       "Comment 5".into(),
     );
-    let _inserted_comment_5 =
+    let inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
     let timmy_blocks_sara_form = PersonBlockForm {
@@ -532,6 +533,7 @@ mod tests {
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
+      inserted_comment_5,
       inserted_post,
       timmy_local_user_view,
       inserted_sara_person,
@@ -678,10 +680,10 @@ mod tests {
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
       .into_iter()
-      .map(|c| c.comment)
-      .collect::<Vec<Comment>>();
-    assert!(child_comments.contains(&data.inserted_comment_1));
-    assert!(!child_comments.contains(&data.inserted_comment_2));
+      .map(|c| c.comment.id)
+      .collect::<Vec<CommentId>>();
+    assert!(child_comments.contains(&data.inserted_comment_1.id));
+    assert!(!child_comments.contains(&data.inserted_comment_2.id));
 
     let read_comment_views_top_max_depth = CommentQuery {
       post_id: (Some(data.inserted_post.id)),
@@ -959,6 +961,19 @@ mod tests {
         featured_local: false,
         url_content_type: None,
         scheduled_publish_time: None,
+        comments: 6,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        newest_comment_time_necro: data.inserted_comment_1.published,
+        newest_comment_time: data.inserted_comment_5.published,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        scaled_rank: RANK_DEFAULT,
+        instance_id: data.inserted_instance.id,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       community: Community {
         id: data.inserted_community.id,

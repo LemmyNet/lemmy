@@ -490,7 +490,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
   };
   use chrono::{DateTime, Utc};
   use diesel::result::Error;
@@ -570,13 +570,13 @@ mod tests {
       downvotes: 0,
       upvotes: 0,
       score: 0,
-      hot_rank: 0.0,
-      hot_rank_active: 0.0,
+      hot_rank: RANK_DEFAULT,
+      hot_rank_active: RANK_DEFAULT,
       instance_id: InstanceId(0),
       newest_comment_time: Utc::now(),
       newest_comment_time_necro: Utc::now(),
       report_count: 0,
-      scaled_rank: 0.0,
+      scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
     };
 

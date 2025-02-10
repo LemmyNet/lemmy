@@ -966,7 +966,7 @@ mod tests {
     )
     .await?;
 
-    let expected_post_listing_with_user = expected_post_view(data, pool).await?;
+    let expected_post_listing_with_user = expected_post_view(data)?;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(
@@ -1017,7 +1017,7 @@ mod tests {
     let read_post_listing_single_no_person =
       PostView::read(pool, data.inserted_post.id, None, false).await?;
 
-    let expected_post_listing_no_person = expected_post_view(data, pool).await?;
+    let expected_post_listing_no_person = expected_post_view(data)?;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
@@ -1150,10 +1150,10 @@ mod tests {
     )
     .await?;
 
-    let mut expected_post_with_upvote = expected_post_view(data, pool).await?;
+    let mut expected_post_with_upvote = expected_post_view(data)?;
     expected_post_with_upvote.my_vote = Some(1);
-    expected_post_with_upvote.counts.score = 1;
-    expected_post_with_upvote.counts.upvotes = 1;
+    expected_post_with_upvote.post.score = 1;
+    expected_post_with_upvote.post.upvotes = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
     let local_user_form = LocalUserUpdateForm {
@@ -1600,7 +1600,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_after.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         ..options.clone()
@@ -1611,7 +1611,7 @@ mod tests {
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
       if let Some(p) = post_listings.into_iter().next_back() {
-        page_after = Some(p.counts);
+        page_after = Some(p.post);
       } else {
         break;
       }
@@ -1623,7 +1623,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_before.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         page_back: Some(true),
@@ -1642,7 +1642,7 @@ mod tests {
       listed_post_ids_forward.truncate(index);
 
       if let Some(p) = post_listings.into_iter().next() {
-        page_before = Some(p.counts);
+        page_before = Some(p.post);
       } else {
         break;
       }
@@ -1793,13 +1793,12 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<PostView> {
+  fn expected_post_view(data: &Data) -> LemmyResult<PostView> {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.local_user_view.person,
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id).await?;
 
     Ok(PostView {
       post: Post {
@@ -1827,6 +1826,19 @@ mod tests {
         featured_local: false,
         url_content_type: None,
         scheduled_publish_time: None,
+        comments: 0,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        newest_comment_time_necro: inserted_post.published,
+        newest_comment_time: inserted_post.published,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        scaled_rank: RANK_DEFAULT,
+        instance_id: data.inserted_instance.id,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       my_vote: None,
       unread_comments: 0,
@@ -1884,27 +1896,6 @@ mod tests {
         featured_url: inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: inserted_community.random_number,
-      },
-      counts: PostAggregates {
-        post_id: inserted_post.id,
-        comments: 0,
-        score: 0,
-        upvotes: 0,
-        downvotes: 0,
-        published: agg.published,
-        newest_comment_time_necro: inserted_post.published,
-        newest_comment_time: inserted_post.published,
-        featured_community: false,
-        featured_local: false,
-        hot_rank: RANK_DEFAULT,
-        hot_rank_active: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        scaled_rank: RANK_DEFAULT,
-        community_id: inserted_post.community_id,
-        creator_id: inserted_post.creator_id,
-        instance_id: data.inserted_instance.id,
-        report_count: 0,
-        unresolved_report_count: 0,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

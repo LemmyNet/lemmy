@@ -207,23 +207,22 @@ async fn process_ranks_in_batches(
     // Raw `sql_query` is used as a performance optimization - Diesel does not support doing this
     // in a single query (neither as a CTE, nor using a subquery)
     let updated_rows = sql_query(format!(
-      r#"WITH batch AS (SELECT a.{id_column}
-               FROM {aggregates_table} a
+      r#"WITH batch AS (SELECT a.id
+               FROM {table_name} a
                WHERE a.published > $1 AND ({where_clause})
                ORDER BY a.published
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
-         UPDATE {aggregates_table} a {set_clause}
-             FROM batch WHERE a.{id_column} = batch.{id_column} RETURNING a.published;
+         UPDATE {table_name} a {set_clause}
+             FROM batch WHERE a.id = batch.id RETURNING a.published;
     "#,
-      id_column = format_args!("{table_name}_id"),
-      aggregates_table = format_args!("{table_name}_aggregates"),
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
+      // TODO: need to remove community aggregates to get this working
       LemmyErrorType::Unknown(format!("Failed to update {} hot_ranks: {}", table_name, e))
     })?;
 
@@ -247,19 +246,19 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
     let updated_rows = sql_query(
-      r#"WITH batch AS (SELECT pa.post_id
-           FROM post_aggregates pa
+      r#"WITH batch AS (SELECT pa.id
+           FROM post pa
            WHERE pa.published > $1
            AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
            ORDER BY pa.published
            LIMIT $2
            FOR UPDATE SKIP LOCKED)
-      UPDATE post_aggregates pa
+      UPDATE post pa
       SET hot_rank = r.hot_rank(pa.score, pa.published),
           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
       FROM batch, community_aggregates ca
-      WHERE pa.post_id = batch.post_id
+      WHERE pa.id = batch.id
       AND pa.community_id = ca.community_id
       RETURNING pa.published;
 "#,
