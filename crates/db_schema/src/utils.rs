@@ -556,7 +556,7 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
 }
 
 pub fn seconds_to_pg_interval(seconds: i32) -> PgInterval {
-  PgInterval::from_microseconds((seconds * 1_000_000).into())
+  PgInterval::from_microseconds(i64::from(seconds) * 1_000_000)
 }
 
 /// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`
