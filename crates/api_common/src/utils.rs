@@ -37,6 +37,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostLike},
+    private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -806,6 +807,9 @@ pub async fn remove_or_restore_user_data(
     reason,
   )
   .await?;
+
+  // Private messages
+  PrivateMessage::update_removed_for_creator(pool, banned_person_id, removed).await?;
 
   Ok(())
 }
