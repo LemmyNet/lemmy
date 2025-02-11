@@ -45,6 +45,7 @@ async fn list_comments_common(
     local_user_ref,
     &site_view.local_site,
   ));
+  let time_range_seconds = data.time_range_seconds;
   let max_depth = data.max_depth;
 
   let liked_only = data.liked_only;
@@ -76,6 +77,7 @@ async fn list_comments_common(
   CommentQuery {
     listing_type,
     sort,
+    time_range_seconds,
     max_depth,
     liked_only,
     disliked_only,

@@ -69,6 +69,10 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<SearchSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
@@ -189,6 +193,8 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub default_post_time_range_seconds: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub legal_information: Option<String>,
@@ -288,6 +294,9 @@ pub struct EditSite {
   /// The default post sort, usually "active"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
+  /// A default time range limit to apply to post sorts, in seconds. 0 means none.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub default_post_time_range_seconds: Option<i32>,
   /// The default comment sort, usually "hot"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
