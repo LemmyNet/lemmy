@@ -1,5 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
+  impls::local_user::local_user_can_mod,
   newtypes::{CommentId, DbUrl, PersonId},
   schema::{comment, comment_actions},
   source::comment::{
@@ -16,15 +17,17 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{case_when, insert_into, not},
   expression::SelectableHelper,
   result::Error,
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 impl Comment {
@@ -116,6 +119,38 @@ impl Comment {
       None
     }
   }
+
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?.into())
+  }
+}
+
+/// Selects the comment columns, but gives an empty string for content when
+/// deleted or removed, and you're not a mod/admin.
+#[diesel::dsl::auto_type]
+pub fn comment_select_remove_deletes() -> _ {
+  let deleted_or_removed = comment::deleted.or(comment::removed);
+
+  // You can only view the content if it hasn't been removed, or you can mod.
+  let can_view_content = not(deleted_or_removed).or(local_user_can_mod());
+  let content = case_when(can_view_content, comment::content).otherwise("");
+
+  (
+    comment::id,
+    comment::creator_id,
+    comment::post_id,
+    content,
+    comment::removed,
+    comment::published,
+    comment::updated,
+    comment::deleted,
+    comment::ap_id,
+    comment::local,
+    comment::path,
+    comment::distinguished,
+    comment::language_id,
+  )
 }
 
 #[async_trait]

@@ -110,7 +110,7 @@ impl Object for ApubComment {
     let note = Note {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
+      attributed_to: creator.ap_id.into(),
       to: generate_to(&community)?,
       cc: maa.ccs,
       content: markdown_to_html(&self.content),

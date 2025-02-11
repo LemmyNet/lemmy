@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
+use crate::{fetcher::resolve_ap_identifier, objects::person::ApubPerson};
 use activitypub_federation::config::Data;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
@@ -54,6 +54,26 @@ fn post_sort_type_with_default(
   )
 }
 
+/// Returns a default post_time_range.
+/// Order is the given, then local user default, then site default.
+/// If zero is given, then the output is None.
+fn post_time_range_seconds_with_default(
+  secs: Option<i32>,
+  local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
+) -> Option<i32> {
+  let out = secs
+    .or(local_user.and_then(|u| u.default_post_time_range_seconds))
+    .or(local_site.default_post_time_range_seconds);
+
+  // A zero is an override to None
+  if out.is_some_and(|o| o == 0) {
+    None
+  } else {
+    out
+  }
+}
+
 /// Returns a default instance-level comment sort type, if none is given by the user.
 /// Order is type, local user default, then site default.
 fn comment_sort_type_with_default(
@@ -83,7 +103,7 @@ async fn resolve_person_id_from_id_or_username(
     Some(id) => *id,
     None => {
       if let Some(username) = username {
-        resolve_actor_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
+        resolve_ap_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
           .await?
           .id
       } else {

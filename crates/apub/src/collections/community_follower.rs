@@ -33,7 +33,7 @@ impl Collection for ApubCommunityFollower {
       CommunityFollowerView::count_community_followers(&mut context.pool(), community_id).await?;
 
     Ok(GroupFollowers {
-      id: generate_followers_url(&community.actor_id)?.into(),
+      id: generate_followers_url(&community.ap_id)?.into(),
       r#type: CollectionType::Collection,
       total_items: community_followers as i32,
       items: vec![],

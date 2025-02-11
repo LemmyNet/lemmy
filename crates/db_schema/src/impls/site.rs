@@ -25,7 +25,7 @@ impl Crud for Site {
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let is_new_site = match &form.actor_id {
+    let is_new_site = match &form.ap_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
     };
@@ -34,7 +34,7 @@ impl Crud for Site {
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let site_ = insert_into(site::table)
       .values(form)
-      .on_conflict(site::actor_id)
+      .on_conflict(site::ap_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -80,7 +80,7 @@ impl Site {
     let conn = &mut get_conn(pool).await?;
 
     site::table
-      .filter(site::actor_id.eq(object_id))
+      .filter(site::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -97,7 +97,7 @@ impl Site {
 
   /// Instance actor is at the root path, so we simply need to clear the path and other unnecessary
   /// parts of the url.
-  pub fn instance_actor_id_from_url(mut url: Url) -> Url {
+  pub fn instance_ap_id_from_url(mut url: Url) -> Url {
     url.set_fragment(None);
     url.set_path("");
     url.set_query(None);

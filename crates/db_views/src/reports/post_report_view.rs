@@ -10,6 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
+  impls::community::community_follower_select_subscribed_type,
   newtypes::{PersonId, PostReportId},
   schema::{
     community,
@@ -22,7 +23,6 @@ use lemmy_db_schema::{
     post_aggregates,
     post_report,
   },
-  source::community::CommunityFollower,
   utils::{functions::coalesce, get_conn, DbPool},
 };
 
@@ -119,8 +119,8 @@ impl PostReportView {
           .nullable()
           .is_not_null(),
         local_user::admin.nullable().is_not_null(),
-        CommunityFollower::select_subscribed_type(),
-        post_actions::saved.nullable().is_not_null(),
+        community_follower_select_subscribed_type(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),

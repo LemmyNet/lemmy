@@ -9,6 +9,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 #[async_trait]
@@ -81,6 +82,10 @@ impl PrivateMessage {
       .first(conn)
       .await
       .optional()
+  }
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/private_message/{}", self.id))?.into())
   }
 }
 

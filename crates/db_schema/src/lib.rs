@@ -23,9 +23,10 @@ pub mod sensitive;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::{community_actions, person};
+  use crate::schema::{community_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
+    local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
   );
@@ -66,19 +67,9 @@ pub enum PostSortType {
   Hot,
   New,
   Old,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
+  Top,
   MostComments,
   NewComments,
-  TopHour,
-  TopSixHour,
-  TopTwelveHour,
-  TopThreeMonths,
-  TopSixMonths,
-  TopNineMonths,
   Controversial,
   Scaled,
 }
@@ -341,7 +332,7 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::banned>,
   AliasedField<aliases::Person1, person::published>,
   AliasedField<aliases::Person1, person::updated>,
-  AliasedField<aliases::Person1, person::actor_id>,
+  AliasedField<aliases::Person1, person::ap_id>,
   AliasedField<aliases::Person1, person::bio>,
   AliasedField<aliases::Person1, person::local>,
   AliasedField<aliases::Person1, person::private_key>,

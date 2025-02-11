@@ -1,7 +1,7 @@
 use crate::structs::{PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{exists, not, IntervalDsl},
+  dsl::{exists, not},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
@@ -17,8 +17,11 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
-  aliases::creator_community_actions,
-  impls::local_user::LocalUserOptionHelper,
+  aliases::{creator_community_actions, creator_local_user},
+  impls::{
+    community::community_follower_select_subscribed_type,
+    local_user::{local_user_can_mod, LocalUserOptionHelper},
+  },
   newtypes::{CommunityId, PersonId, PostId},
   schema::{
     community,
@@ -36,7 +39,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::{
-    community::{CommunityFollower, CommunityFollowerState},
+    community::CommunityFollowerState,
     local_user::LocalUser,
     post::{post_actions_keys, PostActionsCursor},
     site::Site,
@@ -48,6 +51,7 @@ use lemmy_db_schema::{
     limit_and_offset,
     now,
     paginate,
+    seconds_to_pg_interval,
     Commented,
     DbPool,
     ReverseTimestampKey,
@@ -104,6 +108,8 @@ impl PostView {
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
     post_aggregates::table
       .inner_join(person::table)
       .inner_join(community::table)
@@ -114,15 +120,16 @@ impl PostView {
       .left_join(post_actions_join)
       .left_join(instance_actions_join)
       .left_join(post_creator_community_actions_join)
+      .left_join(local_user_join)
   }
 
   #[diesel::dsl::auto_type(no_type_alias)]
   fn creator_is_admin() -> _ {
     exists(
-      local_user::table.filter(
+      creator_local_user.filter(
         post_aggregates::creator_id
-          .eq(local_user::person_id)
-          .and(local_user::admin.eq(true)),
+          .eq(creator_local_user.field(local_user::person_id))
+          .and(creator_local_user.field(local_user::admin).eq(true)),
       ),
     )
   }
@@ -163,7 +170,7 @@ impl PostView {
           .is_not_null(),
         Self::creator_is_admin(),
         post_aggregates::all_columns,
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
@@ -174,6 +181,7 @@ impl PostView {
           post_aggregates::comments,
         ),
         post_tags,
+        local_user_can_mod(),
       ))
       .into_boxed();
 
@@ -259,6 +267,7 @@ pub struct PaginationCursorData {
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<PostSortType>,
+  pub time_range_seconds: Option<i32>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   // if true, the query should be handled as if community_id was not given except adding the
@@ -410,7 +419,7 @@ impl<'a> PostQuery<'a> {
           .is_not_null(),
         PostView::creator_is_admin(),
         post_aggregates::all_columns,
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
@@ -421,6 +430,7 @@ impl<'a> PostQuery<'a> {
           post_aggregates::comments,
         ),
         post_tags,
+        local_user_can_mod(),
       ))
       .into_boxed();
 
@@ -595,8 +605,6 @@ impl<'a> PostQuery<'a> {
         query.then_desc(key::featured_community)
       };
 
-      let time = |interval| post_aggregates::published.gt(now() - interval);
-
       // then use the main sort
       query = match o.sort.unwrap_or(Hot) {
         Active => query.then_desc(key::hot_rank_active),
@@ -607,18 +615,15 @@ impl<'a> PostQuery<'a> {
         Old => query.then_desc(ReverseTimestampKey(key::published)),
         NewComments => query.then_desc(key::newest_comment_time),
         MostComments => query.then_desc(key::comments),
-        TopAll => query.then_desc(key::score),
-        TopYear => query.then_desc(key::score).filter(time(1.years())),
-        TopMonth => query.then_desc(key::score).filter(time(1.months())),
-        TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-        TopDay => query.then_desc(key::score).filter(time(1.days())),
-        TopHour => query.then_desc(key::score).filter(time(1.hours())),
-        TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-        TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-        TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-        TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-        TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+        Top => query.then_desc(key::score),
       };
+
+      // Filter by the time range
+      if let Some(time_range_seconds) = o.time_range_seconds {
+        query = query.filter(
+          post_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+        );
+      }
 
       // use publish as fallback. especially useful for hot rank which reaches zero after some days.
       // necessary because old posts can be fetched over federation and inserted with high post id
@@ -722,14 +727,14 @@ mod tests {
 
   struct Data {
     pool: ActualDbPool,
-    inserted_instance: Instance,
-    local_user_view: LocalUserView,
-    blocked_local_user_view: LocalUserView,
-    inserted_bot: Person,
-    inserted_community: Community,
-    inserted_post: Post,
-    inserted_bot_post: Post,
-    inserted_post_with_tags: Post,
+    instance: Instance,
+    tegan_local_user_view: LocalUserView,
+    john_local_user_view: LocalUserView,
+    bot_local_user_view: LocalUserView,
+    community: Community,
+    post: Post,
+    bot_post: Post,
+    post_with_tags: Post,
     tag_1: Tag,
     tag_2: Tag,
     site: Site,
@@ -745,7 +750,7 @@ mod tests {
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
         sort: Some(PostSortType::New),
-        local_user: Some(&self.local_user_view.local_user),
+        local_user: Some(&self.tegan_local_user_view.local_user),
         ..Default::default()
       }
     }
@@ -753,41 +758,43 @@ mod tests {
     async fn setup() -> LemmyResult<Data> {
       let actual_pool = build_db_pool()?;
       let pool = &mut (&actual_pool).into();
-      let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+      let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-      let new_person = PersonInsertForm::test_form(inserted_instance.id, "tegan");
-
-      let inserted_person = Person::create(pool, &new_person).await?;
-
-      let local_user_form = LocalUserInsertForm {
+      let tegan_person_form = PersonInsertForm::test_form(instance.id, "tegan");
+      let inserted_tegan_person = Person::create(pool, &tegan_person_form).await?;
+      let tegan_local_user_form = LocalUserInsertForm {
         admin: Some(true),
-        ..LocalUserInsertForm::test_form(inserted_person.id)
+        ..LocalUserInsertForm::test_form(inserted_tegan_person.id)
       };
-      let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
+      let inserted_tegan_local_user =
+        LocalUser::create(pool, &tegan_local_user_form, vec![]).await?;
 
-      let new_bot = PersonInsertForm {
+      let bot_person_form = PersonInsertForm {
         bot_account: Some(true),
-        ..PersonInsertForm::test_form(inserted_instance.id, "mybot")
+        ..PersonInsertForm::test_form(instance.id, "mybot")
       };
-
-      let inserted_bot = Person::create(pool, &new_bot).await?;
+      let inserted_bot_person = Person::create(pool, &bot_person_form).await?;
+      let inserted_bot_local_user = LocalUser::create(
+        pool,
+        &LocalUserInsertForm::test_form(inserted_bot_person.id),
+        vec![],
+      )
+      .await?;
 
       let new_community = CommunityInsertForm::new(
-        inserted_instance.id,
+        instance.id,
         "test_community_3".to_string(),
         "nada".to_owned(),
         "pubkey".to_string(),
       );
-      let inserted_community = Community::create(pool, &new_community).await?;
+      let community = Community::create(pool, &new_community).await?;
 
       // Test a person block, make sure the post query doesn't include their post
-      let blocked_person = PersonInsertForm::test_form(inserted_instance.id, "john");
-
-      let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
-
-      let inserted_blocked_local_user = LocalUser::create(
+      let john_person_form = PersonInsertForm::test_form(instance.id, "john");
+      let inserted_john_person = Person::create(pool, &john_person_form).await?;
+      let inserted_john_local_user = LocalUser::create(
         pool,
-        &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+        &LocalUserInsertForm::test_form(inserted_john_person.id),
         vec![],
       )
       .await?;
@@ -796,16 +803,16 @@ mod tests {
         language_id: Some(LanguageId(1)),
         ..PostInsertForm::new(
           POST_BY_BLOCKED_PERSON.to_string(),
-          inserted_blocked_person.id,
-          inserted_community.id,
+          inserted_john_person.id,
+          community.id,
         )
       };
       Post::create(pool, &post_from_blocked_person).await?;
 
       // block that person
       let person_block = PersonBlockForm {
-        person_id: inserted_person.id,
-        target_id: inserted_blocked_person.id,
+        person_id: inserted_tegan_person.id,
+        target_id: inserted_john_person.id,
       };
 
       PersonBlock::block(pool, &person_block).await?;
@@ -814,9 +821,9 @@ mod tests {
       let tag_1 = Tag::create(
         pool,
         &TagInsertForm {
-          ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))?.into(),
+          ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
           name: "Test Tag 1".into(),
-          community_id: inserted_community.id,
+          community_id: community.id,
           published: None,
           updated: None,
           deleted: false,
@@ -826,9 +833,9 @@ mod tests {
       let tag_2 = Tag::create(
         pool,
         &TagInsertForm {
-          ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))?.into(),
+          ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
           name: "Test Tag 2".into(),
-          community_id: inserted_community.id,
+          community_id: community.id,
           published: None,
           updated: None,
           deleted: false,
@@ -839,51 +846,58 @@ mod tests {
       // A sample post
       let new_post = PostInsertForm {
         language_id: Some(LanguageId(47)),
-        ..PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id)
+        ..PostInsertForm::new(POST.to_string(), inserted_tegan_person.id, community.id)
       };
 
-      let inserted_post = Post::create(pool, &new_post).await?;
+      let post = Post::create(pool, &new_post).await?;
 
       let new_bot_post = PostInsertForm::new(
         POST_BY_BOT.to_string(),
-        inserted_bot.id,
-        inserted_community.id,
+        inserted_bot_person.id,
+        community.id,
       );
-      let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+      let bot_post = Post::create(pool, &new_bot_post).await?;
 
       // A sample post with tags
       let new_post = PostInsertForm {
         language_id: Some(LanguageId(47)),
         ..PostInsertForm::new(
           POST_WITH_TAGS.to_string(),
-          inserted_person.id,
-          inserted_community.id,
+          inserted_tegan_person.id,
+          community.id,
         )
       };
 
-      let inserted_post_with_tags = Post::create(pool, &new_post).await?;
+      let post_with_tags = Post::create(pool, &new_post).await?;
       let inserted_tags = vec![
         PostTagInsertForm {
-          post_id: inserted_post_with_tags.id,
+          post_id: post_with_tags.id,
           tag_id: tag_1.id,
         },
         PostTagInsertForm {
-          post_id: inserted_post_with_tags.id,
+          post_id: post_with_tags.id,
           tag_id: tag_2.id,
         },
       ];
       PostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
 
-      let local_user_view = LocalUserView {
-        local_user: inserted_local_user,
+      let tegan_local_user_view = LocalUserView {
+        local_user: inserted_tegan_local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-        person: inserted_person,
+        person: inserted_tegan_person,
         counts: Default::default(),
       };
-      let blocked_local_user_view = LocalUserView {
-        local_user: inserted_blocked_local_user,
+      let john_local_user_view = LocalUserView {
+        local_user: inserted_john_local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-        person: inserted_blocked_person,
+        person: inserted_john_person,
+        counts: Default::default(),
+      };
+
+      let bot_local_user_view = LocalUserView {
+        local_user: inserted_bot_local_user,
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+        person: inserted_bot_person,
         counts: Default::default(),
       };
 
@@ -896,7 +910,7 @@ mod tests {
         icon: None,
         banner: None,
         description: None,
-        actor_id: Url::parse("http://example.com")?.into(),
+        ap_id: Url::parse("http://example.com")?.into(),
         last_refreshed_at: Default::default(),
         inbox_url: Url::parse("http://example.com")?.into(),
         private_key: None,
@@ -907,14 +921,14 @@ mod tests {
 
       Ok(Data {
         pool: actual_pool,
-        inserted_instance,
-        local_user_view,
-        blocked_local_user_view,
-        inserted_bot,
-        inserted_community,
-        inserted_post,
-        inserted_bot_post,
-        inserted_post_with_tags,
+        instance,
+        tegan_local_user_view,
+        john_local_user_view,
+        bot_local_user_view,
+        community,
+        post,
+        bot_post,
+        post_with_tags,
         tag_1,
         tag_2,
         site,
@@ -923,12 +937,12 @@ mod tests {
     async fn teardown(data: Data) -> LemmyResult<()> {
       let pool = &mut data.pool2();
       // let pool = &mut (&pool).into();
-      let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
-      Community::delete(pool, data.inserted_community.id).await?;
-      Person::delete(pool, data.local_user_view.person.id).await?;
-      Person::delete(pool, data.inserted_bot.id).await?;
-      Person::delete(pool, data.blocked_local_user_view.person.id).await?;
-      Instance::delete(pool, data.inserted_instance.id).await?;
+      let num_deleted = Post::delete(pool, data.post.id).await?;
+      Community::delete(pool, data.community.id).await?;
+      Person::delete(pool, data.tegan_local_user_view.person.id).await?;
+      Person::delete(pool, data.bot_local_user_view.person.id).await?;
+      Person::delete(pool, data.john_local_user_view.person.id).await?;
+      Instance::delete(pool, data.instance.id).await?;
       assert_eq!(1, num_deleted);
 
       Ok(())
@@ -954,11 +968,16 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.show_bot_accounts = false;
+    LocalUser::update(
+      pool,
+      data.tegan_local_user_view.local_user.id,
+      &local_user_form,
+    )
+    .await?;
+    data.tegan_local_user_view.local_user.show_bot_accounts = false;
 
     let mut read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -968,8 +987,8 @@ mod tests {
 
     let post_listing_single_with_person = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await?;
@@ -990,11 +1009,16 @@ mod tests {
       show_bot_accounts: Some(true),
       ..Default::default()
     };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.show_bot_accounts = true;
+    LocalUser::update(
+      pool,
+      data.tegan_local_user_view.local_user.id,
+      &local_user_form,
+    )
+    .await?;
+    data.tegan_local_user_view.local_user.show_bot_accounts = true;
 
     let post_listings_with_bots = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1015,7 +1039,7 @@ mod tests {
     let pool = &mut pool.into();
 
     let read_post_listing_multiple_no_person = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       local_user: None,
       ..data.default_post_query()
     }
@@ -1023,9 +1047,10 @@ mod tests {
     .await?;
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, false).await?;
+      PostView::read(pool, data.post.id, None, false).await?;
 
-    let expected_post_listing_no_person = expected_post_view(data, pool).await?;
+    let mut expected_post_listing_no_person = expected_post_view(data, pool).await?;
+    expected_post_listing_no_person.can_mod = false;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
@@ -1057,15 +1082,15 @@ mod tests {
       body: Some("Post".to_string()),
       ..PostInsertForm::new(
         POST_WITH_ANOTHER_TITLE.to_string(),
-        data.local_user_view.person.id,
-        data.inserted_community.id,
+        data.tegan_local_user_view.person.id,
+        data.community.id,
       )
     };
 
     let inserted_post = Post::create(pool, &new_post).await?;
 
     let read_post_listing_by_title_only = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       local_user: None,
       search_term: Some("Post".to_string()),
       title_only: Some(true),
@@ -1075,7 +1100,7 @@ mod tests {
     .await?;
 
     let read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       local_user: None,
       search_term: Some("Post".to_string()),
       ..data.default_post_query()
@@ -1112,13 +1137,13 @@ mod tests {
     let pool = &mut pool.into();
 
     let community_block = CommunityBlockForm {
-      person_id: data.local_user_view.person.id,
-      community_id: data.inserted_community.id,
+      person_id: data.tegan_local_user_view.person.id,
+      community_id: data.community.id,
     };
     CommunityBlock::block(pool, &community_block).await?;
 
     let read_post_listings_with_person_after_block = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1137,14 +1162,13 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let post_like_form =
-      PostLikeForm::new(data.inserted_post.id, data.local_user_view.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
 
     let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
 
     let expected_post_like = PostLike {
-      post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person.id,
+      post_id: data.post.id,
+      person_id: data.tegan_local_user_view.person.id,
       published: inserted_post_like.published,
       score: 1,
     };
@@ -1152,8 +1176,8 @@ mod tests {
 
     let post_listing_single_with_person = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await?;
@@ -1168,11 +1192,16 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.show_bot_accounts = false;
+    LocalUser::update(
+      pool,
+      data.tegan_local_user_view.local_user.id,
+      &local_user_form,
+    )
+    .await?;
+    data.tegan_local_user_view.local_user.show_bot_accounts = false;
 
     let mut read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1181,7 +1210,7 @@ mod tests {
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
     let like_removed =
-      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
+      PostLike::remove(pool, data.tegan_local_user_view.person.id, data.post.id).await?;
     assert_eq!(uplete::Count::only_deleted(1), like_removed);
     Ok(())
   }
@@ -1195,17 +1224,16 @@ mod tests {
 
     // Like both the bot post, and your own
     // The liked_only should not show your own post
-    let post_like_form =
-      PostLikeForm::new(data.inserted_post.id, data.local_user_view.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
     PostLike::like(pool, &post_like_form).await?;
 
     let bot_post_like_form =
-      PostLikeForm::new(data.inserted_bot_post.id, data.local_user_view.person.id, 1);
+      PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, 1);
     PostLike::like(pool, &bot_post_like_form).await?;
 
     // Read the liked only
     let read_liked_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       liked_only: Some(true),
       ..data.default_post_query()
     }
@@ -1216,7 +1244,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
 
     let read_disliked_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       disliked_only: Some(true),
       ..data.default_post_query()
     }
@@ -1238,13 +1266,12 @@ mod tests {
 
     // Only mark the bot post as read
     // The read_only should only show the bot post
-    let post_read_form =
-      PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
+    let post_read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
     PostRead::mark_as_read(pool, &post_read_form).await?;
 
     // Only read the post marked as read
     let read_read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       read_only: Some(true),
       ..data.default_post_query()
     }
@@ -1263,33 +1290,128 @@ mod tests {
   async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
+    let community_id = data.community.id;
 
-    // Make one of the inserted persons a moderator
-    let person_id = data.local_user_view.person.id;
-    let community_id = data.inserted_community.id;
-    let form = CommunityModeratorForm {
-      community_id,
-      person_id,
-    };
-    CommunityModerator::join(pool, &form).await?;
-
-    let post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+    let tegan_listings = PostQuery {
+      community_id: Some(community_id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| (p.creator.name, p.creator_is_moderator, p.creator_is_admin))
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_is_moderator,
+        p.creator_is_admin,
+        p.can_mod,
+      )
+    })
+    .collect::<Vec<_>>();
+
+    // Tegan is an admin, so can_mod should be always true
+    let expected_post_listing = vec![
+      ("tegan".to_owned(), false, true, true),
+      ("mybot".to_owned(), false, false, true),
+      ("tegan".to_owned(), false, true, true),
+    ];
+    assert_eq!(expected_post_listing, tegan_listings);
+
+    // Have john become a moderator, then the bot
+    let john_mod_form = CommunityModeratorForm {
+      community_id,
+      person_id: data.john_local_user_view.person.id,
+    };
+    CommunityModerator::join(pool, &john_mod_form).await?;
+
+    let bot_mod_form = CommunityModeratorForm {
+      community_id,
+      person_id: data.bot_local_user_view.person.id,
+    };
+    CommunityModerator::join(pool, &bot_mod_form).await?;
+
+    let john_listings = PostQuery {
+      sort: Some(PostSortType::New),
+      local_user: Some(&data.john_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_is_moderator,
+        p.creator_is_admin,
+        p.can_mod,
+      )
+    })
+    .collect::<Vec<_>>();
+
+    // John is a mod, so he can_mod the bots (and his own) posts, but not tegans.
+    let expected_post_listing = vec![
+      ("tegan".to_owned(), false, true, false),
+      ("mybot".to_owned(), true, false, true),
+      ("tegan".to_owned(), false, true, false),
+      ("john".to_owned(), true, false, true),
+    ];
+    assert_eq!(expected_post_listing, john_listings);
+
+    // Bot is also a mod, but was added after john, so can't mod anything
+    let bot_listings = PostQuery {
+      sort: Some(PostSortType::New),
+      local_user: Some(&data.bot_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_is_moderator,
+        p.creator_is_admin,
+        p.can_mod,
+      )
+    })
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
-      ("tegan".to_owned(), true, true),
-      ("mybot".to_owned(), false, false),
-      ("tegan".to_owned(), true, true),
+      ("tegan".to_owned(), false, true, false),
+      ("mybot".to_owned(), true, false, true),
+      ("tegan".to_owned(), false, true, false),
+      ("john".to_owned(), true, false, false),
     ];
+    assert_eq!(expected_post_listing, bot_listings);
 
-    assert_eq!(expected_post_listing, post_listing);
+    // Make the bot leave the mod team, and make sure it can_mod is false.
+    CommunityModerator::leave(pool, &bot_mod_form).await?;
+
+    let bot_listings = PostQuery {
+      sort: Some(PostSortType::New),
+      local_user: Some(&data.bot_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_is_moderator,
+        p.creator_is_admin,
+        p.can_mod,
+      )
+    })
+    .collect::<Vec<_>>();
+
+    let expected_post_listing = vec![
+      ("tegan".to_owned(), false, true, false),
+      ("mybot".to_owned(), false, false, false),
+      ("tegan".to_owned(), false, true, false),
+      ("john".to_owned(), true, false, false),
+    ];
+    assert_eq!(expected_post_listing, bot_listings);
 
     Ok(())
   }
@@ -1311,8 +1433,8 @@ mod tests {
       language_id: Some(spanish_id),
       ..PostInsertForm::new(
         EL_POSTO.to_string(),
-        data.local_user_view.person.id,
-        data.inserted_community.id,
+        data.tegan_local_user_view.person.id,
+        data.community.id,
       )
     };
     Post::create(pool, &post_spanish).await?;
@@ -1325,7 +1447,12 @@ mod tests {
       names(&post_listings_all)
     );
 
-    LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
+    LocalUserLanguage::update(
+      pool,
+      vec![french_id],
+      data.tegan_local_user_view.local_user.id,
+    )
+    .await?;
 
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
@@ -1342,7 +1469,7 @@ mod tests {
     LocalUserLanguage::update(
       pool,
       vec![french_id, UNDETERMINED_ID],
-      data.local_user_view.local_user.id,
+      data.tegan_local_user_view.local_user.id,
     )
     .await?;
     let post_listings_french_und = data
@@ -1374,7 +1501,7 @@ mod tests {
     // Remove the post
     Post::update(
       pool,
-      data.inserted_bot_post.id,
+      data.bot_post.id,
       &PostUpdateForm {
         removed: Some(true),
         ..Default::default()
@@ -1387,9 +1514,9 @@ mod tests {
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
-    data.local_user_view.local_user.admin = true;
+    data.tegan_local_user_view.local_user.admin = true;
     let post_listings_is_admin = PostQuery {
-      creator_id: Some(data.inserted_bot.id),
+      creator_id: Some(data.bot_local_user_view.person.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1409,7 +1536,7 @@ mod tests {
     // Delete the post
     Post::update(
       pool,
-      data.inserted_post.id,
+      data.post.id,
       &PostUpdateForm {
         deleted: Some(true),
         ..Default::default()
@@ -1420,8 +1547,8 @@ mod tests {
     // Deleted post is only shown to creator
     for (local_user, expect_contains_deleted) in [
       (None, false),
-      (Some(&data.blocked_local_user_view.local_user), false),
-      (Some(&data.local_user_view.local_user), true),
+      (Some(&data.john_local_user_view.local_user), false),
+      (Some(&data.tegan_local_user_view.local_user), true),
     ] {
       let contains_deleted = PostQuery {
         local_user,
@@ -1430,7 +1557,7 @@ mod tests {
       .list(&data.site, pool)
       .await?
       .iter()
-      .any(|p| p.post.id == data.inserted_post.id);
+      .any(|p| p.post.id == data.post.id);
 
       assert_eq!(expect_contains_deleted, contains_deleted);
     }
@@ -1447,7 +1574,7 @@ mod tests {
 
     Community::update(
       pool,
-      data.inserted_community.id,
+      data.community.id,
       &CommunityUpdateForm {
         hidden: Some(true),
         ..Default::default()
@@ -1464,7 +1591,7 @@ mod tests {
     // Follow the community
     let form = CommunityFollowerForm {
       state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(data.inserted_community.id, data.local_user_view.person.id)
+      ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
     };
     CommunityFollower::follow(pool, &form).await?;
 
@@ -1497,7 +1624,7 @@ mod tests {
       language_id: Some(LanguageId(1)),
       ..PostInsertForm::new(
         POST_FROM_BLOCKED_INSTANCE.to_string(),
-        data.inserted_bot.id,
+        data.bot_local_user_view.person.id,
         inserted_community.id,
       )
     };
@@ -1517,7 +1644,7 @@ mod tests {
 
     // block the instance
     let block_form = InstanceBlockForm {
-      person_id: data.local_user_view.person.id,
+      person_id: data.tegan_local_user_view.person.id,
       instance_id: blocked_instance.id,
     };
     InstanceBlock::block(pool, &block_form).await?;
@@ -1557,7 +1684,7 @@ mod tests {
     let pool = &mut pool.into();
 
     let community_form = CommunityInsertForm::new(
-      data.inserted_instance.id,
+      data.instance.id,
       "yes".to_string(),
       "yes".to_owned(),
       "pubkey".to_string(),
@@ -1577,7 +1704,7 @@ mod tests {
           published: Some(Utc::now() - Duration::from_secs(comments % 3)),
           ..PostInsertForm::new(
             "keep Christ in Christmas".to_owned(),
-            data.local_user_view.person.id,
+            data.tegan_local_user_view.person.id,
             inserted_community.id,
           )
         };
@@ -1586,7 +1713,7 @@ mod tests {
 
         for _ in 0..comments {
           let comment_form = CommentInsertForm::new(
-            data.local_user_view.person.id,
+            data.tegan_local_user_view.person.id,
             inserted_post.id,
             "yes".to_owned(),
           );
@@ -1677,11 +1804,16 @@ mod tests {
       show_read_posts: Some(false),
       ..Default::default()
     };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.show_read_posts = false;
+    LocalUser::update(
+      pool,
+      data.tegan_local_user_view.local_user.id,
+      &local_user_form,
+    )
+    .await?;
+    data.tegan_local_user_view.local_user.show_read_posts = false;
 
     // Mark a post as read
-    let read_form = PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
+    let read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
     PostRead::mark_as_read(pool, &read_form).await?;
 
     // Make sure you don't see the read post in the results
@@ -1722,12 +1854,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark a post as hidden
-    PostHide::hide(
-      pool,
-      data.inserted_bot_post.id,
-      data.local_user_view.person.id,
-    )
-    .await?;
+    PostHide::hide(pool, data.bot_post.id, data.tegan_local_user_view.person.id).await?;
 
     // Make sure you don't see the hidden post in the results
     let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
@@ -1739,7 +1866,7 @@ mod tests {
     // Make sure it does come back with the show_hidden option
     let post_listings_show_hidden = PostQuery {
       sort: Some(PostSortType::New),
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       show_hidden: Some(true),
       ..Default::default()
     }
@@ -1769,7 +1896,7 @@ mod tests {
       ..Default::default()
     };
 
-    Post::update(pool, data.inserted_post_with_tags.id, &update_form).await?;
+    Post::update(pool, data.post_with_tags.id, &update_form).await?;
 
     // Make sure you don't see the nsfw post in the regular results
     let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
@@ -1779,7 +1906,7 @@ mod tests {
     let post_listings_show_nsfw = PostQuery {
       sort: Some(PostSortType::New),
       show_nsfw: Some(true),
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -1803,9 +1930,9 @@ mod tests {
 
   async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<PostView> {
     let (inserted_person, inserted_community, inserted_post) = (
-      &data.local_user_view.person,
-      &data.inserted_community,
-      &data.inserted_post,
+      &data.tegan_local_user_view.person,
+      &data.community,
+      &data.post,
     );
     let agg = PostAggregates::read(pool, inserted_post.id).await?;
 
@@ -1844,7 +1971,7 @@ mod tests {
         display_name: None,
         published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_person.actor_id.clone(),
+        ap_id: inserted_person.ap_id.clone(),
         local: true,
         bot_account: false,
         banned: false,
@@ -1855,7 +1982,7 @@ mod tests {
         inbox_url: inserted_person.inbox_url.clone(),
         matrix_user_id: None,
         ban_expires: None,
-        instance_id: data.inserted_instance.id,
+        instance_id: data.instance.id,
         private_key: inserted_person.private_key.clone(),
         public_key: inserted_person.public_key.clone(),
         last_refreshed_at: inserted_person.last_refreshed_at,
@@ -1865,6 +1992,7 @@ mod tests {
       banned_from_community: false,
       creator_is_moderator: false,
       creator_is_admin: true,
+      can_mod: true,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),
@@ -1872,7 +2000,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.clone(),
+        ap_id: inserted_community.ap_id.clone(),
         local: true,
         title: "nada".to_owned(),
         sidebar: None,
@@ -1882,7 +2010,7 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
-        instance_id: data.inserted_instance.id,
+        instance_id: data.instance.id,
         private_key: inserted_community.private_key.clone(),
         public_key: inserted_community.public_key.clone(),
         last_refreshed_at: inserted_community.last_refreshed_at,
@@ -1910,7 +2038,7 @@ mod tests {
         scaled_rank: RANK_DEFAULT,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
-        instance_id: data.inserted_instance.id,
+        instance_id: data.instance.id,
         report_count: 0,
         unresolved_report_count: 0,
       },
@@ -1932,7 +2060,7 @@ mod tests {
 
     Community::update(
       pool,
-      data.inserted_community.id,
+      data.community.id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
@@ -1948,20 +2076,20 @@ mod tests {
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = PostQuery {
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
     assert_eq!(3, authenticated_query.len());
 
-    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
+    let unauthenticated_post = PostView::read(pool, data.post.id, None, false).await;
     assert!(unauthenticated_post.is_err());
 
     let authenticated_post = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await;
@@ -1978,7 +2106,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Test that post view shows if local user is blocked from community
-    let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
+    let banned_from_comm_person = PersonInsertForm::test_form(data.instance.id, "jill");
 
     let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
 
@@ -1992,7 +2120,7 @@ mod tests {
     CommunityPersonBan::ban(
       pool,
       &CommunityPersonBanForm {
-        community_id: data.inserted_community.id,
+        community_id: data.community.id,
         person_id: inserted_banned_from_comm_person.id,
         expires: None,
       },
@@ -2001,7 +2129,7 @@ mod tests {
 
     let post_view = PostView::read(
       pool,
-      data.inserted_post.id,
+      data.post.id,
       Some(&inserted_banned_from_comm_local_user),
       false,
     )
@@ -2022,8 +2150,8 @@ mod tests {
 
     let post_view = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await?;
@@ -2053,8 +2181,8 @@ mod tests {
         url,
         ..PostInsertForm::new(
           name,
-          data.local_user_view.person.id,
-          data.inserted_community.id,
+          data.tegan_local_user_view.person.id,
+          data.community.id,
         )
       };
       Post::create(pool, &post_form).await?;
@@ -2070,7 +2198,7 @@ mod tests {
     let now = Instant::now();
     PostQuery {
       sort: Some(PostSortType::Active),
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2098,8 +2226,8 @@ mod tests {
 
     // Create a comment for a post
     let comment_form = CommentInsertForm::new(
-      data.local_user_view.person.id,
-      data.inserted_post.id,
+      data.tegan_local_user_view.person.id,
+      data.post.id,
       "a comment".to_owned(),
     );
     Comment::create(pool, &comment_form, None).await?;
@@ -2108,7 +2236,7 @@ mod tests {
     let post_listings_no_comments = PostQuery {
       sort: Some(PostSortType::New),
       no_comments_only: Some(true),
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2132,7 +2260,7 @@ mod tests {
     // Mark community as private
     Community::update(
       pool,
-      data.inserted_community.id,
+      data.community.id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::Private),
         ..Default::default()
@@ -2142,20 +2270,20 @@ mod tests {
 
     // No posts returned without auth
     let read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
+      community_id: Some(data.community.id),
       ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
     assert_eq!(0, read_post_listing.len());
-    let post_view = PostView::read(pool, data.inserted_post.id, None, false).await;
+    let post_view = PostView::read(pool, data.post.id, None, false).await;
     assert!(post_view.is_err());
 
     // No posts returned for non-follower who is not admin
-    data.local_user_view.local_user.admin = false;
+    data.tegan_local_user_view.local_user.admin = false;
     let read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2163,18 +2291,18 @@ mod tests {
     assert_eq!(0, read_post_listing.len());
     let post_view = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await;
     assert!(post_view.is_err());
 
     // Admin can view content without following
-    data.local_user_view.local_user.admin = true;
+    data.tegan_local_user_view.local_user.admin = true;
     let read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2182,26 +2310,26 @@ mod tests {
     assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       true,
     )
     .await;
     assert!(post_view.is_ok());
-    data.local_user_view.local_user.admin = false;
+    data.tegan_local_user_view.local_user.admin = false;
 
     // User can view after following
     CommunityFollower::follow(
       pool,
       &CommunityFollowerForm {
         state: Some(CommunityFollowerState::Accepted),
-        ..CommunityFollowerForm::new(data.inserted_community.id, data.local_user_view.person.id)
+        ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
       },
     )
     .await?;
     let read_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2209,8 +2337,8 @@ mod tests {
     assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
-      data.inserted_post.id,
-      Some(&data.local_user_view.local_user),
+      data.post.id,
+      Some(&data.tegan_local_user_view.local_user),
       true,
     )
     .await;
@@ -2229,7 +2357,7 @@ mod tests {
     // Make one post an image post
     Post::update(
       pool,
-      data.inserted_bot_post.id,
+      data.bot_post.id,
       &PostUpdateForm {
         url_content_type: Some(Some(String::from("image/png"))),
         ..Default::default()
@@ -2239,8 +2367,8 @@ mod tests {
 
     // Make sure all the posts are returned when `hide_media` is unset
     let hide_media_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2252,13 +2380,18 @@ mod tests {
       hide_media: Some(true),
       ..Default::default()
     };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.hide_media = true;
+    LocalUser::update(
+      pool,
+      data.tegan_local_user_view.local_user.id,
+      &local_user_form,
+    )
+    .await?;
+    data.tegan_local_user_view.local_user.hide_media = true;
 
     // Ensure you don't see the image post
     let hide_media_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2267,8 +2400,8 @@ mod tests {
 
     // Make sure the `hide_media` override works
     let hide_media_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      local_user: Some(&data.local_user_view.local_user),
+      community_id: Some(data.community.id),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       hide_media: Some(false),
       ..Default::default()
     }
@@ -2288,8 +2421,8 @@ mod tests {
 
     let post_view = PostView::read(
       pool,
-      data.inserted_post_with_tags.id,
-      Some(&data.local_user_view.local_user),
+      data.post_with_tags.id,
+      Some(&data.tegan_local_user_view.local_user),
       false,
     )
     .await?;

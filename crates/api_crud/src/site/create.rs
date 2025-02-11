@@ -53,7 +53,7 @@ pub async fn create_site(
 
   validate_create_payload(&local_site, &data)?;
 
-  let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
+  let ap_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
   let inbox_url = Some(generate_inbox_url()?);
   let keypair = generate_actor_keypair()?;
 
@@ -65,7 +65,7 @@ pub async fn create_site(
     name: Some(data.name.clone()),
     sidebar: diesel_string_update(sidebar.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
-    actor_id: Some(actor_id),
+    ap_id: Some(ap_id),
     last_refreshed_at: Some(Utc::now()),
     inbox_url,
     private_key: Some(Some(keypair.private_key)),

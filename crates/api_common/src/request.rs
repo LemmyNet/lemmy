@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::source::{
-  images::{ImageDetailsForm, LocalImage, LocalImageForm},
+  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
   site::Site,
 };
@@ -339,17 +339,19 @@ pub struct PictrsFileDetails {
   pub height: u16,
   pub content_type: String,
   pub created_at: DateTime<Utc>,
+  pub blurhash: Option<String>,
 }
 
 impl PictrsFileDetails {
   /// Builds the image form. This should always use the thumbnail_url,
   /// Because the post_view joins to it
-  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsForm {
-    ImageDetailsForm {
+  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsInsertForm {
+    ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
       width: self.width.into(),
       height: self.height.into(),
       content_type: self.content_type.clone(),
+      blurhash: self.blurhash.clone(),
     }
   }
 }

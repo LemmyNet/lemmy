@@ -33,7 +33,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl::{self, exists, insert_into, not},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   pg::Pg,
   result::Error,
@@ -47,7 +47,10 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use regex::Regex;
 use std::sync::LazyLock;
 use url::Url;
@@ -136,7 +139,7 @@ impl Community {
     timestamp: DateTime<Utc>,
     form: &CommunityInsertForm,
   ) -> Result<Self, Error> {
-    let is_new_community = match &form.actor_id {
+    let is_new_community = match &form.ap_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
@@ -145,7 +148,7 @@ impl Community {
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(community::actor_id)
+      .on_conflict(community::ap_id)
       .filter_target(coalesce(community::updated, community::published).lt(timestamp))
       .do_update()
       .set(form)
@@ -288,7 +291,12 @@ impl Community {
     if id_slug.is_empty() {
       Err(LemmyErrorType::InvalidUrl)?
     }
-    Ok(Url::parse(&format!("{}/tag/{}", self.actor_id, &id_slug))?.into())
+    Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
+  }
+
+  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 
@@ -406,10 +414,6 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_state> {
-    community_actions::follow_state.nullable()
-  }
-
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
   pub async fn check_has_local_followers(
@@ -446,6 +450,14 @@ impl CommunityFollower {
       .await?;
     Ok(())
   }
+}
+
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
+#[diesel::dsl::auto_type]
+pub fn community_follower_select_subscribed_type() -> _ {
+  community_actions::follow_state.nullable()
 }
 
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
@@ -517,7 +529,7 @@ impl ApubActor for Community {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::actor_id.eq(object_id))
+      .filter(community::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -617,7 +629,7 @@ mod tests {
       deleted: false,
       published: inserted_community.published,
       updated: None,
-      actor_id: inserted_community.actor_id.clone(),
+      ap_id: inserted_community.ap_id.clone(),
       local: true,
       private_key: None,
       public_key: "pubkey".to_owned(),

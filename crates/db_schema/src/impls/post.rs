@@ -41,7 +41,10 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 
 #[async_trait]
 impl Crud for Post {
@@ -269,6 +272,11 @@ impl Post {
       .select(count(post::id))
       .first::<i64>(conn)
       .await
+  }
+
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
   }
 }
 
