@@ -105,7 +105,7 @@ impl ActivityHandler for Report {
           original_post_url: post.url.clone(),
           reason,
           original_post_body: post.body.clone(),
-          to_local_admins: false,
+          violates_instance_rules: false,
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
@@ -117,7 +117,7 @@ impl ActivityHandler for Report {
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
           reason,
-          to_local_admins: false,
+          violates_instance_rules: false,
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }

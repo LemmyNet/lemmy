@@ -209,7 +209,7 @@ impl ReportCombinedViewInternal {
     } else {
       query = query
         .filter(filter_is_mod())
-        .filter(filter_to_local_admins().is_distinct_from(true));
+        .filter(filter_violates_instance_rules().is_distinct_from(true));
     }
 
     query.first::<i64>(conn).await
@@ -258,7 +258,7 @@ pub struct ReportCombinedQuery {
   pub post_id: Option<PostId>,
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
-  // For admins, also show reports with `to_local_admins=false`
+  // For admins, also show reports with `violates_instance_rules=false`
   pub show_mod_reports: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
@@ -328,7 +328,7 @@ impl ReportCombinedQuery {
     }
 
     if user.local_user.admin {
-      // By default admins only see reports with `to_local_admins == true`, for communities
+      // By default admins only see reports with `violates_instance_rules == true`, for communities
       // where they are moderator, or reports which have been unresolved for more than 3 days.
       // With parameter `show_mod_reports` they can also see newer reports in other communities.
       let show_mod_reports = self.show_mod_reports.unwrap_or_default();
@@ -337,10 +337,10 @@ impl ReportCombinedQuery {
       }
     } else {
       // Mods can only see reports for communities where they are moderator, and
-      // which have `to_local_admins == false`.
+      // which have `violates_instance_rules == false`.
       query = query
         .filter(filter_is_mod())
-        .filter(filter_to_local_admins().is_distinct_from(true));
+        .filter(filter_violates_instance_rules().is_distinct_from(true));
     }
 
     if let Some(post_id) = self.post_id {
@@ -412,9 +412,9 @@ fn filter_is_mod() -> _ {
 
 // Filter reports which are only for admins
 #[diesel::dsl::auto_type]
-fn filter_to_local_admins() -> _ {
-  post_report::to_local_admins
-    .or(comment_report::to_local_admins)
+fn filter_violates_instance_rules() -> _ {
+  post_report::violates_instance_rules
+    .or(comment_report::violates_instance_rules)
     .or(community_report::id.is_not_null())
     .or(private_message_report::id.is_not_null())
 }
@@ -422,7 +422,7 @@ fn filter_to_local_admins() -> _ {
 // Admins can see reports intended for them, or mod reports older than 3 days
 #[diesel::dsl::auto_type]
 fn filter_visible_to_admins(interval: DateTime<Utc>) -> _ {
-  filter_to_local_admins()
+  filter_violates_instance_rules()
     .or(filter_is_mod())
     .or(post_report::published.lt(interval))
     .or(comment_report::published.lt(interval))
@@ -708,7 +708,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
     let inserted_post_report = PostReport::report(pool, &sara_report_post_form).await?;
 
@@ -718,7 +718,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "A test comment rv".into(),
       reason: "from sara".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
     CommentReport::report(pool, &sara_report_comment_form).await?;
 
@@ -929,7 +929,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
 
     PostReport::report(pool, &sara_report_form).await?;
@@ -942,7 +942,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from jessica".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
 
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
@@ -1060,7 +1060,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from sara".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
 
     CommentReport::report(pool, &sara_report_form).await?;
@@ -1071,7 +1071,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from jessica".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
 
     let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
@@ -1242,7 +1242,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
-      to_local_admins: true,
+      violates_instance_rules: true,
     };
     PostReport::report(pool, &report_form).await?;
 
@@ -1272,7 +1272,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from sara".into(),
-      to_local_admins: false,
+      violates_instance_rules: false,
     };
     let comment_report = CommentReport::report(pool, &report_form).await?;
 

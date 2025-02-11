@@ -393,7 +393,7 @@ BEGIN
     FROM (
         SELECT
             (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved
-                AND NOT (post_report).to_local_admins), 0) AS unresolved_report_count
+                AND NOT (post_report).violates_instance_rules), 0) AS unresolved_report_count
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
 AND a.post_id = diff.post_id;
@@ -413,7 +413,7 @@ BEGIN
     FROM (
         SELECT
             (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved
-                AND NOT (comment_report).to_local_admins), 0) AS unresolved_report_count
+                AND NOT (comment_report).violates_instance_rules), 0) AS unresolved_report_count
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
 AND a.comment_id = diff.comment_id;

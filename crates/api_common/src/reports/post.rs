@@ -12,7 +12,7 @@ pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub to_local_admins: Option<bool>,
+  pub violates_instance_rules: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
