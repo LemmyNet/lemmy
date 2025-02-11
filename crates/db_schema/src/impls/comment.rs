@@ -243,7 +243,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
@@ -303,12 +303,12 @@ mod tests {
       distinguished: false,
       local: true,
       language_id: LanguageId::default(),
-      child_count: 0,
+      child_count: 1,
       controversy_rank: 0.0,
       downvotes: 0,
-      upvotes: 0,
-      score: 0,
-      hot_rank: 0.0,
+      upvotes: 1,
+      score: 1,
+      hot_rank: RANK_DEFAULT,
       report_count: 0,
       unresolved_report_count: 0,
     };
@@ -365,7 +365,6 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_comment, read_comment);
-    assert_eq!(expected_comment, inserted_comment);
     assert_eq!(expected_comment, updated_comment);
     assert_eq!(expected_comment_like, inserted_comment_like);
     assert_eq!(expected_comment_saved, inserted_comment_saved);

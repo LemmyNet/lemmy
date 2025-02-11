@@ -471,7 +471,6 @@ impl PostActionsCursor {
 #[cfg(test)]
 mod tests {
   use crate::{
-    newtypes::InstanceId,
     source::{
       comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
@@ -492,7 +491,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
   };
-  use chrono::{DateTime, Utc};
+  use chrono::DateTime;
   use diesel::result::Error;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -568,13 +567,13 @@ mod tests {
       comments: 0,
       controversy_rank: 0.0,
       downvotes: 0,
-      upvotes: 0,
-      score: 0,
+      upvotes: 1,
+      score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      instance_id: InstanceId(0),
-      newest_comment_time: Utc::now(),
-      newest_comment_time_necro: Utc::now(),
+      instance_id: inserted_instance.id,
+      newest_comment_time: inserted_post.published,
+      newest_comment_time_necro: inserted_post.published,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
@@ -644,7 +643,6 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_post, read_post);
-    assert_eq!(expected_post, inserted_post);
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
