@@ -7,6 +7,7 @@ use lemmy_api_common::{
   post::{CreatePost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
     get_url_blocklist,
@@ -122,6 +123,10 @@ pub async fn create_post(
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(&context, &inserted_post, &community, tags, &local_user_view).await?;
+  }
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

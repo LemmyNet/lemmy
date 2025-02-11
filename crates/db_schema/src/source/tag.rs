@@ -48,6 +48,18 @@ pub struct TagInsertForm {
   pub deleted: bool,
 }
 
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = tag))]
+pub struct TagUpdateForm {
+  pub ap_id: Option<DbUrl>,
+  pub name: Option<String>,
+  pub community_id: Option<CommunityId>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
+  pub deleted: Option<bool>,
+}
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_tag))]
