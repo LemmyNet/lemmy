@@ -1,12 +1,7 @@
-use crate::{
-  build_response::build_post_response,
-  context::LemmyContext,
-  post::PostResponse,
-  utils::check_community_mod_action,
-};
+use crate::{context::LemmyContext, utils::check_community_mod_action};
 use activitypub_federation::config::Data;
 use lemmy_db_schema::{
-  newtypes::{PostId, TagId},
+  newtypes::TagId,
   source::{community::Community, post::Post, post_tag::PostTag, tag::PostTagInsertForm},
   traits::Crud,
 };
@@ -28,7 +23,7 @@ pub async fn update_post_tags(
     // Check if user is either the post author or a community mod
     check_community_mod_action(
       &local_user_view.person,
-      &community,
+      community,
       false,
       &mut context.pool(),
     )

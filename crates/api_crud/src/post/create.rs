@@ -24,8 +24,6 @@ use lemmy_db_schema::{
     community::Community,
     local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
-    post_tag::PostTag,
-    tag::PostTagInsertForm,
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
@@ -127,14 +125,7 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
   if let Some(tags) = &data.tags {
-    update_post_tags(
-      &context,
-      &inserted_post,
-      &community,
-      &tags,
-      &local_user_view,
-    )
-    .await?;
+    update_post_tags(&context, &inserted_post, &community, tags, &local_user_view).await?;
   }
 
   let community_id = community.id;

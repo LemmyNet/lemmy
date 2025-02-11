@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, LanguageId, PersonId, TagId},
+  newtypes::{CommunityId, LanguageId, PersonId, TagId},
   source::site::Site,
   CommunityVisibility,
   ListingType,

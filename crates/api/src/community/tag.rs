@@ -1,7 +1,7 @@
 use activitypub_federation::config::Data;
-use actix_web::web::{Json, Query};
+use actix_web::web::Json;
 use lemmy_api_common::{
-  community::{CreateCommunityTag, DeleteCommunityTag, GetCommunityResponse, UpdateCommunityTag},
+  community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   context::LemmyContext,
   utils::check_community_mod_action,
 };
@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
-use url::Url;
 
 pub async fn create_community_tag(
   data: Json<CreateCommunityTag>,

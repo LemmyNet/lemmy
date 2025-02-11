@@ -105,7 +105,7 @@ pub async fn update_post(
       &context,
       &orig_post.post,
       &orig_post.community,
-      &tags,
+      tags,
       &local_user_view,
     )
     .await?;
