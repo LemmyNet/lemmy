@@ -44,6 +44,7 @@ use lemmy_api::{
       unread_count::unread_count,
     },
     report_count::report_count,
+    resend_verification_email::resend_verification_email,
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
@@ -312,6 +313,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
           .route("/verify_email", post().to(verify_email))
+          .route(
+            "/resend_verification_email",
+            post().to(resend_verification_email),
+          )
           .route("/saved", get().to(list_person_saved)),
       )
       .service(
