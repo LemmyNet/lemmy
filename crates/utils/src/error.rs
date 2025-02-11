@@ -186,6 +186,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  PlatformLackingPrivateCommunitySupport,
   Unreachable,
 }
 
