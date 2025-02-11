@@ -96,9 +96,7 @@ impl PrivateMessage {
     let conn = &mut get_conn(pool).await?;
     diesel::update(private_message::table.filter(private_message::creator_id.eq(for_creator_id)))
       .set((
-        // This only gets called when the creator gets banned with remove_content,
-        // so no need for separate `removed` column
-        private_message::deleted.eq(removed),
+        private_message::removed.eq(removed),
         private_message::updated.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
@@ -162,6 +160,7 @@ mod tests {
       ))?
       .into(),
       local: true,
+      removed: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;
