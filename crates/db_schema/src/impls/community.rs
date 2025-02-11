@@ -48,6 +48,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use regex::Regex;
+use std::sync::LazyLock;
+use url::Url;
 
 #[async_trait]
 impl Crud for Community {
@@ -272,6 +275,20 @@ impl Community {
     community::removed
       .eq(false)
       .and(community::deleted.eq(false))
+  }
+
+  pub fn build_tag_ap_id(&self, tag_name: &str) -> LemmyResult<DbUrl> {
+    #[allow(clippy::expect_used)]
+    static VALID_ID_SLUG: LazyLock<Regex> =
+      LazyLock::new(|| Regex::new(r"[^a-z0-9_-]+").expect("compile regex"));
+    let tag_name_lower = tag_name.to_lowercase();
+    let id_slug = VALID_ID_SLUG.replace_all(&tag_name_lower, "-");
+    // limit length to 40 chars
+    let id_slug: String = id_slug.chars().take(40).collect();
+    if id_slug.is_empty() {
+      Err(LemmyErrorType::InvalidUrl)?
+    }
+    Ok(Url::parse(&format!("{}/tag/{}", self.actor_id, &id_slug))?.into())
   }
 }
 

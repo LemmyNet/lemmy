@@ -653,7 +653,7 @@ impl<'a> PostQuery<'a> {
 mod tests {
   use crate::{
     post::post_view::{PaginationCursorData, PostQuery, PostView},
-    structs::{LocalUserView, PostTags},
+    structs::{LocalUserView, TagsView},
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
@@ -1919,7 +1919,7 @@ mod tests {
       hidden: false,
       saved: None,
       creator_blocked: false,
-      tags: PostTags::default(),
+      tags: TagsView::default(),
     })
   }
 

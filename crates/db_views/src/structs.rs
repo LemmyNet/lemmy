@@ -13,6 +13,7 @@ use diesel::{
   Queryable,
   Selectable,
 };
+use diesel::{expression::SqlLiteral, sql_types::Json};
 use lemmy_db_schema::{
   aggregates::structs::{
     CommentAggregates,
@@ -74,7 +75,16 @@ use lemmy_db_schema::{
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
   aliases::{creator_community_actions, person1},
-  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
+  schema::{
+    comment,
+    comment_actions,
+    community,
+    community_actions,
+    local_user,
+    person,
+    person_actions,
+    tag,
+  },
   source::community::CommunityFollower,
   utils::functions::coalesce,
   Person1AliasAllColumnsTuple,
@@ -334,7 +344,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub tags: PostTags,
+  pub tags: TagsView,
 }
 
 #[skip_serializing_none]
@@ -489,7 +499,7 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
+  pub post_tags: TagsView,
   // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
@@ -581,8 +591,23 @@ pub struct CommunityView {
     )
   )]
   pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = tag_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
 }
 
+#[diesel::dsl::auto_type]
+fn tag_fragment() -> _ {
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
+  tag::table
+    .select(sel)
+    .filter(tag::community_id.eq(community::id))
+    .filter(tag::deleted.eq(false))
+    .single_value()
+}
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -656,7 +681,7 @@ pub struct PersonPostMentionView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub post_tags: PostTags,
+  pub post_tags: TagsView,
 }
 
 #[skip_serializing_none]
@@ -757,7 +782,7 @@ pub struct InboxCombinedViewInternal {
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
+  pub post_tags: TagsView,
   // Private message
   pub private_message: Option<PrivateMessage>,
   // Shared
@@ -1133,7 +1158,7 @@ pub(crate) struct SearchCombinedViewInternal {
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
+  pub post_tags: TagsView,
   // // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
@@ -1172,5 +1197,4 @@ pub enum SearchCombinedView {
 #[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 /// we wrap this in a struct so we can implement FromSqlRow<Json> for it
-pub struct PostTags(pub Vec<Tag>);
-
+pub struct TagsView(pub Vec<Tag>);

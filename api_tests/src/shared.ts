@@ -882,7 +882,7 @@ export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
   community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  return api.getCommunityPendingFollowsCount(community_id);
+  return api.getCommunityPendingFollowsCount({community_id});
 }
 
 export function approveCommunityPendingFollow(

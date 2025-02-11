@@ -8,6 +8,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
     get_url_blocklist,
@@ -98,6 +99,17 @@ pub async fn update_post(
     &mut context.pool(),
   )
   .await?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(
+      &context,
+      &orig_post.post,
+      &orig_post.community,
+      &tags,
+      &local_user_view,
+    )
+    .await?;
+  }
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {

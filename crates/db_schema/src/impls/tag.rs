@@ -1,7 +1,7 @@
 use crate::{
   newtypes::{CommunityId, TagId},
   schema::{post_tag, tag},
-  source::tag::{PostTagInsertForm, Tag, TagInsertForm},
+  source::tag::{PostTagInsertForm, Tag, TagInsertForm, TagUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
@@ -26,7 +26,7 @@ impl Tag {
 impl Crud for Tag {
   type InsertForm = TagInsertForm;
 
-  type UpdateForm = TagInsertForm;
+  type UpdateForm = TagUpdateForm;
 
   type IdType = TagId;
 
