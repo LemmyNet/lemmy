@@ -14,20 +14,22 @@ export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LE
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 PICTRS_PATH="api_tests/pict-rs"
-PICTRS_EXPECTED_HASH="8feb52c0dee1dd0b41caa0e92afd9d5e597fbb4d7174d7bba22a1ba72fa01dbc  pict-rs"
+PICTRS_EXPECTED_HASH="7f7ac2a45ef9b13403ee139b7512135be6b060ff2f6460e0c800e18e1b49d2fd  api_tests/pict-rs"
 
 # Pictrs setup. Download file with hash check and up to 3 retries. 
 if [ ! -f "$PICTRS_PATH" ]; then
-  retry=true
   count=0
-  while $retry && [ "$count" -lt 3 ]
+  while [ ! -f "$PICTRS_PATH" ] && [ "$count" -lt 3 ]
   do
     # This one sometimes goes down
-    # curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o "$PICTRS_PATH"
-    curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.17-pre.9/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    # curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
     PICTRS_HASH=$(sha256sum "$PICTRS_PATH")
-    [[ "$PICTRS_HASH" != "$PICTRS_EXPECTED_HASH" ]] && retry=true || retry=false
-    let count=count+1
+    if [[ "$PICTRS_HASH" != "$PICTRS_EXPECTED_HASH" ]]; then
+      echo "Pictrs binary hash mismatch, was $PICTRS_HASH but expected $PICTRS_EXPECTED_HASH"
+      rm "$PICTRS_PATH"
+      let count=count+1
+    fi
   done
   chmod +x "$PICTRS_PATH"
 fi

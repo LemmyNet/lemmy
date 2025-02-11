@@ -253,11 +253,11 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        interactions_month -> Int8,
         hot_rank -> Float8,
         subscribers_local -> Int8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        interactions_month -> Int8,
     }
 }
 
@@ -351,6 +351,8 @@ diesel::table! {
         width -> Int4,
         height -> Int4,
         content_type -> Text,
+        #[max_length = 50]
+        blurhash -> Nullable<Varchar>,
     }
 }
 
@@ -446,6 +448,7 @@ diesel::table! {
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
         disable_donation_dialog -> Bool,
+        default_post_time_range_seconds -> Nullable<Int4>,
     }
 }
 
@@ -519,6 +522,7 @@ diesel::table! {
         auto_mark_fetched_posts_as_read -> Bool,
         last_donation_notification -> Timestamptz,
         hide_media -> Bool,
+        default_post_time_range_seconds -> Nullable<Int4>,
     }
 }
 
@@ -780,6 +784,7 @@ diesel::table! {
         post_score -> Int8,
         comment_count -> Int8,
         comment_score -> Int8,
+        published -> Timestamptz,
     }
 }
 
