@@ -490,9 +490,7 @@ pub async fn send_verification_email(
     lang.verify_email_body(&settings.hostname, &person.name, verify_link)
   };
 
-  send_email(&subject, new_email, &person.name, &body, settings).await?;
-
-  Ok(())
+  send_email(&subject, new_email, &person.name, &body, settings).await
 }
 
 pub fn local_site_rate_limit_to_rate_limit_config(
