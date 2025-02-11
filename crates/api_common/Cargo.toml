@@ -19,7 +19,6 @@ workspace = true
 [features]
 full = [
   "tracing",
-  "rosetta-i18n",
   "lemmy_db_views/full",
   "lemmy_utils/full",
   "activitypub_federation",
@@ -51,7 +50,6 @@ chrono = { workspace = true }
 tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
-rosetta-i18n = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
