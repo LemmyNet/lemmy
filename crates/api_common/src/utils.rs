@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -445,7 +446,7 @@ pub async fn send_password_reset_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = get_interface_language(user);
+  let lang = get_interface_language(&user.local_user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
@@ -461,13 +462,15 @@ pub async fn send_password_reset_email(
 
 /// Send a verification email
 pub async fn send_verification_email(
-  user: &LocalUserView,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
   new_email: &str,
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
   let form = EmailVerificationForm {
-    local_user_id: user.local_user.id,
+    local_user_id: local_user.id,
     email: new_email.to_string(),
     verification_token: uuid::Uuid::new_v4().to_string(),
   };
@@ -478,20 +481,27 @@ pub async fn send_verification_email(
   );
   EmailVerification::create(pool, &form).await?;
 
-  let lang = get_interface_language(user);
+  let lang = get_interface_language(local_user);
   let subject = lang.verify_email_subject(&settings.hostname);
-  let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
+
+  // If an application is required, use a translation that includes that warning.
+  let body = if local_site.registration_mode == RegistrationMode::RequireApplication {
+    lang.verify_email_body_with_application(&settings.hostname, &person.name, verify_link)
+  } else {
+    lang.verify_email_body(&settings.hostname, &person.name, verify_link)
+  };
+
+  send_email(&subject, new_email, &person.name, &body, settings).await?;
 
   Ok(())
 }
 
-pub fn get_interface_language(user: &LocalUserView) -> Lang {
-  lang_str_to_lang(&user.local_user.interface_language)
+pub fn get_interface_language(local_user: &LocalUser) -> Lang {
+  lang_str_to_lang(&local_user.interface_language)
 }
 
-pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
-  lang_str_to_lang(&user.local_user.interface_language)
+pub fn get_interface_language_from_settings(local_user: &LocalUser) -> Lang {
+  lang_str_to_lang(&local_user.interface_language)
 }
 
 #[allow(clippy::expect_used)]
@@ -567,7 +577,7 @@ pub async fn send_application_approved_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = get_interface_language(user);
+  let lang = get_interface_language(&user.local_user);
   let subject = lang.registration_approved_subject(&user.person.ap_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings).await
@@ -593,7 +603,7 @@ pub async fn send_new_applicant_email_to_admins(
       .email
       .clone()
       .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = get_interface_language_from_settings(admin);
+    let lang = get_interface_language_from_settings(&admin.local_user);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
@@ -615,7 +625,7 @@ pub async fn send_new_report_email_to_admins(
 
   for admin in &admins {
     if let Some(email) = &admin.local_user.email {
-      let lang = get_interface_language_from_settings(admin);
+      let lang = get_interface_language_from_settings(&admin.local_user);
       let subject =
         lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
       let body = lang.new_report_body(reports_link);

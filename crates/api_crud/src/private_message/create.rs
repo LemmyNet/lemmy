@@ -72,7 +72,7 @@ pub async fn create_private_message(
   if view.recipient.local {
     let recipient_id = data.recipient_id;
     let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id).await?;
-    let lang = get_interface_language(&local_recipient);
+    let lang = get_interface_language(&local_recipient.local_user);
     let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
     let sender_name = &local_user_view.person.name;
     let content = markdown_to_html(&content);

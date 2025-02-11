@@ -192,7 +192,7 @@ pub async fn send_local_notifs(
 
       // Send an email to those local users that have notifications on
       if do_send_email {
-        let lang = get_interface_language(&mention_user_view);
+        let lang = get_interface_language(&mention_user_view.local_user);
         let content = markdown_to_html(&comment_content_or_post_body);
         send_email_to_user(
           &mention_user_view,
@@ -245,7 +245,7 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = get_interface_language(&parent_user_view);
+              let lang = get_interface_language(&parent_user_view.local_user);
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
@@ -298,7 +298,7 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = get_interface_language(&parent_user_view);
+              let lang = get_interface_language(&parent_user_view.local_user);
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
