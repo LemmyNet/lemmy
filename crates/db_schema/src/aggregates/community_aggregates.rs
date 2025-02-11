@@ -167,8 +167,8 @@ mod tests {
     // Remove a parent post (the comment count should also be 0)
     Post::delete(pool, inserted_post.id).await?;
     let after_parent_post_delete = CommunityAggregates::read(pool, inserted_community.id).await?;
-    assert_eq!(0, after_parent_post_delete.comments);
     assert_eq!(0, after_parent_post_delete.posts);
+    assert_eq!(0, after_parent_post_delete.comments);
 
     // Remove the 2nd person
     Person::delete(pool, another_inserted_person.id).await?;
