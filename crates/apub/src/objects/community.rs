@@ -134,7 +134,6 @@ impl Object for ApubCommunity {
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 

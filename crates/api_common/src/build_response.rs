@@ -3,12 +3,7 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{
-    check_person_instance_community_block,
-    get_interface_language,
-    is_mod_or_admin,
-    send_email_to_user,
-  },
+  utils::{check_person_instance_community_block, is_mod_or_admin, send_email_to_user},
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
@@ -192,7 +187,7 @@ pub async fn send_local_notifs(
 
       // Send an email to those local users that have notifications on
       if do_send_email {
-        let lang = get_interface_language(&mention_user_view);
+        let lang = &mention_user_view.local_user.interface_i18n_language();
         let content = markdown_to_html(&comment_content_or_post_body);
         send_email_to_user(
           &mention_user_view,
@@ -245,7 +240,7 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = get_interface_language(&parent_user_view);
+              let lang = &parent_user_view.local_user.interface_i18n_language();
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
@@ -298,7 +293,7 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = get_interface_language(&parent_user_view);
+              let lang = &parent_user_view.local_user.interface_i18n_language();
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
