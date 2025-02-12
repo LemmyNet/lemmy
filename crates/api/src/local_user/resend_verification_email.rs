@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::ResendVerificationEmail,
-  utils::send_verification_email,
+  utils::send_verification_email_if_required,
   SuccessResponse,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -18,13 +18,11 @@ pub async fn resend_verification_email(
   // Fetch that email
   let local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await?;
 
-  send_verification_email(
+  send_verification_email_if_required(
+    &context,
     &site_view.local_site,
     &local_user_view.local_user,
     &local_user_view.person,
-    &email,
-    &mut context.pool(),
-    context.settings(),
   )
   .await?;
 
