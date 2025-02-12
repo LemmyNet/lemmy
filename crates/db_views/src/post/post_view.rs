@@ -1169,6 +1169,7 @@ mod tests {
     expected_post_with_upvote.my_vote = Some(1);
     expected_post_with_upvote.post.score = 1;
     expected_post_with_upvote.post.upvotes = 1;
+    expected_post_with_upvote.creator.post_score = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
     let local_user_form = LocalUserUpdateForm {
@@ -1981,7 +1982,7 @@ mod tests {
         private_key: inserted_person.private_key.clone(),
         public_key: inserted_person.public_key.clone(),
         last_refreshed_at: inserted_person.last_refreshed_at,
-        post_count: 0,
+        post_count: 2,
         post_score: 0,
         comment_count: 0,
         comment_score: 0,
@@ -2020,7 +2021,7 @@ mod tests {
         visibility: CommunityVisibility::Public,
         random_number: inserted_community.random_number,
         subscribers: 0,
-        posts: 0,
+        posts: 4,
         comments: 0,
         users_active_day: 0,
         users_active_week: 0,
