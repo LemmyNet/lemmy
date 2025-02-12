@@ -189,7 +189,7 @@ WHERE
     AND diff.comments != 0;
 
 UPDATE
-    site_aggregates AS a
+    local_site AS a
 SET
     comments = a.comments + diff.comments
 FROM (
@@ -245,7 +245,7 @@ WHERE
     AND diff.posts != 0;
 
 UPDATE
-    site_aggregates AS a
+    local_site AS a
 SET
     posts = a.posts + diff.posts
 FROM (
@@ -268,7 +268,7 @@ $$);
 CALL r.create_triggers ('community', $$
 BEGIN
     UPDATE
-        site_aggregates AS a
+        local_site AS a
     SET
         communities = a.communities + diff.communities
     FROM (
@@ -290,7 +290,7 @@ $$);
 CALL r.create_triggers ('person', $$
 BEGIN
     UPDATE
-        site_aggregates AS a
+        local_site AS a
     SET
         users = a.users + diff.users
     FROM (
@@ -453,27 +453,6 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     WHEN (pg_trigger_depth() = 0)
     EXECUTE FUNCTION r.post_from_post ();
-
-CREATE FUNCTION r.site_aggregates_from_site ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- only 1 row can be in site_aggregates because of the index idx_site_aggregates_1_row_only.
-    -- we only ever want to have a single value in site_aggregate because the site_aggregate triggers update all rows in that table.
-    -- a cleaner check would be to insert it for the local_site but that would break assumptions at least in the tests
-    INSERT INTO site_aggregates (site_id)
-        VALUES (NEW.id)
-    ON CONFLICT ((TRUE))
-        DO NOTHING;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON site
-    FOR EACH ROW
-    EXECUTE FUNCTION r.site_aggregates_from_site ();
 
 -- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
 CREATE FUNCTION r.delete_comments_before_post ()

@@ -71,6 +71,9 @@ mod tests {
     let site_form = SiteInsertForm::new("test_site".into(), inserted_instance.id);
     let inserted_site = Site::create(pool, &site_form).await?;
 
+    let local_site_form = LocalSiteInsertForm::new(inserted_site.id);
+    LocalSite::create(pool, &local_site_form).await?;
+
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_site_agg".into(),

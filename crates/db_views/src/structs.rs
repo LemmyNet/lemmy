@@ -15,6 +15,16 @@ use diesel::{
   Queryable,
   Selectable,
 };
+#[cfg(feature = "full")]
+use lemmy_db_schema::{
+  aliases::{creator_community_actions, creator_local_user, person1},
+  impls::comment::comment_select_remove_deletes,
+  impls::community::community_follower_select_subscribed_type,
+  impls::local_user::local_user_can_mod,
+  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
+  utils::functions::coalesce,
+  Person1AliasAllColumnsTuple,
+};
 use lemmy_db_schema::{
   source::{
     comment::Comment,
@@ -65,16 +75,6 @@ use lemmy_db_schema::{
     tag::Tag,
   },
   SubscribedType,
-};
-#[cfg(feature = "full")]
-use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user, person1},
-  impls::comment::comment_select_remove_deletes,
-  impls::community::community_follower_select_subscribed_type,
-  impls::local_user::local_user_can_mod,
-  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
-  utils::functions::coalesce,
-  Person1AliasAllColumnsTuple,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
