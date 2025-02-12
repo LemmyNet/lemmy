@@ -366,7 +366,7 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   for (full_form, abbr) in &intervals {
     let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
+      "update local_site set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
     sql_query(update_site_stmt).execute(&mut conn).await?;
