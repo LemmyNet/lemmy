@@ -18,7 +18,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
@@ -26,7 +25,6 @@ use lemmy_db_schema::{
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
-    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::OAuthProvider,
     person::{Person, PersonInsertForm},
@@ -476,35 +474,32 @@ async fn create_local_user(
   Ok(inserted_local_user)
 }
 
+/// Returns true if email was sent.
 async fn send_verification_email_if_required(
   context: &Data<LemmyContext>,
   local_site: &LocalSite,
   local_user: &LocalUser,
   person: &Person,
 ) -> LemmyResult<bool> {
-  let mut sent = false;
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    let local_user_view = LocalUserView {
-      local_user: local_user.clone(),
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-      person: person.clone(),
-      counts: PersonAggregates::default(),
-    };
+  let email = &local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
 
+  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
     send_verification_email(
-      &local_user_view,
-      &local_user
-        .email
-        .clone()
-        .ok_or(LemmyErrorType::EmailRequired)?,
+      local_site,
+      local_user,
+      person,
+      email,
       &mut context.pool(),
       context.settings(),
     )
     .await?;
-
-    sent = true;
+    Ok(true)
+  } else {
+    Ok(false)
   }
-  Ok(sent)
 }
 
 fn validate_registration_answer(

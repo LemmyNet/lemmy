@@ -10,7 +10,9 @@ use lettre::{
   AsyncTransport,
   Message,
 };
+use rosetta_i18n::{Language, LanguageId};
 use std::str::FromStr;
+use translations::Lang;
 use uuid::Uuid;
 
 pub mod translations {
@@ -92,4 +94,13 @@ pub async fn send_email(
     .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
 
   Ok(())
+}
+
+#[allow(clippy::expect_used)]
+pub fn lang_str_to_lang(lang: &str) -> Lang {
+  let lang_id = LanguageId::new(lang);
+  Lang::from_language_id(&lang_id).unwrap_or_else(|| {
+    let en = LanguageId::new("en");
+    Lang::from_language_id(&en).expect("default language")
+  })
 }

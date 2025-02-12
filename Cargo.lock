@@ -2591,7 +2591,6 @@ dependencies = [
  "regex",
  "reqwest 0.12.12",
  "reqwest-middleware",
- "rosetta-i18n",
  "serde",
  "serde_with",
  "serial_test",

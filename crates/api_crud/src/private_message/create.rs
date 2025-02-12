@@ -6,7 +6,6 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_private_messages_enabled,
-    get_interface_language,
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown,
@@ -72,7 +71,7 @@ pub async fn create_private_message(
   if view.recipient.local {
     let recipient_id = data.recipient_id;
     let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id).await?;
-    let lang = get_interface_language(&local_recipient);
+    let lang = &local_recipient.local_user.interface_i18n_language();
     let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
     let sender_name = &local_user_view.person.name;
     let content = markdown_to_html(&content);
