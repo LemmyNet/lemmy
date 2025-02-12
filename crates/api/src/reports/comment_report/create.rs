@@ -56,6 +56,7 @@ pub async fn create_comment_report(
     comment_id,
     original_comment_text: comment_view.comment.content,
     reason,
+    violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
   let report = CommentReport::report(&mut context.pool(), &report_form)
