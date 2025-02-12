@@ -1,12 +1,11 @@
 use crate::structs::{CommentSlimView, CommentView};
 use diesel::{
-  dsl::{exists, not},
+  dsl::exists,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
-  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -23,13 +22,14 @@ use lemmy_db_schema::{
     community,
     community_actions,
     instance_actions,
+    local_user,
     local_user_language,
     person,
     person_actions,
     post,
   },
   source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  utils::{get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
@@ -75,6 +75,8 @@ impl CommentView {
         ),
     );
 
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
     comment::table
       .inner_join(person::table)
       .inner_join(post::table)
@@ -85,6 +87,7 @@ impl CommentView {
       .left_join(person_actions_join)
       .left_join(instance_actions_join)
       .left_join(comment_creator_community_actions_join)
+      .left_join(local_user_join)
   }
 
   pub async fn read(
@@ -121,8 +124,7 @@ impl CommentView {
       res.my_vote = Some(0);
     }
 
-    let is_admin = my_local_user.map(|u| u.admin).unwrap_or(false);
-    Ok(handle_deleted(res, is_admin))
+    Ok(res)
   }
 
   pub fn map_to_slim(self) -> CommentSlimView {
@@ -138,6 +140,7 @@ impl CommentView {
       saved: self.saved,
       creator_blocked: self.creator_blocked,
       my_vote: self.my_vote,
+      can_mod: self.can_mod,
     }
   }
 }
@@ -152,7 +155,6 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
-  pub search_term: Option<String>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub page: Option<i64>,
@@ -183,14 +185,6 @@ impl CommentQuery<'_> {
 
     if let Some(parent_path) = o.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
-    };
-    //filtering out removed and deleted comments from search
-    if let Some(search_term) = o.search_term {
-      query = query.filter(
-        comment::content
-          .ilike(fuzzy_search(&search_term))
-          .and(not(comment::removed.or(comment::deleted))),
-      );
     };
 
     if let Some(community_id) = o.community_id {
@@ -330,24 +324,8 @@ impl CommentQuery<'_> {
       .load::<CommentView>(conn)
       .await?;
 
-    let is_admin = o.local_user.map(|u| u.admin).unwrap_or(false);
-
-    // Note: deleted and removed comments are done on the front side
-    Ok(
-      res
-        .into_iter()
-        .map(|c| handle_deleted(c, is_admin))
-        .collect(),
-    )
+    Ok(res)
   }
-}
-
-/// Only show deleted / removed content for admins.
-fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
-  if !is_admin && (c.comment.deleted || c.comment.removed) {
-    c.comment.content = String::new();
-  }
-  c
 }
 
 #[cfg(test)]
@@ -380,7 +358,7 @@ mod tests {
       },
       instance::Instance,
       language::Language,
-      local_user::{LocalUser, LocalUserInsertForm},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
@@ -565,6 +543,7 @@ mod tests {
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
+    expected_comment_view_with_person.can_mod = true;
 
     let read_comment_views_no_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
@@ -904,6 +883,7 @@ mod tests {
       subscribed: SubscribedType::NotSubscribed,
       saved: None,
       creator_blocked: false,
+      can_mod: false,
       comment: Comment {
         id: data.inserted_comment_0.id,
         content: "Comment 0".into(),
@@ -1253,6 +1233,16 @@ mod tests {
     Comment::update(pool, data.inserted_comment_0.id, &form).await?;
 
     // Read as normal user, content is cleared
+    // Timmy leaves admin
+    LocalUser::update(
+      pool,
+      data.timmy_local_user_view.local_user.id,
+      &LocalUserUpdateForm {
+        admin: Some(false),
+        ..Default::default()
+      },
+    )
+    .await?;
     data.timmy_local_user_view.local_user.admin = false;
     let comment_view = CommentView::read(
       pool,
@@ -1272,6 +1262,15 @@ mod tests {
     assert_eq!("", comment_listing[0].comment.content);
 
     // Read as admin, content is returned
+    LocalUser::update(
+      pool,
+      data.timmy_local_user_view.local_user.id,
+      &LocalUserUpdateForm {
+        admin: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
     data.timmy_local_user_view.local_user.admin = true;
     let comment_view = CommentView::read(
       pool,

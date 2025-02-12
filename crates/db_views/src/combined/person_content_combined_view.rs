@@ -18,7 +18,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
+  aliases::{creator_community_actions, creator_local_user},
+  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::PersonId,
   schema::{
     comment,
@@ -38,10 +39,7 @@ use lemmy_db_schema::{
     post_tag,
     tag,
   },
-  source::{
-    combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
-    community::CommunityFollower,
-  },
+  source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::InternalToCombinedView,
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
@@ -86,11 +84,12 @@ impl PersonContentCombinedViewInternal {
             .eq(item_creator),
         ),
     );
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
-    let local_user_join = local_user::table.on(
+    let creator_local_user_join = creator_local_user.on(
       item_creator
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
     );
 
     let community_actions_join = community_actions::table.on(
@@ -132,6 +131,7 @@ impl PersonContentCombinedViewInternal {
       .inner_join(community_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
+      .left_join(creator_local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
@@ -179,10 +179,12 @@ impl PersonContentCombinedViewInternal {
         ),
     );
 
-    let local_user_join = local_user::table.on(
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
+    let creator_local_user_join = creator_local_user.on(
       item_creator
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
     );
 
     let community_actions_join = community_actions::table.on(
@@ -224,6 +226,7 @@ impl PersonContentCombinedViewInternal {
       .inner_join(community_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
+      .left_join(creator_local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
@@ -327,8 +330,11 @@ impl PersonContentCombinedQuery {
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        CommunityFollower::select_subscribed_type(),
-        local_user::admin.nullable().is_not_null(),
+        community_follower_select_subscribed_type(),
+        creator_local_user
+          .field(local_user::admin)
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -339,6 +345,7 @@ impl PersonContentCombinedQuery {
           .is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         community_actions::received_ban.nullable().is_not_null(),
+        local_user_can_mod(),
       ))
       .into_boxed();
 
@@ -404,6 +411,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         saved: v.comment_saved,
         my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
@@ -424,6 +432,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
         tags: v.post_tags,
+        can_mod: v.can_mod,
       }))
     }
   }

@@ -20,7 +20,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{self, creator_community_actions},
+  aliases::{self, creator_community_actions, creator_local_user},
+  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::PersonId,
   schema::{
     comment,
@@ -44,10 +45,7 @@ use lemmy_db_schema::{
     private_message,
     tag,
   },
-  source::{
-    combined::inbox::{inbox_combined_keys as key, InboxCombined},
-    community::CommunityFollower,
-  },
+  source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
   traits::InternalToCombinedView,
   utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
@@ -98,10 +96,12 @@ impl InboxCombinedViewInternal {
 
     let community_join = post::community_id.eq(community::id);
 
-    let local_user_join = local_user::table.on(
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
+    let creator_local_user_join = creator_local_user.on(
       item_creator
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
     );
 
     let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
@@ -167,6 +167,7 @@ impl InboxCombinedViewInternal {
       .left_join(comment_aggregates_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
+      .left_join(creator_local_user_join)
       .left_join(community_actions_join)
       .left_join(instance_actions_join)
       .left_join(post_actions_join)
@@ -307,10 +308,13 @@ impl InboxCombinedQuery {
         comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        local_user::admin.nullable().is_not_null(),
+        creator_local_user
+          .field(local_user::admin)
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -321,6 +325,7 @@ impl InboxCombinedQuery {
           .is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         community_actions::received_ban.nullable().is_not_null(),
+        local_user_can_mod(),
       ))
       .into_boxed();
 
@@ -447,6 +452,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         saved: v.comment_saved,
         my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else if let (
       Some(person_comment_mention),
@@ -478,6 +484,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           saved: v.comment_saved,
           my_vote: v.my_comment_vote,
           banned_from_community: v.banned_from_community,
+          can_mod: v.can_mod,
         },
       ))
     } else if let (
@@ -513,6 +520,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         image_details: v.image_details,
         post_tags: v.post_tags,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else if let Some(private_message) = v.private_message {
       Some(InboxCombinedView::PrivateMessage(PrivateMessageView {

@@ -14,7 +14,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
+  aliases::{creator_community_actions, creator_local_user},
+  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   schema::{
     comment,
     comment_actions,
@@ -32,10 +33,7 @@ use lemmy_db_schema::{
     post_tag,
     tag,
   },
-  source::{
-    combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
-    community::CommunityFollower,
-  },
+  source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::InternalToCombinedView,
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
@@ -124,8 +122,11 @@ impl PersonSavedCombinedQuery {
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        CommunityFollower::select_subscribed_type(),
-        local_user::admin.nullable().is_not_null(),
+        community_follower_select_subscribed_type(),
+        creator_local_user
+          .field(local_user::admin)
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -136,6 +137,7 @@ impl PersonSavedCombinedQuery {
           .is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         community_actions::received_ban.nullable().is_not_null(),
+        local_user_can_mod(),
       ))
       .into_boxed();
 
