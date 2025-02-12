@@ -171,7 +171,7 @@ WITH post_diff AS (
         diff.comments,
         diff.include_in_community_aggregates)
 UPDATE
-    community_aggregates AS a
+    community AS a
 SET
     comments = a.comments + diff.comments
 FROM (
@@ -185,7 +185,7 @@ FROM (
     GROUP BY
         community_id) AS diff
 WHERE
-    a.community_id = diff.community_id
+    a.id = diff.community_id
     AND diff.comments != 0;
 
 UPDATE
@@ -227,7 +227,7 @@ WHERE
         AND diff.post_count != 0;
 
 UPDATE
-    community_aggregates AS a
+    community AS a
 SET
     posts = a.posts + diff.posts
 FROM (
@@ -241,7 +241,7 @@ FROM (
     GROUP BY
         (post).community_id) AS diff
 WHERE
-    a.community_id = diff.community_id
+    a.id = diff.community_id
     AND diff.posts != 0;
 
 UPDATE
@@ -307,14 +307,14 @@ END;
 
 $$);
 
--- For community_aggregates.comments, don't include comments of deleted or removed posts
+-- For community.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
     UPDATE
-        community_aggregates AS a
+        community AS a
     SET
         comments = a.comments + diff.comments
     FROM (
@@ -334,7 +334,7 @@ BEGIN
             GROUP BY
                 old_post.community_id) AS diff
 WHERE
-    a.community_id = diff.community_id
+    a.id = diff.community_id
         AND diff.comments != 0;
     RETURN NULL;
 END;
@@ -351,7 +351,7 @@ CREATE TRIGGER comment_count
 CALL r.create_triggers ('community_actions', $$
 BEGIN
     UPDATE
-        community_aggregates AS a
+        community AS a
     SET
         subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers_local + diff.subscribers_local
     FROM (
@@ -362,7 +362,7 @@ BEGIN
     LEFT JOIN person ON person.id = (community_actions).person_id
     WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
-    a.community_id = diff.community_id
+    a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
 
 RETURN NULL;
@@ -412,7 +412,7 @@ $$);
 CALL r.create_triggers ('community_report', $$
 BEGIN
     UPDATE
-        community_aggregates AS a
+        community AS a
     SET
         report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
     FROM (
@@ -420,35 +420,13 @@ BEGIN
             (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count
     FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.community_id = diff.community_id;
+    AND a.id = diff.community_id;
 
 RETURN NULL;
 
 END;
 
 $$);
-
--- These triggers create and update rows in each aggregates table to match its associated table's rows.
--- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
-CREATE FUNCTION r.community_aggregates_from_community ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    INSERT INTO community_aggregates (community_id, published)
-    SELECT
-        id,
-        published
-    FROM
-        new_community;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON community REFERENCING NEW TABLE AS new_community
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.community_aggregates_from_community ();
 
 CREATE FUNCTION r.person_aggregates_from_person ()
     RETURNS TRIGGER
@@ -1017,7 +995,7 @@ END
 $$;
 
 CREATE TRIGGER search_combined_community_score
-    AFTER UPDATE OF users_active_month ON community_aggregates
+    AFTER UPDATE OF users_active_month ON community
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_community_score_update ();
 

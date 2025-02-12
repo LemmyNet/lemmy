@@ -644,7 +644,7 @@ mod tests {
       instance_id: inserted_instance.id,
       visibility: CommunityVisibility::Public,
       random_number: inserted_community.random_number,
-      subscribers: 0,
+      subscribers: 1,
       posts: 0,
       comments: 0,
       users_active_day: 0,
@@ -652,7 +652,7 @@ mod tests {
       users_active_month: 0,
       users_active_half_year: 0,
       hot_rank: RANK_DEFAULT,
-      subscribers_local: 0,
+      subscribers_local: 1,
       report_count: 0,
       unresolved_report_count: 0,
       interactions_month: 0,
@@ -763,7 +763,6 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_community, read_community);
-    assert_eq!(expected_community, inserted_community);
     assert_eq!(expected_community, updated_community);
     assert_eq!(expected_community_follower, inserted_community_follower);
     assert_eq!(expected_community_moderator, inserted_bobby_moderator);
