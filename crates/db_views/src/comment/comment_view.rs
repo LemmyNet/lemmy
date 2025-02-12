@@ -193,18 +193,14 @@ impl CommentQuery<'_> {
 
     let is_subscribed = community_actions::followed.is_not_null();
 
-    match o.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
-      ListingType::Local => {
-        query = query
-          .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed))
-      }
-      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-      ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator.is_not_null());
-      }
-    }
+    // For posts, we only show hidden if its subscribed, but for comments,
+    // we ignore hidden.
+    query = match o.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Local => query.filter(community::local.eq(true)),
+      ListingType::All => query,
+      ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+    };
 
     if let Some(my_id) = my_person_id {
       let not_creator_filter = comment::creator_id.ne(my_id);
