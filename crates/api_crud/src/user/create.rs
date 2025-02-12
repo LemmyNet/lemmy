@@ -18,7 +18,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
@@ -488,7 +487,6 @@ async fn send_verification_email_if_required(
       local_user: local_user.clone(),
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: person.clone(),
-      counts: PersonAggregates::default(),
     };
 
     send_verification_email(

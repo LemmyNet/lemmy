@@ -223,7 +223,6 @@ mod tests {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: timmy.clone(),
-      counts: Default::default(),
     };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");

@@ -240,6 +240,10 @@ mod tests {
         private_key: inserted_sara_person.private_key,
         public_key: inserted_sara_person.public_key,
         last_refreshed_at: inserted_sara_person.last_refreshed_at,
+        post_count: 0,
+        post_score: 0,
+        comment_count: 0,
+        comment_score: 0,
       },
       admin: None,
     };
@@ -309,6 +313,10 @@ mod tests {
       private_key: inserted_timmy_person.private_key,
       public_key: inserted_timmy_person.public_key,
       last_refreshed_at: inserted_timmy_person.last_refreshed_at,
+      post_count: 0,
+      post_score: 0,
+      comment_count: 0,
+      comment_score: 0,
     });
     assert_eq!(read_sara_app_view_after_approve, expected_sara_app_view);
 

@@ -509,7 +509,6 @@ mod tests {
       local_user: inserted_timmy_local_user.clone(),
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy_person.clone(),
-      counts: Default::default(),
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;
@@ -922,6 +921,10 @@ mod tests {
         private_key: data.timmy_local_user_view.person.private_key.clone(),
         public_key: data.timmy_local_user_view.person.public_key.clone(),
         last_refreshed_at: data.timmy_local_user_view.person.last_refreshed_at,
+        post_count: 0,
+        post_score: 0,
+        comment_count: 0,
+        comment_score: 0,
       },
       post: Post {
         id: data.inserted_post.id,

@@ -34,7 +34,6 @@ use lemmy_db_schema::{
     local_user,
     person,
     person_actions,
-    person_aggregates,
     post,
     post_actions,
     post_tag,
@@ -149,9 +148,6 @@ impl SearchCombinedViewInternal {
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
-    let person_aggregates_join = person_aggregates::table
-      .on(search_combined::person_id.eq(person_aggregates::person_id.nullable()));
-
     search_combined::table
       .left_join(comment_join)
       .left_join(post_join)
@@ -163,7 +159,6 @@ impl SearchCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .left_join(person_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -266,7 +261,7 @@ impl SearchCombinedQuery {
         community_actions::blocked.nullable().is_not_null(),
         community_follower_select_subscribed_type(),
         // Person
-        person_aggregates::all_columns.nullable(),
+        person::all_columns.nullable(),
         // // Shared
         person::all_columns.nullable(),
         local_user::admin.nullable().is_not_null(),
@@ -480,10 +475,9 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (Some(person), Some(counts)) = (v.item_creator, v.item_creator_counts) {
+    } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {
         person,
-        counts,
         is_admin: v.item_creator_is_admin,
       }))
     } else {
@@ -550,7 +544,6 @@ mod tests {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: timmy.clone(),
-      counts: Default::default(),
     };
 
     let community_form = CommunityInsertForm {

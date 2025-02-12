@@ -3,32 +3,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  crate::schema::{person_aggregates, post_actions, site_aggregates},
+  crate::schema::{post_actions, site_aggregates},
   diesel::{dsl, expression_methods::NullableExpressionMethods},
   ts_rs::TS,
 };
-
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = person_aggregates))]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Aggregate data for a person.
-pub struct PersonAggregates {
-  pub person_id: PersonId,
-  pub post_count: i64,
-  #[serde(skip)]
-  pub post_score: i64,
-  pub comment_count: i64,
-  #[serde(skip)]
-  pub comment_score: i64,
-  pub published: DateTime<Utc>,
-}
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(

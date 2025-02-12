@@ -749,6 +749,10 @@ diesel::table! {
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
+        post_count -> Int8,
+        post_score -> Int8,
+        comment_count -> Int8,
+        comment_score -> Int8,
     }
 }
 
@@ -759,17 +763,6 @@ diesel::table! {
         followed -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
         blocked -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    person_aggregates (person_id) {
-        person_id -> Int4,
-        post_count -> Int8,
-        post_score -> Int8,
-        comment_count -> Int8,
-        comment_score -> Int8,
-        published -> Timestamptz,
     }
 }
 
@@ -1157,7 +1150,6 @@ diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
-diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_comment_mention -> comment (comment_id));
 diesel::joinable!(person_comment_mention -> person (recipient_id));
@@ -1245,7 +1237,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   password_reset_request,
   person,
   person_actions,
-  person_aggregates,
   person_ban,
   person_comment_mention,
   person_content_combined,

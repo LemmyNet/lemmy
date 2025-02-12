@@ -530,7 +530,6 @@ mod tests {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
-      counts: Default::default(),
     };
 
     // Make an admin, to be able to see private message reports.
@@ -542,7 +541,6 @@ mod tests {
       local_user: admin_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_admin.clone(),
-      counts: Default::default(),
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");

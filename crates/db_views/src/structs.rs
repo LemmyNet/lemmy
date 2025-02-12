@@ -16,7 +16,7 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
-  aggregates::structs::{PersonAggregates, SiteAggregates},
+  aggregates::structs::SiteAggregates,
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -254,8 +254,6 @@ pub struct LocalUserView {
   pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: PersonAggregates,
 }
 
 #[skip_serializing_none]
@@ -706,8 +704,6 @@ pub struct CommentReplyView {
 pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: PersonAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,
@@ -1155,7 +1151,7 @@ pub(crate) struct SearchCombinedViewInternal {
   pub community_blocked: bool,
   pub subscribed: SubscribedType,
   // Person
-  pub item_creator_counts: Option<PersonAggregates>,
+  pub item_creator_counts: Option<Person>,
   // Shared
   pub item_creator: Option<Person>,
   pub item_creator_is_admin: bool,

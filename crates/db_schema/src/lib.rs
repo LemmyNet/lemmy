@@ -345,4 +345,8 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::bot_account>,
   AliasedField<aliases::Person1, person::ban_expires>,
   AliasedField<aliases::Person1, person::instance_id>,
+  AliasedField<aliases::Person1, person::post_count>,
+  AliasedField<aliases::Person1, person::post_score>,
+  AliasedField<aliases::Person1, person::comment_count>,
+  AliasedField<aliases::Person1, person::comment_score>,
 );

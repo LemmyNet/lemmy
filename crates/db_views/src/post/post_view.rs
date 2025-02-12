@@ -871,20 +871,17 @@ mod tests {
         local_user: inserted_tegan_local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_tegan_person,
-        counts: Default::default(),
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_john_person,
-        counts: Default::default(),
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_bot_person,
-        counts: Default::default(),
       };
 
       let site = Site {
@@ -1984,6 +1981,10 @@ mod tests {
         private_key: inserted_person.private_key.clone(),
         public_key: inserted_person.public_key.clone(),
         last_refreshed_at: inserted_person.last_refreshed_at,
+        post_count: 0,
+        post_score: 0,
+        comment_count: 0,
+        comment_score: 0,
       },
       image_details: None,
       creator_banned_from_community: false,
