@@ -434,6 +434,14 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
+        users -> Int8,
+        posts -> Int8,
+        comments -> Int8,
+        communities -> Int8,
+        users_active_day -> Int8,
+        users_active_week -> Int8,
+        users_active_month -> Int8,
+        users_active_half_year -> Int8,
     }
 }
 
@@ -1032,20 +1040,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    site_aggregates (site_id) {
-        site_id -> Int4,
-        users -> Int8,
-        posts -> Int8,
-        comments -> Int8,
-        communities -> Int8,
-        users_active_day -> Int8,
-        users_active_week -> Int8,
-        users_active_month -> Int8,
-        users_active_half_year -> Int8,
-    }
-}
-
-diesel::table! {
     site_language (site_id, language_id) {
         site_id -> Int4,
         language_id -> Int4,
@@ -1181,7 +1175,6 @@ diesel::joinable!(search_combined -> community (community_id));
 diesel::joinable!(search_combined -> person (person_id));
 diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
-diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
@@ -1258,7 +1251,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   secret,
   sent_activity,
   site,
-  site_aggregates,
   site_language,
   tag,
   tagline,

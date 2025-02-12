@@ -1,11 +1,10 @@
-use crate::newtypes::{PersonId, PostId, SiteId};
+use crate::newtypes::{PersonId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  crate::schema::{post_actions, site_aggregates},
+  crate::schema::post_actions,
   diesel::{dsl, expression_methods::NullableExpressionMethods},
-  ts_rs::TS,
 };
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
@@ -40,31 +39,4 @@ pub struct PersonPostAggregatesForm {
   pub post_id: PostId,
   #[cfg_attr(feature = "full", diesel(column_name = read_comments_amount))]
   pub read_comments: i64,
-}
-
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Copy, Hash)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
-#[cfg_attr(feature = "full", diesel(primary_key(site_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Aggregate data for a site.
-pub struct SiteAggregates {
-  pub site_id: SiteId,
-  pub users: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub communities: i64,
-  /// The number of users with any activity in the last day.
-  pub users_active_day: i64,
-  /// The number of users with any activity in the last week.
-  pub users_active_week: i64,
-  /// The number of users with any activity in the last month.
-  pub users_active_month: i64,
-  /// The number of users with any activity in the last half year.
-  pub users_active_half_year: i64,
 }

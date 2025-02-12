@@ -16,7 +16,6 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
-  aggregates::structs::SiteAggregates,
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -392,8 +391,6 @@ pub struct SiteView {
   pub local_site: LocalSite,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site_rate_limit: LocalSiteRateLimit,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: SiteAggregates,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
