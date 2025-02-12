@@ -222,7 +222,6 @@ async fn process_ranks_in_batches(
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
-      // TODO: need to remove community aggregates to get this working
       LemmyErrorType::Unknown(format!("Failed to update {} hot_ranks: {}", table_name, e))
     })?;
 
@@ -257,9 +256,9 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
       SET hot_rank = r.hot_rank(pa.score, pa.published),
           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
-      FROM batch, community_aggregates ca
+      FROM batch, community ca
       WHERE pa.id = batch.id
-      AND pa.community_id = ca.community_id
+      AND pa.community_id = ca.id
       RETURNING pa.published;
 "#,
     )
@@ -372,11 +371,11 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     );
     sql_query(update_site_stmt).execute(&mut conn).await?;
 
-    let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
+    let update_community_stmt = format!("update community ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.id = mv.community_id_", abbr, full_form);
     sql_query(update_community_stmt).execute(&mut conn).await?;
   }
 
-  let update_interactions_stmt = "update community_aggregates ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.community_id = mv.community_id_";
+  let update_interactions_stmt = "update community ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.id = mv.community_id_";
   sql_query(update_interactions_stmt)
     .execute(&mut conn)
     .await?;
