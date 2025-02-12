@@ -1,4 +1,5 @@
 use crate::{
+  aliases::creator_community_actions,
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
   schema::{community, community_actions, local_user, person, registration_application},
   source::{
@@ -19,9 +20,12 @@ use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
   dsl::{insert_into, not, IntervalDsl},
   result::Error,
+  BoolExpressionMethods,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -293,6 +297,29 @@ impl LocalUser {
       Err(LemmyErrorType::NotHigherMod)?
     }
   }
+}
+
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
+/// Checks to see if you can mod an item.
+///
+/// Caveat: Since admin status isn't federated or ordered, it can't know whether
+/// item creator is a federated admin, or a higher admin.
+/// The back-end will reject an action for admin that is higher via
+/// LocalUser::is_higher_mod_or_admin_check
+#[diesel::dsl::auto_type]
+pub fn local_user_can_mod() -> _ {
+  let am_admin = local_user::admin.nullable();
+  let creator_became_moderator = creator_community_actions
+    .field(community_actions::became_moderator)
+    .nullable();
+
+  let am_higher_mod = community_actions::became_moderator
+    .nullable()
+    .le(creator_became_moderator);
+
+  am_admin.or(am_higher_mod).is_not_distinct_from(true)
 }
 
 /// Adds some helper functions for an optional LocalUser

@@ -21,12 +21,13 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
+    instance::Instance,
     person::{PersonFollower, PersonFollowerForm},
   },
   traits::Followable,
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl Follow {
@@ -102,6 +103,13 @@ impl ActivityHandler for Follow {
         AcceptFollow::send(self, context).await?;
       }
       UserOrCommunity::Community(c) => {
+        if c.visibility == CommunityVisibility::Private {
+          let instance = Instance::read(&mut context.pool(), actor.instance_id).await?;
+          if [Some("kbin"), Some("mbin")].contains(&instance.software.as_deref()) {
+            // TODO: change this to a minimum version check once private communities are supported
+            return Err(FederationError::PlatformLackingPrivateCommunitySupport.into());
+          }
+        }
         let state = Some(match c.visibility {
           CommunityVisibility::Public => CommunityFollowerState::Accepted,
           CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,

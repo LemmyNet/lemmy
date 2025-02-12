@@ -33,7 +33,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl::{self, exists, insert_into, not},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   pg::Pg,
   result::Error,
@@ -398,10 +398,6 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_state> {
-    community_actions::follow_state.nullable()
-  }
-
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
   pub async fn check_has_local_followers(
@@ -438,6 +434,14 @@ impl CommunityFollower {
       .await?;
     Ok(())
   }
+}
+
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
+#[diesel::dsl::auto_type]
+pub fn community_follower_select_subscribed_type() -> _ {
+  community_actions::follow_state.nullable()
 }
 
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
