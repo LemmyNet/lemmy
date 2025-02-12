@@ -14,7 +14,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
-    send_verification_email,
+    send_verification_email_if_required,
   },
 };
 use lemmy_db_schema::{
@@ -472,34 +472,6 @@ async fn create_local_user(
     LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
-}
-
-/// Returns true if email was sent.
-async fn send_verification_email_if_required(
-  context: &Data<LemmyContext>,
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-) -> LemmyResult<bool> {
-  let email = &local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    send_verification_email(
-      local_site,
-      local_user,
-      person,
-      email,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
-    Ok(true)
-  } else {
-    Ok(false)
-  }
 }
 
 fn validate_registration_answer(
