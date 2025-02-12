@@ -33,6 +33,7 @@ pub struct PrivateMessage {
   pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub local: bool,
+  pub removed: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -67,4 +68,5 @@ pub struct PrivateMessageUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
+  pub removed: Option<bool>,
 }

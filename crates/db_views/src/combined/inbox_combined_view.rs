@@ -92,7 +92,8 @@ impl InboxCombinedViewInternal {
     // This could be a simple join, but you need to check for deleted here
     let private_message_join = inbox_combined::private_message_id
       .eq(private_message::id.nullable())
-      .and(not(private_message::deleted));
+      .and(not(private_message::deleted))
+      .and(not(private_message::removed));
 
     let community_join = post::community_id.eq(community::id);
 
