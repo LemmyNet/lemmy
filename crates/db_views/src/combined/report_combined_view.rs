@@ -201,13 +201,10 @@ impl ReportCombinedViewInternal {
       );
     }
 
-    // See list function below for details
     if user.local_user.admin {
-      query = query.filter(filter_visible_to_admins(Utc::now() - Days::new(3)));
+      query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
     } else {
-      query = query
-        .filter(filter_is_mod())
-        .filter(filter_violates_instance_rules().is_distinct_from(true));
+      query = query.filter(filter_mod_reports());
     }
 
     query.first::<i64>(conn).await
@@ -256,8 +253,8 @@ pub struct ReportCombinedQuery {
   pub post_id: Option<PostId>,
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
-  // For admins, also show reports with `violates_instance_rules=false`
-  pub show_mod_reports: Option<bool>,
+  /// For admins, also show reports with `violates_instance_rules=false`
+  pub show_community_rule_violations: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -326,19 +323,12 @@ impl ReportCombinedQuery {
     }
 
     if user.local_user.admin {
-      // By default admins only see reports with `violates_instance_rules == true`, for communities
-      // where they are moderator, or reports which have been unresolved for more than 3 days.
-      // With parameter `show_mod_reports` they can also see newer reports in other communities.
-      let show_mod_reports = self.show_mod_reports.unwrap_or_default();
-      if !show_mod_reports {
-        query = query.filter(filter_visible_to_admins(Utc::now() - Days::new(3)));
+      let show_community_rule_violations = self.show_community_rule_violations.unwrap_or_default();
+      if !show_community_rule_violations {
+        query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
       }
     } else {
-      // Mods can only see reports for communities where they are moderator, and
-      // which have `violates_instance_rules == false`.
-      query = query
-        .filter(filter_is_mod())
-        .filter(filter_violates_instance_rules().is_distinct_from(true));
+      query = query.filter(filter_mod_reports());
     }
 
     if let Some(post_id) = self.post_id {
@@ -400,31 +390,36 @@ impl ReportCombinedQuery {
   }
 }
 
-// Only show reports for communities where the user is a mod
+/// Mods can only see reports for posts/comments inside of communities where they are moderator,
+/// and which have `violates_instance_rules == false`.
 #[diesel::dsl::auto_type]
-fn filter_is_mod() -> _ {
+fn filter_mod_reports() -> _ {
   community_actions::became_moderator
     .is_not_null()
+    // Reporting a community or private message must go to admins
     .and(report_combined::community_report_id.is_null())
+    .and(report_combined::private_message_report_id.is_null())
+    .and(filter_violates_instance_rules().is_distinct_from(true))
 }
 
-// Filter reports which are only for admins
+/// Admins can see reports intended for them, or mod reports older than 3 days. Also reports
+/// on communities, person and private messages.
+#[diesel::dsl::auto_type]
+fn filter_admin_reports(interval: DateTime<Utc>) -> _ {
+  filter_violates_instance_rules()
+    .or(report_combined::published.lt(interval))
+    // Also show community reports where the admin is a community mod
+    .or(community_actions::became_moderator.is_not_null())
+}
+
+/// Filter reports which are only for admins (either post/comment report with
+/// `violates_instance_rules=true`, or report on a community/person/private message.
 #[diesel::dsl::auto_type]
 fn filter_violates_instance_rules() -> _ {
   post_report::violates_instance_rules
     .or(comment_report::violates_instance_rules)
-    .or(community_report::id.is_not_null())
-    .or(private_message_report::id.is_not_null())
-}
-
-// Admins can see reports intended for them, or mod reports older than 3 days
-#[diesel::dsl::auto_type]
-fn filter_visible_to_admins(interval: DateTime<Utc>) -> _ {
-  filter_violates_instance_rules()
-    .or(filter_is_mod())
-    .or(post_report::published.lt(interval))
-    .or(comment_report::published.lt(interval))
-    .or(community_report::published.lt(interval))
+    .or(report_combined::community_report_id.is_not_null())
+    .or(report_combined::private_message_report_id.is_not_null())
 }
 
 impl InternalToCombinedView for ReportCombinedViewInternal {
@@ -552,7 +547,7 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::{CommentAggregates, PostAggregates},
     assert_length,
-    schema::comment_report,
+    schema::report_combined,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -739,7 +734,7 @@ mod tests {
 
     // Do a batch read of admins reports
     let reports = ReportCombinedQuery {
-      show_mod_reports: Some(true),
+      show_community_rule_violations: Some(true),
       ..Default::default()
     }
     .list(pool, &data.admin_view)
@@ -873,7 +868,7 @@ mod tests {
     let pm_report = PrivateMessageReport::report(pool, &pm_report_form).await?;
 
     let reports = ReportCombinedQuery {
-      show_mod_reports: Some(true),
+      show_community_rule_violations: Some(true),
       ..Default::default()
     }
     .list(pool, &data.admin_view)
@@ -1183,7 +1178,7 @@ mod tests {
     let community_report = CommunityReport::report(pool, &community_report_form).await?;
 
     let reports = ReportCombinedQuery {
-      show_mod_reports: Some(true),
+      show_community_rule_violations: Some(true),
       ..Default::default()
     }
     .list(pool, &data.admin_view)
@@ -1203,7 +1198,7 @@ mod tests {
     CommunityReport::resolve(pool, community_report.id, data.admin_view.person.id).await?;
 
     let reports = ReportCombinedQuery {
-      show_mod_reports: Some(true),
+      show_community_rule_violations: Some(true),
       ..Default::default()
     }
     .list(pool, &data.admin_view)
@@ -1227,7 +1222,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_local_admin_reports() -> LemmyResult<()> {
+  async fn test_violates_instance_rules() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1256,7 +1251,6 @@ mod tests {
     let admin_reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
       .await?;
-    // TODO
     assert_length!(1, admin_reports);
     let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
     assert_eq!(1, count);
@@ -1292,7 +1286,7 @@ mod tests {
 
     // admin can see the report with `view_mod_reports` set
     let admin_reports = ReportCombinedQuery {
-      show_mod_reports: Some(true),
+      show_community_rule_violations: Some(true),
       ..Default::default()
     }
     .list(pool, &data.timmy_view)
@@ -1300,10 +1294,12 @@ mod tests {
     assert_length!(1, admin_reports);
 
     // change a comment to be 3 days old, now admin can also see it by default
-    update(comment_report::dsl::comment_report.find(comment_report.id))
-      .set(comment_report::published.eq(Utc::now() - Days::new(3)))
-      .execute(&mut get_conn(pool).await?)
-      .await?;
+    update(
+      report_combined::table.filter(report_combined::dsl::comment_report_id.eq(comment_report.id)),
+    )
+    .set(report_combined::published.eq(Utc::now() - Days::new(3)))
+    .execute(&mut get_conn(pool).await?)
+    .await?;
     let admin_reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
       .await?;

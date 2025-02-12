@@ -1,6 +1,6 @@
 ALTER TABLE post_report
-    DROP COLUMN to_local_admins;
+    DROP COLUMN violates_instance_rules;
 
 ALTER TABLE comment_report
-    DROP COLUMN to_local_admins;
+    DROP COLUMN violates_instance_rules;
 
