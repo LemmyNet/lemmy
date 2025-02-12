@@ -198,11 +198,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         )
         // Post
         .service(
-          // Handle POST to /post separately to add the post() rate limitter
-          resource("/post")
-            .guard(guard::Post())
+          scope("/post")
             .wrap(rate_limit.post())
-            .route(post().to(create_post)),
+            .route("", post().to(create_post))
+            .route("/site_metadata", get().to(get_link_metadata)),
         )
         .service(
           scope("/post")
@@ -220,8 +219,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .route("/like/list", get().to(list_post_likes))
             .route("/save", put().to(save_post))
             .route("/report", post().to(create_post_report))
-            .route("/report/resolve", put().to(resolve_post_report))
-            .route("/site_metadata", get().to(get_link_metadata)),
+            .route("/report/resolve", put().to(resolve_post_report)),
         )
         // Comment
         .service(
