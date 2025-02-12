@@ -239,3 +239,34 @@ CREATE INDEX idx_community_aggregates_subscribers ON public.community_aggregates
 
 CREATE INDEX idx_community_aggregates_users_active_month ON public.community_aggregates USING btree (users_active_month DESC);
 
+-- move person_aggregates back into separate table
+CREATE TABLE person_aggregates (
+    person_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    post_count bigint NOT NULL DEFAULT 0,
+    post_score bigint NOT NULL DEFAULT 0,
+    comment_count bigint NOT NULL DEFAULT 0,
+    comment_score bigint NOT NULL DEFAULT 0,
+    published timestamp with time zone DEFAULT now() NOT NULL
+);
+
+INSERT INTO person_aggregates
+SELECT
+    id AS person_id,
+    post_count,
+    post_score,
+    comment_count,
+    comment_score,
+    published
+FROM
+    person;
+
+ALTER TABLE person
+    DROP COLUMN post_count,
+    DROP COLUMN post_score,
+    DROP COLUMN comment_count,
+    DROP COLUMN comment_score;
+
+CREATE INDEX idx_person_aggregates_comment_score ON public.person_aggregates USING btree (comment_score DESC);
+
+CREATE INDEX idx_person_aggregates_person ON public.person_aggregates USING btree (person_id);
+

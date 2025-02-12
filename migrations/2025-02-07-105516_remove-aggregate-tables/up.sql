@@ -186,3 +186,24 @@ CREATE INDEX idx_community_aggregates_subscribers ON public.community USING btre
 
 CREATE INDEX idx_community_aggregates_users_active_month ON public.community USING btree (users_active_month DESC);
 
+-- merge person_aggregates into person table
+ALTER TABLE person
+    ADD COLUMN post_count bigint NOT NULL DEFAULT 0,
+    ADD COLUMN post_score bigint NOT NULL DEFAULT 0,
+    ADD COLUMN comment_count bigint NOT NULL DEFAULT 0,
+    ADD COLUMN comment_score bigint NOT NULL DEFAULT 0;
+
+UPDATE
+    person
+SET
+    post_count = pa.post_count,
+    post_score = pa.post_score,
+    comment_count = pa.comment_count,
+    comment_score = pa.comment_score
+FROM
+    person_aggregates AS pa
+WHERE
+    person.id = pa.person_id;
+
+DROP TABLE person_aggregates;
+
