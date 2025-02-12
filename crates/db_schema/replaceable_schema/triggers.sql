@@ -41,13 +41,13 @@ BEGIN
                 RETURNING
                     a.creator_id AS creator_id, diff.upvotes - diff.downvotes AS score)
             UPDATE
-                person_aggregates AS a
+                person AS a
             SET
                 thing_score = a.thing_score + diff.score FROM (
                     SELECT
                         creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
                 WHERE
-                    a.person_id = diff.creator_id
+                    a.id = diff.creator_id
                     AND diff.score != 0;
                 RETURN NULL;
             END;
@@ -81,7 +81,7 @@ END;
 CALL r.create_triggers ('comment', $$
 BEGIN
     UPDATE
-        person_aggregates AS a
+        person AS a
     SET
         comment_count = a.comment_count + diff.comment_count
     FROM (
@@ -92,7 +92,7 @@ BEGIN
             r.is_counted (comment)
         GROUP BY (comment).creator_id) AS diff
 WHERE
-    a.person_id = diff.creator_id
+    a.id = diff.creator_id
         AND diff.comment_count != 0;
 
 UPDATE
@@ -212,7 +212,7 @@ $$);
 CALL r.create_triggers ('post', $$
 BEGIN
     UPDATE
-        person_aggregates AS a
+        person AS a
     SET
         post_count = a.post_count + diff.post_count
     FROM (
@@ -223,7 +223,7 @@ BEGIN
             r.is_counted (post)
         GROUP BY (post).creator_id) AS diff
 WHERE
-    a.person_id = diff.creator_id
+    a.id = diff.creator_id
         AND diff.post_count != 0;
 
 UPDATE
@@ -428,25 +428,6 @@ END;
 
 $$);
 
-CREATE FUNCTION r.person_aggregates_from_person ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    INSERT INTO person_aggregates (person_id)
-    SELECT
-        id
-    FROM
-        new_person;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON person REFERENCING NEW TABLE AS new_person
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.person_aggregates_from_person ();
-
 CREATE FUNCTION r.post_from_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -455,14 +436,9 @@ BEGIN
     UPDATE
         post
     SET
-        published = new_post.published,
         newest_comment_time = new_post.published,
         newest_comment_time_necro = new_post.published,
-        community_id = new_post.community_id,
-        creator_id = new_post.creator_id,
-        instance_id = community.instance_id,
-        featured_community = new_post.featured_community,
-        featured_local = new_post.featured_local
+        instance_id = community.instance_id
     FROM
         new_post
         INNER JOIN community ON community.id = new_post.community_id
@@ -477,34 +453,6 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     WHEN (pg_trigger_depth() = 0)
     EXECUTE FUNCTION r.post_from_post ();
-
-CREATE FUNCTION r.post_from_post_update ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post
-    SET
-        featured_community = new_post.featured_community,
-        featured_local = new_post.featured_local
-    FROM
-        new_post
-        INNER JOIN old_post ON old_post.id = new_post.id
-            AND (old_post.featured_community,
-                old_post.featured_local) != (new_post.featured_community,
-                new_post.featured_local)
-    WHERE
-        post.id = new_post.id;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates_update
-    AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
-    FOR EACH STATEMENT
-    WHEN (pg_trigger_depth() = 0)
-    EXECUTE FUNCTION r.post_from_post_update ();
 
 CREATE FUNCTION r.site_aggregates_from_site ()
     RETURNS TRIGGER
@@ -968,13 +916,13 @@ BEGIN
     SET
         score = NEW.post_score
     WHERE
-        person_id = NEW.person_id;
+        person_id = NEW.id;
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER search_combined_person_score
-    AFTER UPDATE OF post_score ON person_aggregates
+    AFTER UPDATE OF post_score ON person
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_person_score_update ();
 
