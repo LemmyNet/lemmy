@@ -270,3 +270,40 @@ CREATE INDEX idx_person_aggregates_comment_score ON public.person_aggregates USI
 
 CREATE INDEX idx_person_aggregates_person ON public.person_aggregates USING btree (person_id);
 
+-- move site_aggregates back into separate table
+CREATE TABLE person_aggregates (
+    site_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE users bigint NOT NULL DEFAULT 1,
+    posts bigint NOT NULL DEFAULT 0,
+    comments bigint NOT NULL DEFAULT 0,
+    communities bigint NOT NULL DEFAULT 0,
+    users_active_day bigint NOT NULL DEFAULT 0,
+    users_active_week bigint NOT NULL DEFAULT 0,
+    users_active_month bigint NOT NULL DEFAULT 0,
+    users_active_half_year bigint NOT NULL DEFAULT 0;
+
+);
+
+INSERT INTO site_aggregates
+SELECT
+    id AS site_id,
+    users,
+    posts,
+    comments,
+    communities,
+    users_active_day,
+    users_active_week,
+    users_active_month,
+    users_active_half_year
+FROM
+    local_site;
+
+ALTER TABLE local_site
+    DROP COLUMN users,
+    DROP COLUMN posts,
+    DROP COLUMN comments,
+    DROP COLUMN communities,
+    DROP COLUMN users_active_day,
+    DROP COLUMN users_active_week,
+    DROP COLUMN users_active_month,
+    DROP COLUMN users_active_half_year;
+

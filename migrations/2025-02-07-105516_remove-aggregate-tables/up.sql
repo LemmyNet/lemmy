@@ -207,3 +207,32 @@ WHERE
 
 DROP TABLE person_aggregates;
 
+-- merge site_aggregates into person table
+ALTER TABLE local_site
+    ADD COLUMN users bigint NOT NULL DEFAULT 1,
+    ADD COLUMN posts bigint NOT NULL DEFAULT 0,
+    ADD COLUMN comments bigint NOT NULL DEFAULT 0,
+    ADD COLUMN communities bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_day bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_week bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_month bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_half_year bigint NOT NULL DEFAULT 0;
+
+UPDATE
+    local_site
+SET
+    users = sa.users,
+    posts = sa.posts,
+    comments = sa.comments,
+    communities = sa.communities,
+    users_active_day = sa.users_active_day,
+    users_active_week = sa.users_active_week,
+    users_active_month = sa.users_active_month,
+    users_active_half_year = sa.users_active_half_year
+FROM
+    site_aggregates AS sa
+WHERE
+    local_site.site_id = sa.site_id;
+
+DROP TABLE site_aggregates;
+
