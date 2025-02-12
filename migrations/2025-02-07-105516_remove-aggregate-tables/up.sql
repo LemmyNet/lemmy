@@ -140,3 +140,49 @@ WHERE ((hot_rank <> (0)::double precision) OR (hot_rank_active <> (0)::double pr
 
 --CREATE INDEX idx_post_aggregates_published on post USING btree (published DESC);
 --CREATE INDEX idx_post_aggregates_published_asc on post USING btree (reverse_timestamp_sort (published) DESC);
+-- merge community_aggregates into community table
+ALTER TABLE community
+    ADD COLUMN subscribers bigint NOT NULL DEFAULT 0,
+    ADD COLUMN posts bigint NOT NULL DEFAULT 0,
+    ADD COLUMN comments bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_day bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_week bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_month bigint NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_half_year bigint NOT NULL DEFAULT 0,
+    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
+    ADD COLUMN subscribers_local bigint NOT NULL DEFAULT 0,
+    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
+    ADD COLUMN interactions_month bigint NOT NULL DEFAULT 0;
+
+UPDATE
+    community
+SET
+    subscribers = ca.subscribers,
+    posts = ca.posts,
+    comments = ca.comments,
+    users_active_day = ca.users_active_day,
+    users_active_week = ca.users_active_week,
+    users_active_month = ca.users_active_month,
+    users_active_half_year = ca.users_active_half_year,
+    hot_rank = ca.hot_rank,
+    subscribers_local = ca.subscribers_local,
+    report_count = ca.report_count,
+    unresolved_report_count = ca.unresolved_report_count,
+    interactions_month = ca.interactions_month
+FROM
+    community_aggregates AS ca
+WHERE
+    community.id = ca.community_id;
+
+DROP TABLE community_aggregates;
+
+CREATE INDEX idx_community_aggregates_hot ON public.community USING btree (hot_rank DESC);
+
+CREATE INDEX idx_community_aggregates_nonzero_hotrank ON public.community USING btree (published)
+WHERE (hot_rank <> (0)::double precision);
+
+CREATE INDEX idx_community_aggregates_subscribers ON public.community USING btree (subscribers DESC);
+
+CREATE INDEX idx_community_aggregates_users_active_month ON public.community USING btree (users_active_month DESC);
+

@@ -177,3 +177,65 @@ CREATE INDEX idx_post_aggregates_published ON post_aggregates USING btree (publi
 
 CREATE INDEX idx_post_aggregates_published_asc ON post_aggregates USING btree (reverse_timestamp_sort (published) DESC);
 
+-- move community_aggregates back into separate table
+CREATE TABLE community_aggregates (
+    community_id int PRIMARY KEY NOT NULL REFERENCES COMMunity ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    subscribers bigint NOT NULL DEFAULT 0,
+    posts bigint NOT NULL DEFAULT 0,
+    comments bigint NOT NULL DEFAULT 0,
+    published timestamp with time zone DEFAULT now() NOT NULL,
+    users_active_day bigint NOT NULL DEFAULT 0,
+    users_active_week bigint NOT NULL DEFAULT 0,
+    users_active_month bigint NOT NULL DEFAULT 0,
+    users_active_half_year bigint NOT NULL DEFAULT 0,
+    hot_rank double precision NOT NULL DEFAULT 0.0001,
+    subscribers_local bigint NOT NULL DEFAULT 0,
+    report_count smallint NOT NULL DEFAULT 0,
+    unresolved_report_count smallint NOT NULL DEFAULT 0,
+    interactions_month bigint NOT NULL DEFAULT 0
+);
+
+INSERT INTO community_aggregates
+SELECT
+    id AS comment_id,
+    subscribers,
+    posts,
+    comments,
+    published,
+    users_active_day,
+    users_active_week,
+    users_active_month,
+    users_active_half_year,
+    hot_rank,
+    subscribers_local,
+    report_count,
+    unresolved_report_count,
+    interactions_month
+FROM
+    community;
+
+ALTER TABLE community
+    DROP COLUMN subscribers,
+    DROP COLUMN posts,
+    DROP COLUMN comments,
+    DROP COLUMN users_active_day,
+    DROP COLUMN users_active_week,
+    DROP COLUMN users_active_month,
+    DROP COLUMN users_active_half_year,
+    DROP COLUMN hot_rank,
+    DROP COLUMN subscribers_local,
+    DROP COLUMN report_count,
+    DROP COLUMN unresolved_report_count,
+    DROP COLUMN interactions_month;
+
+CREATE INDEX idx_community_aggregates_hot ON public.community_aggregates USING btree (hot_rank DESC);
+
+CREATE INDEX idx_community_aggregates_nonzero_hotrank ON public.community_aggregates USING btree (published)
+WHERE (hot_rank <> (0)::double precision);
+
+CREATE INDEX idx_community_aggregates_published ON public.community_aggregates USING btree (published DESC);
+
+CREATE INDEX idx_community_aggregates_subscribers ON public.community_aggregates USING btree (subscribers DESC);
+
+CREATE INDEX idx_community_aggregates_users_active_month ON public.community_aggregates USING btree (users_active_month DESC);
+
