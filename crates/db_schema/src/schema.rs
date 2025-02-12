@@ -822,6 +822,7 @@ diesel::table! {
         #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
+        removed -> Bool,
     }
 }
 

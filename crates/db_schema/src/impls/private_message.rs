@@ -82,6 +82,21 @@ impl PrivateMessage {
       .await
       .optional()
   }
+
+  pub async fn update_removed_for_creator(
+    pool: &mut DbPool<'_>,
+    for_creator_id: PersonId,
+    removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(private_message::table.filter(private_message::creator_id.eq(for_creator_id)))
+      .set((
+        private_message::removed.eq(removed),
+        private_message::updated.eq(Utc::now()),
+      ))
+      .get_results::<Self>(conn)
+      .await
+  }
 }
 
 #[cfg(test)]
@@ -146,6 +161,7 @@ mod tests {
       .unwrap()
       .into(),
       local: true,
+      removed: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id)

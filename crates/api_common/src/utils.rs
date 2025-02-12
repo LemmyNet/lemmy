@@ -27,6 +27,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead},
+    private_message::PrivateMessage,
     site::Site,
   },
   traits::Crud,
@@ -787,6 +788,9 @@ pub async fn remove_user_data(
 
   // Comments
   Comment::update_removed_for_creator(pool, banned_person_id, true).await?;
+
+  // Private messages
+  PrivateMessage::update_removed_for_creator(pool, banned_person_id, true).await?;
 
   Ok(())
 }
