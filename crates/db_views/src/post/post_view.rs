@@ -304,11 +304,6 @@ impl<'a> PostQuery<'a> {
     // covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more
     // efficient.
-    use lemmy_db_schema::schema::community_aggregates::dsl::{
-      community_aggregates,
-      community_id,
-      users_active_month,
-    };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     if offset != 0 && self.page_after.is_some() {
       return Err(Error::QueryBuilderError(
@@ -321,9 +316,9 @@ impl<'a> PostQuery<'a> {
       community_actions::table
         .filter(community_actions::followed.is_not_null())
         .filter(community_actions::person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
-        .order_by(users_active_month.desc())
-        .select(community_id)
+        .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+        .order_by(community::users_active_month.desc())
+        .select(community::id)
         .limit(1)
         .get_result::<CommunityId>(conn)
         .await
@@ -2023,6 +2018,18 @@ mod tests {
         featured_url: inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: inserted_community.random_number,
+        subscribers: 0,
+        posts: 0,
+        comments: 0,
+        users_active_day: 0,
+        users_active_week: 0,
+        users_active_month: 0,
+        users_active_half_year: 0,
+        hot_rank: RANK_DEFAULT,
+        subscribers_local: 0,
+        report_count: 0,
+        unresolved_report_count: 0,
+        interactions_month: 0,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

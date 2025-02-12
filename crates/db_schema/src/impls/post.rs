@@ -1,7 +1,7 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, community_aggregates, person, post, post_actions},
+  schema::{community, person, post, post_actions},
   source::post::{
     Post,
     PostActionsCursor,
@@ -282,9 +282,9 @@ impl Post {
     // https://github.com/diesel-rs/diesel/issues/1478
     // Just select the metrics we need manually, for now, since its a single post anyway
 
-    let interactions_month = community_aggregates::table
-      .select(community_aggregates::interactions_month)
-      .inner_join(post::table.on(community_aggregates::community_id.eq(post::community_id)))
+    let interactions_month = community::table
+      .select(community::interactions_month)
+      .inner_join(post::table.on(community::id.eq(post::community_id)))
       .filter(post::id.eq(post_id))
       .first::<i64>(conn)
       .await?;

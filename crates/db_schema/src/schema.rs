@@ -214,6 +214,18 @@ diesel::table! {
         #[max_length = 150]
         description -> Nullable<Varchar>,
         random_number -> Int2,
+        subscribers -> Int8,
+        posts -> Int8,
+        comments -> Int8,
+        users_active_day -> Int8,
+        users_active_week -> Int8,
+        users_active_month -> Int8,
+        users_active_half_year -> Int8,
+        hot_rank -> Float8,
+        subscribers_local -> Int8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
+        interactions_month -> Int8,
     }
 }
 
@@ -231,25 +243,6 @@ diesel::table! {
         became_moderator -> Nullable<Timestamptz>,
         received_ban -> Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    community_aggregates (community_id) {
-        community_id -> Int4,
-        subscribers -> Int8,
-        posts -> Int8,
-        comments -> Int8,
-        published -> Timestamptz,
-        users_active_day -> Int8,
-        users_active_week -> Int8,
-        users_active_month -> Int8,
-        users_active_half_year -> Int8,
-        hot_rank -> Float8,
-        subscribers_local -> Int8,
-        report_count -> Int2,
-        unresolved_report_count -> Int2,
-        interactions_month -> Int8,
     }
 }
 
@@ -1106,7 +1099,6 @@ diesel::joinable!(comment_reply -> person (recipient_id));
 diesel::joinable!(comment_report -> comment (comment_id));
 diesel::joinable!(community -> instance (instance_id));
 diesel::joinable!(community_actions -> community (community_id));
-diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_report -> community (community_id));
@@ -1215,7 +1207,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   comment_report,
   community,
   community_actions,
-  community_aggregates,
   community_language,
   community_report,
   custom_emoji,

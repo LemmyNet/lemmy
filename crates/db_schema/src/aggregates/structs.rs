@@ -1,49 +1,12 @@
-use crate::newtypes::{CommunityId, PersonId, PostId, SiteId};
+use crate::newtypes::{PersonId, PostId, SiteId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  crate::schema::{community_aggregates, person_aggregates, post_actions, site_aggregates},
+  crate::schema::{person_aggregates, post_actions, site_aggregates},
   diesel::{dsl, expression_methods::NullableExpressionMethods},
   ts_rs::TS,
 };
-
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
-#[cfg_attr(
-  feature = "full",
-  diesel(belongs_to(crate::source::community::Community))
-)]
-#[cfg_attr(feature = "full", diesel(primary_key(community_id)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Aggregate data for a community.
-pub struct CommunityAggregates {
-  pub community_id: CommunityId,
-  pub subscribers: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub published: DateTime<Utc>,
-  /// The number of users with any activity in the last day.
-  pub users_active_day: i64,
-  /// The number of users with any activity in the last week.
-  pub users_active_week: i64,
-  /// The number of users with any activity in the last month.
-  pub users_active_month: i64,
-  /// The number of users with any activity in the last year.
-  pub users_active_half_year: i64,
-  #[serde(skip)]
-  pub hot_rank: f64,
-  pub subscribers_local: i64,
-  pub report_count: i16,
-  pub unresolved_report_count: i16,
-  /// Number of any interactions over the last month.
-  #[serde(skip)]
-  pub interactions_month: i64,
-}
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(

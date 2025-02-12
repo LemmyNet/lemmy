@@ -989,6 +989,18 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: data.inserted_community.random_number,
+        subscribers: 0,
+        posts: 0,
+        comments: 0,
+        users_active_day: 0,
+        users_active_week: 0,
+        users_active_month: 0,
+        users_active_half_year: 0,
+        hot_rank: RANK_DEFAULT,
+        subscribers_local: 0,
+        report_count: 0,
+        unresolved_report_count: 0,
+        interactions_month: 0,
       },
     }
   }

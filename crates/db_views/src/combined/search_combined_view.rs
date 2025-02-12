@@ -30,7 +30,6 @@ use lemmy_db_schema::{
     comment_actions,
     community,
     community_actions,
-    community_aggregates,
     image_details,
     local_user,
     person,
@@ -147,9 +146,6 @@ impl SearchCombinedViewInternal {
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let community_aggregates_join = community_aggregates::table
-      .on(search_combined::community_id.eq(community_aggregates::community_id.nullable()));
-
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
@@ -168,7 +164,6 @@ impl SearchCombinedViewInternal {
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(person_aggregates_join)
-      .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -268,7 +263,6 @@ impl SearchCombinedQuery {
         comment_actions::like_score.nullable(),
         // Community-specific
         community::all_columns.nullable(),
-        community_aggregates::all_columns.nullable(),
         community_actions::blocked.nullable().is_not_null(),
         community_follower_select_subscribed_type(),
         // Person
@@ -478,10 +472,9 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
       }))
-    } else if let (Some(community), Some(counts)) = (v.community, v.community_counts) {
+    } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
         community,
-        counts,
         subscribed: v.subscribed,
         blocked: v.community_blocked,
         banned_from_community: v.banned_from_community,

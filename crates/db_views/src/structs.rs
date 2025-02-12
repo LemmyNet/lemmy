@@ -16,7 +16,7 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
-  aggregates::structs::{CommunityAggregates, PersonAggregates, SiteAggregates},
+  aggregates::structs::{PersonAggregates, SiteAggregates},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -237,7 +237,6 @@ pub struct CommunityReportView {
   pub community_report: CommunityReport,
   pub community: Community,
   pub creator: Person,
-  pub counts: CommunityAggregates,
   pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
@@ -457,7 +456,6 @@ pub struct ReportCombinedViewInternal {
   pub private_message: Option<PrivateMessage>,
   // Community-specific
   pub community_report: Option<CommunityReport>,
-  pub community_counts: Option<CommunityAggregates>,
   // Shared
   pub report_creator: Person,
   pub item_creator: Option<Person>,
@@ -577,8 +575,6 @@ pub struct CommunityView {
     )
   )]
   pub blocked: bool,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: CommunityAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = community_actions::received_ban.nullable().is_not_null()
@@ -1156,7 +1152,6 @@ pub(crate) struct SearchCombinedViewInternal {
   pub my_comment_vote: Option<i16>,
   // // Community-specific
   pub community: Option<Community>,
-  pub community_counts: Option<CommunityAggregates>,
   pub community_blocked: bool,
   pub subscribed: SubscribedType,
   // Person

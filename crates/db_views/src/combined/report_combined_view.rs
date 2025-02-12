@@ -30,7 +30,6 @@ use lemmy_db_schema::{
     comment_report,
     community,
     community_actions,
-    community_aggregates,
     community_report,
     local_user,
     person,
@@ -136,9 +135,6 @@ impl ReportCombinedViewInternal {
         .and(comment_actions::person_id.eq(my_person_id)),
     );
 
-    let community_aggregates_join = community_aggregates::table
-      .on(community_report::community_id.eq(community_aggregates::community_id));
-
     report_combined::table
       .left_join(post_report::table)
       .left_join(comment_report::table)
@@ -156,7 +152,6 @@ impl ReportCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
   }
 
@@ -282,7 +277,6 @@ impl ReportCombinedQuery {
         private_message::all_columns.nullable(),
         // Community-specific
         community_report::all_columns.nullable(),
-        community_aggregates::all_columns.nullable(),
         // Shared
         person::all_columns,
         aliases::person1.fields(person::all_columns.nullable()),
@@ -460,14 +454,11 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
           resolver: v.resolver,
         },
       ))
-    } else if let (Some(community), Some(community_report), Some(counts)) =
-      (v.community, v.community_report, v.community_counts)
-    {
+    } else if let (Some(community), Some(community_report)) = (v.community, v.community_report) {
       Some(ReportCombinedView::Community(CommunityReportView {
         community_report,
         community,
         creator: v.report_creator,
-        counts,
         subscribed: v.subscribed,
         resolver: v.resolver,
       }))
