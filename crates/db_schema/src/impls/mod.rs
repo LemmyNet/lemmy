@@ -31,6 +31,7 @@ pub mod person_block;
 pub mod person_comment_mention;
 pub mod person_post_mention;
 pub mod post;
+pub mod post_actions;
 pub mod post_report;
 pub mod private_message;
 pub mod private_message_report;

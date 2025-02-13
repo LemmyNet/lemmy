@@ -17,7 +17,7 @@ use {
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// Aggregate data for a person's post.
-pub struct PersonPostAggregates {
+pub struct PostActions {
   pub person_id: PersonId,
   pub post_id: PostId,
   /// The number of comments they've read on that post.
@@ -34,7 +34,7 @@ pub struct PersonPostAggregates {
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-pub struct PersonPostAggregatesForm {
+pub struct PostActionsForm {
   pub person_id: PersonId,
   pub post_id: PostId,
   #[cfg_attr(feature = "full", diesel(column_name = read_comments_amount))]
