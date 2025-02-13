@@ -279,8 +279,7 @@ CREATE TABLE person_aggregates (
     users_active_day bigint NOT NULL DEFAULT 0,
     users_active_week bigint NOT NULL DEFAULT 0,
     users_active_month bigint NOT NULL DEFAULT 0,
-    users_active_half_year bigint NOT NULL DEFAULT 0;
-
+    users_active_half_year bigint NOT NULL DEFAULT 0
 );
 
 INSERT INTO site_aggregates
@@ -306,4 +305,28 @@ ALTER TABLE local_site
     DROP COLUMN users_active_week,
     DROP COLUMN users_active_month,
     DROP COLUMN users_active_half_year;
+
+-- move local_user_vote_display_mode back into separate table
+CREATE TABLE local_user_vote_display_mode (
+    local_user_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE users score boolean NOT NULL DEFAULT FALSE,
+    upvotes boolean NOT NULL DEFAULT TRUE,
+    downvotes boolean NOT NULL DEFAULT TRUE,
+    upvote_percentage boolean NOT NULL DEFAULT FALSE
+);
+
+INSERT INTO local_user_vote_display_mode
+SELECT
+    id AS local_user_id,
+    show_score AS score,
+    show_upvotes AS upvotes,
+    show_downvotes AS downvotes,
+    show_upvote_percentage AS upvote_percentage
+FROM
+    local_user;
+
+ALTER TABLE local_user
+    DROP COLUMN show_score,
+    DROP COLUMN show_upvotes,
+    DROP COLUMN show_downvotes,
+    DROP COLUMN show_upvote_percentage;
 

@@ -527,7 +527,6 @@ mod tests {
       community_report::{CommunityReport, CommunityReportForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
@@ -564,7 +563,6 @@ mod tests {
     let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
     };
 
@@ -575,7 +573,6 @@ mod tests {
     let admin_local_user = LocalUser::create(pool, &admin_local_user_form, vec![]).await?;
     let admin_view = LocalUserView {
       local_user: admin_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_admin.clone(),
     };
 

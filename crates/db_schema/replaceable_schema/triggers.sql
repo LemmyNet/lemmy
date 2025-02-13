@@ -383,7 +383,7 @@ BEGIN
                 AND NOT (post_report).violates_instance_rules), 0) AS unresolved_report_count
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.id = diff.post_id;
+AND a.id = diff.post_id;
 
 RETURN NULL;
 
@@ -403,7 +403,7 @@ BEGIN
                 AND NOT (comment_report).violates_instance_rules), 0) AS unresolved_report_count
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.id = diff.comment_id;
+AND a.id = diff.comment_id;
 
 RETURN NULL;
 

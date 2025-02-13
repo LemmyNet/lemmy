@@ -672,7 +672,6 @@ mod tests {
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{
@@ -869,18 +868,15 @@ mod tests {
 
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_tegan_person,
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_john_person,
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_bot_person,
       };
 

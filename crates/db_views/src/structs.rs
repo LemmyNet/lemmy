@@ -39,7 +39,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
-    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     mod_log::{
       admin::{
         AdminAllowInstance,
@@ -249,8 +248,6 @@ pub struct CommunityReportView {
 pub struct LocalUserView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub local_user: LocalUser,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
 }

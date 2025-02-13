@@ -348,7 +348,6 @@ mod tests {
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostUpdateForm},
@@ -503,7 +502,6 @@ mod tests {
 
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy_person.clone(),
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);

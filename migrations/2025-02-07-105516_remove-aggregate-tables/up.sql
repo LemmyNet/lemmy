@@ -236,3 +236,24 @@ WHERE
 
 DROP TABLE site_aggregates;
 
+-- merge local_user_vote_display_mode into local_user table
+ALTER TABLE local_user
+    ADD COLUMN show_score boolean NOT NULL DEFAULT FALSE,
+    ADD COLUMN show_upvotes boolean NOT NULL DEFAULT TRUE,
+    ADD COLUMN show_downvotes boolean NOT NULL DEFAULT TRUE,
+    ADD COLUMN show_upvote_percentage boolean NOT NULL DEFAULT FALSE;
+
+UPDATE
+    local_user
+SET
+    show_score = v.score,
+    show_upvotes = v.upvotes,
+    show_downvotes = v.downvotes,
+    show_upvote_percentage = v.upvote_percentage
+FROM
+    local_user_vote_display_mode AS v
+WHERE
+    local_user.id = v.local_user_id;
+
+DROP TABLE local_user_vote_display_mode;
+
