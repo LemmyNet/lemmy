@@ -196,7 +196,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.search())
           .route(get().to(search)),
       )
-      .route("/resolve_object", get().to(resolve_object))
+      .service(
+        resource("/resolve_object")
+          .wrap(rate_limit.search())
+          .route(get().to(resolve_object)),
+      )
       // Community
       .service(
         resource("/community")
