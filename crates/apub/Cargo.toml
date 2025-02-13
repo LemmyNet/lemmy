@@ -41,7 +41,7 @@ reqwest = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
 html2md = "0.2.15"
-html2text = "0.13.6"
+html2text = "0.14.0"
 stringreader = "0.1.1"
 enum_delegate = "0.2.0"
 semver = "1.0.25"
