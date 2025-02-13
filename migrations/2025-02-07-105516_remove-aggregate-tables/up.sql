@@ -75,9 +75,6 @@ FROM
 WHERE
     post.id = pa.post_id;
 
-ALTER TABLE post
-    ALTER COLUMN instance_id DROP NOT NULL;
-
 DROP TABLE post_aggregates;
 
 -- Note, removed `post_id DESC` from all these
