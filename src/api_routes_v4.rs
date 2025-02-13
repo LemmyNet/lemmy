@@ -232,10 +232,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .route("/federated_instances", get().to(get_federated_instances))
       // Post
       .service(
-        scope("/post")
+        resource("/post")
           .wrap(rate_limit.post())
-          .route("", post().to(create_post))
-          .route("/site_metadata", get().to(get_link_metadata)),
+          .route(post().to(create_post)),
+      )
+      .service(
+        resource("post/site_metadata")
+          .wrap(rate_limit.search())
+          .route(get().to(get_link_metadata)),
       )
       .service(
         scope("/post")
