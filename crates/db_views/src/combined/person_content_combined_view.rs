@@ -1,26 +1,23 @@
 use crate::structs::{
   CommentView,
   LocalUserView,
-  PersonContentCombinedPaginationCursor,
   PersonContentCombinedView,
   PersonContentCombinedViewInternal,
   PostView,
 };
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
   impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
-  newtypes::PersonId,
+  newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
     comment_actions,
@@ -40,7 +37,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
-  traits::InternalToCombinedView,
+  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
@@ -237,37 +234,15 @@ impl PersonContentCombinedViewInternal {
   }
 }
 
-impl PersonContentCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PersonContentCombinedView) -> PersonContentCombinedPaginationCursor {
-    let (prefix, id) = match view {
+impl PageCursorBuilder for PersonContentCombinedView {
+  fn cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    // hex encoding to prevent ossification
-    PersonContentCombinedPaginationCursor(format!("{prefix}{id:x}"))
-  }
-
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = person_content_combined::table
-      .select(PersonContentCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "C" => query.filter(person_content_combined::comment_id.eq(id)),
-      "P" => query.filter(person_content_combined::post_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
-
-    Ok(PaginationCursorData(token))
+    PaginationCursor::create(prefix, id)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(PersonContentCombined);
 
 #[derive(derive_new::new)]
 pub struct PersonContentCombinedQuery {
@@ -275,7 +250,7 @@ pub struct PersonContentCombinedQuery {
   #[new(default)]
   pub type_: Option<PersonContentType>,
   #[new(default)]
-  pub page_after: Option<PaginationCursorData>,
+  pub page_cursor: Option<PaginationCursor>,
   #[new(default)]
   pub page_back: Option<bool>,
 }
@@ -361,7 +336,12 @@ impl PersonContentCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
+    // parse pagination token
+    let page_after = if let Some(pa) = self.page_cursor {
+      Some(PersonContentCombined::from_cursor(pa, conn).await?)
+    } else {
+      None
+    };
 
     if self.page_back.unwrap_or_default() {
       query = query.before(page_after).limit_and_offset_from_end();

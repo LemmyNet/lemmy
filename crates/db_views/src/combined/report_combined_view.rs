@@ -4,7 +4,6 @@ use crate::structs::{
   LocalUserView,
   PostReportView,
   PrivateMessageReportView,
-  ReportCombinedPaginationCursor,
   ReportCombinedView,
   ReportCombinedViewInternal,
 };
@@ -17,14 +16,13 @@ use diesel::{
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   impls::community::community_follower_select_subscribed_type,
-  newtypes::{CommunityId, PersonId, PostId},
+  newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -46,7 +44,7 @@ use lemmy_db_schema::{
     report_combined,
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
-  traits::InternalToCombinedView,
+  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
@@ -211,41 +209,17 @@ impl ReportCombinedViewInternal {
   }
 }
 
-impl ReportCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &ReportCombinedView) -> ReportCombinedPaginationCursor {
-    let (prefix, id) = match view {
+impl PageCursorBuilder for ReportCombinedView {
+  fn cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
       ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
-    // hex encoding to prevent ossification
-    ReportCombinedPaginationCursor(format!("{prefix}{id:x}"))
-  }
-
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = report_combined::table
-      .select(ReportCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "C" => query.filter(report_combined::comment_report_id.eq(id)),
-      "P" => query.filter(report_combined::post_report_id.eq(id)),
-      "M" => query.filter(report_combined::private_message_report_id.eq(id)),
-      "Y" => query.filter(report_combined::community_report_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
-
-    Ok(PaginationCursorData(token))
+    PaginationCursor::create(prefix, id)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(ReportCombined);
 
 #[derive(Default)]
 pub struct ReportCombinedQuery {
@@ -255,7 +229,7 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub page_after: Option<PaginationCursorData>,
+  pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
 }
 
@@ -337,7 +311,12 @@ impl ReportCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
+    // parse pagination token
+    let page_after = if let Some(pa) = self.page_cursor {
+      Some(ReportCombined::from_cursor(pa, conn).await?)
+    } else {
+      None
+    };
 
     if self.page_back.unwrap_or_default() {
       query = query.before(page_after).limit_and_offset_from_end();

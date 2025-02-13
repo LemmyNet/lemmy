@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   post::post_view::PostQuery,
-  structs::{LocalUserView, PaginationCursor, SiteView},
+  structs::{LocalUserView, PostPaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -116,6 +116,6 @@ pub async fn list_posts(
   }
 
   // if this page wasn't empty, then there is a next page after the last post on this page
-  let next_page = posts.last().map(PaginationCursor::after_post);
+  let next_page = posts.last().map(PostPaginationCursor::after_post);
   Ok(Json(GetPostsResponse { posts, next_page }))
 }
