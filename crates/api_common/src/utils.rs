@@ -494,6 +494,34 @@ pub async fn send_verification_email(
   send_email(&subject, new_email, &person.name, &body, settings).await
 }
 
+/// Returns true if email was sent.
+pub async fn send_verification_email_if_required(
+  context: &LemmyContext,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
+) -> LemmyResult<bool> {
+  let email = &local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
+
+  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+    send_verification_email(
+      local_site,
+      local_user,
+      person,
+      email,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
+    Ok(true)
+  } else {
+    Ok(false)
+  }
+}
+
 pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
