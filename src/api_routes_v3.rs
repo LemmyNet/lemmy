@@ -137,9 +137,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         .wrap(rate_limit.image())
         .route(post().to(upload_image)),
     )
-    .service(resource("/pictrs/image/{filename}").route(get().to(get_image)))
-    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete_image)))
-    .service(resource("/pictrs/healthz").route(get().to(pictrs_health)))
+    .service(
+      scope("/pictrs")
+        .wrap(rate_limit.message())
+        .route("/image/{filename}", get().to(get_image))
+        .route("/image/delete/{token}/{filename}", get().to(delete_image))
+        .route("/healthz", get().to(pictrs_health)),
+    )
     .service(
       scope("/api/v3")
         .route("/image_proxy", get().to(image_proxy))
