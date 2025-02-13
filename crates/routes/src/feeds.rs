@@ -482,9 +482,9 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
     &p.creator.name,
     community_url,
     &p.community.name,
-    p.counts.score,
+    p.post.score,
     post_url,
-    p.counts.comments);
+    p.post.comments);
 
     // If its a url post, add it to the description
     // and see if we can parse it as a media enclosure.

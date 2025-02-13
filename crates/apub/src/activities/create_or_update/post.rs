@@ -22,7 +22,6 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
@@ -121,7 +120,7 @@ impl ActivityHandler for CreateOrUpdatePage {
     PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
+    Post::update_ranks(&mut context.pool(), post.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let actor = self.actor.dereference(context).await?;

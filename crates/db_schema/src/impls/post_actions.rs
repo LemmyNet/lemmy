@@ -1,8 +1,8 @@
 use crate::{
-  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   diesel::OptionalExtension,
   newtypes::{PersonId, PostId},
   schema::post_actions,
+  source::post_actions::{PostActions, PostActionsForm},
   utils::{get_conn, now, DbPool},
 };
 use diesel::{
@@ -15,11 +15,8 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 
-impl PersonPostAggregates {
-  pub async fn upsert(
-    pool: &mut DbPool<'_>,
-    form: &PersonPostAggregatesForm,
-  ) -> Result<Self, Error> {
+impl PostActions {
+  pub async fn upsert(pool: &mut DbPool<'_>, form: &PostActionsForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let form = (form, post_actions::read_comments.eq(now().nullable()));
     insert_into(post_actions::table)
