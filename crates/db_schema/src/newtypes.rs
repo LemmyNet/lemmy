@@ -15,6 +15,7 @@ use diesel::{
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+#[cfg(feature = "full")]
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -428,6 +429,7 @@ pub struct TagId(pub i32);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub String);
 
+#[cfg(feature = "full")]
 impl PaginationCursor {
   pub fn create(prefix: char, id: i32) -> Self {
     // hex encoding to prevent ossification
