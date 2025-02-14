@@ -9,16 +9,18 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommunityId, PaginationCursor, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions, local_user},
   source::{
     community::{Community, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
-  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  traits::PageCursorBuilder,
+  utils::{functions::lower, get_conn, now, seconds_to_pg_interval, DbPool},
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -106,6 +108,12 @@ impl CommunityView {
   }
 }
 
+impl PageCursorBuilder for CommunityView {
+  fn cursor(&self) -> PaginationCursor {
+    PaginationCursor::create('C', self.community.id)
+  }
+}
+
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
@@ -113,10 +121,9 @@ pub struct CommunityQuery<'a> {
   pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
   pub title_only: Option<bool>,
-  pub is_mod_or_admin: bool,
-  pub show_nsfw: bool,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
+  pub show_nsfw: Option<bool>,
+  pub cursor_data: Option<Community>,
+  pub page_back: Option<bool>,
 }
 
 impl CommunityQuery<'_> {
@@ -130,7 +137,8 @@ impl CommunityQuery<'_> {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !o.is_mod_or_admin {
+    let is_admin = o.local_user.map(|lu| lu.admin).unwrap_or_default();
+    if !is_admin {
       query = query.filter(Community::hide_removed_and_deleted()).filter(
         community::hidden
           .eq(false)
@@ -157,12 +165,28 @@ impl CommunityQuery<'_> {
     // also hidden (based on profile setting)
     query = query.filter(instance_actions::blocked.is_null());
     query = query.filter(community_actions::blocked.is_null());
-    if !(o.local_user.show_nsfw(site) || o.show_nsfw) {
+    if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));
     }
 
     query = o.local_user.visible_communities_only(query);
 
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(
+        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
+    }
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    if self.page_back.unwrap_or_default() {
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(self.cursor_data);
+    }
+
+    // TODO these need to be done using the cursor keys module
     match o.sort.unwrap_or_default() {
       Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
       Comments => query = query.order_by(community_aggregates::comments.desc()),
@@ -180,20 +204,8 @@ impl CommunityQuery<'_> {
       NameAsc => query = query.order_by(lower(community::name).asc()),
       NameDesc => query = query.order_by(lower(community::name).desc()),
     };
-    // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(
-        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-      );
-    }
 
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
-
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<CommunityView>(conn)
-      .await
+    query.load::<CommunityView>(conn).await
   }
 }
 

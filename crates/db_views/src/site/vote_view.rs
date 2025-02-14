@@ -8,22 +8,30 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, PostId},
+  newtypes::{CommentId, PaginationCursor, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
-  utils::{get_conn, limit_and_offset, DbPool},
+  source::person::Person,
+  traits::PageCursorBuilder,
+  utils::{get_conn, DbPool},
 };
+
+impl PageCursorBuilder for VoteView {
+  fn cursor(&self) -> PaginationCursor {
+    PaginationCursor::create('P', self.creator.id.0)
+  }
+}
 
 impl VoteView {
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    page: Option<i64>,
-    limit: Option<i64>,
+    cursor_data: Option<Person>,
+    page_back: Option<bool>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -36,7 +44,7 @@ impl VoteView {
         ),
     );
 
-    post_actions::table
+    let query = post_actions::table
       .filter(post_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(post::table)
@@ -51,20 +59,26 @@ impl VoteView {
         post_actions::like_score.assume_not_null(),
       ))
       .order_by(post_actions::like_score)
-      .limit(limit)
-      .offset(offset)
-      .load::<Self>(conn)
-      .await
+      .into_boxed();
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    if page_back.unwrap_or_default() {
+      query = query.before(cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(cursor_data);
+    }
+
+    query.load::<Self>(conn).await
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    page: Option<i64>,
-    limit: Option<i64>,
+    cursor_data: Option<Person>,
+    page_back: Option<bool>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -77,7 +91,7 @@ impl VoteView {
         ),
     );
 
-    comment_actions::table
+    let query = comment_actions::table
       .filter(comment_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
@@ -92,10 +106,17 @@ impl VoteView {
         comment_actions::like_score.assume_not_null(),
       ))
       .order_by(comment_actions::like_score)
-      .limit(limit)
-      .offset(offset)
-      .load::<Self>(conn)
-      .await
+      .into_boxed();
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    if page_back.unwrap_or_default() {
+      query = query.before(cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(cursor_data);
+    }
+
+    query.load::<Self>(conn).await
   }
 }
 

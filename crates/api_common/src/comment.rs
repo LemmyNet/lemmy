@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LanguageId, LocalUserId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, LocalUserId, PaginationCursor, PostId},
   CommentSortType,
   ListingType,
 };
@@ -123,9 +123,9 @@ pub struct GetComments {
   #[cfg_attr(feature = "full", ts(optional))]
   pub max_depth: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -157,16 +157,16 @@ pub struct GetCommentsSlimResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -175,4 +175,7 @@ pub struct ListCommentLikes {
 /// The comment likes response
 pub struct ListCommentLikesResponse {
   pub comment_likes: Vec<VoteView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }

@@ -11,15 +11,17 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   impls::community::community_follower_select_subscribed_type,
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
   schema::{community, community_actions, person},
   source::{
     community::{Community, CommunityFollowerState},
     person::Person,
   },
-  utils::{get_conn, limit_and_offset, DbPool},
+  traits::PageCursorBuilder,
+  utils::{get_conn, DbPool},
   CommunityVisibility,
   SubscribedType,
 };
@@ -110,11 +112,10 @@ impl CommunityFollowerView {
     //       also need to check is_admin()
     all_communities: bool,
     pending_only: bool,
-    page: Option<i64>,
-    limit: Option<i64>,
+    cursor_data: Option<Person>,
+    page_back: Option<bool>,
   ) -> Result<Vec<PendingFollow>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
     let (person_alias, community_follower_alias) = diesel::alias!(
       person as person_alias,
       community_actions as community_follower_alias
@@ -164,10 +165,18 @@ impl CommunityFollowerView {
       query =
         query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
     }
+    // TODO is this correct?
+    query = query.order_by(community_actions::followed.asc());
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    if page_back.unwrap_or_default() {
+      query = query.before(cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(cursor_data);
+    }
+
     let res = query
-      .order_by(community_actions::followed.asc())
-      .limit(limit)
-      .offset(offset)
       .load::<(Person, Community, bool, SubscribedType)>(conn)
       .await?;
     Ok(
@@ -251,6 +260,12 @@ impl CommunityFollowerView {
     .await?
     .then_some(())
     .ok_or(diesel::NotFound)
+  }
+}
+
+impl PageCursorBuilder for PendingFollow {
+  fn cursor(&self) -> PaginationCursor {
+    PaginationCursor::create('P', self.person.id.0)
   }
 }
 
