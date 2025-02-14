@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PersonView};
+use lemmy_db_views::{person::person_view::PersonQuery, structs::LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
@@ -57,7 +57,12 @@ pub async fn add_admin(
 
   ModAdd::create(&mut context.pool(), &form).await?;
 
-  let admins = PersonView::admins(&mut context.pool()).await?;
+  let admins = PersonQuery {
+    admins_only: Some(true),
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await?;
 
   Ok(Json(AddAdminResponse { admins }))
 }

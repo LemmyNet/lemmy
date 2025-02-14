@@ -303,28 +303,11 @@ pub struct PostReportView {
 /// perspective. stringified since we might want to use arbitrary info later, with a P prepended to
 /// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
 /// numbers as numbers) about apis that aren't part of the spec
+// TODO this is a mess, get rid of it and prefer the one in db_schema
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct PaginationCursor(pub String);
-
-/// like PaginationCursor but for the report_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct ReportCombinedPaginationCursor(pub String);
-
-/// like PaginationCursor but for the person_content_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct PersonContentCombinedPaginationCursor(pub String);
-
-/// like PaginationCursor but for the person_saved_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct PersonSavedCombinedPaginationCursor(pub String);
+pub struct PostPaginationCursor(pub String);
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -770,12 +753,6 @@ pub struct PrivateMessageView {
   pub recipient: Person,
 }
 
-/// like PaginationCursor but for the report_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct InboxCombinedPaginationCursor(pub String);
-
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -1057,12 +1034,6 @@ pub struct AdminAllowInstanceView {
   pub admin: Option<Person>,
 }
 
-/// like PaginationCursor but for the modlog_combined
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct ModlogCombinedPaginationCursor(pub String);
-
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -1149,13 +1120,6 @@ pub enum ModlogCombinedView {
   ModRemovePost(ModRemovePostView),
   ModTransferCommunity(ModTransferCommunityView),
 }
-
-/// like PaginationCursor but for the modlog_combined
-// TODO get rid of all these pagination cursors
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct SearchCombinedPaginationCursor(pub String);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable))]
