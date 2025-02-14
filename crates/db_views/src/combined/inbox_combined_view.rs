@@ -44,7 +44,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
+  traits::{InternalToCombinedView, PageCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
 };
@@ -233,7 +233,7 @@ pub struct InboxCombinedQuery {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -371,17 +371,10 @@ impl InboxCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(InboxCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by published

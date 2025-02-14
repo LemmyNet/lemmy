@@ -44,7 +44,7 @@ use lemmy_db_schema::{
     report_combined,
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
+  traits::{InternalToCombinedView, PageCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
@@ -229,7 +229,7 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<ReportCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -311,17 +311,10 @@ impl ReportCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(ReportCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     if let Some(type_) = self.type_ {

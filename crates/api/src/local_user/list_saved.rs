@@ -5,7 +5,10 @@ use lemmy_api_common::{
   person::{ListPersonSaved, ListPersonSavedResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PageCursorBuilder;
+use lemmy_db_schema::{
+  source::combined::person_saved::PersonSavedCombined,
+  traits::{PageCursorBuilder, PageCursorReader},
+};
 use lemmy_db_views::{
   combined::person_saved_combined_view::PersonSavedCombinedQuery,
   structs::{LocalUserView, SiteView},
@@ -21,9 +24,15 @@ pub async fn list_person_saved(
 
   check_private_instance(&Some(local_user_view.clone()), &local_site.local_site)?;
 
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(PersonSavedCombined::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
   let saved = PersonSavedCombinedQuery {
     type_: data.type_,
-    page_cursor: data.page_cursor.clone(),
+    cursor_data,
     page_back: data.page_back,
   }
   .list(&mut context.pool(), &local_user_view)

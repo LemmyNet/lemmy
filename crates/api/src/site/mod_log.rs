@@ -4,7 +4,10 @@ use lemmy_api_common::{
   site::{GetModlog, GetModlogResponse},
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
-use lemmy_db_schema::{source::local_site::LocalSite, traits::PageCursorBuilder};
+use lemmy_db_schema::{
+  source::{combined::modlog::ModlogCombined, local_site::LocalSite},
+  traits::{PageCursorBuilder, PageCursorReader},
+};
 use lemmy_db_views::{combined::modlog_combined_view::ModlogCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
@@ -32,6 +35,12 @@ pub async fn get_mod_log(
     data.mod_person_id
   };
 
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(ModlogCombined::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
   let modlog = ModlogCombinedQuery {
     type_: data.type_,
     listing_type: data.listing_type,
@@ -42,7 +51,7 @@ pub async fn get_mod_log(
     post_id: data.post_id,
     comment_id: data.comment_id,
     hide_modlog_names: Some(hide_modlog_names),
-    page_cursor: data.page_cursor.clone(),
+    cursor_data,
     page_back: data.page_back,
   }
   .list(&mut context.pool())

@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  utils::{get_conn, uplete, DbConn, DbPool},
+  utils::{get_conn, uplete, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -222,7 +222,7 @@ pub trait PageCursorBuilder {
 #[async_trait]
 pub trait PageCursorReader {
   /// Reads a database row from a given pagination cursor.
-  async fn from_cursor(cursor: PaginationCursor, conn: &mut DbConn<'_>) -> LemmyResult<Self>
+  async fn from_cursor(cursor: &PaginationCursor, conn: &mut DbPool<'_>) -> LemmyResult<Self>
   where
     Self: Sized;
 }

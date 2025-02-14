@@ -37,7 +37,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
+  traits::{InternalToCombinedView, PageCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
@@ -250,7 +250,7 @@ pub struct PersonContentCombinedQuery {
   #[new(default)]
   pub type_: Option<PersonContentType>,
   #[new(default)]
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<PersonContentCombined>,
   #[new(default)]
   pub page_back: Option<bool>,
 }
@@ -336,17 +336,10 @@ impl PersonContentCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(PersonContentCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by published

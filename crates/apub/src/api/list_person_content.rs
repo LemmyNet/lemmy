@@ -6,7 +6,10 @@ use lemmy_api_common::{
   person::{ListPersonContent, ListPersonContentResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PageCursorBuilder;
+use lemmy_db_schema::{
+  source::combined::person_content::PersonContentCombined,
+  traits::{PageCursorBuilder, PageCursorReader},
+};
 use lemmy_db_views::{
   combined::person_content_combined_view::PersonContentCombinedQuery,
   structs::{LocalUserView, SiteView},
@@ -30,10 +33,16 @@ pub async fn list_person_content(
   )
   .await?;
 
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(PersonContentCombined::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
   let content = PersonContentCombinedQuery {
     creator_id: person_details_id,
     type_: data.type_,
-    page_cursor: data.page_cursor.clone(),
+    cursor_data,
     page_back: data.page_back,
   }
   .list(&mut context.pool(), &local_user_view)

@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
+  traits::{InternalToCombinedView, PageCursorBuilder},
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -205,7 +205,7 @@ pub struct SearchCombinedQuery {
   pub post_url_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<SearchCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -372,19 +372,18 @@ impl SearchCombinedQuery {
       }
     }
 
+    // Filter by the time range
+    if let Some(time_range_seconds) = self.time_range_seconds {
+      query = query
+        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(SearchCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     query = match self.sort.unwrap_or_default() {
@@ -392,12 +391,6 @@ impl SearchCombinedQuery {
       Old => query.then_desc(ReverseTimestampKey(key::published)),
       Top => query.then_desc(key::score),
     };
-
-    // Filter by the time range
-    if let Some(time_range_seconds) = self.time_range_seconds {
-      query = query
-        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
-    }
 
     // finally use unique id as tie breaker
     query = query.then_desc(key::id);

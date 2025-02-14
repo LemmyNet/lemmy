@@ -64,7 +64,7 @@ use lemmy_db_schema::{
     combined::modlog::{modlog_combined_keys as key, ModlogCombined},
     local_user::LocalUser,
   },
-  traits::{InternalToCombinedView, PageCursorBuilder, PageCursorReader},
+  traits::{InternalToCombinedView, PageCursorBuilder},
   utils::{get_conn, DbPool},
   ListingType,
   ModlogActionType,
@@ -264,7 +264,7 @@ pub struct ModlogCombinedQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub mod_person_id: Option<PersonId>,
   pub other_person_id: Option<PersonId>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<ModlogCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -341,17 +341,10 @@ impl ModlogCombinedQuery<'_> {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(ModlogCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     query = query

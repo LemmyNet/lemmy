@@ -5,7 +5,6 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
   impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
-  newtypes::PaginationCursor,
   schema::{
     comment,
     comment_actions,
@@ -24,7 +23,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
-  traits::{InternalToCombinedView, PageCursorReader},
+  traits::InternalToCombinedView,
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
@@ -33,7 +32,7 @@ use lemmy_utils::error::LemmyResult;
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
   pub type_: Option<PersonContentType>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub cursor_data: Option<PersonSavedCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -111,17 +110,10 @@ impl PersonSavedCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    // parse pagination token
-    let page_after = if let Some(pa) = self.page_cursor {
-      Some(PersonSavedCombined::from_cursor(pa, conn).await?)
-    } else {
-      None
-    };
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by saved desc

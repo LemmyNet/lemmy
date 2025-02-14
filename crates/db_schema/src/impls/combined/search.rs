@@ -4,14 +4,15 @@ use crate::{
   schema::search_combined,
   source::combined::search::SearchCombined,
   traits::PageCursorReader,
-  utils::DbConn,
+  utils::{get_conn, DbPool},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl PageCursorReader for SearchCombined {
-  async fn from_cursor(cursor: PaginationCursor, conn: &mut DbConn<'_>) -> LemmyResult<Self> {
+  async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
     let (prefix, id) = cursor.prefix_and_id()?;
 
     let mut query = search_combined::table

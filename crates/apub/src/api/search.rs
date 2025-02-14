@@ -6,7 +6,10 @@ use lemmy_api_common::{
   site::{Search, SearchResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::{source::community::Community, traits::PageCursorBuilder};
+use lemmy_db_schema::{
+  source::{combined::search::SearchCombined, community::Community},
+  traits::{PageCursorBuilder, PageCursorReader},
+};
 use lemmy_db_views::{
   combined::search_combined_view::SearchCombinedQuery,
   structs::{LocalUserView, SiteView},
@@ -33,6 +36,12 @@ pub async fn search(
     data.community_id
   };
 
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(SearchCombined::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
   let results = SearchCombinedQuery {
     search_term: data.search_term.clone(),
     community_id,
@@ -45,7 +54,7 @@ pub async fn search(
     post_url_only: data.post_url_only,
     liked_only: data.liked_only,
     disliked_only: data.disliked_only,
-    page_cursor: data.page_cursor.clone(),
+    cursor_data,
     page_back: data.page_back,
   }
   .list(&mut context.pool(), &local_user_view)
