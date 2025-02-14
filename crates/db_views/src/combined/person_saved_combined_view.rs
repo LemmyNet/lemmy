@@ -19,7 +19,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     image_details,
@@ -29,7 +28,6 @@ use lemmy_db_schema::{
     person_saved_combined,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     tag,
   },
@@ -102,10 +100,9 @@ impl PersonSavedCombinedQuery {
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select((
         // Post-specific
-        post_aggregates::all_columns,
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
@@ -115,7 +112,6 @@ impl PersonSavedCombinedQuery {
         post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Shared
@@ -195,7 +191,6 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm, PostSaved, PostSavedForm},
     },
@@ -225,9 +220,7 @@ mod tests {
     let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: timmy.clone(),
-      counts: Default::default(),
     };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");

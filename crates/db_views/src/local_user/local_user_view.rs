@@ -1,17 +1,10 @@
 use crate::structs::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
-use diesel::{
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
-  schema::{local_user, local_user_vote_display_mode, oauth_account, person, person_aggregates},
+  schema::{local_user, oauth_account, person},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -30,10 +23,7 @@ use std::future::{ready, Ready};
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    local_user::table
-      .inner_join(local_user_vote_display_mode::table)
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+    local_user::table.inner_join(person::table)
   }
 
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {

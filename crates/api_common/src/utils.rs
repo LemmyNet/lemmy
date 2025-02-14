@@ -13,7 +13,6 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
@@ -38,6 +37,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostLike},
+    post_actions::{PostActions, PostActionsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -158,13 +158,13 @@ pub async fn update_read_comments(
   read_comments: i64,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let person_post_agg_form = PersonPostAggregatesForm {
+  let person_post_agg_form = PostActionsForm {
     person_id,
     post_id,
     read_comments,
   };
 
-  PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
+  PostActions::upsert(pool, &person_post_agg_form).await?;
 
   Ok(())
 }

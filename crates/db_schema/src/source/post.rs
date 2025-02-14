@@ -1,22 +1,25 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{post, post_actions};
+use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods};
-#[cfg(feature = "full")]
-use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  crate::schema::{post, post_actions},
+  diesel::{dsl, expression_methods::NullableExpressionMethods},
+  i_love_jesus::CursorKeysModule,
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 /// A post.
 pub struct Post {
   pub id: PostId,
@@ -69,6 +72,28 @@ pub struct Post {
   /// Time at which the post will be published. None means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
+  pub comments: i64,
+  pub score: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  #[serde(skip)]
+  /// A newest comment time, limited to 2 days, to prevent necrobumping
+  pub newest_comment_time_necro: DateTime<Utc>,
+  /// The time of the newest comment in the post.
+  pub newest_comment_time: DateTime<Utc>,
+  #[serde(skip)]
+  pub hot_rank: f64,
+  #[serde(skip)]
+  pub hot_rank_active: f64,
+  #[serde(skip)]
+  pub controversy_rank: f64,
+  #[serde(skip)]
+  pub instance_id: InstanceId,
+  /// A rank that amplifies smaller communities
+  #[serde(skip)]
+  pub scaled_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
