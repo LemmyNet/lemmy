@@ -237,11 +237,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       // Post
       .service(
         resource("/post")
+          // Handle POST to /post separately to add the post() rate limitter
+          .guard(guard::Post())
           .wrap(rate_limit.post())
           .route(post().to(create_post)),
       )
       .service(
-        resource("post/site_metadata")
+        resource("/post/site_metadata")
           .wrap(rate_limit.search())
           .route(get().to(get_link_metadata)),
       )
