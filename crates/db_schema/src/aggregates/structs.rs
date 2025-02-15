@@ -46,7 +46,14 @@ pub struct CommentAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(
+    Queryable,
+    Selectable,
+    Associations,
+    Identifiable,
+    TS,
+    CursorKeysModule,
+  )
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
 #[cfg_attr(
@@ -55,6 +62,7 @@ pub struct CommentAggregates {
 )]
 #[cfg_attr(feature = "full", diesel(primary_key(community_id)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_aggregates_keys))]
 /// Aggregate data for a community.
 pub struct CommunityAggregates {
   pub community_id: CommunityId,

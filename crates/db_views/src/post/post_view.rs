@@ -1,4 +1,4 @@
-use crate::structs::{PaginationCursor, PostView};
+use crate::structs::{PostPaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{exists, not},
@@ -226,11 +226,12 @@ impl PostView {
   }
 }
 
-impl PaginationCursor {
+// TODO This pagination cursor is a mess, get rid of it and have it match the others
+impl PostPaginationCursor {
   // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PostView) -> PaginationCursor {
+  pub fn after_post(view: &PostView) -> PostPaginationCursor {
     // hex encoding to prevent ossification
-    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
+    PostPaginationCursor(format!("P{:x}", view.counts.post_id.0))
   }
   pub async fn read(
     &self,
@@ -274,6 +275,7 @@ pub struct PostQuery<'a> {
   // literal filter
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUser>,
+  // TODO get rid of this
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
   pub read_only: Option<bool>,
@@ -282,6 +284,7 @@ pub struct PostQuery<'a> {
   pub title_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  // TODO these should be simple cursors like the others, not data
   pub page_after: Option<PaginationCursorData>,
   pub page_before_or_equal: Option<PostAggregates>,
   pub page_back: Option<bool>,
@@ -293,6 +296,7 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  // TODO this should not be doing recursive fetching, get rid of it.
   #[allow(clippy::expect_used)]
   async fn prefetch_upper_bound_for_page_before(
     &self,

@@ -9,12 +9,13 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
   source::registration_application::RegistrationApplication,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, DbPool},
 };
 
 impl RegistrationApplicationView {
@@ -69,10 +70,10 @@ impl RegistrationApplicationView {
 
 #[derive(Default)]
 pub struct RegistrationApplicationQuery {
-  pub unread_only: bool,
-  pub verified_email_only: bool,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
+  pub unread_only: Option<bool>,
+  pub verified_email_only: Option<bool>,
+  pub cursor_data: Option<RegistrationApplication>,
+  pub page_back: Option<bool>,
 }
 
 impl RegistrationApplicationQuery {
@@ -87,7 +88,7 @@ impl RegistrationApplicationQuery {
       .select(RegistrationApplicationView::as_select())
       .into_boxed();
 
-    if o.unread_only {
+    if o.unread_only.unwrap_or_default() {
       query = query
         .filter(RegistrationApplication::is_unread())
         .order_by(registration_application::published.asc());
@@ -95,17 +96,19 @@ impl RegistrationApplicationQuery {
       query = query.order_by(registration_application::published.desc());
     }
 
-    if o.verified_email_only {
+    if o.verified_email_only.unwrap_or_default() {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
+    let mut query = PaginatedQueryBuilder::new(query);
 
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<RegistrationApplicationView>(conn)
-      .await
+    if o.page_back.unwrap_or_default() {
+      query = query.before(o.cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(o.cursor_data);
+    }
+
+    query.load::<RegistrationApplicationView>(conn).await
   }
 }
 
@@ -248,7 +251,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery {
-      unread_only: (true),
+      unread_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -315,7 +318,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery {
-      unread_only: (true),
+      unread_only: Some(true),
       ..Default::default()
     }
     .list(pool)

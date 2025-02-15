@@ -15,8 +15,15 @@ pub async fn list_all_media(
   // Only let admins view all media
   is_admin(&local_user_view)?;
 
-  let page = data.page;
-  let limit = data.limit;
-  let images = LocalImageView::get_all(&mut context.pool(), page, limit).await?;
-  Ok(Json(ListMediaResponse { images }))
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(LocalImage::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
+  let images = LocalImageView::get_all(&mut context.pool(), cursor_data, data.page_back).await?;
+
+  let next_page = images.last().map(PageCursorBuilder::cursor);
+
+  Ok(Json(ListMediaResponse { images, next_page }))
 }

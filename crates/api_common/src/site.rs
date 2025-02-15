@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    PaginationCursor,
     PersonId,
     PostId,
     RegistrationApplicationId,
@@ -36,12 +37,10 @@ use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunityView,
   LocalUserView,
-  ModlogCombinedPaginationCursor,
   ModlogCombinedView,
   PersonView,
   PostView,
   RegistrationApplicationView,
-  SearchCombinedPaginationCursor,
   SearchCombinedView,
   SiteView,
 };
@@ -83,7 +82,7 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -94,6 +93,9 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -151,7 +153,7 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -162,6 +164,9 @@ pub struct GetModlog {
 /// The modlog fetch response.
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -545,7 +550,7 @@ pub struct PurgeComment {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of registration applications.
@@ -554,9 +559,9 @@ pub struct ListRegistrationApplications {
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -565,6 +570,9 @@ pub struct ListRegistrationApplications {
 /// The list of registration applications.
 pub struct ListRegistrationApplicationsResponse {
   pub registration_applications: Vec<RegistrationApplicationView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]

@@ -4,6 +4,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_community_mod_of_any_or_admin_action,
 };
+use lemmy_db_schema::{
+  source::person::Person,
+  traits::{PageCursorBuilder, PageCursorReader},
+};
 use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
@@ -15,14 +19,27 @@ pub async fn get_pending_follows_list(
   check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
   let all_communities =
     data.all_communities.unwrap_or_default() && local_user_view.local_user.admin;
+
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(Person::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+
   let items = CommunityFollowerView::list_approval_required(
     &mut context.pool(),
     local_user_view.person.id,
     all_communities,
     data.pending_only.unwrap_or_default(),
-    data.page,
-    data.limit,
+    cursor_data,
+    data.page_back,
   )
   .await?;
-  Ok(Json(ListCommunityPendingFollowsResponse { items }))
+
+  let next_page = items.last().map(PageCursorBuilder::cursor);
+
+  Ok(Json(ListCommunityPendingFollowsResponse {
+    items,
+    next_page,
+  }))
 }

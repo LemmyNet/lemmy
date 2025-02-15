@@ -1,4 +1,7 @@
-use lemmy_db_schema::{newtypes::TaglineId, source::tagline::Tagline};
+use lemmy_db_schema::{
+  newtypes::{PaginationCursor, TaglineId},
+  source::tagline::Tagline,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -45,13 +48,13 @@ pub struct ListTaglinesResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of taglines.
 pub struct ListTaglines {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+  pub page_back: Option<bool>,
 }
