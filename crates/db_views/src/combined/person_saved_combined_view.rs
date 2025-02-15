@@ -1,16 +1,5 @@
-use crate::structs::{
-  LocalUserView,
-  PersonContentCombinedView,
-  PersonContentCombinedViewInternal,
-  PersonSavedCombinedPaginationCursor,
-};
-use diesel::{
-  result::Error,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use crate::structs::{LocalUserView, PersonContentCombinedView, PersonContentCombinedViewInternal};
+use diesel::{ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
@@ -40,42 +29,10 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyResult;
 
-impl PersonSavedCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PersonContentCombinedView) -> PersonSavedCombinedPaginationCursor {
-    let (prefix, id) = match view {
-      PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
-      PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
-    };
-    // hex encoding to prevent ossification
-    PersonSavedCombinedPaginationCursor(format!("{prefix}{id:x}"))
-  }
-
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = person_saved_combined::table
-      .select(PersonSavedCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "C" => query.filter(person_saved_combined::comment_id.eq(id)),
-      "P" => query.filter(person_saved_combined::post_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
-
-    Ok(PaginationCursorData(token))
-  }
-}
-
-#[derive(Clone)]
-pub struct PaginationCursorData(PersonSavedCombined);
-
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
   pub type_: Option<PersonContentType>,
-  pub page_after: Option<PaginationCursorData>,
+  pub cursor_data: Option<PersonSavedCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -153,12 +110,10 @@ impl PersonSavedCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by saved desc

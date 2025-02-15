@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    PaginationCursor,
     PersonId,
     PostId,
     RegistrationApplicationId,
@@ -36,12 +37,10 @@ use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunityView,
   LocalUserView,
-  ModlogCombinedPaginationCursor,
   ModlogCombinedView,
   PersonView,
   PostView,
   RegistrationApplicationView,
-  SearchCombinedPaginationCursor,
   SearchCombinedView,
   SiteView,
 };
@@ -83,7 +82,7 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -94,6 +93,9 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -151,7 +153,7 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -162,6 +164,9 @@ pub struct GetModlog {
 /// The modlog fetch response.
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
