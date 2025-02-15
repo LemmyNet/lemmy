@@ -11,16 +11,25 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
+  aggregates::structs::community_aggregates_keys as key,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PaginationCursor, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions, local_user},
   source::{
-    community::{Community, CommunityFollowerState},
+    community::{community_keys, Community, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
   traits::PageCursorBuilder,
-  utils::{functions::lower, get_conn, now, seconds_to_pg_interval, DbPool},
+  utils::{
+    functions::lower,
+    get_conn,
+    now,
+    paginate,
+    seconds_to_pg_interval,
+    DbPool,
+    ReverseTimestampKey,
+  },
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -110,7 +119,7 @@ impl CommunityView {
 
 impl PageCursorBuilder for CommunityView {
   fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('C', self.community.id)
+    PaginationCursor::create('C', self.community.id.0)
   }
 }
 
@@ -186,23 +195,21 @@ impl CommunityQuery<'_> {
       query = query.after(self.cursor_data);
     }
 
-    // TODO these need to be done using the cursor keys module
+    // TODO weird bug here.
     match o.sort.unwrap_or_default() {
-      Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      Comments => query = query.order_by(community_aggregates::comments.desc()),
-      Posts => query = query.order_by(community_aggregates::posts.desc()),
-      New => query = query.order_by(community::published.desc()),
-      Old => query = query.order_by(community::published.asc()),
-      Subscribers => query = query.order_by(community_aggregates::subscribers.desc()),
-      SubscribersLocal => query = query.order_by(community_aggregates::subscribers_local.desc()),
-      ActiveSixMonths => {
-        query = query.order_by(community_aggregates::users_active_half_year.desc())
-      }
-      ActiveMonthly => query = query.order_by(community_aggregates::users_active_month.desc()),
-      ActiveWeekly => query = query.order_by(community_aggregates::users_active_week.desc()),
-      ActiveDaily => query = query.order_by(community_aggregates::users_active_day.desc()),
-      NameAsc => query = query.order_by(lower(community::name).asc()),
-      NameDesc => query = query.order_by(lower(community::name).desc()),
+      Hot => query = query.then_desc(key::hot_rank),
+      Comments => query = query.then_desc(key::comments),
+      Posts => query = query.then_desc(key::posts),
+      New => query = query.then_desc(community_keys::published),
+      Old => query = query.then_desc(ReverseTimestampKey(community_keys::published)),
+      Subscribers => query = query.then_desc(key::subscribers),
+      SubscribersLocal => query = query.then_desc(key::subscribers_local),
+      ActiveSixMonths => query = query.then_desc(key::users_active_half_year),
+      ActiveMonthly => query = query.then_desc(key::users_active_month),
+      ActiveWeekly => query = query.then_desc(key::users_active_week),
+      ActiveDaily => query = query.then_desc(key::users_active_day),
+      NameAsc => query = query.then_desc(ReverseTimestampKey(lower(community_keys::name))),
+      NameDesc => query = query.then_desc(lower(community_keys::name)),
     };
 
     query.load::<CommunityView>(conn).await

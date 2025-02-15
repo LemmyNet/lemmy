@@ -9,6 +9,8 @@ use crate::{
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
+#[cfg(feature = "full")]
+use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use strum::{Display, EnumString};
@@ -17,10 +19,14 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
 /// A community.
 pub struct Community {
   pub id: CommunityId,
