@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -180,7 +180,7 @@ impl SearchCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for SearchCombinedView {
+impl PaginationCursorBuilder for SearchCombinedView {
   fn cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       SearchCombinedView::Post(v) => ('P', v.post.id.0),
@@ -188,7 +188,7 @@ impl PageCursorBuilder for SearchCombinedView {
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
   }
 }
 

@@ -37,7 +37,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
@@ -234,13 +234,13 @@ impl PersonContentCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for PersonContentCombinedView {
+impl PaginationCursorBuilder for PersonContentCombinedView {
   fn cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
   }
 }
 

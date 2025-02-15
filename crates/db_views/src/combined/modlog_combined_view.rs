@@ -64,7 +64,7 @@ use lemmy_db_schema::{
     combined::modlog::{modlog_combined_keys as key, ModlogCombined},
     local_user::LocalUser,
   },
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   ListingType,
   ModlogActionType,
@@ -227,7 +227,7 @@ impl ModlogCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for ModlogCombinedView {
+impl PaginationCursorBuilder for ModlogCombinedView {
   fn cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       ModlogCombinedView::AdminAllowInstance(v) => ('A', v.admin_allow_instance.id.0),
@@ -248,7 +248,7 @@ impl PageCursorBuilder for ModlogCombinedView {
       ModlogCombinedView::ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
       ModlogCombinedView::ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
   }
 }
 

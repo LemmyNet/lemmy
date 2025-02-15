@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::combined::person_saved::PersonSavedCombined,
-  traits::{PageCursorBuilder, PageCursorReader},
+  traits::{PaginationCursorBuilder, PaginationCursorReader},
 };
 use lemmy_db_views::{
   combined::person_saved_combined_view::PersonSavedCombinedQuery,
@@ -38,7 +38,7 @@ pub async fn list_person_saved(
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = saved.last().map(PageCursorBuilder::cursor);
+  let next_page = saved.last().map(PaginationCursorBuilder::cursor);
 
   Ok(Json(ListPersonSavedResponse { saved, next_page }))
 }

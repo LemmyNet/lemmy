@@ -44,7 +44,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
 };
@@ -216,7 +216,7 @@ impl InboxCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for InboxCombinedView {
+impl PaginationCursorBuilder for InboxCombinedView {
   fn cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       InboxCombinedView::CommentReply(v) => ('R', v.comment_reply.id.0),
@@ -224,7 +224,7 @@ impl PageCursorBuilder for InboxCombinedView {
       InboxCombinedView::PostMention(v) => ('P', v.person_post_mention.id.0),
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
   }
 }
 

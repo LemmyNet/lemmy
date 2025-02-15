@@ -214,13 +214,13 @@ pub trait InternalToCombinedView {
   fn map_to_enum(self) -> Option<Self::CombinedView>;
 }
 
-pub trait PageCursorBuilder {
+pub trait PaginationCursorBuilder {
   /// Builds a pagination cursor for the given query result.
   fn cursor(&self) -> PaginationCursor;
 }
 
 #[async_trait]
-pub trait PageCursorReader {
+pub trait PaginationCursorReader {
   /// Reads a database row from a given pagination cursor.
   async fn from_cursor(cursor: &PaginationCursor, conn: &mut DbPool<'_>) -> LemmyResult<Self>
   where

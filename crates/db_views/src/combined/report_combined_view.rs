@@ -44,7 +44,7 @@ use lemmy_db_schema::{
     report_combined,
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
@@ -209,7 +209,7 @@ impl ReportCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for ReportCombinedView {
+impl PaginationCursorBuilder for ReportCombinedView {
   fn cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
@@ -217,7 +217,7 @@ impl PageCursorBuilder for ReportCombinedView {
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
   }
 }
 

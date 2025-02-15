@@ -431,7 +431,7 @@ pub struct PaginationCursor(pub String);
 
 #[cfg(feature = "full")]
 impl PaginationCursor {
-  pub fn create(prefix: char, id: i32) -> Self {
+  pub fn new(prefix: char, id: i32) -> Self {
     // hex encoding to prevent ossification
     Self(format!("{prefix}{id:x}"))
   }

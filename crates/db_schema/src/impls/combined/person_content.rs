@@ -3,14 +3,14 @@ use crate::{
   newtypes::PaginationCursor,
   schema::person_content_combined,
   source::combined::person_content::PersonContentCombined,
-  traits::PageCursorReader,
+  traits::PaginationCursorReader,
   utils::{get_conn, DbPool},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[async_trait]
-impl PageCursorReader for PersonContentCombined {
+impl PaginationCursorReader for PersonContentCombined {
   async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let (prefix, id) = cursor.prefix_and_id()?;

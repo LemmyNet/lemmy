@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{combined::modlog::ModlogCombined, local_site::LocalSite},
-  traits::{PageCursorBuilder, PageCursorReader},
+  traits::{PaginationCursorBuilder, PaginationCursorReader},
 };
 use lemmy_db_views::{combined::modlog_combined_view::ModlogCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
@@ -57,7 +57,7 @@ pub async fn get_mod_log(
   .list(&mut context.pool())
   .await?;
 
-  let next_page = modlog.last().map(PageCursorBuilder::cursor);
+  let next_page = modlog.last().map(PaginationCursorBuilder::cursor);
 
   Ok(Json(GetModlogResponse { modlog, next_page }))
 }
