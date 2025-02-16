@@ -1219,7 +1219,21 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
 
 // TODO: patch file
-macro_rules! nothing { ($($foo:tt)*) => {} }
+macro_rules! nothing {
+    ($left_mod:ident, $($right_mod:ident),+ $(,)*) => {
+    //($left_mod:ident, $($right_mod:ident),* $(,)*) => {
+        /*$(
+            impl diesel::query_source::TableNotEqual<$left_mod::table> for $right_mod::table {}
+            impl diesel::query_source::TableNotEqual<$right_mod::table> for $left_mod::table {}
+        )+*/
+        //impl<T: diesel::query_source::Table> diesel::query_source::TableNotEqual<T> for $left_mod::table {}
+        nothing!($($right_mod,)+);
+    };
+
+    ($last_table:ident,) => {};
+
+    () => {};
+}
 nothing!(
     admin_allow_instance,
     admin_block_instance,
