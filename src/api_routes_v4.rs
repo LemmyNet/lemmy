@@ -217,6 +217,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
+          .route("/report", post().to(create_community_report))
+          .route("/report/resolve", put().to(resolve_community_report))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
