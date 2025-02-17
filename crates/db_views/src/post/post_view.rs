@@ -571,10 +571,7 @@ impl<'a> PostQuery<'a> {
         ));
       }
 
-      // Don't show blocked instances, communities or persons
-      query = query.filter(community_actions::blocked.is_null());
-      query = query.filter(instance_actions::blocked.is_null());
-      query = query.filter(person_actions::blocked.is_null());
+      query = query.filter(filter_blocked());
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
@@ -650,6 +647,17 @@ impl<'a> PostQuery<'a> {
       .load::<PostView>(conn)
       .await
   }
+}
+
+/// Hide all content from blocked communities and persons. Content from blocked instances is also
+/// hidden, unless the user followed the community explicitly.
+#[diesel::dsl::auto_type]
+pub(crate) fn filter_blocked() -> _ {
+  instance_actions::blocked
+    .is_null()
+    .or(community_actions::followed.is_not_null())
+    .and(community_actions::blocked.is_null())
+    .and(person_actions::blocked.is_null())
 }
 
 #[allow(clippy::indexing_slicing)]
@@ -1606,6 +1614,12 @@ mod tests {
   #[serial]
   async fn post_listing_instance_block(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
+    const POST_LISTING_WITH_BLOCKED: [&str; 4] = [
+      POST_FROM_BLOCKED_INSTANCE,
+      POST_WITH_TAGS,
+      POST_BY_BOT,
+      POST,
+    ];
 
     let pool = &data.pool();
     let pool = &mut pool.into();
@@ -1632,15 +1646,7 @@ mod tests {
 
     // no instance block, should return all posts
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(
-      vec![
-        POST_FROM_BLOCKED_INSTANCE,
-        POST_WITH_TAGS,
-        POST_BY_BOT,
-        POST
-      ],
-      names(&post_listings_all)
-    );
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance
     let block_form = InstanceBlockForm {
@@ -1659,18 +1665,19 @@ mod tests {
       .iter()
       .all(|p| p.post.id != post_from_blocked_instance.id));
 
+    // Follow community from the blocked instance to see posts anyway
+    let mut follow_form =
+      CommunityFollowerForm::new(inserted_community.id, data.tegan_local_user_view.person.id);
+    follow_form.state = Some(CommunityFollowerState::Accepted);
+    CommunityFollower::follow(pool, &follow_form).await?;
+    let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
+    CommunityFollower::unfollow(pool, &follow_form).await?;
+
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(
-      vec![
-        POST_FROM_BLOCKED_INSTANCE,
-        POST_WITH_TAGS,
-        POST_BY_BOT,
-        POST
-      ],
-      names(&post_listings_blocked)
-    );
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
     Instance::delete(pool, blocked_instance.id).await?;
     Ok(())
