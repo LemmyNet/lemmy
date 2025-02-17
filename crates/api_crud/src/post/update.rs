@@ -10,6 +10,7 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed_opt,
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
@@ -64,6 +65,8 @@ pub async fn update_post(
       .await?
       .as_deref(),
   );
+
+  check_nsfw_allowed_opt(data.nsfw, &context).await?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 

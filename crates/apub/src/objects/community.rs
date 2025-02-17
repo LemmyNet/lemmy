@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed_opt,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
@@ -150,6 +151,8 @@ impl Object for ApubCommunity {
     } else {
       CommunityVisibility::Public
     });
+    check_nsfw_allowed_opt(group.sensitive, context).await?;
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,

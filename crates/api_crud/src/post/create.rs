@@ -9,6 +9,7 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed_opt,
     get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
@@ -52,6 +53,7 @@ pub async fn create_post(
 
   honeypot_check(&data.honeypot)?;
 
+  check_nsfw_allowed_opt(data.nsfw, &context).await?;
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
   let url_blocklist = get_url_blocklist(&context).await?;

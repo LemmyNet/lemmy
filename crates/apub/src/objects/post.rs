@@ -28,7 +28,12 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
-  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
+  utils::{
+    check_nsfw_allowed_opt,
+    get_url_blocklist,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -234,6 +239,7 @@ impl Object for ApubPost {
     } else {
       None
     };
+    check_nsfw_allowed_opt(page.sensitive, context).await?;
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 

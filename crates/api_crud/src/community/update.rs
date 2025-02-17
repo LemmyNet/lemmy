@@ -9,6 +9,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
+    check_nsfw_allowed_opt,
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
@@ -36,6 +37,7 @@ pub async fn update_community(
 ) -> LemmyResult<Json<CommunityResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
+  check_nsfw_allowed_opt(data.nsfw, &context).await?;
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
