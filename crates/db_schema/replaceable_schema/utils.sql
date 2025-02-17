@@ -92,7 +92,6 @@ DECLARE
     CREATE TRIGGER delete_statement
         AFTER DELETE ON thing REFERENCING OLD TABLE AS select_old_rows
         FOR EACH STATEMENT
-        WHEN (pg_trigger_depth( ) = 0 )
         EXECUTE FUNCTION r.thing_delete_statement ( );
     -- Insert
     CREATE FUNCTION r.thing_insert_statement ( )
@@ -102,7 +101,6 @@ DECLARE
     CREATE TRIGGER insert_statement
         AFTER INSERT ON thing REFERENCING NEW TABLE AS select_new_rows
         FOR EACH STATEMENT
-        WHEN (pg_trigger_depth( ) = 0 )
         EXECUTE FUNCTION r.thing_insert_statement ( );
     -- Update
     CREATE FUNCTION r.thing_update_statement ( )
@@ -112,7 +110,6 @@ DECLARE
     CREATE TRIGGER update_statement
         AFTER UPDATE ON thing REFERENCING OLD TABLE AS select_old_rows NEW TABLE AS select_new_rows
         FOR EACH STATEMENT
-        WHEN (pg_trigger_depth( ) = 0 )
         EXECUTE FUNCTION r.thing_update_statement ( );
     $$;
     select_old_and_new_rows text := $$ (
