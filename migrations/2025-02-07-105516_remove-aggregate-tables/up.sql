@@ -34,7 +34,6 @@ CREATE INDEX idx_comment_hot ON comment USING btree (hot_rank DESC, score DESC);
 CREATE INDEX idx_comment_nonzero_hotrank ON comment USING btree (published)
 WHERE (hot_rank <> (0)::double precision);
 
--- some indexes commented out because they already exist
 --CREATE INDEX idx_comment_published on comment USING btree (published DESC);
 CREATE INDEX idx_comment_score ON comment USING btree (score DESC);
 
@@ -90,8 +89,10 @@ CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (communi
 
 CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, newest_comment_time_necro DESC);
 
---CREATE INDEX idx_post_community_published on post USING btree (community_id, featured_local DESC, published DESC);
---CREATE INDEX idx_post_community_published_asc on post USING btree (community_id, featured_local DESC, reverse_timestamp_sort (published) DESC);
+CREATE INDEX idx_post_community_published ON post USING btree (community_id, featured_local DESC, published DESC);
+
+CREATE INDEX idx_post_community_published_asc ON post USING btree (community_id, featured_local DESC, reverse_timestamp_sort (published) DESC);
+
 CREATE INDEX idx_post_community_scaled ON post USING btree (community_id, featured_local DESC, scaled_rank DESC, published DESC);
 
 CREATE INDEX idx_post_community_score ON post USING btree (community_id, featured_local DESC, score DESC, published DESC);
@@ -108,8 +109,10 @@ CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree
 
 CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, newest_comment_time_necro DESC);
 
---CREATE INDEX idx_post_featured_community_published on post USING btree (community_id, featured_community DESC, published DESC);
---CREATE INDEX idx_post_featured_community_published_asc on post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC);
+CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC);
+
+CREATE INDEX idx_post_featured_community_published_asc ON post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC);
+
 CREATE INDEX idx_post_featured_community_scaled ON post USING btree (community_id, featured_community DESC, scaled_rank DESC, published DESC);
 
 CREATE INDEX idx_post_featured_community_score ON post USING btree (community_id, featured_community DESC, score DESC, published DESC);
@@ -126,8 +129,10 @@ CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (fe
 
 CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, newest_comment_time_necro DESC);
 
---CREATE INDEX idx_post_featured_local_published on post USING btree (featured_local DESC, published DESC);
---CREATE INDEX idx_post_featured_local_published_asc on post USING btree (featured_local DESC, reverse_timestamp_sort (published) DESC);
+CREATE INDEX idx_post_featured_local_published ON post USING btree (featured_local DESC, published DESC);
+
+CREATE INDEX idx_post_featured_local_published_asc ON post USING btree (featured_local DESC, reverse_timestamp_sort (published) DESC);
+
 CREATE INDEX idx_post_featured_local_scaled ON post USING btree (featured_local DESC, scaled_rank DESC, published DESC);
 
 CREATE INDEX idx_post_featured_local_score ON post USING btree (featured_local DESC, score DESC, published DESC);
@@ -135,8 +140,10 @@ CREATE INDEX idx_post_featured_local_score ON post USING btree (featured_local D
 CREATE INDEX idx_post_nonzero_hotrank ON post USING btree (published DESC)
 WHERE ((hot_rank <> (0)::double precision) OR (hot_rank_active <> (0)::double precision));
 
---CREATE INDEX idx_post_published on post USING btree (published DESC);
---CREATE INDEX idx_post_published_asc on post USING btree (reverse_timestamp_sort (published) DESC);
+CREATE INDEX idx_post_published ON post USING btree (published DESC);
+
+CREATE INDEX idx_post_published_asc ON post USING btree (reverse_timestamp_sort (published) DESC);
+
 -- merge community_aggregates into community table
 ALTER TABLE community
     ADD COLUMN subscribers bigint NOT NULL DEFAULT 0,
