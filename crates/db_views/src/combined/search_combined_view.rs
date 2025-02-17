@@ -260,8 +260,6 @@ impl SearchCombinedQuery {
         community::all_columns.nullable(),
         community_actions::blocked.nullable().is_not_null(),
         community_follower_select_subscribed_type(),
-        // Person
-        person::all_columns.nullable(),
         // // Shared
         person::all_columns.nullable(),
         local_user::admin.nullable().is_not_null(),

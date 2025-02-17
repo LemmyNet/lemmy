@@ -1144,8 +1144,6 @@ pub(crate) struct SearchCombinedViewInternal {
   pub community: Option<Community>,
   pub community_blocked: bool,
   pub subscribed: SubscribedType,
-  // Person
-  pub item_creator_counts: Option<Person>,
   // Shared
   pub item_creator: Option<Person>,
   pub item_creator_is_admin: bool,
