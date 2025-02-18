@@ -49,3 +49,17 @@ impl Crud for PostTag {
     unimplemented!()
   }
 }
+
+impl PostTag {
+  pub async fn create_many(
+    pool: &mut DbPool<'_>,
+    forms: Vec<PostTagInsertForm>,
+  ) -> Result<(), diesel::result::Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(post_tag::table)
+      .values(forms)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+}

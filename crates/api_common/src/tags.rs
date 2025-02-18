@@ -3,7 +3,6 @@ use activitypub_federation::config::Data;
 use lemmy_db_schema::{
   newtypes::TagId,
   source::{post::Post, post_tag::PostTag, tag::PostTagInsertForm},
-  traits::Crud,
 };
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -36,12 +35,16 @@ pub async fn update_post_tags(
   // Delete existing post tags
   PostTag::delete_for_post(&mut context.pool(), post.id).await?;
   // Create new post tags
-  for tag_id in tags {
-    let form = PostTagInsertForm {
-      post_id: post.id,
-      tag_id: *tag_id,
-    };
-    PostTag::create(&mut context.pool(), &form).await?;
-  }
+  PostTag::create_many(
+    &mut context.pool(),
+    tags
+      .iter()
+      .map(|tag_id| PostTagInsertForm {
+        post_id: post.id,
+        tag_id: *tag_id,
+      })
+      .collect(),
+  )
+  .await?;
   Ok(())
 }
