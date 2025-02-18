@@ -16,6 +16,7 @@ use diesel::{
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -48,7 +49,7 @@ use lemmy_db_schema::{
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -210,7 +211,9 @@ impl ReportCombinedViewInternal {
 }
 
 impl PaginationCursorBuilder for ReportCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+  type CursorData = ReportCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
       ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
@@ -218,6 +221,29 @@ impl PaginationCursorBuilder for ReportCombinedView {
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
     PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = report_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'C' => query.filter(report_combined::comment_report_id.eq(id)),
+      'P' => query.filter(report_combined::post_report_id.eq(id)),
+      'M' => query.filter(report_combined::private_message_report_id.eq(id)),
+      'Y' => query.filter(report_combined::community_report_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 

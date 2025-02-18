@@ -11,6 +11,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -29,7 +30,6 @@ use lemmy_db_schema::{
     person,
     person_actions,
     person_content_combined,
-    person_saved_combined,
     post,
     post_actions,
     post_aggregates,
@@ -41,7 +41,7 @@ use lemmy_db_schema::{
   utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl PersonContentCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -137,110 +137,38 @@ impl PersonContentCombinedViewInternal {
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
-
-  #[diesel::dsl::auto_type(no_type_alias)]
-  pub(crate) fn joins_saved(my_person_id: PersonId) -> _ {
-    let item_creator = person::id;
-
-    let comment_join =
-      comment::table.on(person_saved_combined::comment_id.eq(comment::id.nullable()));
-
-    let post_join = post::table.on(
-      person_saved_combined::post_id
-        .eq(post::id.nullable())
-        .or(comment::post_id.eq(post::id)),
-    );
-
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        // Need to filter out the post rows where the post_id given is null
-        // Otherwise you'll get duped post rows
-        .or(
-          post::creator_id
-            .eq(item_creator)
-            .and(person_saved_combined::post_id.is_not_null()),
-        ),
-    );
-
-    let community_join = community::table.on(post::community_id.eq(community::id));
-
-    let creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(post::community_id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(item_creator),
-        ),
-    );
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let creator_local_user_join = creator_local_user.on(
-      item_creator
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    );
-
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(post::community_id)
-        .and(community_actions::person_id.eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(item_creator)
-        .and(person_actions::person_id.eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.eq(my_person_id)),
-    );
-
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
-    let comment_aggregates_join = comment_aggregates::table
-      .on(person_saved_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
-
-    person_saved_combined::table
-      .left_join(comment_join)
-      .inner_join(post_join)
-      .inner_join(item_creator_join)
-      .inner_join(community_join)
-      .left_join(creator_community_actions_join)
-      .left_join(local_user_join)
-      .left_join(creator_local_user_join)
-      .left_join(community_actions_join)
-      .left_join(post_actions_join)
-      .left_join(person_actions_join)
-      .inner_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
-      .left_join(comment_actions_join)
-      .left_join(image_details_join)
-  }
 }
 
 impl PaginationCursorBuilder for PersonContentCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+  type CursorData = PersonContentCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
     PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = person_content_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'C' => query.filter(person_content_combined::comment_id.eq(id)),
+      'P' => query.filter(person_content_combined::post_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 

@@ -14,6 +14,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -48,7 +49,7 @@ use lemmy_db_schema::{
   utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -217,7 +218,9 @@ impl InboxCombinedViewInternal {
 }
 
 impl PaginationCursorBuilder for InboxCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+  type CursorData = InboxCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       InboxCombinedView::CommentReply(v) => ('R', v.comment_reply.id.0),
       InboxCombinedView::CommentMention(v) => ('C', v.person_comment_mention.id.0),
@@ -225,6 +228,29 @@ impl PaginationCursorBuilder for InboxCombinedView {
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
     PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = inbox_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'R' => query.filter(inbox_combined::comment_reply_id.eq(id)),
+      'C' => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
+      'P' => query.filter(inbox_combined::person_post_mention_id.eq(id)),
+      'M' => query.filter(inbox_combined::private_message_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 

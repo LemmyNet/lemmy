@@ -15,6 +15,7 @@ use diesel::{
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -56,7 +57,7 @@ use lemmy_db_schema::{
   SearchSortType,
   SearchType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use SearchSortType::*;
 
 impl SearchCombinedViewInternal {
@@ -181,7 +182,9 @@ impl SearchCombinedViewInternal {
 }
 
 impl PaginationCursorBuilder for SearchCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+  type CursorData = SearchCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       SearchCombinedView::Post(v) => ('P', v.post.id.0),
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
@@ -189,6 +192,29 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
     };
     PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = search_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'P' => query.filter(search_combined::post_id.eq(id)),
+      'C' => query.filter(search_combined::comment_id.eq(id)),
+      'O' => query.filter(search_combined::community_id.eq(id)),
+      'E' => query.filter(search_combined::person_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 

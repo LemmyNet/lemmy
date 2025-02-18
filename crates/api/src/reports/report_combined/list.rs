@@ -4,11 +4,11 @@ use lemmy_api_common::{
   reports::combined::{ListReports, ListReportsResponse},
   utils::check_community_mod_of_any_or_admin_action,
 };
-use lemmy_db_schema::{
-  source::combined::report::ReportCombined,
-  traits::{PaginationCursorBuilder, PaginationCursorReader},
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views::{
+  combined::report_combined_view::ReportCombinedQuery,
+  structs::{LocalUserView, ReportCombinedView},
 };
-use lemmy_db_views::{combined::report_combined_view::ReportCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists reports for a community if an id is supplied
@@ -26,7 +26,7 @@ pub async fn list_reports(
   }
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(ReportCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(ReportCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -44,7 +44,7 @@ pub async fn list_reports(
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = reports.last().map(PaginationCursorBuilder::cursor);
+  let next_page = reports.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListReportsResponse { reports, next_page }))
 }

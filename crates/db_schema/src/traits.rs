@@ -16,6 +16,7 @@ use diesel_async::{
   RunQueryDsl,
 };
 use lemmy_utils::error::LemmyResult;
+use std::future::Future;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -215,14 +216,16 @@ pub trait InternalToCombinedView {
 }
 
 pub trait PaginationCursorBuilder {
-  /// Builds a pagination cursor for the given query result.
-  fn cursor(&self) -> PaginationCursor;
-}
+  type CursorData;
 
-#[async_trait]
-pub trait PaginationCursorReader {
+  /// Builds a pagination cursor for the given query result.
+  fn to_cursor(&self) -> PaginationCursor;
+
   /// Reads a database row from a given pagination cursor.
-  async fn from_cursor(cursor: &PaginationCursor, conn: &mut DbPool<'_>) -> LemmyResult<Self>
+  fn from_cursor(
+    cursor: &PaginationCursor,
+    conn: &mut DbPool<'_>,
+  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send
   where
     Self: Sized;
 }

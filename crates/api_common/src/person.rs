@@ -22,6 +22,7 @@ use lemmy_db_views::structs::{
   InboxCombinedView,
   LocalImageView,
   PersonContentCombinedView,
+  PersonSavedCombinedView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -299,7 +300,7 @@ pub struct ListPersonSaved {
 #[cfg_attr(feature = "full", ts(export))]
 /// A person's saved content response.
 pub struct ListPersonSavedResponse {
-  pub saved: Vec<PersonContentCombinedView>,
+  pub saved: Vec<PersonSavedCombinedView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
