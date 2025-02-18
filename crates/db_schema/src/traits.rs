@@ -16,6 +16,7 @@ use diesel_async::{
   RunQueryDsl,
 };
 use lemmy_utils::error::LemmyResult;
+use std::future::Future;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -43,12 +44,12 @@ where
   fn create(
     pool: &mut DbPool<'_>,
     form: &Self::InsertForm,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send;
+  ) -> impl Future<Output = Result<Self, Error>> + Send;
 
   fn read(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Send,
   {
@@ -65,12 +66,12 @@ where
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send;
+  ) -> impl Future<Output = Result<Self, Error>> + Send;
 
   fn delete(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-  ) -> impl std::future::Future<Output = Result<usize, Error>> + Send {
+  ) -> impl Future<Output = Result<usize, Error>> + Send {
     async {
       let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
       let conn = &mut *get_conn(pool).await?;
@@ -84,20 +85,20 @@ pub trait Followable {
   fn follow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn follow_accepted(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     person_id: PersonId,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn unfollow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -107,13 +108,13 @@ pub trait Joinable {
   fn join(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn leave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -124,14 +125,14 @@ pub trait Likeable {
   fn like(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn remove(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -141,13 +142,13 @@ pub trait Bannable {
   fn ban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn unban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -157,13 +158,13 @@ pub trait Saveable {
   fn save(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn unsave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -173,13 +174,13 @@ pub trait Blockable {
   fn block(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn unblock(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
@@ -191,14 +192,14 @@ pub trait Reportable {
   fn report(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl std::future::Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
   fn resolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl std::future::Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
   fn resolve_apub(
@@ -206,21 +207,21 @@ pub trait Reportable {
     object_id: Self::ObjectIdType,
     report_creator_id: PersonId,
     resolver_id: PersonId,
-  ) -> impl std::future::Future<Output = LemmyResult<usize>> + Send
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
   where
     Self: Sized;
   fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
-  ) -> impl std::future::Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
   fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl std::future::Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
 }
@@ -229,7 +230,7 @@ pub trait ApubActor {
   fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-  ) -> impl std::future::Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
   /// - actor_name is the name of the community or user to read.
@@ -238,14 +239,14 @@ pub trait ApubActor {
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> impl std::future::Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
   fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> impl std::future::Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
 }

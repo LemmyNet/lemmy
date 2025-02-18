@@ -9,7 +9,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future};
 use url::Url;
 
 pub mod activities;
@@ -84,7 +84,7 @@ pub trait InCommunity {
   fn community(
     &self,
     context: &Data<LemmyContext>,
-  ) -> impl std::future::Future<Output = LemmyResult<ApubCommunity>> + Send;
+  ) -> impl Future<Output = LemmyResult<ApubCommunity>> + Send;
 }
 
 #[cfg(test)]
