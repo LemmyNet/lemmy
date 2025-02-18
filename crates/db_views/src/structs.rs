@@ -15,6 +15,7 @@ use diesel::{
   Queryable,
   Selectable,
 };
+#[cfg(feature = "full")]
 use diesel::{expression::SqlLiteral, sql_types::Json};
 use lemmy_db_schema::{
   aggregates::structs::{
@@ -627,6 +628,7 @@ pub struct CommunityView {
   pub post_tags: TagsView,
 }
 
+#[cfg(feature = "full")]
 #[diesel::dsl::auto_type]
 fn tag_fragment() -> _ {
   let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");

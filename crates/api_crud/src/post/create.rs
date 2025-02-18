@@ -21,14 +21,13 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
-    community::Community,
     local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -80,8 +79,15 @@ pub async fn create_post(
     is_valid_body_field(body, true)?;
   }
 
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    data.community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?;
+  let community = &community_view.community;
+  check_community_user_action(&local_user_view.person, community, &mut context.pool()).await?;
 
   // If its an NSFW community, then use that as a default
   let nsfw = data.nsfw.or(Some(community.nsfw));
@@ -125,7 +131,14 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
   if let Some(tags) = &data.tags {
-    update_post_tags(&context, &inserted_post, &community, tags, &local_user_view).await?;
+    update_post_tags(
+      &context,
+      &inserted_post,
+      &community_view,
+      tags,
+      &local_user_view,
+    )
+    .await?;
   }
 
   let community_id = community.id;

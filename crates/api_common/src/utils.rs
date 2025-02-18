@@ -1145,7 +1145,7 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   }
 }
 
-pub fn send_webmention(post: Post, community: Community) {
+pub fn send_webmention(post: Post, community: &Community) {
   if let Some(url) = post.url.clone() {
     if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
