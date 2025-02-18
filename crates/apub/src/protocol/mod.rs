@@ -80,9 +80,11 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
   }
 }
 
-#[async_trait::async_trait]
 pub trait InCommunity {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity>;
+  fn community(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> impl std::future::Future<Output = LemmyResult<ApubCommunity>> + Send;
 }
 
 #[cfg(test)]

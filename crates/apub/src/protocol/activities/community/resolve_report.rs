@@ -31,7 +31,6 @@ pub struct ResolveReport {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for ResolveReport {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     self.object.community(context).await

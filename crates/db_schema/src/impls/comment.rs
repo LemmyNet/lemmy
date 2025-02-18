@@ -153,7 +153,6 @@ pub fn comment_select_remove_deletes() -> _ {
   )
 }
 
-#[async_trait]
 impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
@@ -178,7 +177,6 @@ impl Crud for Comment {
   }
 }
 
-#[async_trait]
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
@@ -211,7 +209,6 @@ impl Likeable for CommentLike {
   }
 }
 
-#[async_trait]
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
   async fn save(

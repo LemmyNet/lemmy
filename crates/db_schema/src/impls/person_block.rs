@@ -60,7 +60,6 @@ impl PersonBlock {
   }
 }
 
-#[async_trait]
 impl Blockable for PersonBlock {
   type Form = PersonBlockForm;
   async fn block(
