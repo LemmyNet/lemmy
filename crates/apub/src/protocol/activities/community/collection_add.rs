@@ -29,7 +29,6 @@ pub struct CollectionAdd {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CollectionAdd {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (community, _) =

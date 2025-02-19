@@ -46,7 +46,6 @@ use lemmy_utils::{
   settings::structs::Settings,
 };
 
-#[async_trait]
 impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
@@ -280,7 +279,6 @@ impl Post {
   }
 }
 
-#[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
@@ -309,7 +307,6 @@ impl Likeable for PostLike {
   }
 }
 
-#[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
