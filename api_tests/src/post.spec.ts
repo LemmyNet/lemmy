@@ -925,7 +925,7 @@ test("Rewrite markdown links", async () => {
 test("Don't allow NSFW posts on instances that disable it", async () => {
   // Disallow NSFW on gamma
   let editSiteForm: EditSite = {
-    disallow_nsfw_content: true
+    disallow_nsfw_content: true,
   };
   await gamma.editSite(editSiteForm);
 
