@@ -234,10 +234,10 @@ impl Object for ApubPost {
       let post = ApubPost::read_from_id(page.id.inner().clone(), context).await?;
       if let Some(post) = post {
         if let Some(url) = &post.url {
-          purge_image_from_pictrs(url, &context).await.ok();
+          purge_image_from_pictrs(url, context).await.ok();
         }
         if let Some(thumbnail_url) = &post.thumbnail_url {
-          purge_image_from_pictrs(thumbnail_url, &context).await.ok();
+          purge_image_from_pictrs(thumbnail_url, context).await.ok();
         }
         ApubPost::delete(post, context).await?;
       }
