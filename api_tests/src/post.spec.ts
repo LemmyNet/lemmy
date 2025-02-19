@@ -923,11 +923,11 @@ test("Rewrite markdown links", async () => {
 });
 
 test("Don't allow NSFW posts on instances that disable it", async () => {
-  // Enable NSFW on beta
+  // Disallow NSFW on gamma
   let editSiteForm: EditSite = {
-    content_warning: "NSFW",
+    disallow_nsfw_content: true
   };
-  await beta.editSite(editSiteForm);
+  await gamma.editSite(editSiteForm);
 
   if (!betaCommunity) {
     throw "Missing beta community";

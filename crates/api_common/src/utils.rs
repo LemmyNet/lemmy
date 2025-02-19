@@ -652,12 +652,9 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
-pub async fn check_nsfw_allowed_opt(nsfw: Option<bool>, context: &LemmyContext) -> LemmyResult<()> {
-  let allow_nsfw = Site::read_local(&mut context.pool())
-    .await
-    .is_ok_and(|s| s.content_warning.is_some());
-
-  if !allow_nsfw && nsfw.is_some_and(|nsfw| nsfw) {
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: &LocalSite) -> LemmyResult<()> {
+  let is_nsfw = nsfw.is_some_and(|nsfw| nsfw);
+  if local_site.disallow_nsfw_content && is_nsfw {
     Err(LemmyErrorType::NsfwNotAllowed)?
   }
 
