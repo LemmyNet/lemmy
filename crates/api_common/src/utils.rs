@@ -61,6 +61,7 @@ use lemmy_db_views::{
   },
 };
 use lemmy_utils::{
+  build_cache,
   email::send_email,
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
@@ -541,8 +542,16 @@ pub fn local_site_rate_limit_to_rate_limit_config(
 }
 
 pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
-  let local_site = LocalSite::read(&mut context.pool()).await.ok();
-  build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
+  static CACHE: CacheLock<Regex> = LazyLock::new(build_cache);
+  Ok(
+    CACHE
+      .try_get_with((), async {
+        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
+      })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
+  )
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
