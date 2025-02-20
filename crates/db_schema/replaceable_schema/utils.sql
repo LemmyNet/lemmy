@@ -225,7 +225,7 @@ BEGIN
         COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
         community_id AS community_id_
     FROM
-        post_aggregates
+        post
     WHERE
         published >= (CURRENT_TIMESTAMP - i::interval)
     GROUP BY
