@@ -47,7 +47,6 @@ impl From<&VoteType> for i16 {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self

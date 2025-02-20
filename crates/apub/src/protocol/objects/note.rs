@@ -87,7 +87,6 @@ impl Note {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (post, _) = self.get_parents(context).await?;

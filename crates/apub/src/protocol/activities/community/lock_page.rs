@@ -48,7 +48,6 @@ pub struct UndoLockPage {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for LockPage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let post = self.object.dereference(context).await?;
@@ -57,7 +56,6 @@ impl InCommunity for LockPage {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for UndoLockPage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

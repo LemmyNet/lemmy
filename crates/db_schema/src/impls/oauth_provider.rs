@@ -13,7 +13,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for OAuthProvider {
   type InsertForm = OAuthProviderInsertForm;
   type UpdateForm = OAuthProviderUpdateForm;

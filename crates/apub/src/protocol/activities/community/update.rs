@@ -30,7 +30,6 @@ pub struct UpdateCommunity {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for UpdateCommunity {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community: ApubCommunity = self.object.id.clone().dereference(context).await?;

@@ -13,7 +13,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for PersonCommentMention {
   type InsertForm = PersonCommentMentionInsertForm;
   type UpdateForm = PersonCommentMentionUpdateForm;
