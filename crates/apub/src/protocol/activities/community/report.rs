@@ -91,7 +91,6 @@ impl ReportObject {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for Report {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.to[0].dereference(context).await?;

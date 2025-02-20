@@ -14,7 +14,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for CustomEmoji {
   type InsertForm = CustomEmojiInsertForm;
   type UpdateForm = CustomEmojiUpdateForm;
