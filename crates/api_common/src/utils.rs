@@ -652,6 +652,17 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
+  let is_nsfw = nsfw.is_some_and(|nsfw| nsfw);
+  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+
+  if nsfw_disallowed && is_nsfw {
+    Err(LemmyErrorType::NsfwNotAllowed)?
+  }
+
+  Ok(())
+}
+
 /// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails

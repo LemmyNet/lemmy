@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
@@ -150,6 +151,21 @@ impl Object for ApubCommunity {
     } else {
       CommunityVisibility::Public
     });
+
+    // If NSFW is not allowed, reject new communities marked NSFW and
+    // remove communities that update to be NSFW
+    let block_for_nsfw = check_nsfw_allowed(group.sensitive, local_site.as_ref());
+    let removed = if let Err(e) = block_for_nsfw {
+      let c = ApubCommunity::read_from_id(group.id.inner().clone(), context).await?;
+      if c.is_some() {
+        Some(true)
+      } else {
+        Err(e)?
+      }
+    } else {
+      None
+    };
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -161,6 +177,7 @@ impl Object for ApubCommunity {
       icon,
       banner,
       sidebar,
+      removed,
       description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(
