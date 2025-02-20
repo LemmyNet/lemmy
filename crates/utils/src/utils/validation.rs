@@ -222,12 +222,14 @@ fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> L
 
 /// Attempts to build a regex and check it for common errors before inserting into the DB.
 pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Regex> {
-  let match_all = RegexBuilder::new(".*")
+  // Placeholder regex which doesnt match anything
+  // https://stackoverflow.com/a/940840
+  let match_nothing = RegexBuilder::new("a^")
     .build()
     .with_lemmy_type(LemmyErrorType::InvalidRegex);
   if let Some(regex) = regex_str_opt {
     if regex.is_empty() {
-      match_all
+      match_nothing
     } else {
       RegexBuilder::new(regex)
         .case_insensitive(true)
@@ -246,7 +248,7 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Regex>
         })
     }
   } else {
-    match_all
+    match_nothing
   }
 }
 
@@ -567,28 +569,21 @@ Line3",
   }
 
   #[test]
-  fn test_valid_slur_regex() {
+  fn test_valid_slur_regex() -> LemmyResult<()> {
     let valid_regex = Some("(foo|bar)");
-    let result = build_and_check_regex(&valid_regex);
-    assert!(
-      result.is_some_and(|x| x.is_ok()),
-      "Testing regex: {:?}",
-      valid_regex
-    );
-  }
+    build_and_check_regex(&valid_regex)?;
 
-  #[test]
-  fn test_missing_slur_regex() {
     let missing_regex = None;
-    let result = build_and_check_regex(&missing_regex);
-    assert!(result.is_none());
-  }
+    let match_none = build_and_check_regex(&missing_regex)?;
+    assert!(!match_none.is_match(""));
+    assert!(!match_none.is_match("a"));
 
-  #[test]
-  fn test_empty_slur_regex() {
     let empty = Some("");
-    let result = build_and_check_regex(&empty);
-    assert!(result.is_none());
+    let match_none = build_and_check_regex(&empty)?;
+    assert!(!match_none.is_match(""));
+    assert!(!match_none.is_match("a"));
+
+    Ok(())
   }
 
   #[test]
@@ -604,9 +599,9 @@ Line3",
       .for_each(|(regex_str, expected_err)| {
         let result = build_and_check_regex(regex_str);
 
-        assert!(result.as_ref().is_some_and(Result::is_err));
+        assert!(result.is_err());
         assert!(
-          result.is_some_and(|x| x.is_err_and(|e| e.error_type.eq(&expected_err.clone()))),
+          result.is_err_and(|e| e.error_type.eq(&expected_err.clone())),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err
