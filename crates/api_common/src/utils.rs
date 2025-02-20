@@ -541,8 +541,8 @@ pub fn local_site_rate_limit_to_rate_limit_config(
 }
 
 pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  build_and_check_regex(local_site.slur_filter_regex.as_deref())
+  let local_site = LocalSite::read(&mut context.pool()).await.ok();
+  build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
