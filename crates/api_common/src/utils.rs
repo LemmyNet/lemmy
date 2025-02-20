@@ -540,15 +540,9 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
-  build_slur_regex(local_site.slur_filter_regex.as_deref())
-}
-
-pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
-  local_site
-    .as_ref()
-    .map(local_site_to_slur_regex)
-    .unwrap_or(None)
+pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
+  let local_site = LocalSite::read(&mut context.pool()).await?;
+  build_slur_regex(local_site.slur_filter_regex.as_deref()).unwrap()
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
@@ -1037,7 +1031,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1069,7 +1063,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {

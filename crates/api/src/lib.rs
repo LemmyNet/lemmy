@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, local_site_to_slur_regex},
+  utils::{check_expire_time, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -26,6 +26,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
+use regex::Regex;
 use std::io::Cursor;
 use totp_rs::{Secret, TOTP};
 
@@ -79,9 +80,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
 }
 
 /// Check size of report
-pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> LemmyResult<()> {
-  let slur_regex = &local_site_to_slur_regex(local_site);
-
+pub(crate) fn check_report_reason(reason: &str, slur_regex: &Regex) -> LemmyResult<()> {
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
     Err(LemmyErrorType::ReportReasonRequired)?

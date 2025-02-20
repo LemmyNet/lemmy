@@ -7,14 +7,13 @@ use lemmy_api_common::{
   utils::{
     check_private_messages_enabled,
     get_url_blocklist,
-    local_site_to_slur_regex,
     process_markdown,
     send_email_to_user,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
   source::{
-    local_site::LocalSite,
     person_block::PersonBlock,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
@@ -31,9 +30,7 @@ pub async fn create_private_message(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;

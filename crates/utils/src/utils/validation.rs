@@ -221,31 +221,32 @@ fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> L
 }
 
 /// Attempts to build a regex and check it for common errors before inserting into the DB.
-pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> Option<LemmyResult<Regex>> {
+pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Regex> {
+  let match_all = RegexBuilder::new(".*")
+    .build()
+    .with_lemmy_type(LemmyErrorType::InvalidRegex);
   if let Some(regex) = regex_str_opt {
     if regex.is_empty() {
-      None
+      match_all
     } else {
-      Some(
-        RegexBuilder::new(regex)
-          .case_insensitive(true)
-          .build()
-          .with_lemmy_type(LemmyErrorType::InvalidRegex)
-          .and_then(|regex| {
-            // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
-            // may match against any string text. To keep it simple, we'll match the regex
-            // against an innocuous string - a single number - which should help catch a regex
-            // that accidentally matches against all strings.
-            if regex.is_match("1") {
-              Err(LemmyErrorType::PermissiveRegex.into())
-            } else {
-              Ok(regex)
-            }
-          }),
-      )
+      RegexBuilder::new(regex)
+        .case_insensitive(true)
+        .build()
+        .with_lemmy_type(LemmyErrorType::InvalidRegex)
+        .and_then(|regex| {
+          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
+          // may match against any string text. To keep it simple, we'll match the regex
+          // against an innocuous string - a single number - which should help catch a regex
+          // that accidentally matches against all strings.
+          if regex.is_match("1") {
+            Err(LemmyErrorType::PermissiveRegex.into())
+          } else {
+            Ok(regex)
+          }
+        })
     }
   } else {
-    None
+    match_all
   }
 }
 

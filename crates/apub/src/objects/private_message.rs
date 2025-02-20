@@ -18,12 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    check_private_messages_enabled,
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown,
-  },
+  utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -152,12 +147,11 @@ impl Object for ApubPrivateMessage {
     {
       check_private_messages_enabled(&recipient_local_user)?;
     }
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(&context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
 
     let form = PrivateMessageInsertForm {

@@ -3,12 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{
-    get_url_blocklist,
-    local_site_to_slur_regex,
-    process_markdown_opt,
-    send_verification_email,
-  },
+  utils::{get_url_blocklist, process_markdown_opt, send_verification_email, slur_regex},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -35,7 +30,7 @@ pub async fn save_user_settings(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let slur_regex = local_site_to_slur_regex(&site_view.local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let bio = diesel_string_update(
     process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
