@@ -11,8 +11,8 @@ use lemmy_api_common::{
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -57,7 +57,7 @@ pub async fn create_site(
   let inbox_url = Some(generate_inbox_url()?);
   let keypair = generate_actor_keypair()?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
@@ -149,11 +149,11 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   // Check that the slur regex compiles, and returns the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &create_site
+    create_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  );
+  )?;
 
   site_name_length_check(&create_site.name)?;
   check_slurs(&create_site.name, &slur_regex)?;
