@@ -61,7 +61,6 @@ use lemmy_db_views::{
   },
 };
 use lemmy_utils::{
-  build_cache,
   email::send_email,
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
@@ -542,7 +541,12 @@ pub fn local_site_rate_limit_to_rate_limit_config(
 }
 
 pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
-  static CACHE: CacheLock<Regex> = LazyLock::new(build_cache);
+  static CACHE: CacheLock<Regex> = LazyLock::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(CACHE_DURATION_FEDERATION)
+      .build()
+  });
   Ok(
     CACHE
       .try_get_with((), async {
