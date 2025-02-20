@@ -1,6 +1,6 @@
 use crate::{
-  post::post_view::filter_blocked,
   structs::{CommentSlimView, CommentView},
+  utils::filter_blocked,
 };
 use diesel::{
   dsl::exists,

@@ -1,4 +1,7 @@
-use crate::structs::{PaginationCursor, PostView};
+use crate::{
+  structs::{PaginationCursor, PostView},
+  utils::filter_blocked,
+};
 use diesel::{
   debug_query,
   dsl::{exists, not},
@@ -647,17 +650,6 @@ impl<'a> PostQuery<'a> {
       .load::<PostView>(conn)
       .await
   }
-}
-
-/// Hide all content from blocked communities and persons. Content from blocked instances is also
-/// hidden, unless the user followed the community explicitly.
-#[diesel::dsl::auto_type]
-pub(crate) fn filter_blocked() -> _ {
-  instance_actions::blocked
-    .is_null()
-    .or(community_actions::followed.is_not_null())
-    .and(community_actions::blocked.is_null())
-    .and(person_actions::blocked.is_null())
 }
 
 #[allow(clippy::indexing_slicing)]
