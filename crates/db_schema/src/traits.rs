@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
   utils::{get_conn, uplete, DbPool},
 };
 use diesel::{
@@ -256,4 +256,19 @@ pub trait InternalToCombinedView {
 
   /// Maps the combined DB row to an enum
   fn map_to_enum(self) -> Option<Self::CombinedView>;
+}
+
+pub trait PaginationCursorBuilder {
+  type CursorData;
+
+  /// Builds a pagination cursor for the given query result.
+  fn to_cursor(&self) -> PaginationCursor;
+
+  /// Reads a database row from a given pagination cursor.
+  fn from_cursor(
+    cursor: &PaginationCursor,
+    conn: &mut DbPool<'_>,
+  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send
+  where
+    Self: Sized;
 }

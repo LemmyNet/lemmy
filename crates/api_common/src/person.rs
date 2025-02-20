@@ -3,6 +3,7 @@ use lemmy_db_schema::{
     CommentReplyId,
     CommunityId,
     LanguageId,
+    PaginationCursor,
     PersonCommentMentionId,
     PersonId,
     PersonPostMentionId,
@@ -18,12 +19,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommunityModeratorView,
-  InboxCombinedPaginationCursor,
   InboxCombinedView,
   LocalImageView,
-  PersonContentCombinedPaginationCursor,
   PersonContentCombinedView,
-  PersonSavedCombinedPaginationCursor,
+  PersonSavedCombinedView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -264,7 +263,7 @@ pub struct ListPersonContent {
   #[cfg_attr(feature = "full", ts(optional))]
   pub username: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PersonContentCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -276,6 +275,9 @@ pub struct ListPersonContent {
 /// A person's content response.
 pub struct ListPersonContentResponse {
   pub content: Vec<PersonContentCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -287,7 +289,7 @@ pub struct ListPersonSaved {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<PersonContentType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PersonSavedCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -298,7 +300,10 @@ pub struct ListPersonSaved {
 #[cfg_attr(feature = "full", ts(export))]
 /// A person's saved content response.
 pub struct ListPersonSavedResponse {
-  pub saved: Vec<PersonContentCombinedView>,
+  pub saved: Vec<PersonSavedCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]
@@ -386,7 +391,7 @@ pub struct ListInbox {
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<InboxCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -397,6 +402,9 @@ pub struct ListInbox {
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListInboxResponse {
   pub inbox: Vec<InboxCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
