@@ -28,8 +28,12 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::{generate_post_link_metadata, purge_image_from_pictrs},
-  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
-  LemmyErrorType,
+  utils::{
+    check_nsfw_allowed,
+    get_url_blocklist,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -228,9 +232,8 @@ impl Object for ApubPost {
 
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
-    let nsfw_disallowed = local_site.as_ref().is_some_and(|s| s.disallow_nsfw_content);
-    let is_nsfw = page.sensitive.unwrap_or(false);
-    if nsfw_disallowed && is_nsfw {
+    let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
+    if block_for_nsfw.is_err() {
       let post = ApubPost::read_from_id(page.id.inner().clone(), context).await?;
       if let Some(post) = post {
         if let Some(url) = &post.url {
@@ -241,7 +244,7 @@ impl Object for ApubPost {
         }
         ApubPost::delete(post, context).await?;
       }
-      Err(LemmyErrorType::NsfwNotAllowed)?
+      block_for_nsfw?
     }
 
     let url_blocklist = get_url_blocklist(context).await?;

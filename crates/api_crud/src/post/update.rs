@@ -66,7 +66,7 @@ pub async fn update_post(
       .as_deref(),
   );
 
-  check_nsfw_allowed(data.nsfw, &local_site)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 

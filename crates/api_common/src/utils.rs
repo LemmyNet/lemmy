@@ -652,9 +652,11 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
-pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: &LocalSite) -> LemmyResult<()> {
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.is_some_and(|nsfw| nsfw);
-  if local_site.disallow_nsfw_content && is_nsfw {
+  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+
+  if nsfw_disallowed && is_nsfw {
     Err(LemmyErrorType::NsfwNotAllowed)?
   }
 

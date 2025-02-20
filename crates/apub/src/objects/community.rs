@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
@@ -26,7 +27,6 @@ use lemmy_api_common::{
     process_markdown_opt,
     proxy_image_link_opt_apub,
   },
-  LemmyErrorType,
 };
 use lemmy_db_schema::{
   sensitive::SensitiveString,
@@ -154,14 +154,13 @@ impl Object for ApubCommunity {
 
     // If NSFW is not allowed, reject new communities marked NSFW and
     // remove communities that update to be NSFW
-    let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
-    let is_nsfw = group.sensitive.unwrap_or(false);
-    let removed = if nsfw_disallowed && is_nsfw {
+    let block_for_nsfw = check_nsfw_allowed(group.sensitive, local_site.as_ref());
+    let removed = if let Err(e) = block_for_nsfw {
       let c = ApubCommunity::read_from_id(group.id.inner().clone(), context).await?;
       if c.is_some() {
         Some(true)
       } else {
-        Err(LemmyErrorType::NsfwNotAllowed)?
+        Err(e)?
       }
     } else {
       None
