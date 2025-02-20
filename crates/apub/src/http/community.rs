@@ -269,8 +269,7 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
-    let res =
-      get_apub_community_outbox(path.into(), context.reset_request_count(), request).await?;
+    let res = get_apub_community_outbox(path, context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
@@ -321,7 +320,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community, path) = init(false, CommunityVisibility::LocalOnly, &context).await?;
+    let (instance, _, path) = init(false, CommunityVisibility::LocalOnly, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await;
@@ -367,8 +366,7 @@ pub(crate) mod tests {
     let form = PostInsertForm::new("title".to_string(), person.id, community.id);
     Post::create(&mut context.pool(), &form).await?;
 
-    let res =
-      get_apub_community_outbox(path.into(), context.reset_request_count(), request).await?;
+    let res = get_apub_community_outbox(path, context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
