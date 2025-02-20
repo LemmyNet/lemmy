@@ -11,10 +11,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
-  source::{
-    comment::{Comment, CommentUpdateForm},
-    local_site::LocalSite,
-  },
+  source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
@@ -28,8 +25,6 @@ pub async fn update_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),

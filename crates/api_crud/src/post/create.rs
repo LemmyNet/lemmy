@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
-    local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
   },
   traits::{Crud, Likeable},

@@ -2,7 +2,6 @@ use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::person::{Person, UserTypes},
@@ -30,7 +29,6 @@ use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
     activity::ActorType,
-    local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -123,7 +121,7 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     check_slurs(&person.preferred_username, &slur_regex)?;
     check_slurs_opt(&person.name, &slur_regex)?;
 
@@ -139,7 +137,7 @@ impl Object for ApubPerson {
   async fn from_json(person: Person, context: &Data<Self::DataType>) -> LemmyResult<ApubPerson> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, context).await?;

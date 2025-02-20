@@ -221,7 +221,7 @@ fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> L
 }
 
 /// Attempts to build a regex and check it for common errors before inserting into the DB.
-pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Regex> {
+pub fn build_and_check_regex(regex_str_opt: Option<&str>) -> LemmyResult<Regex> {
   // Placeholder regex which doesnt match anything
   // https://stackoverflow.com/a/940840
   let match_nothing = RegexBuilder::new("a^")
@@ -571,15 +571,15 @@ Line3",
   #[test]
   fn test_valid_slur_regex() -> LemmyResult<()> {
     let valid_regex = Some("(foo|bar)");
-    build_and_check_regex(&valid_regex)?;
+    build_and_check_regex(valid_regex)?;
 
     let missing_regex = None;
-    let match_none = build_and_check_regex(&missing_regex)?;
+    let match_none = build_and_check_regex(missing_regex)?;
     assert!(!match_none.is_match(""));
     assert!(!match_none.is_match("a"));
 
     let empty = Some("");
-    let match_none = build_and_check_regex(&empty)?;
+    let match_none = build_and_check_regex(empty)?;
     assert!(!match_none.is_match(""));
     assert!(!match_none.is_match("a"));
 
@@ -589,13 +589,13 @@ Line3",
   #[test]
   fn test_too_permissive_slur_regex() {
     let match_everything_regexes = [
-      (&Some("["), LemmyErrorType::InvalidRegex),
-      (&Some("(foo|bar|)"), LemmyErrorType::PermissiveRegex),
-      (&Some(".*"), LemmyErrorType::PermissiveRegex),
+      (Some("["), LemmyErrorType::InvalidRegex),
+      (Some("(foo|bar|)"), LemmyErrorType::PermissiveRegex),
+      (Some(".*"), LemmyErrorType::PermissiveRegex),
     ];
 
     match_everything_regexes
-      .iter()
+      .into_iter()
       .for_each(|(regex_str, expected_err)| {
         let result = build_and_check_regex(regex_str);
 

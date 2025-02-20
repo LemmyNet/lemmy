@@ -32,7 +32,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
@@ -163,7 +162,7 @@ impl Object for ApubPost {
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     check_slurs_opt(&page.name, &slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
@@ -212,8 +211,6 @@ impl Object for ApubPost {
     }
 
     let first_attachment = page.attachment.first();
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-
     let url = if let Some(attachment) = first_attachment.cloned() {
       Some(attachment.url())
     } else if page.kind == PageType::Video {
@@ -235,7 +232,7 @@ impl Object for ApubPost {
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;

@@ -71,8 +71,8 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
-    slurs::{build_slur_regex, remove_slurs},
-    validation::clean_urls_in_text,
+    slurs::remove_slurs,
+    validation::{build_and_check_regex, clean_urls_in_text},
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
@@ -542,7 +542,7 @@ pub fn local_site_rate_limit_to_rate_limit_config(
 
 pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
-  build_slur_regex(local_site.slur_filter_regex.as_deref()).unwrap()
+  build_and_check_regex(local_site.slur_filter_regex.as_deref())
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {

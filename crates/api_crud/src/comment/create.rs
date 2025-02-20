@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
-    local_site::LocalSite,
     person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
   traits::{Crud, Likeable},

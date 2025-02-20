@@ -1,5 +1,5 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 
 pub fn remove_slurs(test: &str, slur_regex: &Regex) -> String {
   slur_regex.replace_all(test, "*removed*").to_string()
@@ -17,15 +17,6 @@ pub(crate) fn slur_check<'a>(test: &'a str, slur_regex: &'a Regex) -> Result<(),
   } else {
     Err(matches)
   }
-}
-
-pub fn build_slur_regex(regex_str: Option<&str>) -> Option<LemmyResult<Regex>> {
-  regex_str.map(|slurs| {
-    RegexBuilder::new(slurs)
-      .case_insensitive(true)
-      .build()
-      .with_lemmy_type(LemmyErrorType::InvalidRegex)
-  })
 }
 
 pub fn check_slurs(text: &str, slur_regex: &Regex) -> LemmyResult<()> {
@@ -53,7 +44,7 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 mod test {
 
   use crate::{
-    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+    error::LemmyResult,
     utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str},
   };
   use pretty_assertions::assert_eq;

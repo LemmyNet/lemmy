@@ -8,10 +8,7 @@ use lemmy_api_common::{
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    private_message::{PrivateMessage, PrivateMessageUpdateForm},
-  },
+  source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};

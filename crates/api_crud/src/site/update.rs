@@ -192,7 +192,7 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   // Check that the slur regex compiles, and return the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &edit_site
+    edit_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),

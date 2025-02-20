@@ -28,7 +28,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::Post,
   },
@@ -175,7 +174,7 @@ impl Object for ApubComment {
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let content = append_attachments_to_comment(content, &note.attachment, context).await?;
     let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
@@ -225,7 +224,7 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

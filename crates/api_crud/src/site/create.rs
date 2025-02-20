@@ -149,7 +149,7 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   // Check that the slur regex compiles, and returns the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &create_site
+    create_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),

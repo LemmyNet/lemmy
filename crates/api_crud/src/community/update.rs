@@ -13,7 +13,6 @@ use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
-    local_site::LocalSite,
   },
   traits::Crud,
   utils::diesel_string_update,
@@ -29,8 +28,6 @@ pub async fn update_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;

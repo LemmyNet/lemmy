@@ -31,7 +31,6 @@ use lemmy_db_schema::{
     activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
-    local_site::LocalSite,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -121,7 +120,7 @@ impl Object for ApubSite {
     verify_domains_match(expected_domain, apub.id.inner())?;
     verify_is_remote_object(&apub.id, data)?;
 
-    let slur_regex = &slur_regex(&data).await?;
+    let slur_regex = &slur_regex(data).await?;
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
 
@@ -136,7 +135,7 @@ impl Object for ApubSite {
       .ok_or(FederationError::UrlWithoutDomain)?;
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;

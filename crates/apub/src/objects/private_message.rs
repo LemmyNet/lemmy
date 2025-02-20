@@ -23,7 +23,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     instance::Instance,
-    local_site::LocalSite,
     person::Person,
     person_block::PersonBlock,
     private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
@@ -147,7 +146,7 @@ impl Object for ApubPrivateMessage {
     {
       check_private_messages_enabled(&recipient_local_user)?;
     }
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);

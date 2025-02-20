@@ -6,10 +6,7 @@ use lemmy_api_common::{
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    tagline::{Tagline, TaglineInsertForm},
-  },
+  source::tagline::{Tagline, TaglineInsertForm},
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;

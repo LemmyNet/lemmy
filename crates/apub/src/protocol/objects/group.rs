@@ -6,7 +6,6 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  local_site_data_cached,
   objects::community::ApubCommunity,
   protocol::{
     objects::{Endpoints, LanguageTag},
@@ -89,7 +88,7 @@ impl Group {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
-    let slur_regex = slur_regex(&context).await?;
+    let slur_regex = slur_regex(context).await?;
 
     check_slurs(&self.preferred_username, &slur_regex)?;
     check_slurs_opt(&self.name, &slur_regex)?;

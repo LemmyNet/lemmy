@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, slur_regex},
+  utils::check_expire_time,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +15,6 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
-    local_site::LocalSite,
     mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
