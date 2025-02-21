@@ -2,7 +2,6 @@ use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::person::{Person, UserTypes},
@@ -21,16 +20,15 @@ use lemmy_api_common::{
   utils::{
     generate_outbox_url,
     get_url_blocklist,
-    local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
     activity::ActorType,
-    local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -123,28 +121,26 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
-    check_slurs(&person.preferred_username, slur_regex)?;
-    check_slurs_opt(&person.name, slur_regex)?;
+    let slur_regex = slur_regex(context).await?;
+    check_slurs(&person.preferred_username, &slur_regex)?;
+    check_slurs_opt(&person.name, &slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
     verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    check_slurs_opt(&bio, slur_regex)?;
+    check_slurs_opt(&bio, &slur_regex)?;
     Ok(())
   }
 
   async fn from_json(person: Person, context: &Data<Self::DataType>) -> LemmyResult<ApubPerson> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = process_markdown_opt(&bio, slur_regex, &url_blocklist, context).await?;
+    let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, context).await?;
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;

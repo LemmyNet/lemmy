@@ -11,7 +11,7 @@ use lemmy_api_common::{
     check_community_mod_action,
     check_nsfw_allowed,
     get_url_blocklist,
-    local_site_to_slur_regex,
+    slur_regex,
     process_markdown_opt,
   },
 };
@@ -19,7 +19,6 @@ use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
-    local_site::LocalSite,
   },
   traits::Crud,
   utils::diesel_string_update,
@@ -38,7 +37,8 @@ pub async fn update_community(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
+
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
 

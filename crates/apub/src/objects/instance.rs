@@ -2,7 +2,6 @@ use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  local_site_data_cached,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{instance::Instance, LanguageTag},
@@ -23,12 +22,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
-  },
+  utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
@@ -37,7 +31,6 @@ use lemmy_db_schema::{
     activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
-    local_site::LocalSite,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -127,8 +120,7 @@ impl Object for ApubSite {
     verify_domains_match(expected_domain, apub.id.inner())?;
     verify_is_remote_object(&apub.id, data)?;
 
-    let local_site_data = local_site_data_cached(&mut data.pool()).await?;
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
+    let slur_regex = &slur_regex(data).await?;
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
 
@@ -143,11 +135,10 @@ impl Object for ApubSite {
       .ok_or(FederationError::UrlWithoutDomain)?;
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;

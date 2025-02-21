@@ -2570,6 +2570,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
+ "regex",
  "serial_test",
  "sitemap-rs",
  "tokio",
