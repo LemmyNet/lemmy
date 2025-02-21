@@ -182,6 +182,18 @@ impl Post {
       .optional()
   }
 
+  pub async fn delete_from_apub_id(pool: &mut DbPool<'_>, object_id: Url) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    let object_id: DbUrl = object_id.into();
+
+    diesel::update(post::table.filter(post::ap_id.eq(object_id)))
+      .set(post::deleted.eq(true))
+      .execute(conn)
+      .await?;
+
+    Ok(())
+  }
+
   pub async fn fetch_pictrs_posts_for_creator(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,

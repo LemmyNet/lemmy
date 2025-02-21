@@ -152,19 +152,10 @@ impl Object for ApubCommunity {
       CommunityVisibility::Public
     });
 
-    // If NSFW is not allowed, reject new communities marked NSFW and
-    // remove communities that update to be NSFW
-    let block_for_nsfw = check_nsfw_allowed(group.sensitive, local_site.as_ref());
-    let removed = if let Err(e) = block_for_nsfw {
-      let c = ApubCommunity::read_from_id(group.id.inner().clone(), context).await?;
-      if c.is_some() {
-        Some(true)
-      } else {
-        Err(e)?
-      }
-    } else {
-      None
-    };
+    // If NSFW is not allowed, then remove NSFW communities
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+      .map_err(|_err| true)
+      .err();
 
     let form = CommunityInsertForm {
       published: group.published,

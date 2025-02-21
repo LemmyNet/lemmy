@@ -27,12 +27,13 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::{generate_post_link_metadata, purge_image_from_pictrs},
+  request::generate_post_link_metadata,
   utils::{
     check_nsfw_allowed,
     get_url_blocklist,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
+    purge_post_images,
   },
 };
 use lemmy_db_schema::{
@@ -234,16 +235,11 @@ impl Object for ApubPost {
     // posts that get updated to be NSFW
     let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
     if block_for_nsfw.is_err() {
-      let post = ApubPost::read_from_id(page.id.inner().clone(), context).await?;
-      if let Some(post) = post {
-        if let Some(url) = &post.url {
-          purge_image_from_pictrs(url, context).await.ok();
-        }
-        if let Some(thumbnail_url) = &post.thumbnail_url {
-          purge_image_from_pictrs(thumbnail_url, context).await.ok();
-        }
-        ApubPost::delete(post, context).await?;
-      }
+      // Option<Url> => Option<DbUrl>
+      let url = url.clone().map(std::convert::Into::into);
+      let thumbnail_url = page.image.map(|i| i.url.into());
+      purge_post_images(url, thumbnail_url, context).await?;
+      let _ = Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await;
       block_for_nsfw?
     }
 
