@@ -26,7 +26,6 @@ pub struct CreateOrUpdatePage {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdatePage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

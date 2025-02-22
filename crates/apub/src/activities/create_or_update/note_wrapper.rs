@@ -61,7 +61,6 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNoteWrapper {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     // Same logic as in receive. In case this is a private message, an error is returned.

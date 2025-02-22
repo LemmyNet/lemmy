@@ -12,7 +12,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
-#[async_trait]
 impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;

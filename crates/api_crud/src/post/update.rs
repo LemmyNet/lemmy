@@ -11,9 +11,9 @@ use lemmy_api_common::{
   utils::{
     check_community_user_action,
     get_url_blocklist,
-    local_site_to_slur_regex,
     process_markdown_opt,
     send_webmention,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -49,15 +48,13 @@ pub async fn update_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
 
   let body = diesel_string_update(
     process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)

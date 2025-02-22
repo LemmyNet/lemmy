@@ -22,3 +22,5 @@ pub mod reports;
 #[cfg(feature = "full")]
 pub mod site;
 pub mod structs;
+#[cfg(feature = "full")]
+pub mod utils;

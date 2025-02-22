@@ -2570,6 +2570,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
+ "regex",
  "serial_test",
  "sitemap-rs",
  "tokio",
@@ -2695,7 +2696,6 @@ version = "1.0.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
- "async-trait",
  "bcrypt",
  "chrono",
  "deadpool",
@@ -2760,7 +2760,6 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "anyhow",
- "async-trait",
  "chrono",
  "diesel",
  "diesel-async",

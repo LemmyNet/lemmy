@@ -13,7 +13,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
-#[async_trait]
 impl Crud for Site {
   type InsertForm = SiteInsertForm;
   type UpdateForm = SiteUpdateForm;

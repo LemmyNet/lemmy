@@ -15,7 +15,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{FederationError, LemmyResult};
 
-#[async_trait]
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;

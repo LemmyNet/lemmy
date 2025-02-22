@@ -35,7 +35,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for AdminPurgePerson {
   type InsertForm = AdminPurgePersonForm;
   type UpdateForm = AdminPurgePersonForm;
@@ -62,7 +61,6 @@ impl Crud for AdminPurgePerson {
   }
 }
 
-#[async_trait]
 impl Crud for AdminPurgeCommunity {
   type InsertForm = AdminPurgeCommunityForm;
   type UpdateForm = AdminPurgeCommunityForm;
@@ -89,7 +87,6 @@ impl Crud for AdminPurgeCommunity {
   }
 }
 
-#[async_trait]
 impl Crud for AdminPurgePost {
   type InsertForm = AdminPurgePostForm;
   type UpdateForm = AdminPurgePostForm;
@@ -116,7 +113,6 @@ impl Crud for AdminPurgePost {
   }
 }
 
-#[async_trait]
 impl Crud for AdminPurgeComment {
   type InsertForm = AdminPurgeCommentForm;
   type UpdateForm = AdminPurgeCommentForm;
@@ -143,7 +139,6 @@ impl Crud for AdminPurgeComment {
   }
 }
 
-#[async_trait]
 impl Crud for AdminAllowInstance {
   type InsertForm = AdminAllowInstanceForm;
   type UpdateForm = AdminAllowInstanceForm;
@@ -170,7 +165,6 @@ impl Crud for AdminAllowInstance {
   }
 }
 
-#[async_trait]
 impl Crud for AdminBlockInstance {
   type InsertForm = AdminBlockInstanceForm;
   type UpdateForm = AdminBlockInstanceForm;

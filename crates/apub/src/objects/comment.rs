@@ -22,13 +22,12 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{get_url_blocklist, is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::Post,
   },
@@ -175,11 +174,10 @@ impl Object for ApubComment {
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let content = append_attachments_to_comment(content, &note.attachment, context).await?;
-    let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())
@@ -226,7 +224,7 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
