@@ -303,28 +303,11 @@ pub struct PostReportView {
 /// perspective. stringified since we might want to use arbitrary info later, with a P prepended to
 /// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
 /// numbers as numbers) about apis that aren't part of the spec
+// TODO this is a mess, get rid of it and prefer the one in db_schema
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct PaginationCursor(pub String);
-
-/// like PaginationCursor but for the report_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct ReportCombinedPaginationCursor(pub String);
-
-/// like PaginationCursor but for the person_content_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct PersonContentCombinedPaginationCursor(pub String);
-
-/// like PaginationCursor but for the person_saved_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct PersonSavedCombinedPaginationCursor(pub String);
+pub struct PostPaginationCursor(pub String);
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -534,6 +517,48 @@ pub(crate) struct PersonContentCombinedViewInternal {
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum PersonContentCombinedView {
+  Post(PostView),
+  Comment(CommentView),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined person_saved view
+pub(crate) struct PersonSavedCombinedViewInternal {
+  // Post-specific
+  pub post_counts: PostAggregates,
+  pub post_unread_comments: i64,
+  pub post_saved: Option<DateTime<Utc>>,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
+  // Comment-specific
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
+  pub comment_saved: Option<DateTime<Utc>>,
+  pub my_comment_vote: Option<i16>,
+  // Shared
+  pub post: Post,
+  pub community: Community,
+  pub item_creator: Person,
+  pub subscribed: SubscribedType,
+  pub item_creator_is_admin: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_blocked: bool,
+  pub banned_from_community: bool,
+  pub can_mod: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum PersonSavedCombinedView {
   Post(PostView),
   Comment(CommentView),
 }
@@ -769,12 +794,6 @@ pub struct PrivateMessageView {
   )]
   pub recipient: Person,
 }
-
-/// like PaginationCursor but for the report_combined table
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct InboxCombinedPaginationCursor(pub String);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable))]
@@ -1057,12 +1076,6 @@ pub struct AdminAllowInstanceView {
   pub admin: Option<Person>,
 }
 
-/// like PaginationCursor but for the modlog_combined
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct ModlogCombinedPaginationCursor(pub String);
-
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -1149,13 +1162,6 @@ pub enum ModlogCombinedView {
   ModRemovePost(ModRemovePostView),
   ModTransferCommunity(ModTransferCommunityView),
 }
-
-/// like PaginationCursor but for the modlog_combined
-// TODO get rid of all these pagination cursors
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct SearchCombinedPaginationCursor(pub String);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable))]
