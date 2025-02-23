@@ -10,6 +10,7 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed,
     get_url_blocklist,
     process_markdown_opt,
     send_webmention,
@@ -21,6 +22,7 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
+    local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -48,6 +50,7 @@ pub async fn update_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  let local_site = LocalSite::read(&mut context.pool()).await?;
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
@@ -61,6 +64,8 @@ pub async fn update_post(
       .await?
       .as_deref(),
   );
+
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 
