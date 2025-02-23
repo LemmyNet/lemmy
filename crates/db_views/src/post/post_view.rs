@@ -489,6 +489,7 @@ impl<'a> PostQuery<'a> {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());
         let body_filter = post::body.ilike(searcher.clone());
+        let alt_text_filter = post::alt_text.ilike(searcher.clone());
         query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
