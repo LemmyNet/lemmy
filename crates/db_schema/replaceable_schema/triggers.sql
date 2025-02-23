@@ -201,7 +201,7 @@ UPDATE
             GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
             a.newest_comment_time,
             a.newest_comment_time_necro);
-UPDATE
+/*UPDATE
     community AS a
 SET
     comments = a.comments + diff.comments
@@ -218,7 +218,7 @@ FROM (
         (comment).community_id) AS diff
 WHERE
     a.id = diff.community_id
-    AND diff.comments != 0;
+    AND diff.comments != 0;*/
 
 UPDATE
     local_site AS a
@@ -273,11 +273,13 @@ WHERE
 UPDATE
     community AS a
 SET
-    posts = a.posts + diff.posts
+    posts = a.posts + diff.posts,
+    comments = a.comments + diff.comments
 FROM (
     SELECT
         (post).community_id,
-        coalesce(sum(count_diff), 0) AS posts
+        coalesce(sum(count_diff), 0) AS posts,
+        coalesce(sum(count_diff * (post).comments), 0) AS comments
     FROM
         select_old_and_new_rows AS old_and_new_rows
     WHERE
@@ -286,7 +288,7 @@ FROM (
         (post).community_id) AS diff
 WHERE
     a.id = diff.community_id
-    AND diff.posts != 0;
+    AND (diff.posts, diff.comments) != (0, 0);
 
 UPDATE
     local_site AS a
@@ -372,7 +374,7 @@ END;
 $$);
 
 -- For community.comments, don't include comments of deleted or removed posts
-CREATE FUNCTION r.update_comment_count_from_post ()
+/*CREATE FUNCTION r.update_comment_count_from_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -407,7 +409,7 @@ $$;
 CREATE TRIGGER comment_count
     AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
-    EXECUTE FUNCTION r.update_comment_count_from_post ();
+    EXECUTE FUNCTION r.update_comment_count_from_post ();*/
 
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
@@ -557,7 +559,7 @@ END;
 $$);
 
 -- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
-CREATE FUNCTION r.delete_comments_before_post ()
+/*CREATE FUNCTION r.delete_comments_before_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -566,14 +568,14 @@ BEGIN
     WHERE c.post_id = OLD.id;
     if FOUND then
     delete from post where id = OLD.id;
-    RETURN NULL; end if; return OLD;
+    RETURN NULL; end if; return (SELECT row(post.*) FROM post WHERE id = OLD.id);
 END;
 $$;
 
 CREATE TRIGGER delete_comments
     BEFORE DELETE ON post
     FOR EACH ROW
-    EXECUTE FUNCTION r.delete_comments_before_post ();
+    EXECUTE FUNCTION r.delete_comments_before_post ();*/
 
 CREATE FUNCTION r.delete_follow_before_person ()
     RETURNS TRIGGER

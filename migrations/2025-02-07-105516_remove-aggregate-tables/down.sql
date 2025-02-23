@@ -227,7 +227,8 @@ ALTER TABLE community
     DROP COLUMN subscribers_local,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count,
-    DROP COLUMN interactions_month;
+    DROP COLUMN interactions_month,
+    ALTER CONSTRAINT community_instance_id_fkey NOT DEFERRABLE INITIALLY IMMEDIATE;
 
 CREATE INDEX idx_community_aggregates_hot ON public.community_aggregates USING btree (hot_rank DESC);
 
