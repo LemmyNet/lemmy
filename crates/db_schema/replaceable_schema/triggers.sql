@@ -27,12 +27,12 @@ BEGIN
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
         CALL r.create_triggers ('thing_actions', $$
             BEGIN
-                IF (
+                /*IF (
                     SELECT
                         count(*)
                 FROM select_old_and_new_rows) = 0 THEN
                     RETURN NULL;
-                END IF;
+                END IF;*/
                 WITH thing_diff AS (
                     UPDATE
                         thing AS a
@@ -105,6 +105,7 @@ END;
 
 CALL r.create_triggers ('comment', $$
 BEGIN
+    -- Prevent infinite recursion
     IF (
         SELECT
             count(*)
@@ -243,14 +244,14 @@ $$);
 
 CALL r.create_triggers ('post', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     person AS a
@@ -313,14 +314,14 @@ $$);
 
 CALL r.create_triggers ('community', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     local_site AS a
@@ -345,14 +346,14 @@ $$);
 
 CALL r.create_triggers ('person', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     local_site AS a
@@ -416,14 +417,14 @@ CREATE TRIGGER comment_count
 -- subscribers_local should be updated only when a local person follows a local or remote community.
 CALL r.create_triggers ('community_actions', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     community AS a
@@ -456,14 +457,14 @@ $$);
 
 CALL r.create_triggers ('post_report', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     post AS a
@@ -491,14 +492,14 @@ $$);
 
 CALL r.create_triggers ('comment_report', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     comment AS a
@@ -526,14 +527,14 @@ $$);
 
 CALL r.create_triggers ('community_report', $$
 BEGIN
-    IF (
+    /*IF (
         SELECT
             count(*)
 FROM
     select_old_and_new_rows) = 0 THEN
         RETURN NULL;
 
-END IF;
+END IF;*/
 
 UPDATE
     community AS a
