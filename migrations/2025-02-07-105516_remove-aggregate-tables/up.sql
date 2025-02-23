@@ -7,8 +7,7 @@ ALTER TABLE comment
     ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN community_id int NOT NULL DEFAULT 0 REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
 UPDATE
     comment
@@ -20,12 +19,11 @@ SET
     hot_rank = ca.hot_rank,
     controversy_rank = ca.controversy_rank,
     report_count = ca.report_count,
-    unresolved_report_count = ca.unresolved_report_count,
-    community_id = p.community_id
+    unresolved_report_count = ca.unresolved_report_count
 FROM
-    comment_aggregates AS ca, post AS p
+    comment_aggregates AS ca
 WHERE
-    comment.id = ca.comment_id AND comment.post_id = p.id;
+    comment.id = ca.comment_id;
 
 DROP TABLE comment_aggregates;
 
