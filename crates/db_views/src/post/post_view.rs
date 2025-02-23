@@ -493,7 +493,7 @@ impl<'a> PostQuery<'a> {
         query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
-          query.filter(name_filter.or(body_filter))
+          query.filter(name_filter.or(body_filter).or(alt_text_filter))
         }
         .filter(not(post::removed.or(post::deleted)));
       }
