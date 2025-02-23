@@ -170,8 +170,7 @@ WHERE
     a.id = diff.parent_id
     AND diff.child_count != 0;
 
-WITH post_diff AS (
-    UPDATE
+UPDATE
         post AS a
     SET
         comments = a.comments + diff.comments,
@@ -187,11 +186,10 @@ WITH post_diff AS (
                 -- Ignore comments from the post's creator
                 AND post.creator_id != (comment).creator_id
             -- Ignore comments on old posts
-            AND post.published > ((comment).published - '2 days'::interval)) AS newest_comment_time_necro,
-        r.is_counted (post.*) AS include_in_community_aggregates
+            AND post.published > ((comment).published - '2 days'::interval)) AS newest_comment_time_necro
     FROM
         select_old_and_new_rows AS old_and_new_rows
-        LEFT JOIN post ON post.id = (comment).post_id
+        INNER JOIN post ON post.id = (comment).post_id
     WHERE
         r.is_counted (comment)
     GROUP BY
@@ -202,25 +200,22 @@ WITH post_diff AS (
             GREATEST (a.newest_comment_time, diff.newest_comment_time),
             GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
             a.newest_comment_time,
-            a.newest_comment_time_necro)
-    RETURNING
-        a.community_id,
-        diff.comments,
-        diff.include_in_community_aggregates)
+            a.newest_comment_time_necro);
 UPDATE
     community AS a
 SET
     comments = a.comments + diff.comments
 FROM (
     SELECT
-        community_id,
-        sum(comments) AS comments
+        (comment).community_id,
+        coalesce(sum(count_diff), 0) AS comments
     FROM
-        post_diff
+        select_old_and_new_rows AS old_and_new_rows
+        LEFT JOIN post ON post.id = (comment).post_id
     WHERE
-        post_diff.include_in_community_aggregates
+        r.is_counted (comment) AND r.is_counted (post.*)
     GROUP BY
-        community_id) AS diff
+        (comment).community_id) AS diff
 WHERE
     a.id = diff.community_id
     AND diff.comments != 0;
@@ -561,31 +556,6 @@ END;
 
 $$);
 
-CREATE FUNCTION r.post_from_post ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post
-    SET
-        newest_comment_time = new_post.published,
-        newest_comment_time_necro = new_post.published,
-        instance_id = community.instance_id
-    FROM
-        new_post
-        INNER JOIN community ON community.id = new_post.community_id
-    WHERE
-        post.id = new_post.id;
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.post_from_post ();
-
 -- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
 CREATE FUNCTION r.delete_comments_before_post ()
     RETURNS TRIGGER
@@ -594,7 +564,9 @@ CREATE FUNCTION r.delete_comments_before_post ()
 BEGIN
     DELETE FROM comment AS c
     WHERE c.post_id = OLD.id;
-    RETURN OLD;
+    if FOUND then
+    delete from post where id = OLD.id;
+    RETURN NULL; end if; return OLD;
 END;
 $$;
 
@@ -610,7 +582,9 @@ CREATE FUNCTION r.delete_follow_before_person ()
 BEGIN
     DELETE FROM community_actions AS c
     WHERE c.person_id = OLD.id;
-    RETURN OLD;
+    /*if FOUND then
+    DELETE from person where id = OLD.id;
+    RETURN NULL; end if;*/ return OLD;
 END;
 $$;
 
@@ -618,6 +592,22 @@ CREATE TRIGGER delete_follow
     BEFORE DELETE ON person
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_follow_before_person ();
+
+/*CREATE FUNCTION r.delete_community_before_instance ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM community AS c
+    WHERE c.instance_id = OLD.id;
+    RETURN NULL;
+END;
+$$;
+
+CREATE TRIGGER delete_community
+    BEFORE DELETE ON instance
+    FOR EACH ROW
+    EXECUTE FUNCTION r.delete_community_before_instance ();*/
 
 -- Triggers that change values before insert or update
 CREATE FUNCTION r.comment_change_values ()
@@ -635,6 +625,8 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
     END IF;
+    -- Set community_id
+    NEW.community_id = (SELECT post.community_id FROM post WHERE post.id = NEW.post_id);
     RETURN NEW;
 END
 $$;
@@ -653,6 +645,10 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
+    -- Set aggregates
+    NEW.newest_comment_time = NEW.published;
+    NEW.newest_comment_time_necro = NEW.published;
+    NEW.instance_id = (SELECT community.instance_id FROM community WHERE community.id = NEW.community_id);
     RETURN NEW;
 END
 $$;

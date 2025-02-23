@@ -35,7 +35,8 @@ ALTER TABLE comment
     DROP COLUMN hot_rank,
     DROP COLUMN controversy_rank,
     DROP COLUMN report_count,
-    DROP COLUMN unresolved_report_count;
+    DROP COLUMN unresolved_report_count,
+    DROP COLUMN community_id;
 
 CREATE INDEX idx_comment_aggregates_controversy ON comment_aggregates USING btree (controversy_rank DESC);
 
