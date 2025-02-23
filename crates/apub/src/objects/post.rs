@@ -178,7 +178,7 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = LocalSite::read(&mut context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -230,7 +230,7 @@ impl Object for ApubPost {
 
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
-    let block_for_nsfw = check_nsfw_allowed(page.sensitive, &local_site);
+    let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
     if block_for_nsfw.is_err() {
       // Option<Url> => Option<DbUrl>
       let url = url.clone().map(std::convert::Into::into);
