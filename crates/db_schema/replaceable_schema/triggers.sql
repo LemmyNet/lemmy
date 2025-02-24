@@ -164,7 +164,7 @@ FROM (
         AND post.published > ((comment).published - '2 days'::interval)) AS newest_comment_time_necro
 FROM
     select_old_and_new_rows AS old_and_new_rows
-        LEFT JOIN post ON post.id = (comment).post_id
+    LEFT JOIN post ON post.id = (comment).post_id
 WHERE
     r.is_counted (comment)
 GROUP BY
