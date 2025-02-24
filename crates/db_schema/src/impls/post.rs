@@ -188,7 +188,7 @@ impl Post {
 
     diesel::update(post::table.filter(post::ap_id.eq(object_id)))
       .set(post::deleted.eq(true))
-      .execute(conn)
+      .get_result::<Self>(conn)
       .await?;
 
     Ok(())

@@ -231,13 +231,12 @@ impl Object for ApubPost {
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
     let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
-    if block_for_nsfw.is_err() {
-      // Option<Url> => Option<DbUrl>
+    if let Err(e) = block_for_nsfw {
       let url = url.clone().map(std::convert::Into::into);
       let thumbnail_url = page.image.map(|i| i.url.into());
       purge_post_images(url, thumbnail_url, context).await?;
-      let _ = Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await;
-      block_for_nsfw?
+      Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
+      Err(e)?
     }
 
     let url_blocklist = get_url_blocklist(context).await?;
