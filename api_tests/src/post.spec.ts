@@ -929,6 +929,9 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   };
   await gamma.editSite(editSiteForm);
 
+  // Wait for cache on Gamma's LocalSite
+  await delay(1_000);
+
   if (!betaCommunity) {
     throw "Missing beta community";
   }
