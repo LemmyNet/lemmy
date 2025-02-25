@@ -154,8 +154,8 @@ impl Object for ApubCommunity {
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
-      .map_err(|_err| true)
-      .err();
+      .err()
+      .map(|_| true);
 
     let form = CommunityInsertForm {
       published: group.published,

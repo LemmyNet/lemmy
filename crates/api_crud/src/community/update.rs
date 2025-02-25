@@ -38,7 +38,6 @@ pub async fn update_community(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = slur_regex(&context).await?;
-
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;

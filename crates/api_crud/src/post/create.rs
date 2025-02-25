@@ -53,7 +53,6 @@ pub async fn create_post(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = slur_regex(&context).await?;
-
   check_slurs(&data.name, &slur_regex)?;
   let url_blocklist = get_url_blocklist(&context).await?;
 
