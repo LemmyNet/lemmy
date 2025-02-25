@@ -84,7 +84,7 @@ BEGIN
     IF (
         SELECT
             count(*)
-    FROM select_old_and_new_rows) = 0 THEN
+    FROM select_old_and_new_rows AS old_and_new_rows) = 0 THEN
         RETURN NULL;
 
 END IF;
