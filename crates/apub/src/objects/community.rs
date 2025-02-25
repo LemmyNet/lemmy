@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
@@ -33,6 +34,7 @@ use lemmy_db_schema::{
     activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    local_site::LocalSite,
   },
   traits::{ApubActor, Crud},
   CommunityVisibility,
@@ -134,6 +136,7 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
@@ -148,6 +151,12 @@ impl Object for ApubCommunity {
     } else {
       CommunityVisibility::Public
     });
+
+    // If NSFW is not allowed, then remove NSFW communities
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+      .err()
+      .map(|_| true);
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -159,6 +168,7 @@ impl Object for ApubCommunity {
       icon,
       banner,
       sidebar,
+      removed,
       description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(

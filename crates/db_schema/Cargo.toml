@@ -55,6 +55,7 @@ diesel = { workspace = true, features = [
   "postgres",
   "serde_json",
   "uuid",
+  "64-column-tables",
 ], optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
 diesel-derive-enum = { workspace = true, optional = true }

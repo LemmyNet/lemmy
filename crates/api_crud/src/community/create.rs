@@ -6,6 +6,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_followers_url,
     generate_inbox_url,
     get_url_blocklist,
@@ -54,6 +55,7 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;

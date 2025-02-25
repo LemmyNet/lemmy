@@ -9,6 +9,7 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed,
     get_url_blocklist,
     honeypot_check,
     process_markdown_opt,
@@ -21,6 +22,7 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
+    local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
   },
   traits::{Crud, Likeable},
@@ -48,6 +50,7 @@ pub async fn create_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   honeypot_check(&data.honeypot)?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
@@ -56,6 +59,7 @@ pub async fn create_post(
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let url = diesel_url_create(data.url.as_deref())?;
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   is_valid_post_title(&data.name)?;
 
