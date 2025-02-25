@@ -12,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
+  schema::{community, community_actions, instance_actions, local_user},
   source::{
     community::{Community, CommunityFollowerState},
     local_user::LocalUser,
@@ -41,7 +41,6 @@ impl CommunityView {
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
 
     community::table
-      .inner_join(community_aggregates::table)
       .left_join(community_actions_join)
       .left_join(instance_actions_join)
       .left_join(local_user_join)
@@ -164,27 +163,24 @@ impl CommunityQuery<'_> {
     query = o.local_user.visible_communities_only(query);
 
     match o.sort.unwrap_or_default() {
-      Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      Comments => query = query.order_by(community_aggregates::comments.desc()),
-      Posts => query = query.order_by(community_aggregates::posts.desc()),
+      Hot => query = query.order_by(community::hot_rank.desc()),
+      Comments => query = query.order_by(community::comments.desc()),
+      Posts => query = query.order_by(community::posts.desc()),
       New => query = query.order_by(community::published.desc()),
       Old => query = query.order_by(community::published.asc()),
-      Subscribers => query = query.order_by(community_aggregates::subscribers.desc()),
-      SubscribersLocal => query = query.order_by(community_aggregates::subscribers_local.desc()),
-      ActiveSixMonths => {
-        query = query.order_by(community_aggregates::users_active_half_year.desc())
-      }
-      ActiveMonthly => query = query.order_by(community_aggregates::users_active_month.desc()),
-      ActiveWeekly => query = query.order_by(community_aggregates::users_active_week.desc()),
-      ActiveDaily => query = query.order_by(community_aggregates::users_active_day.desc()),
+      Subscribers => query = query.order_by(community::subscribers.desc()),
+      SubscribersLocal => query = query.order_by(community::subscribers_local.desc()),
+      ActiveSixMonths => query = query.order_by(community::users_active_half_year.desc()),
+      ActiveMonthly => query = query.order_by(community::users_active_month.desc()),
+      ActiveWeekly => query = query.order_by(community::users_active_week.desc()),
+      ActiveDaily => query = query.order_by(community::users_active_day.desc()),
       NameAsc => query = query.order_by(lower(community::name).asc()),
       NameDesc => query = query.order_by(lower(community::name).desc()),
     };
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(
-        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-      );
+      query =
+        query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;

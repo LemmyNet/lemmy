@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     instance_actions,
@@ -51,7 +50,7 @@ impl CommentView {
 
     let comment_actions_join = comment_actions::table.on(
       comment_actions::comment_id
-        .eq(comment_aggregates::comment_id)
+        .eq(comment::id)
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
@@ -84,7 +83,6 @@ impl CommentView {
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community_join)
-      .inner_join(comment_aggregates::table)
       .left_join(community_actions_join)
       .left_join(comment_actions_join)
       .left_join(person_actions_join)
@@ -134,7 +132,6 @@ impl CommentView {
     CommentSlimView {
       comment: self.comment,
       creator: self.creator,
-      counts: self.counts,
       creator_banned_from_community: self.creator_banned_from_community,
       banned_from_community: self.banned_from_community,
       creator_is_moderator: self.creator_is_moderator,
@@ -296,21 +293,18 @@ impl CommentQuery<'_> {
 
     query = match o.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
-        .then_order_by(comment_aggregates::hot_rank.desc())
-        .then_order_by(comment_aggregates::score.desc()),
-      CommentSortType::Controversial => {
-        query.then_order_by(comment_aggregates::controversy_rank.desc())
-      }
+        .then_order_by(comment::hot_rank.desc())
+        .then_order_by(comment::score.desc()),
+      CommentSortType::Controversial => query.then_order_by(comment::controversy_rank.desc()),
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
+      CommentSortType::Top => query.then_order_by(comment::score.desc()),
     };
 
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(
-        comment_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-      );
+      query =
+        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     let res = query
@@ -332,10 +326,9 @@ mod tests {
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
-    aggregates::structs::CommentAggregates,
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::LanguageId,
+    newtypes::{CommentId, LanguageId},
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
@@ -354,7 +347,6 @@ mod tests {
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostUpdateForm},
@@ -374,6 +366,7 @@ mod tests {
     inserted_comment_0: Comment,
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
+    inserted_comment_5: Comment,
     inserted_post: Post,
     timmy_local_user_view: LocalUserView,
     inserted_sara_person: Person,
@@ -481,7 +474,7 @@ mod tests {
       inserted_post.id,
       "Comment 5".into(),
     );
-    let _inserted_comment_5 =
+    let inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
     let timmy_blocks_sara_form = PersonBlockForm {
@@ -508,9 +501,7 @@ mod tests {
 
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy_person.clone(),
-      counts: Default::default(),
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;
@@ -519,6 +510,7 @@ mod tests {
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
+      inserted_comment_5,
       inserted_post,
       timmy_local_user_view,
       inserted_sara_person,
@@ -534,7 +526,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let expected_comment_view_no_person = expected_comment_view(&data, pool).await?;
+    let expected_comment_view_no_person = expected_comment_view(&data);
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
@@ -666,10 +658,10 @@ mod tests {
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
       .into_iter()
-      .map(|c| c.comment)
-      .collect::<Vec<Comment>>();
-    assert!(child_comments.contains(&data.inserted_comment_1));
-    assert!(!child_comments.contains(&data.inserted_comment_2));
+      .map(|c| c.comment.id)
+      .collect::<Vec<CommentId>>();
+    assert!(child_comments.contains(&data.inserted_comment_1.id));
+    assert!(!child_comments.contains(&data.inserted_comment_2.id));
 
     let read_comment_views_top_max_depth = CommentQuery {
       post_id: (Some(data.inserted_post.id)),
@@ -681,7 +673,7 @@ mod tests {
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view(&data, pool).await?,
+      expected_comment_view(&data),
       read_comment_views_top_max_depth[0]
     );
     assert_length!(1, read_comment_views_top_max_depth);
@@ -867,9 +859,8 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<CommentView> {
-    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id).await?;
-    Ok(CommentView {
+  fn expected_comment_view(data: &Data) -> CommentView {
+    CommentView {
       creator_banned_from_community: false,
       banned_from_community: false,
       creator_is_moderator: false,
@@ -893,6 +884,14 @@ mod tests {
         distinguished: false,
         path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(37),
+        score: 1,
+        upvotes: 1,
+        downvotes: 0,
+        child_count: 5,
+        hot_rank: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       creator: Person {
         id: data.timmy_local_user_view.person.id,
@@ -915,6 +914,10 @@ mod tests {
         private_key: data.timmy_local_user_view.person.private_key.clone(),
         public_key: data.timmy_local_user_view.person.public_key.clone(),
         last_refreshed_at: data.timmy_local_user_view.person.last_refreshed_at,
+        post_count: 1,
+        post_score: 0,
+        comment_count: 5,
+        comment_score: 1,
       },
       post: Post {
         id: data.inserted_post.id,
@@ -941,6 +944,19 @@ mod tests {
         featured_local: false,
         url_content_type: None,
         scheduled_publish_time: None,
+        comments: 6,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        newest_comment_time_necro: data.inserted_comment_1.published,
+        newest_comment_time: data.inserted_comment_5.published,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        scaled_rank: RANK_DEFAULT,
+        instance_id: data.inserted_instance.id,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       community: Community {
         id: data.inserted_community.id,
@@ -969,20 +985,20 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: data.inserted_community.random_number,
-      },
-      counts: CommentAggregates {
-        comment_id: data.inserted_comment_0.id,
-        score: 1,
-        upvotes: 1,
-        downvotes: 0,
-        published: agg.published,
-        child_count: 5,
+        subscribers: 0,
+        posts: 1,
+        comments: 6,
+        users_active_day: 0,
+        users_active_week: 0,
+        users_active_month: 0,
+        users_active_half_year: 0,
         hot_rank: RANK_DEFAULT,
-        controversy_rank: 0.0,
+        subscribers_local: 0,
         report_count: 0,
         unresolved_report_count: 0,
+        interactions_month: 0,
       },
-    })
+    }
   }
 
   #[tokio::test]

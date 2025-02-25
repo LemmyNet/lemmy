@@ -24,7 +24,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
     image_details,
@@ -35,7 +34,6 @@ use lemmy_db_schema::{
     person_saved_combined,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     tag,
   },
@@ -116,11 +114,6 @@ impl PersonContentCombinedViewInternal {
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
-    let comment_aggregates_join = comment_aggregates::table
-      .on(person_content_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
@@ -135,8 +128,6 @@ impl PersonContentCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .inner_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -211,11 +202,6 @@ impl PersonContentCombinedViewInternal {
         .and(comment_actions::person_id.eq(my_person_id)),
     );
 
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
-    let comment_aggregates_join = comment_aggregates::table
-      .on(person_saved_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
@@ -230,8 +216,6 @@ impl PersonContentCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .inner_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -310,10 +294,9 @@ impl PersonContentCombinedQuery {
       .filter(item_creator.eq(self.creator_id))
       .select((
         // Post-specific
-        post_aggregates::all_columns,
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
@@ -323,7 +306,6 @@ impl PersonContentCombinedQuery {
         post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Shared
@@ -396,10 +378,9 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment), Some(counts)) = (v.comment, v.comment_counts) {
+    if let Some(comment) = v.comment {
       Some(PersonContentCombinedView::Comment(CommentView {
         comment,
-        counts,
         post: v.post,
         community: v.community,
         creator: v.item_creator,
@@ -418,7 +399,6 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         post: v.post,
         community: v.community,
         unread_comments: v.post_unread_comments,
-        counts: v.post_counts,
         creator: v.item_creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
         creator_is_moderator: v.item_creator_is_moderator,

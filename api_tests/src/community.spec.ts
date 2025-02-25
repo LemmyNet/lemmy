@@ -396,7 +396,7 @@ test.skip("Community follower count is federated", async () => {
   ).community;
 
   // Make sure there is 1 subscriber
-  expect(followed?.counts.subscribers).toBe(1);
+  expect(followed?.community.subscribers).toBe(1);
 
   // Follow the community from gamma
   resolved = await resolveCommunity(gamma, communityActorId);
@@ -413,7 +413,7 @@ test.skip("Community follower count is federated", async () => {
   ).community;
 
   // Make sure there are 2 subscribers
-  expect(followed?.counts?.subscribers).toBe(2);
+  expect(followed?.community?.subscribers).toBe(2);
 
   // Follow the community from delta
   resolved = await resolveCommunity(delta, communityActorId);
@@ -430,13 +430,13 @@ test.skip("Community follower count is federated", async () => {
   ).community;
 
   // Make sure there are 3 subscribers
-  expect(followed?.counts?.subscribers).toBe(3);
+  expect(followed?.community?.subscribers).toBe(3);
 });
 
 test("Dont receive community activities after unsubscribe", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
-  expect(communityRes.community_view.counts.subscribers).toBe(1);
+  expect(communityRes.community_view.community.subscribers).toBe(1);
 
   let betaCommunity = (
     await resolveCommunity(beta, communityRes.community_view.community.ap_id)
@@ -451,7 +451,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     alpha,
     communityRes.community_view.community.id,
   );
-  expect(communityRes1.community_view.counts.subscribers).toBe(2);
+  expect(communityRes1.community_view.community.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
   var allow_instance_params: AdminAllowInstanceParams = {
@@ -470,7 +470,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     alpha,
     communityRes.community_view.community.id,
   );
-  expect(communityRes2.community_view.counts.subscribers).toBe(2);
+  expect(communityRes2.community_view.community.subscribers).toBe(2);
 
   // unblock alpha
   allow_instance_params.allow = true;
@@ -492,7 +492,7 @@ test("Dont receive community activities after unsubscribe", async () => {
 test("Fetch community, includes posts", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
-  expect(communityRes.community_view.counts.subscribers).toBe(1);
+  expect(communityRes.community_view.community.subscribers).toBe(1);
 
   let postRes = await createPost(
     alpha,
