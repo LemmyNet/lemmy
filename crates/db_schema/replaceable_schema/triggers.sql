@@ -300,11 +300,6 @@ END;
 
 $$);
 
-CREATE TRIGGER comment_count
-    AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.update_comment_count_from_post ();
-
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
