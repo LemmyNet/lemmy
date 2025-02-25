@@ -849,7 +849,7 @@ BEGIN
     SET
         score = NEW.users_active_month
     WHERE
-        community_id = NEW.community_id;
+        community_id = NEW.id;
     RETURN NULL;
 END
 $$;
