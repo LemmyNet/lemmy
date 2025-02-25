@@ -387,14 +387,13 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
+      let name_filter = post::name.ilike(searcher.clone());
+      let body_filter = post::body.ilike(searcher.clone());
+      let alt_text_filter = post::alt_text.ilike(searcher.clone());
       query = if options.title_only.unwrap_or_default() {
-        query.filter(post::name.ilike(searcher))
+        query.filter(name_filter)
       } else {
-        query.filter(
-          post::name
-            .ilike(searcher.clone())
-            .or(post::body.ilike(searcher)),
-        )
+        query.filter(name_filter.or(body_filter).or(alt_text_filter))
       }
       .filter(not(post::removed.or(post::deleted)));
     }
