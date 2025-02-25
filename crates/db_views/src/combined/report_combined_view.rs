@@ -1309,7 +1309,7 @@ mod tests {
     };
     CommentReport::report(pool, &timmy_report_form).await?;
 
-    let agg = CommentAggregates::read(pool, data.comment.id).await?;
+    let agg = Comment::read(pool, data.comment.id).await?;
     assert_eq!(agg.report_count, 2);
 
     // Do a batch read of timmys reports, it should only show his own
