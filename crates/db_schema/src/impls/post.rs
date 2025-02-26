@@ -182,7 +182,10 @@ impl Post {
       .optional()
   }
 
-  pub async fn delete_from_apub_id(pool: &mut DbPool<'_>, object_id: Url) -> Result<Vec<Self>, Error> {
+  pub async fn delete_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: Url,
+  ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
 
