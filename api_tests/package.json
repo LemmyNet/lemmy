@@ -22,8 +22,8 @@
     "api-test-tags": "jest -i tags.spec.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
     "@types/jest": "^29.5.12",
-    "@types/joi": "^17.2.3",
     "@types/node": "^22.13.1",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
     "@typescript-eslint/parser": "^8.24.0",
