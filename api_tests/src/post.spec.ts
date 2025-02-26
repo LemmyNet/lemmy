@@ -731,11 +731,12 @@ test("Report a post", async () => {
   expect(betaReport.reason).toBe(gammaReport.reason);
   await unfollowRemotes(alpha);
 
-  // Report was federated to poster's instance
+  // Report was federated to poster's instance. Alpha is not a community mod and doesnt see
+  // the report by default, so we need to pass show_mod_reports = true.
   let alphaReport = (
     (await waitUntil(
       () =>
-        listReports(alpha).then(p =>
+        listReports(alpha, true).then(p =>
           p.reports.find(r => {
             return checkPostReportName(r, gammaReport);
           }),

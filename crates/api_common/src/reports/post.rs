@@ -11,6 +11,8 @@ use ts_rs::TS;
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub violates_instance_rules: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

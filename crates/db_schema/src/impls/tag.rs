@@ -22,7 +22,7 @@ impl Tag {
       .await
   }
 }
-#[async_trait]
+
 impl Crud for Tag {
   type InsertForm = TagInsertForm;
 

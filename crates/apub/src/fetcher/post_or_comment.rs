@@ -82,7 +82,6 @@ impl Object for PostOrComment {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for PostOrComment {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let cid = match self {

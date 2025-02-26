@@ -48,4 +48,4 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url = { workspace = true }
-test-context = "0.3.0"
+test-context = "0.4.1"

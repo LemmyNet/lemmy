@@ -30,7 +30,6 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[async_trait]
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
@@ -155,7 +154,6 @@ impl PersonInsertForm {
   }
 }
 
-#[async_trait]
 impl ApubActor for Person {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
@@ -204,7 +202,6 @@ impl ApubActor for Person {
   }
 }
 
-#[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {

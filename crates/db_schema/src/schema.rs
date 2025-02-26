@@ -179,6 +179,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        violates_instance_rules -> Bool,
     }
 }
 
@@ -917,6 +918,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        violates_instance_rules -> Bool,
     }
 }
 
@@ -948,6 +950,7 @@ diesel::table! {
         #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
+        removed -> Bool,
     }
 }
 

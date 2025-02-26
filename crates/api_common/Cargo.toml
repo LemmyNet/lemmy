@@ -19,7 +19,6 @@ workspace = true
 [features]
 full = [
   "tracing",
-  "rosetta-i18n",
   "lemmy_db_views/full",
   "lemmy_utils/full",
   "activitypub_federation",
@@ -51,7 +50,6 @@ chrono = { workspace = true }
 tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
-rosetta-i18n = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
@@ -64,12 +62,12 @@ actix-web = { workspace = true, optional = true }
 urlencoding = { workspace = true }
 mime = { version = "0.3.17", optional = true }
 mime_guess = "2.0.5"
-infer = "0.16.0"
+infer = "0.19.0"
 webpage = { version = "2.0", default-features = false, optional = true, features = [
   "serde",
 ] }
 encoding_rs = { version = "0.8.35", optional = true }
-jsonwebtoken = { version = "9.3.0", optional = true }
+jsonwebtoken = { version = "9.3.1", optional = true }
 actix-web-httpauth = { version = "0.8.2", optional = true }
 webmention = { version = "0.6.0", optional = true }
 

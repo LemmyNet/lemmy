@@ -11,14 +11,13 @@ use lemmy_api_common::{
     check_user_valid,
     generate_inbox_url,
     honeypot_check,
-    local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
-    send_verification_email,
+    send_verification_email_if_required,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
@@ -26,7 +25,6 @@ use lemmy_db_schema::{
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
-    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::OAuthProvider,
     person::{Person, PersonInsertForm},
@@ -102,7 +100,7 @@ pub async fn register(
     .await?;
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
@@ -328,7 +326,7 @@ pub async fn authenticate_with_oauth(
         .as_ref()
         .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
-      let slur_regex = local_site_to_slur_regex(&local_site);
+      let slur_regex = slur_regex(&context).await?;
       check_slurs(username, &slur_regex)?;
       check_slurs_opt(&data.answer, &slur_regex)?;
 
@@ -474,37 +472,6 @@ async fn create_local_user(
     LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
-}
-
-async fn send_verification_email_if_required(
-  context: &Data<LemmyContext>,
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-) -> LemmyResult<bool> {
-  let mut sent = false;
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    let local_user_view = LocalUserView {
-      local_user: local_user.clone(),
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-      person: person.clone(),
-      counts: PersonAggregates::default(),
-    };
-
-    send_verification_email(
-      &local_user_view,
-      &local_user
-        .email
-        .clone()
-        .ok_or(LemmyErrorType::EmailRequired)?,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
-
-    sent = true;
-  }
-  Ok(sent)
 }
 
 fn validate_registration_answer(

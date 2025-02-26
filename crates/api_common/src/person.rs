@@ -535,3 +535,11 @@ pub struct ListMediaResponse {
 pub struct ListLoginsResponse {
   pub logins: Vec<LoginToken>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a request to resend your verification email.
+pub struct ResendVerificationEmail {
+  pub email: SensitiveString,
+}

@@ -10,8 +10,8 @@ use lemmy_api_common::{
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -61,7 +61,7 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
@@ -192,11 +192,11 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   // Check that the slur regex compiles, and return the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &edit_site
+    edit_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  );
+  )?;
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...

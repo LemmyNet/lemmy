@@ -6,7 +6,6 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  local_site_data_cached,
   objects::community::ApubCommunity,
   protocol::{
     objects::{Endpoints, LanguageTag},
@@ -26,7 +25,7 @@ use activitypub_federation::{
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use lemmy_api_common::{context::LemmyContext, utils::slur_regex};
 use lemmy_utils::{
   error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},
@@ -89,12 +88,11 @@ impl Group {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
-    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
+    let slur_regex = slur_regex(context).await?;
 
-    check_slurs(&self.preferred_username, slur_regex)?;
-    check_slurs_opt(&self.name, slur_regex)?;
-    check_slurs_opt(&self.summary, slur_regex)?;
+    check_slurs(&self.preferred_username, &slur_regex)?;
+    check_slurs_opt(&self.name, &slur_regex)?;
+    check_slurs_opt(&self.summary, &slur_regex)?;
     Ok(())
   }
 }

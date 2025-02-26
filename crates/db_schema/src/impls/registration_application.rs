@@ -12,7 +12,6 @@ use crate::{
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for RegistrationApplication {
   type InsertForm = RegistrationApplicationInsertForm;
   type UpdateForm = RegistrationApplicationUpdateForm;

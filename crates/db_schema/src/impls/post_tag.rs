@@ -24,7 +24,6 @@ impl PostTag {
   }
 }
 
-#[async_trait::async_trait]
 impl Crud for PostTag {
   type InsertForm = PostTagInsertForm;
   type UpdateForm = PostTagForm;

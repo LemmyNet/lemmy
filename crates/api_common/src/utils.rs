@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -37,6 +38,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostLike},
+    private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -59,7 +61,7 @@ use lemmy_db_views::{
   },
 };
 use lemmy_utils::{
-  email::{send_email, translations::Lang},
+  email::send_email,
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
   settings::{
@@ -69,15 +71,14 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
-    slurs::{build_slur_regex, remove_slurs},
-    validation::clean_urls_in_text,
+    slurs::remove_slurs,
+    validation::{build_and_check_regex, clean_urls_in_text},
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
-use rosetta_i18n::{Language, LanguageId};
 use std::sync::LazyLock;
 use tracing::{warn, Instrument};
 use url::{ParseError, Url};
@@ -445,7 +446,7 @@ pub async fn send_password_reset_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = get_interface_language(user);
+  let lang = &user.local_user.interface_i18n_language();
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
@@ -461,13 +462,15 @@ pub async fn send_password_reset_email(
 
 /// Send a verification email
 pub async fn send_verification_email(
-  user: &LocalUserView,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
   new_email: &str,
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
   let form = EmailVerificationForm {
-    local_user_id: user.local_user.id,
+    local_user_id: local_user.id,
     email: new_email.to_string(),
     verification_token: uuid::Uuid::new_v4().to_string(),
   };
@@ -478,29 +481,45 @@ pub async fn send_verification_email(
   );
   EmailVerification::create(pool, &form).await?;
 
-  let lang = get_interface_language(user);
+  let lang = local_user.interface_i18n_language();
   let subject = lang.verify_email_subject(&settings.hostname);
-  let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
 
-  Ok(())
+  // If an application is required, use a translation that includes that warning.
+  let body = if local_site.registration_mode == RegistrationMode::RequireApplication {
+    lang.verify_email_body_with_application(&settings.hostname, &person.name, verify_link)
+  } else {
+    lang.verify_email_body(&settings.hostname, &person.name, verify_link)
+  };
+
+  send_email(&subject, new_email, &person.name, &body, settings).await
 }
 
-pub fn get_interface_language(user: &LocalUserView) -> Lang {
-  lang_str_to_lang(&user.local_user.interface_language)
-}
+/// Returns true if email was sent.
+pub async fn send_verification_email_if_required(
+  context: &LemmyContext,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
+) -> LemmyResult<bool> {
+  let email = &local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
 
-pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
-  lang_str_to_lang(&user.local_user.interface_language)
-}
-
-#[allow(clippy::expect_used)]
-fn lang_str_to_lang(lang: &str) -> Lang {
-  let lang_id = LanguageId::new(lang);
-  Lang::from_language_id(&lang_id).unwrap_or_else(|| {
-    let en = LanguageId::new("en");
-    Lang::from_language_id(&en).expect("default language")
-  })
+  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+    send_verification_email(
+      local_site,
+      local_user,
+      person,
+      email,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
+    Ok(true)
+  } else {
+    Ok(false)
+  }
 }
 
 pub fn local_site_rate_limit_to_rate_limit_config(
@@ -521,15 +540,22 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
-  build_slur_regex(local_site.slur_filter_regex.as_deref())
-}
-
-pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
-  local_site
-    .as_ref()
-    .map(local_site_to_slur_regex)
-    .unwrap_or(None)
+pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
+  static CACHE: CacheLock<Regex> = LazyLock::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(CACHE_DURATION_FEDERATION)
+      .build()
+  });
+  Ok(
+    CACHE
+      .try_get_with((), async {
+        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
+      })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
+  )
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
@@ -567,7 +593,7 @@ pub async fn send_application_approved_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = get_interface_language(user);
+  let lang = &user.local_user.interface_i18n_language();
   let subject = lang.registration_approved_subject(&user.person.ap_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings).await
@@ -593,7 +619,7 @@ pub async fn send_new_applicant_email_to_admins(
       .email
       .clone()
       .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = get_interface_language_from_settings(admin);
+    let lang = &admin.local_user.interface_i18n_language();
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
@@ -615,7 +641,7 @@ pub async fn send_new_report_email_to_admins(
 
   for admin in &admins {
     if let Some(email) = &admin.local_user.email {
-      let lang = get_interface_language_from_settings(admin);
+      let lang = &admin.local_user.interface_i18n_language();
       let subject =
         lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
       let body = lang.new_report_body(reports_link);
@@ -806,6 +832,9 @@ pub async fn remove_or_restore_user_data(
     reason,
   )
   .await?;
+
+  // Private messages
+  PrivateMessage::update_removed_for_creator(pool, banned_person_id, removed).await?;
 
   Ok(())
 }
@@ -1015,7 +1044,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1047,7 +1076,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
