@@ -45,7 +45,9 @@ impl Crud for PostTag {
     _id: Self::IdType,
     _form: &Self::UpdateForm,
   ) -> Result<Self, diesel::result::Error> {
-    unimplemented!()
+    Err(diesel::result::Error::QueryBuilderError(
+      "PostTag does not support (create+delete only)".into(),
+    ))
   }
 }
 

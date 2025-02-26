@@ -4,6 +4,7 @@ use lemmy_api_common::{
   community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   context::LemmyContext,
   utils::check_community_mod_action,
+  LemmyErrorType,
 };
 use lemmy_db_schema::{
   source::{
@@ -22,6 +23,10 @@ pub async fn create_community_tag(
 ) -> LemmyResult<Json<Tag>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
+  let length = data.0.name.chars().count();
+  if !(3..=100).contains(&length) {
+    return Err(LemmyErrorType::InvalidBodyField.into());
+  }
   // Verify that only mods can create tags
   check_community_mod_action(
     &local_user_view.person,
