@@ -5,4 +5,5 @@ pub mod follow;
 pub mod hide;
 pub mod pending_follows;
 pub mod random;
+pub mod tag;
 pub mod transfer;

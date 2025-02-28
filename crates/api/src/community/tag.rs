@@ -1,0 +1,112 @@
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
+use lemmy_api_common::{
+  community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
+  context::LemmyContext,
+  utils::check_community_mod_action,
+  LemmyErrorType,
+};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    tag::{Tag, TagInsertForm, TagUpdateForm},
+  },
+  traits::Crud,
+};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::error::LemmyResult;
+
+pub async fn create_community_tag(
+  data: Json<CreateCommunityTag>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<Tag>> {
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
+
+  let length = data.0.name.chars().count();
+  if !(3..=100).contains(&length) {
+    return Err(LemmyErrorType::InvalidBodyField.into());
+  }
+  // Verify that only mods can create tags
+  check_community_mod_action(
+    &local_user_view.person,
+    &community,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
+
+  // Create the tag
+  let tag_form = TagInsertForm {
+    name: data.name.clone(),
+    community_id: data.community_id,
+    ap_id: community.build_tag_ap_id(&data.name)?,
+    published: None, // defaults to now
+    updated: None,
+    deleted: false,
+  };
+
+  let tag = Tag::create(&mut context.pool(), &tag_form).await?;
+
+  Ok(Json(tag))
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn update_community_tag(
+  data: Json<UpdateCommunityTag>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<Tag>> {
+  let tag = Tag::read(&mut context.pool(), data.tag_id).await?;
+  let community = Community::read(&mut context.pool(), tag.community_id).await?;
+
+  // Verify that only mods can update tags
+  check_community_mod_action(
+    &local_user_view.person,
+    &community,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
+
+  // Update the tag
+  let tag_form = TagUpdateForm {
+    name: Some(data.name.clone()),
+    updated: Some(Some(chrono::Utc::now())),
+    ..Default::default()
+  };
+
+  let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
+
+  Ok(Json(tag))
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn delete_community_tag(
+  data: Json<DeleteCommunityTag>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<Tag>> {
+  let tag = Tag::read(&mut context.pool(), data.tag_id).await?;
+  let community = Community::read(&mut context.pool(), tag.community_id).await?;
+
+  // Verify that only mods can delete tags
+  check_community_mod_action(
+    &local_user_view.person,
+    &community,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
+
+  // Soft delete the tag
+  let tag_form = TagUpdateForm {
+    updated: Some(Some(chrono::Utc::now())),
+    deleted: Some(true),
+    ..Default::default()
+  };
+
+  let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
+
+  Ok(Json(tag))
+}

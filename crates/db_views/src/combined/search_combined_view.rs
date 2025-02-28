@@ -507,6 +507,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         blocked: v.community_blocked,
         banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
+        post_tags: v.post_tags,
       }))
     } else if let (Some(person), Some(counts)) = (v.item_creator, v.item_creator_counts) {
       Some(SearchCombinedView::Person(PersonView {

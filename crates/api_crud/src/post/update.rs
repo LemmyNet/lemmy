@@ -8,6 +8,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
     get_url_blocklist,
@@ -26,7 +27,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views::structs::{CommunityView, LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -88,6 +89,9 @@ pub async fn update_post(
 
   let post_id = data.post_id;
   let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  // post view does not include communityview.post_tags
+  let community_view =
+    CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -95,6 +99,17 @@ pub async fn update_post(
     &mut context.pool(),
   )
   .await?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(
+      &context,
+      &orig_post.post,
+      &community_view,
+      tags,
+      &local_user_view,
+    )
+    .await?;
+  }
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
@@ -161,7 +176,7 @@ pub async fn update_post(
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
       let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
-      send_webmention(updated_post.clone(), community);
+      send_webmention(updated_post.clone(), &community);
       generate_post_link_metadata(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),
