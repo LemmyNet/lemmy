@@ -71,8 +71,7 @@ pub struct CreateCommunity {
   /// Whether to restrict posting only to moderators.
   #[cfg_attr(feature = "full", ts(optional))]
   pub posting_restricted_to_mods: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub discussion_languages: Option<Vec<LanguageId>>,
+  pub discussion_languages: Vec<LanguageId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub visibility: Option<CommunityVisibility>,
 }
@@ -187,8 +186,7 @@ pub struct EditCommunity {
   /// Whether to restrict posting only to moderators.
   #[cfg_attr(feature = "full", ts(optional))]
   pub posting_restricted_to_mods: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub discussion_languages: Option<Vec<LanguageId>>,
+  pub discussion_languages: Vec<LanguageId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub visibility: Option<CommunityVisibility>,
 }

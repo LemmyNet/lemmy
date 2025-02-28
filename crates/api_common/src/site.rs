@@ -202,8 +202,7 @@ pub struct CreateSite {
   pub application_email_admins: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub discussion_languages: Option<Vec<LanguageId>>,
+  pub discussion_languages: Vec<LanguageId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -310,8 +309,7 @@ pub struct EditSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
   /// A list of allowed discussion languages.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub discussion_languages: Option<Vec<LanguageId>>,
+  pub discussion_languages: Vec<LanguageId>,
   /// A regex string of items to filter.
   #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
@@ -358,8 +356,7 @@ pub struct EditSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
   /// A list of blocked URLs
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub blocked_urls: Option<Vec<String>>,
+  pub blocked_urls: Vec<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
@@ -417,10 +414,8 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
+  pub oauth_providers: Vec<PublicOAuthProvider>,
+  pub admin_oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.
