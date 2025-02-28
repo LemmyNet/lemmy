@@ -39,6 +39,7 @@ import {
   listReports,
   getMyUser,
   listInbox,
+  getModlog,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -651,8 +652,13 @@ test("Enforce community ban for federated user", async () => {
   );
   expect(unBanAlpha.banned).toBe(false);
 
-  // Need to re-follow the community
-  await followBeta(alpha);
+  // Check that unban was federated to alpha
+  await waitUntil(
+    () => getModlog(alpha),
+    m =>
+      m.modlog[0].type_ == "ModBanFromCommunity" &&
+      m.modlog[0].mod_ban_from_community.banned == false,
+  );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
   expect(postRes3.post_view.post).toBeDefined();
