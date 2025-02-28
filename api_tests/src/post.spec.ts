@@ -655,13 +655,9 @@ test("Enforce community ban for federated user", async () => {
   // Check that unban was federated to alpha
   await waitUntil(
     () => getModlog(alpha),
-    m => {
-      console.log(JSON.stringify(m.modlog[0], null, 4));
-      return (
-        m.modlog[0].type_ == "ModBanFromCommunity" &&
-        m.modlog[0].mod_ban_from_community.banned == false
-      );
-    },
+    m =>
+      m.modlog[0].type_ == "ModBanFromCommunity" &&
+      m.modlog[0].mod_ban_from_community.banned == false,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
