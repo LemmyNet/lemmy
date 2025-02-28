@@ -57,15 +57,16 @@ pub async fn update_community(
   .await?;
 
   let community_id = data.community_id;
-  let languages = data.discussion_languages.clone();
-  let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-  // check that community languages are a subset of site languages
-  // https://stackoverflow.com/a/64227550
-  let is_subset = languages.iter().all(|item| site_languages.contains(item));
-  if !is_subset {
-    Err(LemmyErrorType::LanguageNotAllowed)?
+  if let Some(languages) = data.discussion_languages.clone() {
+    let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+    // check that community languages are a subset of site languages
+    // https://stackoverflow.com/a/64227550
+    let is_subset = languages.iter().all(|item| site_languages.contains(item));
+    if !is_subset {
+      Err(LemmyErrorType::LanguageNotAllowed)?
+    }
+    CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }
-  CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
 
   let community_form = CommunityUpdateForm {
     title: data.title.clone(),

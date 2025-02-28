@@ -157,7 +157,8 @@ pub struct SaveUserSettings {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_read_posts: Option<bool>,
   /// A list of languages you are able to see discussion in.
-  pub discussion_languages: Vec<LanguageId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub discussion_languages: Option<Vec<LanguageId>>,
   /// Open links in a new tab
   #[cfg_attr(feature = "full", ts(optional))]
   pub open_links_in_new_tab: Option<bool>,

@@ -135,15 +135,16 @@ pub async fn create_community(
 
   // Update the discussion_languages if that's provided
   let community_id = inserted_community.id;
-  let languages = data.discussion_languages.clone();
-  let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-  // check that community languages are a subset of site languages
-  // https://stackoverflow.com/a/64227550
-  let is_subset = languages.iter().all(|item| site_languages.contains(item));
-  if !is_subset {
-    Err(LemmyErrorType::LanguageNotAllowed)?
+  if let Some(languages) = data.discussion_languages.clone() {
+    let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+    // check that community languages are a subset of site languages
+    // https://stackoverflow.com/a/64227550
+    let is_subset = languages.iter().all(|item| site_languages.contains(item));
+    if !is_subset {
+      Err(LemmyErrorType::LanguageNotAllowed)?
+    }
+    CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }
-  CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
 
   build_community_response(&context, local_user_view, community_id).await
 }

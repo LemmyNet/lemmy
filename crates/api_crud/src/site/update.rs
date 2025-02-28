@@ -57,8 +57,9 @@ pub async fn update_site(
 
   validate_update_payload(&local_site, &data)?;
 
-  let discussion_languages = data.discussion_languages.clone();
-  SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
+  if let Some(discussion_languages) = data.discussion_languages.clone() {
+    SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
+  }
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
@@ -140,11 +141,12 @@ pub async fn update_site(
     .await
     .ok();
 
-  let url_blocklist = data.blocked_urls.clone();
-  // If this validation changes it must be synced with
-  // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
-  let parsed_urls = check_urls_are_valid(&url_blocklist)?;
-  LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
+  if let Some(url_blocklist) = data.blocked_urls.clone() {
+    // If this validation changes it must be synced with
+    // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
+    let parsed_urls = check_urls_are_valid(&url_blocklist)?;
+    LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
+  }
 
   // TODO can't think of a better way to do this.
   // If the server suddenly requires email verification, or required applications, no old users

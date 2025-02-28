@@ -36,7 +36,8 @@ pub struct CreatePost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  pub tags: Vec<TagId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
@@ -175,7 +176,8 @@ pub struct EditPost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  pub tags: Vec<TagId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,

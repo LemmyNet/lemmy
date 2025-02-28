@@ -202,7 +202,8 @@ pub struct CreateSite {
   pub application_email_admins: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
-  pub discussion_languages: Vec<LanguageId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub discussion_languages: Option<Vec<LanguageId>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -309,7 +310,8 @@ pub struct EditSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
   /// A list of allowed discussion languages.
-  pub discussion_languages: Vec<LanguageId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub discussion_languages: Option<Vec<LanguageId>>,
   /// A regex string of items to filter.
   #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
@@ -356,7 +358,8 @@ pub struct EditSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
   /// A list of blocked URLs
-  pub blocked_urls: Vec<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub blocked_urls: Option<Vec<String>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.

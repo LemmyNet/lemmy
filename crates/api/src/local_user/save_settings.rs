@@ -105,8 +105,9 @@ pub async fn save_user_settings(
     .await
     .ok();
 
-  let discussion_languages = data.discussion_languages.clone();
-  LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
+  if let Some(discussion_languages) = data.discussion_languages.clone() {
+    LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
+  }
 
   let local_user_form = LocalUserUpdateForm {
     email,
