@@ -2553,7 +2553,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2618,7 +2618,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2641,7 +2641,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2677,7 +2677,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2692,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2730,7 +2730,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2755,7 +2755,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2785,7 +2785,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2843,7 +2843,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "actix-web",
  "anyhow",
