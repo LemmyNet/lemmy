@@ -418,14 +418,6 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
     END IF;
-    -- Set community_id
-    NEW.community_id = (
-        SELECT
-            post.community_id
-        FROM
-            post
-        WHERE
-            post.id = NEW.post_id);
     RETURN NEW;
 END
 $$;
