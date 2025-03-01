@@ -5572,6 +5572,16 @@ checksum = "ced87ca4be083373936a67f8de945faa23b6b42384bd5b64434850802c6dccd0"
 dependencies = [
  "getrandom 0.3.1",
  "serde",
+ "uuid-rng-internal",
+]
+
+[[package]]
+name = "uuid-rng-internal"
+version = "1.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0948aea5c0a99e0d9cc5d76b4a7fa8d7b492f4ead191e5200d7b81dad3dd1acf"
+dependencies = [
+ "getrandom 0.3.1",
 ]
 
 [[package]]
