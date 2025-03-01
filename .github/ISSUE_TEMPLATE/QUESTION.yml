@@ -6,7 +6,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have a question about Lemmy?
+        Have a support request or discussion?
+        Use https://lemmy.ml/c/lemmy_support
+
+        Have a question about how Lemmy works?
         Please check the docs first: https://join-lemmy.org/docs/en/index.html
   - type: textarea
     id: question
