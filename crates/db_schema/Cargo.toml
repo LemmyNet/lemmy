@@ -73,7 +73,7 @@ tokio = { workspace = true, optional = true }
 tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
-uuid = { workspace = true, features = ["rng-getrandom"] }
+uuid = { workspace = true, features = ["rng-rand"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 derive-new.workspace = true
