@@ -435,9 +435,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.95"
+version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
+checksum = "6b964d184e89d9b6b67dd2715bc8e74cf3107fb2b529990c90cf517326150bf4"
 dependencies = [
  "backtrace",
 ]
@@ -786,9 +786,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.39"
+version = "0.4.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
+checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -796,7 +796,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.52.6",
+ "windows-link",
 ]
 
 [[package]]
@@ -2553,7 +2553,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2618,7 +2618,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2641,7 +2641,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2677,7 +2677,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -2692,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2730,7 +2730,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2755,7 +2755,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2785,7 +2785,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2843,7 +2843,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "1.0.0-alpha.0"
+version = "1.0.0-alpha.2"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2925,7 +2925,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -5875,6 +5875,12 @@ dependencies = [
  "quote",
  "syn 2.0.96",
 ]
+
+[[package]]
+name = "windows-link"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dccfd733ce2b1753b03b6d3c65edf020262ea35e20ccdf3e288043e6dd620e3"
 
 [[package]]
 name = "windows-registry"
