@@ -234,7 +234,7 @@ impl Object for ApubPost {
     if let Err(e) = block_for_nsfw {
       let url = url.clone().map(std::convert::Into::into);
       let thumbnail_url = page.image.map(|i| i.url.into());
-      purge_post_images(url, thumbnail_url, context).await?;
+      purge_post_images(url, thumbnail_url, context).await;
       Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
       Err(e)?
     }

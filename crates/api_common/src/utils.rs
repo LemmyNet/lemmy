@@ -686,15 +686,13 @@ pub async fn purge_post_images(
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
   context: &LemmyContext,
-) -> LemmyResult<()> {
+) {
   if let Some(url) = url {
     purge_image_from_pictrs(&url, context).await.ok();
   }
   if let Some(thumbnail_url) = thumbnail_url {
     purge_image_from_pictrs(&thumbnail_url, context).await.ok();
   }
-
-  Ok(())
 }
 
 pub async fn purge_image_posts_for_person(
@@ -704,7 +702,7 @@ pub async fn purge_image_posts_for_person(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
   for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await?;
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
@@ -736,7 +734,7 @@ pub async fn purge_image_posts_for_community(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
   for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await?;
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;
