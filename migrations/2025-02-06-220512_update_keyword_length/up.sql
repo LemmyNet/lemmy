@@ -1,3 +1,3 @@
 ALTER TABLE post_keyword_block
-    ALTER COLUMN keyword TYPE varchar(20);
+    ALTER COLUMN keyword TYPE varchar(50);
 
