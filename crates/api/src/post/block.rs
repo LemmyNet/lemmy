@@ -18,17 +18,20 @@ pub async fn user_block_keyword_for_posts(
     person_id,
     keyword: data.keyword.clone(),
   };
+  let blocked_keywords = PostKeywordBlock::for_person(&mut context.pool(), person_id).await?;
   if data.block {
-    //Get number of post keyword block for that user
-    if PostKeywordBlock::for_person(&mut context.pool(), person_id)
-      .await?
-      .len()
-      >= 15
-    {
+    //Get already blocked keywords and check if the limit is reached and also check if the keyword
+    // is already blocked
+    if blocked_keywords.iter().any(|k| k.keyword == data.keyword) {
+      Err(LemmyErrorType::BlockKeywordAlreadyBlocked)?;
+    } else if blocked_keywords.len() >= 15 {
       Err(LemmyErrorType::BlockKeywordLimitReached)?;
     }
     PostKeywordBlock::block_keyword(&mut context.pool(), &post_keyword_block_form).await?;
   } else {
+    if !blocked_keywords.iter().any(|k| k.keyword == data.keyword) {
+      Err(LemmyErrorType::BlockKeywordNotExisting)?;
+    }
     PostKeywordBlock::unblock_keyword(&mut context.pool(), &post_keyword_block_form).await?;
   }
   Ok(Json(SuccessResponse::default()))
