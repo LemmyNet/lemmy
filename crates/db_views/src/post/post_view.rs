@@ -1,7 +1,7 @@
 use crate::structs::{PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{any, exists, not, IntervalDsl},
+  dsl::{exists, not, sql, IntervalDsl},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
@@ -13,6 +13,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   TextExpressionMethods,
+  sql_types::{Array, Text,Bool}
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -368,29 +369,27 @@ fn queries<'a>() -> Queries<
         ));
       }
       if let Some(person_id) = o.local_user.person_id() {
-        let mut blocked_keywords: Vec<String> = post_keyword_block::table
-          .filter(post_keyword_block::person_id.eq(person_id))
-          .select(post_keyword_block::keyword)
-          .load::<String>(&mut conn)
-          .await?;
-        blocked_keywords.iter_mut().for_each(|keyword| {
-          *keyword = format!("%{}%", keyword);
-        });
-        query = query.filter(
-          not(post::name.ilike(any(blocked_keywords.clone())))
+        let blocked_keywords: Vec<String> = post_keyword_block::table
+            .filter(post_keyword_block::person_id.eq(person_id))
+            .select(post_keyword_block::keyword)
+            .load::<String>(&mut conn)
+            .await?;
+        if !blocked_keywords.is_empty() {
+          let transformed_strings: Vec<String> = blocked_keywords.iter()
+            .map(|s| format!("%{}%", s))
+            .collect();
+          query = query.filter(
+            sql::<Bool>("NOT (post.name LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))")
+            .and(post::url.is_null().or(
+                    sql::<Bool>("NOT (post.url LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))"))
+                )
             .and(
-              post::url
-                .is_null()
-                .or(not(post::url.ilike(any(blocked_keywords.clone())))),
-            )
-            .and(
-              post::body
-                .is_null()
-                .or(not(post::body.ilike(any(blocked_keywords.clone())))),
-            ),
-        );
+                post::body.is_null().or(
+                    sql::<Bool>("NOT (post.body LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))"))
+                )
+              );
+        }
       }
-
       // Don't show blocked instances, communities or persons
       query = query.filter(community_actions::blocked.is_null());
       query = query.filter(instance_actions::blocked.is_null());
@@ -2383,17 +2382,15 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    //Print all posts body name and url
-    for post in &post_listings {
-      println!("Name: {}", post.post.name);
-      println!("Post body: {:?}", post.post.body);
-      println!("Post url: {:?}", post.post.url);
-    }
     // Should not have any of the posts
     assert!(!names(&post_listings).contains(&name_blocked.as_str()));
     assert!(!names(&post_listings).contains(&name_blocked2.as_str()));
     assert!(!names(&post_listings).contains(&name_not_blocked.as_str()));
     assert!(!names(&post_listings).contains(&name_not_blocked2.as_str()));
+
+    // Should contain not blocked posts
+    assert!(names(&post_listings).contains(&POST_BY_BOT));
+    assert!(names(&post_listings).contains(&POST));
     Ok(())
   }
 }
