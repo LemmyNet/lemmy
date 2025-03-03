@@ -659,6 +659,17 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
+  let is_nsfw = nsfw.unwrap_or_default();
+  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+
+  if nsfw_disallowed && is_nsfw {
+    Err(LemmyErrorType::NsfwNotAllowed)?
+  }
+
+  Ok(())
+}
+
 /// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
@@ -671,6 +682,19 @@ pub async fn read_site_for_actor(
   Ok(site)
 }
 
+pub async fn purge_post_images(
+  url: Option<DbUrl>,
+  thumbnail_url: Option<DbUrl>,
+  context: &LemmyContext,
+) {
+  if let Some(url) = url {
+    purge_image_from_pictrs(&url, context).await.ok();
+  }
+  if let Some(thumbnail_url) = thumbnail_url {
+    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+  }
+}
+
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
   context: &LemmyContext,
@@ -678,12 +702,7 @@ pub async fn purge_image_posts_for_person(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
   for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
@@ -715,12 +734,7 @@ pub async fn purge_image_posts_for_community(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
   for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;

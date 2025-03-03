@@ -36,7 +36,6 @@ codegen-units = 1 # Reduce parallel code generation.
 debug = 0
 
 [features]
-json-log = ["tracing-subscriber/json"]
 default = []
 
 [workspace]
@@ -107,7 +106,7 @@ actix-web = { version = "4.9.0", default-features = false, features = [
 ] }
 tracing = { version = "0.1.41", default-features = false }
 tracing-actix-web = { version = "0.7.15", default-features = false }
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 url = { version = "2.5.4", features = ["serde"] }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "blocking",
