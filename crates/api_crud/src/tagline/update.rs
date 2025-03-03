@@ -4,13 +4,10 @@ use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   tagline::{TaglineResponse, UpdateTagline},
-  utils::{get_url_blocklist, is_admin, local_site_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    tagline::{Tagline, TaglineUpdateForm},
-  },
+  source::tagline::{Tagline, TaglineUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -24,9 +21,7 @@ pub async fn update_tagline(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
 

@@ -2,7 +2,6 @@ use crate::{
   activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
-  local_site_data_cached,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
@@ -28,7 +27,13 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
-  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
+  utils::{
+    check_nsfw_allowed,
+    get_url_blocklist,
+    process_markdown_opt,
+    purge_post_images,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -164,9 +169,8 @@ impl Object for ApubPost {
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
-    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
-    check_slurs_opt(&page.name, slur_regex)?;
+    let slur_regex = slur_regex(context).await?;
+    check_slurs_opt(&page.name, &slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_visibility(&page.to, &page.cc, &community)?;
@@ -174,6 +178,7 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -214,8 +219,6 @@ impl Object for ApubPost {
     }
 
     let first_attachment = page.attachment.first();
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-
     let url = if let Some(attachment) = first_attachment.cloned() {
       Some(attachment.url())
     } else if page.kind == PageType::Video {
@@ -224,6 +227,17 @@ impl Object for ApubPost {
     } else {
       None
     };
+
+    // If NSFW is not allowed, reject NSFW posts and delete existing
+    // posts that get updated to be NSFW
+    let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
+    if let Err(e) = block_for_nsfw {
+      let url = url.clone().map(std::convert::Into::into);
+      let thumbnail_url = page.image.map(|i| i.url.into());
+      purge_post_images(url, thumbnail_url, context).await;
+      Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
+      Err(e)?
+    }
 
     let url_blocklist = get_url_blocklist(context).await?;
 
@@ -237,10 +251,10 @@ impl Object for ApubPost {
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-    let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
+    let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())

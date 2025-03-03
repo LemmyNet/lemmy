@@ -254,6 +254,8 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -388,6 +390,9 @@ pub struct EditSite {
   /// donations.
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  /// Block NSFW content being created
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -417,10 +422,8 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
+  pub oauth_providers: Vec<PublicOAuthProvider>,
+  pub admin_oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.

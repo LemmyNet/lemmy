@@ -11,10 +11,10 @@ use lemmy_api_common::{
     check_user_valid,
     generate_inbox_url,
     honeypot_check,
-    local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
     send_verification_email_if_required,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -100,7 +100,7 @@ pub async fn register(
     .await?;
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
@@ -326,7 +326,7 @@ pub async fn authenticate_with_oauth(
         .as_ref()
         .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
-      let slur_regex = local_site_to_slur_regex(&local_site);
+      let slur_regex = slur_regex(&context).await?;
       check_slurs(username, &slur_regex)?;
       check_slurs_opt(&data.answer, &slur_regex)?;
 

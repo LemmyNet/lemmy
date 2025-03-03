@@ -16,7 +16,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyResult;
 
-#[async_trait]
 impl Reportable for CommunityReport {
   type Form = CommunityReportForm;
   type IdType = CommunityReportId;

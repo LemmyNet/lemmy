@@ -1,4 +1,7 @@
-use crate::structs::{CommentSlimView, CommentView};
+use crate::{
+  structs::{CommentSlimView, CommentView},
+  utils::filter_blocked,
+};
 use diesel::{
   dsl::exists,
   result::Error,
@@ -233,11 +236,7 @@ impl CommentQuery<'_> {
         ),
       ));
 
-      // Don't show blocked communities or persons
-      query = query
-        .filter(instance_actions::blocked.is_null())
-        .filter(community_actions::blocked.is_null())
-        .filter(person_actions::blocked.is_null());
+      query = query.filter(filter_blocked());
     };
 
     if !o.local_user.show_nsfw(site) {

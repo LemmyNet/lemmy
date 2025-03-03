@@ -53,7 +53,6 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[async_trait]
 impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
@@ -86,7 +85,6 @@ impl Crud for Community {
   }
 }
 
-#[async_trait]
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   async fn join(
@@ -356,7 +354,6 @@ impl CommunityModerator {
   }
 }
 
-#[async_trait]
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   async fn ban(
@@ -458,7 +455,6 @@ impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerSt
   }
 }
 
-#[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<Self, Error> {
@@ -505,7 +501,6 @@ impl Followable for CommunityFollower {
   }
 }
 
-#[async_trait]
 impl ApubActor for Community {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,

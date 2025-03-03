@@ -16,6 +16,7 @@ use diesel_async::{
   RunQueryDsl,
 };
 use lemmy_utils::error::LemmyResult;
+use std::future::Future;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -27,7 +28,6 @@ pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
-#[async_trait]
 pub trait Crud: HasTable + Sized
 where
   Self::Table: FindDsl<Self::IdType>,
@@ -41,168 +41,212 @@ where
   type UpdateForm;
   type IdType: Send;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
+  fn create(
+    pool: &mut DbPool<'_>,
+    form: &Self::InsertForm,
+  ) -> impl Future<Output = Result<Self, Error>> + Send;
 
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
-    let query: Find<Self> = Self::table().find(id);
-    let conn = &mut *get_conn(pool).await?;
-    query.first(conn).await
+  fn read(
+    pool: &mut DbPool<'_>,
+    id: Self::IdType,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
+  where
+    Self: Send,
+  {
+    async {
+      let query: Find<Self> = Self::table().find(id);
+      let conn = &mut *get_conn(pool).await?;
+      query.first(conn).await
+    }
   }
 
   /// when you want to null out a column, you have to send Some(None)), since sending None means you
   /// just don't want to update that column.
-  async fn update(
+  fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error>;
+  ) -> impl Future<Output = Result<Self, Error>> + Send;
 
-  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
-    let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
-    let conn = &mut *get_conn(pool).await?;
-    query.execute(conn).await
+  fn delete(
+    pool: &mut DbPool<'_>,
+    id: Self::IdType,
+  ) -> impl Future<Output = Result<usize, Error>> + Send {
+    async {
+      let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
+      let conn = &mut *get_conn(pool).await?;
+      query.execute(conn).await
+    }
   }
 }
 
-#[async_trait]
 pub trait Followable {
   type Form;
-  async fn follow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn follow(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn follow_accepted(
+  fn follow_accepted(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     person_id: PersonId,
-  ) -> Result<Self, Error>
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
+  fn unfollow(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Joinable {
   type Form;
-  async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn join(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
+  fn leave(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Likeable {
   type Form;
   type IdType;
-  async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn like(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn remove(
+  fn remove(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> Result<uplete::Count, Error>
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Bannable {
   type Form;
-  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn ban(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
+  fn unban(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Saveable {
   type Form;
-  async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn save(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
+  fn unsave(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Blockable {
   type Form;
-  async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn block(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
+  fn unblock(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait Reportable {
   type Form;
   type IdType;
   type ObjectIdType;
-  async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  fn report(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = Result<Self, Error>> + Send
   where
     Self: Sized;
-  async fn resolve(
+  fn resolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> Result<usize, Error>
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
-  async fn resolve_apub(
+  fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
     report_creator_id: PersonId,
     resolver_id: PersonId,
-  ) -> LemmyResult<usize>
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
   where
     Self: Sized;
-  async fn resolve_all_for_object(
+  fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
-  ) -> Result<usize, Error>
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
-  async fn unresolve(
+  fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> Result<usize, Error>
+  ) -> impl Future<Output = Result<usize, Error>> + Send
   where
     Self: Sized;
 }
 
-#[async_trait]
 pub trait ApubActor {
-  async fn read_from_apub_id(
+  fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error>
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
   /// - actor_name is the name of the community or user to read.
   /// - include_deleted, if true, will return communities or users that were deleted/removed
-  async fn read_from_name(
+  fn read_from_name(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> Result<Option<Self>, Error>
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
-  async fn read_from_name_and_domain(
+  fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> Result<Option<Self>, Error>
+  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
   where
     Self: Sized;
 }

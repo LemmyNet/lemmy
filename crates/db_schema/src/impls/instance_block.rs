@@ -53,7 +53,6 @@ impl InstanceBlock {
   }
 }
 
-#[async_trait]
 impl Blockable for InstanceBlock {
   type Form = InstanceBlockForm;
   async fn block(pool: &mut DbPool<'_>, instance_block_form: &Self::Form) -> Result<Self, Error> {
