@@ -157,7 +157,8 @@ ALTER TABLE community
     ADD COLUMN subscribers_local bigint NOT NULL DEFAULT 0,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month bigint NOT NULL DEFAULT 0;
+    ADD COLUMN interactions_month bigint NOT NULL DEFAULT 0,
+    ALTER CONSTRAINT community_instance_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
 UPDATE
     community
