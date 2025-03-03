@@ -6,8 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have a support request or discussion?
-        Use https://lemmy.ml/c/lemmy_support
+        For questions or discussions use https://lemmy.ml/c/lemmy_support or the [matrix chat](https://matrix.to/#/#lemmy:matrix.org).
 
         Have a question about how Lemmy works?
         Please check the docs first: https://join-lemmy.org/docs/en/index.html
