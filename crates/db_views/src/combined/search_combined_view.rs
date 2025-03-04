@@ -4,13 +4,11 @@ use crate::structs::{
   LocalUserView,
   PersonView,
   PostView,
-  SearchCombinedPaginationCursor,
   SearchCombinedView,
   SearchCombinedViewInternal,
 };
 use diesel::{
   dsl::not,
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -24,7 +22,7 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
   impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommunityId, PaginationCursor, PersonId},
   schema::{
     comment,
     comment_actions,
@@ -45,7 +43,7 @@ use lemmy_db_schema::{
     tag,
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
-  traits::InternalToCombinedView,
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -59,7 +57,7 @@ use lemmy_db_schema::{
   SearchSortType,
   SearchType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use SearchSortType::*;
 
 impl SearchCombinedViewInternal {
@@ -183,41 +181,42 @@ impl SearchCombinedViewInternal {
   }
 }
 
-impl SearchCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &SearchCombinedView) -> SearchCombinedPaginationCursor {
-    let (prefix, id) = match view {
+impl PaginationCursorBuilder for SearchCombinedView {
+  type CursorData = SearchCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
       SearchCombinedView::Post(v) => ('P', v.post.id.0),
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
     };
-    // hex encoding to prevent ossification
-    SearchCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    PaginationCursor::new(prefix, id)
   }
 
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = search_combined::table
-      .select(SearchCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "P" => query.filter(search_combined::post_id.eq(id)),
-      "C" => query.filter(search_combined::comment_id.eq(id)),
-      "O" => query.filter(search_combined::community_id.eq(id)),
-      "E" => query.filter(search_combined::person_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
 
-    Ok(PaginationCursorData(token))
+    let mut query = search_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'P' => query.filter(search_combined::post_id.eq(id)),
+      'C' => query.filter(search_combined::comment_id.eq(id)),
+      'O' => query.filter(search_combined::community_id.eq(id)),
+      'E' => query.filter(search_combined::person_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(SearchCombined);
 
 #[derive(Default)]
 pub struct SearchCombinedQuery {
@@ -232,7 +231,7 @@ pub struct SearchCombinedQuery {
   pub post_url_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub page_after: Option<PaginationCursorData>,
+  pub cursor_data: Option<SearchCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -399,14 +398,18 @@ impl SearchCombinedQuery {
       }
     }
 
+    // Filter by the time range
+    if let Some(time_range_seconds) = self.time_range_seconds {
+      query = query
+        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     query = match self.sort.unwrap_or_default() {
@@ -414,12 +417,6 @@ impl SearchCombinedQuery {
       Old => query.then_desc(ReverseTimestampKey(key::published)),
       Top => query.then_desc(key::score),
     };
-
-    // Filter by the time range
-    if let Some(time_range_seconds) = self.time_range_seconds {
-      query = query
-        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
-    }
 
     // finally use unique id as tie breaker
     query = query.then_desc(key::id);
