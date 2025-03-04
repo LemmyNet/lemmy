@@ -133,6 +133,11 @@ mod tests {
 	 <li id=\"fn1\" class=\"footnote-item\">\n\
 	 <p>example.com <a href=\"#fnref1\" class=\"footnote-backref\">↩︎</a></p>\n\
 	 </li>\n</ol>\n</section>\n"
+      ),
+      (
+        "mention links",
+        "[@example@example.com](https://example.com/u/example)",
+        "<p><a href=\"https://example.com/u/example\" rel=\"nofollow\" class=\"u-url mention\">@example@example.com</a></p>\n"
       )
     ];
 
