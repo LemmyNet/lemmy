@@ -45,14 +45,18 @@ pub async fn create_community_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let community_report_view = CommunityReportView::read(&mut context.pool(), report.id).await?;
+  let community_report_view =
+    CommunityReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
   let local_site = LocalSite::read(&mut context.pool()).await?;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &community_report_view.creator.name,
-      &community_report_view.community_creator.name,
+      // The argument here is normally the reported content's creator, but a community doesn't have
+      // a single person to be considered the creator or the person responsible for the bad thing,
+      // so the community name is used instead
+      &community_report_view.community.name,
       &mut context.pool(),
       context.settings(),
     )

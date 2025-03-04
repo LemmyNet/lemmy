@@ -66,6 +66,7 @@ use lemmy_api::{
   private_message::mark_read::mark_pm_as_read,
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
+    community_report::create::create_community_report,
     post_report::{create::create_post_report, resolve::resolve_post_report},
     private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
     report_combined::list::list_reports,
