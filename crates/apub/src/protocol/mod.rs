@@ -9,7 +9,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future};
 use url::Url;
 
 pub mod activities;
@@ -80,9 +80,11 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
   }
 }
 
-#[async_trait::async_trait]
 pub trait InCommunity {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity>;
+  fn community(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> impl Future<Output = LemmyResult<ApubCommunity>> + Send;
 }
 
 #[cfg(test)]

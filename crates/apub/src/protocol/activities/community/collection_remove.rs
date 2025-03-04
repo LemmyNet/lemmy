@@ -29,7 +29,6 @@ pub struct CollectionRemove {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CollectionRemove {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (community, _) =

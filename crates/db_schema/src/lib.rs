@@ -9,10 +9,6 @@ extern crate diesel_derive_newtype;
 #[macro_use]
 extern crate diesel_derive_enum;
 
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate async_trait;
-
 pub mod aggregates;
 #[cfg(feature = "full")]
 pub mod impls;
@@ -40,14 +36,10 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
-#[cfg(feature = "full")]
-use diesel::query_source::AliasedField;
-#[cfg(feature = "full")]
-use schema::person;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {diesel::query_source::AliasedField, schema::person, ts_rs::TS};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,

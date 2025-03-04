@@ -226,7 +226,6 @@ impl ActivityHandler for Page {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match &self.attributed_to {

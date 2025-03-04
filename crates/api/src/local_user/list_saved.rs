@@ -5,13 +5,10 @@ use lemmy_api_common::{
   person::{ListPersonSaved, ListPersonSavedResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{
-  source::combined::person_saved::PersonSavedCombined,
-  traits::{PageCursorBuilder, PageCursorReader},
-};
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::person_saved_combined_view::PersonSavedCombinedQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{LocalUserView, PersonSavedCombinedView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -25,7 +22,7 @@ pub async fn list_person_saved(
   check_private_instance(&Some(local_user_view.clone()), &local_site.local_site)?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PersonSavedCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(PersonSavedCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -38,7 +35,7 @@ pub async fn list_person_saved(
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = saved.last().map(PageCursorBuilder::cursor);
+  let next_page = saved.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListPersonSavedResponse { saved, next_page }))
 }

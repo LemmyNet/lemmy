@@ -42,7 +42,7 @@ pub async fn get_site_v4(
     .map(|l| l.local_user.admin)
     .unwrap_or_default()
   {
-    site_response.admin_oauth_providers = None;
+    site_response.admin_oauth_providers = vec![];
   }
 
   Ok(Json(site_response))
@@ -72,8 +72,8 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     discussion_languages,
     blocked_urls,
     tagline,
-    oauth_providers: Some(oauth_providers),
-    admin_oauth_providers: Some(admin_oauth_providers),
+    oauth_providers,
+    admin_oauth_providers,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
   })
 }

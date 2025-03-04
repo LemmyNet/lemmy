@@ -8,7 +8,6 @@ use crate::{
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
 impl Crud for Tagline {
   type InsertForm = TaglineInsertForm;
   type UpdateForm = TaglineUpdateForm;

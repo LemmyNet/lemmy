@@ -6,13 +6,10 @@ use lemmy_api_common::{
   person::{ListPersonContent, ListPersonContentResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{
-  source::combined::person_content::PersonContentCombined,
-  traits::{PageCursorBuilder, PageCursorReader},
-};
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::person_content_combined_view::PersonContentCombinedQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{LocalUserView, PersonContentCombinedView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -34,7 +31,7 @@ pub async fn list_person_content(
   .await?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PersonContentCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(PersonContentCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -48,7 +45,7 @@ pub async fn list_person_content(
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = content.last().map(PageCursorBuilder::cursor);
+  let next_page = content.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListPersonContentResponse { content, next_page }))
 }

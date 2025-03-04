@@ -16,6 +16,7 @@ use diesel::{
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -44,11 +45,11 @@ use lemmy_db_schema::{
     report_combined,
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -209,15 +210,40 @@ impl ReportCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for ReportCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+impl PaginationCursorBuilder for ReportCombinedView {
+  type CursorData = ReportCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
       ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = report_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'C' => query.filter(report_combined::comment_report_id.eq(id)),
+      'P' => query.filter(report_combined::post_report_id.eq(id)),
+      'M' => query.filter(report_combined::private_message_report_id.eq(id)),
+      'Y' => query.filter(report_combined::community_report_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 
@@ -230,6 +256,7 @@ pub struct ReportCombinedQuery {
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
   pub cursor_data: Option<ReportCombined>,
+  pub my_reports_only: Option<bool>,
   pub page_back: Option<bool>,
 }
 
@@ -307,6 +334,10 @@ impl ReportCombinedQuery {
 
     if let Some(post_id) = self.post_id {
       query = query.filter(post::id.eq(post_id));
+    }
+
+    if self.my_reports_only.unwrap_or_default() {
+      query = query.filter(person::id.eq(my_person_id));
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -646,7 +677,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_combined() -> LemmyResult<()> {
+  async fn combined() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -817,7 +848,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_private_message_reports() -> LemmyResult<()> {
+  async fn private_message_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -881,7 +912,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_post_reports() -> LemmyResult<()> {
+  async fn post_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1014,7 +1045,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_comment_reports() -> LemmyResult<()> {
+  async fn comment_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1130,7 +1161,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_community_reports() -> LemmyResult<()> {
+  async fn community_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1194,7 +1225,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_violates_instance_rules() -> LemmyResult<()> {
+  async fn violates_instance_rules() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1276,6 +1307,57 @@ mod tests {
       .list(pool, &data.admin_view)
       .await?;
     assert_length!(1, admin_reports);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn my_reports_only() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // sara reports
+    let sara_report_form = CommentReportForm {
+      creator_id: data.sara.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from sara".into(),
+      violates_instance_rules: false,
+    };
+    CommentReport::report(pool, &sara_report_form).await?;
+
+    // timmy reports
+    let timmy_report_form = CommentReportForm {
+      creator_id: data.timmy.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from timmy".into(),
+      violates_instance_rules: false,
+    };
+    CommentReport::report(pool, &timmy_report_form).await?;
+
+    let agg = CommentAggregates::read(pool, data.comment.id).await?;
+    assert_eq!(agg.report_count, 2);
+
+    // Do a batch read of timmys reports, it should only show his own
+    let reports = ReportCombinedQuery {
+      my_reports_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy_view)
+    .await?;
+
+    assert_length!(1, reports);
+
+    if let ReportCombinedView::Comment(v) = &reports[0] {
+      assert_eq!(v.creator.id, data.timmy.id);
+    } else {
+      panic!("wrong type");
+    }
 
     cleanup(data, pool).await?;
 

@@ -521,6 +521,48 @@ pub enum PersonContentCombinedView {
   Comment(CommentView),
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined person_saved view
+pub(crate) struct PersonSavedCombinedViewInternal {
+  // Post-specific
+  pub post_counts: PostAggregates,
+  pub post_unread_comments: i64,
+  pub post_saved: Option<DateTime<Utc>>,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
+  // Comment-specific
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
+  pub comment_saved: Option<DateTime<Utc>>,
+  pub my_comment_vote: Option<i16>,
+  // Shared
+  pub post: Post,
+  pub community: Community,
+  pub item_creator: Person,
+  pub subscribed: SubscribedType,
+  pub item_creator_is_admin: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_blocked: bool,
+  pub banned_from_community: bool,
+  pub can_mod: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum PersonSavedCombinedView {
+  Post(PostView),
+  Comment(CommentView),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

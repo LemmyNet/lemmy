@@ -9,6 +9,7 @@ use lemmy_api_common::{
     check_comment_deleted_or_removed,
     check_community_user_action,
     send_new_report_email_to_admins,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -27,10 +28,9 @@ pub async fn create_comment_report(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReportResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let reason = data.reason.trim().to_string();
-  check_report_reason(&reason, &local_site)?;
+  let slur_regex = slur_regex(&context).await?;
+  check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
   let comment_id = data.comment_id;
@@ -67,6 +67,7 @@ pub async fn create_comment_report(
     CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
+  let local_site = LocalSite::read(&mut context.pool()).await?;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &comment_report_view.creator.name,

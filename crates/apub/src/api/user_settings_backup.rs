@@ -103,7 +103,7 @@ pub async fn import_settings(
   let person_form = PersonUpdateForm {
     display_name: data.display_name.clone().map(Some),
     bio: data.bio.clone().map(Some),
-    matrix_user_id: data.bio.clone().map(Some),
+    matrix_user_id: data.matrix_id.clone().map(Some),
     bot_account: data.bot_account,
     ..Default::default()
   };
