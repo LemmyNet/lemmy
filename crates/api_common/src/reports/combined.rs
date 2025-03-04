@@ -1,8 +1,8 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PostId},
+  newtypes::{CommunityId, PaginationCursor, PostId},
   ReportType,
 };
-use lemmy_db_views::structs::{ReportCombinedPaginationCursor, ReportCombinedView};
+use lemmy_db_views::structs::ReportCombinedView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -27,7 +27,7 @@ pub struct ListReports {
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ReportCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
   /// Only for admins: also show reports with `violates_instance_rules=false`
@@ -44,4 +44,7 @@ pub struct ListReports {
 /// The post reports response.
 pub struct ListReportsResponse {
   pub reports: Vec<ReportCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
