@@ -152,11 +152,6 @@ impl PersonSavedCombinedViewInternal {
         .and(comment_actions::person_id.eq(my_person_id)),
     );
 
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
-    let comment_aggregates_join = comment_aggregates::table
-      .on(person_saved_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
 
@@ -171,8 +166,6 @@ impl PersonSavedCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .inner_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -281,10 +274,9 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment), Some(counts)) = (v.comment, v.comment_counts) {
+    if let Some(comment) = v.comment {
       Some(PersonSavedCombinedView::Comment(CommentView {
         comment,
-        counts,
         post: v.post,
         community: v.community,
         creator: v.item_creator,
@@ -303,7 +295,6 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         post: v.post,
         community: v.community,
         unread_comments: v.post_unread_comments,
-        counts: v.post_counts,
         creator: v.item_creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
         creator_is_moderator: v.item_creator_is_moderator,
