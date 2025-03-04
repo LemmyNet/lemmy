@@ -2646,6 +2646,7 @@ dependencies = [
  "anyhow",
  "bcrypt",
  "chrono",
+ "diesel-async",
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",
