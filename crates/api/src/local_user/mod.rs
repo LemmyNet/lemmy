@@ -14,6 +14,7 @@ pub mod login;
 pub mod logout;
 pub mod notifications;
 pub mod report_count;
+pub mod resend_verification_email;
 pub mod reset_password;
 pub mod save_settings;
 pub mod update_totp;

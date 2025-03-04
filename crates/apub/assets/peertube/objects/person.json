@@ -2,57 +2,48 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",
-    {
-      "RsaSignature2017": "https://w3id.org/security#RsaSignature2017"
-    },
+    { "RsaSignature2017": "https://w3id.org/security#RsaSignature2017" },
     {
       "pt": "https://joinpeertube.org/ns#",
       "sc": "http://schema.org/",
-      "playlists": {
-        "@id": "pt:playlists",
-        "@type": "@id"
-      },
-      "support": {
-        "@type": "sc:Text",
-        "@id": "pt:support"
-      },
-      "icons": "as:icon"
+      "playlists": { "@id": "pt:playlists", "@type": "@id" },
+      "support": { "@type": "sc:Text", "@id": "pt:support" },
+      "lemmy": "https://join-lemmy.org/ns#",
+      "postingRestrictedToMods": "lemmy:postingRestrictedToMods"
     }
   ],
   "type": "Person",
-  "id": "https://peertube.stream/accounts/createurs",
-  "following": "https://peertube.stream/accounts/createurs/following",
-  "followers": "https://peertube.stream/accounts/createurs/followers",
-  "playlists": "https://peertube.stream/accounts/createurs/playlists",
-  "inbox": "https://peertube.stream/accounts/createurs/inbox",
-  "outbox": "https://peertube.stream/accounts/createurs/outbox",
-  "preferredUsername": "createurs",
-  "url": "https://peertube.stream/accounts/createurs",
-  "name": "Créateurs",
-  "endpoints": {
-    "sharedInbox": "https://peertube.stream/inbox"
-  },
+  "id": "https://tilvids.com/accounts/thelinuxexperiment",
+  "following": "https://tilvids.com/accounts/thelinuxexperiment/following",
+  "followers": "https://tilvids.com/accounts/thelinuxexperiment/followers",
+  "playlists": "https://tilvids.com/accounts/thelinuxexperiment/playlists",
+  "inbox": "https://tilvids.com/accounts/thelinuxexperiment/inbox",
+  "outbox": "https://tilvids.com/accounts/thelinuxexperiment/outbox",
+  "preferredUsername": "thelinuxexperiment",
+  "url": "https://tilvids.com/accounts/thelinuxexperiment",
+  "name": "The Linux Experiment",
+  "endpoints": { "sharedInbox": "https://tilvids.com/inbox" },
   "publicKey": {
-    "id": "https://peertube.stream/accounts/createurs#main-key",
-    "owner": "https://peertube.stream/accounts/createurs",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxqkQhbRYbA81+WTYjorR\n2lEMad3kYCnzDjGTLr4I92eanzFHxyELGnjzP6TpEvjOiB9NrCRrqU/iFPLdgrq2\nwIFcXPWdCq6Gcg7QLlaeMM0JoJmr0KTEhzg0XKCo96UsyTzaF4DISxqi8RyoyWeU\nEkgiOzlkdYTlouq3MlQH+p1PBAsNUQfIEUsU+l6k1vzbm8JRwlT+D1bNde4I/Lqs\n4uB5ru3zzInwZ2hz9+heiriNoGEBv74rZHYn966tZVX8iMGx2+m6okozEdEQbqCl\n0ekqDcd8P6CoFqqeeu8coh82OUtuFI/XsbetdWA55YQmSHyMiTsIwVbeoogIETbI\n4QIDAQAB\n-----END PUBLIC KEY-----"
+    "id": "https://tilvids.com/accounts/thelinuxexperiment#main-key",
+    "owner": "https://tilvids.com/accounts/thelinuxexperiment",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqbMvBSLhwEA3VXQ3TPgd\nDCeVpicrjGlk5tRg9OMBMY/xRhT4M3T8H2uYMUmIQJubUcooqAImWL7bYyXig0Ms\nby18vLyAgIR7V7ymvJbJxF2WZV33CC7Ad1yjqLlnhydcG+pWKWqkjP7SXzAy/EHo\n46OhDQK1+Q6FXfDrLAGEDRq5z+qTi5dh1hi/c9ZvI0+3PBg1IfAf5zLeo1AoydV7\nvISCm7kyClABwOW3OjPP86SbAlQL6STFOO3s6EdvvVifTkacC/gl8ad8TI8610Wa\n5wLsjdE8LIky9lLUsFYvVPrJ6v5havxCSmc6W1tkDicitpFylN2X914L36bn609M\n8QIDAQAB\n-----END PUBLIC KEY-----"
   },
-  "published": "2020-11-11T17:12:37.243Z",
+  "published": "2020-06-30T13:45:17.950Z",
   "icon": [
     {
       "type": "Image",
-      "mediaType": "image/png",
+      "mediaType": "image/jpeg",
       "height": 48,
       "width": 48,
-      "url": "https://peertube.stream/lazy-static/avatars/1760df9a-3c96-45fc-9342-c313a3bf2210.png"
+      "url": "https://tilvids.com/lazy-static/avatars/e74c2c6b-1f6b-4506-9d03-2cbba1635b20.jpg"
     },
     {
       "type": "Image",
-      "mediaType": "image/png",
+      "mediaType": "image/jpeg",
       "height": 120,
       "width": 120,
-      "url": "https://peertube.stream/lazy-static/avatars/c27b672d-ad8f-498a-adbe-553af8da56f9.png"
+      "url": "https://tilvids.com/lazy-static/avatars/bdaa7218-ba3c-43ba-abd3-cfd081394c18.jpg"
     }
   ],
-  "summary": "Centralisation de miroirs de chaînes. La grande majorité a été contactée ou diffuse sous licence avec paternité.\n\nCompte maintenu par [Raph](https://tooter.social/@raph)."
+  "summary": "I'm Nick, and I like to tinker with Linux stuff. I'll bumble through distro reviews, tutorials, and general helpful tidbits and impressions on Linux desktop environments, applications, and news. \n\nYou might see a bit of Linux gaming here and there, and some more personal opinion pieces, but in the end, it's more or less all about Linux and FOSS !\n\nIf you want to stay up to snuff, follow me on Mastodon @TheLinuxEXP@mastodon.social"
 }

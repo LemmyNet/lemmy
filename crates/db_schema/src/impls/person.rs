@@ -10,7 +10,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{action_query, functions::lower, get_conn, now, uplete, DbPool},
+  utils::{functions::lower, get_conn, now, uplete, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -24,9 +24,12 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
+use url::Url;
 
-#[async_trait]
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
@@ -71,7 +74,7 @@ impl Person {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
-      .on_conflict(person::actor_id)
+      .on_conflict(person::ap_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -138,6 +141,11 @@ impl Person {
     .then_some(())
     .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
   }
+
+  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
+  }
 }
 
 impl PersonInsertForm {
@@ -146,7 +154,6 @@ impl PersonInsertForm {
   }
 }
 
-#[async_trait]
 impl ApubActor for Person {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
@@ -155,7 +162,7 @@ impl ApubActor for Person {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
-      .filter(person::actor_id.eq(object_id))
+      .filter(person::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -195,7 +202,6 @@ impl ApubActor for Person {
   }
 }
 
-#[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
@@ -235,7 +241,8 @@ impl PersonFollower {
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(person_actions::followed)
+    person_actions::table
+      .filter(person_actions::followed.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)
@@ -281,7 +288,7 @@ mod tests {
       deleted: false,
       published: inserted_person.published,
       updated: None,
-      actor_id: inserted_person.actor_id.clone(),
+      ap_id: inserted_person.ap_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
@@ -297,7 +304,7 @@ mod tests {
     let read_person = Person::read(pool, inserted_person.id).await?;
 
     let update_person_form = PersonUpdateForm {
-      actor_id: Some(inserted_person.actor_id.clone()),
+      ap_id: Some(inserted_person.ap_id.clone()),
       ..Default::default()
     };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form).await?;

@@ -39,8 +39,8 @@ pub struct Community {
   pub deleted: bool,
   /// Whether its an NSFW community.
   pub nsfw: bool,
-  /// The federated actor_id.
-  pub actor_id: DbUrl,
+  /// The federated ap_id.
+  pub ap_id: DbUrl,
   /// Whether the community is local.
   pub local: bool,
   #[serde(skip)]
@@ -101,7 +101,7 @@ pub struct CommunityInsertForm {
   #[new(default)]
   pub nsfw: Option<bool>,
   #[new(default)]
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   #[new(default)]
   pub local: Option<bool>,
   #[new(default)]
@@ -141,7 +141,7 @@ pub struct CommunityUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub public_key: Option<String>,
   pub private_key: Option<Option<String>>,

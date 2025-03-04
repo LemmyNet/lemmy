@@ -6,14 +6,13 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_followers_url,
     generate_inbox_url,
-    generate_local_apub_endpoint,
     get_url_blocklist,
     is_admin,
-    local_site_to_slur_regex,
     process_markdown_opt,
-    EndpointType,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -56,7 +55,8 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
@@ -82,13 +82,8 @@ pub async fn create_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
-  let community_actor_id = generate_local_apub_endpoint(
-    EndpointType::Community,
-    &data.name,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
-  let community_dupe =
-    Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
+  let community_ap_id = Community::local_url(&data.name, context.settings())?;
+  let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
     Err(LemmyErrorType::CommunityAlreadyExists)?
   }
@@ -100,9 +95,9 @@ pub async fn create_community(
     sidebar,
     description,
     nsfw: data.nsfw,
-    actor_id: Some(community_actor_id.clone()),
+    ap_id: Some(community_ap_id.clone()),
     private_key: Some(keypair.private_key),
-    followers_url: Some(generate_followers_url(&community_actor_id)?),
+    followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,

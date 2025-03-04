@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::{backtrace::Backtrace, fmt::Debug};
+use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
@@ -62,6 +62,7 @@ pub enum LemmyErrorType {
   LanguageNotAllowed,
   CouldntUpdatePost,
   NoPostEditAllowed,
+  NsfwNotAllowed,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -190,13 +191,14 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  PlatformLackingPrivateCommunitySupport,
   Unreachable,
 }
 
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::fmt;
+    use std::{fmt, backtrace::Backtrace};
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {

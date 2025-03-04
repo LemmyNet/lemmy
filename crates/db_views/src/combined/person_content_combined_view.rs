@@ -18,7 +18,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
+  aliases::{creator_community_actions, creator_local_user},
+  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::PersonId,
   schema::{
     comment,
@@ -31,21 +32,210 @@ use lemmy_db_schema::{
     person,
     person_actions,
     person_content_combined,
+    person_saved_combined,
     post,
     post_actions,
     post_aggregates,
     post_tag,
     tag,
   },
-  source::{
-    combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
-    community::CommunityFollower,
-  },
+  source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::InternalToCombinedView,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
   PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
+
+impl PersonContentCombinedViewInternal {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: Option<PersonId>) -> _ {
+    let item_creator = person::id;
+
+    let comment_join =
+      comment::table.on(person_content_combined::comment_id.eq(comment::id.nullable()));
+
+    let post_join = post::table.on(
+      person_content_combined::post_id
+        .eq(post::id.nullable())
+        .or(comment::post_id.eq(post::id)),
+    );
+
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        // Need to filter out the post rows where the post_id given is null
+        // Otherwise you'll get duped post rows
+        .or(
+          post::creator_id
+            .eq(item_creator)
+            .and(person_content_combined::post_id.is_not_null()),
+        ),
+    );
+
+    let community_join = community::table.on(post::community_id.eq(community::id));
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
+    let creator_local_user_join = creator_local_user.on(
+      item_creator
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
+
+    let comment_aggregates_join = comment_aggregates::table
+      .on(person_content_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
+
+    let image_details_join =
+      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+
+    person_content_combined::table
+      .left_join(comment_join)
+      .inner_join(post_join)
+      .inner_join(item_creator_join)
+      .inner_join(community_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(creator_local_user_join)
+      .left_join(community_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .inner_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(comment_actions_join)
+      .left_join(image_details_join)
+  }
+
+  #[diesel::dsl::auto_type(no_type_alias)]
+  pub(crate) fn joins_saved(my_person_id: PersonId) -> _ {
+    let item_creator = person::id;
+
+    let comment_join =
+      comment::table.on(person_saved_combined::comment_id.eq(comment::id.nullable()));
+
+    let post_join = post::table.on(
+      person_saved_combined::post_id
+        .eq(post::id.nullable())
+        .or(comment::post_id.eq(post::id)),
+    );
+
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        // Need to filter out the post rows where the post_id given is null
+        // Otherwise you'll get duped post rows
+        .or(
+          post::creator_id
+            .eq(item_creator)
+            .and(person_saved_combined::post_id.is_not_null()),
+        ),
+    );
+
+    let community_join = community::table.on(post::community_id.eq(community::id));
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
+
+    let creator_local_user_join = creator_local_user.on(
+      item_creator
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
+
+    let comment_aggregates_join = comment_aggregates::table
+      .on(person_saved_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
+
+    let image_details_join =
+      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+
+    person_saved_combined::table
+      .left_join(comment_join)
+      .inner_join(post_join)
+      .inner_join(item_creator_join)
+      .inner_join(community_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(creator_local_user_join)
+      .left_join(community_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .inner_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(comment_actions_join)
+      .left_join(image_details_join)
+  }
+}
 
 impl PersonContentCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
@@ -115,61 +305,7 @@ impl PersonContentCombinedQuery {
     // For example, the creator must be the person table joined to either:
     // - post.creator_id
     // - comment.creator_id
-    let query = person_content_combined::table
-      // The comment
-      .left_join(comment::table.on(person_content_combined::comment_id.eq(comment::id.nullable())))
-      // The post
-      // It gets a bit complicated here, because since both comments and post combined have a post
-      // attached, you can do an inner join.
-      .inner_join(
-        post::table.on(
-          person_content_combined::post_id
-            .eq(post::id.nullable())
-            .or(comment::post_id.eq(post::id)),
-        ),
-      )
-      // The item creator
-      .inner_join(
-        person::table.on(
-          comment::creator_id
-            .eq(item_creator)
-            // Need to filter out the post rows where the post_id given is null
-            // Otherwise you'll get duped post rows
-            .or(
-              post::creator_id
-                .eq(item_creator)
-                .and(person_content_combined::post_id.is_not_null()),
-            ),
-        ),
-      )
-      // The community
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .left_join(actions_alias(
-        creator_community_actions,
-        item_creator,
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          item_creator
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        community_actions::table,
-        my_person_id,
-        post::community_id,
-      ))
-      .left_join(actions(post_actions::table, my_person_id, post::id))
-      .left_join(actions(person_actions::table, my_person_id, item_creator))
-      .inner_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
-      .left_join(
-        comment_aggregates::table
-          .on(person_content_combined::comment_id.eq(comment_aggregates::comment_id.nullable())),
-      )
-      .left_join(actions(comment_actions::table, my_person_id, comment::id))
-      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
+    let mut query = PersonContentCombinedViewInternal::joins(my_person_id)
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
       .select((
@@ -179,7 +315,7 @@ impl PersonContentCombinedQuery {
           post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
           post_aggregates::comments,
         ),
-        post_actions::saved.nullable().is_not_null(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
@@ -188,14 +324,17 @@ impl PersonContentCombinedQuery {
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Shared
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        CommunityFollower::select_subscribed_type(),
-        local_user::admin.nullable().is_not_null(),
+        community_follower_select_subscribed_type(),
+        creator_local_user
+          .field(local_user::admin)
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -206,10 +345,9 @@ impl PersonContentCombinedQuery {
           .is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         community_actions::received_ban.nullable().is_not_null(),
+        local_user_can_mod(),
       ))
       .into_boxed();
-
-    let mut query = PaginatedQueryBuilder::new(query);
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -220,6 +358,8 @@ impl PersonContentCombinedQuery {
         PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
       }
     }
+
+    let mut query = PaginatedQueryBuilder::new(query);
 
     let page_after = self.page_after.map(|c| c.0);
 
@@ -271,6 +411,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         saved: v.comment_saved,
         my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
+        can_mod: v.can_mod,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
@@ -291,6 +432,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
         tags: v.post_tags,
+        can_mod: v.can_mod,
       }))
     }
   }

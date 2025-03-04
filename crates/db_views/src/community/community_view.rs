@@ -1,183 +1,72 @@
 use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
 use diesel::{
-  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
-  PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, community_aggregates, instance_actions},
+  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
   source::{
-    community::{CommunityFollower, CommunityFollowerState},
+    community::{Community, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
-  utils::{
-    actions,
-    functions::lower,
-    fuzzy_search,
-    limit_and_offset,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
+  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   ListingType,
-  PostSortType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-type QueriesReadTypes<'a> = (CommunityId, Option<&'a LocalUser>, bool);
-type QueriesListTypes<'a> = (CommunityQuery<'a>, &'a Site);
-
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, QueriesReadTypes<'a>>,
-  impl ListFn<'a, CommunityView, QueriesListTypes<'a>>,
-> {
-  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_local_user: Option<&'a LocalUser>| {
-    query
-      .inner_join(community_aggregates::table)
-      .left_join(actions(
-        community_actions::table,
-        my_local_user.person_id(),
-        community::id,
-      ))
-      .left_join(actions(
-        instance_actions::table,
-        my_local_user.person_id(),
-        community::instance_id,
-      ))
-  };
-
-  let selection = (
-    community::all_columns,
-    CommunityFollower::select_subscribed_type(),
-    community_actions::blocked.nullable().is_not_null(),
-    community_aggregates::all_columns,
-    community_actions::received_ban.nullable().is_not_null(),
-  );
-
-  let not_removed_or_deleted = community::removed
-    .eq(false)
-    .and(community::deleted.eq(false));
-
-  let read = move |mut conn: DbConn<'a>,
-                   (community_id, my_local_user, is_mod_or_admin): (
-    CommunityId,
-    Option<&'a LocalUser>,
-    bool,
-  )| async move {
-    let mut query = all_joins(
-      community::table.find(community_id).into_boxed(),
-      my_local_user,
-    )
-    .select(selection);
-
-    // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin {
-      query = query.filter(not_removed_or_deleted);
-    }
-
-    query = my_local_user.visible_communities_only(query);
-
-    query.first(&mut conn).await
-  };
-
-  let list = move |mut conn: DbConn<'a>, (o, site): (CommunityQuery<'a>, &'a Site)| async move {
-    use CommunitySortType::*;
-
-    let mut query = all_joins(community::table.into_boxed(), o.local_user).select(selection);
-
-    if let Some(search_term) = o.search_term {
-      let searcher = fuzzy_search(&search_term);
-      let name_filter = community::name.ilike(searcher.clone());
-      let title_filter = community::title.ilike(searcher.clone());
-      let description_filter = community::description.ilike(searcher.clone());
-      query = if o.title_only.unwrap_or_default() {
-        query.filter(name_filter.or(title_filter))
-      } else {
-        query.filter(name_filter.or(title_filter.or(description_filter)))
-      }
-    }
-
-    // Hide deleted and removed for non-admins or mods
-    if !o.is_mod_or_admin {
-      query = query.filter(not_removed_or_deleted).filter(
-        community::hidden
-          .eq(false)
-          .or(community_actions::follow_state.is_not_null()),
-      );
-    }
-
-    match o.sort.unwrap_or(Hot) {
-      Hot | Active | Scaled => query = query.order_by(community_aggregates::hot_rank.desc()),
-      NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
-        query = query.order_by(community_aggregates::users_active_day.desc())
-      }
-      New => query = query.order_by(community::published.desc()),
-      Old => query = query.order_by(community::published.asc()),
-      // Controversial is temporary until a CommentSortType is created
-      MostComments | Controversial => query = query.order_by(community_aggregates::comments.desc()),
-      TopAll | TopYear | TopNineMonths => {
-        query = query.order_by(community_aggregates::subscribers.desc())
-      }
-      TopSixMonths | TopThreeMonths => {
-        query = query.order_by(community_aggregates::users_active_half_year.desc())
-      }
-      TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
-      NameAsc => query = query.order_by(lower(community::name).asc()),
-      NameDesc => query = query.order_by(lower(community::name).desc()),
-    };
-
-    if let Some(listing_type) = o.listing_type {
-      query = match listing_type {
-        ListingType::Subscribed => {
-          query.filter(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
-        }
-        ListingType::Local => query.filter(community::local.eq(true)),
-        _ => query,
-      };
-    }
-
-    // Don't show blocked communities and communities on blocked instances. nsfw communities are
-    // also hidden (based on profile setting)
-    query = query.filter(instance_actions::blocked.is_null());
-    query = query.filter(community_actions::blocked.is_null());
-    if !(o.local_user.show_nsfw(site) || o.show_nsfw) {
-      query = query.filter(community::nsfw.eq(false));
-    }
-
-    query = o.local_user.visible_communities_only(query);
-
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<CommunityView>(&mut conn)
-      .await
-  };
-
-  Queries::new(read, list)
-}
-
 impl CommunityView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(person_id: Option<PersonId>) -> _ {
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(community::id)
+        .and(community_actions::person_id.nullable().eq(person_id)),
+    );
+
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(community::instance_id)
+        .and(instance_actions::person_id.nullable().eq(person_id)),
+    );
+
+    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
+
+    community::table
+      .inner_join(community_aggregates::table)
+      .left_join(community_actions_join)
+      .left_join(instance_actions_join)
+      .left_join(local_user_join)
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    queries()
-      .read(pool, (community_id, my_local_user, is_mod_or_admin))
-      .await
+    let conn = &mut get_conn(pool).await?;
+    let mut query = Self::joins(my_local_user.person_id())
+      .filter(community::id.eq(community_id))
+      .select(Self::as_select())
+      .into_boxed();
+
+    // Hide deleted and removed for non-admins or mods
+    if !is_mod_or_admin {
+      query = query.filter(Community::hide_removed_and_deleted());
+    }
+
+    query = my_local_user.visible_communities_only(query);
+
+    query.first(conn).await
   }
 
   pub async fn check_is_mod_or_admin(
@@ -217,38 +106,12 @@ impl CommunityView {
   }
 }
 
-impl From<PostSortType> for CommunitySortType {
-  fn from(value: PostSortType) -> Self {
-    match value {
-      PostSortType::Active => Self::Active,
-      PostSortType::Hot => Self::Hot,
-      PostSortType::New => Self::New,
-      PostSortType::Old => Self::Old,
-      PostSortType::TopDay => Self::TopDay,
-      PostSortType::TopWeek => Self::TopWeek,
-      PostSortType::TopMonth => Self::TopMonth,
-      PostSortType::TopYear => Self::TopYear,
-      PostSortType::TopAll => Self::TopAll,
-      PostSortType::MostComments => Self::MostComments,
-      PostSortType::NewComments => Self::NewComments,
-      PostSortType::TopHour => Self::TopHour,
-      PostSortType::TopSixHour => Self::TopSixHour,
-      PostSortType::TopTwelveHour => Self::TopTwelveHour,
-      PostSortType::TopThreeMonths => Self::TopThreeMonths,
-      PostSortType::TopSixMonths => Self::TopSixMonths,
-      PostSortType::TopNineMonths => Self::TopNineMonths,
-      PostSortType::Controversial => Self::Controversial,
-      PostSortType::Scaled => Self::Scaled,
-    }
-  }
-}
-
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommunitySortType>,
+  pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
-  pub search_term: Option<String>,
   pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
   pub show_nsfw: bool,
@@ -258,7 +121,79 @@ pub struct CommunityQuery<'a> {
 
 impl CommunityQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
-    queries().list(pool, (self, site)).await
+    use CommunitySortType::*;
+    let conn = &mut get_conn(pool).await?;
+    let o = self;
+
+    let mut query = CommunityView::joins(o.local_user.person_id())
+      .select(CommunityView::as_select())
+      .into_boxed();
+
+    // Hide deleted and removed for non-admins or mods
+    if !o.is_mod_or_admin {
+      query = query.filter(Community::hide_removed_and_deleted()).filter(
+        community::hidden
+          .eq(false)
+          .or(community_actions::follow_state.is_not_null()),
+      );
+    }
+
+    let is_subscribed = community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted));
+
+    if let Some(listing_type) = o.listing_type {
+      query = match listing_type {
+        ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::Subscribed => query.filter(is_subscribed),
+        ListingType::Local => query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::ModeratorView => {
+          query.filter(community_actions::became_moderator.is_not_null())
+        }
+      };
+    }
+
+    // Don't show blocked communities and communities on blocked instances. nsfw communities are
+    // also hidden (based on profile setting)
+    query = query.filter(instance_actions::blocked.is_null());
+    query = query.filter(community_actions::blocked.is_null());
+    if !(o.local_user.show_nsfw(site) || o.show_nsfw) {
+      query = query.filter(community::nsfw.eq(false));
+    }
+
+    query = o.local_user.visible_communities_only(query);
+
+    match o.sort.unwrap_or_default() {
+      Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
+      Comments => query = query.order_by(community_aggregates::comments.desc()),
+      Posts => query = query.order_by(community_aggregates::posts.desc()),
+      New => query = query.order_by(community::published.desc()),
+      Old => query = query.order_by(community::published.asc()),
+      Subscribers => query = query.order_by(community_aggregates::subscribers.desc()),
+      SubscribersLocal => query = query.order_by(community_aggregates::subscribers_local.desc()),
+      ActiveSixMonths => {
+        query = query.order_by(community_aggregates::users_active_half_year.desc())
+      }
+      ActiveMonthly => query = query.order_by(community_aggregates::users_active_month.desc()),
+      ActiveWeekly => query = query.order_by(community_aggregates::users_active_week.desc()),
+      ActiveDaily => query = query.order_by(community_aggregates::users_active_day.desc()),
+      NameAsc => query = query.order_by(lower(community::name).asc()),
+      NameDesc => query = query.order_by(lower(community::name).desc()),
+    };
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(
+        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
+    }
+
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
+
+    query
+      .limit(limit)
+      .offset(offset)
+      .load::<CommunityView>(conn)
+      .await
   }
 }
 
@@ -277,6 +212,8 @@ mod tests {
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
         CommunityUpdateForm,
       },
       instance::Instance,
@@ -284,7 +221,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Followable},
+    traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
     SubscribedType,
@@ -355,7 +292,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: url.clone().into(),
+      ap_id: url.clone().into(),
       last_refreshed_at: Default::default(),
       inbox_url: url.into(),
       private_key: None,
@@ -511,6 +448,58 @@ mod tests {
       let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_le());
     }
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn can_mod() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Make sure can_mod is false for all of them.
+    CommunityQuery {
+      local_user: Some(&data.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .for_each(|c| assert!(!c.can_mod));
+
+    let person_id = data.local_user.person_id;
+
+    // Now join the mod team of test community 1 and 2
+    let mod_form_1 = CommunityModeratorForm {
+      community_id: data.communities[0].id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &mod_form_1).await?;
+
+    let mod_form_2 = CommunityModeratorForm {
+      community_id: data.communities[1].id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &mod_form_2).await?;
+
+    let mod_query = CommunityQuery {
+      local_user: Some(&data.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|c| (c.community.name, c.can_mod))
+    .collect::<Vec<_>>();
+
+    let expected_communities = vec![
+      ("test_community_1".to_owned(), true),
+      ("test_community_2".to_owned(), true),
+      ("test_community_3".to_owned(), false),
+    ];
+    assert_eq!(expected_communities, mod_query);
 
     cleanup(data, pool).await
   }

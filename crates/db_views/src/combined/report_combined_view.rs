@@ -8,6 +8,7 @@ use crate::structs::{
   ReportCombinedView,
   ReportCombinedViewInternal,
 };
+use chrono::{DateTime, Days, Utc};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -22,7 +23,8 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  newtypes::{CommunityId, PostId},
+  impls::community::community_follower_select_subscribed_type,
+  newtypes::{CommunityId, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -43,17 +45,132 @@ use lemmy_db_schema::{
     private_message_report,
     report_combined,
   },
-  source::{
-    combined::report::{report_combined_keys as key, ReportCombined},
-    community::CommunityFollower,
-  },
+  source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::InternalToCombinedView,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
 use lemmy_utils::error::LemmyResult;
 
 impl ReportCombinedViewInternal {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: PersonId) -> _ {
+    let report_creator = person::id;
+    let item_creator = aliases::person1.field(person::id);
+    let resolver = aliases::person2.field(person::id).nullable();
+
+    let comment_join = comment::table.on(comment_report::comment_id.eq(comment::id));
+    let private_message_join =
+      private_message::table.on(private_message_report::private_message_id.eq(private_message::id));
+
+    let post_join = post::table.on(
+      post_report::post_id
+        .eq(post::id)
+        .or(comment::post_id.eq(post::id)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(community::id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    let report_creator_join = person::table.on(
+      post_report::creator_id
+        .eq(report_creator)
+        .or(comment_report::creator_id.eq(report_creator))
+        .or(private_message_report::creator_id.eq(report_creator))
+        .or(community_report::creator_id.eq(report_creator)),
+    );
+
+    let item_creator_join = aliases::person1.on(
+      post::creator_id
+        .eq(item_creator)
+        .or(comment::creator_id.eq(item_creator))
+        .or(private_message::creator_id.eq(item_creator)),
+    );
+
+    let resolver_join = aliases::person2.on(
+      private_message_report::resolver_id
+        .eq(resolver)
+        .or(post_report::resolver_id.eq(resolver))
+        .or(comment_report::resolver_id.eq(resolver))
+        .or(community_report::resolver_id.eq(resolver)),
+    );
+
+    let community_join = community::table.on(
+      community_report::community_id
+        .eq(community::id)
+        .or(post::community_id.eq(community::id)),
+    );
+
+    let local_user_join = local_user::table.on(
+      item_creator
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_aggregates_join =
+      post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
+
+    let comment_aggregates_join =
+      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
+
+    let community_aggregates_join = community_aggregates::table
+      .on(community_report::community_id.eq(community_aggregates::community_id));
+
+    report_combined::table
+      .left_join(post_report::table)
+      .left_join(comment_report::table)
+      .left_join(private_message_report::table)
+      .left_join(community_report::table)
+      .inner_join(report_creator_join)
+      .left_join(comment_join)
+      .left_join(private_message_join)
+      .left_join(post_join)
+      .left_join(item_creator_join)
+      .left_join(resolver_join)
+      .left_join(community_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(community_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .left_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(community_aggregates_join)
+      .left_join(comment_actions_join)
+  }
+
   /// returns the current unresolved report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
@@ -65,27 +182,7 @@ impl ReportCombinedViewInternal {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = user.local_user.person_id;
 
-    let mut query = report_combined::table
-      .left_join(post_report::table)
-      .left_join(comment_report::table)
-      .left_join(private_message_report::table)
-      .left_join(community_report::table)
-      // Need to join to comment and post to get the community
-      .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
-      // The post
-      .left_join(
-        post::table.on(
-          post_report::post_id
-            .eq(post::id)
-            .or(comment::post_id.eq(post::id)),
-        ),
-      )
-      .left_join(community::table.on(post::community_id.eq(community::id)))
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        post::community_id,
-      ))
+    let mut query = Self::joins(my_person_id)
       .filter(
         post_report::resolved
           .or(comment_report::resolved)
@@ -93,21 +190,24 @@ impl ReportCombinedViewInternal {
           .or(community_report::resolved)
           .is_distinct_from(true),
       )
+      .select(count(report_combined::id))
       .into_boxed();
 
     if let Some(community_id) = community_id {
-      query = query.filter(post::community_id.eq(community_id))
+      query = query.filter(
+        community::id
+          .eq(community_id)
+          .and(report_combined::community_report_id.is_null()),
+      );
     }
 
-    // If its not an admin, get only the ones you mod
-    if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+    if user.local_user.admin {
+      query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
+    } else {
+      query = query.filter(filter_mod_reports());
     }
 
-    query
-      .select(count(report_combined::id))
-      .first::<i64>(conn)
-      .await
+    query.first::<i64>(conn).await
   }
 }
 
@@ -153,6 +253,9 @@ pub struct ReportCombinedQuery {
   pub post_id: Option<PostId>,
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
+  /// For admins, also show reports with `violates_instance_rules=false`
+  pub show_community_rule_violations: Option<bool>,
+  pub my_reports_only: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -164,102 +267,9 @@ impl ReportCombinedQuery {
     user: &LocalUserView,
   ) -> LemmyResult<Vec<ReportCombinedView>> {
     let my_person_id = user.local_user.person_id;
-    let report_creator = person::id;
-    let item_creator = aliases::person1.field(person::id);
-    let resolver = aliases::person2.field(person::id).nullable();
 
     let conn = &mut get_conn(pool).await?;
-
-    let report_creator_join = post_report::creator_id
-      .eq(report_creator)
-      .or(comment_report::creator_id.eq(report_creator))
-      .or(private_message_report::creator_id.eq(report_creator))
-      .or(community_report::creator_id.eq(report_creator));
-
-    let item_creator_join = post::creator_id
-      .eq(item_creator)
-      .or(comment::creator_id.eq(item_creator))
-      .or(private_message::creator_id.eq(item_creator));
-
-    let resolver_join = private_message_report::resolver_id
-      .eq(resolver)
-      .or(post_report::resolver_id.eq(resolver))
-      .or(comment_report::resolver_id.eq(resolver))
-      .or(community_report::resolver_id.eq(resolver));
-
-    let post_join = post_report::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id));
-
-    let community_join = community::table.on(
-      community_report::community_id
-        .eq(community::id)
-        .or(post::community_id.eq(community::id)),
-    );
-
-    // Notes: since the post_report_id and comment_report_id are optional columns,
-    // many joins must use an OR condition.
-    // For example, the report creator must be the person table joined to either:
-    // - post_report.creator_id
-    // - comment_report.creator_id
-    let mut query = report_combined::table
-      .left_join(post_report::table)
-      .left_join(comment_report::table)
-      .left_join(private_message_report::table)
-      .left_join(community_report::table)
-      // The report creator
-      .inner_join(person::table.on(report_creator_join))
-      // The comment
-      .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
-      // The private message
-      .left_join(
-        private_message::table
-          .on(private_message_report::private_message_id.eq(private_message::id)),
-      )
-      // The post
-      .left_join(post::table.on(post_join))
-      // The item creator (`item_creator` is the id of this person)
-      .left_join(aliases::person1.on(item_creator_join))
-      // The resolver
-      .left_join(aliases::person2.on(resolver_join))
-      // The community
-      .left_join(community_join)
-      .left_join(actions_alias(
-        creator_community_actions,
-        item_creator,
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          item_creator
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        community::id,
-      ))
-      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        item_creator,
-      ))
-      .left_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
-      .left_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_aggregates::table
-          .on(community_report::community_id.eq(community_aggregates::community_id)),
-      )
-      .left_join(actions(
-        comment_actions::table,
-        Some(my_person_id),
-        comment_report::comment_id,
-      ))
+    let mut query = ReportCombinedViewInternal::joins(my_person_id)
       .select((
         // Post-specific
         post_report::all_columns.nullable(),
@@ -270,7 +280,7 @@ impl ReportCombinedQuery {
           post_aggregates::comments,
         )
         .nullable(),
-        post_actions::saved.nullable().is_not_null(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
@@ -278,7 +288,7 @@ impl ReportCombinedQuery {
         comment_report::all_columns.nullable(),
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Private-message-specific
         private_message_report::all_columns.nullable(),
@@ -290,7 +300,7 @@ impl ReportCombinedQuery {
         person::all_columns,
         aliases::person1.fields(person::all_columns.nullable()),
         community::all_columns.nullable(),
-        CommunityFollower::select_subscribed_type(),
+        community_follower_select_subscribed_type(),
         aliases::person2.fields(person::all_columns.nullable()),
         local_user::admin.nullable().is_not_null(),
         creator_community_actions
@@ -313,17 +323,21 @@ impl ReportCombinedQuery {
       );
     }
 
+    if user.local_user.admin {
+      let show_community_rule_violations = self.show_community_rule_violations.unwrap_or_default();
+      if !show_community_rule_violations {
+        query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
+      }
+    } else {
+      query = query.filter(filter_mod_reports());
+    }
+
     if let Some(post_id) = self.post_id {
       query = query.filter(post::id.eq(post_id));
     }
 
-    // If its not an admin, get only the ones you mod
-    if !user.local_user.admin {
-      query = query.filter(
-        community_actions::became_moderator
-          .is_not_null()
-          .and(report_combined::community_report_id.is_null()),
-      );
+    if self.my_reports_only.unwrap_or_default() {
+      query = query.filter(person::id.eq(my_person_id));
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -379,6 +393,38 @@ impl ReportCombinedQuery {
 
     Ok(out)
   }
+}
+
+/// Mods can only see reports for posts/comments inside of communities where they are moderator,
+/// and which have `violates_instance_rules == false`.
+#[diesel::dsl::auto_type]
+fn filter_mod_reports() -> _ {
+  community_actions::became_moderator
+    .is_not_null()
+    // Reporting a community or private message must go to admins
+    .and(report_combined::community_report_id.is_null())
+    .and(report_combined::private_message_report_id.is_null())
+    .and(filter_violates_instance_rules().is_distinct_from(true))
+}
+
+/// Admins can see reports intended for them, or mod reports older than 3 days. Also reports
+/// on communities, person and private messages.
+#[diesel::dsl::auto_type]
+fn filter_admin_reports(interval: DateTime<Utc>) -> _ {
+  filter_violates_instance_rules()
+    .or(report_combined::published.lt(interval))
+    // Also show community reports where the admin is a community mod
+    .or(community_actions::became_moderator.is_not_null())
+}
+
+/// Filter reports which are only for admins (either post/comment report with
+/// `violates_instance_rules=true`, or report on a community/person/private message.
+#[diesel::dsl::auto_type]
+fn filter_violates_instance_rules() -> _ {
+  post_report::violates_instance_rules
+    .or(comment_report::violates_instance_rules)
+    .or(report_combined::community_report_id.is_not_null())
+    .or(report_combined::private_message_report_id.is_not_null())
 }
 
 impl InternalToCombinedView for ReportCombinedViewInternal {
@@ -500,9 +546,13 @@ mod tests {
       ReportCombinedViewInternal,
     },
   };
+  use chrono::{Days, Utc};
+  use diesel::{update, ExpressionMethods, QueryDsl};
+  use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
     aggregates::structs::{CommentAggregates, PostAggregates},
     assert_length,
+    schema::report_combined,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -518,7 +568,7 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, get_conn, DbPool},
     ReportType,
   };
   use lemmy_utils::error::LemmyResult;
@@ -629,7 +679,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_combined() -> LemmyResult<()> {
+  async fn combined() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -656,6 +706,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      violates_instance_rules: false,
     };
     let inserted_post_report = PostReport::report(pool, &sara_report_post_form).await?;
 
@@ -665,6 +716,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "A test comment rv".into(),
       reason: "from sara".into(),
+      violates_instance_rules: false,
     };
     CommentReport::report(pool, &sara_report_comment_form).await?;
 
@@ -686,9 +738,12 @@ mod tests {
     PrivateMessageReport::report(pool, &pm_report_form).await?;
 
     // Do a batch read of admins reports
-    let reports = ReportCombinedQuery::default()
-      .list(pool, &data.admin_view)
-      .await?;
+    let reports = ReportCombinedQuery {
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
     assert_length!(4, reports);
 
     // Make sure the report types are correct
@@ -717,16 +772,19 @@ mod tests {
       panic!("wrong type");
     }
 
+    let report_count_mod =
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(2, report_count_mod);
     let report_count_admin =
       ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
-    assert_eq!(4, report_count_admin);
+    assert_eq!(2, report_count_admin);
 
     // Make sure the type_ filter is working
     let reports_by_type = ReportCombinedQuery {
       type_: Some(ReportType::Posts),
       ..Default::default()
     }
-    .list(pool, &data.admin_view)
+    .list(pool, &data.timmy_view)
     .await?;
     assert_length!(1, reports_by_type);
 
@@ -736,7 +794,7 @@ mod tests {
       post_id: Some(data.post.id),
       ..Default::default()
     }
-    .list(pool, &data.admin_view)
+    .list(pool, &data.timmy_view)
     .await?;
     assert_length!(2, reports_by_post_id);
 
@@ -792,7 +850,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_private_message_reports() -> LemmyResult<()> {
+  async fn private_message_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -814,9 +872,12 @@ mod tests {
     };
     let pm_report = PrivateMessageReport::report(pool, &pm_report_form).await?;
 
-    let reports = ReportCombinedQuery::default()
-      .list(pool, &data.admin_view)
-      .await?;
+    let reports = ReportCombinedQuery {
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
     assert_length!(1, reports);
     if let ReportCombinedView::PrivateMessage(v) = &reports[0] {
       assert!(!v.private_message_report.resolved);
@@ -853,7 +914,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_post_reports() -> LemmyResult<()> {
+  async fn post_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -866,6 +927,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      violates_instance_rules: false,
     };
 
     PostReport::report(pool, &sara_report_form).await?;
@@ -878,6 +940,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from jessica".into(),
+      violates_instance_rules: false,
     };
 
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
@@ -984,7 +1047,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_comment_reports() -> LemmyResult<()> {
+  async fn comment_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -995,6 +1058,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from sara".into(),
+      violates_instance_rules: false,
     };
 
     CommentReport::report(pool, &sara_report_form).await?;
@@ -1005,6 +1069,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from jessica".into(),
+      violates_instance_rules: false,
     };
 
     let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
@@ -1098,7 +1163,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_community_reports() -> LemmyResult<()> {
+  async fn community_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1117,9 +1182,12 @@ mod tests {
     };
     let community_report = CommunityReport::report(pool, &community_report_form).await?;
 
-    let reports = ReportCombinedQuery::default()
-      .list(pool, &data.admin_view)
-      .await?;
+    let reports = ReportCombinedQuery {
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
     assert_length!(1, reports);
     if let ReportCombinedView::Community(v) = &reports[0] {
       assert!(!v.community_report.resolved);
@@ -1134,9 +1202,12 @@ mod tests {
     // admin resolves the report (after taking appropriate action)
     CommunityReport::resolve(pool, community_report.id, data.admin_view.person.id).await?;
 
-    let reports = ReportCombinedQuery::default()
-      .list(pool, &data.admin_view)
-      .await?;
+    let reports = ReportCombinedQuery {
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
     assert_length!(1, reports);
     if let ReportCombinedView::Community(v) = &reports[0] {
       assert!(v.community_report.resolved);
@@ -1145,6 +1216,147 @@ mod tests {
         Some(&data.admin_view.person.name),
         v.resolver.as_ref().map(|r| &r.name)
       );
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn violates_instance_rules() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // create report to admins
+    let report_form = PostReportForm {
+      creator_id: data.sara.id,
+      post_id: data.post_2.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+      violates_instance_rules: true,
+    };
+    PostReport::report(pool, &report_form).await?;
+
+    // timmy is a mod and cannot see the report
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(0, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(0, count);
+
+    // only admin can see the report
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    assert_eq!(1, count);
+
+    // cleanup the report for easier checks below
+    Post::delete(pool, data.post_2.id).await?;
+
+    // now create a mod report
+    let report_form = CommentReportForm {
+      creator_id: data.sara.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from sara".into(),
+      violates_instance_rules: false,
+    };
+    let comment_report = CommentReport::report(pool, &report_form).await?;
+
+    // this time the mod can see it
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(1, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(1, count);
+
+    // but not the admin
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(0, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    assert_eq!(0, count);
+
+    // admin can see the report with `view_mod_reports` set
+    let admin_reports = ReportCombinedQuery {
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy_view)
+    .await?;
+    assert_length!(1, admin_reports);
+
+    // change a comment to be 3 days old, now admin can also see it by default
+    update(
+      report_combined::table.filter(report_combined::dsl::comment_report_id.eq(comment_report.id)),
+    )
+    .set(report_combined::published.eq(Utc::now() - Days::new(3)))
+    .execute(&mut get_conn(pool).await?)
+    .await?;
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, admin_reports);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn my_reports_only() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // sara reports
+    let sara_report_form = CommentReportForm {
+      creator_id: data.sara.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from sara".into(),
+      violates_instance_rules: false,
+    };
+    CommentReport::report(pool, &sara_report_form).await?;
+
+    // timmy reports
+    let timmy_report_form = CommentReportForm {
+      creator_id: data.timmy.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from timmy".into(),
+      violates_instance_rules: false,
+    };
+    CommentReport::report(pool, &timmy_report_form).await?;
+
+    let agg = CommentAggregates::read(pool, data.comment.id).await?;
+    assert_eq!(agg.report_count, 2);
+
+    // Do a batch read of timmys reports, it should only show his own
+    let reports = ReportCombinedQuery {
+      my_reports_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy_view)
+    .await?;
+
+    assert_length!(1, reports);
+
+    if let ReportCombinedView::Comment(v) = &reports[0] {
+      assert_eq!(v.creator.id, data.timmy.id);
     } else {
       panic!("wrong type");
     }

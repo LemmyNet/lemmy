@@ -1,7 +1,20 @@
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use diesel::Queryable;
-#[cfg(feature = "full")]
-use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
+use diesel::{
+  deserialize::FromSqlRow,
+  dsl::exists,
+
+  dsl::Nullable,
+  expression::AsExpression,
+  sql_types,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  PgExpressionMethods,
+  QueryDsl,
+  Queryable,
+  Selectable,
+};
 use lemmy_db_schema::{
   aggregates::structs::{
     CommentAggregates,
@@ -60,6 +73,16 @@ use lemmy_db_schema::{
   },
   SubscribedType,
 };
+#[cfg(feature = "full")]
+use lemmy_db_schema::{
+  aliases::{creator_community_actions, creator_local_user, person1},
+  impls::comment::comment_select_remove_deletes,
+  impls::community::community_follower_select_subscribed_type,
+  impls::local_user::local_user_can_mod,
+  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
+  utils::functions::coalesce,
+  Person1AliasAllColumnsTuple,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -84,7 +107,9 @@ pub struct CommentReportView {
   pub creator_is_admin: bool,
   pub creator_blocked: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -93,25 +118,99 @@ pub struct CommentReportView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment view.
 pub struct CommentView {
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = comment_select_remove_deletes()
+    )
+  )]
   pub comment: Comment,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: CommentAggregates,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null()
+    )
+  )]
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        community_actions::received_ban.nullable().is_not_null()
+    )
+  )]
   pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null()
+    )
+  )]
   pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        exists(creator_local_user.filter(
+          comment::creator_id
+            .eq(creator_local_user.field(local_user::person_id))
+            .and(creator_local_user.field(local_user::admin).eq(true)),
+        ))
+    )
+  )]
   pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_follower_select_subscribed_type(),
+    )
+  )]
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        comment_actions::saved.nullable()
+    )
+  )]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        person_actions::blocked.nullable().is_not_null()
+    )
+  )]
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        comment_actions::like_score.nullable()
+    )
+  )]
   pub my_vote: Option<i16>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_can_mod()
+    )
+  )]
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -129,10 +228,13 @@ pub struct CommentSlimView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -152,14 +254,18 @@ pub struct CommunityReportView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A local user view.
 pub struct LocalUserView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_user: LocalUser,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: PersonAggregates,
 }
 
@@ -179,7 +285,9 @@ pub struct PostReportView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -236,7 +344,9 @@ pub struct PostView {
   pub creator_is_admin: bool,
   pub counts: PostAggregates,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -244,6 +354,7 @@ pub struct PostView {
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
   pub tags: PostTags,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -263,27 +374,40 @@ pub struct PrivateMessageReportView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A registration application view.
 pub struct RegistrationApplicationView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub registration_application: RegistrationApplication,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator_local_user: LocalUser,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = person1.fields(person::all_columns).nullable()
+    )
+  )]
   pub admin: Option<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A site view.
 pub struct SiteView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub site: Site,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site: LocalSite,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site_rate_limit: LocalSiteRateLimit,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: SiteAggregates,
 }
 
@@ -311,12 +435,14 @@ pub struct VoteView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A local image view.
 pub struct LocalImageView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_image: LocalImage,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
 }
 
@@ -330,7 +456,7 @@ pub struct ReportCombinedViewInternal {
   pub post: Option<Post>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -338,7 +464,7 @@ pub struct ReportCombinedViewInternal {
   pub comment_report: Option<CommentReport>,
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
@@ -374,11 +500,11 @@ pub enum ReportCombinedView {
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined person_content view
-pub struct PersonContentCombinedViewInternal {
+pub(crate) struct PersonContentCombinedViewInternal {
   // Post-specific
   pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -387,7 +513,7 @@ pub struct PersonContentCombinedViewInternal {
   // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared
   pub post: Post,
@@ -399,6 +525,7 @@ pub struct PersonContentCombinedViewInternal {
   pub item_creator_banned_from_community: bool,
   pub item_creator_blocked: bool,
   pub banned_from_community: bool,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -412,45 +539,76 @@ pub enum PersonContentCombinedView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community follower.
 pub struct CommunityFollowerView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub follower: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community moderator.
 pub struct CommunityModeratorView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub moderator: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A community person ban.
 pub struct CommunityPersonBanView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community view.
 pub struct CommunityView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_follower_select_subscribed_type()
+    )
+  )]
   pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_actions::blocked.nullable().is_not_null()
+    )
+  )]
   pub blocked: bool,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: CommunityAggregates,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_actions::received_ban.nullable().is_not_null()
+    )
+  )]
   pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user::admin.nullable()
+        .or(community_actions::became_moderator.nullable().is_not_null())
+        .is_not_distinct_from(true)
+    )
+  )]
+  pub can_mod: bool,
 }
 
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
@@ -458,28 +616,20 @@ pub struct CommunityView {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub enum CommunitySortType {
+  ActiveSixMonths,
   #[default]
-  Active,
+  ActiveMonthly,
+  ActiveWeekly,
+  ActiveDaily,
   Hot,
   New,
   Old,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
-  MostComments,
-  NewComments,
-  TopHour,
-  TopSixHour,
-  TopTwelveHour,
-  TopThreeMonths,
-  TopSixMonths,
-  TopNineMonths,
-  Controversial,
-  Scaled,
   NameAsc,
   NameDesc,
+  Comments,
+  Posts,
+  Subscribers,
+  SubscribersLocal,
 }
 
 #[skip_serializing_none]
@@ -501,10 +651,13 @@ pub struct PersonCommentMentionView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -527,7 +680,9 @@ pub struct PersonPostMentionView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the post was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -535,6 +690,7 @@ pub struct PersonPostMentionView {
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
   pub post_tags: PostTags,
+  pub can_mod: bool,
 }
 
 #[skip_serializing_none]
@@ -556,20 +712,31 @@ pub struct CommentReplyView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The time when the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person view.
 pub struct PersonView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: PersonAggregates,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,
+      select_expression = coalesce(local_user::admin.nullable(), false)
+    )
+  )]
   pub is_admin: bool,
 }
 
@@ -585,13 +752,21 @@ pub struct PendingFollow {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A private message view.
 pub struct PrivateMessageView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: PrivateMessage,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1.fields(person::all_columns)
+    )
+  )]
   pub recipient: Person,
 }
 
@@ -614,7 +789,7 @@ pub struct InboxCombinedViewInternal {
   pub person_post_mention: Option<PersonPostMention>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -627,7 +802,7 @@ pub struct InboxCombinedViewInternal {
   pub community: Option<Community>,
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   pub subscribed: SubscribedType,
   pub item_creator: Person,
@@ -637,6 +812,7 @@ pub struct InboxCombinedViewInternal {
   pub item_creator_banned_from_community: bool,
   pub item_creator_blocked: bool,
   pub banned_from_community: bool,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -888,36 +1064,64 @@ pub struct AdminAllowInstanceView {
 pub struct ModlogCombinedPaginationCursor(pub String);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined modlog view
-pub struct ModlogCombinedViewInternal {
+pub(crate) struct ModlogCombinedViewInternal {
   // Specific
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_allow_instance: Option<AdminAllowInstance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_block_instance: Option<AdminBlockInstance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_comment: Option<AdminPurgeComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_community: Option<AdminPurgeCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_person: Option<AdminPurgePerson>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_post: Option<AdminPurgePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_add: Option<ModAdd>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_add_community: Option<ModAddCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_ban: Option<ModBan>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_ban_from_community: Option<ModBanFromCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_feature_post: Option<ModFeaturePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_hide_community: Option<ModHideCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_lock_post: Option<ModLockPost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_comment: Option<ModRemoveComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_community: Option<ModRemoveCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_post: Option<ModRemovePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_transfer_community: Option<ModTransferCommunity>,
   // Specific fields
 
   // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub moderator: Option<Person>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = person1.fields(person::all_columns).nullable()
+    )
+  )]
   pub other_person: Option<Person>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub instance: Option<Instance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Option<Post>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
 }
 
@@ -957,12 +1161,12 @@ pub struct SearchCombinedPaginationCursor(pub String);
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined search view
-pub struct SearchCombinedViewInternal {
+pub(crate) struct SearchCombinedViewInternal {
   // Post-specific
   pub post: Option<Post>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -971,7 +1175,7 @@ pub struct SearchCombinedViewInternal {
   // // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // // Community-specific
   pub community: Option<Community>,
@@ -987,6 +1191,7 @@ pub struct SearchCombinedViewInternal {
   pub item_creator_banned_from_community: bool,
   pub item_creator_blocked: bool,
   pub banned_from_community: bool,
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

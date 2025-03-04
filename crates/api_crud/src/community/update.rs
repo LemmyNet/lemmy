@@ -9,9 +9,10 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
+    check_nsfw_allowed,
     get_url_blocklist,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -36,9 +37,10 @@ pub async fn update_community(
 ) -> LemmyResult<Json<CommunityResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)

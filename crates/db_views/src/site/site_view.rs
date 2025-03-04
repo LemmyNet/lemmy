@@ -1,5 +1,5 @@
 use crate::structs::SiteView;
-use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
@@ -17,12 +17,7 @@ impl SiteView {
           local_site_rate_limit::table.on(local_site::id.eq(local_site_rate_limit::local_site_id)),
         )
         .inner_join(site_aggregates::table)
-        .select((
-          site::all_columns,
-          local_site::all_columns,
-          local_site_rate_limit::all_columns,
-          site_aggregates::all_columns,
-        ))
+        .select(Self::as_select())
         .first(conn)
         .await
         .optional()?

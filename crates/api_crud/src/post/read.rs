@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   post::post_view::PostQuery,
-  structs::{CommunityModeratorView, CommunityView, LocalUserView, PostView, SiteView},
+  structs::{CommunityView, LocalUserView, PostView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -84,8 +84,6 @@ pub async fn get_post(
   )
   .await?;
 
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
-
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
@@ -108,7 +106,6 @@ pub async fn get_post(
   Ok(Json(GetPostResponse {
     post_view,
     community_view,
-    moderators,
     cross_posts,
   }))
 }

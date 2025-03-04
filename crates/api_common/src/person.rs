@@ -120,6 +120,9 @@ pub struct SaveUserSettings {
   /// The default post sort, usually "active"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
+  /// A default time range limit to apply to post sorts, in seconds. 0 means none.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub default_post_time_range_seconds: Option<i32>,
   /// The default comment sort, usually "hot"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
@@ -531,4 +534,12 @@ pub struct ListMediaResponse {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListLoginsResponse {
   pub logins: Vec<LoginToken>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a request to resend your verification email.
+pub struct ResendVerificationEmail {
+  pub email: SensitiveString,
 }

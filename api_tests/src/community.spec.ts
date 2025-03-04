@@ -44,9 +44,7 @@ function assertCommunityFederation(
   communityOne?: CommunityView,
   communityTwo?: CommunityView,
 ) {
-  expect(communityOne?.community.actor_id).toBe(
-    communityTwo?.community.actor_id,
-  );
+  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
   expect(communityOne?.community.name).toBe(communityTwo?.community.name);
   expect(communityOne?.community.title).toBe(communityTwo?.community.title);
   expect(communityOne?.community.description).toBe(
@@ -198,7 +196,7 @@ test("Admin actions in remote community are not federated to origin", async () =
 
   // gamma follows community and posts in it
   let gammaCommunity = (
-    await resolveCommunity(gamma, communityRes.community.actor_id)
+    await resolveCommunity(gamma, communityRes.community.ap_id)
   ).community;
   if (!gammaCommunity) {
     throw "Missing gamma community";
@@ -206,7 +204,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   await followCommunity(gamma, true, gammaCommunity.community.id);
   gammaCommunity = (
     await waitUntil(
-      () => resolveCommunity(gamma, communityRes.community.actor_id),
+      () => resolveCommunity(gamma, communityRes.community.ap_id),
       g => g.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -221,7 +219,7 @@ test("Admin actions in remote community are not federated to origin", async () =
 
   // admin of beta decides to ban gamma from community
   let betaCommunity = (
-    await resolveCommunity(beta, communityRes.community.actor_id)
+    await resolveCommunity(beta, communityRes.community.ap_id)
   ).community;
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -230,7 +228,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   if (!bannedUserInfo1) {
     throw "Missing banned user 1";
   }
-  let bannedUserInfo2 = (await resolvePerson(beta, bannedUserInfo1.actor_id))
+  let bannedUserInfo2 = (await resolvePerson(beta, bannedUserInfo1.ap_id))
     .person;
   if (!bannedUserInfo2) {
     throw "Missing banned user 2";
@@ -383,7 +381,7 @@ test("User blocks instance, communities are hidden", async () => {
 test.skip("Community follower count is federated", async () => {
   // Follow the beta community from alpha
   let community = await createCommunity(beta);
-  let communityActorId = community.community_view.community.actor_id;
+  let communityActorId = community.community_view.community.ap_id;
   let resolved = await resolveCommunity(alpha, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
@@ -441,7 +439,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes.community_view.counts.subscribers).toBe(1);
 
   let betaCommunity = (
-    await resolveCommunity(beta, communityRes.community_view.community.actor_id)
+    await resolveCommunity(beta, communityRes.community_view.community.ap_id)
   ).community;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 
@@ -503,13 +501,12 @@ test("Fetch community, includes posts", async () => {
   expect(postRes.post_view.post).toBeDefined();
 
   let resolvedCommunity = await waitUntil(
-    () =>
-      resolveCommunity(beta, communityRes.community_view.community.actor_id),
+    () => resolveCommunity(beta, communityRes.community_view.community.ap_id),
     c => c.community?.community.id != undefined,
   );
   let betaCommunity = resolvedCommunity.community;
-  expect(betaCommunity?.community.actor_id).toBe(
-    communityRes.community_view.community.actor_id,
+  expect(betaCommunity?.community.ap_id).toBe(
+    communityRes.community_view.community.ap_id,
   );
 
   await longDelay();
@@ -530,7 +527,7 @@ test("Content in local-only community doesn't federate", async () => {
 
   // cant resolve the community from another instance
   await expect(
-    resolveCommunity(beta, communityRes.actor_id),
+    resolveCommunity(beta, communityRes.ap_id),
   ).rejects.toStrictEqual(Error("not_found"));
 
   // create a post, also cant resolve it
@@ -545,7 +542,7 @@ test("Remote mods can edit communities", async () => {
 
   let betaCommunity = await resolveCommunity(
     beta,
-    communityRes.community_view.community.actor_id,
+    communityRes.community_view.community.ap_id,
   );
   if (!betaCommunity.community) {
     throw "Missing beta community";
@@ -584,7 +581,7 @@ test("Community name with non-ascii chars", async () => {
 
   let betaCommunity1 = await resolveCommunity(
     beta,
-    communityRes.community_view.community.actor_id,
+    communityRes.community_view.community.ap_id,
   );
   expect(betaCommunity1.community!.community.name).toBe(name);
 

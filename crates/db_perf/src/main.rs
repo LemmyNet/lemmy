@@ -192,7 +192,7 @@ fn site() -> LemmyResult<Site> {
     icon: None,
     banner: None,
     description: None,
-    actor_id: Url::parse("http://example.com")?.into(),
+    ap_id: Url::parse("http://example.com")?.into(),
     last_refreshed_at: Default::default(),
     inbox_url: Url::parse("http://example.com")?.into(),
     private_key: None,

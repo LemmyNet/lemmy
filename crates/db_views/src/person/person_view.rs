@@ -1,173 +1,71 @@
 use crate::structs::PersonView;
 use diesel::{
-  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
-  PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{local_user, person, person_aggregates},
-  utils::{
-    functions::coalesce,
-    fuzzy_search,
-    limit_and_offset,
-    now,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
-  ListingType,
-  PostSortType,
+  utils::{get_conn, now, DbPool},
 };
-use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
-
-enum ListMode {
-  Admins,
-  Banned,
-  Query(PersonQuery),
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
-/// The person sort types. Converted automatically from `SortType`
-enum PersonSortType {
-  New,
-  Old,
-  MostComments,
-  CommentScore,
-  PostScore,
-  PostCount,
-}
-
-fn post_to_person_sort_type(sort: PostSortType) -> PersonSortType {
-  use PostSortType::*;
-  match sort {
-    Active | Hot | Controversial => PersonSortType::CommentScore,
-    New | NewComments => PersonSortType::New,
-    MostComments => PersonSortType::MostComments,
-    Old => PersonSortType::Old,
-    _ => PersonSortType::CommentScore,
-  }
-}
-
-fn queries<'a>(
-) -> Queries<impl ReadFn<'a, PersonView, (PersonId, bool)>, impl ListFn<'a, PersonView, ListMode>> {
-  let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
-    query
-      .inner_join(person_aggregates::table)
-      .left_join(local_user::table)
-      .select((
-        person::all_columns,
-        person_aggregates::all_columns,
-        coalesce(local_user::admin.nullable(), false),
-      ))
-  };
-
-  let read = move |mut conn: DbConn<'a>, params: (PersonId, bool)| async move {
-    let (person_id, is_admin) = params;
-    let mut query = all_joins(person::table.find(person_id).into_boxed());
-    if !is_admin {
-      query = query.filter(person::deleted.eq(false));
-    }
-    query.first(&mut conn).await
-  };
-
-  let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
-    let mut query = all_joins(person::table.into_boxed()).filter(person::deleted.eq(false));
-    match mode {
-      ListMode::Admins => {
-        query = query
-          .filter(local_user::admin.eq(true))
-          .filter(person::deleted.eq(false))
-          .order_by(person::published);
-      }
-      ListMode::Banned => {
-        query = query
-          .filter(
-            person::local.eq(true).and(
-              person::banned.eq(true).and(
-                person::ban_expires
-                  .is_null()
-                  .or(person::ban_expires.gt(now().nullable())),
-              ),
-            ),
-          )
-          .filter(person::deleted.eq(false));
-      }
-      ListMode::Query(o) => {
-        if let Some(search_term) = o.search_term {
-          let searcher = fuzzy_search(&search_term);
-          query = query
-            .filter(person::name.ilike(searcher.clone()))
-            .or_filter(person::display_name.ilike(searcher));
-        }
-
-        let sort = o.sort.map(post_to_person_sort_type);
-        query = match sort.unwrap_or(PersonSortType::CommentScore) {
-          PersonSortType::New => query.order_by(person::published.desc()),
-          PersonSortType::Old => query.order_by(person::published.asc()),
-          PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-          PersonSortType::CommentScore => query.order_by(person_aggregates::comment_score.desc()),
-          PersonSortType::PostScore => query.order_by(person_aggregates::post_score.desc()),
-          PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
-        };
-
-        let (limit, offset) = limit_and_offset(o.page, o.limit)?;
-        query = query.limit(limit).offset(offset);
-
-        if let Some(listing_type) = o.listing_type {
-          query = match listing_type {
-            // return nothing as its not possible to follow users
-            ListingType::Subscribed => query.limit(0),
-            ListingType::Local => query.filter(person::local.eq(true)),
-            _ => query,
-          };
-        }
-      }
-    }
-    query.load::<PersonView>(&mut conn).await
-  };
-
-  Queries::new(read, list)
-}
 
 impl PersonView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    person::table
+      .inner_join(person_aggregates::table)
+      .left_join(local_user::table)
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     is_admin: bool,
   ) -> Result<Self, Error> {
-    queries().read(pool, (person_id, is_admin)).await
+    let conn = &mut get_conn(pool).await?;
+    let mut query = Self::joins()
+      .filter(person::id.eq(person_id))
+      .select(Self::as_select())
+      .into_boxed();
+
+    if !is_admin {
+      query = query.filter(person::deleted.eq(false))
+    }
+
+    query.first(conn).await
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    queries().list(pool, ListMode::Admins).await
+    let conn = &mut get_conn(pool).await?;
+    Self::joins()
+      .filter(person::deleted.eq(false))
+      .filter(local_user::admin.eq(true))
+      .order_by(person::published)
+      .select(Self::as_select())
+      .load::<Self>(conn)
+      .await
   }
 
   pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    queries().list(pool, ListMode::Banned).await
-  }
-}
-
-#[derive(Default)]
-pub struct PersonQuery {
-  pub sort: Option<PostSortType>,
-  pub search_term: Option<String>,
-  pub listing_type: Option<ListingType>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-}
-
-impl PersonQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
-    queries().list(pool, ListMode::Query(self)).await
+    let conn = &mut get_conn(pool).await?;
+    Self::joins()
+      .filter(person::deleted.eq(false))
+      .filter(
+        person::banned.eq(true).and(
+          person::ban_expires
+            .is_null()
+            .or(person::ban_expires.gt(now().nullable())),
+        ),
+      )
+      .order_by(person::published)
+      .select(Self::as_select())
+      .load::<Self>(conn)
+      .await
   }
 }
 
@@ -258,15 +156,6 @@ mod tests {
     let read = PersonView::read(pool, data.alice.id, true).await;
     assert!(read.is_ok());
 
-    let list = PersonQuery {
-      sort: Some(PostSortType::New),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_length!(1, list);
-    assert_eq!(list[0].person.id, data.bob.id);
-
     cleanup(data, pool).await
   }
 
@@ -320,33 +209,6 @@ mod tests {
 
     let is_admin = PersonView::read(pool, data.bob.id, false).await?.is_admin;
     assert!(!is_admin);
-
-    cleanup(data, pool).await
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn listing_type() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    let list = PersonQuery {
-      listing_type: Some(ListingType::Local),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_length!(1, list);
-    assert_eq!(list[0].person.id, data.alice.id);
-
-    let list = PersonQuery {
-      listing_type: Some(ListingType::All),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_length!(2, list);
 
     cleanup(data, pool).await
   }

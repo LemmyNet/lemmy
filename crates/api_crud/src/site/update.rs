@@ -10,8 +10,8 @@ use lemmy_api_common::{
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::diesel_string_update,
+  utils::{diesel_opt_number_update, diesel_string_update},
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -61,13 +61,15 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
+  let default_post_time_range_seconds =
+    diesel_opt_number_update(data.default_post_time_range_seconds);
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
@@ -93,6 +95,7 @@ pub async fn update_site(
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_post_sort_type: data.default_post_sort_type,
+    default_post_time_range_seconds,
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
@@ -111,6 +114,7 @@ pub async fn update_site(
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
     disable_donation_dialog: data.disable_donation_dialog,
+    disallow_nsfw_content: data.disallow_nsfw_content,
     ..Default::default()
   };
 
@@ -189,11 +193,11 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   // Check that the slur regex compiles, and return the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &edit_site
+    edit_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  );
+  )?;
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...

@@ -75,7 +75,7 @@ test("Upload image and delete it", async () => {
   expect(listAllMediaRes.images.length).toBe(previousThumbnails);
 
   // Make sure the uploader is correct
-  expect(listMediaRes.images[0].person.actor_id).toBe(
+  expect(listMediaRes.images[0].person.ap_id).toBe(
     `http://lemmy-alpha:8541/u/lemmy_alpha`,
   );
 
@@ -268,7 +268,7 @@ test("No image proxying if setting is disabled", async () => {
   let community = await createCommunity(alpha);
   let betaCommunity = await resolveCommunity(
     beta,
-    community.community_view.community.actor_id,
+    community.community_view.community.ap_id,
   );
   await followCommunity(beta, true, betaCommunity.community!.community.id);
 

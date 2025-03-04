@@ -18,17 +18,11 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    check_private_messages_enabled,
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown,
-  },
+  utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
     instance::Instance,
-    local_site::LocalSite,
     person::Person,
     person_block::PersonBlock,
     private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
@@ -107,8 +101,8 @@ impl Object for ApubPrivateMessage {
     let note = PrivateMessage {
       kind,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
-      to: [recipient.actor_id.into()],
+      attributed_to: creator.ap_id.into(),
+      to: [recipient.ap_id.into()],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
@@ -131,7 +125,7 @@ impl Object for ApubPrivateMessage {
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
       Err(FederationError::PersonIsBannedFromSite(
-        person.actor_id.to_string(),
+        person.ap_id.to_string(),
       ))?
     } else {
       Ok(())
@@ -152,12 +146,11 @@ impl Object for ApubPrivateMessage {
     {
       check_private_messages_enabled(&recipient_local_user)?;
     }
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
 
     let form = PrivateMessageInsertForm {

@@ -1,6 +1,10 @@
 use crate::{
-  api::{listing_type_with_default, post_sort_type_with_default},
-  fetcher::resolve_actor_identifier,
+  api::{
+    listing_type_with_default,
+    post_sort_type_with_default,
+    post_time_range_seconds_with_default,
+  },
+  fetcher::resolve_ap_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
@@ -25,15 +29,15 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostsResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &site_view.local_site)?;
 
   let page = data.page;
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
     .map(|c| c.id)
@@ -55,15 +59,20 @@ pub async fn list_posts(
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user,
-    &local_site.local_site,
+    &site_view.local_site,
     community_id,
   ));
 
   let sort = Some(post_sort_type_with_default(
     data.sort,
     local_user,
-    &local_site.local_site,
+    &site_view.local_site,
   ));
+  let time_range_seconds = post_time_range_seconds_with_default(
+    data.time_range_seconds,
+    local_user,
+    &site_view.local_site,
+  );
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
@@ -76,6 +85,7 @@ pub async fn list_posts(
     local_user,
     listing_type,
     sort,
+    time_range_seconds,
     community_id,
     read_only,
     liked_only,
@@ -90,7 +100,7 @@ pub async fn list_posts(
     no_comments_only,
     ..Default::default()
   }
-  .list(&local_site.site, &mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 

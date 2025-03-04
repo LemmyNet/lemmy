@@ -41,9 +41,11 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 
-#[async_trait]
 impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
@@ -180,6 +182,19 @@ impl Post {
       .optional()
   }
 
+  pub async fn delete_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: Url,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let object_id: DbUrl = object_id.into();
+
+    diesel::update(post::table.filter(post::ap_id.eq(object_id)))
+      .set(post::deleted.eq(true))
+      .get_results::<Self>(conn)
+      .await
+  }
+
   pub async fn fetch_pictrs_posts_for_creator(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
@@ -270,9 +285,13 @@ impl Post {
       .first::<i64>(conn)
       .await
   }
+
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
+  }
 }
 
-#[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
@@ -301,7 +320,6 @@ impl Likeable for PostLike {
   }
 }
 
-#[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {

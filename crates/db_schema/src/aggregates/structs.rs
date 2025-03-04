@@ -75,6 +75,9 @@ pub struct CommunityAggregates {
   pub subscribers_local: i64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
+  /// Number of any interactions over the last month.
+  #[serde(skip)]
+  pub interactions_month: i64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
@@ -96,6 +99,7 @@ pub struct PersonAggregates {
   pub comment_count: i64,
   #[serde(skip)]
   pub comment_score: i64,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]

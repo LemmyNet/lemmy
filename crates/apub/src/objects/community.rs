@@ -18,13 +18,14 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
     get_url_blocklist,
-    local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -109,9 +110,9 @@ impl Object for ApubCommunity {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
-      featured: Some(generate_featured_url(&self.actor_id)?.into()),
+      featured: Some(generate_featured_url(&self.ap_id)?.into()),
       inbox: self.inbox_url.clone().into(),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
+      outbox: generate_outbox_url(&self.ap_id)?.into(),
       followers: self.followers_url.clone().map(Into::into),
       endpoints: None,
       public_key: self.public_key(),
@@ -119,7 +120,7 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
+      attributed_to: Some(generate_moderators_url(&self.ap_id)?.into()),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
     };
     Ok(group)
@@ -134,15 +135,14 @@ impl Object for ApubCommunity {
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
-    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
@@ -151,17 +151,24 @@ impl Object for ApubCommunity {
     } else {
       CommunityVisibility::Public
     });
+
+    // If NSFW is not allowed, then remove NSFW communities
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+      .err()
+      .map(|_| true);
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id: Some(group.id.into()),
+      ap_id: Some(group.id.into()),
       local: Some(false),
       last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
       sidebar,
+      removed,
       description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(
@@ -214,7 +221,7 @@ impl Object for ApubCommunity {
 
 impl Actor for ApubCommunity {
   fn id(&self) -> Url {
-    self.actor_id.inner().clone()
+    self.ap_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {

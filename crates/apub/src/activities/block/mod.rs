@@ -110,8 +110,8 @@ impl Object for SiteOrCommunity {
 impl SiteOrCommunity {
   fn id(&self) -> ObjectId<SiteOrCommunity> {
     match self {
-      SiteOrCommunity::Site(s) => ObjectId::from(s.actor_id.clone()),
-      SiteOrCommunity::Community(c) => ObjectId::from(c.actor_id.clone()),
+      SiteOrCommunity::Site(s) => ObjectId::from(s.ap_id.clone()),
+      SiteOrCommunity::Community(c) => ObjectId::from(c.ap_id.clone()),
     }
   }
 }
@@ -121,7 +121,7 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyRe
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
       .into_iter()
-      .map(|s| s.actor_id.into())
+      .map(|s| s.ap_id.into())
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.id()],
   })

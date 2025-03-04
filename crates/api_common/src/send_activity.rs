@@ -99,6 +99,12 @@ pub enum SendActivityData {
     community: Community,
     reason: String,
   },
+  SendResolveReport {
+    object_id: Url,
+    actor: Person,
+    report_creator: Person,
+    community: Community,
+  },
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

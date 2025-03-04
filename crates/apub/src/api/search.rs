@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
+use crate::{fetcher::resolve_ap_identifier, objects::community::ApubCommunity};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -25,7 +25,7 @@ pub async fn search(
 
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
         .await?,
     )
     .map(|c| c.id)
@@ -33,6 +33,7 @@ pub async fn search(
     data.community_id
   };
   let search_term = data.search_term.clone();
+  let time_range_seconds = data.time_range_seconds;
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
@@ -48,6 +49,7 @@ pub async fn search(
     creator_id: data.creator_id,
     type_: data.type_,
     sort: data.sort,
+    time_range_seconds,
     listing_type: data.listing_type,
     title_only: data.title_only,
     post_url_only: data.post_url_only,
