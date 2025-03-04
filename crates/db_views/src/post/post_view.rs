@@ -588,7 +588,7 @@ impl<'a> PostQuery<'a> {
         let blocked_keywords: Vec<String> = post_keyword_block::table
             .filter(post_keyword_block::person_id.eq(person_id))
             .select(post_keyword_block::keyword)
-            .load::<String>(&mut conn)
+            .load::<String>(conn)
             .await?;
         if !blocked_keywords.is_empty() {
           let transformed_strings: Vec<String> = blocked_keywords.iter()
@@ -850,7 +850,7 @@ mod tests {
       PersonBlock::block(pool, &person_block).await?;
 
       let post_keyword_block = PostKeywordBlockForm {
-        person_id: inserted_person.id,
+        person_id: inserted_tegan_person.id,
         keyword: POST_KEYWORD_BLOCKED.to_string(),
       };
 
@@ -2493,16 +2493,16 @@ mod tests {
 
     let post_name_blocked = PostInsertForm::new(
       name_blocked.clone(),
-      data.local_user_view.person.id,
-      data.inserted_community.id,
+      data.tegan_local_user_view.person.id,
+      data.community.id,
     );
 
     let post_body_blocked = PostInsertForm {
       body: Some(body),
       ..PostInsertForm::new(
         name_not_blocked.clone(),
-        data.local_user_view.person.id,
-        data.inserted_community.id,
+        data.tegan_local_user_view.person.id,
+        data.community.id,
       )
     };
 
@@ -2510,8 +2510,8 @@ mod tests {
       url,
       ..PostInsertForm::new(
         name_not_blocked2.clone(),
-        data.local_user_view.person.id,
-        data.inserted_community.id,
+        data.tegan_local_user_view.person.id,
+        data.community.id,
       )
     };
 
@@ -2520,8 +2520,8 @@ mod tests {
       url: Some(Url::parse("https://google.com")?.into()),
       ..PostInsertForm::new(
         name_blocked2.clone(),
-        data.local_user_view.person.id,
-        data.inserted_community.id,
+        data.tegan_local_user_view.person.id,
+        data.community.id,
       )
     };
     Post::create(pool, &post_name_blocked).await?;
@@ -2530,7 +2530,7 @@ mod tests {
     Post::create(pool, &post_name_blocked_but_not_body_and_url).await?;
 
     let post_listings = PostQuery {
-      local_user: Some(&data.local_user_view.local_user),
+      local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
