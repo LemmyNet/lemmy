@@ -177,6 +177,18 @@ CREATE INDEX idx_post_aggregates_published ON post_aggregates USING btree (publi
 
 CREATE INDEX idx_post_aggregates_published_asc ON post_aggregates USING btree (reverse_timestamp_sort (published) DESC);
 
+DROP INDEX idx_post_featured_community_published_asc;
+
+DROP INDEX idx_post_featured_local_published;
+
+DROP INDEX idx_post_featured_local_published_asc;
+
+DROP INDEX idx_post_published;
+
+DROP INDEX idx_post_published_asc;
+
+DROP INDEX idx_search_combined_score;
+
 -- move community_aggregates back into separate table
 CREATE TABLE community_aggregates (
     community_id int PRIMARY KEY NOT NULL REFERENCES COMMunity ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -272,8 +284,9 @@ CREATE INDEX idx_person_aggregates_comment_score ON public.person_aggregates USI
 CREATE INDEX idx_person_aggregates_person ON public.person_aggregates USING btree (person_id);
 
 -- move site_aggregates back into separate table
-CREATE TABLE person_aggregates (
-    site_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE users bigint NOT NULL DEFAULT 1,
+CREATE TABLE site_aggregates (
+    site_id int PRIMARY KEY NOT NULL REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    users bigint NOT NULL DEFAULT 1,
     posts bigint NOT NULL DEFAULT 0,
     comments bigint NOT NULL DEFAULT 0,
     communities bigint NOT NULL DEFAULT 0,
@@ -309,7 +322,8 @@ ALTER TABLE local_site
 
 -- move local_user_vote_display_mode back into separate table
 CREATE TABLE local_user_vote_display_mode (
-    local_user_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE users score boolean NOT NULL DEFAULT FALSE,
+    local_user_id int PRIMARY KEY NOT NULL REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE,
+    score boolean NOT NULL DEFAULT FALSE,
     upvotes boolean NOT NULL DEFAULT TRUE,
     downvotes boolean NOT NULL DEFAULT TRUE,
     upvote_percentage boolean NOT NULL DEFAULT FALSE
@@ -330,4 +344,8 @@ ALTER TABLE local_user
     DROP COLUMN show_upvotes,
     DROP COLUMN show_downvotes,
     DROP COLUMN show_upvote_percentage;
+
+CREATE INDEX idx_search_combined_score ON public.search_combined USING btree (score DESC, id DESC);
+
+CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USING btree ((TRUE));
 
