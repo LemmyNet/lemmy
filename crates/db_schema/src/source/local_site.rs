@@ -101,6 +101,8 @@ pub struct LocalSite {
   pub users_active_month: i64,
   /// The number of users with any activity in the last half year.
   pub users_active_half_year: i64,
+  /// Block NSFW content being created
+  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -164,6 +166,8 @@ pub struct LocalSiteInsertForm {
   pub disable_donation_dialog: Option<bool>,
   #[new(default)]
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  #[new(default)]
+  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, Default)]
@@ -199,4 +203,5 @@ pub struct LocalSiteUpdateForm {
   pub comment_downvotes: Option<FederationMode>,
   pub disable_donation_dialog: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub disallow_nsfw_content: Option<bool>,
 }

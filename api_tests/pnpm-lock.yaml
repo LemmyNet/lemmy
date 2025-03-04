@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.13.1)
       lemmy-js-client:
-        specifier: 0.20.0-remove-aggregate-tables.4
-        version: 0.20.0-remove-aggregate-tables.4
+        specifier: 0.20.0-remove-aggregate-tables.5
+        version: 0.20.0-remove-aggregate-tables.5
       prettier:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1528,8 +1528,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@0.20.0-remove-aggregate-tables.4:
-    resolution: {integrity: sha512-W5s2vEFMOkieVNrcUbeXoAqId6/GBVLFKzlJGTzMpAkmENzEutTXGSa683vbCrofj8aV+Eg4AAZZzrKYLet05w==}
+  lemmy-js-client@0.20.0-remove-aggregate-tables.5:
+    resolution: {integrity: sha512-A/p4LLWNiVp7fsQOctbFm/biBAunk0FIl5X79WJ/hRu/UiD1M+tCLGYPGdy308R+zscZsDNqECe1LYBenOFzOA==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4169,7 +4169,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@0.20.0-remove-aggregate-tables.4: {}
+  lemmy-js-client@0.20.0-remove-aggregate-tables.5: {}
 
   leven@3.1.0: {}
 

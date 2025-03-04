@@ -71,8 +71,8 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
-    slurs::{build_slur_regex, remove_slurs},
-    validation::clean_urls_in_text,
+    slurs::remove_slurs,
+    validation::{build_and_check_regex, clean_urls_in_text},
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
@@ -540,15 +540,22 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
-  build_slur_regex(local_site.slur_filter_regex.as_deref())
-}
-
-pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
-  local_site
-    .as_ref()
-    .map(local_site_to_slur_regex)
-    .unwrap_or(None)
+pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
+  static CACHE: CacheLock<Regex> = LazyLock::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(CACHE_DURATION_FEDERATION)
+      .build()
+  });
+  Ok(
+    CACHE
+      .try_get_with((), async {
+        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
+      })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
+  )
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
@@ -652,6 +659,17 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
+  let is_nsfw = nsfw.unwrap_or_default();
+  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+
+  if nsfw_disallowed && is_nsfw {
+    Err(LemmyErrorType::NsfwNotAllowed)?
+  }
+
+  Ok(())
+}
+
 /// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
@@ -664,6 +682,19 @@ pub async fn read_site_for_actor(
   Ok(site)
 }
 
+pub async fn purge_post_images(
+  url: Option<DbUrl>,
+  thumbnail_url: Option<DbUrl>,
+  context: &LemmyContext,
+) {
+  if let Some(url) = url {
+    purge_image_from_pictrs(&url, context).await.ok();
+  }
+  if let Some(thumbnail_url) = thumbnail_url {
+    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+  }
+}
+
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
   context: &LemmyContext,
@@ -671,12 +702,7 @@ pub async fn purge_image_posts_for_person(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
   for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
@@ -708,12 +734,7 @@ pub async fn purge_image_posts_for_community(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
   for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
+    purge_post_images(post.url, post.thumbnail_url, context).await;
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;
@@ -1037,7 +1058,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1069,7 +1090,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Option<LemmyResult<Regex>>,
+  slur_regex: &Regex,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {

@@ -10,8 +10,8 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     get_url_blocklist,
     is_mod_or_admin,
-    local_site_to_slur_regex,
     process_markdown,
+    slur_regex,
     update_read_comments,
   },
 };
@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
-    local_site::LocalSite,
     person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
   traits::{Crud, Likeable},
@@ -38,9 +37,7 @@ pub async fn create_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
