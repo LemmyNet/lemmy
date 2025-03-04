@@ -13,9 +13,34 @@ use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
   schema::{local_user, person, person_aggregates},
   source::person::{person_keys as key, Person},
-  traits::PageCursorBuilder,
-  utils::{get_conn, now, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, now, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
+
+impl PaginationCursorBuilder for PersonView {
+  type CursorData = Person;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('P', self.person.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = person::table
+      .select(Self::CursorData::as_select())
+      .filter(person::id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
+  }
+}
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -44,18 +69,13 @@ impl PersonView {
   }
 }
 
-impl PageCursorBuilder for PersonView {
-  fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('P', self.person.id.0)
-  }
-}
-
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
   pub banned_only: Option<bool>,
   pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl PersonQuery {
@@ -81,6 +101,9 @@ impl PersonQuery {
     if self.admins_only.unwrap_or_default() {
       query = query.filter(local_user::admin.eq(true));
     }
+
+    let limit = limit_fetch(self.limit)?;
+    query = query.limit(limit);
 
     let mut query = PaginatedQueryBuilder::new(query);
 

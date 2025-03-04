@@ -354,6 +354,8 @@ pub struct ListBannedPersons {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

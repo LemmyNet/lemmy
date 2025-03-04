@@ -1,6 +1,6 @@
 use crate::{
   diesel::OptionalExtension,
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
@@ -9,7 +9,7 @@ use crate::{
     PersonInsertForm,
     PersonUpdateForm,
   },
-  traits::{ApubActor, Crud, Followable, PageCursorReader},
+  traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, now, uplete, DbPool},
 };
 use chrono::Utc;
@@ -248,22 +248,6 @@ impl PersonFollower {
       .select(person::all_columns)
       .load(conn)
       .await
-  }
-}
-
-#[async_trait]
-impl PageCursorReader for Person {
-  async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    let id = cursor.prefix_and_id()?.1;
-
-    let token = person::table
-      .select(Self::as_select())
-      .filter(person::id.eq(id))
-      .first(conn)
-      .await?;
-
-    Ok(token)
   }
 }
 
