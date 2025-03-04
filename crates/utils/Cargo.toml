@@ -79,6 +79,7 @@ lettre = { version = "0.11.12", default-features = false, features = [
   "builder",
   "smtp-transport",
   "tokio1-rustls-tls",
+  "pool",
 ], optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }

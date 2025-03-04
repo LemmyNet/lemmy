@@ -74,7 +74,6 @@ pub enum LemmyErrorType {
   ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
-  EmailSmtpServerNeedsAPort,
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
