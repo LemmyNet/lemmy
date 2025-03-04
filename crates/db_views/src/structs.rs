@@ -501,7 +501,6 @@ pub enum PersonContentCombinedView {
 /// A combined person_saved view
 pub(crate) struct PersonSavedCombinedViewInternal {
   // Post-specific
-  pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -511,7 +510,6 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared

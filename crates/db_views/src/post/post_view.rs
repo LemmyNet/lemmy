@@ -231,7 +231,7 @@ impl PostPaginationCursor {
   // get cursor for page that starts immediately after the given post
   pub fn after_post(view: &PostView) -> PostPaginationCursor {
     // hex encoding to prevent ossification
-    PostPaginationCursor(format!("P{:x}", view.post_id.0))
+    PostPaginationCursor(format!("P{:x}", view.post.id.0))
   }
   pub async fn read(
     &self,
