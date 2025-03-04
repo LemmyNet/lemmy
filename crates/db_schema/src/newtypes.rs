@@ -15,6 +15,8 @@ use diesel::{
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+#[cfg(feature = "full")]
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -420,3 +422,31 @@ impl InstanceId {
 #[cfg_attr(feature = "full", ts(export))]
 /// The internal tag id.
 pub struct TagId(pub i32);
+
+/// A pagination cursor
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PaginationCursor(pub String);
+
+#[cfg(feature = "full")]
+impl PaginationCursor {
+  pub fn new(prefix: char, id: i32) -> Self {
+    // hex encoding to prevent ossification
+    Self(format!("{prefix}{id:x}"))
+  }
+
+  pub fn prefix_and_id(&self) -> LemmyResult<(char, i32)> {
+    let (prefix_str, id_str) = self
+      .0
+      .split_at_checked(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let prefix = prefix_str
+      .chars()
+      .next()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let id = i32::from_str_radix(id_str, 16)?;
+
+    Ok((prefix, id))
+  }
+}
