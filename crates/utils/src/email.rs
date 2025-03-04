@@ -28,13 +28,14 @@ pub async fn send_email(
   html: &str,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
-  let domain = settings.hostname.clone();
   static MAILER: OnceLock<AsyncSmtpTransport> = OnceLock::new();
+  let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
+
+  #[expect(clippy::expect_used)]
   let mailer = MAILER.get_or_init(|| {
     AsyncSmtpTransport::from_url(&email_config.connection)
       .expect("init email transport")
-      .hello_name(ClientId::Domain(domain))
+      .hello_name(ClientId::Domain(settings.hostname.clone()))
       .build()
   });
 
