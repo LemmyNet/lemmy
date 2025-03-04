@@ -79,6 +79,10 @@ pub struct LocalUser {
   #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
+  pub show_score: bool,
+  pub show_upvotes: bool,
+  pub show_downvotes: bool,
+  pub show_upvote_percentage: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -143,6 +147,14 @@ pub struct LocalUserInsertForm {
   pub hide_media: Option<bool>,
   #[new(default)]
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  #[new(default)]
+  pub show_score: Option<bool>,
+  #[new(default)]
+  pub show_upvotes: Option<bool>,
+  #[new(default)]
+  pub show_downvotes: Option<bool>,
+  #[new(default)]
+  pub show_upvote_percentage: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -178,4 +190,8 @@ pub struct LocalUserUpdateForm {
   pub last_donation_notification: Option<DateTime<Utc>>,
   pub hide_media: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub show_score: Option<bool>,
+  pub show_upvotes: Option<bool>,
+  pub show_downvotes: Option<bool>,
+  pub show_upvote_percentage: Option<bool>,
 }

@@ -59,12 +59,12 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     protocols: Some(vec!["activitypub".to_string()]),
     usage: Some(NodeInfoUsage {
       users: Some(NodeInfoUsers {
-        total: Some(site_view.counts.users),
-        active_halfyear: Some(site_view.counts.users_active_half_year),
-        active_month: Some(site_view.counts.users_active_month),
+        total: Some(site_view.local_site.users),
+        active_halfyear: Some(site_view.local_site.users_active_half_year),
+        active_month: Some(site_view.local_site.users_active_month),
       }),
-      local_posts: Some(site_view.counts.posts),
-      local_comments: Some(site_view.counts.comments),
+      local_posts: Some(site_view.local_site.posts),
+      local_comments: Some(site_view.local_site.comments),
     }),
     open_registrations,
     services: Some(NodeInfoServices {

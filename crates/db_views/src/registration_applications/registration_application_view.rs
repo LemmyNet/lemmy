@@ -140,28 +140,28 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rav");
+    let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
-    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
+    let timmy_person = Person::create(pool, &timmy_person_form).await?;
 
-    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(timmy_person.id);
 
     let _inserted_timmy_local_user =
       LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
-    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rav");
+    let sara_person_form = PersonInsertForm::test_form(instance.id, "sara_rav");
 
-    let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
+    let sara_person = Person::create(pool, &sara_person_form).await?;
 
-    let sara_local_user_form = LocalUserInsertForm::test_form(inserted_sara_person.id);
+    let sara_local_user_form = LocalUserInsertForm::test_form(sara_person.id);
 
-    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![]).await?;
+    let sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let sara_app_form = RegistrationApplicationInsertForm {
-      local_user_id: inserted_sara_local_user.id,
+      local_user_id: sara_local_user.id,
       answer: "LET ME IIIIINN".to_string(),
     };
 
@@ -169,17 +169,17 @@ mod tests {
 
     let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id).await?;
 
-    let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
+    let jess_person_form = PersonInsertForm::test_form(instance.id, "jess_rav");
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await?;
 
     let jess_local_user_form = LocalUserInsertForm::test_form(inserted_jess_person.id);
 
-    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![]).await?;
+    let jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let jess_app_form = RegistrationApplicationInsertForm {
-      local_user_id: inserted_jess_local_user.id,
+      local_user_id: jess_local_user.id,
       answer: "LET ME IIIIINN".to_string(),
     };
 
@@ -190,42 +190,44 @@ mod tests {
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.clone(),
       creator_local_user: LocalUser {
-        id: inserted_sara_local_user.id,
-        person_id: inserted_sara_local_user.person_id,
-        email: inserted_sara_local_user.email,
-        show_nsfw: inserted_sara_local_user.show_nsfw,
-        blur_nsfw: inserted_sara_local_user.blur_nsfw,
-        theme: inserted_sara_local_user.theme,
-        default_post_sort_type: inserted_sara_local_user.default_post_sort_type,
-        default_comment_sort_type: inserted_sara_local_user.default_comment_sort_type,
-        default_listing_type: inserted_sara_local_user.default_listing_type,
-        interface_language: inserted_sara_local_user.interface_language,
-        show_avatars: inserted_sara_local_user.show_avatars,
-        send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
-        show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
-        show_read_posts: inserted_sara_local_user.show_read_posts,
-        email_verified: inserted_sara_local_user.email_verified,
-        accepted_application: inserted_sara_local_user.accepted_application,
-        totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
-        password_encrypted: inserted_sara_local_user.password_encrypted,
-        open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
-        infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
-        post_listing_mode: inserted_sara_local_user.post_listing_mode,
-        totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
-        enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
-        enable_animated_images: inserted_sara_local_user.enable_animated_images,
-        enable_private_messages: inserted_sara_local_user.enable_private_messages,
-        collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
-        last_donation_notification: inserted_sara_local_user.last_donation_notification,
+        id: sara_local_user.id,
+        person_id: sara_local_user.person_id,
+        email: sara_local_user.email,
+        show_nsfw: sara_local_user.show_nsfw,
+        blur_nsfw: sara_local_user.blur_nsfw,
+        theme: sara_local_user.theme,
+        default_post_sort_type: sara_local_user.default_post_sort_type,
+        default_comment_sort_type: sara_local_user.default_comment_sort_type,
+        default_listing_type: sara_local_user.default_listing_type,
+        interface_language: sara_local_user.interface_language,
+        show_avatars: sara_local_user.show_avatars,
+        send_notifications_to_email: sara_local_user.send_notifications_to_email,
+        show_bot_accounts: sara_local_user.show_bot_accounts,
+        show_read_posts: sara_local_user.show_read_posts,
+        email_verified: sara_local_user.email_verified,
+        accepted_application: sara_local_user.accepted_application,
+        totp_2fa_secret: sara_local_user.totp_2fa_secret,
+        password_encrypted: sara_local_user.password_encrypted,
+        open_links_in_new_tab: sara_local_user.open_links_in_new_tab,
+        infinite_scroll_enabled: sara_local_user.infinite_scroll_enabled,
+        post_listing_mode: sara_local_user.post_listing_mode,
+        totp_2fa_enabled: sara_local_user.totp_2fa_enabled,
+        enable_keyboard_navigation: sara_local_user.enable_keyboard_navigation,
+        enable_animated_images: sara_local_user.enable_animated_images,
+        enable_private_messages: sara_local_user.enable_private_messages,
+        collapse_bot_comments: sara_local_user.collapse_bot_comments,
+        last_donation_notification: sara_local_user.last_donation_notification,
+        show_upvotes: sara_local_user.show_upvotes,
+        show_downvotes: sara_local_user.show_downvotes,
         ..Default::default()
       },
       creator: Person {
-        id: inserted_sara_person.id,
-        name: inserted_sara_person.name.clone(),
+        id: sara_person.id,
+        name: sara_person.name.clone(),
         display_name: None,
-        published: inserted_sara_person.published,
+        published: sara_person.published,
         avatar: None,
-        ap_id: inserted_sara_person.ap_id.clone(),
+        ap_id: sara_person.ap_id.clone(),
         local: true,
         banned: false,
         ban_expires: None,
@@ -234,12 +236,16 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_sara_person.inbox_url.clone(),
+        inbox_url: sara_person.inbox_url.clone(),
         matrix_user_id: None,
-        instance_id: inserted_instance.id,
-        private_key: inserted_sara_person.private_key,
-        public_key: inserted_sara_person.public_key,
-        last_refreshed_at: inserted_sara_person.last_refreshed_at,
+        instance_id: instance.id,
+        private_key: sara_person.private_key,
+        public_key: sara_person.public_key,
+        last_refreshed_at: sara_person.last_refreshed_at,
+        post_count: 0,
+        post_score: 0,
+        comment_count: 0,
+        comment_score: 0,
       },
       admin: None,
     };
@@ -265,7 +271,7 @@ mod tests {
 
     // Approve the application
     let approve_form = RegistrationApplicationUpdateForm {
-      admin_id: Some(Some(inserted_timmy_person.id)),
+      admin_id: Some(Some(timmy_person.id)),
       deny_reason: None,
     };
 
@@ -277,7 +283,7 @@ mod tests {
       ..Default::default()
     };
 
-    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form).await?;
+    LocalUser::update(pool, sara_local_user.id, &approve_local_user_form).await?;
 
     let read_sara_app_view_after_approve =
       RegistrationApplicationView::read(pool, sara_app.id).await?;
@@ -286,15 +292,15 @@ mod tests {
     expected_sara_app_view
       .creator_local_user
       .accepted_application = true;
-    expected_sara_app_view.registration_application.admin_id = Some(inserted_timmy_person.id);
+    expected_sara_app_view.registration_application.admin_id = Some(timmy_person.id);
 
     expected_sara_app_view.admin = Some(Person {
-      id: inserted_timmy_person.id,
-      name: inserted_timmy_person.name.clone(),
+      id: timmy_person.id,
+      name: timmy_person.name.clone(),
       display_name: None,
-      published: inserted_timmy_person.published,
+      published: timmy_person.published,
       avatar: None,
-      ap_id: inserted_timmy_person.ap_id.clone(),
+      ap_id: timmy_person.ap_id.clone(),
       local: true,
       banned: false,
       ban_expires: None,
@@ -303,12 +309,16 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_timmy_person.inbox_url.clone(),
+      inbox_url: timmy_person.inbox_url.clone(),
       matrix_user_id: None,
-      instance_id: inserted_instance.id,
-      private_key: inserted_timmy_person.private_key,
-      public_key: inserted_timmy_person.public_key,
-      last_refreshed_at: inserted_timmy_person.last_refreshed_at,
+      instance_id: instance.id,
+      private_key: timmy_person.private_key,
+      public_key: timmy_person.public_key,
+      last_refreshed_at: timmy_person.last_refreshed_at,
+      post_count: 0,
+      post_score: 0,
+      comment_count: 0,
+      comment_score: 0,
     });
     assert_eq!(read_sara_app_view_after_approve, expected_sara_app_view);
 
@@ -331,10 +341,10 @@ mod tests {
     let all_apps = RegistrationApplicationQuery::default().list(pool).await?;
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(pool, inserted_timmy_person.id).await?;
-    Person::delete(pool, inserted_sara_person.id).await?;
+    Person::delete(pool, timmy_person.id).await?;
+    Person::delete(pool, sara_person.id).await?;
     Person::delete(pool, inserted_jess_person.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    Instance::delete(pool, instance.id).await?;
 
     Ok(())
   }
