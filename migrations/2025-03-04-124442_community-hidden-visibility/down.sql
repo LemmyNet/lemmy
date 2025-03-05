@@ -1,11 +1,12 @@
 ALTER TABLE community
-    ADD COLUMN hidden bool NOT NULL;
+    ADD COLUMN hidden bool DEFAULT FALSE NOT NULL;
 
 UPDATE
     community
 SET
-    (hidden = TRUE,
-        visibility = 'Public')
+    (hidden,
+        visibility) = (TRUE,
+        'Public')
 WHERE
     visibility = 'Hidden';
 
@@ -20,12 +21,18 @@ CREATE TYPE community_visibility AS enum (
 ALTER TABLE community
     ALTER COLUMN visibility DROP DEFAULT;
 
+DROP INDEX idx_community_random_number;
+
 ALTER TABLE community
     ALTER COLUMN visibility TYPE community_visibility
     USING visibility::text::community_visibility;
 
 ALTER TABLE community
     ALTER COLUMN visibility SET DEFAULT 'Public';
+
+CREATE INDEX idx_community_random_number ON community (random_number) INCLUDE (local, nsfw)
+WHERE
+    NOT (deleted OR removed OR visibility = 'Private');
 
 DROP TYPE community_visibility__;
 
