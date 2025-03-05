@@ -112,10 +112,6 @@ pub struct PictrsConfig {
   #[default(true)]
   pub allow_video_uploads: bool,
 
-  /// Whether users can upload animated images (e.g. `gif`) as post image or markdown embed.
-  #[default(true)]
-  pub allow_animation_uploads: bool,
-
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
   #[default(false)]

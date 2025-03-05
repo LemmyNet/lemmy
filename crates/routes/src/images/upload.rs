@@ -197,13 +197,7 @@ pub async fn do_upload_image(
       ])
     }
     Other => {
-      let mut query = vec![
-        (
-          "allow_animation",
-          pictrs.allow_animation_uploads.to_string(),
-        ),
-        ("allow_video", pictrs.allow_video_uploads.to_string()),
-      ];
+      let mut query = vec![("allow_video", pictrs.allow_video_uploads.to_string())];
       if let Some(max_upload_size) = max_upload_size {
         query.push(("resize", max_upload_size));
       }

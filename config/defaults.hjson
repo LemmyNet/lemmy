@@ -68,8 +68,6 @@
     max_upload_size: 1024
     # Whether users can upload videos as post image or markdown embed.
     allow_video_uploads: true
-    # Whether users can upload animated images (e.g. `gif`) as post image or markdown embed.
-    allow_animation_uploads: true
     # Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
     # banners can still be uploaded.
     image_upload_disabled: false
