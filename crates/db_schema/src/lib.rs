@@ -278,10 +278,22 @@ pub enum CommunityVisibility {
   /// Public community, any local or federated user can interact.
   #[default]
   Public,
+  Hidden,
   /// Unfederated community, only local users can interact.
-  LocalOnly,
+  LocalOnlyPublic,
+  LocalOnlyPrivate,
   /// Users need to be approved by mods before they are able to browse or post.
   Private,
+}
+
+impl CommunityVisibility {
+  pub fn can_federate(&self) -> bool {
+    todo!()
+  }
+
+  pub fn can_view_without_login(&self) -> bool {
+    todo!()
+  }
 }
 
 #[derive(

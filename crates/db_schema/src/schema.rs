@@ -211,7 +211,6 @@ diesel::table! {
         followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
-        hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
         #[max_length = 255]

@@ -211,7 +211,7 @@ async fn can_accept_activity_in_community(
 ) -> LemmyResult<()> {
   if let Some(community) = community {
     // Local only community can't federate
-    if community.visibility == CommunityVisibility::LocalOnly {
+    if !community.visibility.can_federate() {
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {

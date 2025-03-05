@@ -2013,7 +2013,6 @@ mod tests {
         description: None,
         updated: None,
         banner: None,
-        hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
         instance_id: data.instance.id,
@@ -2068,7 +2067,7 @@ mod tests {
       pool,
       data.community.id,
       &CommunityUpdateForm {
-        visibility: Some(CommunityVisibility::LocalOnly),
+        visibility: Some(CommunityVisibility::LocalOnlyPrivate),
         ..Default::default()
       },
     )
