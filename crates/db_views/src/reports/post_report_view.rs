@@ -20,7 +20,6 @@ use lemmy_db_schema::{
     person_actions,
     post,
     post_actions,
-    post_aggregates,
     post_report,
   },
   utils::{functions::coalesce, get_conn, DbPool},
@@ -73,9 +72,6 @@ impl PostReportView {
         .and(person_actions::person_id.eq(my_person_id)),
     );
 
-    let post_aggregates_join =
-      post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
-
     let resolver_join = aliases::person2.on(post_report::resolver_id.eq(resolver_id.nullable()));
 
     post_report::table
@@ -88,7 +84,6 @@ impl PostReportView {
       .left_join(local_user_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .inner_join(post_aggregates_join)
       .left_join(resolver_join)
   }
 
@@ -126,10 +121,9 @@ impl PostReportView {
         person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
-        post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
       ))
       .first(conn)

@@ -164,7 +164,7 @@ mod tests {
     let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, -1);
     PostLike::like(pool, &sara_post_vote_form).await?;
 
-    let expected_post_vote_views = [
+    let mut expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned_from_community: false,
@@ -176,6 +176,8 @@ mod tests {
         score: 1,
       },
     ];
+    expected_post_vote_views[1].creator.post_count = 1;
+    expected_post_vote_views[1].creator.comment_count = 1;
 
     let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
     assert_eq!(read_post_vote_views, expected_post_vote_views);
@@ -196,7 +198,7 @@ mod tests {
     };
     CommentLike::like(pool, &sara_comment_vote_form).await?;
 
-    let expected_comment_vote_views = [
+    let mut expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned_from_community: false,
@@ -208,6 +210,8 @@ mod tests {
         score: 1,
       },
     ];
+    expected_comment_vote_views[0].creator.post_count = 1;
+    expected_comment_vote_views[0].creator.comment_count = 1;
 
     let read_comment_vote_views =
       VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
