@@ -260,7 +260,7 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Followable, Likeable},
     utils::{build_db_pool_for_tests, uplete},

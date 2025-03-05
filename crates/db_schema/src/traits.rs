@@ -85,20 +85,20 @@ pub trait Followable {
   fn follow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn follow_accepted(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     person_id: PersonId,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn unfollow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -108,13 +108,13 @@ pub trait Joinable {
   fn join(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn leave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -125,14 +125,14 @@ pub trait Likeable {
   fn like(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
-  fn remove(
+  fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -142,13 +142,13 @@ pub trait Bannable {
   fn ban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn unban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -158,13 +158,51 @@ pub trait Saveable {
   fn save(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn unsave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
+}
+
+pub trait Readable {
+  type Form;
+  fn mark_as_read(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
+  where
+    Self: Sized;
+  fn mark_many_as_read(
+    pool: &mut DbPool<'_>,
+    forms: &[Self::Form],
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
+  where
+    Self: Sized;
+  fn mark_as_unread(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
+}
+
+pub trait Hideable {
+  type Form;
+  fn hide(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
+  where
+    Self: Sized;
+  fn unhide(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -174,13 +212,13 @@ pub trait Blockable {
   fn block(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn unblock(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<uplete::Count, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
 }
@@ -192,14 +230,14 @@ pub trait Reportable {
   fn report(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Sized;
   fn resolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
   where
     Self: Sized;
   fn resolve_apub(
@@ -214,14 +252,14 @@ pub trait Reportable {
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
-  ) -> impl Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
   where
     Self: Sized;
   fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl Future<Output = Result<usize, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<usize>> + Send
   where
     Self: Sized;
 }

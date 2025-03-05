@@ -5,7 +5,6 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::schema::{post, post_actions},
-  diesel::{dsl, expression_methods::NullableExpressionMethods},
   i_love_jesus::CursorKeysModule,
   ts_rs::TS,
 };
@@ -181,15 +180,16 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostLike {
+pub struct PostActions {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::like_score.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::like_score>))]
-  pub score: i16,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::liked.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::liked>))]
-  pub published: DateTime<Utc>,
+  pub read: Option<DateTime<Utc>>,
+  pub read_comments: Option<DateTime<Utc>>,
+  pub read_comments_amount: Option<i64>,
+  pub saved: Option<DateTime<Utc>>,
+  pub liked: Option<DateTime<Utc>>,
+  pub like_score: Option<i16>,
+  pub hidden: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -198,27 +198,9 @@ pub struct PostLike {
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
-  pub score: i16,
+  pub like_score: i16,
   #[new(value = "Utc::now()")]
   pub liked: DateTime<Utc>,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostSaved {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::saved.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::saved>))]
-  pub published: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -231,24 +213,7 @@ pub struct PostSavedForm {
   pub saved: DateTime<Utc>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostRead {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read>))]
-  pub published: DateTime<Utc>,
-}
-
-#[derive(derive_new::new)]
+#[derive(derive_new::new, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostReadForm {
@@ -256,23 +221,6 @@ pub struct PostReadForm {
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
   pub read: DateTime<Utc>,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostHide {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::hidden.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::hidden>))]
-  pub published: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -285,6 +233,7 @@ pub struct PostHideForm {
   pub hidden: DateTime<Utc>,
 }
 
+// TODO do we need this?
 #[derive(PartialEq, Debug, Clone, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
