@@ -95,14 +95,22 @@ pub struct PictrsConfig {
   #[default(512)]
   pub max_thumbnail_size: u32,
 
-  /// Maximum size for user avatar, community icon and site icon.
+  /// Maximum size for user avatar, community icon and site icon. Larger images are downscaled.
   #[default(512)]
   pub max_avatar_size: u32,
 
-  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
-  /// into a square of this size.
+  /// Maximum size for user, community and site banner. Larger images are downscaled.
   #[default(1024)]
   pub max_banner_size: u32,
+
+  /// Maximum size for other uploads (e.g. post images or markdown embed images). Larger
+  /// images are downscaled.
+  #[doku(example = "1024")]
+  pub max_upload_size: Option<u32>,
+
+  /// Whether users can upload videos as post image or markdown embed.
+  #[default(true)]
+  pub allow_video_uploads: bool,
 
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
