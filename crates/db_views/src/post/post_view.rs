@@ -8,6 +8,7 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
+  sql_types::{Array, Bool, Text},
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -16,7 +17,6 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   TextExpressionMethods,
-  sql_types::{Array, Text,Bool}
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -586,24 +586,34 @@ impl<'a> PostQuery<'a> {
       query = query.filter(filter_blocked());
       if let Some(person_id) = o.local_user.person_id() {
         let blocked_keywords: Vec<String> = post_keyword_block::table
-            .filter(post_keyword_block::person_id.eq(person_id))
-            .select(post_keyword_block::keyword)
-            .load::<String>(conn)
-            .await?;
+          .filter(post_keyword_block::person_id.eq(person_id))
+          .select(post_keyword_block::keyword)
+          .load::<String>(conn)
+          .await?;
         if !blocked_keywords.is_empty() {
-          let transformed_strings: Vec<String> = blocked_keywords.iter()
+          let transformed_strings: Vec<String> = blocked_keywords
+            .iter()
             .map(|s| format!("%{}%", s))
             .collect();
           query = query.filter(
-            sql::<Bool>("NOT (post.name LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))")
-            .and(post::url.is_null().or(
-                    sql::<Bool>("NOT (post.url LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))"))
-                )
-            .and(
+            sql::<Bool>("NOT (post.name LIKE ANY(")
+              .bind::<Array<Text>, _>(transformed_strings.clone())
+              .sql("))")
+              .and(
+                post::url.is_null().or(
+                  sql::<Bool>("NOT (post.url LIKE ANY(")
+                    .bind::<Array<Text>, _>(transformed_strings.clone())
+                    .sql("))"),
+                ),
+              )
+              .and(
                 post::body.is_null().or(
-                    sql::<Bool>("NOT (post.body LIKE ANY(").bind::<Array<Text>, _>(transformed_strings.clone()).sql("))"))
-                )
-              );
+                  sql::<Bool>("NOT (post.body LIKE ANY(")
+                    .bind::<Array<Text>, _>(transformed_strings.clone())
+                    .sql("))"),
+                ),
+              ),
+          );
         }
       }
     }
