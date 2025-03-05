@@ -1,13 +1,16 @@
---
--- create enum with new values and drop old one
+-- Change community.visibility to allow values:
+-- ('Public', 'LocalOnlyPublic', 'LocalOnlyPrivate','Private', 'Hidden')
+
+-- rename old enum and add new one
+ALTER TYPE community_visibility RENAME TO community_visibility__;
+
 CREATE TYPE community_visibility AS enum (
     'Public',
+    'LocalOnlyPublic',
     'LocalOnly',
     'Private',
     'Hidden'
 );
-
-ALTER TYPE community_visibility RENAME TO community_visibility__;
 
 -- drop default value and index which reference old enum
 ALTER TABLE community
@@ -29,6 +32,8 @@ WHERE
     NOT (deleted OR removed OR visibility = 'Private' OR visibility = 'Hidden');
 
 DROP TYPE community_visibility__;
+
+ALTER TYPE community_visibility RENAME VALUE 'LocalOnly' TO 'LocalOnlyPrivate';
 
 -- write hidden value to visibility column
 UPDATE

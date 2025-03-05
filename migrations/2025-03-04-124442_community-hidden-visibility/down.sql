@@ -1,6 +1,7 @@
 ALTER TABLE community
     ADD COLUMN hidden bool DEFAULT FALSE NOT NULL;
 
+-- same changes as up.sql, but the other way round
 UPDATE
     community
 SET
@@ -9,6 +10,8 @@ SET
         'Public')
 WHERE
     visibility = 'Hidden';
+
+ALTER TYPE community_visibility RENAME VALUE 'LocalOnlyPrivate' TO 'LocalOnly';
 
 ALTER TYPE community_visibility RENAME TO community_visibility__;
 
