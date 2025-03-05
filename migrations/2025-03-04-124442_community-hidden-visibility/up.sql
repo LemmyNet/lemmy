@@ -1,6 +1,5 @@
 -- Change community.visibility to allow values:
 -- ('Public', 'LocalOnlyPublic', 'LocalOnlyPrivate','Private', 'Hidden')
-
 -- rename old enum and add new one
 ALTER TYPE community_visibility RENAME TO community_visibility__;
 
