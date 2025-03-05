@@ -5,13 +5,13 @@ use crate::{
 use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},
-  transport::smtp::{authentication::Credentials, extension::ClientId},
+  transport::smtp::extension::ClientId,
   Address,
   AsyncTransport,
   Message,
 };
 use rosetta_i18n::{Language, LanguageId};
-use std::str::FromStr;
+use std::{str::FromStr, sync::OnceLock};
 use translations::Lang;
 use uuid::Uuid;
 
@@ -28,21 +28,16 @@ pub async fn send_email(
   html: &str,
   settings: &Settings,
 ) -> LemmyResult<()> {
+  static MAILER: OnceLock<AsyncSmtpTransport> = OnceLock::new();
   let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
-  let domain = settings.hostname.clone();
 
-  let (smtp_server, smtp_port) = {
-    let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
-    let email = *email_and_port
-      .first()
-      .ok_or(LemmyErrorType::EmailRequired)?;
-    let port = email_and_port
-      .get(1)
-      .ok_or(LemmyErrorType::EmailSmtpServerNeedsAPort)?
-      .parse::<u16>()?;
-
-    (email, port)
-  };
+  #[expect(clippy::expect_used)]
+  let mailer = MAILER.get_or_init(|| {
+    AsyncSmtpTransport::from_url(&email_config.connection)
+      .expect("init email transport")
+      .hello_name(ClientId::Domain(settings.hostname.clone()))
+      .build()
+  });
 
   // use usize::MAX as the line wrap length, since lettre handles the wrapping for us
   let plain_text = html2text::from_read(html.as_bytes(), usize::MAX)?;
@@ -69,24 +64,6 @@ pub async fn send_email(
       html.to_string(),
     ))
     .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
-
-  // don't worry about 'dangeous'. it's just that leaving it at the default configuration
-  // is bad.
-
-  // Set the TLS
-  let mut builder = match email_config.tls_type.as_str() {
-    "starttls" => AsyncSmtpTransport::starttls_relay(smtp_server)?.port(smtp_port),
-    "tls" => AsyncSmtpTransport::relay(smtp_server)?.port(smtp_port),
-    _ => AsyncSmtpTransport::builder_dangerous(smtp_server).port(smtp_port),
-  };
-
-  // Set the creds if they exist
-  let smtp_password = email_config.smtp_password();
-  if let (Some(username), Some(password)) = (email_config.smtp_login, smtp_password) {
-    builder = builder.credentials(Credentials::new(username, password));
-  }
-
-  let mailer = builder.hello_name(ClientId::Domain(domain)).build();
 
   mailer
     .send(email)

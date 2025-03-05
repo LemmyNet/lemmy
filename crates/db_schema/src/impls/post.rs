@@ -1,5 +1,4 @@
 use crate::{
-  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{community, person, post, post_actions},
   source::post::{
@@ -22,6 +21,7 @@ use crate::{
     get_conn,
     now,
     uplete,
+    DbConn,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -35,8 +35,11 @@ use diesel::{
   dsl::{count, insert_into, not},
   expression::SelectableHelper,
   result::Error,
+  BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
+  NullableExpressionMethods,
+  OptionalExtension,
   QueryDsl,
   TextExpressionMethods,
 };
@@ -436,6 +439,14 @@ impl PostActionsCursor {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
+    Self::read_conn(conn, post_id, person_id).await
+  }
+
+  pub async fn read_conn(
+    conn: &mut DbConn<'_>,
+    post_id: PostId,
+    person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
     Ok(if let Some(person_id) = person_id {
       post_actions::table
         .find((person_id, post_id))
