@@ -209,6 +209,8 @@ pub trait Hideable {
 
 pub trait Blockable {
   type Form;
+  type ObjectIdType;
+  type ObjectType;
   fn block(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
@@ -219,6 +221,19 @@ pub trait Blockable {
     pool: &mut DbPool<'_>,
     form: &Self::Form,
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
+  fn read_block(
+    pool: &mut DbPool<'_>,
+    for_person_id: PersonId,
+    for_item_id: Self::ObjectIdType,
+  ) -> impl Future<Output = LemmyResult<()>> + Send
+  where
+    Self: Sized;
+  fn read_blocks_for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> impl Future<Output = LemmyResult<Vec<Self::ObjectType>>> + Send
   where
     Self: Sized;
 }

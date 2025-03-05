@@ -7,8 +7,6 @@ use crate::{
   CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use strum::{Display, EnumString};
@@ -189,52 +187,38 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct CommunityModerator {
+pub struct CommunityActions {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::became_moderator.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::became_moderator>))]
-  pub published: DateTime<Utc>,
+  pub followed: Option<DateTime<Utc>>,
+  pub follow_state: Option<CommunityFollowerState>,
+  pub follow_approver_id: Option<PersonId>,
+  pub blocked: Option<DateTime<Utc>>,
+  pub became_moderator: Option<DateTime<Utc>>,
+  pub received_ban: Option<DateTime<Utc>>,
+  pub ban_expires: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityModeratorForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[new(value = "Utc::now()")]
+  pub became_moderator: DateTime<Utc>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(
-  feature = "full",
-  diesel(belongs_to(crate::source::community::Community))
-)]
-#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct CommunityPersonBan {
-  pub community_id: CommunityId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::received_ban.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::received_ban>))]
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(column_name = ban_expires))]
-  pub expires: Option<DateTime<Utc>>,
-}
-
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityPersonBanForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = ban_expires))]
-  pub expires: Option<Option<DateTime<Utc>>>,
+  #[new(default)]
+  pub ban_expires: Option<Option<DateTime<Utc>>>,
+  #[new(value = "Utc::now()")]
+  pub received_ban: DateTime<Utc>,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
@@ -251,31 +235,6 @@ pub enum CommunityFollowerState {
   ApprovalRequired,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(
-  feature = "full",
-  diesel(belongs_to(crate::source::community::Community))
-)]
-#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct CommunityFollower {
-  pub community_id: CommunityId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::followed.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::followed>))]
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::follow_state.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_state>))]
-  pub state: CommunityFollowerState,
-  #[cfg_attr(feature = "full", diesel(column_name = follow_approver_id))]
-  pub approver_id: Option<PersonId>,
-}
-
 #[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
@@ -283,9 +242,20 @@ pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[new(default)]
-  #[cfg_attr(feature = "full", diesel(column_name = follow_state))]
-  pub state: Option<CommunityFollowerState>,
+  // TODO should this be required?
+  pub follow_state: Option<CommunityFollowerState>,
   #[new(default)]
-  #[cfg_attr(feature = "full", diesel(column_name = follow_approver_id))]
-  pub approver_id: Option<PersonId>,
+  pub follow_approver_id: Option<PersonId>,
+  #[new(value = "Utc::now()")]
+  pub followed: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
+pub struct CommunityBlockForm {
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
+  #[new(value = "Utc::now()")]
+  pub blocked: DateTime<Utc>,
 }

@@ -160,3 +160,13 @@ pub struct PersonFollowerForm {
   #[new(value = "Utc::now()")]
   pub followed: DateTime<Utc>,
 }
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_actions))]
+pub struct PersonBlockForm {
+  pub target_id: PersonId,
+  pub person_id: PersonId,
+  #[new(value = "Utc::now()")]
+  pub blocked: DateTime<Utc>,
+}

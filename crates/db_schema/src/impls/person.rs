@@ -2,13 +2,20 @@ use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{comment, community, instance, local_user, person, person_actions, post},
-  source::person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
-  traits::{ApubActor, Crud, Followable},
+  source::person::{
+    Person,
+    PersonActions,
+    PersonBlockForm,
+    PersonFollowerForm,
+    PersonInsertForm,
+    PersonUpdateForm,
+  },
+  traits::{ApubActor, Blockable, Crud, Followable},
   utils::{functions::lower, get_conn, uplete, DbPool},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{insert_into, not},
+  dsl::{exists, insert_into, not, select},
   expression::SelectableHelper,
   result::Error,
   CombineDsl,
@@ -226,6 +233,73 @@ impl Followable for PersonActions {
   }
 }
 
+impl Blockable for PersonActions {
+  type Form = PersonBlockForm;
+  type ObjectIdType = PersonId;
+  type ObjectType = Person;
+
+  async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(person_actions::table)
+      .values(form)
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set(form)
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+  }
+
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
+      .set_null(person_actions::blocked)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+  }
+
+  async fn read_block(
+    pool: &mut DbPool<'_>,
+    for_person_id: PersonId,
+    for_recipient_id: Self::ObjectIdType,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let find_action = person_actions::table
+      .find((for_person_id, for_recipient_id))
+      .filter(person_actions::blocked.is_not_null());
+
+    select(not(exists(find_action)))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::PersonIsBlocked.into())
+  }
+
+  async fn read_blocks_for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> LemmyResult<Vec<Self::ObjectType>> {
+    let conn = &mut get_conn(pool).await?;
+    let target_person_alias = diesel::alias!(person as person1);
+
+    person_actions::table
+      .filter(person_actions::blocked.is_not_null())
+      .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
+      .inner_join(
+        target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
+      )
+      .select(target_person_alias.fields(person::all_columns))
+      .filter(person_actions::person_id.eq(person_id))
+      .filter(target_person_alias.field(person::deleted).eq(false))
+      .order_by(person_actions::blocked)
+      .load::<Person>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+  }
+}
+
 impl PersonActions {
   pub async fn list_followers(
     pool: &mut DbPool<'_>,
@@ -412,7 +486,7 @@ mod tests {
     assert_eq!(2, person_aggregates_before_delete.comment_score);
 
     // Remove a post like
-    PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
+    PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
     let after_post_like_remove = Person::read(pool, inserted_person.id).await?;
     assert_eq!(0, after_post_like_remove.post_score);
 
