@@ -1,0 +1,45 @@
+name: Sync Upstream Main
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+  
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures all history is fetched
+
+      - name: Set Up Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Check Out upstream/main
+        run: |
+          git checkout upstream/main
+          git branch --set-upstream-to=origin/upstream/main
+
+      - name: Pull Latest Changes from Upstream
+        run: |
+          git remote add upstream https://github.com/LemmyNet/lemmy || true
+          git fetch upstream
+          git pull upstream main --ff-only
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: upstream/main
+          title: "🔄 Sync LemmyNet/lemmy:main to main"
+          body: "This PR merges changes from LemmyNet/lemmy:main into main via origin/upstream/main."
+          labels: "sync, automated"
