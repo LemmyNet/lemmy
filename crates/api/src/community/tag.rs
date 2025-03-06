@@ -5,7 +5,6 @@ use lemmy_api_common::{
   community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   context::LemmyContext,
   utils::check_community_mod_action,
-  LemmyErrorType,
 };
 use lemmy_db_schema::{
   source::{
@@ -24,10 +23,7 @@ pub async fn create_community_tag(
 ) -> LemmyResult<Json<Tag>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
-  let length = data.0.name.chars().count();
-  if !(3..=100).contains(&length) {
-    return Err(LemmyErrorType::InvalidBodyField.into());
-  }
+  tag_name_length_check(&data.display_name)?;
   // Verify that only mods can create tags
   check_community_mod_action(
     &local_user_view.person,
@@ -39,9 +35,9 @@ pub async fn create_community_tag(
 
   // Create the tag
   let tag_form = TagInsertForm {
-    name: data.name.clone(),
+    display_name: data.display_name.clone(),
     community_id: data.community_id,
-    ap_id: community.build_tag_ap_id(&data.name)?
+    ap_id: community.build_tag_ap_id(&data.display_name)?
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
@@ -66,10 +62,10 @@ pub async fn update_community_tag(
   )
   .await?;
 
-  tag_name_length_check(&data.name)?;
+  tag_name_length_check(&data.display_name)?;
   // Update the tag
   let tag_form = TagUpdateForm {
-    name: Some(data.name.clone()),
+    display_name: Some(data.display_name.clone()),
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };

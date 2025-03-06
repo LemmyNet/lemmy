@@ -26,7 +26,7 @@ use ts_rs::TS;
 pub struct Tag {
   pub id: TagId,
   pub ap_id: DbUrl,
-  pub name: String,
+  pub display_name: String,
   /// the community that owns this tag
   pub community_id: CommunityId,
   pub published: DateTime<Utc>,
@@ -40,7 +40,7 @@ pub struct Tag {
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 pub struct TagInsertForm {
   pub ap_id: DbUrl,
-  pub name: String,
+  pub display_name: String,
   pub community_id: CommunityId,
 }
 
@@ -49,7 +49,7 @@ pub struct TagInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 pub struct TagUpdateForm {
   pub ap_id: Option<DbUrl>,
-  pub name: Option<String>,
+  pub display_name: Option<String>,
   pub community_id: Option<CommunityId>,
   pub published: Option<DateTime<Utc>>,
   pub updated: Option<Option<DateTime<Utc>>>,

@@ -24,30 +24,30 @@ test("Create, update, delete community tag", async () => {
   // Create a tag
   const tagName = randomString(10);
   let createForm: CreateCommunityTag = {
-    name: tagName,
+    display_name: tagName,
     community_id: communityId,
   };
   let createRes = await alpha.createCommunityTag(createForm);
   expect(createRes.id).toBeDefined();
-  expect(createRes.name).toBe(tagName);
+  expect(createRes.display_name).toBe(tagName);
   expect(createRes.community_id).toBe(communityId);
 
   // Update the tag
   const newTagName = randomString(10);
   let updateForm: UpdateCommunityTag = {
     tag_id: createRes.id,
-    name: newTagName,
+    display_name: newTagName,
   };
   let updateRes = await alpha.updateCommunityTag(updateForm);
   expect(updateRes.id).toBe(createRes.id);
-  expect(updateRes.name).toBe(newTagName);
+  expect(updateRes.display_name).toBe(newTagName);
   expect(updateRes.community_id).toBe(communityId);
 
   // List tags
   let listRes = await alpha.getCommunity({ id: communityId });
   expect(listRes.community_view.post_tags.length).toBe(1);
   expect(
-    listRes.community_view.post_tags.find(t => t.id === createRes.id)?.name,
+    listRes.community_view.post_tags.find(t => t.id === createRes.id)?.display_name,
   ).toBe(newTagName);
 
   // Delete the tag
@@ -73,7 +73,7 @@ test("Update post tags", async () => {
   // Create two tags
   const tag1Name = randomString(10);
   let createForm1: CreateCommunityTag = {
-    name: tag1Name,
+    display_name: tag1Name,
     community_id: communityId,
   };
   let tag1Res = await alpha.createCommunityTag(createForm1);
@@ -81,7 +81,7 @@ test("Update post tags", async () => {
 
   const tag2Name = randomString(10);
   let createForm2: CreateCommunityTag = {
-    name: tag2Name,
+    display_name: tag2Name,
     community_id: communityId,
   };
   let tag2Res = await alpha.createCommunityTag(createForm2);
@@ -122,7 +122,7 @@ test("Post author can update post tags", async () => {
   // Create a tag
   const tagName = randomString(10);
   let createForm: CreateCommunityTag = {
-    name: tagName,
+    display_name: tagName,
     community_id: communityId,
   };
   let tagRes = await alpha.createCommunityTag(createForm);

@@ -23,7 +23,7 @@ use ts_rs::TS;
 /// Create a tag for a community.
 pub struct CreateCommunityTag {
   pub community_id: CommunityId,
-  pub name: String,
+  pub display_name: String,
 }
 
 #[skip_serializing_none]
@@ -33,7 +33,7 @@ pub struct CreateCommunityTag {
 /// Update a community tag.
 pub struct UpdateCommunityTag {
   pub tag_id: TagId,
-  pub name: String,
+  pub display_name: String,
 }
 
 #[skip_serializing_none]
