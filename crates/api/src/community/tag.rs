@@ -37,7 +37,7 @@ pub async fn create_community_tag(
   let tag_form = TagInsertForm {
     display_name: data.display_name.clone(),
     community_id: data.community_id,
-    ap_id: community.build_tag_ap_id(&data.display_name)?
+    ap_id: community.build_tag_ap_id(&data.display_name)?,
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;

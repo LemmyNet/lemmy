@@ -199,8 +199,16 @@ pub fn site_or_community_description_length_check(description: &str) -> LemmyRes
 }
 
 pub fn tag_name_length_check(tag_name: &str) -> LemmyResult<()> {
-  min_length_check(tag_name, TAG_NAME_MIN_LENGTH, LemmyErrorType::InvalidTagName)?;
-  max_length_check(tag_name, TAG_NAME_MAX_LENGTH, LemmyErrorType::InvalidTagName)
+  min_length_check(
+    tag_name,
+    TAG_NAME_MIN_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )?;
+  max_length_check(
+    tag_name,
+    TAG_NAME_MAX_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )
 }
 
 /// Check minimum and maximum length of input string. If the string is too short or too long, the
