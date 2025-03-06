@@ -288,11 +288,8 @@ pub enum CommunityVisibility {
 
 impl CommunityVisibility {
   pub fn can_federate(&self) -> bool {
-    todo!()
-  }
-
-  pub fn can_view_without_login(&self) -> bool {
-    todo!()
+    use CommunityVisibility::*;
+    self != &LocalOnlyPublic && self != &LocalOnlyPrivate
   }
 }
 

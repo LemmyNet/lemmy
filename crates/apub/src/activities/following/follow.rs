@@ -110,11 +110,12 @@ impl ActivityHandler for Follow {
             return Err(FederationError::PlatformLackingPrivateCommunitySupport.into());
           }
         }
+        use CommunityVisibility::*;
         let state = Some(match c.visibility {
-          CommunityVisibility::Public => CommunityFollowerState::Accepted,
-          CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
+          Public | Hidden => CommunityFollowerState::Accepted,
+          Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
-          CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
+          LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
         });
         let form = CommunityFollowerForm {
           state,

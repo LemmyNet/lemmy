@@ -469,14 +469,15 @@ impl<'a> PostQuery<'a> {
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
+    let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
     match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed),
       ListingType::Local => {
         query = query
           .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed));
+          .filter(not_hidden.or(is_subscribed));
       }
-      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::All => query = query.filter(not_hidden.or(is_subscribed)),
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
@@ -1583,7 +1584,7 @@ mod tests {
       pool,
       data.community.id,
       &CommunityUpdateForm {
-        hidden: Some(true),
+        visibility: Some(CommunityVisibility::Hidden),
         ..Default::default()
       },
     )

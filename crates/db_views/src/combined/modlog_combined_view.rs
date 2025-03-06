@@ -68,6 +68,7 @@ use lemmy_db_schema::{
   },
   traits::InternalToCombinedView,
   utils::{get_conn, DbPool},
+  CommunityVisibility,
   ListingType,
   ModlogActionType,
 };
@@ -384,9 +385,11 @@ impl ModlogCombinedQuery<'_> {
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
       ListingType::Subscribed => query.filter(is_subscribed),
-      ListingType::Local => query
-        .filter(community::local.eq(true))
-        .filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::Local => query.filter(community::local.eq(true)).filter(
+        community::visibility
+          .ne(CommunityVisibility::Hidden)
+          .or(is_subscribed),
+      ),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 

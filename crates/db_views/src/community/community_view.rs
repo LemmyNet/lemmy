@@ -19,6 +19,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  CommunityVisibility,
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -132,21 +133,21 @@ impl CommunityQuery<'_> {
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
       query = query.filter(Community::hide_removed_and_deleted()).filter(
-        community::hidden
-          .eq(false)
+        community::visibility
+          .ne(CommunityVisibility::Hidden)
           .or(community_actions::follow_state.is_not_null()),
       );
     }
 
     let is_subscribed = community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted));
-
+    let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::All => query.filter(not_hidden.or(is_subscribed)),
         ListingType::Subscribed => query.filter(is_subscribed),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed)),
+          .filter(not_hidden.or(is_subscribed)),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }
