@@ -924,6 +924,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_keyword_block (id) {
+        id -> Int4,
+        #[max_length = 20]
+        keyword -> Varchar,
+        person_id -> Int4,
+    }
+}
+
+diesel::table! {
     post_tag (post_id, tag_id) {
         post_id -> Int4,
         tag_id -> Int4,
@@ -1293,6 +1302,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_aggregates,
     post_report,
     post_tag,
+    post_keyword_block,
     previously_run_sql,
     private_message,
     private_message_report,
