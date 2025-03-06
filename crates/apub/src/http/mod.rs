@@ -136,38 +136,35 @@ async fn check_community_content_fetchable(
 ) -> LemmyResult<()> {
   use CommunityVisibility::*;
   check_community_removed_or_deleted(community)?;
-  match community.visibility {
-    // content in public community can always be fetched
-    Public => Ok(()),
-    // no federation for local only community
-    LocalOnly => Err(LemmyErrorType::NotFound.into()),
-    // for private community check http signature of request, if there is any approved follower
-    // from the fetching instance then fetching is allowed
-    Private => {
-      let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
-      if community.local {
-        Ok(
-          CommunityFollowerView::check_has_followers_from_instance(
-            community.id,
-            signing_actor.instance_id(),
-            &mut context.pool(),
-          )
-          .await?,
-        )
-      } else if let Some(followers_url) = community.followers_url.clone() {
-        let mut followers_url = followers_url.inner().clone();
-        followers_url
-          .query_pairs_mut()
-          .append_pair("is_follower", signing_actor.id().as_str());
-        let req = context.client().get(followers_url.as_str());
-        let req = context.sign_request(req, Bytes::new()).await?;
-        context.client().execute(req).await?.error_for_status()?;
-        Ok(())
-      } else {
-        Err(LemmyErrorType::NotFound.into())
-      }
-    }
+  if !community.visibility.can_federate() {
+    return Err(LemmyErrorType::NotFound.into());
   }
+  if community.visibility == Private {
+    let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
+    return if community.local {
+      Ok(
+        CommunityFollowerView::check_has_followers_from_instance(
+          community.id,
+          signing_actor.instance_id(),
+          &mut context.pool(),
+        )
+        .await?,
+      )
+    } else if let Some(followers_url) = community.followers_url.clone() {
+      let mut followers_url = followers_url.inner().clone();
+      followers_url
+        .query_pairs_mut()
+        .append_pair("is_follower", signing_actor.id().as_str());
+      let req = context.client().get(followers_url.as_str());
+      let req = context.sign_request(req, Bytes::new()).await?;
+      context.client().execute(req).await?.error_for_status()?;
+      Ok(())
+    } else {
+      Err(LemmyErrorType::NotFound.into())
+    };
+  }
+
+  Ok(())
 }
 
 fn check_community_removed_or_deleted(community: &Community) -> LemmyResult<()> {

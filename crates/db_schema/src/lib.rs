@@ -291,6 +291,10 @@ impl CommunityVisibility {
     use CommunityVisibility::*;
     self != &LocalOnlyPublic && self != &LocalOnlyPrivate
   }
+  pub fn can_view_without_login(&self) -> bool {
+    use CommunityVisibility::*;
+    self == &Public || self == &LocalOnlyPublic
+  }
 }
 
 #[derive(

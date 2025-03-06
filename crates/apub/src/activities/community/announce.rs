@@ -23,10 +23,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityFollower},
-  CommunityVisibility,
-};
+use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityFollower};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
