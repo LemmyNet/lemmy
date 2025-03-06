@@ -179,6 +179,8 @@ pub async fn do_upload_image(
 
   let mut client_req = adapt_request(&req, image_url, context);
 
+  // Set pictrs parameters to downscale images and restrict file types.
+  // https://git.asonix.dog/asonix/pict-rs/#api
   client_req = match upload_type {
     Avatar => {
       let max_size = pictrs.max_avatar_size.to_string();
