@@ -47,7 +47,8 @@ test("Create, update, delete community tag", async () => {
   let listRes = await alpha.getCommunity({ id: communityId });
   expect(listRes.community_view.post_tags.length).toBe(1);
   expect(
-    listRes.community_view.post_tags.find(t => t.id === createRes.id)?.display_name,
+    listRes.community_view.post_tags.find(t => t.id === createRes.id)
+      ?.display_name,
   ).toBe(newTagName);
 
   // Delete the tag
