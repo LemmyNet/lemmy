@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  
+  fmt_prettier:
+    runs-on: ubuntu-latest
+    container: tmknom/prettier:3.2.5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Prettier
+        run: npx prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+  
+  fmt_sql:
+    runs-on: ubuntu-latest
+    container: 
+      image: backplane/pgformatter
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format SQL
+        run: ./scripts/sql_format_check.sh
+        
+  fmt_toml:
+    runs-on: ubuntu-latest
+    container: tamasfe/taplo:0.9.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format TOML
+        run: taplo format --check
+  
+  cargo_fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+          toolchain: nightly
+      - run: cargo +nightly fmt -- --check
+
+  cargo_clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+          toolchain: 1.81
+      - run: cargo clippy --workspace --tests --all-targets -- -D warnings
+
+  cargo_test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: lemmy
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+    env:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@localhost:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: localhost
+      PGDATABASE: lemmy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: 1.81
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -U postgres && break
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+        env:
+          PGPASSWORD: password
+      - name: Create super user
+        run: psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+      - run: cargo test --workspace --no-fail-fast
+        env:
+          PGPASSWORD: password
+
