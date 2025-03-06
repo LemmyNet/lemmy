@@ -16,12 +16,10 @@ use crate::structs::{
   ModRemoveCommunityView,
   ModRemovePostView,
   ModTransferCommunityView,
-  ModlogCombinedPaginationCursor,
   ModlogCombinedView,
   ModlogCombinedViewInternal,
 };
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   IntoSql,
@@ -35,7 +33,7 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     admin_allow_instance,
     admin_block_instance,
@@ -66,12 +64,13 @@ use lemmy_db_schema::{
     combined::modlog::{modlog_combined_keys as key, ModlogCombined},
     local_user::LocalUser,
   },
-  traits::InternalToCombinedView,
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   ListingType,
   ModlogActionType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+
 impl ModlogCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(
@@ -228,80 +227,68 @@ impl ModlogCombinedViewInternal {
   }
 }
 
-impl ModlogCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &ModlogCombinedView) -> ModlogCombinedPaginationCursor {
-    let (prefix, id) = match view {
-      ModlogCombinedView::AdminAllowInstance(v) => {
-        ("AdminAllowInstance", v.admin_allow_instance.id.0)
-      }
-      ModlogCombinedView::AdminBlockInstance(v) => {
-        ("AdminBlockInstance", v.admin_block_instance.id.0)
-      }
-      ModlogCombinedView::AdminPurgeComment(v) => ("AdminPurgeComment", v.admin_purge_comment.id.0),
-      ModlogCombinedView::AdminPurgeCommunity(v) => {
-        ("AdminPurgeCommunity", v.admin_purge_community.id.0)
-      }
-      ModlogCombinedView::AdminPurgePerson(v) => ("AdminPurgePerson", v.admin_purge_person.id.0),
-      ModlogCombinedView::AdminPurgePost(v) => ("AdminPurgePost", v.admin_purge_post.id.0),
-      ModlogCombinedView::ModAdd(v) => ("ModAdd", v.mod_add.id.0),
-      ModlogCombinedView::ModAddCommunity(v) => ("ModAddCommunity", v.mod_add_community.id.0),
-      ModlogCombinedView::ModBan(v) => ("ModBan", v.mod_ban.id.0),
-      ModlogCombinedView::ModBanFromCommunity(v) => {
-        ("ModBanFromCommunity", v.mod_ban_from_community.id.0)
-      }
-      ModlogCombinedView::ModFeaturePost(v) => ("ModFeaturePost", v.mod_feature_post.id.0),
-      ModlogCombinedView::ModHideCommunity(v) => ("ModHideCommunity", v.mod_hide_community.id.0),
-      ModlogCombinedView::ModLockPost(v) => ("ModLockPost", v.mod_lock_post.id.0),
-      ModlogCombinedView::ModRemoveComment(v) => ("ModRemoveComment", v.mod_remove_comment.id.0),
-      ModlogCombinedView::ModRemoveCommunity(v) => {
-        ("ModRemoveCommunity", v.mod_remove_community.id.0)
-      }
-      ModlogCombinedView::ModRemovePost(v) => ("ModRemovePost", v.mod_remove_post.id.0),
-      ModlogCombinedView::ModTransferCommunity(v) => {
-        ("ModTransferCommunity", v.mod_transfer_community.id.0)
-      }
+impl PaginationCursorBuilder for ModlogCombinedView {
+  type CursorData = ModlogCombined;
+  fn to_cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
+      ModlogCombinedView::AdminAllowInstance(v) => ('A', v.admin_allow_instance.id.0),
+      ModlogCombinedView::AdminBlockInstance(v) => ('B', v.admin_block_instance.id.0),
+      ModlogCombinedView::AdminPurgeComment(v) => ('C', v.admin_purge_comment.id.0),
+      ModlogCombinedView::AdminPurgeCommunity(v) => ('D', v.admin_purge_community.id.0),
+      ModlogCombinedView::AdminPurgePerson(v) => ('E', v.admin_purge_person.id.0),
+      ModlogCombinedView::AdminPurgePost(v) => ('F', v.admin_purge_post.id.0),
+      ModlogCombinedView::ModAdd(v) => ('G', v.mod_add.id.0),
+      ModlogCombinedView::ModAddCommunity(v) => ('H', v.mod_add_community.id.0),
+      ModlogCombinedView::ModBan(v) => ('I', v.mod_ban.id.0),
+      ModlogCombinedView::ModBanFromCommunity(v) => ('J', v.mod_ban_from_community.id.0),
+      ModlogCombinedView::ModFeaturePost(v) => ('K', v.mod_feature_post.id.0),
+      ModlogCombinedView::ModHideCommunity(v) => ('L', v.mod_hide_community.id.0),
+      ModlogCombinedView::ModLockPost(v) => ('M', v.mod_lock_post.id.0),
+      ModlogCombinedView::ModRemoveComment(v) => ('N', v.mod_remove_comment.id.0),
+      ModlogCombinedView::ModRemoveCommunity(v) => ('O', v.mod_remove_community.id.0),
+      ModlogCombinedView::ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
+      ModlogCombinedView::ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
     };
-    // hex encoding to prevent ossification
-    ModlogCombinedPaginationCursor(format!("{prefix}-{id:x}"))
+    PaginationCursor::new(prefix, id)
   }
 
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
     let mut query = modlog_combined::table
-      .select(ModlogCombined::as_select())
+      .select(Self::CursorData::as_select())
       .into_boxed();
-    let (prefix, id_str) = self.0.split_once('-').ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
+
     query = match prefix {
-      "AdminAllowInstance" => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
-      "AdminBlockInstance" => query.filter(modlog_combined::admin_block_instance_id.eq(id)),
-      "AdminPurgeComment" => query.filter(modlog_combined::admin_purge_comment_id.eq(id)),
-      "AdminPurgeCommunity" => query.filter(modlog_combined::admin_purge_community_id.eq(id)),
-      "AdminPurgePerson" => query.filter(modlog_combined::admin_purge_person_id.eq(id)),
-      "AdminPurgePost" => query.filter(modlog_combined::admin_purge_post_id.eq(id)),
-      "ModAdd" => query.filter(modlog_combined::mod_add_id.eq(id)),
-      "ModAddCommunity" => query.filter(modlog_combined::mod_add_community_id.eq(id)),
-      "ModBan" => query.filter(modlog_combined::mod_ban_id.eq(id)),
-      "ModBanFromCommunity" => query.filter(modlog_combined::mod_ban_from_community_id.eq(id)),
-      "ModFeaturePost" => query.filter(modlog_combined::mod_feature_post_id.eq(id)),
-      "ModHideCommunity" => query.filter(modlog_combined::mod_hide_community_id.eq(id)),
-      "ModLockPost" => query.filter(modlog_combined::mod_lock_post_id.eq(id)),
-      "ModRemoveComment" => query.filter(modlog_combined::mod_remove_comment_id.eq(id)),
-      "ModRemoveCommunity" => query.filter(modlog_combined::mod_remove_community_id.eq(id)),
-      "ModRemovePost" => query.filter(modlog_combined::mod_remove_post_id.eq(id)),
-      "ModTransferCommunity" => query.filter(modlog_combined::mod_transfer_community_id.eq(id)),
-
-      _ => return Err(err_msg()),
+      'A' => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
+      'B' => query.filter(modlog_combined::admin_block_instance_id.eq(id)),
+      'C' => query.filter(modlog_combined::admin_purge_comment_id.eq(id)),
+      'D' => query.filter(modlog_combined::admin_purge_community_id.eq(id)),
+      'E' => query.filter(modlog_combined::admin_purge_person_id.eq(id)),
+      'F' => query.filter(modlog_combined::admin_purge_post_id.eq(id)),
+      'G' => query.filter(modlog_combined::mod_add_id.eq(id)),
+      'H' => query.filter(modlog_combined::mod_add_community_id.eq(id)),
+      'I' => query.filter(modlog_combined::mod_ban_id.eq(id)),
+      'J' => query.filter(modlog_combined::mod_ban_from_community_id.eq(id)),
+      'K' => query.filter(modlog_combined::mod_feature_post_id.eq(id)),
+      'L' => query.filter(modlog_combined::mod_hide_community_id.eq(id)),
+      'M' => query.filter(modlog_combined::mod_lock_post_id.eq(id)),
+      'N' => query.filter(modlog_combined::mod_remove_comment_id.eq(id)),
+      'O' => query.filter(modlog_combined::mod_remove_community_id.eq(id)),
+      'P' => query.filter(modlog_combined::mod_remove_post_id.eq(id)),
+      'Q' => query.filter(modlog_combined::mod_transfer_community_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
-    let token = query.first(&mut get_conn(pool).await?).await?;
 
-    Ok(PaginationCursorData(token))
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(ModlogCombined);
 
 #[derive(Default)]
 /// Querying / filtering the modlog.
@@ -315,7 +302,7 @@ pub struct ModlogCombinedQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub mod_person_id: Option<PersonId>,
   pub other_person_id: Option<PersonId>,
-  pub page_after: Option<PaginationCursorData>,
+  pub cursor_data: Option<ModlogCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -392,12 +379,10 @@ impl ModlogCombinedQuery<'_> {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     query = query

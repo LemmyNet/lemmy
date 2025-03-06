@@ -64,6 +64,12 @@ pub struct Person {
   #[cfg_attr(feature = "full", ts(optional))]
   pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
+  pub post_count: i64,
+  #[serde(skip)]
+  pub post_score: i64,
+  pub comment_count: i64,
+  #[serde(skip)]
+  pub comment_score: i64,
 }
 
 #[derive(Clone, derive_new::new)]

@@ -1,6 +1,5 @@
 use crate::structs::{
   CommentReplyView,
-  InboxCombinedPaginationCursor,
   InboxCombinedView,
   InboxCombinedViewInternal,
   PersonCommentMentionView,
@@ -22,11 +21,10 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions, creator_local_user},
   impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
-  newtypes::PersonId,
+  newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     comment_reply,
     community,
     community_actions,
@@ -40,17 +38,16 @@ use lemmy_db_schema::{
     person_post_mention,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     private_message,
     tag,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
-  traits::InternalToCombinedView,
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -104,10 +101,6 @@ impl InboxCombinedViewInternal {
         .eq(creator_local_user.field(local_user::person_id))
         .and(creator_local_user.field(local_user::admin).eq(true)),
     );
-
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-    let comment_aggregates_join =
-      comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id));
 
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
@@ -164,8 +157,6 @@ impl InboxCombinedViewInternal {
       .inner_join(person::table.on(item_creator_join))
       .inner_join(recipient_join)
       .left_join(image_details_join)
-      .left_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
       .left_join(creator_local_user_join)
@@ -218,48 +209,49 @@ impl InboxCombinedViewInternal {
   }
 }
 
-impl InboxCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &InboxCombinedView) -> InboxCombinedPaginationCursor {
-    let (prefix, id) = match view {
+impl PaginationCursorBuilder for InboxCombinedView {
+  type CursorData = InboxCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
       InboxCombinedView::CommentReply(v) => ('R', v.comment_reply.id.0),
       InboxCombinedView::CommentMention(v) => ('C', v.person_comment_mention.id.0),
       InboxCombinedView::PostMention(v) => ('P', v.person_post_mention.id.0),
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
-    // hex encoding to prevent ossification
-    InboxCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    PaginationCursor::new(prefix, id)
   }
 
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = inbox_combined::table
-      .select(InboxCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "R" => query.filter(inbox_combined::comment_reply_id.eq(id)),
-      "C" => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
-      "P" => query.filter(inbox_combined::person_post_mention_id.eq(id)),
-      "M" => query.filter(inbox_combined::private_message_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
 
-    Ok(PaginationCursorData(token))
+    let mut query = inbox_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'R' => query.filter(inbox_combined::comment_reply_id.eq(id)),
+      'C' => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
+      'P' => query.filter(inbox_combined::person_post_mention_id.eq(id)),
+      'M' => query.filter(inbox_combined::private_message_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(InboxCombined);
 
 #[derive(Default)]
 pub struct InboxCombinedQuery {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub page_after: Option<PaginationCursorData>,
+  pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -289,10 +281,9 @@ impl InboxCombinedQuery {
         comment_reply::all_columns.nullable(),
         person_comment_mention::all_columns.nullable(),
         person_post_mention::all_columns.nullable(),
-        post_aggregates::all_columns.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         )
         .nullable(),
         post_actions::saved.nullable(),
@@ -306,7 +297,6 @@ impl InboxCombinedQuery {
         post::all_columns.nullable(),
         community::all_columns.nullable(),
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         community_follower_select_subscribed_type(),
@@ -397,12 +387,10 @@ impl InboxCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by published
@@ -430,17 +418,15 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment_reply), Some(comment), Some(counts), Some(post), Some(community)) = (
+    if let (Some(comment_reply), Some(comment), Some(post), Some(community)) = (
       v.comment_reply,
       v.comment.clone(),
-      v.comment_counts.clone(),
       v.post.clone(),
       v.community.clone(),
     ) {
       Some(InboxCombinedView::CommentReply(CommentReplyView {
         comment_reply,
         comment,
-        counts,
         recipient: v.item_recipient,
         post,
         community,
@@ -455,16 +441,9 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (
-      Some(person_comment_mention),
-      Some(comment),
-      Some(counts),
-      Some(post),
-      Some(community),
-    ) = (
+    } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
       v.person_comment_mention,
       v.comment,
-      v.comment_counts,
       v.post.clone(),
       v.community.clone(),
     ) {
@@ -472,7 +451,6 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         PersonCommentMentionView {
           person_comment_mention,
           comment,
-          counts,
           recipient: v.item_recipient,
           post,
           community,
@@ -488,22 +466,14 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           can_mod: v.can_mod,
         },
       ))
-    } else if let (
-      Some(person_post_mention),
-      Some(post),
-      Some(counts),
-      Some(unread_comments),
-      Some(community),
-    ) = (
+    } else if let (Some(person_post_mention), Some(post), Some(unread_comments), Some(community)) = (
       v.person_post_mention,
       v.post,
-      v.post_counts,
       v.post_unread_comments,
       v.community,
     ) {
       Some(InboxCombinedView::PostMention(PersonPostMentionView {
         person_post_mention,
-        counts,
         post,
         community,
         recipient: v.item_recipient,

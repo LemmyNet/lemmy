@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_conn, now},
   PostSortType,
 };
-use lemmy_db_views::{post::post_view::PostQuery, structs::PaginationCursor};
+use lemmy_db_views::{post::post_view::PostQuery, structs::PostPaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 use url::Url;
@@ -162,7 +162,7 @@ async fn try_main() -> LemmyResult<()> {
 
     if let Some(post_view) = post_views.into_iter().next_back() {
       println!("👀 getting pagination cursor data for next page");
-      let cursor_data = PaginationCursor::after_post(&post_view)
+      let cursor_data = PostPaginationCursor::after_post(&post_view)
         .read(&mut conn.into(), None)
         .await?;
       page_after = Some(cursor_data);

@@ -16,7 +16,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     comment_report,
     community,
     community_actions,
@@ -47,9 +46,6 @@ impl CommentReportView {
     );
 
     let comment_creator_join = aliases::person1.on(comment::creator_id.eq(recipient_id));
-
-    let comment_aggregates_join =
-      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
 
     let comment_actions_join = comment_actions::table.on(
       comment_actions::comment_id
@@ -88,7 +84,6 @@ impl CommentReportView {
       .inner_join(community_join)
       .inner_join(report_creator_join)
       .inner_join(comment_creator_join)
-      .inner_join(comment_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(resolver_join)
       .left_join(creator_community_actions_join)
@@ -115,7 +110,6 @@ impl CommentReportView {
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        comment_aggregates::all_columns,
         coalesce(
           creator_community_actions
             .field(community_actions::received_ban)
