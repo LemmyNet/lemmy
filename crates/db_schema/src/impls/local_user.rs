@@ -5,7 +5,6 @@ use crate::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
     site::Site,
   },
   utils::{
@@ -54,10 +53,6 @@ impl LocalUser {
       .await?;
 
     LocalUserLanguage::update(pool, languages, local_user_.id).await?;
-
-    // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::new(local_user_.id);
-    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
 
     Ok(local_user_)
   }

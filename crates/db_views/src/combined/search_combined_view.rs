@@ -26,18 +26,14 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     community,
     community_actions,
-    community_aggregates,
     image_details,
     local_user,
     person,
     person_actions,
-    person_aggregates,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     search_combined,
     tag,
@@ -147,19 +143,8 @@ impl SearchCombinedViewInternal {
         .and(comment_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-
-    let comment_aggregates_join = comment_aggregates::table
-      .on(search_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
-
-    let community_aggregates_join = community_aggregates::table
-      .on(search_combined::community_id.eq(community_aggregates::community_id.nullable()));
-
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
-
-    let person_aggregates_join = person_aggregates::table
-      .on(search_combined::person_id.eq(person_aggregates::person_id.nullable()));
 
     search_combined::table
       .left_join(comment_join)
@@ -172,10 +157,6 @@ impl SearchCombinedViewInternal {
       .left_join(community_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
-      .left_join(person_aggregates_join)
-      .left_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
-      .left_join(community_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(image_details_join)
   }
@@ -259,10 +240,9 @@ impl SearchCombinedQuery {
       .select((
         // Post-specific
         post::all_columns.nullable(),
-        post_aggregates::all_columns.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         )
         .nullable(),
         post_actions::saved.nullable(),
@@ -273,16 +253,12 @@ impl SearchCombinedQuery {
         post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
         comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Community-specific
         community::all_columns.nullable(),
-        community_aggregates::all_columns.nullable(),
         community_actions::blocked.nullable().is_not_null(),
         community_follower_select_subscribed_type(),
-        // Person
-        person_aggregates::all_columns.nullable(),
         // // Shared
         person::all_columns.nullable(),
         local_user::admin.nullable().is_not_null(),
@@ -440,16 +416,14 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
+    if let (Some(comment), Some(creator), Some(post), Some(community)) = (
       v.comment,
-      v.comment_counts,
       v.item_creator.clone(),
       v.post.clone(),
       v.community.clone(),
     ) {
       Some(SearchCombinedView::Comment(CommentView {
         comment,
-        counts,
         post,
         community,
         creator,
@@ -463,15 +437,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (
-      Some(post),
-      Some(counts),
-      Some(creator),
-      Some(community),
-      Some(unread_comments),
-    ) = (
+    } else if let (Some(post), Some(creator), Some(community), Some(unread_comments)) = (
       v.post,
-      v.post_counts,
       v.item_creator.clone(),
       v.community.clone(),
       v.post_unread_comments,
@@ -479,7 +446,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Post(PostView {
         post,
         community,
-        counts,
         unread_comments,
         creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
@@ -496,19 +462,17 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
       }))
-    } else if let (Some(community), Some(counts)) = (v.community, v.community_counts) {
+    } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
         community,
-        counts,
         subscribed: v.subscribed,
         blocked: v.community_blocked,
         banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (Some(person), Some(counts)) = (v.item_creator, v.item_creator_counts) {
+    } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {
         person,
-        counts,
         is_admin: v.item_creator_is_admin,
       }))
     } else {
@@ -532,7 +496,6 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
@@ -573,9 +536,7 @@ mod tests {
     let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: timmy.clone(),
-      counts: Default::default(),
     };
 
     let community_form = CommunityInsertForm {
