@@ -43,7 +43,7 @@ pub struct InstanceForm {
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable)
+  derive(Queryable, Selectable, Associations, Identifiable, TS)
 )]
 #[cfg_attr(
   feature = "full",
@@ -52,9 +52,11 @@ pub struct InstanceForm {
 #[cfg_attr(feature = "full", diesel(table_name = instance_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, instance_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct InstanceActions {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked: Option<DateTime<Utc>>,
 }
 

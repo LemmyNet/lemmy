@@ -102,20 +102,25 @@ pub struct CommentUpdateForm {
   pub language_id: Option<LanguageId>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommentActions {
   pub person_id: PersonId,
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub like_score: Option<i16>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved: Option<DateTime<Utc>>,
 }
 

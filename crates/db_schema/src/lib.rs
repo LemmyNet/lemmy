@@ -178,6 +178,7 @@ pub enum SearchType {
   Users,
 }
 
+// TODO I think this goes away in favor of FollowState
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

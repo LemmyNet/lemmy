@@ -117,15 +117,7 @@ impl CommentView {
       );
     }
 
-    let mut res = query.first::<Self>(conn).await?;
-
-    // If a person is given, then my_vote (res.9), if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    if my_local_user.is_some() && res.my_vote.is_none() {
-      res.my_vote = Some(0);
-    }
-
-    Ok(res)
+    query.first::<Self>(conn).await
   }
 
   pub fn map_to_slim(self) -> CommentSlimView {
@@ -331,24 +323,20 @@ mod tests {
     newtypes::{CommentId, LanguageId},
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
-        CommunityFollower,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
-        CommunityModerator,
         CommunityModeratorForm,
-        CommunityPersonBan,
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm},
-      person_block::{PersonBlock, PersonBlockForm},
+      person::{Person, PersonBlockForm, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
@@ -477,10 +465,8 @@ mod tests {
     let inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
-    let timmy_blocks_sara_form = PersonBlockForm {
-      person_id: inserted_timmy_person.id,
-      target_id: inserted_sara_person.id,
-    };
+    let timmy_blocks_sara_form =
+      PersonBlockForm::new(inserted_timmy_person.id, inserted_sara_person.id);
 
     let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
 
@@ -491,11 +477,8 @@ mod tests {
     };
     assert_eq!(expected_block, inserted_block);
 
-    let comment_like_form = CommentLikeForm {
-      comment_id: inserted_comment_0.id,
-      person_id: inserted_timmy_person.id,
-      score: 1,
-    };
+    let comment_like_form =
+      CommentLikeForm::new(inserted_comment_0.id, inserted_timmy_person.id, 1);
 
     let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
 

@@ -15,8 +15,8 @@ use {
   feature = "full",
   derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
 )]
-#[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 /// A post.
@@ -171,24 +171,33 @@ pub struct PostUpdateForm {
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PostActions {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub read: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub read_comments: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub read_comments_amount: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub like_score: Option<i16>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub hidden: Option<DateTime<Utc>>,
 }
 

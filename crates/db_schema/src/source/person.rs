@@ -133,15 +133,17 @@ pub struct PersonUpdateForm {
   pub ban_expires: Option<Option<DateTime<Utc>>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, target_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PersonActions {
   pub target_id: PersonId,
   pub person_id: PersonId,
@@ -165,8 +167,9 @@ pub struct PersonFollowerForm {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 pub struct PersonBlockForm {
-  pub target_id: PersonId,
+  // This order is switched so blocks can work the same.
   pub person_id: PersonId,
+  pub target_id: PersonId,
   #[new(value = "Utc::now()")]
   pub blocked: DateTime<Utc>,
 }

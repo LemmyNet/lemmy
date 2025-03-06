@@ -175,10 +175,11 @@ pub struct CommunityUpdateForm {
   pub description: Option<Option<String>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS)
 )]
 #[cfg_attr(
   feature = "full",
@@ -187,15 +188,23 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityActions {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub followed: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub follow_state: Option<CommunityFollowerState>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub follow_approver_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub became_moderator: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub received_ban: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub ban_expires: Option<DateTime<Utc>>,
 }
 

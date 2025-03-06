@@ -20,7 +20,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions, creator_local_user},
-  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
@@ -44,7 +43,7 @@ use lemmy_db_schema::{
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{get_conn, DbPool},
   InboxDataType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -55,14 +54,16 @@ impl InboxCombinedViewInternal {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let item_creator_join = comment::creator_id
-      .eq(item_creator)
-      .or(
-        inbox_combined::person_post_mention_id
-          .is_not_null()
-          .and(post::creator_id.eq(item_creator)),
-      )
-      .or(private_message::creator_id.eq(item_creator));
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        .or(
+          inbox_combined::person_post_mention_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
+        .or(private_message::creator_id.eq(item_creator)),
+    );
 
     let recipient_join = aliases::person1.on(
       comment_reply::recipient_id
@@ -72,27 +73,33 @@ impl InboxCombinedViewInternal {
         .or(private_message::recipient_id.eq(recipient_person)),
     );
 
-    let comment_join = comment_reply::comment_id
-      .eq(comment::id)
-      .or(person_comment_mention::comment_id.eq(comment::id))
-      // Filter out the deleted / removed
-      .and(not(comment::deleted))
-      .and(not(comment::removed));
+    let comment_join = comment::table.on(
+      comment_reply::comment_id
+        .eq(comment::id)
+        .or(person_comment_mention::comment_id.eq(comment::id))
+        // Filter out the deleted / removed
+        .and(not(comment::deleted))
+        .and(not(comment::removed)),
+    );
 
-    let post_join = person_post_mention::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id))
-      // Filter out the deleted / removed
-      .and(not(post::deleted))
-      .and(not(post::removed));
+    let post_join = post::table.on(
+      person_post_mention::post_id
+        .eq(post::id)
+        .or(comment::post_id.eq(post::id))
+        // Filter out the deleted / removed
+        .and(not(post::deleted))
+        .and(not(post::removed)),
+    );
 
     // This could be a simple join, but you need to check for deleted here
-    let private_message_join = inbox_combined::private_message_id
-      .eq(private_message::id.nullable())
-      .and(not(private_message::deleted))
-      .and(not(private_message::removed));
+    let private_message_join = private_message::table.on(
+      inbox_combined::private_message_id
+        .eq(private_message::id.nullable())
+        .and(not(private_message::deleted))
+        .and(not(private_message::removed)),
+    );
 
-    let community_join = post::community_id.eq(community::id);
+    let community_join = community::table.on(post::community_id.eq(community::id));
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
@@ -150,11 +157,11 @@ impl InboxCombinedViewInternal {
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
-      .left_join(private_message::table.on(private_message_join))
-      .left_join(comment::table.on(comment_join))
-      .left_join(post::table.on(post_join))
-      .left_join(community::table.on(community_join))
-      .inner_join(person::table.on(item_creator_join))
+      .left_join(private_message_join)
+      .left_join(comment_join)
+      .left_join(post_join)
+      .left_join(community_join)
+      .inner_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join)
       .left_join(creator_community_actions_join)
@@ -266,58 +273,51 @@ impl InboxCombinedQuery {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post::id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = InboxCombinedViewInternal::joins(my_person_id)
-      .select((
-        // Specific
-        comment_reply::all_columns.nullable(),
-        person_comment_mention::all_columns.nullable(),
-        person_post_mention::all_columns.nullable(),
-        coalesce(
-          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post::comments,
-        )
-        .nullable(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        image_details::all_columns.nullable(),
-        post_tags,
-        private_message::all_columns.nullable(),
-        // Shared
-        post::all_columns.nullable(),
-        community::all_columns.nullable(),
-        comment::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        community_follower_select_subscribed_type(),
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-        creator_local_user
-          .field(local_user::admin)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        local_user_can_mod(),
-      ))
+      .select(InboxCombinedViewInternal::as_select())
+      // TODO
+      // .select((
+      //   // Specific
+      //   comment_reply::all_columns.nullable(),
+      //   person_comment_mention::all_columns.nullable(),
+      //   person_post_mention::all_columns.nullable(),
+      //   coalesce(
+      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+      //     post::comments,
+      //   )
+      //   .nullable(),
+      //   post_actions::saved.nullable(),
+      //   post_actions::read.nullable().is_not_null(),
+      //   post_actions::hidden.nullable().is_not_null(),
+      //   post_actions::like_score.nullable(),
+      //   image_details::all_columns.nullable(),
+      //   post_tags,
+      //   private_message::all_columns.nullable(),
+      //   // Shared
+      //   post::all_columns.nullable(),
+      //   community::all_columns.nullable(),
+      //   comment::all_columns.nullable(),
+      //   comment_actions::saved.nullable(),
+      //   comment_actions::like_score.nullable(),
+      //   community_follower_select_subscribed_type(),
+      //   person::all_columns,
+      //   aliases::person1.fields(person::all_columns),
+      //   creator_local_user
+      //     .field(local_user::admin)
+      //     .nullable()
+      //     .is_not_null(),
+      //   creator_community_actions
+      //     .field(community_actions::became_moderator)
+      //     .nullable()
+      //     .is_not_null(),
+      //   creator_community_actions
+      //     .field(community_actions::received_ban)
+      //     .nullable()
+      //     .is_not_null(),
+      //   person_actions::blocked.nullable().is_not_null(),
+      //   community_actions::received_ban.nullable().is_not_null(),
+      //   local_user_can_mod(),
+      // ))
       .into_boxed();
 
     // Filters
@@ -518,10 +518,8 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
-      instance::Instance,
-      instance_block::{InstanceBlock, InstanceBlockForm},
-      person::{Person, PersonInsertForm, PersonUpdateForm},
-      person_block::{PersonBlock, PersonBlockForm},
+      instance::{Instance, InstanceActions, InstanceBlockForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
       person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
       post::{Post, PostInsertForm},
@@ -727,11 +725,8 @@ mod tests {
     }
 
     // Sara blocks timmy, and make sure these counts are now empty
-    let sara_blocks_timmy_form = PersonBlockForm {
-      person_id: data.sara.id,
-      target_id: data.timmy.id,
-    };
-    PersonBlock::block(pool, &sara_blocks_timmy_form).await?;
+    let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.id, data.timmy.id);
+    PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
     let sara_unread_mentions_after_block =
       InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
@@ -749,7 +744,7 @@ mod tests {
     ));
 
     // Unblock user so we can reuse the same person
-    PersonBlock::unblock(pool, &sara_blocks_timmy_form).await?;
+    PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
 
     // Test the type filter
     let sara_inbox_post_mentions_only = InboxCombinedQuery {
@@ -883,19 +878,18 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure blocks are working
-    let timmy_blocks_sara_form = PersonBlockForm {
-      person_id: data.timmy.id,
-      target_id: data.sara.id,
-    };
+    let timmy_blocks_sara_form = PersonBlockForm::new(data.timmy.id, data.sara.id);
 
-    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
+    let inserted_block = PersonActions::block(pool, &timmy_blocks_sara_form).await?;
 
-    let expected_block = PersonBlock {
-      person_id: data.timmy.id,
-      target_id: data.sara.id,
-      published: inserted_block.published,
-    };
-    assert_eq!(expected_block, inserted_block);
+    assert_eq!(
+      (data.timmy.id, data.sara.id, true),
+      (
+        inserted_block.person_id,
+        inserted_block.target_id,
+        inserted_block.blocked.is_some()
+      )
+    );
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery {
@@ -926,19 +920,18 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure instance_blocks are working
-    let timmy_blocks_instance_form = InstanceBlockForm {
-      person_id: data.timmy.id,
-      instance_id: data.sara.instance_id,
-    };
+    let timmy_blocks_instance_form = InstanceBlockForm::new(data.timmy.id, data.sara.instance_id);
 
-    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form).await?;
+    let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
 
-    let expected_instance_block = InstanceBlock {
-      person_id: data.timmy.id,
-      instance_id: data.sara.instance_id,
-      published: inserted_instance_block.published,
-    };
-    assert_eq!(expected_instance_block, inserted_instance_block);
+    assert_eq!(
+      (data.timmy.id, data.sara.instance, true),
+      (
+        inserted_instance_block.person_id,
+        inserted_instance_block.instance_id,
+        inserted_instance_block.blocked.is_some()
+      )
+    );
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery {

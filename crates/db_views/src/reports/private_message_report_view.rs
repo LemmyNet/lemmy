@@ -1,5 +1,12 @@
 use crate::structs::PrivateMessageReportView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
@@ -30,13 +37,7 @@ impl PrivateMessageReportView {
           private_message_report::resolver_id.eq(aliases::person2.field(person::id).nullable()),
         ),
       )
-      .select((
-        private_message_report::all_columns,
-        private_message::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-        aliases::person2.fields(person::all_columns).nullable(),
-      ))
+      .select(Self::as_select())
       .first(conn)
       .await
   }
