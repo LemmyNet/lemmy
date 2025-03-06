@@ -141,6 +141,8 @@ pub enum LemmyErrorType {
   BanExpirationInPast,
   InvalidUnixTime,
   InvalidBotAction,
+  InvalidTagName,
+  TagNotInCommunity,
   CantBlockLocalInstance,
   Unknown(String),
   UrlLengthOverflow,

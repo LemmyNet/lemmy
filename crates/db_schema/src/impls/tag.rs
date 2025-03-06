@@ -13,12 +13,11 @@ impl Tag {
     pool: &mut DbPool<'_>,
     search_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::tag::dsl::*;
     let conn = &mut get_conn(pool).await?;
-    tag
-      .filter(community_id.eq(search_community_id))
-      .filter(deleted.eq(false))
-      .load::<Tag>(conn)
+    tag::table
+      .filter(tag::community_id.eq(search_community_id))
+      .filter(tag::deleted.eq(false))
+      .load::<Self>(conn)
       .await
   }
 }

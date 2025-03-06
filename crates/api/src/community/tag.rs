@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   context::LemmyContext,
@@ -14,7 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, utils::validation::tag_name_length_check};
 
 pub async fn create_community_tag(
   data: Json<CreateCommunityTag>,
@@ -40,10 +41,7 @@ pub async fn create_community_tag(
   let tag_form = TagInsertForm {
     name: data.name.clone(),
     community_id: data.community_id,
-    ap_id: community.build_tag_ap_id(&data.name)?,
-    published: None, // defaults to now
-    updated: None,
-    deleted: false,
+    ap_id: community.build_tag_ap_id(&data.name)?
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
@@ -51,7 +49,6 @@ pub async fn create_community_tag(
   Ok(Json(tag))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn update_community_tag(
   data: Json<UpdateCommunityTag>,
   context: Data<LemmyContext>,
@@ -69,10 +66,11 @@ pub async fn update_community_tag(
   )
   .await?;
 
+  tag_name_length_check(&data.name)?;
   // Update the tag
   let tag_form = TagUpdateForm {
     name: Some(data.name.clone()),
-    updated: Some(Some(chrono::Utc::now())),
+    updated: Some(Some(Utc::now())),
     ..Default::default()
   };
 
@@ -81,7 +79,6 @@ pub async fn update_community_tag(
   Ok(Json(tag))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn delete_community_tag(
   data: Json<DeleteCommunityTag>,
   context: Data<LemmyContext>,
@@ -101,7 +98,7 @@ pub async fn delete_community_tag(
 
   // Soft delete the tag
   let tag_form = TagUpdateForm {
-    updated: Some(Some(chrono::Utc::now())),
+    updated: Some(Some(Utc::now())),
     deleted: Some(true),
     ..Default::default()
   };

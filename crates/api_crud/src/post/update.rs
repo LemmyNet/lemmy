@@ -89,9 +89,6 @@ pub async fn update_post(
 
   let post_id = data.post_id;
   let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
-  // post view does not include communityview.post_tags
-  let community_view =
-    CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -101,6 +98,9 @@ pub async fn update_post(
   .await?;
 
   if let Some(tags) = &data.tags {
+    // post view does not include communityview.post_tags
+    let community_view =
+      CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
     update_post_tags(
       &context,
       &orig_post.post,

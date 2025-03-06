@@ -45,7 +45,7 @@ test("Create, update, delete community tag", async () => {
 
   // List tags
   let listRes = await alpha.getCommunity({ id: communityId });
-  expect(listRes.community_view.post_tags.length).toBeGreaterThan(0);
+  expect(listRes.community_view.post_tags.length).toBe(1);
   expect(
     listRes.community_view.post_tags.find(t => t.id === createRes.id)?.name,
   ).toBe(newTagName);
@@ -62,6 +62,7 @@ test("Create, update, delete community tag", async () => {
   expect(
     listRes.community_view.post_tags.find(t => t.id === createRes.id),
   ).toBeUndefined();
+  expect(listRes.community_view.post_tags.length).toBe(0);
 });
 
 test("Update post tags", async () => {

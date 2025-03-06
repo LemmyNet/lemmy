@@ -42,10 +42,6 @@ pub struct TagInsertForm {
   pub ap_id: DbUrl,
   pub name: String,
   pub community_id: CommunityId,
-  // default now
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<DateTime<Utc>>,
-  pub deleted: bool,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -1,14 +1,14 @@
 use crate::{context::LemmyContext, utils::check_community_mod_action};
-use activitypub_federation::config::Data;
 use lemmy_db_schema::{
   newtypes::TagId,
   source::{post::Post, post_tag::PostTag, tag::PostTagInsertForm},
 };
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use std::collections::HashSet;
 
 pub async fn update_post_tags(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   post: &Post,
   community: &CommunityView,
   tags: &[TagId],
@@ -27,24 +27,17 @@ pub async fn update_post_tags(
     .await?;
   }
   // validate tags
-  let valid_tags: std::collections::HashSet<TagId> =
-    community.post_tags.0.iter().map(|t| t.id).collect();
-  if tags.iter().any(|tag_id| !valid_tags.contains(tag_id)) {
-    return Err(LemmyErrorType::InvalidBodyField.into());
+  let valid_tags: HashSet<TagId> = community.post_tags.0.iter().map(|t| t.id).collect();
+  if !valid_tags.is_superset(&tags.iter().map(|t| *t).collect()) {
+    return Err(LemmyErrorType::TagNotInCommunity.into());
   }
-  // Delete existing post tags
-  PostTag::delete_for_post(&mut context.pool(), post.id).await?;
-  // Create new post tags
-  PostTag::create_many(
-    &mut context.pool(),
-    tags
-      .iter()
-      .map(|tag_id| PostTagInsertForm {
-        post_id: post.id,
-        tag_id: *tag_id,
-      })
-      .collect(),
-  )
-  .await?;
+  let insert_tags = tags
+    .iter()
+    .map(|tag_id| PostTagInsertForm {
+      post_id: post.id,
+      tag_id: *tag_id,
+    })
+    .collect();
+  PostTag::set(&mut context.pool(), post.id, insert_tags).await?;
   Ok(())
 }
