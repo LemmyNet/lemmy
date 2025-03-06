@@ -28,7 +28,7 @@ pub async fn update_post_tags(
   }
   // validate tags
   let valid_tags: HashSet<TagId> = community.post_tags.0.iter().map(|t| t.id).collect();
-  if !valid_tags.is_superset(&tags.iter().map(|t| *t).collect()) {
+  if !valid_tags.is_superset(&tags.iter().copied().collect()) {
     return Err(LemmyErrorType::TagNotInCommunity.into());
   }
   let insert_tags = tags

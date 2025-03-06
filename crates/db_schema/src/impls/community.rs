@@ -280,12 +280,12 @@ impl Community {
 
   pub fn build_tag_ap_id(&self, tag_name: &str) -> LemmyResult<DbUrl> {
     #[allow(clippy::expect_used)]
+    // convert a readable name to an id slug that is appended to the community URL to get a unique
+    // tag url (ap_id).
     static VALID_ID_SLUG: LazyLock<Regex> =
       LazyLock::new(|| Regex::new(r"[^a-z0-9_-]+").expect("compile regex"));
     let tag_name_lower = tag_name.to_lowercase();
     let id_slug = VALID_ID_SLUG.replace_all(&tag_name_lower, "-");
-    // limit length to 40 chars
-    let id_slug: String = id_slug.chars().take(40).collect();
     if id_slug.is_empty() {
       Err(LemmyErrorType::InvalidUrl)?
     }
