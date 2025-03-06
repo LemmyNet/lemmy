@@ -23,16 +23,14 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Check Out upstream/main
+      - name: Pull Latest Changes from Upstream
         run: |
           git checkout upstream/main
           git branch --set-upstream-to=origin/upstream/main
-
-      - name: Pull Latest Changes from Upstream
-        run: |
-          git remote add upstream https://github.com/LemmyNet/lemmy || true
-          git fetch upstream
-          git pull upstream main --ff-only
+          git remote add ups https://github.com/LemmyNet/lemmy
+          git fetch ups
+          git pull ups main --ff-only
+          git push --force
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
