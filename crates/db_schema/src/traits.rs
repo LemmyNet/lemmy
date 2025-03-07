@@ -191,6 +191,22 @@ pub trait Readable {
     Self: Sized;
 }
 
+pub trait ReadComments {
+  type Form;
+  fn update_read_comments(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<Self>> + Send
+  where
+    Self: Sized;
+  fn remove_read_comments(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
+}
+
 pub trait Hideable {
   type Form;
   fn hide(
@@ -230,10 +246,12 @@ pub trait Blockable {
   ) -> impl Future<Output = LemmyResult<()>> + Send
   where
     Self: Sized;
+
   fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<Vec<Self::ObjectType>>> + Send
+    // Note: cant use lemmyresult because of try_pool
+  ) -> impl Future<Output = Result<Vec<Self::ObjectType>, diesel::result::Error>> + Send
   where
     Self: Sized;
 }

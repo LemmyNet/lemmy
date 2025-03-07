@@ -20,11 +20,10 @@ use lemmy_db_schema::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
       Community,
-      CommunityFollower,
+      CommunityActions,
       CommunityFollowerForm,
       CommunityFollowerState,
       CommunityInsertForm,
-      CommunityModerator,
       CommunityModeratorForm,
     },
   },
@@ -114,26 +113,18 @@ pub async fn create_community(
     .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
 
   // The community creator becomes a moderator
-  let community_moderator_form = CommunityModeratorForm {
-    community_id: inserted_community.id,
-    person_id: local_user_view.person.id,
-  };
+  let community_moderator_form =
+    CommunityModeratorForm::new(inserted_community.id, local_user_view.person.id);
 
-  CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+  CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
   // Follow your own community
   let community_follower_form = CommunityFollowerForm {
-    community_id: inserted_community.id,
-    person_id: local_user_view.person.id,
-    state: Some(CommunityFollowerState::Accepted),
-    approver_id: None,
+    follow_state: Some(CommunityFollowerState::Accepted),
+    ..CommunityFollowerForm::new(inserted_community.id, local_user_view.person.id)
   };
 
-  CommunityFollower::follow(&mut context.pool(), &community_follower_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+  CommunityActions::follow(&mut context.pool(), &community_follower_form).await?;
 
   // Update the discussion_languages if that's provided
   let community_id = inserted_community.id;

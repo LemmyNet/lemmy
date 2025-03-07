@@ -251,7 +251,6 @@ pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[new(default)]
-  // TODO should this be required?
   pub follow_state: Option<CommunityFollowerState>,
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,

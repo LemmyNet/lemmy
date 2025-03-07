@@ -2,35 +2,42 @@
 use crate::utils::{
   comment_creator_is_admin,
   comment_select_remove_deletes,
+  creator_community_actions_select,
+  creator_is_admin,
   local_user_can_mod,
   local_user_community_can_mod,
+  local_user_is_admin,
   person1_select,
+  person2_select,
+  post_creator_is_admin,
 };
-use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{
   deserialize::FromSqlRow,
-
   dsl::Nullable,
   expression::AsExpression,
   sql_types,
-
   NullableExpressionMethods,
-  QueryDsl,
   Queryable,
   Selectable,
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
-  aliases::person1,
-
-  schema::{local_user, person},
+  schema::local_user,
   utils::functions::coalesce,
+  CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
+  Person2AliasAllColumnsTuple,
 };
 use lemmy_db_schema::{
   source::{
-    combined::inbox::InboxCombined,
+    combined::{
+      inbox::InboxCombined,
+      person_content::PersonContentCombined,
+      person_saved::PersonSavedCombined,
+      report::ReportCombined,
+      search::SearchCombined,
+    },
     comment::{Comment, CommentActions},
     comment_reply::CommentReply,
     comment_report::CommentReport,
@@ -101,17 +108,32 @@ pub struct CommentReportView {
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
   pub comment_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
+      select_expression = person2_select().nullable()
+    )
+  )]
   pub resolver: Option<Person>,
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full", diesel(embed))]
-  // TODO alias?
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
@@ -119,6 +141,12 @@ pub struct CommentReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = comment_creator_is_admin()
+    )
+  )]
+  pub creator_is_admin: bool,
 }
 
 #[skip_serializing_none]
@@ -152,8 +180,13 @@ pub struct CommentView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full",
     diesel(
@@ -198,7 +231,6 @@ pub struct CommunityReportView {
   pub community_report: CommunityReport,
   pub community: Community,
   pub creator: Person,
-  pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
@@ -230,10 +262,20 @@ pub struct PostReportView {
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
   pub post_creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
@@ -244,9 +286,20 @@ pub struct PostReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
+      select_expression = person2_select().nullable()
+    )
+  )]
   pub resolver: Option<Person>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_creator_is_admin()
+    )
+  )]
+  pub creator_is_admin: bool,
 }
 
 /// currently this is just a wrapper around post id, but should be seen as opaque from the client's
@@ -287,9 +340,20 @@ pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
   pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_creator_is_admin()
+    )
+  )]
+  pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -310,11 +374,21 @@ pub struct PrivateMessageReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: PrivateMessage,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub private_message_creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
+  pub private_message_creator: Person,
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
+      select_expression = person2_select().nullable()
+    )
+  )]
   pub resolver: Option<Person>,
 }
 
@@ -334,7 +408,8 @@ pub struct RegistrationApplicationView {
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = person1_select()
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = person1_select().nullable()
     )
   )]
   pub admin: Option<Person>,
@@ -390,38 +465,65 @@ pub struct LocalImageView {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined report view
 pub struct ReportCombinedViewInternal {
-  // Post-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub report_combined: ReportCombined,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post_report: Option<PostReport>,
-  pub post: Option<Post>,
-  pub post_unread_comments: Option<i64>,
-  pub post_saved: Option<DateTime<Utc>>,
-  pub post_read: bool,
-  pub post_hidden: bool,
-  pub my_post_vote: Option<i16>,
-  // Comment-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment_report: Option<CommentReport>,
-  pub comment: Option<Comment>,
-  pub comment_saved: Option<DateTime<Utc>>,
-  pub my_comment_vote: Option<i16>,
-  // Private-message-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message_report: Option<PrivateMessageReport>,
-  pub private_message: Option<PrivateMessage>,
-  // Community-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community_report: Option<CommunityReport>,
-  // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub report_creator: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub comment: Option<Comment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub private_message: Option<PrivateMessage>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post: Option<Post>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = person1_select().nullable()
+    )
+  )]
   pub item_creator: Option<Person>,
-  pub community: Option<Community>,
-  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
+      select_expression = person2_select().nullable()
+    )
+  )]
   pub resolver: Option<Person>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community: Option<Community>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
+  pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post_actions: Option<PostActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_is_admin()
+    )
+  )]
   pub item_creator_is_admin: bool,
-  pub item_creator_banned_from_community: bool,
-  pub item_creator_is_moderator: bool,
-  pub item_creator_blocked: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -437,32 +539,50 @@ pub enum ReportCombinedView {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined person_content view
 pub(crate) struct PersonContentCombinedViewInternal {
-  // Post-specific
-  pub post_unread_comments: i64,
-  pub post_saved: Option<DateTime<Utc>>,
-  pub post_read: bool,
-  pub post_hidden: bool,
-  pub my_post_vote: Option<i16>,
-  pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
-  // Comment-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_content_combined: PersonContentCombined,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
-  pub comment_saved: Option<DateTime<Utc>>,
-  pub my_comment_vote: Option<i16>,
-  // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
-  pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Person,
-  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community: Community,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
+  pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post_actions: Option<PostActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub image_details: Option<ImageDetails>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
   pub item_creator_is_admin: bool,
-  pub item_creator_is_moderator: bool,
-  pub item_creator_banned_from_community: bool,
-  pub item_creator_blocked: bool,
-  pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_can_mod()
+    )
+  )]
   pub can_mod: bool,
 }
 
@@ -477,32 +597,50 @@ pub enum PersonContentCombinedView {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined person_saved view
 pub(crate) struct PersonSavedCombinedViewInternal {
-  // Post-specific
-  pub post_unread_comments: i64,
-  pub post_saved: Option<DateTime<Utc>>,
-  pub post_read: bool,
-  pub post_hidden: bool,
-  pub my_post_vote: Option<i16>,
-  pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
-  // Comment-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_saved_combined: PersonSavedCombined,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
-  pub comment_saved: Option<DateTime<Utc>>,
-  pub my_comment_vote: Option<i16>,
-  // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
-  pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Person,
-  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community: Community,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
+  pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post_actions: Option<PostActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub image_details: Option<ImageDetails>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
   pub item_creator_is_admin: bool,
-  pub item_creator_is_moderator: bool,
-  pub item_creator_banned_from_community: bool,
-  pub item_creator_blocked: bool,
-  pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_can_mod()
+    )
+  )]
   pub can_mod: bool,
 }
 
@@ -603,22 +741,22 @@ pub enum CommunitySortType {
 /// A person comment mention view.
 pub struct PersonCommentMentionView {
   pub person_comment_mention: PersonCommentMention,
+  pub recipient: Person,
   pub comment: Comment,
   pub creator: Person,
   pub post: Post,
   pub community: Community,
-  pub recipient: Person,
-  pub creator_banned_from_community: bool,
-  pub banned_from_community: bool,
-  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
-  pub subscribed: SubscribedType,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// The time when the comment was saved.
-  pub saved: Option<DateTime<Utc>>,
-  pub creator_blocked: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub my_vote: Option<i16>,
   pub can_mod: bool,
 }
 
@@ -630,27 +768,23 @@ pub struct PersonCommentMentionView {
 /// A person post mention view.
 pub struct PersonPostMentionView {
   pub person_post_mention: PersonPostMention,
+  pub recipient: Person,
   pub post: Post,
   pub creator: Person,
   pub community: Community,
   #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
-  pub recipient: Person,
-  pub creator_banned_from_community: bool,
-  pub banned_from_community: bool,
-  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub post_actions: Option<PostActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
-  pub subscribed: SubscribedType,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// The time when the post was saved.
-  pub saved: Option<DateTime<Utc>>,
-  pub read: bool,
-  pub hidden: bool,
-  pub creator_blocked: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub my_vote: Option<i16>,
-  pub unread_comments: i64,
-  pub post_tags: PostTags,
   pub can_mod: bool,
 }
 
@@ -662,22 +796,22 @@ pub struct PersonPostMentionView {
 /// A comment reply view.
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
+  pub recipient: Person,
   pub comment: Comment,
   pub creator: Person,
   pub post: Post,
   pub community: Community,
-  pub recipient: Person,
-  pub creator_banned_from_community: bool,
-  pub banned_from_community: bool,
-  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
-  pub subscribed: SubscribedType,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// The time when the comment was saved.
-  pub saved: Option<DateTime<Utc>>,
-  pub creator_blocked: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub my_vote: Option<i16>,
   pub can_mod: bool,
 }
 
@@ -689,6 +823,7 @@ pub struct CommentReplyView {
 pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
+  // TODO fix this
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,
@@ -722,7 +857,7 @@ pub struct PrivateMessageView {
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = person1.fields(person::all_columns)
+      select_expression = person1_select()
     )
   )]
   pub recipient: Person,
@@ -751,15 +886,22 @@ pub struct InboxCombinedViewInternal {
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
   pub item_recipient: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
   pub creator_community_actions: Option<CommunityActions>,
-  // TODO
-
-  // pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -770,8 +912,18 @@ pub struct InboxCombinedViewInternal {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment_actions: Option<CommentActions>,
-  // TODO
-  // pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
+  pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_can_mod()
+    )
+  )]
+  pub can_mod: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -1064,7 +1216,7 @@ pub(crate) struct ModlogCombinedViewInternal {
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
-      select_expression = person1.fields(person::all_columns).nullable()
+      select_expression = person1_select().nullable()
     )
   )]
   pub other_person: Option<Person>,
@@ -1104,34 +1256,50 @@ pub enum ModlogCombinedView {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined search view
 pub(crate) struct SearchCombinedViewInternal {
-  // Post-specific
-  pub post: Option<Post>,
-  pub post_unread_comments: Option<i64>,
-  pub post_saved: Option<DateTime<Utc>>,
-  pub post_read: bool,
-  pub post_hidden: bool,
-  pub my_post_vote: Option<i16>,
-  pub image_details: Option<ImageDetails>,
-  pub post_tags: PostTags,
-  // // Comment-specific
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub search_combined: SearchCombined,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
-  pub comment_saved: Option<DateTime<Utc>>,
-  pub my_comment_vote: Option<i16>,
-  // // Community-specific
-  pub community: Option<Community>,
-  pub community_blocked: bool,
-  pub subscribed: SubscribedType,
-  // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post: Option<Post>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Option<Person>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community: Option<Community>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
+      select_expression = creator_community_actions_select().nullable()
+    )
+  )]
+  pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub post_actions: Option<PostActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub image_details: Option<ImageDetails>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
   pub item_creator_is_admin: bool,
-  pub item_creator_is_moderator: bool,
-  pub item_creator_banned_from_community: bool,
-  pub item_creator_blocked: bool,
-  pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_can_mod()
+    )
+  )]
   pub can_mod: bool,
 }
 

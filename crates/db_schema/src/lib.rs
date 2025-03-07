@@ -38,7 +38,11 @@ pub mod schema_setup;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use {diesel::query_source::AliasedField, schema::person, ts_rs::TS};
+use {
+  diesel::query_source::AliasedField,
+  schema::{community_actions, person},
+  ts_rs::TS,
+};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -315,7 +319,7 @@ macro_rules! assert_length {
 }
 
 #[cfg(feature = "full")]
-/// A helper tuple for person alias columns
+/// A helper tuple for person 1 alias columns
 pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::id>,
   AliasedField<aliases::Person1, person::name>,
@@ -341,4 +345,47 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::post_score>,
   AliasedField<aliases::Person1, person::comment_count>,
   AliasedField<aliases::Person1, person::comment_score>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for person 2 alias columns
+pub type Person2AliasAllColumnsTuple = (
+  AliasedField<aliases::Person2, person::id>,
+  AliasedField<aliases::Person2, person::name>,
+  AliasedField<aliases::Person2, person::display_name>,
+  AliasedField<aliases::Person2, person::avatar>,
+  AliasedField<aliases::Person2, person::banned>,
+  AliasedField<aliases::Person2, person::published>,
+  AliasedField<aliases::Person2, person::updated>,
+  AliasedField<aliases::Person2, person::ap_id>,
+  AliasedField<aliases::Person2, person::bio>,
+  AliasedField<aliases::Person2, person::local>,
+  AliasedField<aliases::Person2, person::private_key>,
+  AliasedField<aliases::Person2, person::public_key>,
+  AliasedField<aliases::Person2, person::last_refreshed_at>,
+  AliasedField<aliases::Person2, person::banner>,
+  AliasedField<aliases::Person2, person::deleted>,
+  AliasedField<aliases::Person2, person::inbox_url>,
+  AliasedField<aliases::Person2, person::matrix_user_id>,
+  AliasedField<aliases::Person2, person::bot_account>,
+  AliasedField<aliases::Person2, person::ban_expires>,
+  AliasedField<aliases::Person2, person::instance_id>,
+  AliasedField<aliases::Person2, person::post_count>,
+  AliasedField<aliases::Person2, person::post_score>,
+  AliasedField<aliases::Person2, person::comment_count>,
+  AliasedField<aliases::Person2, person::comment_score>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for creator community actions
+pub type CreatorCommunityActionsAllColumnsTuple = (
+  AliasedField<aliases::CreatorCommunityActions, community_actions::community_id>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::person_id>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::followed>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_state>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_approver_id>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires>,
 );

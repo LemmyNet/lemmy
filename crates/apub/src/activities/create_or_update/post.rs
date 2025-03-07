@@ -27,7 +27,7 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::Community,
     person::Person,
-    post::{Post, PostLike, PostLikeForm},
+    post::{Post, PostActions, PostLikeForm},
   },
   traits::{Crud, Likeable},
 };
@@ -117,7 +117,7 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     // author likes their own post by default
     let like_form = PostLikeForm::new(post.id, post.creator_id, 1);
-    PostLike::like(&mut context.pool(), &like_form).await?;
+    PostActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
     Post::update_ranks(&mut context.pool(), post.id).await?;

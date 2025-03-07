@@ -8,7 +8,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{
-  source::community::{CommunityFollower, CommunityFollowerForm},
+  source::community::{CommunityActions, CommunityFollowerForm},
   traits::Followable,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -27,7 +27,7 @@ pub async fn post_pending_follows_approve(
   .await?;
 
   let activity_data = if data.approve {
-    CommunityFollower::approve(
+    CommunityActions::approve_follower(
       &mut context.pool(),
       data.community_id,
       data.follower_id,
@@ -37,7 +37,7 @@ pub async fn post_pending_follows_approve(
     SendActivityData::AcceptFollower(data.community_id, data.follower_id)
   } else {
     let form = CommunityFollowerForm::new(data.community_id, data.follower_id);
-    CommunityFollower::unfollow(&mut context.pool(), &form).await?;
+    CommunityActions::unfollow(&mut context.pool(), &form).await?;
     SendActivityData::RejectFollower(data.community_id, data.follower_id)
   };
   ActivityChannel::submit_activity(activity_data, &context)?;

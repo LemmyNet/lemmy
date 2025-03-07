@@ -37,9 +37,7 @@ use lemmy_db_schema::{
     person_post_mention,
     post,
     post_actions,
-    post_tag,
     private_message,
-    tag,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
@@ -431,14 +429,12 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         post,
         community,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
+        community_actions: v.community_actions,
+        comment_actions: v.comment_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
-        banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
     } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
@@ -455,42 +451,31 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           post,
           community,
           creator: v.item_creator,
-          creator_banned_from_community: v.item_creator_banned_from_community,
-          creator_is_moderator: v.item_creator_is_moderator,
+          community_actions: v.community_actions,
+          comment_actions: v.comment_actions,
+          person_actions: v.person_actions,
+          instance_actions: v.instance_actions,
+          creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
-          creator_blocked: v.item_creator_blocked,
-          subscribed: v.subscribed,
-          saved: v.comment_saved,
-          my_vote: v.my_comment_vote,
-          banned_from_community: v.banned_from_community,
           can_mod: v.can_mod,
         },
       ))
-    } else if let (Some(person_post_mention), Some(post), Some(unread_comments), Some(community)) = (
-      v.person_post_mention,
-      v.post,
-      v.post_unread_comments,
-      v.community,
-    ) {
+    } else if let (Some(person_post_mention), Some(post), Some(community)) =
+      (v.person_post_mention, v.post, v.community)
+    {
       Some(InboxCombinedView::PostMention(PersonPostMentionView {
         person_post_mention,
         post,
         community,
-        recipient: v.item_recipient,
-        unread_comments,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
+        recipient: v.item_recipient,
+        community_actions: v.community_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        post_actions: v.post_actions,
         image_details: v.image_details,
-        post_tags: v.post_tags,
-        banned_from_community: v.banned_from_community,
+        creator_community_actions: v.creator_community_actions,
+        creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
       }))
     } else if let Some(private_message) = v.private_message {
@@ -925,7 +910,7 @@ mod tests {
     let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
 
     assert_eq!(
-      (data.timmy.id, data.sara.instance, true),
+      (data.timmy.id, data.sara.instance_id, true),
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,

@@ -235,6 +235,17 @@ pub struct PostReadForm {
 #[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+pub struct PostReadCommentsForm {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+  pub read_comments_amount: i64,
+  #[new(value = "Utc::now()")]
+  pub read_comments: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,

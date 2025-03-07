@@ -259,7 +259,7 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      community::{CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       person::PersonInsertForm,
     },
@@ -301,10 +301,10 @@ mod tests {
 
     // insert unapproved follower
     let mut follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::ApprovalRequired),
+      follow_state: Some(CommunityFollowerState::ApprovalRequired),
       ..CommunityFollowerForm::new(community.id, person.id)
     };
-    CommunityFollower::follow(pool, &follower_form).await?;
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // still returns error
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(
@@ -316,8 +316,8 @@ mod tests {
     assert!(has_followers.is_err());
 
     // mark follower as accepted
-    follower_form.state = Some(CommunityFollowerState::Accepted);
-    CommunityFollower::follow(pool, &follower_form).await?;
+    follower_form.follow_state = Some(CommunityFollowerState::Accepted);
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // now returns ok
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(

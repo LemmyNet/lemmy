@@ -8,11 +8,12 @@ use crate::{
     PostHideForm,
     PostInsertForm,
     PostLikeForm,
+    PostReadCommentsForm,
     PostReadForm,
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Hideable, Likeable, Readable, Saveable},
+  traits::{Crud, Hideable, Likeable, ReadComments, Readable, Saveable},
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
@@ -399,12 +400,6 @@ impl Readable for PostActions {
   async fn mark_many_as_read(pool: &mut DbPool<'_>, forms: &[Self::Form]) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
-    // TODO move this out
-    // let forms = post_ids
-    //   .iter()
-    //   .map(|post_id| (PostReadForm::new(*post_id, person_id)))
-    //   .collect::<Vec<_>>();
-
     insert_into(post_actions::table)
       .values(forms)
       .on_conflict((post_actions::person_id, post_actions::post_id))
@@ -443,6 +438,49 @@ impl Hideable for PostActions {
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntHidePost)
+  }
+}
+
+impl ReadComments for PostActions {
+  type Form = PostReadCommentsForm;
+  async fn update_read_comments(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    insert_into(post_actions::table)
+      .values(form)
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
+  }
+
+  async fn remove_read_comments(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+
+    uplete::new(
+      post_actions::table
+        .filter(post_actions::post_id.eq(form.post_id))
+        .filter(post_actions::person_id.eq(form.person_id)),
+    )
+    .set_null(post_actions::read_comments_amount)
+    .set_null(post_actions::read_comments)
+    .get_result(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
+  }
+}
+
+impl PostActions {
+  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
+    post_ids
+      .iter()
+      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
+      .collect::<Vec<_>>()
   }
 }
 

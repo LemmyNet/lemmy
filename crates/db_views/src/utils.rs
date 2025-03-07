@@ -1,7 +1,5 @@
-// TODO move all of the view custom selects here
-
 use diesel::{
-  dsl::{case_when, exists, not, Nullable},
+  dsl::{case_when, exists, not},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -9,9 +7,19 @@ use diesel::{
   QueryDsl,
 };
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user, person1},
-  schema::{comment, community_actions, instance_actions, local_user, person, person_actions},
+  aliases::{creator_community_actions, creator_local_user, person1, person2},
+  schema::{
+    comment,
+    community_actions,
+    instance_actions,
+    local_user,
+    person,
+    person_actions,
+    post,
+  },
+  CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
+  Person2AliasAllColumnsTuple,
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -25,12 +33,39 @@ pub(crate) fn filter_blocked() -> _ {
     .and(person_actions::blocked.is_null())
 }
 
+/// Checks that the creator_local_user is an admin.
+#[diesel::dsl::auto_type]
+pub(crate) fn creator_is_admin() -> _ {
+  creator_local_user
+    .field(local_user::admin)
+    .nullable()
+    .is_not_null()
+}
+
+/// Checks that the local_user is an admin.
+#[diesel::dsl::auto_type]
+pub(crate) fn local_user_is_admin() -> _ {
+  local_user::admin.nullable().is_not_null()
+}
+
+// TODO should probably get rid of this in favor of creator_is_admin
 /// Checks to see if the comment creator is an admin.
 #[diesel::dsl::auto_type]
 pub(crate) fn comment_creator_is_admin() -> _ {
   exists(
     creator_local_user.filter(
       comment::creator_id
+        .eq(creator_local_user.field(local_user::person_id))
+        .and(creator_local_user.field(local_user::admin).eq(true)),
+    ),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn post_creator_is_admin() -> _ {
+  exists(
+    creator_local_user.filter(
+      post::creator_id
         .eq(creator_local_user.field(local_user::person_id))
         .and(creator_local_user.field(local_user::admin).eq(true)),
     ),
@@ -69,7 +104,7 @@ pub(crate) fn local_user_community_can_mod() -> _ {
 /// Selects the comment columns, but gives an empty string for content when
 /// deleted or removed, and you're not a mod/admin.
 #[diesel::dsl::auto_type]
-pub fn comment_select_remove_deletes() -> _ {
+pub(crate) fn comment_select_remove_deletes() -> _ {
   let deleted_or_removed = comment::deleted.or(comment::removed);
 
   // You can only view the content if it hasn't been removed, or you can mod.
@@ -101,8 +136,17 @@ pub fn comment_select_remove_deletes() -> _ {
   )
 }
 
-/// The select for the person1 alias
-#[diesel::dsl::auto_type]
-pub fn person1_select() -> Nullable<Person1AliasAllColumnsTuple> {
-  person1.fields(person::all_columns).nullable()
+/// The select for the person1 alias.
+pub(crate) fn person1_select() -> Person1AliasAllColumnsTuple {
+  person1.fields(person::all_columns)
+}
+
+/// The select for the person2 alias.
+pub(crate) fn person2_select() -> Person2AliasAllColumnsTuple {
+  person2.fields(person::all_columns)
+}
+
+/// The select for the creator community actions alias.
+pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTuple {
+  creator_community_actions.fields(community_actions::all_columns)
 }

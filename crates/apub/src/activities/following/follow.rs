@@ -20,9 +20,9 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
+    community::{CommunityActions, CommunityFollowerForm, CommunityFollowerState},
     instance::Instance,
-    person::{PersonFollower, PersonFollowerForm},
+    person::{PersonActions, PersonFollowerForm},
   },
   traits::Followable,
   CommunityVisibility,
@@ -94,12 +94,8 @@ impl ActivityHandler for Follow {
     let object = self.object.dereference(context).await?;
     match object {
       UserOrCommunity::User(u) => {
-        let form = PersonFollowerForm {
-          person_id: u.id,
-          follower_id: actor.id,
-          pending: false,
-        };
-        PersonFollower::follow(&mut context.pool(), &form).await?;
+        let form = PersonFollowerForm::new(u.id, actor.id, false);
+        PersonActions::follow(&mut context.pool(), &form).await?;
         AcceptFollow::send(self, context).await?;
       }
       UserOrCommunity::Community(c) => {
@@ -110,17 +106,17 @@ impl ActivityHandler for Follow {
             return Err(FederationError::PlatformLackingPrivateCommunitySupport.into());
           }
         }
-        let state = Some(match c.visibility {
+        let follow_state = Some(match c.visibility {
           CommunityVisibility::Public => CommunityFollowerState::Accepted,
           CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
           CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
         });
         let form = CommunityFollowerForm {
-          state,
+          follow_state,
           ..CommunityFollowerForm::new(c.id, actor.id)
         };
-        CommunityFollower::follow(&mut context.pool(), &form).await?;
+        CommunityActions::follow(&mut context.pool(), &form).await?;
         if c.visibility == CommunityVisibility::Public {
           AcceptFollow::send(self, context).await?;
         }

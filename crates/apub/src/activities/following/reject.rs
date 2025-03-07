@@ -13,7 +13,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{CommunityActions, CommunityFollowerForm},
   },
   traits::Followable,
 };
@@ -69,7 +69,7 @@ impl ActivityHandler for RejectFollow {
 
     // remove the follow
     let form = CommunityFollowerForm::new(community.id, person.id);
-    CommunityFollower::unfollow(&mut context.pool(), &form).await?;
+    CommunityActions::unfollow(&mut context.pool(), &form).await?;
 
     Ok(())
   }

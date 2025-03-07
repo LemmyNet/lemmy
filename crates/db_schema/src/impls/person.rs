@@ -208,7 +208,7 @@ impl Followable for PersonActions {
     let conn = &mut get_conn(pool).await?;
     insert_into(person_actions::table)
       .values(form)
-      .on_conflict((person_actions::target_id, person_actions::person_id))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(form)
       .returning(Self::as_select())
@@ -224,7 +224,7 @@ impl Followable for PersonActions {
 
   async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((form.target_id, form.person_id)))
+    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
       .set_null(person_actions::followed)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
@@ -262,12 +262,12 @@ impl Blockable for PersonActions {
 
   async fn read_block(
     pool: &mut DbPool<'_>,
-    for_person_id: PersonId,
-    for_recipient_id: Self::ObjectIdType,
+    person_id: PersonId,
+    recipient_id: Self::ObjectIdType,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = person_actions::table
-      .find((for_person_id, for_recipient_id))
+      .find((person_id, recipient_id))
       .filter(person_actions::blocked.is_not_null());
 
     select(not(exists(find_action)))
@@ -280,7 +280,7 @@ impl Blockable for PersonActions {
   async fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<Vec<Self::ObjectType>> {
+  ) -> Result<Vec<Self::ObjectType>, Error> {
     let conn = &mut get_conn(pool).await?;
     let target_person_alias = diesel::alias!(person as person1);
 
@@ -296,7 +296,6 @@ impl Blockable for PersonActions {
       .order_by(person_actions::blocked)
       .load::<Person>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
   }
 }
 

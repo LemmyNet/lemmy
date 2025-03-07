@@ -9,13 +9,13 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    community::{Community, CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
+    community::{Community, CommunityActions, CommunityFollowerForm, CommunityFollowerState},
   },
   traits::{Crud, Followable},
   CommunityVisibility,
 };
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_community(
   data: Json<FollowCommunity>,
@@ -36,7 +36,7 @@ pub async fn follow_community(
         .await?;
     }
 
-    let state = if community.local {
+    let follow_state = if community.local {
       // Local follow is accepted immediately
       Some(CommunityFollowerState::Accepted)
     } else if community.visibility == CommunityVisibility::Private {
@@ -48,18 +48,14 @@ pub async fn follow_community(
     };
 
     let form = CommunityFollowerForm {
-      state,
+      follow_state,
       ..CommunityFollowerForm::new(community.id, local_user_view.person.id)
     };
 
     // Write to db
-    CommunityFollower::follow(&mut context.pool(), &form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+    CommunityActions::follow(&mut context.pool(), &form).await?;
   } else {
-    CommunityFollower::unfollow(&mut context.pool(), &form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+    CommunityActions::unfollow(&mut context.pool(), &form).await?;
   }
 
   // Send the federated follow

@@ -237,7 +237,7 @@ impl Blockable for InstanceActions {
   async fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<Vec<Self::ObjectType>> {
+  ) -> Result<Vec<Self::ObjectType>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance_actions::table
       .filter(instance_actions::blocked.is_not_null())
@@ -247,6 +247,5 @@ impl Blockable for InstanceActions {
       .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

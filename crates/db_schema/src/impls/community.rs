@@ -421,12 +421,10 @@ impl Bannable for CommunityActions {
 }
 
 // TODO this necessary now?
-// I'd really like to have these on the impl, but unfortunately they have to be top level,
-// according to https://diesel.rs/guides/composing-applications.html
-// #[diesel::dsl::auto_type]
-// pub fn community_follower_select_subscribed_type() -> _ {
-//   community_actions::follow_state.nullable()
-// }
+#[diesel::dsl::auto_type]
+pub fn community_follower_select_subscribed_type() -> _ {
+  community_actions::follow_state.nullable()
+}
 
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
   for SubscribedType
@@ -543,7 +541,7 @@ impl Blockable for CommunityActions {
   async fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<Vec<Self::ObjectType>> {
+  ) -> Result<Vec<Self::ObjectType>, Error> {
     let conn = &mut get_conn(pool).await?;
     community_actions::table
       .filter(community_actions::blocked.is_not_null())
@@ -555,7 +553,6 @@ impl Blockable for CommunityActions {
       .order_by(community_actions::blocked)
       .load::<Community>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
