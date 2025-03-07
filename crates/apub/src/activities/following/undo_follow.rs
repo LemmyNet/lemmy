@@ -13,11 +13,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    community::{CommunityActions, CommunityFollowerForm},
-    person::{PersonActions, PersonFollowerForm},
-  },
+  source::{activity::ActivitySendTargets, community::CommunityActions, person::PersonActions},
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -79,12 +75,10 @@ impl ActivityHandler for UndoFollow {
 
     match object {
       UserOrCommunity::User(u) => {
-        let form = PersonFollowerForm::new(u.id, person.id, false);
-        PersonActions::unfollow(&mut context.pool(), &form).await?;
+        PersonActions::unfollow(&mut context.pool(), person.id, u.id).await?;
       }
       UserOrCommunity::Community(c) => {
-        let form = CommunityFollowerForm::new(c.id, person.id);
-        CommunityActions::unfollow(&mut context.pool(), &form).await?;
+        CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
       }
     }
 

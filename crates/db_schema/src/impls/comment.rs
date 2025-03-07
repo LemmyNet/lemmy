@@ -168,6 +168,7 @@ impl Crud for Comment {
 impl Likeable for CommentActions {
   type Form = CommentLikeForm;
   type IdType = CommentId;
+
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_actions::table)

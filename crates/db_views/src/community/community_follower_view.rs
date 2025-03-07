@@ -302,10 +302,11 @@ mod tests {
     assert!(has_followers.is_err());
 
     // insert unapproved follower
-    let mut follower_form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::ApprovalRequired),
-      ..CommunityFollowerForm::new(community.id, person.id)
-    };
+    let mut follower_form = CommunityFollowerForm::new(
+      community.id,
+      person.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
     CommunityActions::follow(pool, &follower_form).await?;
 
     // still returns error
@@ -318,7 +319,7 @@ mod tests {
     assert!(has_followers.is_err());
 
     // mark follower as accepted
-    follower_form.follow_state = Some(CommunityFollowerState::Accepted);
+    follower_form.follow_state = CommunityFollowerState::Accepted;
     CommunityActions::follow(pool, &follower_form).await?;
 
     // now returns ok

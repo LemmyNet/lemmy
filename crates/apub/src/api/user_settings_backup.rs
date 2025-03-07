@@ -165,10 +165,8 @@ pub async fn import_settings(
       &context,
       |(followed, context)| async move {
         let community = followed.dereference(&context).await?;
-        let form = CommunityFollowerForm {
-          follow_state: Some(CommunityFollowerState::Pending),
-          ..CommunityFollowerForm::new(community.id, person_id)
-        };
+        let form =
+          CommunityFollowerForm::new(community.id, person_id, CommunityFollowerState::Pending);
         CommunityActions::follow(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
@@ -315,10 +313,11 @@ pub(crate) mod tests {
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
-    let follower_form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, export_user.person.id)
-    };
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      export_user.person.id,
+      CommunityFollowerState::Accepted,
+    );
     CommunityActions::follow(pool, &follower_form).await?;
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;

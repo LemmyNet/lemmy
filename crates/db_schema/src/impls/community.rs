@@ -436,6 +436,8 @@ impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerSt
 
 impl Followable for CommunityActions {
   type Form = CommunityFollowerForm;
+  type IdType = CommunityId;
+
   async fn follow(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(community_actions::table)
@@ -468,9 +470,13 @@ impl Followable for CommunityActions {
       .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
   }
 
-  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    community_id: Self::IdType,
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+    uplete::new(community_actions::table.find((person_id, community_id)))
       .set_null(community_actions::followed)
       .set_null(community_actions::follow_state)
       .set_null(community_actions::follow_approver_id)
@@ -687,10 +693,11 @@ mod tests {
       interactions_month: 0,
     };
 
-    let community_follower_form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(inserted_community.id, inserted_bobby.id)
-    };
+    let community_follower_form = CommunityFollowerForm::new(
+      inserted_community.id,
+      inserted_bobby.id,
+      CommunityFollowerState::Accepted,
+    );
 
     let inserted_community_follower =
       CommunityActions::follow(pool, &community_follower_form).await?;
@@ -760,7 +767,12 @@ mod tests {
     let updated_community =
       Community::update(pool, inserted_community.id, &update_community_form).await?;
 
-    let ignored_community = CommunityActions::unfollow(pool, &community_follower_form).await?;
+    let ignored_community = CommunityActions::unfollow(
+      pool,
+      community_follower_form.person_id,
+      community_follower_form.community_id,
+    )
+    .await?;
     let left_community = CommunityActions::leave(pool, &bobby_moderator_form).await?;
     let unban = CommunityActions::unban(pool, &community_person_ban_form).await?;
     let num_deleted = Community::delete(pool, inserted_community.id).await?;
@@ -811,24 +823,27 @@ mod tests {
     );
     let another_inserted_community = Community::create(pool, &another_community).await?;
 
-    let first_person_follow = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(inserted_community.id, inserted_person.id)
-    };
+    let first_person_follow = CommunityFollowerForm::new(
+      inserted_community.id,
+      inserted_person.id,
+      CommunityFollowerState::Accepted,
+    );
 
     CommunityActions::follow(pool, &first_person_follow).await?;
 
-    let second_person_follow = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(inserted_community.id, another_inserted_person.id)
-    };
+    let second_person_follow = CommunityFollowerForm::new(
+      inserted_community.id,
+      another_inserted_person.id,
+      CommunityFollowerState::Accepted,
+    );
 
     CommunityActions::follow(pool, &second_person_follow).await?;
 
-    let another_community_follow = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(another_inserted_community.id, inserted_person.id)
-    };
+    let another_community_follow = CommunityFollowerForm::new(
+      another_inserted_community.id,
+      inserted_person.id,
+      CommunityFollowerState::Accepted,
+    );
 
     CommunityActions::follow(pool, &another_community_follow).await?;
 
@@ -869,7 +884,12 @@ mod tests {
     assert_eq!(0, another_community_aggs.comments);
 
     // Unfollow test
-    CommunityActions::unfollow(pool, &second_person_follow).await?;
+    CommunityActions::unfollow(
+      pool,
+      second_person_follow.person_id,
+      second_person_follow.community_id,
+    )
+    .await?;
     let after_unfollow = Community::read(pool, inserted_community.id).await?;
     assert_eq!(1, after_unfollow.subscribers);
     assert_eq!(1, after_unfollow.subscribers_local);

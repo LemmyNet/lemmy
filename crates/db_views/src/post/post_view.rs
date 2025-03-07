@@ -1476,10 +1476,11 @@ mod tests {
     assert!(posts.is_empty());
 
     // Follow the community
-    let form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
-    };
+    let form = CommunityFollowerForm::new(
+      data.community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
     CommunityActions::follow(pool, &form).await?;
 
     let posts = data.default_post_query().list(&data.site, pool).await?;
@@ -1543,13 +1544,20 @@ mod tests {
       .all(|p| p.post.id != post_from_blocked_instance.id));
 
     // Follow community from the blocked instance to see posts anyway
-    let mut follow_form =
-      CommunityFollowerForm::new(inserted_community.id, data.tegan_local_user_view.person.id);
-    follow_form.follow_state = Some(CommunityFollowerState::Accepted);
+    let follow_form = CommunityFollowerForm::new(
+      inserted_community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
     CommunityActions::follow(pool, &follow_form).await?;
     let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
-    CommunityActions::unfollow(pool, &follow_form).await?;
+    CommunityActions::unfollow(
+      pool,
+      data.tegan_local_user_view.person.id,
+      inserted_community.id,
+    )
+    .await?;
 
     // after unblocking it should return all posts again
     InstanceActions::unblock(pool, &block_form).await?;
@@ -2081,14 +2089,13 @@ mod tests {
     data.tegan_local_user_view.local_user.admin = false;
 
     // User can view after following
-    CommunityActions::follow(
-      pool,
-      &CommunityFollowerForm {
-        follow_state: Some(CommunityFollowerState::Accepted),
-        ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
-      },
-    )
-    .await?;
+    let follow_form = CommunityFollowerForm::new(
+      data.community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form).await?;
+
     let read_post_listing = PostQuery {
       community_id: Some(data.community.id),
       local_user: Some(&data.tegan_local_user_view.local_user),

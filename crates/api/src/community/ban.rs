@@ -12,7 +12,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityActions, CommunityFollowerForm, CommunityPersonBanForm},
+    community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,
     mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
@@ -60,8 +60,7 @@ pub async fn ban_from_community(
     CommunityActions::ban(&mut context.pool(), &community_user_ban_form).await?;
 
     // Also unsubscribe them from the community, if they are subscribed
-    let community_follower_form = CommunityFollowerForm::new(data.community_id, banned_person_id);
-    CommunityActions::unfollow(&mut context.pool(), &community_follower_form)
+    CommunityActions::unfollow(&mut context.pool(), banned_person_id, data.community_id)
       .await
       .ok();
   } else {

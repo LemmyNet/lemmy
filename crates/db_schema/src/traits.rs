@@ -82,6 +82,7 @@ where
 
 pub trait Followable {
   type Form;
+  type IdType;
   fn follow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
@@ -97,7 +98,8 @@ pub trait Followable {
     Self: Sized;
   fn unfollow(
     pool: &mut DbPool<'_>,
-    form: &Self::Form,
+    person_id: PersonId,
+    item_id: Self::IdType,
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
@@ -193,6 +195,7 @@ pub trait Readable {
 
 pub trait ReadComments {
   type Form;
+  type IdType;
   fn update_read_comments(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
@@ -201,7 +204,8 @@ pub trait ReadComments {
     Self: Sized;
   fn remove_read_comments(
     pool: &mut DbPool<'_>,
-    form: &Self::Form,
+    person_id: PersonId,
+    item_id: Self::IdType,
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;

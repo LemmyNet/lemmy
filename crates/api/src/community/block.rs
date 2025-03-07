@@ -6,7 +6,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_db_schema::{
-  source::community::{CommunityActions, CommunityBlockForm, CommunityFollowerForm},
+  source::community::{CommunityActions, CommunityBlockForm},
   traits::{Blockable, Followable},
 };
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
@@ -25,8 +25,7 @@ pub async fn user_block_community(
     CommunityActions::block(&mut context.pool(), &community_block_form).await?;
 
     // Also, unfollow the community, and send a federated unfollow
-    let community_follower_form = CommunityFollowerForm::new(data.community_id, person_id);
-    CommunityActions::unfollow(&mut context.pool(), &community_follower_form)
+    CommunityActions::unfollow(&mut context.pool(), person_id, data.community_id)
       .await
       .ok();
   } else {

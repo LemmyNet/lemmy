@@ -106,16 +106,13 @@ impl ActivityHandler for Follow {
             return Err(FederationError::PlatformLackingPrivateCommunitySupport.into());
           }
         }
-        let follow_state = Some(match c.visibility {
+        let follow_state = match c.visibility {
           CommunityVisibility::Public => CommunityFollowerState::Accepted,
           CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
           CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
-        });
-        let form = CommunityFollowerForm {
-          follow_state,
-          ..CommunityFollowerForm::new(c.id, actor.id)
         };
+        let form = CommunityFollowerForm::new(c.id, actor.id, follow_state);
         CommunityActions::follow(&mut context.pool(), &form).await?;
         if c.visibility == CommunityVisibility::Public {
           AcceptFollow::send(self, context).await?;

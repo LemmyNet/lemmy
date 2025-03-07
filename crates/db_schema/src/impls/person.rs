@@ -204,6 +204,8 @@ impl ApubActor for Person {
 
 impl Followable for PersonActions {
   type Form = PersonFollowerForm;
+  type IdType = PersonId;
+
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person_actions::table)
@@ -222,9 +224,13 @@ impl Followable for PersonActions {
     Err(LemmyErrorType::NotFound.into())
   }
 
-  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: Self::IdType,
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
+    uplete::new(person_actions::table.find((person_id, target_id)))
       .set_null(person_actions::followed)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
@@ -412,7 +418,8 @@ mod tests {
     let followers = PersonActions::list_followers(pool, person_1.id).await?;
     assert_eq!(vec![person_2], followers);
 
-    let unfollow = PersonActions::unfollow(pool, &follow_form).await?;
+    let unfollow =
+      PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;
     assert_eq!(uplete::Count::only_deleted(1), unfollow);
 
     Ok(())

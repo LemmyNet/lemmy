@@ -257,8 +257,7 @@ pub enum CommunityFollowerState {
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[new(default)]
-  pub follow_state: Option<CommunityFollowerState>,
+  pub follow_state: CommunityFollowerState,
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,
   #[new(value = "Utc::now()")]

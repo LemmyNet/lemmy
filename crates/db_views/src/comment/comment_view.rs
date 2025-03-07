@@ -1032,13 +1032,11 @@ mod tests {
     // User can view after following
     CommunityActions::follow(
       pool,
-      &CommunityFollowerForm {
-        follow_state: Some(CommunityFollowerState::Accepted),
-        ..CommunityFollowerForm::new(
-          data.inserted_community.id,
-          data.timmy_local_user_view.person.id,
-        )
-      },
+      &CommunityFollowerForm::new(
+        data.inserted_community.id,
+        data.timmy_local_user_view.person.id,
+        CommunityFollowerState::Accepted,
+      ),
     )
     .await?;
     let read_comment_listing = CommentQuery {

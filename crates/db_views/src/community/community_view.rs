@@ -328,10 +328,11 @@ mod tests {
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
     assert!(authenticated.community_actions.is_none());
 
-    let form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Pending),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::Pending,
+    );
     CommunityActions::follow(pool, &form).await?;
 
     let with_pending_follow =
@@ -350,10 +351,11 @@ mod tests {
       },
     )
     .await?;
-    let form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::ApprovalRequired),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::ApprovalRequired,
+    );
     CommunityActions::follow(pool, &form).await?;
 
     let with_approval_required_follow =
@@ -362,10 +364,11 @@ mod tests {
       .community_actions
       .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::ApprovalRequired)));
 
-    let form = CommunityFollowerForm {
-      follow_state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::Accepted,
+    );
     CommunityActions::follow(pool, &form).await?;
     let with_accepted_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;

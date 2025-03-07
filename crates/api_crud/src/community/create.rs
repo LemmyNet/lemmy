@@ -119,10 +119,11 @@ pub async fn create_community(
   CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
   // Follow your own community
-  let community_follower_form = CommunityFollowerForm {
-    follow_state: Some(CommunityFollowerState::Accepted),
-    ..CommunityFollowerForm::new(inserted_community.id, local_user_view.person.id)
-  };
+  let community_follower_form = CommunityFollowerForm::new(
+    inserted_community.id,
+    local_user_view.person.id,
+    CommunityFollowerState::Accepted,
+  );
 
   CommunityActions::follow(&mut context.pool(), &community_follower_form).await?;
 

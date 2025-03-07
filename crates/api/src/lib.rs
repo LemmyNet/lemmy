@@ -9,7 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{CommunityActions, CommunityFollowerForm, CommunityPersonBanForm},
+    community::{CommunityActions, CommunityPersonBanForm},
     mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
@@ -168,9 +168,8 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           .ok();
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm::new(community_id, target.id);
 
-        CommunityActions::unfollow(&mut context.pool(), &community_follower_form)
+        CommunityActions::unfollow(&mut context.pool(), target.id, community_id)
           .await
           .ok();
       } else {

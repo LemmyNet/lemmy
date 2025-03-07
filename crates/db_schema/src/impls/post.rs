@@ -443,6 +443,8 @@ impl Hideable for PostActions {
 
 impl ReadComments for PostActions {
   type Form = PostReadCommentsForm;
+  type IdType = PostId;
+
   async fn update_read_comments(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
@@ -458,14 +460,15 @@ impl ReadComments for PostActions {
 
   async fn remove_read_comments(
     pool: &mut DbPool<'_>,
-    form: &Self::Form,
+    person_id: PersonId,
+    post_id: Self::IdType,
   ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
     uplete::new(
       post_actions::table
-        .filter(post_actions::post_id.eq(form.post_id))
-        .filter(post_actions::person_id.eq(form.person_id)),
+        .filter(post_actions::post_id.eq(post_id))
+        .filter(post_actions::person_id.eq(person_id)),
     )
     .set_null(post_actions::read_comments_amount)
     .set_null(post_actions::read_comments)
