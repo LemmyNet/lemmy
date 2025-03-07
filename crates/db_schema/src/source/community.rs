@@ -193,18 +193,25 @@ pub struct CommunityActions {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the community was followed.
   pub followed: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The state of the community follow.
   pub follow_state: Option<CommunityFollowerState>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The approver of the community follow.
   pub follow_approver_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the community was blocked.
   pub blocked: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When this user became a moderator.
   pub became_moderator: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When this user received a ban.
   pub received_ban: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When their ban expires.
   pub ban_expires: Option<DateTime<Utc>>,
 }
 

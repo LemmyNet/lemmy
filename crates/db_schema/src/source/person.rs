@@ -148,10 +148,13 @@ pub struct PersonActions {
   pub target_id: PersonId,
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the person was followed.
   pub followed: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// Whether the follow is pending.
   pub follow_pending: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the person was blocked.
   pub blocked: Option<DateTime<Utc>>,
 }
 

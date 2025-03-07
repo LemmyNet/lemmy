@@ -117,10 +117,13 @@ pub struct CommentActions {
   pub person_id: PersonId,
   pub comment_id: CommentId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The like / score for the comment.
   pub like_score: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the comment was liked.
   pub liked: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the comment was saved.
   pub saved: Option<DateTime<Utc>>,
 }
 

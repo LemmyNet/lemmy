@@ -20,10 +20,13 @@ pub struct Instance {
   pub domain: String,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the instance was updated.
   pub updated: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The software of the instance.
   pub software: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The version of the instance's software.
   pub version: Option<String>,
 }
 
@@ -57,6 +60,7 @@ pub struct InstanceActions {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the instance was blocked.
   pub blocked: Option<DateTime<Utc>>,
 }
 

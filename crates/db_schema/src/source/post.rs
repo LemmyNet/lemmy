@@ -186,18 +186,26 @@ pub struct PostActions {
   pub post_id: PostId,
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was read.
   pub read: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When was the last time you read the comments.
   pub read_comments: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The number of comments you read last. Subtract this from total comments to get an unread
+  /// count.
   pub read_comments_amount: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was saved.
   pub saved: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was liked.
   pub liked: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// The like / score of the post.
   pub like_score: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was hidden.
   pub hidden: Option<DateTime<Utc>>,
 }
 
