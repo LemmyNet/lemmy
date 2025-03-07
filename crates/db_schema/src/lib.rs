@@ -278,9 +278,11 @@ pub enum CommunityVisibility {
   /// Public community, any local or federated user can interact.
   #[default]
   Public,
+  /// Posts from this community do not appear on Local and All feeds.
   Hidden,
-  /// Unfederated community, only local users can interact.
+  /// Unfederated community, only local users can interact (with or without login).
   LocalOnlyPublic,
+  /// Unfederated  community, only logged-in local users can interact.
   LocalOnlyPrivate,
   /// Users need to be approved by mods before they are able to browse or post.
   Private,
