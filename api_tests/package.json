@@ -29,7 +29,7 @@
     "eslint": "^9.20.0",
     "eslint-plugin-prettier": "^5.2.3",
     "jest": "^29.5.0",
-    "lemmy-js-client": "1.0.0-block-nsfw.1",
+    "lemmy-js-client": "0.20.0-remove-aggregate-tables.5",
     "prettier": "^3.5.0",
     "ts-jest": "^29.1.0",
     "tsoa": "^6.6.0",

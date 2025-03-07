@@ -6,10 +6,10 @@ use lemmy_api_common::{
   site::{Search, SearchResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
 use lemmy_db_views::{
   combined::search_combined_view::SearchCombinedQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{LocalUserView, SearchCombinedView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -32,34 +32,32 @@ pub async fn search(
   } else {
     data.community_id
   };
-  let search_term = data.search_term.clone();
-  let time_range_seconds = data.time_range_seconds;
 
-  // parse pagination token
-  let page_after = if let Some(pa) = &data.page_cursor {
-    Some(pa.read(&mut context.pool()).await?)
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(SearchCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
-  let page_back = data.page_back;
 
   let results = SearchCombinedQuery {
-    search_term,
+    search_term: data.search_term.clone(),
     community_id,
     creator_id: data.creator_id,
     type_: data.type_,
     sort: data.sort,
-    time_range_seconds,
+    time_range_seconds: data.time_range_seconds,
     listing_type: data.listing_type,
     title_only: data.title_only,
     post_url_only: data.post_url_only,
     liked_only: data.liked_only,
     disliked_only: data.disliked_only,
-    page_after,
-    page_back,
+    cursor_data,
+    page_back: data.page_back,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  Ok(Json(SearchResponse { results }))
+  let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
+
+  Ok(Json(SearchResponse { results, next_page }))
 }

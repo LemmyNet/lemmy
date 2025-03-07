@@ -14,7 +14,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable, TS)
@@ -51,6 +51,17 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
+  pub score: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  /// The total number of children in this comment branch.
+  pub child_count: i32,
+  #[serde(skip)]
+  pub hot_rank: f64,
+  #[serde(skip)]
+  pub controversy_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

@@ -142,7 +142,7 @@ pub async fn create_comment(
   update_read_comments(
     local_user_view.person.id,
     post_id,
-    post_view.counts.comments + 1,
+    post.comments + 1,
     &mut context.pool(),
   )
   .await?;

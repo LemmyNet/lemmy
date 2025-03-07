@@ -450,15 +450,19 @@ async fn create_local_user(
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
 
-  // Enable languages from `Accept-Language` header
-  for l in &language_tags {
-    if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
-      language_ids.insert(found.id);
-    }
-  }
-
   // Enable site languages. Ignored if all languages are enabled.
   let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
+
+  // Enable languages from `Accept-Language` header only if no site languages are set. Otherwise it
+  // is possible that browser languages are only set to e.g. French, and the user won't see any
+  // English posts.
+  if !discussion_languages.is_empty() {
+    for l in &language_tags {
+      if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
+        language_ids.insert(found.id);
+      }
+    }
+  }
   language_ids.extend(discussion_languages);
 
   let language_ids = language_ids.into_iter().collect();

@@ -10,16 +10,14 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
-  schema::{local_user, person, person_aggregates},
+  schema::{local_user, person},
   utils::{get_conn, now, DbPool},
 };
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    person::table
-      .inner_join(person_aggregates::table)
-      .left_join(local_user::table)
+    person::table.left_join(local_user::table)
   }
 
   pub async fn read(

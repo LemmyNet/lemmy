@@ -74,7 +74,6 @@ pub enum LemmyErrorType {
   ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
-  EmailSmtpServerNeedsAPort,
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
@@ -158,6 +157,7 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
+  CouldntParsePaginationToken,
 }
 
 /// Federation related errors, these dont need to be translated.
