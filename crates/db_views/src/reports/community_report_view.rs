@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   aliases,
   impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityReportId, PersonId},
-  schema::{community, community_actions, community_aggregates, community_report, person},
+  schema::{community, community_actions, community_report, person},
   utils::{get_conn, DbPool},
 };
 
@@ -35,7 +35,7 @@ impl CommunityReportView {
 
     community_report::table
       .find(report_id)
-      .inner_join(community::table.inner_join(community_aggregates::table))
+      .inner_join(community::table)
       .inner_join(person::table.on(community_report::creator_id.eq(person::id)))
       .left_join(
         aliases::person2
@@ -46,7 +46,6 @@ impl CommunityReportView {
         community_report::all_columns,
         community::all_columns,
         person::all_columns,
-        community_aggregates::all_columns,
         community_follower_select_subscribed_type(),
         aliases::person2.fields(person::all_columns.nullable()),
       ))
