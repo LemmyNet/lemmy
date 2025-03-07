@@ -89,6 +89,7 @@ impl ActivityHandler for Follow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    use CommunityVisibility::*;
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
@@ -110,7 +111,6 @@ impl ActivityHandler for Follow {
             return Err(FederationError::PlatformLackingPrivateCommunitySupport.into());
           }
         }
-        use CommunityVisibility::*;
         let state = Some(match c.visibility {
           Public | Hidden => CommunityFollowerState::Accepted,
           Private => CommunityFollowerState::ApprovalRequired,
