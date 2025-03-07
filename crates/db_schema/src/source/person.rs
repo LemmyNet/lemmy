@@ -147,8 +147,11 @@ pub struct PersonUpdateForm {
 pub struct PersonActions {
   pub target_id: PersonId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub followed: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub follow_pending: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked: Option<DateTime<Utc>>,
 }
 
