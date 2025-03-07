@@ -131,35 +131,6 @@ impl PostView {
     let mut query = Self::joins(my_person_id)
       .filter(post::id.eq(post_id))
       .select(Self::as_select())
-      // TODO
-      // .select((
-      //   post::all_columns,
-      //   person::all_columns,
-      //   community::all_columns,
-      //   image_details::all_columns.nullable(),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   community_actions::received_ban.nullable().is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   Self::creator_is_admin(),
-      //   community_follower_select_subscribed_type(),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   ),
-      //   post_tags,
-      //   local_user_can_mod(),
-      // ))
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
@@ -368,35 +339,6 @@ impl<'a> PostQuery<'a> {
 
     let mut query = PostView::joins(my_person_id)
       .select(PostView::as_select())
-      // TODO
-      // .select((
-      //   post::all_columns,
-      //   person::all_columns,
-      //   community::all_columns,
-      //   image_details::all_columns.nullable(),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   community_actions::received_ban.nullable().is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   PostView::creator_is_admin(),
-      //   community_follower_select_subscribed_type(),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   ),
-      //   post_tags,
-      //   local_user_can_mod(),
-      // ))
       .into_boxed();
 
     // hide posts from deleted communities
@@ -1149,7 +1091,6 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     read_post_listing.remove(0);
-    // TODO check this
     assert_eq!(
       post_listing_single_with_person.post.id,
       read_post_listing[0].post.id
@@ -1977,10 +1918,6 @@ mod tests {
     )
     .await?;
 
-    // TODO
-    // assert!(post_view
-    //   .community_actions
-    //   .is_some_and(|x| x.received_ban.is_none()));
     assert!(post_view.community_actions.is_none());
 
     Ok(())

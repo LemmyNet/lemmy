@@ -703,7 +703,6 @@ pub struct CommunityView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  // TODO possible use community_can_mod
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_community_can_mod()
@@ -823,7 +822,6 @@ pub struct CommentReplyView {
 pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  // TODO fix this
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,

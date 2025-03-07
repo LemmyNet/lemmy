@@ -189,44 +189,6 @@ impl PersonSavedCombinedQuery {
     let mut query = PersonSavedCombinedViewInternal::joins(my_person_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select(PersonSavedCombinedViewInternal::as_select())
-      // TODO
-      // .select((
-      //   // Post-specific
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   ),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   image_details::all_columns.nullable(),
-      //   post_tags,
-      //   // Comment-specific
-      //   comment::all_columns.nullable(),
-      //   comment_actions::saved.nullable(),
-      //   comment_actions::like_score.nullable(),
-      //   // Shared
-      //   post::all_columns,
-      //   community::all_columns,
-      //   person::all_columns,
-      //   community_follower_select_subscribed_type(),
-      //   creator_local_user
-      //     .field(local_user::admin)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      //   community_actions::received_ban.nullable().is_not_null(),
-      //   local_user_can_mod(),
-      // ))
       .into_boxed();
 
     if let Some(type_) = self.type_ {

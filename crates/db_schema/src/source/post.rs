@@ -253,7 +253,6 @@ pub struct PostHideForm {
   pub hidden: DateTime<Utc>,
 }
 
-// TODO do we need this?
 #[derive(PartialEq, Debug, Clone, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]

@@ -273,49 +273,6 @@ impl InboxCombinedQuery {
 
     let mut query = InboxCombinedViewInternal::joins(my_person_id)
       .select(InboxCombinedViewInternal::as_select())
-      // TODO
-      // .select((
-      //   // Specific
-      //   comment_reply::all_columns.nullable(),
-      //   person_comment_mention::all_columns.nullable(),
-      //   person_post_mention::all_columns.nullable(),
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   )
-      //   .nullable(),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   image_details::all_columns.nullable(),
-      //   post_tags,
-      //   private_message::all_columns.nullable(),
-      //   // Shared
-      //   post::all_columns.nullable(),
-      //   community::all_columns.nullable(),
-      //   comment::all_columns.nullable(),
-      //   comment_actions::saved.nullable(),
-      //   comment_actions::like_score.nullable(),
-      //   community_follower_select_subscribed_type(),
-      //   person::all_columns,
-      //   aliases::person1.fields(person::all_columns),
-      //   creator_local_user
-      //     .field(local_user::admin)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      //   community_actions::received_ban.nullable().is_not_null(),
-      //   local_user_can_mod(),
-      // ))
       .into_boxed();
 
     // Filters

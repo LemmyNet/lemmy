@@ -255,47 +255,6 @@ impl ReportCombinedQuery {
     let conn = &mut get_conn(pool).await?;
     let mut query = ReportCombinedViewInternal::joins(my_person_id)
       .select(ReportCombinedViewInternal::as_select())
-      // TODO
-      // .select((
-      //   // Post-specific
-      //   post_report::all_columns.nullable(),
-      //   post::all_columns.nullable(),
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   )
-      //   .nullable(),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   // Comment-specific
-      //   comment_report::all_columns.nullable(),
-      //   comment::all_columns.nullable(),
-      //   comment_actions::saved.nullable(),
-      //   comment_actions::like_score.nullable(),
-      //   // Private-message-specific
-      //   private_message_report::all_columns.nullable(),
-      //   private_message::all_columns.nullable(),
-      //   // Community-specific
-      //   community_report::all_columns.nullable(),
-      //   // Shared
-      //   person::all_columns,
-      //   aliases::person1.fields(person::all_columns.nullable()),
-      //   community::all_columns.nullable(),
-      //   community_follower_select_subscribed_type(),
-      //   aliases::person2.fields(person::all_columns.nullable()),
-      //   local_user::admin.nullable().is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      // ))
       .into_boxed();
 
     if let Some(community_id) = self.community_id {

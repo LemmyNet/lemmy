@@ -48,7 +48,6 @@ pub(crate) fn local_user_is_admin() -> _ {
   local_user::admin.nullable().is_not_null()
 }
 
-// TODO should probably get rid of this in favor of creator_is_admin
 /// Checks to see if the comment creator is an admin.
 #[diesel::dsl::auto_type]
 pub(crate) fn comment_creator_is_admin() -> _ {
@@ -149,4 +148,9 @@ pub(crate) fn person2_select() -> Person2AliasAllColumnsTuple {
 /// The select for the creator community actions alias.
 pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTuple {
   creator_community_actions.fields(community_actions::all_columns)
+}
+
+#[diesel::dsl::auto_type]
+pub fn community_follower_select_subscribed_type() -> _ {
+  community_actions::follow_state.nullable()
 }

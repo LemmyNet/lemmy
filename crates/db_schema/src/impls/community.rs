@@ -420,12 +420,6 @@ impl Bannable for CommunityActions {
   }
 }
 
-// TODO this necessary now?
-#[diesel::dsl::auto_type]
-pub fn community_follower_select_subscribed_type() -> _ {
-  community_actions::follow_state.nullable()
-}
-
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
   for SubscribedType
 {

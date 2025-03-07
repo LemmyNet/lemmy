@@ -1,4 +1,7 @@
-use crate::structs::{CommunityFollowerView, PendingFollow};
+use crate::{
+  structs::{CommunityFollowerView, PendingFollow},
+  utils::community_follower_select_subscribed_type,
+};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
@@ -12,7 +15,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_actions, person},
   source::{

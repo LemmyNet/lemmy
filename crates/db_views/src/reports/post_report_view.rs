@@ -99,35 +99,7 @@ impl PostReportView {
 
     Self::joins(my_person_id)
       .filter(post_report::id.eq(report_id))
-      // TODO
       .select(Self::as_select())
-      // .select((
-      //   post_report::all_columns,
-      //   post::all_columns,
-      //   community::all_columns,
-      //   person::all_columns,
-      //   aliases::person1.fields(person::all_columns),
-      //   creator_community_actions
-      //     .field(community_actions::received_ban)
-      //     .nullable()
-      //     .is_not_null(),
-      //   creator_community_actions
-      //     .field(community_actions::became_moderator)
-      //     .nullable()
-      //     .is_not_null(),
-      //   local_user::admin.nullable().is_not_null(),
-      //   community_follower_select_subscribed_type(),
-      //   post_actions::saved.nullable(),
-      //   post_actions::read.nullable().is_not_null(),
-      //   post_actions::hidden.nullable().is_not_null(),
-      //   person_actions::blocked.nullable().is_not_null(),
-      //   post_actions::like_score.nullable(),
-      //   coalesce(
-      //     post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-      //     post::comments,
-      //   ),
-      //   aliases::person2.fields(person::all_columns.nullable()),
-      // ))
       .first(conn)
       .await
   }
