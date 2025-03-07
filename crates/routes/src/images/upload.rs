@@ -174,10 +174,13 @@ pub async fn do_upload_image(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<UploadImageResponse> {
   let pictrs = context.settings().pictrs()?;
+  let max_upload_size = pictrs.max_upload_size.map(|m| m.to_string());
   let image_url = format!("{}image", pictrs.url);
 
   let mut client_req = adapt_request(&req, image_url, context);
 
+  // Set pictrs parameters to downscale images and restrict file types.
+  // https://git.asonix.dog/asonix/pict-rs/#api
   client_req = match upload_type {
     Avatar => {
       let max_size = pictrs.max_avatar_size.to_string();
@@ -195,7 +198,13 @@ pub async fn do_upload_image(
         ("allow_video", "false"),
       ])
     }
-    _ => client_req,
+    Other => {
+      let mut query = vec![("allow_video", pictrs.allow_video_uploads.to_string())];
+      if let Some(max_upload_size) = max_upload_size {
+        query.push(("resize", max_upload_size));
+      }
+      client_req.query(&query)
+    }
   };
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
