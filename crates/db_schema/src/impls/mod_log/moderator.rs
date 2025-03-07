@@ -17,6 +17,7 @@ use crate::{
     mod_add_community,
     mod_ban,
     mod_ban_from_community,
+    mod_change_community_visibility,
     mod_feature_post,
     mod_lock_post,
     mod_remove_comment,

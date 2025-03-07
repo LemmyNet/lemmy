@@ -232,7 +232,7 @@ pub struct ModChangeCommunityVisibility {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub published: DateTime<Utc>,
-  pub reason: String,
+  pub reason: Option<String>,
   pub new_visibility: CommunityVisibility,
 }
 
