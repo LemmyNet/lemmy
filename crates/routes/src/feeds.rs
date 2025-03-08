@@ -533,15 +533,20 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
     // If its a url post, add it to the description
     // and see if we can parse it as a media enclosure.
     let enclosure_opt = p.post.url.map(|url| {
-      let link_html = format!("<br><a href=\"{url}\">{url}</a>");
-      description.push_str(&link_html);
-
       let mime_type = p
         .post
         .url_content_type
         .unwrap_or_else(|| "application/octet-stream".to_string());
-      let mut enclosure_bld = EnclosureBuilder::default();
 
+      // If the url directly links to an image, wrap it in an <img> tag for display.
+      let link_html = if mime_type.starts_with("image/") {
+        format!("<br><a href=\"{url}\"><img src=\"{url}\"/></a>")
+      } else {
+        format!("<br><a href=\"{url}\">{url}</a>")
+      };
+      description.push_str(&link_html);
+
+      let mut enclosure_bld = EnclosureBuilder::default();
       enclosure_bld.url(url.as_str().to_string());
       enclosure_bld.mime_type(mime_type);
       enclosure_bld.length("0".to_string());
