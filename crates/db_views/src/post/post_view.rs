@@ -1448,13 +1448,10 @@ mod tests {
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(
-      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
-      names(&post_listing_french)
-    );
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listing_french));
     assert_eq!(
       Some(french_id),
-      post_listing_french.get(2).map(|p| p.post.language_id)
+      post_listing_french.get(1).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
