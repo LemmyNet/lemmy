@@ -17,7 +17,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
+    actor_language::{CommunityLanguage, LocalUserLanguage, SiteLanguage},
     community::{
       Community,
       CommunityFollower,
@@ -112,10 +112,11 @@ pub async fn create_community(
   let inserted_community = Community::create(&mut context.pool(), &community_form)
     .await
     .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
+  let community_id = inserted_community.id;
 
   // The community creator becomes a moderator
   let community_moderator_form = CommunityModeratorForm {
-    community_id: inserted_community.id,
+    community_id,
     person_id: local_user_view.person.id,
   };
 
@@ -125,7 +126,7 @@ pub async fn create_community(
 
   // Follow your own community
   let community_follower_form = CommunityFollowerForm {
-    community_id: inserted_community.id,
+    community_id,
     person_id: local_user_view.person.id,
     state: Some(CommunityFollowerState::Accepted),
     approver_id: None,
@@ -136,17 +137,24 @@ pub async fn create_community(
     .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
 
   // Update the discussion_languages if that's provided
-  let community_id = inserted_community.id;
-  if let Some(languages) = data.discussion_languages.clone() {
-    let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+  let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+  let languages = if let Some(languages) = data.discussion_languages.clone() {
     // check that community languages are a subset of site languages
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
       Err(LemmyErrorType::LanguageNotAllowed)?
     }
-    CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
-  }
+    languages
+  } else {
+    // Copy languages from creator
+    LocalUserLanguage::read(&mut context.pool(), local_user_view.local_user.id)
+      .await?
+      .into_iter()
+      .filter(|l| site_languages.contains(l))
+      .collect()
+  };
+  CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
 
   build_community_response(&context, local_user_view, community_id).await
 }
