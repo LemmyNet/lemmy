@@ -198,17 +198,17 @@ pub struct LtreeDef(pub String);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DbUrl(pub(crate) Box<Url>);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The report combined id
 pub struct ReportCombinedId(i32);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person content combined id
 pub struct PersonContentCombinedId(i32);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person saved combined id
 pub struct PersonSavedCombinedId(i32);

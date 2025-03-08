@@ -23,11 +23,10 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     instance::Instance,
-    person::Person,
-    person_block::PersonBlock,
+    person::{Person, PersonActions},
     private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
   },
-  traits::Crud,
+  traits::{Blockable, Crud},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -138,7 +137,7 @@ impl Object for ApubPrivateMessage {
   ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
+    PersonActions::read_block(&mut context.pool(), recipient.id, creator.id).await?;
 
     // Check that they can receive private messages
     if let Ok(recipient_local_user) =

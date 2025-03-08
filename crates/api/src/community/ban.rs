@@ -12,23 +12,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
-    },
+    community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,
     mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views::structs::{LocalUserView, PersonView};
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::is_valid_body_field,
-};
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
@@ -61,25 +52,19 @@ pub async fn ban_from_community(
   }
 
   let community_user_ban_form = CommunityPersonBanForm {
-    community_id: data.community_id,
-    person_id: data.person_id,
-    expires: Some(expires),
+    ban_expires: Some(expires),
+    ..CommunityPersonBanForm::new(data.community_id, data.person_id)
   };
 
   if data.ban {
-    CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
+    CommunityActions::ban(&mut context.pool(), &community_user_ban_form).await?;
 
     // Also unsubscribe them from the community, if they are subscribed
-    let community_follower_form = CommunityFollowerForm::new(data.community_id, banned_person_id);
-    CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
+    CommunityActions::unfollow(&mut context.pool(), banned_person_id, data.community_id)
       .await
       .ok();
   } else {
-    CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
+    CommunityActions::unban(&mut context.pool(), &community_user_ban_form).await?;
   }
 
   // Remove/Restore their data if that's desired

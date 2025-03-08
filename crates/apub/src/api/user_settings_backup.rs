@@ -12,15 +12,17 @@ use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    comment::{CommentSaved, CommentSavedForm},
-    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
-    community_block::{CommunityBlock, CommunityBlockForm},
-    instance::Instance,
-    instance_block::{InstanceBlock, InstanceBlockForm},
+    comment::{CommentActions, CommentSavedForm},
+    community::{
+      CommunityActions,
+      CommunityBlockForm,
+      CommunityFollowerForm,
+      CommunityFollowerState,
+    },
+    instance::{Instance, InstanceActions, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
-    person::{Person, PersonUpdateForm},
-    person_block::{PersonBlock, PersonBlockForm},
-    post::{PostSaved, PostSavedForm},
+    person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
+    post::{PostActions, PostSavedForm},
   },
   traits::{Blockable, Crud, Followable, Saveable},
 };
@@ -163,11 +165,9 @@ pub async fn import_settings(
       &context,
       |(followed, context)| async move {
         let community = followed.dereference(&context).await?;
-        let form = CommunityFollowerForm {
-          state: Some(CommunityFollowerState::Pending),
-          ..CommunityFollowerForm::new(community.id, person_id)
-        };
-        CommunityFollower::follow(&mut context.pool(), &form).await?;
+        let form =
+          CommunityFollowerForm::new(community.id, person_id, CommunityFollowerState::Pending);
+        CommunityActions::follow(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -179,7 +179,7 @@ pub async fn import_settings(
       |(saved, context)| async move {
         let post = saved.dereference(&context).await?;
         let form = PostSavedForm::new(post.id, person_id);
-        PostSaved::save(&mut context.pool(), &form).await?;
+        PostActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -190,8 +190,8 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let comment = saved.dereference(&context).await?;
-        let form = CommentSavedForm::new(comment.id, person_id);
-        CommentSaved::save(&mut context.pool(), &form).await?;
+        let form = CommentSavedForm::new(person_id, comment.id);
+        CommentActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -202,11 +202,8 @@ pub async fn import_settings(
       &context,
       |(blocked, context)| async move {
         let community = blocked.dereference(&context).await?;
-        let form = CommunityBlockForm {
-          person_id,
-          community_id: community.id,
-        };
-        CommunityBlock::block(&mut context.pool(), &form).await?;
+        let form = CommunityBlockForm::new(community.id, person_id);
+        CommunityActions::block(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -218,11 +215,8 @@ pub async fn import_settings(
       |(blocked, context)| async move {
         let context = context.reset_request_count();
         let target = blocked.dereference(&context).await?;
-        let form = PersonBlockForm {
-          person_id,
-          target_id: target.id,
-        };
-        PersonBlock::block(&mut context.pool(), &form).await?;
+        let form = PersonBlockForm::new(person_id, target.id);
+        PersonActions::block(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -230,11 +224,8 @@ pub async fn import_settings(
 
     try_join_all(data.blocked_instances.iter().map(|domain| async {
       let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
-      let form = InstanceBlockForm {
-        person_id,
-        instance_id: instance.id,
-      };
-      InstanceBlock::block(&mut context.pool(), &form).await?;
+      let form = InstanceBlockForm::new(person_id, instance.id);
+      InstanceActions::block(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;
@@ -292,7 +283,7 @@ pub(crate) mod tests {
     source::{
       community::{
         Community,
-        CommunityFollower,
+        CommunityActions,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
@@ -322,11 +313,12 @@ pub(crate) mod tests {
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
-    let follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, export_user.person.id)
-    };
-    CommunityFollower::follow(pool, &follower_form).await?;
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      export_user.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 

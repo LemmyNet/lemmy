@@ -8,14 +8,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
@@ -56,18 +56,11 @@ pub async fn add_mod_to_community(
   }
 
   // Update in local database
-  let community_moderator_form = CommunityModeratorForm {
-    community_id: data.community_id,
-    person_id: data.person_id,
-  };
+  let community_moderator_form = CommunityModeratorForm::new(data.community_id, data.person_id);
   if data.added {
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
   } else {
-    CommunityModerator::leave(&mut context.pool(), &community_moderator_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+    CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
   }
 
   // Mod tables

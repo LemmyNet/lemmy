@@ -1,4 +1,7 @@
-use crate::structs::{CommunityFollowerView, PendingFollow};
+use crate::{
+  structs::{CommunityFollowerView, PendingFollow},
+  utils::community_follower_select_subscribed_type,
+};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
@@ -12,7 +15,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_actions, person},
   source::{
@@ -259,7 +261,7 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      community::{CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       person::PersonInsertForm,
     },
@@ -300,11 +302,12 @@ mod tests {
     assert!(has_followers.is_err());
 
     // insert unapproved follower
-    let mut follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::ApprovalRequired),
-      ..CommunityFollowerForm::new(community.id, person.id)
-    };
-    CommunityFollower::follow(pool, &follower_form).await?;
+    let mut follower_form = CommunityFollowerForm::new(
+      community.id,
+      person.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // still returns error
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(
@@ -316,8 +319,8 @@ mod tests {
     assert!(has_followers.is_err());
 
     // mark follower as accepted
-    follower_form.state = Some(CommunityFollowerState::Accepted);
-    CommunityFollower::follow(pool, &follower_form).await?;
+    follower_form.follow_state = CommunityFollowerState::Accepted;
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // now returns ok
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(

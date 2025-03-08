@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
-  source::community::{CommunityModerator, CommunityModeratorForm},
+  source::community::{CommunityActions, CommunityModeratorForm},
   traits::Joinable,
 };
 use lemmy_db_views::structs::CommunityModeratorView;
@@ -62,11 +62,9 @@ impl Collection for ApubCommunityModerators {
     for mod_user in &current_moderators {
       let mod_id = ObjectId::from(mod_user.moderator.ap_id.clone());
       if !apub.ordered_items.contains(&mod_id) {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: mod_user.community.id,
-          person_id: mod_user.moderator.id,
-        };
-        CommunityModerator::leave(&mut data.pool(), &community_moderator_form).await?;
+        let community_moderator_form =
+          CommunityModeratorForm::new(mod_user.community.id, mod_user.moderator.id);
+        CommunityActions::leave(&mut data.pool(), &community_moderator_form).await?;
       }
     }
 
@@ -80,11 +78,8 @@ impl Collection for ApubCommunityModerators {
           .map(|c| c.moderator.ap_id.clone())
           .any(|x| x == mod_user.ap_id)
         {
-          let community_moderator_form = CommunityModeratorForm {
-            community_id: owner.id,
-            person_id: mod_user.id,
-          };
-          CommunityModerator::join(&mut data.pool(), &community_moderator_form).await?;
+          let community_moderator_form = CommunityModeratorForm::new(owner.id, mod_user.id);
+          CommunityActions::join(&mut data.pool(), &community_moderator_form).await?;
         }
       }
     }
@@ -129,12 +124,9 @@ mod tests {
     let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
-    let community_moderator_form = CommunityModeratorForm {
-      community_id: community.id,
-      person_id: old_mod.id,
-    };
+    let community_moderator_form = CommunityModeratorForm::new(community.id, old_mod.id);
 
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form).await?;
+    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
     assert_eq!(site.ap_id.to_string(), "https://enterprise.lemmy.ml/");
 

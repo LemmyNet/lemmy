@@ -653,11 +653,11 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(gammaFollow.community_view.community.name).toBe("main");
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c.community?.subscribed === "Subscribed",
+    c => c.community?.community_actions?.follow_state === "Accepted",
   );
   await waitUntil(
     () => resolveBetaCommunity(gamma),
-    c => c.community?.subscribed === "Subscribed",
+    c => c.community?.community_actions?.follow_state === "Accepted",
   );
 
   // Create a post on beta
