@@ -634,7 +634,6 @@ mod tests {
       inbox_url: inserted_community.inbox_url.clone(),
       moderators_url: None,
       featured_url: None,
-      hidden: false,
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,
       visibility: CommunityVisibility::Public,

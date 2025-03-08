@@ -61,8 +61,6 @@ pub struct Community {
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
-  /// Whether the community is hidden.
-  pub hidden: bool,
   /// Whether posting is restricted to mods only.
   pub posting_restricted_to_mods: bool,
   pub instance_id: InstanceId,
@@ -140,8 +138,6 @@ pub struct CommunityInsertForm {
   #[new(default)]
   pub featured_url: Option<DbUrl>,
   #[new(default)]
-  pub hidden: Option<bool>,
-  #[new(default)]
   pub posting_restricted_to_mods: Option<bool>,
   #[new(default)]
   pub visibility: Option<CommunityVisibility>,
@@ -171,7 +167,6 @@ pub struct CommunityUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub moderators_url: Option<DbUrl>,
   pub featured_url: Option<DbUrl>,
-  pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   pub visibility: Option<CommunityVisibility>,
   pub description: Option<Option<String>>,
