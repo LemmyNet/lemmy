@@ -11,7 +11,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
-  schema::{local_user, person, person_aggregates},
+  schema::{local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, now, DbPool},
@@ -45,9 +45,7 @@ impl PaginationCursorBuilder for PersonView {
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    person::table
-      .inner_join(person_aggregates::table)
-      .left_join(local_user::table)
+    person::table.left_join(local_user::table)
   }
 
   pub async fn read(
