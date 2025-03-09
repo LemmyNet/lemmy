@@ -357,7 +357,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance))
-              .route("/post", post().to(user_block_keyword_for_posts)),
+              .route("/post_keywords", post().to(user_block_keyword_for_posts)),
           )
           .route("/settings/save", put().to(save_user_settings))
           // Account settings import / export have a strict rate limit
