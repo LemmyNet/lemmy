@@ -511,6 +511,7 @@ mod tests {
     combined::report_combined_view::ReportCombinedQuery,
     structs::{
       CommentReportView,
+      CommunityReportView,
       LocalUserView,
       PostReportView,
       ReportCombinedView,
@@ -1160,6 +1161,9 @@ mod tests {
       assert_eq!(community_report.reason, v.community_report.reason);
       assert_eq!(data.community.name, v.community.name);
       assert_eq!(data.community.title, v.community.title);
+      let read_report =
+        CommunityReportView::read(pool, community_report.id, data.admin_view.person.id).await?;
+      assert_eq!(&read_report, v);
     } else {
       panic!("wrong type");
     }
