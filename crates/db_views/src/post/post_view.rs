@@ -39,7 +39,7 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
-    post_keyword_block,
+    user_post_keyword_block,
     post_tag,
     tag,
   },
@@ -585,9 +585,9 @@ impl<'a> PostQuery<'a> {
 
       query = query.filter(filter_blocked());
       if let Some(person_id) = o.local_user.person_id() {
-        let blocked_keywords: Vec<String> = post_keyword_block::table
-          .filter(post_keyword_block::person_id.eq(person_id))
-          .select(post_keyword_block::keyword)
+        let blocked_keywords: Vec<String> = user_post_keyword_block::table
+          .filter(user_post_keyword_block::person_id.eq(person_id))
+          .select(user_post_keyword_block::keyword)
           .load::<String>(conn)
           .await?;
         if !blocked_keywords.is_empty() {
@@ -739,9 +739,9 @@ mod tests {
         PostReadForm,
         PostUpdateForm,
       },
-      post_keyword_block::{PostKeywordBlock, PostKeywordBlockForm},
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
+      user_post_keyword_block::{UserPostKeywordBlock, UserPostKeywordBlockForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
@@ -859,12 +859,12 @@ mod tests {
 
       PersonBlock::block(pool, &person_block).await?;
 
-      let post_keyword_block = PostKeywordBlockForm {
+      let post_keyword_block = UserPostKeywordBlockForm {
         person_id: inserted_tegan_person.id,
         keyword: POST_KEYWORD_BLOCKED.to_string(),
       };
 
-      PostKeywordBlock::block_keyword(pool, &post_keyword_block).await?;
+      UserPostKeywordBlock::block_keyword(pool, &post_keyword_block).await?;
 
       // Two community post tags
       let tag_1 = Tag::create(

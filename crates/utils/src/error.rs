@@ -10,10 +10,9 @@ use strum::{Display, EnumIter};
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
 pub enum LemmyErrorType {
-  BlockKeywordNotExisting,
-  BlockKeywordAlreadyBlocked,
   BlockKeywordLimitReached,
   BlockKeywordToShort,
+  BlockKeywordToLong,
   ReportReasonRequired,
   ReportTooLong,
   NotAModerator,

@@ -5,7 +5,7 @@ use lemmy_db_schema::source::{
   community_block::CommunityBlock,
   instance_block::InstanceBlock,
   person_block::PersonBlock,
-  post_keyword_block::PostKeywordBlock,
+  user_post_keyword_block::UserPostKeywordBlock,
 };
 use lemmy_db_views::structs::{CommunityFollowerView, CommunityModeratorView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -34,7 +34,7 @@ pub async fn get_my_user(
     |pool| CommunityBlock::for_person(pool, person_id),
     |pool| InstanceBlock::for_person(pool, person_id),
     |pool| PersonBlock::for_person(pool, person_id),
-    |pool| PostKeywordBlock::for_person(pool, person_id),
+    |pool| UserPostKeywordBlock::for_person(pool, person_id),
     |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
     |pool| LocalUserLanguage::read(pool, local_user_id)
   ))

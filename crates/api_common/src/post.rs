@@ -330,6 +330,5 @@ pub struct ListPostLikesResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct BlockKeywordForPost {
-  pub keyword: String,
-  pub block: bool,
+  pub keywords_to_block: Vec<String>
 }

@@ -37,7 +37,6 @@ pub mod person_block;
 pub mod person_comment_mention;
 pub mod person_post_mention;
 pub mod post;
-pub mod post_keyword_block;
 pub mod post_report;
 pub mod private_message;
 pub mod private_message_report;
@@ -46,6 +45,7 @@ pub mod secret;
 pub mod site;
 pub mod tag;
 pub mod tagline;
+pub mod user_post_keyword_block;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
 ///

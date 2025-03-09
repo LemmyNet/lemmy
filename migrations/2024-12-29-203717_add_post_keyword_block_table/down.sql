@@ -1,2 +1,2 @@
-DROP TABLE post_keyword_block;
+DROP TABLE user_post_keyword_block;
 
