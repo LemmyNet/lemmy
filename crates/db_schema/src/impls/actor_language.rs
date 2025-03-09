@@ -1,7 +1,7 @@
 use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
-  schema::{local_site, site, site_language},
+  schema::{community_language, local_site, local_user_language, site, site_language},
   source::{
     actor_language::{
       CommunityLanguage,
@@ -36,17 +36,12 @@ impl LocalUserLanguage {
     pool: &mut DbPool<'_>,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::local_user_language::dsl::{
-      language_id,
-      local_user_id,
-      local_user_language,
-    };
     let conn = &mut get_conn(pool).await?;
 
-    let langs = local_user_language
-      .filter(local_user_id.eq(for_local_user_id))
-      .order(language_id)
-      .select(language_id)
+    let langs = local_user_language::table
+      .filter(local_user_language::local_user_id.eq(for_local_user_id))
+      .order(local_user_language::language_id)
+      .select(local_user_language::language_id)
       .get_results(conn)
       .await?;
     convert_read_languages(conn, langs).await
@@ -59,14 +54,14 @@ impl LocalUserLanguage {
     pool: &mut DbPool<'_>,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
-  ) -> Result<(), Error> {
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
     let current = LocalUserLanguage::read(&mut conn.into(), for_local_user_id).await?;
     if current == lang_ids {
-      return Ok(());
+      return Ok(0);
     }
 
     // TODO: Force enable undetermined language for all users. This is necessary because many posts
@@ -79,40 +74,30 @@ impl LocalUserLanguage {
       lang_ids.push(UNDETERMINED_ID);
     }
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::local_user_language::dsl::{
-            language_id,
-            local_user_id,
-            local_user_language,
-          };
-          // Delete old languages, not including new languages
-          let delete_old = delete(local_user_language)
-            .filter(local_user_id.eq(for_local_user_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
+    // Delete old languages, not including new languages
+    delete(local_user_language::table)
+      .filter(local_user_language::local_user_id.eq(for_local_user_id))
+      .filter(local_user_language::language_id.ne_all(&lang_ids))
+      .execute(conn)
+      .await?;
 
-          let forms = lang_ids
-            .iter()
-            .map(|&l| LocalUserLanguageForm {
-              local_user_id: for_local_user_id,
-              language_id: l,
-            })
-            .collect::<Vec<_>>();
-
-          // Insert new languages
-          let insert_new = insert_into(local_user_language)
-            .values(forms)
-            .on_conflict((language_id, local_user_id))
-            .do_nothing()
-            .execute(conn);
-
-          tokio::try_join!(delete_old, insert_new)?;
-          Ok(())
-        }) as _
+    let forms = lang_ids
+      .iter()
+      .map(|&l| LocalUserLanguageForm {
+        local_user_id: for_local_user_id,
+        language_id: l,
       })
+      .collect::<Vec<_>>();
+
+    // Insert new languages
+    insert_into(local_user_language::table)
+      .values(forms)
+      .on_conflict((
+        local_user_language::language_id,
+        local_user_language::local_user_id,
+      ))
+      .do_nothing()
+      .execute(conn)
       .await
   }
 }
@@ -157,41 +142,31 @@ impl SiteLanguage {
       return Ok(());
     }
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::site_language::dsl::{language_id, site_id, site_language};
+    // Delete old languages, not including new languages
+    delete(site_language::table)
+      .filter(site_language::site_id.eq(for_site_id))
+      .filter(site_language::language_id.ne_all(&lang_ids))
+      .execute(conn)
+      .await?;
 
-          // Delete old languages, not including new languages
-          let delete_old = delete(site_language)
-            .filter(site_id.eq(for_site_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
-
-          let forms = lang_ids
-            .iter()
-            .map(|&l| SiteLanguageForm {
-              site_id: for_site_id,
-              language_id: l,
-            })
-            .collect::<Vec<_>>();
-
-          // Insert new languages
-          let insert_new = insert_into(site_language)
-            .values(forms)
-            .on_conflict((site_id, language_id))
-            .do_nothing()
-            .execute(conn);
-
-          tokio::try_join!(delete_old, insert_new)?;
-
-          CommunityLanguage::limit_languages(conn, instance_id).await?;
-
-          Ok(())
-        }) as _
+    let forms = lang_ids
+      .iter()
+      .map(|&l| SiteLanguageForm {
+        site_id: for_site_id,
+        language_id: l,
       })
-      .await
+      .collect::<Vec<_>>();
+
+    // Insert new languages
+    insert_into(site_language::table)
+      .values(forms)
+      .on_conflict((site_language::site_id, site_language::language_id))
+      .do_nothing()
+      .execute(conn)
+      .await?;
+
+    CommunityLanguage::limit_languages(conn, instance_id).await?;
+    Ok(())
   }
 }
 
@@ -267,7 +242,7 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
-  ) -> Result<(), Error> {
+  ) -> Result<usize, Error> {
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local_raw(pool).await?;
     }
@@ -277,7 +252,7 @@ impl CommunityLanguage {
     // No need to update if languages are unchanged
     let current = CommunityLanguage::read(&mut conn.into(), for_community_id).await?;
     if current == lang_ids {
-      return Ok(());
+      return Ok(0);
     }
 
     let form = lang_ids
@@ -288,33 +263,22 @@ impl CommunityLanguage {
       })
       .collect::<Vec<_>>();
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::community_language::dsl::{
-            community_id,
-            community_language,
-            language_id,
-          };
-          // Delete old languages, not including new languages
-          let delete_old = delete(community_language)
-            .filter(community_id.eq(for_community_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
+    // Delete old languages, not including new languages
+    delete(community_language::table)
+      .filter(community_language::community_id.eq(for_community_id))
+      .filter(community_language::language_id.ne_all(&lang_ids))
+      .execute(conn)
+      .await?;
 
-          // Insert new languages
-          let insert_new = insert_into(community_language)
-            .values(form)
-            .on_conflict((community_id, language_id))
-            .do_nothing()
-            .execute(conn);
-
-          tokio::try_join!(delete_old, insert_new)?;
-
-          Ok(())
-        }) as _
-      })
+    // Insert new languages
+    insert_into(community_language::table)
+      .values(form)
+      .on_conflict((
+        community_language::community_id,
+        community_language::language_id,
+      ))
+      .do_nothing()
+      .execute(conn)
       .await
   }
 }
