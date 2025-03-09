@@ -125,19 +125,19 @@ test("Create a post", async () => {
   expect(postRes.post_view.post).toBeDefined();
   expect(postRes.post_view.community.local).toBe(false);
   expect(postRes.post_view.creator.local).toBe(true);
-  expect(postRes.post_view.counts.score).toBe(1);
+  expect(postRes.post_view.post.score).toBe(1);
 
   // Make sure that post is liked on beta
   const betaPost = await waitForPost(
     beta,
     postRes.post_view.post,
-    res => res?.counts.score === 1,
+    res => res?.post.score === 1,
   );
 
   expect(betaPost).toBeDefined();
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
-  expect(betaPost?.counts.score).toBe(1);
+  expect(betaPost?.post.score).toBe(1);
   await assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
@@ -165,23 +165,23 @@ test("Unlike a post", async () => {
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
   let unlike = await likePost(alpha, 0, postRes.post_view.post);
-  expect(unlike.post_view.counts.score).toBe(0);
+  expect(unlike.post_view.post.score).toBe(0);
 
   // Try to unlike it again, make sure it stays at 0
   let unlike2 = await likePost(alpha, 0, postRes.post_view.post);
-  expect(unlike2.post_view.counts.score).toBe(0);
+  expect(unlike2.post_view.post.score).toBe(0);
 
   // Make sure that post is unliked on beta
   const betaPost = await waitForPost(
     beta,
     postRes.post_view.post,
-    post => post?.counts.score === 0,
+    post => post?.post.score === 0,
   );
 
   expect(betaPost).toBeDefined();
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
-  expect(betaPost?.counts.score).toBe(0);
+  expect(betaPost?.post.score).toBe(0);
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
@@ -665,7 +665,7 @@ test("Enforce community ban for federated user", async () => {
   expect(postRes3.post_view.post).toBeDefined();
   expect(postRes3.post_view.community.local).toBe(false);
   expect(postRes3.post_view.creator.local).toBe(true);
-  expect(postRes3.post_view.counts.score).toBe(1);
+  expect(postRes3.post_view.post.score).toBe(1);
 
   // Make sure that post makes it to beta community
   let postRes4 = await waitForPost(beta, postRes3.post_view.post);
@@ -806,7 +806,7 @@ test("Fetch post via redirect", async () => {
   const betaPost = await waitForPost(
     beta,
     alphaPost.post_view.post,
-    res => res?.counts.score === 1,
+    res => res?.post.score === 1,
   );
 
   expect(betaPost).toBeDefined();
@@ -879,7 +879,7 @@ test("Mention beta from alpha post body", async () => {
   expect(postOnAlphaRes.post_view.post.body).toBeDefined();
   expect(postOnAlphaRes.post_view.community.local).toBe(false);
   expect(postOnAlphaRes.post_view.creator.local).toBe(true);
-  expect(postOnAlphaRes.post_view.counts.score).toBe(1);
+  expect(postOnAlphaRes.post_view.post.score).toBe(1);
 
   // get beta's localized copy of the alpha post
   let betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
@@ -899,7 +899,7 @@ test("Mention beta from alpha post body", async () => {
   expect(firstMention.post.body).toBeDefined();
   expect(firstMention.community.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.counts.score).toBe(1);
+  expect(firstMention.post.score).toBe(1);
   expect(firstMention.person_post_mention.post_id).toBe(betaPost.post.id);
 });
 
