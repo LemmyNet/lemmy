@@ -74,6 +74,7 @@ pub struct PersonQuery {
   pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
+  pub ignore_page_limits: Option<bool>,
 }
 
 impl PersonQuery {
@@ -88,7 +89,7 @@ impl PersonQuery {
     // Filters
     if self.banned_only.unwrap_or_default() {
       query = query.filter(
-        person::banned.eq(true).and(
+        person::local.and(person::banned).and(
           person::ban_expires
             .is_null()
             .or(person::ban_expires.gt(now().nullable())),
@@ -97,11 +98,13 @@ impl PersonQuery {
     }
 
     if self.admins_only.unwrap_or_default() {
-      query = query.filter(local_user::admin.eq(true));
+      query = query.filter(local_user::admin);
     }
 
-    let limit = limit_fetch(self.limit)?;
-    query = query.limit(limit);
+    if !self.ignore_page_limits.unwrap_or(false) {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     let mut query = PaginatedQueryBuilder::new(query);
 

@@ -30,6 +30,7 @@ pub async fn leave_admin(
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
   let admins = PersonQuery {
     admins_only: Some(true),
+    ignore_page_limits: Some(true),
     ..Default::default()
   }
   .list(&mut context.pool())
@@ -65,6 +66,7 @@ pub async fn leave_admin(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let admins = PersonQuery {
     admins_only: Some(true),
+    ignore_page_limits: Some(true),
     ..Default::default()
   }
   .list(&mut context.pool())
