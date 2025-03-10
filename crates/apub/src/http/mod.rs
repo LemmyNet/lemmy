@@ -122,7 +122,7 @@ pub(crate) async fn get_activity(
 /// Ensure that the community is public and not removed/deleted.
 fn check_community_fetchable(community: &Community) -> LemmyResult<()> {
   check_community_removed_or_deleted(community)?;
-  if community.visibility.can_federate() {
+  if !community.visibility.can_federate() {
     return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
