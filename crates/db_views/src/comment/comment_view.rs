@@ -125,6 +125,7 @@ impl CommentView {
       comment: self.comment,
       creator: self.creator,
       comment_actions: self.comment_actions,
+      creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
       creator_is_admin: self.creator_is_admin,

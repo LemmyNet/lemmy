@@ -147,11 +147,9 @@ pub struct PersonUpdateForm {
 pub struct PersonActions {
   pub target_id: PersonId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// When the person was followed.
+  #[serde(skip)]
   pub followed: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// Whether the follow is pending.
+  #[serde(skip)]
   pub follow_pending: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the person was blocked.

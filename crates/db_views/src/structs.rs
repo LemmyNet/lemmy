@@ -21,6 +21,60 @@ use diesel::{
   Queryable,
   Selectable,
 };
+use lemmy_db_schema::source::{
+  combined::{
+    inbox::InboxCombined,
+    person_content::PersonContentCombined,
+    person_saved::PersonSavedCombined,
+    report::ReportCombined,
+    search::SearchCombined,
+  },
+  comment::{Comment, CommentActions},
+  comment_reply::CommentReply,
+  comment_report::CommentReport,
+  community::{Community, CommunityActions, CommunityFollowerState},
+  community_report::CommunityReport,
+  custom_emoji::CustomEmoji,
+  custom_emoji_keyword::CustomEmojiKeyword,
+  images::{ImageDetails, LocalImage},
+  instance::{Instance, InstanceActions},
+  local_site::LocalSite,
+  local_site_rate_limit::LocalSiteRateLimit,
+  local_user::LocalUser,
+  mod_log::{
+    admin::{
+      AdminAllowInstance,
+      AdminBlockInstance,
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
+    },
+    moderator::{
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModFeaturePost,
+      ModHideCommunity,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModTransferCommunity,
+    },
+  },
+  person::{Person, PersonActions},
+  person_comment_mention::PersonCommentMention,
+  person_post_mention::PersonPostMention,
+  post::{Post, PostActions},
+  post_report::PostReport,
+  private_message::PrivateMessage,
+  private_message_report::PrivateMessageReport,
+  registration_application::RegistrationApplication,
+  site::Site,
+  tag::Tag,
+};
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
   schema::local_user,
@@ -28,63 +82,6 @@ use lemmy_db_schema::{
   CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
-};
-use lemmy_db_schema::{
-  source::{
-    combined::{
-      inbox::InboxCombined,
-      person_content::PersonContentCombined,
-      person_saved::PersonSavedCombined,
-      report::ReportCombined,
-      search::SearchCombined,
-    },
-    comment::{Comment, CommentActions},
-    comment_reply::CommentReply,
-    comment_report::CommentReport,
-    community::{Community, CommunityActions},
-    community_report::CommunityReport,
-    custom_emoji::CustomEmoji,
-    custom_emoji_keyword::CustomEmojiKeyword,
-    images::{ImageDetails, LocalImage},
-    instance::{Instance, InstanceActions},
-    local_site::LocalSite,
-    local_site_rate_limit::LocalSiteRateLimit,
-    local_user::LocalUser,
-    mod_log::{
-      admin::{
-        AdminAllowInstance,
-        AdminBlockInstance,
-        AdminPurgeComment,
-        AdminPurgeCommunity,
-        AdminPurgePerson,
-        AdminPurgePost,
-      },
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModBan,
-        ModBanFromCommunity,
-        ModFeaturePost,
-        ModHideCommunity,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemoveCommunity,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
-    },
-    person::{Person, PersonActions},
-    person_comment_mention::PersonCommentMention,
-    person_post_mention::PersonPostMention,
-    post::{Post, PostActions},
-    post_report::PostReport,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-    registration_application::RegistrationApplication,
-    site::Site,
-    tag::Tag,
-  },
-  SubscribedType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -216,6 +213,8 @@ pub struct CommentSlimView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_community_actions: Option<CommunityActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
@@ -223,15 +222,24 @@ pub struct CommentSlimView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community report view.
 pub struct CommunityReportView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community_report: CommunityReport,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
+      select_expression = person2_select().nullable()
+    )
+  )]
   pub resolver: Option<Person>,
 }
 
@@ -839,7 +847,7 @@ pub struct PendingFollow {
   pub person: Person,
   pub community: Community,
   pub is_new_instance: bool,
-  pub subscribed: SubscribedType,
+  pub follow_state: Option<CommunityFollowerState>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]

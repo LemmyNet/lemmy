@@ -182,18 +182,6 @@ pub enum SearchType {
   Users,
 }
 
-// TODO I think this should go away in favor of FollowState
-#[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A type / status for a community subscribe.
-pub enum SubscribedType {
-  Subscribed,
-  NotSubscribed,
-  Pending,
-  ApprovalRequired,
-}
-
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

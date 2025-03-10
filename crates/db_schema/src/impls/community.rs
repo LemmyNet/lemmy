@@ -26,23 +26,18 @@ use crate::{
   },
   CommunityVisibility,
   ListingType,
-  SubscribedType,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  deserialize,
   dsl::{exists, insert_into, not},
   expression::SelectableHelper,
-  pg::Pg,
   result::Error,
   select,
-  sql_types,
   update,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
-  Queryable,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::{
@@ -417,20 +412,6 @@ impl Bannable for CommunityActions {
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
-  }
-}
-
-impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
-  for SubscribedType
-{
-  type Row = Option<CommunityFollowerState>;
-  fn build(row: Self::Row) -> deserialize::Result<Self> {
-    Ok(match row {
-      Some(CommunityFollowerState::Pending) => SubscribedType::Pending,
-      Some(CommunityFollowerState::Accepted) => SubscribedType::Subscribed,
-      Some(CommunityFollowerState::ApprovalRequired) => SubscribedType::ApprovalRequired,
-      None => SubscribedType::NotSubscribed,
-    })
   }
 }
 

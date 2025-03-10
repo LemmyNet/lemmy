@@ -23,7 +23,6 @@ use lemmy_db_schema::{
   },
   utils::{get_conn, limit_and_offset, DbPool},
   CommunityVisibility,
-  SubscribedType,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -170,17 +169,17 @@ impl CommunityFollowerView {
       .order_by(community_actions::followed.asc())
       .limit(limit)
       .offset(offset)
-      .load::<(Person, Community, bool, SubscribedType)>(conn)
+      .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
       .await?;
     Ok(
       res
         .into_iter()
         .map(
-          |(person, community, is_new_instance, subscribed)| PendingFollow {
+          |(person, community, is_new_instance, follow_state)| PendingFollow {
             person,
             community,
             is_new_instance,
-            subscribed,
+            follow_state,
           },
         )
         .collect(),
