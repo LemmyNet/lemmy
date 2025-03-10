@@ -8,11 +8,39 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{PaginationCursor, PersonId},
   schema::{local_user, person},
-  utils::{get_conn, now, DbPool},
+  source::person::{person_keys as key, Person},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, now, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
+
+impl PaginationCursorBuilder for PersonView {
+  type CursorData = Person;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('P', self.person.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = person::table
+      .select(Self::CursorData::as_select())
+      .filter(person::id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
+  }
+}
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -37,33 +65,61 @@ impl PersonView {
 
     query.first(conn).await
   }
+}
 
-  pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    Self::joins()
-      .filter(person::deleted.eq(false))
-      .filter(local_user::admin.eq(true))
-      .order_by(person::published)
-      .select(Self::as_select())
-      .load::<Self>(conn)
-      .await
-  }
+#[derive(Default)]
+pub struct PersonQuery {
+  pub admins_only: Option<bool>,
+  pub banned_only: Option<bool>,
+  pub cursor_data: Option<Person>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
+}
 
-  pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+impl PersonQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Self::joins()
+
+    let mut query = PersonView::joins()
       .filter(person::deleted.eq(false))
-      .filter(
-        person::banned.eq(true).and(
+      .select(PersonView::as_select())
+      .into_boxed();
+
+    // Filters
+    if self.banned_only.unwrap_or_default() {
+      query = query.filter(
+        person::local.and(person::banned).and(
           person::ban_expires
             .is_null()
             .or(person::ban_expires.gt(now().nullable())),
         ),
-      )
-      .order_by(person::published)
-      .select(Self::as_select())
-      .load::<Self>(conn)
-      .await
+      );
+    }
+
+    if self.admins_only.unwrap_or_default() {
+      query = query.filter(local_user::admin);
+    } else {
+      // Only use page limits if its not an admin fetch
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    if self.page_back.unwrap_or_default() {
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
+    } else {
+      query = query.after(self.cursor_data);
+    }
+
+    // Sorting by published
+    query = query
+      .then_desc(key::published)
+      // Tie breaker
+      .then_desc(key::id);
+
+    let res = query.load::<PersonView>(conn).await?;
+    Ok(res)
   }
 }
 
@@ -174,7 +230,12 @@ mod tests {
     )
     .await?;
 
-    let list = PersonView::banned(pool).await?;
+    let list = PersonQuery {
+      banned_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
@@ -198,7 +259,12 @@ mod tests {
     )
     .await?;
 
-    let list = PersonView::admins(pool).await?;
+    let list = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
