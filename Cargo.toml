@@ -88,7 +88,7 @@ lemmy_api_common = { version = "=1.0.0-alpha.2", path = "./crates/api_common" }
 lemmy_routes = { version = "=1.0.0-alpha.2", path = "./crates/routes" }
 lemmy_db_views = { version = "=1.0.0-alpha.2", path = "./crates/db_views" }
 lemmy_federate = { version = "=1.0.0-alpha.2", path = "./crates/federate" }
-activitypub_federation = { version = "0.6.2", default-features = false, features = [
+activitypub_federation = { version = "0.6.3", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.2.7"
@@ -178,3 +178,8 @@ rustls = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
 mimalloc = "0.1.43"
+
+# Speedup RSA key generation
+# https://github.com/RustCrypto/RSA/blob/master/README.md#example
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
