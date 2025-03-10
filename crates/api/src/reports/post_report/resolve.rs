@@ -32,7 +32,6 @@ pub async fn resolve_post_report(
   if data.resolved {
     PostReport::resolve(&mut context.pool(), report_id, person_id).await?;
   } else {
-    // TODO: not federated
     PostReport::unresolve(&mut context.pool(), report_id, person_id).await?;
   }
 
