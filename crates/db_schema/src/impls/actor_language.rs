@@ -282,22 +282,29 @@ impl CommunityLanguage {
       })
       .collect::<Vec<_>>();
 
-    // Delete old languages, not including new languages
-    delete(community_language::table)
-      .filter(community_language::community_id.eq(for_community_id))
-      .filter(community_language::language_id.ne_all(&lang_ids))
-      .execute(conn)
-      .await?;
+    conn
+      .transaction::<_, Error, _>(|conn| {
+        async move {
+          // Delete old languages, not including new languages
+          delete(community_language::table)
+            .filter(community_language::community_id.eq(for_community_id))
+            .filter(community_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
-    // Insert new languages
-    insert_into(community_language::table)
-      .values(form)
-      .on_conflict((
-        community_language::community_id,
-        community_language::language_id,
-      ))
-      .do_nothing()
-      .execute(conn)
+          // Insert new languages
+          insert_into(community_language::table)
+            .values(form)
+            .on_conflict((
+              community_language::community_id,
+              community_language::language_id,
+            ))
+            .do_nothing()
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
+      })
       .await
   }
 }
