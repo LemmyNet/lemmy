@@ -1,4 +1,4 @@
-use crate::newtypes::{PersonId};
+use crate::newtypes::PersonId;
 #[cfg(feature = "full")]
 use crate::schema::user_post_keyword_block;
 use serde::{Deserialize, Serialize};
@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Associations, TS)
-)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Associations, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = user_post_keyword_block))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

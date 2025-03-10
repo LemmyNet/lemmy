@@ -10,13 +10,13 @@ pub async fn user_block_keyword_for_posts(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  for keyword in data.keywords_to_block.iter() {
+  for keyword in &data.keywords_to_block {
     let trimmed = keyword.trim();
     let length = trimmed.len();
     if length < 3 {
-        return Err(LemmyErrorType::BlockKeywordToShort.into());
+      return Err(LemmyErrorType::BlockKeywordToShort.into());
     } else if length > 50 {
-        return Err(LemmyErrorType::BlockKeywordToLong.into());
+      return Err(LemmyErrorType::BlockKeywordToLong.into());
     }
   }
   if data.keywords_to_block.len() >= 15 {
@@ -29,5 +29,5 @@ pub async fn user_block_keyword_for_posts(
     data.keywords_to_block.clone(),
   )
   .await?;
-   Ok(Json(SuccessResponse::default()))
-  }
+  Ok(Json(SuccessResponse::default()))
+}

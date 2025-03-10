@@ -39,9 +39,9 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
-    user_post_keyword_block,
     post_tag,
     tag,
+    user_post_keyword_block,
   },
   source::{
     community::CommunityFollowerState,
