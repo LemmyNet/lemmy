@@ -8,7 +8,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::{CommentReportView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 pub async fn resolve_comment_report(
@@ -30,13 +30,9 @@ pub async fn resolve_comment_report(
   .await?;
 
   if data.resolved {
-    CommentReport::resolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    CommentReport::resolve(&mut context.pool(), report_id, person_id).await?;
   } else {
-    CommentReport::unresolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    CommentReport::unresolve(&mut context.pool(), report_id, person_id).await?;
   }
 
   let report_id = data.report_id;

@@ -4,11 +4,11 @@ use lemmy_api_common::{
   post::{PostResponse, SavePost},
 };
 use lemmy_db_schema::{
-  source::post::{PostRead, PostReadForm, PostSaved, PostSavedForm},
-  traits::Saveable,
+  source::post::{PostActions, PostReadForm, PostSavedForm},
+  traits::{Readable, Saveable},
 };
 use lemmy_db_views::structs::{LocalUserView, PostView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(
   data: Json<SavePost>,
@@ -18,13 +18,9 @@ pub async fn save_post(
   let post_saved_form = PostSavedForm::new(data.post_id, local_user_view.person.id);
 
   if data.save {
-    PostSaved::save(&mut context.pool(), &post_saved_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+    PostActions::save(&mut context.pool(), &post_saved_form).await?;
   } else {
-    PostSaved::unsave(&mut context.pool(), &post_saved_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+    PostActions::unsave(&mut context.pool(), &post_saved_form).await?;
   }
 
   let post_id = data.post_id;
@@ -38,7 +34,7 @@ pub async fn save_post(
   .await?;
 
   let read_form = PostReadForm::new(post_id, person_id);
-  PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   Ok(Json(PostResponse { post_view }))
 }

@@ -14,10 +14,10 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    person_block::PersonBlock,
+    person::PersonActions,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
-  traits::Crud,
+  traits::{Blockable, Crud},
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
@@ -35,7 +35,7 @@ pub async fn create_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  PersonBlock::read(
+  PersonActions::read_block(
     &mut context.pool(),
     data.recipient_id,
     local_user_view.person.id,

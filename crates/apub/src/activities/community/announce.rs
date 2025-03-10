@@ -24,7 +24,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityFollower},
+  source::{activity::ActivitySendTargets, community::CommunityActions},
   CommunityVisibility,
 };
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
@@ -215,7 +215,7 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?
+      CommunityActions::check_has_local_followers(&mut context.pool(), community.id).await?
     }
   }
   Ok(())

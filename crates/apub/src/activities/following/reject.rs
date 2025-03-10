@@ -11,10 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm},
-  },
+  source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -68,8 +65,7 @@ impl ActivityHandler for RejectFollow {
     let person = self.object.actor.dereference(context).await?;
 
     // remove the follow
-    let form = CommunityFollowerForm::new(community.id, person.id);
-    CommunityFollower::unfollow(&mut context.pool(), &form).await?;
+    CommunityActions::unfollow(&mut context.pool(), person.id, community.id).await?;
 
     Ok(())
   }

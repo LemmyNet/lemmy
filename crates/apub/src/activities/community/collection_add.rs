@@ -30,7 +30,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
     person::Person,
     post::{Post, PostUpdateForm},
@@ -133,14 +133,11 @@ impl ActivityHandler for CollectionAdd {
         // already been added. Skip it here as it would result in a duplicate key error.
         let new_mod_id = new_mod.id;
         let moderated_communities =
-          CommunityModerator::get_person_moderated_communities(&mut context.pool(), new_mod_id)
+          CommunityActions::get_person_moderated_communities(&mut context.pool(), new_mod_id)
             .await?;
         if !moderated_communities.contains(&community.id) {
-          let form = CommunityModeratorForm {
-            community_id: community.id,
-            person_id: new_mod.id,
-          };
-          CommunityModerator::join(&mut context.pool(), &form).await?;
+          let form = CommunityModeratorForm::new(community.id, new_mod.id);
+          CommunityActions::join(&mut context.pool(), &form).await?;
 
           // write mod log
           let actor = self.actor.dereference(context).await?;

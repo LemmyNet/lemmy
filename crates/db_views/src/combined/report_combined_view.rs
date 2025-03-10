@@ -22,7 +22,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     comment,
@@ -43,7 +42,7 @@ use lemmy_db_schema::{
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  utils::{get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -255,46 +254,7 @@ impl ReportCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
     let mut query = ReportCombinedViewInternal::joins(my_person_id)
-      .select((
-        // Post-specific
-        post_report::all_columns.nullable(),
-        post::all_columns.nullable(),
-        coalesce(
-          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post::comments,
-        )
-        .nullable(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        // Comment-specific
-        comment_report::all_columns.nullable(),
-        comment::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        // Private-message-specific
-        private_message_report::all_columns.nullable(),
-        private_message::all_columns.nullable(),
-        // Community-specific
-        community_report::all_columns.nullable(),
-        // Shared
-        person::all_columns,
-        aliases::person1.fields(person::all_columns.nullable()),
-        community::all_columns.nullable(),
-        community_follower_select_subscribed_type(),
-        aliases::person2.fields(person::all_columns.nullable()),
-        local_user::admin.nullable().is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-      ))
+      .select(ReportCombinedViewInternal::as_select())
       .into_boxed();
 
     if let Some(community_id) = self.community_id {
@@ -414,36 +374,24 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (
-      Some(post_report),
-      Some(post),
-      Some(community),
-      Some(unread_comments),
-      Some(post_creator),
-    ) = (
+    if let (Some(post_report), Some(post), Some(community), Some(post_creator)) = (
       v.post_report,
       v.post.clone(),
       v.community.clone(),
-      v.post_unread_comments,
       v.item_creator.clone(),
     ) {
       Some(ReportCombinedView::Post(PostReportView {
         post_report,
         post,
         community,
-        unread_comments,
-        creator: v.report_creator,
         post_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
+        creator: v.report_creator,
         resolver: v.resolver,
+        creator_community_actions: v.creator_community_actions,
+        community_actions: v.community_actions,
+        post_actions: v.post_actions,
+        person_actions: v.person_actions,
+        creator_is_admin: v.item_creator_is_admin,
       }))
     } else if let (
       Some(comment_report),
@@ -465,14 +413,12 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         community,
         creator: v.report_creator,
         comment_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
         resolver: v.resolver,
+        creator_community_actions: v.creator_community_actions,
+        community_actions: v.community_actions,
+        comment_actions: v.comment_actions,
+        person_actions: v.person_actions,
+        creator_is_admin: v.item_creator_is_admin,
       }))
     } else if let (
       Some(private_message_report),
@@ -494,7 +440,6 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         community_report,
         community,
         creator: v.report_creator,
-        subscribed: v.subscribed,
         resolver: v.resolver,
       }))
     } else {
@@ -527,7 +472,7 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
-      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
       community_report::{CommunityReport, CommunityReportForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -595,11 +540,9 @@ mod tests {
     let inserted_community = Community::create(pool, &community_form).await?;
 
     // Make timmy a mod
-    let timmy_moderator_form = CommunityModeratorForm {
-      community_id: inserted_community.id,
-      person_id: inserted_timmy.id,
-    };
-    CommunityModerator::join(pool, &timmy_moderator_form).await?;
+    let timmy_moderator_form =
+      CommunityModeratorForm::new(inserted_community.id, inserted_timmy.id);
+    CommunityActions::join(pool, &timmy_moderator_form).await?;
 
     let post_form = PostInsertForm::new(
       "A test post crv".into(),
@@ -926,7 +869,6 @@ mod tests {
     assert_eq!(read_jessica_report_view.community.id, data.community.id);
     assert_eq!(read_jessica_report_view.creator.id, data.jessica.id);
     assert_eq!(read_jessica_report_view.post_creator.id, data.timmy.id);
-    assert_eq!(read_jessica_report_view.my_vote, None);
     assert_eq!(read_jessica_report_view.resolver, None);
     assert_eq!(agg_1.report_count, 1);
     assert_eq!(agg_1.unresolved_report_count, 1);

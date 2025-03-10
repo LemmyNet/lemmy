@@ -104,6 +104,7 @@ pub enum LemmyErrorType {
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
+  CouldntUpdateReadComments,
   CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,

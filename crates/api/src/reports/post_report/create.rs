@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
 pub async fn create_post_report(
@@ -55,9 +55,7 @@ pub async fn create_post_report(
     violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
-  let report = PostReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = PostReport::report(&mut context.pool(), &report_form).await?;
 
   let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 

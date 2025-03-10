@@ -23,9 +23,9 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
+    post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   },
-  traits::{Crud, Likeable},
+  traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
@@ -144,9 +144,7 @@ pub async fn create_post(
   let post_id = inserted_post.id;
   let like_form = PostLikeForm::new(post_id, person_id, 1);
 
-  PostLike::like(&mut context.pool(), &like_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+  PostActions::like(&mut context.pool(), &like_form).await?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
@@ -161,7 +159,7 @@ pub async fn create_post(
   .await?;
 
   let read_form = PostReadForm::new(post_id, person_id);
-  PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

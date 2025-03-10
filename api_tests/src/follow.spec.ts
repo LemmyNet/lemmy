@@ -26,7 +26,9 @@ test("Follow local community", async () => {
 
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(true);
-  expect(follow.community_view.subscribed).toBe("Subscribed");
+  expect(follow.community_view.community_actions?.follow_state).toBe(
+    "Accepted",
+  );
   expect(follow.community_view.community.subscribers).toBe(
     community.community.subscribers + 1,
   );
@@ -36,7 +38,9 @@ test("Follow local community", async () => {
 
   // Test an unfollow
   let unfollow = await followCommunity(user, false, community.community.id);
-  expect(unfollow.community_view.subscribed).toBe("NotSubscribed");
+  expect(
+    unfollow.community_view.community_actions?.follow_state,
+  ).toBeUndefined();
   expect(unfollow.community_view.community.subscribers).toBe(
     community.community.subscribers,
   );
@@ -62,18 +66,18 @@ test("Follow federated community", async () => {
     true,
     betaCommunityInitial.community.id,
   );
-  expect(follow.community_view.subscribed).toBe("Pending");
+  expect(follow.community_view.community_actions?.follow_state).toBe("Pending");
   const betaCommunity = (
     await waitUntil(
       () => resolveBetaCommunity(alpha),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state === "Accepted",
     )
   ).community;
 
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);
   expect(betaCommunity?.community.name).toBe("main");
-  expect(betaCommunity?.subscribed).toBe("Subscribed");
+  expect(betaCommunity?.community_actions?.follow_state).toBe("Accepted");
   expect(betaCommunity?.community.subscribers_local).toBe(
     betaCommunityInitial.community.subscribers_local + 1,
   );
@@ -99,7 +103,9 @@ test("Follow federated community", async () => {
 
   // Test an unfollow
   let unfollow = await followCommunity(alpha, false, remoteCommunityId);
-  expect(unfollow.community_view.subscribed).toBe("NotSubscribed");
+  expect(
+    unfollow.community_view.community_actions?.follow_state,
+  ).toBeUndefined();
 
   // Make sure you are unsubbed locally
   let siteUnfollowCheck = await getMyUser(alpha);

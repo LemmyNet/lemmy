@@ -16,8 +16,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
+  self,
   aliases::{creator_community_actions, creator_local_user},
-  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
@@ -25,18 +25,17 @@ use lemmy_db_schema::{
     community,
     community_actions,
     image_details,
+    instance_actions,
     local_user,
     person,
     person_actions,
     person_content_combined,
     post,
     post_actions,
-    post_tag,
-    tag,
   },
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{get_conn, DbPool},
   PersonContentType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -93,6 +92,12 @@ impl PersonContentCombinedViewInternal {
         .and(community_actions::person_id.nullable().eq(my_person_id)),
     );
 
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(person::instance_id)
+        .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    );
+
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
         .eq(post::id)
@@ -123,6 +128,7 @@ impl PersonContentCombinedViewInternal {
       .left_join(local_user_join)
       .left_join(creator_local_user_join)
       .left_join(community_actions_join)
+      .left_join(instance_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(comment_actions_join)
@@ -185,15 +191,6 @@ impl PersonContentCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post::id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
     // For example, the creator must be the person table joined to either:
@@ -202,43 +199,7 @@ impl PersonContentCombinedQuery {
     let mut query = PersonContentCombinedViewInternal::joins(my_person_id)
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
-      .select((
-        // Post-specific
-        coalesce(
-          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post::comments,
-        ),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        image_details::all_columns.nullable(),
-        post_tags,
-        // Comment-specific
-        comment::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        // Shared
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        community_follower_select_subscribed_type(),
-        creator_local_user
-          .field(local_user::admin)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        local_user_can_mod(),
-      ))
+      .select(PersonContentCombinedViewInternal::as_select())
       .into_boxed();
 
     if let Some(type_) = self.type_ {
@@ -292,34 +253,26 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         post: v.post,
         community: v.community,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
+        community_actions: v.community_actions,
+        comment_actions: v.comment_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
-        banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
         post: v.post,
         community: v.community,
-        unread_comments: v.post_unread_comments,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
         image_details: v.image_details,
-        banned_from_community: v.banned_from_community,
-        tags: v.post_tags,
+        community_actions: v.community_actions,
+        post_actions: v.post_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
+        creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
       }))
     }
