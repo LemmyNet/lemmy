@@ -52,7 +52,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let admins = PersonQuery {
     admins_only: Some(true),
-    ignore_page_limits: Some(true),
     ..Default::default()
   }
   .list(&mut context.pool())

@@ -59,7 +59,6 @@ pub async fn add_admin(
 
   let admins = PersonQuery {
     admins_only: Some(true),
-    ignore_page_limits: Some(true),
     ..Default::default()
   }
   .list(&mut context.pool())

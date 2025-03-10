@@ -74,7 +74,6 @@ pub struct PersonQuery {
   pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
-  pub ignore_page_limits: Option<bool>,
 }
 
 impl PersonQuery {
@@ -99,9 +98,8 @@ impl PersonQuery {
 
     if self.admins_only.unwrap_or_default() {
       query = query.filter(local_user::admin);
-    }
-
-    if !self.ignore_page_limits.unwrap_or(false) {
+    } else {
+      // Only use page limits if its not an admin fetch
       let limit = limit_fetch(self.limit)?;
       query = query.limit(limit);
     }
