@@ -25,7 +25,12 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  scoped_futures::ScopedFutureExt,
+  AsyncConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
@@ -74,30 +79,37 @@ impl LocalUserLanguage {
       lang_ids.push(UNDETERMINED_ID);
     }
 
-    // Delete old languages, not including new languages
-    delete(local_user_language::table)
-      .filter(local_user_language::local_user_id.eq(for_local_user_id))
-      .filter(local_user_language::language_id.ne_all(&lang_ids))
-      .execute(conn)
-      .await?;
+    conn
+      .transaction::<_, Error, _>(|conn| {
+        async move {
+          // Delete old languages, not including new languages
+          delete(local_user_language::table)
+            .filter(local_user_language::local_user_id.eq(for_local_user_id))
+            .filter(local_user_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
-    let forms = lang_ids
-      .iter()
-      .map(|&l| LocalUserLanguageForm {
-        local_user_id: for_local_user_id,
-        language_id: l,
+          let forms = lang_ids
+            .iter()
+            .map(|&l| LocalUserLanguageForm {
+              local_user_id: for_local_user_id,
+              language_id: l,
+            })
+            .collect::<Vec<_>>();
+
+          // Insert new languages
+          insert_into(local_user_language::table)
+            .values(forms)
+            .on_conflict((
+              local_user_language::language_id,
+              local_user_language::local_user_id,
+            ))
+            .do_nothing()
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
       })
-      .collect::<Vec<_>>();
-
-    // Insert new languages
-    insert_into(local_user_language::table)
-      .values(forms)
-      .on_conflict((
-        local_user_language::language_id,
-        local_user_language::local_user_id,
-      ))
-      .do_nothing()
-      .execute(conn)
       .await
   }
 }
@@ -142,31 +154,38 @@ impl SiteLanguage {
       return Ok(());
     }
 
-    // Delete old languages, not including new languages
-    delete(site_language::table)
-      .filter(site_language::site_id.eq(for_site_id))
-      .filter(site_language::language_id.ne_all(&lang_ids))
-      .execute(conn)
-      .await?;
+    conn
+      .transaction::<_, Error, _>(|conn| {
+        async move {
+          // Delete old languages, not including new languages
+          delete(site_language::table)
+            .filter(site_language::site_id.eq(for_site_id))
+            .filter(site_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
-    let forms = lang_ids
-      .iter()
-      .map(|&l| SiteLanguageForm {
-        site_id: for_site_id,
-        language_id: l,
+          let forms = lang_ids
+            .iter()
+            .map(|&l| SiteLanguageForm {
+              site_id: for_site_id,
+              language_id: l,
+            })
+            .collect::<Vec<_>>();
+
+          // Insert new languages
+          insert_into(site_language::table)
+            .values(forms)
+            .on_conflict((site_language::site_id, site_language::language_id))
+            .do_nothing()
+            .execute(conn)
+            .await?;
+
+          CommunityLanguage::limit_languages(conn, instance_id).await?;
+          Ok(())
+        }
+        .scope_boxed()
       })
-      .collect::<Vec<_>>();
-
-    // Insert new languages
-    insert_into(site_language::table)
-      .values(forms)
-      .on_conflict((site_language::site_id, site_language::language_id))
-      .do_nothing()
-      .execute(conn)
-      .await?;
-
-    CommunityLanguage::limit_languages(conn, instance_id).await?;
-    Ok(())
+      .await
   }
 }
 

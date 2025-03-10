@@ -1,6 +1,6 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
-use diesel_async::AsyncPgConnection;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -131,10 +131,9 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_local_site = local_site.clone();
   let tx_settings = context.settings();
-  let (person, local_user): (Person, LocalUser) = conn
-    .build_transaction()
-    .run(|conn| {
-      Box::pin(async move {
+  let (person, local_user) = conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
         // We have to create both a person, and local_user
         let person = create_person(
           tx_data.username.clone(),
@@ -168,8 +167,9 @@ pub async fn register(
           }
         }
 
-        Ok::<_, LemmyError>((person, local_user))
-      }) as _
+        Ok((person, local_user))
+      }
+      .scope_boxed()
     })
     .await?;
 
@@ -348,10 +348,9 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_local_site = local_site.clone();
       let tx_settings = context.settings();
-      let (person, local_user): (Person, LocalUser) = conn
-        .build_transaction()
-        .run(|conn| {
-          Box::pin(async move {
+      let (person, local_user) = conn
+        .transaction::<_, LemmyError, _>(|conn| {
+          async move {
             // make sure the username is provided
             let username = tx_data
               .username
@@ -413,8 +412,9 @@ pub async fn authenticate_with_oauth(
                 login_response.registration_created = true;
               }
             }
-            Ok::<_, LemmyError>((person, local_user))
-          }) as _
+            Ok((person, local_user))
+          }
+          .scope_boxed()
         })
         .await?;
 
