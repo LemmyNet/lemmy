@@ -1064,6 +1064,14 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    user_post_keyword_block (person_id, keyword) {
+        #[max_length = 50]
+        keyword -> Varchar,
+        person_id -> Int4,
+    }
+}
+
 diesel::joinable!(admin_allow_instance -> instance (instance_id));
 diesel::joinable!(admin_allow_instance -> person (admin_person_id));
 diesel::joinable!(admin_block_instance -> instance (instance_id));
@@ -1175,6 +1183,7 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
+diesel::joinable!(user_post_keyword_block -> person (person_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_allow_instance,
@@ -1250,4 +1259,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     site_language,
     tag,
     tagline,
+    user_post_keyword_block,
 );
