@@ -1,5 +1,6 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -31,11 +32,13 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::Crud,
+  utils::get_conn,
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -62,7 +65,8 @@ pub async fn register(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let pool = &mut context.pool();
+  let site_view = SiteView::read_local(pool).await?;
   let local_site = site_view.local_site;
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -91,7 +95,7 @@ pub async fn register(
   if local_site.site_setup && local_site.captcha_enabled {
     let uuid = uuid::Uuid::parse_str(&data.captcha_uuid.clone().unwrap_or_default())?;
     CaptchaAnswer::check_captcha(
-      &mut context.pool(),
+      pool,
       CheckCaptchaAnswer {
         uuid,
         answer: data.captcha_answer.clone().unwrap_or_default(),
@@ -104,20 +108,11 @@ pub async fn register(
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
-  Person::check_username_taken(&mut context.pool(), &data.username).await?;
+  Person::check_username_taken(pool, &data.username).await?;
 
   if let Some(email) = &data.email {
-    LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
+    LocalUser::check_is_email_taken(pool, email).await?;
   }
-
-  // We have to create both a person, and local_user
-  let inserted_person = create_person(
-    data.username.clone(),
-    &local_site,
-    site_view.site.instance_id,
-    &context,
-  )
-  .await?;
 
   // Automatically set their application as accepted, if they created this with open registration.
   // Also fixes a bug which allows users to log in when registrations are changed to closed.
@@ -130,33 +125,57 @@ pub async fn register(
 
   let language_tags = get_language_tags(&req);
 
-  // Create the local user
-  let local_user_form = LocalUserInsertForm {
-    email: data.email.as_deref().map(str::to_lowercase),
-    show_nsfw: Some(show_nsfw),
-    accepted_application,
-    ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
-  };
+  // Wrap the insert person, insert local user, and create registration,
+  // in a transaction, so that if any fail, the rows aren't created.
+  let conn = &mut get_conn(pool).await?;
+  let tx_data = data.clone();
+  let tx_local_site = local_site.clone();
+  let tx_settings = context.settings();
+  let (person, local_user) = conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        // We have to create both a person, and local_user
+        let person = create_person(
+          tx_data.username.clone(),
+          &tx_local_site,
+          site_view.site.instance_id,
+          tx_settings,
+          conn,
+        )
+        .await?;
 
-  let inserted_local_user =
-    create_local_user(&context, language_tags, local_user_form, &local_site).await?;
+        // Create the local user
+        let local_user_form = LocalUserInsertForm {
+          email: tx_data.email.as_deref().map(str::to_lowercase),
+          show_nsfw: Some(show_nsfw),
+          accepted_application,
+          ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
+        };
 
-  if local_site.site_setup && require_registration_application {
-    if let Some(answer) = data.answer.clone() {
-      // Create the registration application
-      let form = RegistrationApplicationInsertForm {
-        local_user_id: inserted_local_user.id,
-        answer,
-      };
+        let local_user =
+          create_local_user(conn, language_tags, local_user_form, &tx_local_site).await?;
 
-      RegistrationApplication::create(&mut context.pool(), &form).await?;
-    }
-  }
+        if local_site.site_setup && require_registration_application {
+          if let Some(answer) = tx_data.answer.clone() {
+            // Create the registration application
+            let form = RegistrationApplicationInsertForm {
+              local_user_id: local_user.id,
+              answer,
+            };
+
+            RegistrationApplication::create(&mut conn.into(), &form).await?;
+          }
+        }
+
+        Ok((person, local_user))
+      }
+      .scope_boxed()
+    })
+    .await?;
 
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.require_email_verification {
-    send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
-      .await?;
+    send_new_applicant_email_to_admins(&data.username, pool, context.settings()).await?;
   }
 
   let mut login_response = LoginResponse {
@@ -170,16 +189,11 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    login_response.verify_email_sent = send_verification_email_if_required(
-      &context,
-      &local_site,
-      &inserted_local_user,
-      &inserted_person,
-    )
-    .await?;
+    login_response.verify_email_sent =
+      send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -194,8 +208,16 @@ pub async fn authenticate_with_oauth(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let pool = &mut context.pool();
+  let site_view = SiteView::read_local(pool).await?;
   let local_site = site_view.local_site.clone();
+
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
+
+  let language_tags = get_language_tags(&req);
 
   // validate inputs
   if data.oauth_provider_id == OAuthProviderId(0) || data.code.is_empty() || data.code.len() > 300 {
@@ -218,7 +240,7 @@ pub async fn authenticate_with_oauth(
 
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
-  let oauth_provider = OAuthProvider::read(&mut context.pool(), oauth_provider_id)
+  let oauth_provider = OAuthProvider::read(pool, oauth_provider_id)
     .await
     .ok()
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
@@ -253,16 +275,16 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(&mut context.pool(), oauth_provider.id, &oauth_user_id).await;
+    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id).await;
 
-  let local_user: LocalUser;
-  if let Ok(user_view) = local_user_view {
+  let local_user = if let Ok(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
-    local_user = user_view.clone().local_user;
+    let local_user = user_view.clone().local_user;
 
     check_user_valid(&user_view.person)?;
     check_email_verified(&user_view, &site_view)?;
-    check_registration_application(&user_view, &site_view.local_site, &mut context.pool()).await?;
+    check_registration_application(&user_view, &site_view.local_site, pool).await?;
+    local_user
   } else {
     // user has never previously registered using oauth
 
@@ -283,9 +305,8 @@ pub async fn authenticate_with_oauth(
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await;
+    local_user_view = LocalUserView::find_by_email(pool, &email).await;
 
-    let person;
     if let Ok(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
@@ -299,18 +320,17 @@ pub async fn authenticate_with_oauth(
 
         check_user_valid(&user_view.person)?;
         check_email_verified(&user_view, &site_view)?;
-        check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
-          .await?;
+        check_registration_application(&user_view, &site_view.local_site, pool).await?;
 
         // Link with OAUTH => Login user
         let oauth_account_form =
           OAuthAccountInsertForm::new(user_view.local_user.id, oauth_provider.id, oauth_user_id);
 
-        OAuthAccount::create(&mut context.pool(), &oauth_account_form)
+        OAuthAccount::create(pool, &oauth_account_form)
           .await
           .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
-        local_user = user_view.local_user.clone();
+        user_view.local_user.clone()
       } else {
         return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
@@ -320,79 +340,90 @@ pub async fn authenticate_with_oauth(
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
 
-      // make sure the username is provided
-      let username = data
-        .username
-        .as_ref()
-        .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
-
       let slur_regex = slur_regex(&context).await?;
-      check_slurs(username, &slur_regex)?;
-      check_slurs_opt(&data.answer, &slur_regex)?;
 
-      Person::check_username_taken(&mut context.pool(), username).await?;
+      // Wrap the insert person, insert local user, and create registration,
+      // in a transaction, so that if any fail, the rows aren't created.
+      let conn = &mut get_conn(pool).await?;
+      let tx_data = data.clone();
+      let tx_local_site = local_site.clone();
+      let tx_settings = context.settings();
+      let (person, local_user) = conn
+        .transaction::<_, LemmyError, _>(|conn| {
+          async move {
+            // make sure the username is provided
+            let username = tx_data
+              .username
+              .as_ref()
+              .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
-      // We have to create a person, a local_user, and an oauth_account
-      person = create_person(
-        username.clone(),
-        &local_site,
-        site_view.site.instance_id,
-        &context,
-      )
-      .await?;
+            check_slurs(username, &slur_regex)?;
+            check_slurs_opt(&data.answer, &slur_regex)?;
 
-      // Show nsfw content if param is true, or if content_warning exists
-      let show_nsfw = data
-        .show_nsfw
-        .unwrap_or(site_view.site.content_warning.is_some());
+            Person::check_username_taken(&mut conn.into(), username).await?;
 
-      let language_tags = get_language_tags(&req);
+            // We have to create a person, a local_user, and an oauth_account
+            let person = create_person(
+              username.clone(),
+              &tx_local_site,
+              site_view.site.instance_id,
+              tx_settings,
+              conn,
+            )
+            .await?;
 
-      // Create the local user
-      let local_user_form = LocalUserInsertForm {
-        email: Some(str::to_lowercase(&email)),
-        show_nsfw: Some(show_nsfw),
-        accepted_application: Some(!require_registration_application),
-        email_verified: Some(oauth_provider.auto_verify_email),
-        ..LocalUserInsertForm::new(person.id, None)
-      };
+            // Create the local user
+            let local_user_form = LocalUserInsertForm {
+              email: Some(str::to_lowercase(&email)),
+              show_nsfw: Some(show_nsfw),
+              accepted_application: Some(!require_registration_application),
+              email_verified: Some(oauth_provider.auto_verify_email),
+              ..LocalUserInsertForm::new(person.id, None)
+            };
 
-      local_user = create_local_user(&context, language_tags, local_user_form, &local_site).await?;
+            let local_user =
+              create_local_user(conn, language_tags, local_user_form, &tx_local_site).await?;
 
-      // Create the oauth account
-      let oauth_account_form =
-        OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
+            // Create the oauth account
+            let oauth_account_form =
+              OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
 
-      OAuthAccount::create(&mut context.pool(), &oauth_account_form)
-        .await
-        .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+            OAuthAccount::create(&mut conn.into(), &oauth_account_form)
+              .await
+              .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
-      // prevent sign in until application is accepted
-      if local_site.site_setup
-        && require_registration_application
-        && !local_user.accepted_application
-        && !local_user.admin
-      {
-        if let Some(answer) = data.answer.clone() {
-          // Create the registration application
-          RegistrationApplication::create(
-            &mut context.pool(),
-            &RegistrationApplicationInsertForm {
-              local_user_id: local_user.id,
-              answer,
-            },
-          )
-          .await?;
+            // prevent sign in until application is accepted
+            if local_site.site_setup
+              && require_registration_application
+              && !local_user.accepted_application
+              && !local_user.admin
+            {
+              if let Some(answer) = data.answer.clone() {
+                // Create the registration application
+                RegistrationApplication::create(
+                  &mut conn.into(),
+                  &RegistrationApplicationInsertForm {
+                    local_user_id: local_user.id,
+                    answer,
+                  },
+                )
+                .await?;
 
-          login_response.registration_created = true;
-        }
-      }
+                login_response.registration_created = true;
+              }
+            }
+            Ok((person, local_user))
+          }
+          .scope_boxed()
+        })
+        .await?;
 
       // Check email is verified when required
       login_response.verify_email_sent =
         send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+      local_user
     }
-  }
+  };
 
   if !login_response.registration_created && !login_response.verify_email_sent {
     let jwt = Claims::generate(local_user.id, req, &context).await?;
@@ -406,11 +437,12 @@ async fn create_person(
   username: String,
   local_site: &LocalSite,
   instance_id: InstanceId,
-  context: &Data<LemmyContext>,
+  settings: &Settings,
+  conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let ap_id = Person::local_url(&username, context.settings())?;
+  let ap_id = Person::local_url(&username, settings)?;
 
   // Register the new person
   let person_form = PersonInsertForm {
@@ -421,7 +453,7 @@ async fn create_person(
   };
 
   // insert the person
-  let inserted_person = Person::create(&mut context.pool(), &person_form)
+  let inserted_person = Person::create(&mut conn.into(), &person_form)
     .await
     .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
@@ -441,17 +473,18 @@ fn get_language_tags(req: &HttpRequest) -> Vec<String> {
 }
 
 async fn create_local_user(
-  context: &Data<LemmyContext>,
+  conn: &mut AsyncPgConnection,
   language_tags: Vec<String>,
   mut local_user_form: LocalUserInsertForm,
   local_site: &LocalSite,
 ) -> Result<LocalUser, LemmyError> {
-  let all_languages = Language::read_all(&mut context.pool()).await?;
+  let conn_ = &mut conn.into();
+  let all_languages = Language::read_all(conn_).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
 
   // Enable site languages. Ignored if all languages are enabled.
-  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
+  let discussion_languages = SiteLanguage::read(conn_, local_site.site_id).await?;
 
   // Enable languages from `Accept-Language` header only if no site languages are set. Otherwise it
   // is possible that browser languages are only set to e.g. French, and the user won't see any
@@ -472,8 +505,7 @@ async fn create_local_user(
   // If its the initial site setup, they are an admin
   local_user_form.admin = Some(!local_site.site_setup);
   local_user_form.interface_language = language_tags.first().cloned();
-  let inserted_local_user =
-    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
+  let inserted_local_user = LocalUser::create(conn_, &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
 }
