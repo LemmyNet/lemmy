@@ -847,6 +847,7 @@ pub struct PendingFollow {
   pub person: Person,
   pub community: Community,
   pub is_new_instance: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub follow_state: Option<CommunityFollowerState>,
 }
 
