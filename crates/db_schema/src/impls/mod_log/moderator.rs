@@ -4,8 +4,8 @@ use crate::{
     ModAddId,
     ModBanFromCommunityId,
     ModBanId,
+    ModChangeCommunityVisibilityId,
     ModFeaturePostId,
-    ModHideCommunityId,
     ModLockPostId,
     ModRemoveCommentId,
     ModRemoveCommunityId,
@@ -17,8 +17,8 @@ use crate::{
     mod_add_community,
     mod_ban,
     mod_ban_from_community,
+    mod_change_community_visibility,
     mod_feature_post,
-    mod_hide_community,
     mod_lock_post,
     mod_remove_comment,
     mod_remove_community,
@@ -34,10 +34,10 @@ use crate::{
     ModBanForm,
     ModBanFromCommunity,
     ModBanFromCommunityForm,
+    ModChangeCommunityVisibility,
+    ModChangeCommunityVisibilityForm,
     ModFeaturePost,
     ModFeaturePostForm,
-    ModHideCommunity,
-    ModHideCommunityForm,
     ModLockPost,
     ModLockPostForm,
     ModRemoveComment,
@@ -263,14 +263,14 @@ impl Crud for ModBan {
   }
 }
 
-impl Crud for ModHideCommunity {
-  type InsertForm = ModHideCommunityForm;
-  type UpdateForm = ModHideCommunityForm;
-  type IdType = ModHideCommunityId;
+impl Crud for ModChangeCommunityVisibility {
+  type InsertForm = ModChangeCommunityVisibilityForm;
+  type UpdateForm = ModChangeCommunityVisibilityForm;
+  type IdType = ModChangeCommunityVisibilityId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_hide_community::table)
+    insert_into(mod_change_community_visibility::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -282,7 +282,7 @@ impl Crud for ModHideCommunity {
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_hide_community::table.find(from_id))
+    diesel::update(mod_change_community_visibility::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await

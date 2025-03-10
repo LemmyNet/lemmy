@@ -11,7 +11,6 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
-    hide::hide_community,
     pending_follows::{
       approve::post_pending_follows_approve,
       count::get_pending_follows_count,
@@ -215,7 +214,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(get_community))
           .route("", put().to(update_community))
           .route("/random", get().to(get_random_community))
-          .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
           .route("/report", post().to(create_community_report))

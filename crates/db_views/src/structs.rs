@@ -53,8 +53,8 @@ use lemmy_db_schema::{
         ModAddCommunity,
         ModBan,
         ModBanFromCommunity,
+        ModChangeCommunityVisibility,
         ModFeaturePost,
-        ModHideCommunity,
         ModLockPost,
         ModRemoveComment,
         ModRemoveCommunity,
@@ -867,11 +867,11 @@ pub struct ModBanView {
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// When a community is hidden from public view.
-pub struct ModHideCommunityView {
-  pub mod_hide_community: ModHideCommunity,
+/// When the visibility of a community is changed
+pub struct ModChangeCommunityVisibilityView {
+  pub mod_change_community_visibility: ModChangeCommunityVisibility,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub admin: Option<Person>,
+  pub moderator: Option<Person>,
   pub community: Community,
 }
 
@@ -1068,7 +1068,7 @@ pub(crate) struct ModlogCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_feature_post: Option<ModFeaturePost>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_hide_community: Option<ModHideCommunity>,
+  pub mod_change_community_visibility: Option<ModChangeCommunityVisibility>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_lock_post: Option<ModLockPost>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1118,7 +1118,7 @@ pub enum ModlogCombinedView {
   ModBan(ModBanView),
   ModBanFromCommunity(ModBanFromCommunityView),
   ModFeaturePost(ModFeaturePostView),
-  ModHideCommunity(ModHideCommunityView),
+  ModChangeCommunityVisibility(ModChangeCommunityVisibilityView),
   ModLockPost(ModLockPostView),
   ModRemoveComment(ModRemoveCommentView),
   ModRemoveCommunity(ModRemoveCommunityView),
