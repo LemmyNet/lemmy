@@ -1,5 +1,6 @@
 use diesel::{
   dsl::{case_when, exists, not},
+  helper_types::{Eq, NotEq},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -10,6 +11,7 @@ use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user, person1, person2},
   schema::{
     comment,
+    community,
     community_actions,
     instance_actions,
     local_user,
@@ -17,6 +19,8 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
+  source::community::CommunityFollowerState,
+  CommunityVisibility,
   CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
@@ -153,4 +157,20 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
 #[diesel::dsl::auto_type]
 pub fn community_follower_select_subscribed_type() -> _ {
   community_actions::follow_state.nullable()
+}
+
+type IsSubscribedType =
+  Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
+
+pub(crate) fn filter_is_subscribed() -> IsSubscribedType {
+  community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
+}
+
+type IsNotHiddenType = NotEq<lemmy_db_schema::schema::community::visibility, CommunityVisibility>;
+
+#[diesel::dsl::auto_type]
+pub(crate) fn filter_not_hidden_or_is_subscribed() -> _ {
+  let not_hidden: IsNotHiddenType = community::visibility.ne(CommunityVisibility::Hidden);
+  let is_subscribed: IsSubscribedType = filter_is_subscribed();
+  not_hidden.or(is_subscribed)
 }

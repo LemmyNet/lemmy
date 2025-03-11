@@ -40,7 +40,6 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
-  CommunityVisibility,
   FederationMode,
   RegistrationMode,
 };
@@ -1181,7 +1180,7 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
 
 pub fn send_webmention(post: Post, community: Community) {
   if let Some(url) = post.url.clone() {
-    if community.visibility == CommunityVisibility::Public {
+    if community.visibility.can_view_without_login() {
       spawn_try_task(async move {
         let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);

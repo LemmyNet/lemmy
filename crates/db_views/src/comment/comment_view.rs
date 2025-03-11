@@ -843,7 +843,7 @@ mod tests {
       pool,
       data.inserted_community.id,
       &CommunityUpdateForm {
-        visibility: Some(CommunityVisibility::LocalOnly),
+        visibility: Some(CommunityVisibility::LocalOnlyPrivate),
         ..Default::default()
       },
     )

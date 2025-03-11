@@ -89,6 +89,7 @@ impl ActivityHandler for Follow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    use CommunityVisibility::*;
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
@@ -107,10 +108,10 @@ impl ActivityHandler for Follow {
           }
         }
         let follow_state = match c.visibility {
-          CommunityVisibility::Public => CommunityFollowerState::Accepted,
-          CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
+          Public | Hidden => CommunityFollowerState::Accepted,
+          Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
-          CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
+          LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
         };
         let form = CommunityFollowerForm::new(c.id, actor.id, follow_state);
         CommunityActions::follow(&mut context.pool(), &form).await?;

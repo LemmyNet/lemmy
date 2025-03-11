@@ -14,7 +14,6 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::Crud,
-  CommunityVisibility,
 };
 use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
@@ -50,7 +49,7 @@ pub(crate) async fn send_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   // If community is local only, don't send anything out
-  if community.visibility == CommunityVisibility::LocalOnly {
+  if !community.visibility.can_federate() {
     return Ok(());
   }
 
