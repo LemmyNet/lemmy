@@ -892,6 +892,7 @@ mod tests {
         controversy_rank: 0.0,
         report_count: 0,
         unresolved_report_count: 0,
+        pending: false,
       },
       creator: Person {
         id: data.timmy_local_user_view.person.id,
@@ -918,6 +919,8 @@ mod tests {
         post_score: 0,
         comment_count: 5,
         comment_score: 1,
+        local_banned: false,
+        local_ban_expires: None,
       },
       post: Post {
         id: data.inserted_post.id,
@@ -957,6 +960,7 @@ mod tests {
         instance_id: data.inserted_instance.id,
         report_count: 0,
         unresolved_report_count: 0,
+        pending: false,
       },
       community: Community {
         id: data.inserted_community.id,
@@ -997,6 +1001,7 @@ mod tests {
         report_count: 0,
         unresolved_report_count: 0,
         interactions_month: 0,
+        local_removed: false,
       },
     }
   }

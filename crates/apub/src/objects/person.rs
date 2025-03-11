@@ -175,6 +175,8 @@ impl Object for ApubPerson {
       ),
       matrix_user_id: person.matrix_user_id,
       instance_id,
+      local_banned: None,
+      local_ban_expires: None,
     };
     let person = DbPerson::upsert(&mut context.pool(), &person_form).await?;
 

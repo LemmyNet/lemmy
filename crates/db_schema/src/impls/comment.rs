@@ -175,6 +175,7 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::controversy_rank,
     comment::report_count,
     comment::unresolved_report_count,
+    comment::pending,
   )
 }
 
@@ -345,6 +346,7 @@ mod tests {
       hot_rank: RANK_DEFAULT,
       report_count: 0,
       unresolved_report_count: 0,
+      pending: false,
     };
 
     let child_comment_form = CommentInsertForm::new(

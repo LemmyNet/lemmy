@@ -398,6 +398,15 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   .execute(&mut conn)
   .await?;
 
+  diesel::update(
+    person::table
+      .filter(person::local_banned.eq(true))
+      .filter(person::local_ban_expires.lt(now().nullable())),
+  )
+  .set(person::local_banned.eq(false))
+  .execute(&mut conn)
+  .await?;
+
   uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
     .set_null(community_actions::received_ban)
     .set_null(community_actions::ban_expires)

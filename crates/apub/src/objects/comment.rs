@@ -196,6 +196,7 @@ impl Object for ApubComment {
       distinguished: note.distinguished,
       local: Some(false),
       language_id,
+      pending: Some(false),
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);

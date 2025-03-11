@@ -138,6 +138,7 @@ diesel::table! {
         controversy_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        pending -> Bool,
     }
 }
 
@@ -227,6 +228,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         interactions_month -> Int8,
+        local_removed -> Bool,
     }
 }
 
@@ -435,6 +437,7 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
+        disallow_nsfw_content -> Bool,
         users -> Int8,
         posts -> Int8,
         comments -> Int8,
@@ -443,7 +446,6 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        disallow_nsfw_content -> Bool,
     }
 }
 
@@ -757,6 +759,8 @@ diesel::table! {
         post_score -> Int8,
         comment_count -> Int8,
         comment_score -> Int8,
+        local_banned -> Bool,
+        local_ban_expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -858,6 +862,7 @@ diesel::table! {
         scaled_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        pending -> Bool,
     }
 }
 

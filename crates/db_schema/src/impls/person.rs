@@ -307,6 +307,8 @@ mod tests {
       post_score: 0,
       comment_count: 0,
       comment_score: 0,
+      local_banned: false,
+      local_ban_expires: None,
     };
 
     let read_person = Person::read(pool, inserted_person.id).await?;

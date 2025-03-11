@@ -598,6 +598,7 @@ mod tests {
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
+      pending: false,
     };
 
     // Post Like
