@@ -290,7 +290,7 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (person).accepted_application) AS diff
+        WHERE (local_user).accepted_application) AS diff
 WHERE
     diff.users != 0;
 
