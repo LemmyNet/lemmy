@@ -94,6 +94,7 @@ fn queries<'a>() -> Queries<
 
     query = query
       .filter(private_message::deleted.eq(false))
+      .filter(private_message::removed.eq(false))
       .limit(limit)
       .offset(offset)
       .order_by(private_message::published.desc());
@@ -148,6 +149,7 @@ impl PrivateMessageView {
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
+      .filter(private_message::removed.eq(false))
       .select(count(private_message::id))
       .first::<i64>(conn)
       .await
