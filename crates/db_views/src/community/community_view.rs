@@ -1,4 +1,7 @@
-use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
+use crate::{
+  structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView},
+  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
+};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -13,11 +16,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, instance_actions, local_user},
-  source::{
-    community::{Community, CommunityFollowerState},
-    local_user::LocalUser,
-    site::Site,
-  },
+  source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   CommunityVisibility,
   ListingType,
@@ -131,22 +130,18 @@ impl CommunityQuery<'_> {
 
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
-      query = query.filter(Community::hide_removed_and_deleted()).filter(
-        community::visibility
-          .ne(CommunityVisibility::Hidden)
-          .or(community_actions::follow_state.is_not_null()),
-      );
+      query = query
+        .filter(Community::hide_removed_and_deleted())
+        .filter(filter_not_hidden_or_is_subscribed());
     }
 
-    let is_subscribed = community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted));
-    let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(not_hidden.or(is_subscribed)),
-        ListingType::Subscribed => query.filter(is_subscribed),
+        ListingType::All => query.filter(filter_not_hidden_or_is_subscribed()),
+        ListingType::Subscribed => query.filter(filter_is_subscribed()),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(not_hidden.or(is_subscribed)),
+          .filter(filter_not_hidden_or_is_subscribed()),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }

@@ -1,6 +1,6 @@
 use crate::{
   structs::{PostPaginationCursor, PostView},
-  utils::filter_blocked,
+  utils::{filter_blocked, filter_is_subscribed, filter_not_hidden_or_is_subscribed},
 };
 use diesel::{
   debug_query,
@@ -460,16 +460,14 @@ impl<'a> PostQuery<'a> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    let is_subscribed = community_actions::followed.is_not_null();
-    let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
     match o.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
       ListingType::Local => {
         query = query
           .filter(community::local.eq(true))
-          .filter(not_hidden.or(is_subscribed));
+          .filter(filter_not_hidden_or_is_subscribed());
       }
-      ListingType::All => query = query.filter(not_hidden.or(is_subscribed)),
+      ListingType::All => query = query.filter(filter_not_hidden_or_is_subscribed()),
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
