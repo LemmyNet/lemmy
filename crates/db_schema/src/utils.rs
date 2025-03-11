@@ -268,7 +268,13 @@ pub fn limit_and_offset(
     }
     None => 1,
   };
-  let limit = match limit {
+  let limit = limit_fetch(limit)?;
+  let offset = limit * (page - 1);
+  Ok((limit, offset))
+}
+
+pub fn limit_fetch(limit: Option<i64>) -> Result<i64, diesel::result::Error> {
+  Ok(match limit {
     Some(limit) => {
       if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
         return Err(QueryBuilderError(
@@ -278,9 +284,7 @@ pub fn limit_and_offset(
       limit
     }
     None => FETCH_LIMIT_DEFAULT,
-  };
-  let offset = limit * (page - 1);
-  Ok((limit, offset))
+  })
 }
 
 pub fn limit_and_offset_unlimited(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
