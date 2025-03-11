@@ -63,7 +63,15 @@ pub async fn create_community_report(
     .await?;
   }
 
-  // TODO: consider federating this
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateReport {
+      object_id: community_view.community.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      target: SiteOrCommunity::Site(todo!()),
+      reason: data.reason.clone(),
+    },
+    &context,
+  )?;
 
   Ok(Json(CommunityReportResponse {
     community_report_view,

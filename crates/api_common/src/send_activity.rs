@@ -96,14 +96,14 @@ pub enum SendActivityData {
   CreateReport {
     object_id: Url,
     actor: Person,
-    community: Community,
+    target: SiteOrCommunity,
     reason: String,
   },
   SendResolveReport {
     object_id: Url,
     actor: Person,
     report_creator: Person,
-    community: Community,
+    target: SiteOrCommunity,
   },
 }
 
