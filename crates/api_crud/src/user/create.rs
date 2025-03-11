@@ -1,5 +1,6 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -28,11 +29,12 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::Crud,
+  utils::get_conn,
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -46,7 +48,8 @@ pub async fn register(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
+  let pool = &mut context.pool();
+  let site_view = SiteView::read_local(pool)
     .await?
     .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let local_site = site_view.local_site;
@@ -77,7 +80,7 @@ pub async fn register(
     if let Some(captcha_uuid) = &data.captcha_uuid {
       let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
       let check = CaptchaAnswer::check_captcha(
-        &mut context.pool(),
+        pool,
         CheckCaptchaAnswer {
           uuid,
           answer: data.captcha_answer.clone().unwrap_or_default(),
@@ -105,34 +108,19 @@ pub async fn register(
   )?;
 
   if let Some(email) = &data.email {
-    if LocalUser::is_email_taken(&mut context.pool(), email).await? {
+    if LocalUser::is_email_taken(pool, email).await? {
       Err(LemmyErrorType::EmailAlreadyExists)?
     }
   }
 
-  // We have to create both a person, and local_user
-
-  // Register the new person
-  let person_form = PersonInsertForm {
-    actor_id: Some(actor_id.clone()),
-    inbox_url: Some(generate_inbox_url(&actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
-    private_key: Some(actor_keypair.private_key),
-    ..PersonInsertForm::new(
-      data.username.clone(),
-      actor_keypair.public_key,
-      site_view.site.instance_id,
-    )
-  };
-
-  // insert the person
-  let inserted_person = Person::create(&mut context.pool(), &person_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
-
   // Automatically set their application as accepted, if they created this with open registration.
   // Also fixes a bug which allows users to log in when registrations are changed to closed.
   let accepted_application = Some(!require_registration_application);
+
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
 
   // Get the user's preferred language using the Accept-Language header
   let language_tags: Vec<String> = req
@@ -144,25 +132,6 @@ pub async fn register(
     // Remove the optional region code
     .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
     .collect();
-
-  // Show nsfw content if param is true, or if content_warning exists
-  let show_nsfw = data
-    .show_nsfw
-    .unwrap_or(site_view.site.content_warning.is_some());
-
-  // Create the local user
-  let local_user_form = LocalUserInsertForm {
-    email: data.email.as_deref().map(str::to_lowercase),
-    password_encrypted: data.password.to_string(),
-    show_nsfw: Some(show_nsfw),
-    accepted_application,
-    default_listing_type: Some(local_site.default_post_listing_type),
-    post_listing_mode: Some(local_site.default_post_listing_mode),
-    interface_language: language_tags.first().cloned(),
-    // If its the initial site setup, they are an admin
-    admin: Some(!local_site.site_setup),
-    ..LocalUserInsertForm::new(inserted_person.id, data.password.to_string())
-  };
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
@@ -185,24 +154,67 @@ pub async fn register(
 
   let language_ids = language_ids.into_iter().collect();
 
-  let inserted_local_user =
-    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
+  // Register the new person
+  let person_form = PersonInsertForm {
+    actor_id: Some(actor_id.clone()),
+    inbox_url: Some(generate_inbox_url(&actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    private_key: Some(actor_keypair.private_key),
+    ..PersonInsertForm::new(
+      data.username.clone(),
+      actor_keypair.public_key,
+      site_view.site.instance_id,
+    )
+  };
 
-  if local_site.site_setup && require_registration_application {
-    // Create the registration application
-    let form = RegistrationApplicationInsertForm {
-      local_user_id: inserted_local_user.id,
-      // We already made sure answer was not null above
-      answer: data.answer.clone().expect("must have an answer"),
-    };
+  // Wrap the insert person, insert local user, and create registration,
+  // in a transaction, so that if any fail, the rows aren't created.
+  let conn = &mut get_conn(pool).await?;
+  let tx_data = data.clone();
+  let tx_local_site = local_site.clone();
+  let (person, local_user) = conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        // We have to create both a person, and local_user
+        let person = Person::create(&mut conn.into(), &person_form)
+          .await
+          .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
-    RegistrationApplication::create(&mut context.pool(), &form).await?;
-  }
+        // Create the local user
+        let local_user_form = LocalUserInsertForm {
+          email: tx_data.email.as_deref().map(str::to_lowercase),
+          password_encrypted: tx_data.password.to_string(),
+          show_nsfw: Some(show_nsfw),
+          accepted_application,
+          default_listing_type: Some(tx_local_site.default_post_listing_type),
+          post_listing_mode: Some(tx_local_site.default_post_listing_mode),
+          interface_language: language_tags.first().cloned(),
+          // If its the initial site setup, they are an admin
+          admin: Some(!tx_local_site.site_setup),
+          ..LocalUserInsertForm::new(person.id, tx_data.password.to_string())
+        };
 
+        let local_user =
+          LocalUser::create(&mut conn.into(), &local_user_form, language_ids).await?;
+
+        if tx_local_site.site_setup && require_registration_application {
+          // Create the registration application
+          let form = RegistrationApplicationInsertForm {
+            local_user_id: local_user.id,
+            // We already made sure answer was not null above
+            answer: tx_data.answer.clone().expect("must have an answer"),
+          };
+
+          RegistrationApplication::create(&mut conn.into(), &form).await?;
+        }
+        Ok((person, local_user))
+      }
+      .scope_boxed()
+    })
+    .await?;
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.require_email_verification {
-    send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
-      .await?;
+    send_new_applicant_email_to_admins(&data.username, pool, context.settings()).await?;
   }
 
   let mut login_response = LoginResponse {
@@ -216,14 +228,14 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
     if local_site.require_email_verification {
       let local_user_view = LocalUserView {
-        local_user: inserted_local_user,
+        local_user,
         local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-        person: inserted_person,
+        person,
         counts: PersonAggregates::default(),
       };
       // we check at the beginning of this method that email is set
