@@ -31,6 +31,5 @@ type IsNotHiddenType = NotEq<lemmy_db_schema::schema::community::visibility, Com
 
 pub(crate) fn filter_not_hidden_or_is_subscribed() -> Or<IsNotHiddenType, IsSubscribedType> {
   let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
-  let is_subscribed = filter_is_subscribed();
-  not_hidden.or(is_subscribed)
+  not_hidden.or(filter_is_subscribed())
 }
