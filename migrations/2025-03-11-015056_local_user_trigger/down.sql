@@ -1,11 +1,9 @@
 UPDATE
     local_site
 SET
-    users = users + (
+    users = (
         SELECT
             count(*)
         FROM
-            local_user
-        WHERE
-            NOT accepted_application);
+            local_user);
 
