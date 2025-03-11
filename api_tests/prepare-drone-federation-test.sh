@@ -70,6 +70,10 @@ echo "$PWD"
 LOG_DIR=target/log
 mkdir -p $LOG_DIR
 
+# add test plugin
+cargo build -p lemmy_test_plugin --target wasm32-unknown-unknown
+cp target/wasm32-unknown-unknown/debug/lemmy_test_plugin.wasm plugins/
+
 echo "start alpha"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_alpha" \

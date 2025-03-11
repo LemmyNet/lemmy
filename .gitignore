@@ -34,3 +34,6 @@ dev_pgdata/
 
 # database dumps
 *.sqldump
+
+# lemmy plugins
+*.wasm

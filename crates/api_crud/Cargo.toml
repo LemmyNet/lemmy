@@ -30,7 +30,10 @@ regex = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
-diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+tracing.workspace = true
+diesel-async = { workspace = true }
+extism = "1.10.0"
+extism-convert = "1.10.0"
 
 [package.metadata.cargo-shear]
 ignored = ["futures"]

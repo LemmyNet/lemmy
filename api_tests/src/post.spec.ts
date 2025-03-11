@@ -972,6 +972,18 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   );
 });
 
+test.only("Plugin test", async () => {
+  let community = await createCommunity(epsilon);
+  let postRes = createPost(
+    epsilon,
+    community.community_view.community.id,
+    "https://example.com/",
+    "body",
+    "foo",
+  );
+  expect((await postRes).post_view.post.name).toBe("bar");
+});
+
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
   switch (rcv.type_) {
     case "Post":

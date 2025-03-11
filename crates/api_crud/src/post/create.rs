@@ -1,4 +1,5 @@
 use super::convert_published_time;
+use crate::plugins::plugin_hook;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -106,7 +107,7 @@ pub async fn create_post(
 
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
-  let post_form = PostInsertForm {
+  let mut post_form = PostInsertForm {
     url,
     body,
     alt_text: data.alt_text.clone(),
@@ -119,6 +120,8 @@ pub async fn create_post(
       data.community_id,
     )
   };
+
+  plugin_hook("create_local_post", &mut post_form)?;
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await

@@ -50,6 +50,7 @@ members = [
   "crates/db_views",
   "crates/routes",
   "crates/federate",
+  "crates/test_plugin"
 ]
 
 [workspace.lints.clippy]

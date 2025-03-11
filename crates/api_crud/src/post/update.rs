@@ -1,4 +1,5 @@
 use super::convert_published_time;
+use crate::plugins::plugin_hook;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
@@ -129,7 +130,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let post_form = PostUpdateForm {
+  let mut post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -140,6 +141,7 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
+  plugin_hook("update_local_post", &mut post_form)?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
