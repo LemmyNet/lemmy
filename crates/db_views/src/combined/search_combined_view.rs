@@ -1,11 +1,14 @@
-use crate::structs::{
-  CommentView,
-  CommunityView,
-  LocalUserView,
-  PersonView,
-  PostView,
-  SearchCombinedView,
-  SearchCombinedViewInternal,
+use crate::{
+  structs::{
+    CommentView,
+    CommunityView,
+    LocalUserView,
+    PersonView,
+    PostView,
+    SearchCombinedView,
+    SearchCombinedViewInternal,
+  },
+  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
 };
 use diesel::{
   dsl::not,
@@ -49,7 +52,6 @@ use lemmy_db_schema::{
     DbPool,
     ReverseTimestampKey,
   },
-  CommunityVisibility,
   ListingType,
   SearchSortType,
   SearchType,
@@ -351,24 +353,19 @@ impl SearchCombinedQuery {
     };
 
     // Listing type
-    let is_subscribed = community_actions::followed.is_not_null();
-    let not_hidden = community::visibility.ne(CommunityVisibility::Hidden);
     match self.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
       ListingType::Local => {
         query = query.filter(
           community::local
             .eq(true)
-            .and(not_hidden.or(is_subscribed))
+            .and(filter_not_hidden_or_is_subscribed())
             .or(search_combined::person_id.is_not_null().and(person::local)),
         );
       }
       ListingType::All => {
-        query = query.filter(
-          not_hidden
-            .or(is_subscribed)
-            .or(search_combined::person_id.is_not_null()),
-        )
+        query = query
+          .filter(filter_not_hidden_or_is_subscribed().or(search_combined::person_id.is_not_null()))
       }
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());

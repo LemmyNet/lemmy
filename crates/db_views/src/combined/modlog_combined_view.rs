@@ -1,23 +1,26 @@
-use crate::structs::{
-  AdminAllowInstanceView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModChangeCommunityVisibilityView,
-  ModFeaturePostView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-  ModlogCombinedView,
-  ModlogCombinedViewInternal,
+use crate::{
+  structs::{
+    AdminAllowInstanceView,
+    AdminBlockInstanceView,
+    AdminPurgeCommentView,
+    AdminPurgeCommunityView,
+    AdminPurgePersonView,
+    AdminPurgePostView,
+    ModAddCommunityView,
+    ModAddView,
+    ModBanFromCommunityView,
+    ModBanView,
+    ModChangeCommunityVisibilityView,
+    ModFeaturePostView,
+    ModLockPostView,
+    ModRemoveCommentView,
+    ModRemoveCommunityView,
+    ModRemovePostView,
+    ModTransferCommunityView,
+    ModlogCombinedView,
+    ModlogCombinedViewInternal,
+  },
+  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -66,7 +69,6 @@ use lemmy_db_schema::{
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
-  CommunityVisibility,
   ListingType,
   ModlogActionType,
 };
@@ -371,15 +373,12 @@ impl ModlogCombinedQuery<'_> {
       }
     }
 
-    let is_subscribed = community_actions::followed.is_not_null();
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
-      ListingType::Subscribed => query.filter(is_subscribed),
-      ListingType::Local => query.filter(community::local.eq(true)).filter(
-        community::visibility
-          .ne(CommunityVisibility::Hidden)
-          .or(is_subscribed),
-      ),
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
+      ListingType::Local => query
+        .filter(community::local.eq(true))
+        .filter(filter_not_hidden_or_is_subscribed()),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 
