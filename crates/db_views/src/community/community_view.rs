@@ -18,7 +18,6 @@ use lemmy_db_schema::{
   schema::{community, community_actions, instance_actions, local_user},
   source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
-  CommunityVisibility,
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
