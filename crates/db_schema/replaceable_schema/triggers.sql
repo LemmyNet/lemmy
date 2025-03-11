@@ -299,7 +299,7 @@ END;
 
 $$);
 
-CALL r.create_triggers ('person', $$
+CALL r.create_triggers ('local_user', $$
 BEGIN
     UPDATE
         site_aggregates AS a
@@ -309,7 +309,7 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (person).local) AS diff
+        WHERE (local_user).accepted_application) AS diff
 WHERE
     diff.users != 0;
 
