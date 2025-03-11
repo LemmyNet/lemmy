@@ -10,11 +10,6 @@ extern crate diesel_derive_newtype;
 extern crate diesel_derive_enum;
 
 #[cfg(feature = "full")]
-#[macro_use]
-extern crate async_trait;
-
-pub mod aggregates;
-#[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
@@ -40,14 +35,10 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
-#[cfg(feature = "full")]
-use diesel::query_source::AliasedField;
-#[cfg(feature = "full")]
-use schema::person;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {diesel::query_source::AliasedField, schema::person, ts_rs::TS};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -345,4 +336,8 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::bot_account>,
   AliasedField<aliases::Person1, person::ban_expires>,
   AliasedField<aliases::Person1, person::instance_id>,
+  AliasedField<aliases::Person1, person::post_count>,
+  AliasedField<aliases::Person1, person::post_score>,
+  AliasedField<aliases::Person1, person::comment_count>,
+  AliasedField<aliases::Person1, person::comment_score>,
 );

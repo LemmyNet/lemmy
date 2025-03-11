@@ -6,12 +6,13 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_followers_url,
     generate_inbox_url,
     get_url_blocklist,
     is_admin,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -54,7 +55,8 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;

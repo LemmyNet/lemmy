@@ -49,6 +49,8 @@ pub struct Settings {
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
   cors_origin: Vec<String>,
+  /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
+  pub json_logging: bool,
 }
 
 impl Settings {
@@ -93,14 +95,22 @@ pub struct PictrsConfig {
   #[default(512)]
   pub max_thumbnail_size: u32,
 
-  /// Maximum size for user avatar, community icon and site icon.
+  /// Maximum size for user avatar, community icon and site icon. Larger images are downscaled.
   #[default(512)]
   pub max_avatar_size: u32,
 
-  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
-  /// into a square of this size.
+  /// Maximum size for user, community and site banner. Larger images are downscaled.
   #[default(1024)]
   pub max_banner_size: u32,
+
+  /// Maximum size for other uploads (e.g. post images or markdown embed images). Larger
+  /// images are downscaled.
+  #[doku(example = "1024")]
+  pub max_upload_size: Option<u32>,
+
+  /// Whether users can upload videos as post image or markdown embed.
+  #[default(true)]
+  pub allow_video_uploads: bool,
 
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
@@ -154,28 +164,13 @@ pub struct DatabaseConfig {
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
 #[serde(default, deny_unknown_fields)]
 pub struct EmailConfig {
-  /// Hostname and port of the smtp server
-  #[doku(example = "localhost:25")]
-  pub smtp_server: String,
-  /// Login name for smtp server
-  pub smtp_login: Option<String>,
-  /// Password to login to the smtp server
-  smtp_password: Option<String>,
-  #[doku(example = "noreply@example.com")]
+  /// https://docs.rs/lettre/0.11.14/lettre/transport/smtp/struct.AsyncSmtpTransport.html#method.from_url
+  #[default("smtp://localhost:25")]
+  #[doku(example = "smtps://user:pass@hostname:port")]
+  pub(crate) connection: String,
   /// Address to send emails from, eg "noreply@your-instance.com"
-  pub smtp_from_address: String,
-  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
-  #[default("none")]
-  #[doku(example = "none")]
-  pub tls_type: String,
-}
-
-impl EmailConfig {
-  pub fn smtp_password(&self) -> Option<String> {
-    std::env::var("LEMMY_SMTP_PASSWORD")
-      .ok()
-      .or(self.smtp_password.clone())
-  }
+  #[doku(example = "noreply@example.com")]
+  pub(crate) smtp_from_address: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]

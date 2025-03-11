@@ -89,6 +89,20 @@ pub struct LocalSite {
   #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
+  pub users: i64,
+  pub posts: i64,
+  pub comments: i64,
+  pub communities: i64,
+  /// The number of users with any activity in the last day.
+  pub users_active_day: i64,
+  /// The number of users with any activity in the last week.
+  pub users_active_week: i64,
+  /// The number of users with any activity in the last month.
+  pub users_active_month: i64,
+  /// The number of users with any activity in the last half year.
+  pub users_active_half_year: i64,
+  /// Block NSFW content being created
+  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -152,6 +166,8 @@ pub struct LocalSiteInsertForm {
   pub disable_donation_dialog: Option<bool>,
   #[new(default)]
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  #[new(default)]
+  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, Default)]
@@ -187,4 +203,5 @@ pub struct LocalSiteUpdateForm {
   pub comment_downvotes: Option<FederationMode>,
   pub disable_donation_dialog: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub disallow_nsfw_content: Option<bool>,
 }

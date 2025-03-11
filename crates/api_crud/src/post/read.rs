@@ -69,7 +69,7 @@ pub async fn get_post(
     update_read_comments(
       person_id,
       post_id,
-      post_view.counts.comments,
+      post_view.post.comments,
       &mut context.pool(),
     )
     .await?;

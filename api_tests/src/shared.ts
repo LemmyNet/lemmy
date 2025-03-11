@@ -27,6 +27,8 @@ import {
   ListInboxResponse,
   ListInbox,
   InboxDataType,
+  GetModlogResponse,
+  GetModlog,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -801,8 +803,9 @@ export async function reportPost(
 
 export async function listReports(
   api: LemmyHttp,
+  show_community_rule_violations: boolean = false,
 ): Promise<ListReportsResponse> {
-  let form: ListReports = {};
+  let form: ListReports = { show_community_rule_violations };
   return api.listReports(form);
 }
 
@@ -899,6 +902,10 @@ export function approveCommunityPendingFollow(
     approve,
   };
   return api.approveCommunityPendingFollow(form);
+}
+export function getModlog(api: LemmyHttp): Promise<GetModlogResponse> {
+  let form: GetModlog = {};
+  return api.getModlog(form);
 }
 
 export function delay(millis = 500) {

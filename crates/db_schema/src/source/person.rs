@@ -8,6 +8,8 @@ use crate::{
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
+#[cfg(feature = "full")]
+use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -15,10 +17,14 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = person_keys))]
 /// A person.
 pub struct Person {
   pub id: PersonId,
@@ -64,6 +70,12 @@ pub struct Person {
   #[cfg_attr(feature = "full", ts(optional))]
   pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
+  pub post_count: i64,
+  #[serde(skip)]
+  pub post_score: i64,
+  pub comment_count: i64,
+  #[serde(skip)]
+  pub comment_score: i64,
 }
 
 #[derive(Clone, derive_new::new)]

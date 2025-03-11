@@ -55,7 +55,6 @@ impl CommunityBlock {
   }
 }
 
-#[async_trait]
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
   async fn block(pool: &mut DbPool<'_>, community_block_form: &Self::Form) -> Result<Self, Error> {

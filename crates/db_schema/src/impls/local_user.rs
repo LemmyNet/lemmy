@@ -5,7 +5,6 @@ use crate::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
     site::Site,
   },
   utils::{
@@ -29,7 +28,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  email::{lang_str_to_lang, translations::Lang},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+};
 
 impl LocalUser {
   pub async fn create(
@@ -51,10 +53,6 @@ impl LocalUser {
       .await?;
 
     LocalUserLanguage::update(pool, languages, local_user_.id).await?;
-
-    // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::new(local_user_.id);
-    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
 
     Ok(local_user_)
   }
@@ -296,6 +294,10 @@ impl LocalUser {
     } else {
       Err(LemmyErrorType::NotHigherMod)?
     }
+  }
+
+  pub fn interface_i18n_language(&self) -> Lang {
+    lang_str_to_lang(&self.interface_language)
   }
 }
 

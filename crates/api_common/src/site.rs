@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    PaginationCursor,
     PersonId,
     PostId,
     RegistrationApplicationId,
@@ -36,12 +37,10 @@ use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunityView,
   LocalUserView,
-  ModlogCombinedPaginationCursor,
   ModlogCombinedView,
   PersonView,
   PostView,
   RegistrationApplicationView,
-  SearchCombinedPaginationCursor,
   SearchCombinedView,
   SiteView,
 };
@@ -83,7 +82,7 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -94,6 +93,9 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -151,7 +153,7 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -162,6 +164,9 @@ pub struct GetModlog {
 /// The modlog fetch response.
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -254,6 +259,8 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -388,6 +395,9 @@ pub struct EditSite {
   /// donations.
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  /// Block NSFW content being created
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -417,10 +427,8 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
+  pub oauth_providers: Vec<PublicOAuthProvider>,
+  pub admin_oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.

@@ -18,13 +18,14 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
     get_url_blocklist,
-    local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -134,15 +135,14 @@ impl Object for ApubCommunity {
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
-    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
@@ -151,6 +151,12 @@ impl Object for ApubCommunity {
     } else {
       CommunityVisibility::Public
     });
+
+    // If NSFW is not allowed, then remove NSFW communities
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+      .err()
+      .map(|_| true);
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -162,6 +168,7 @@ impl Object for ApubCommunity {
       icon,
       banner,
       sidebar,
+      removed,
       description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(

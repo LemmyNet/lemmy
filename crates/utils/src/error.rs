@@ -58,6 +58,7 @@ pub enum LemmyErrorType {
   LanguageNotAllowed,
   CouldntUpdatePost,
   NoPostEditAllowed,
+  NsfwNotAllowed,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -73,7 +74,6 @@ pub enum LemmyErrorType {
   ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
-  EmailSmtpServerNeedsAPort,
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
@@ -157,6 +157,7 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
+  CouldntParsePaginationToken,
 }
 
 /// Federation related errors, these dont need to be translated.
@@ -186,6 +187,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  PlatformLackingPrivateCommunitySupport,
   Unreachable,
 }
 

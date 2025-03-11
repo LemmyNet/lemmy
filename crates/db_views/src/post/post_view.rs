@@ -1,4 +1,7 @@
-use crate::structs::{PaginationCursor, PostView};
+use crate::{
+  structs::{PostPaginationCursor, PostView},
+  utils::filter_blocked,
+};
 use diesel::{
   debug_query,
   dsl::{exists, not},
@@ -16,7 +19,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   aliases::{creator_community_actions, creator_local_user},
   impls::{
     community::community_follower_select_subscribed_type,
@@ -34,16 +36,16 @@ use lemmy_db_schema::{
     person_actions,
     post,
     post_actions,
-    post_aggregates,
     post_tag,
     tag,
   },
   source::{
     community::CommunityFollowerState,
     local_user::LocalUser,
-    post::{post_actions_keys, PostActionsCursor},
+    post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,
   },
+  traits::Crud,
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -72,36 +74,36 @@ impl PostView {
   fn joins(my_person_id: Option<PersonId>) -> _ {
     let community_actions_join = community_actions::table.on(
       community_actions::community_id
-        .eq(post_aggregates::community_id)
+        .eq(post::community_id)
         .and(community_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let person_actions_join = person_actions::table.on(
       person_actions::target_id
-        .eq(post_aggregates::creator_id)
+        .eq(post::creator_id)
         .and(person_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
-        .eq(post_aggregates::post_id)
+        .eq(post::id)
         .and(post_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
-        .eq(post_aggregates::instance_id)
+        .eq(post::instance_id)
         .and(instance_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let post_creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
         .field(community_actions::community_id)
-        .eq(post_aggregates::community_id)
+        .eq(post::community_id)
         .and(
           creator_community_actions
             .field(community_actions::person_id)
-            .eq(post_aggregates::creator_id),
+            .eq(post::creator_id),
         ),
     );
 
@@ -110,10 +112,9 @@ impl PostView {
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
-    post_aggregates::table
+    post::table
       .inner_join(person::table)
       .inner_join(community::table)
-      .inner_join(post::table)
       .left_join(image_details_join)
       .left_join(community_actions_join)
       .left_join(person_actions_join)
@@ -127,7 +128,7 @@ impl PostView {
   fn creator_is_admin() -> _ {
     exists(
       creator_local_user.filter(
-        post_aggregates::creator_id
+        post::creator_id
           .eq(creator_local_user.field(local_user::person_id))
           .and(creator_local_user.field(local_user::admin).eq(true)),
       ),
@@ -148,12 +149,12 @@ impl PostView {
       .select(diesel::dsl::sql::<diesel::sql_types::Json>(
         "json_agg(tag.*)",
       ))
-      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(post_tag::post_id.eq(post::id))
       .filter(tag::deleted.eq(false))
       .single_value();
 
     let mut query = Self::joins(my_person_id)
-      .filter(post_aggregates::post_id.eq(post_id))
+      .filter(post::id.eq(post_id))
       .select((
         post::all_columns,
         person::all_columns,
@@ -169,7 +170,6 @@ impl PostView {
           .nullable()
           .is_not_null(),
         Self::creator_is_admin(),
-        post_aggregates::all_columns,
         community_follower_select_subscribed_type(),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
@@ -177,8 +177,8 @@ impl PostView {
         person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
         post_tags,
         local_user_can_mod(),
@@ -226,11 +226,12 @@ impl PostView {
   }
 }
 
-impl PaginationCursor {
+// TODO This pagination cursor is a mess, get rid of it and have it match the others
+impl PostPaginationCursor {
   // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PostView) -> PaginationCursor {
+  pub fn after_post(view: &PostView) -> PostPaginationCursor {
     // hex encoding to prevent ossification
-    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
+    PostPaginationCursor(format!("P{:x}", view.post.id.0))
   }
   pub async fn read(
     &self,
@@ -245,13 +246,10 @@ impl PaginationCursor {
         .and_then(|e| i32::from_str_radix(e, 16).ok())
         .ok_or_else(err_msg)?,
     );
-    let post_aggregates = PostAggregates::read(pool, post_id).await?;
+    let post = Post::read(pool, post_id).await?;
     let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
 
-    Ok(PaginationCursorData {
-      post_aggregates,
-      post_actions,
-    })
+    Ok(PaginationCursorData { post, post_actions })
   }
 }
 
@@ -259,7 +257,7 @@ impl PaginationCursor {
 // we only use some of the properties, depending on which sort type we page by
 #[derive(Clone)]
 pub struct PaginationCursorData {
-  post_aggregates: PostAggregates,
+  post: Post,
   post_actions: PostActionsCursor,
 }
 
@@ -274,6 +272,7 @@ pub struct PostQuery<'a> {
   // literal filter
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUser>,
+  // TODO get rid of this
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
   pub read_only: Option<bool>,
@@ -282,8 +281,9 @@ pub struct PostQuery<'a> {
   pub title_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  // TODO these should be simple cursors like the others, not data
   pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PostAggregates>,
+  pub page_before_or_equal: Option<Post>,
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
@@ -293,6 +293,7 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  // TODO this should not be doing recursive fetching, get rid of it.
   #[allow(clippy::expect_used)]
   async fn prefetch_upper_bound_for_page_before(
     &self,
@@ -310,11 +311,6 @@ impl<'a> PostQuery<'a> {
     // covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more
     // efficient.
-    use lemmy_db_schema::schema::community_aggregates::dsl::{
-      community_aggregates,
-      community_id,
-      users_active_month,
-    };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     if offset != 0 && self.page_after.is_some() {
       return Err(Error::QueryBuilderError(
@@ -327,9 +323,9 @@ impl<'a> PostQuery<'a> {
       community_actions::table
         .filter(community_actions::followed.is_not_null())
         .filter(community_actions::person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
-        .order_by(users_active_month.desc())
-        .select(community_id)
+        .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+        .order_by(community::users_active_month.desc())
+        .select(community::id)
         .limit(1)
         .get_result::<CommunityId>(conn)
         .await
@@ -362,7 +358,7 @@ impl<'a> PostQuery<'a> {
       } else {
         v.pop()
       };
-      let limit_cursor = Some(item.expect("else case").counts);
+      let limit_cursor = Some(item.expect("else case").post);
       Ok(Some(PostQuery {
         page_before_or_equal: limit_cursor,
         ..self.clone()
@@ -398,7 +394,7 @@ impl<'a> PostQuery<'a> {
       .select(diesel::dsl::sql::<diesel::sql_types::Json>(
         "json_agg(tag.*)",
       ))
-      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(post_tag::post_id.eq(post::id))
       .filter(tag::deleted.eq(false))
       .single_value();
 
@@ -418,7 +414,6 @@ impl<'a> PostQuery<'a> {
           .nullable()
           .is_not_null(),
         PostView::creator_is_admin(),
-        post_aggregates::all_columns,
         community_follower_select_subscribed_type(),
         post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
@@ -426,8 +421,8 @@ impl<'a> PostQuery<'a> {
         person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
+          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post::comments,
         ),
         post_tags,
         local_user_can_mod(),
@@ -458,11 +453,11 @@ impl<'a> PostQuery<'a> {
         .filter(post::removed.eq(false));
     }
     if let Some(community_id) = o.community_id {
-      query = query.filter(post_aggregates::community_id.eq(community_id));
+      query = query.filter(post::community_id.eq(community_id));
     }
 
     if let Some(creator_id) = o.creator_id {
-      query = query.filter(post_aggregates::creator_id.eq(creator_id));
+      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
@@ -480,16 +475,23 @@ impl<'a> PostQuery<'a> {
     }
 
     if let Some(search_term) = &o.search_term {
+      let url_filter = post::url.eq(search_term);
       if o.url_only.unwrap_or_default() {
-        query = query.filter(post::url.eq(search_term));
+        query = query.filter(url_filter);
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());
         let body_filter = post::body.ilike(searcher.clone());
+        let alt_text_filter = post::alt_text.ilike(searcher.clone());
         query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
-          query.filter(name_filter.or(body_filter))
+          query.filter(
+            name_filter
+              .or(body_filter)
+              .or(alt_text_filter)
+              .or(url_filter),
+          )
         }
         .filter(not(post::removed.or(post::deleted)));
       }
@@ -507,7 +509,7 @@ impl<'a> PostQuery<'a> {
 
     // Filter to show only posts with no comments
     if o.no_comments_only.unwrap_or_default() {
-      query = query.filter(post_aggregates::comments.eq(0));
+      query = query.filter(post::comments.eq(0));
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
@@ -534,7 +536,7 @@ impl<'a> PostQuery<'a> {
     }
 
     if let Some(my_id) = o.local_user.person_id() {
-      let not_creator_filter = post_aggregates::creator_id.ne(my_id);
+      let not_creator_filter = post::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
@@ -571,10 +573,7 @@ impl<'a> PostQuery<'a> {
         ));
       }
 
-      // Don't show blocked instances, communities or persons
-      query = query.filter(community_actions::blocked.is_null());
-      query = query.filter(instance_actions::blocked.is_null());
-      query = query.filter(person_actions::blocked.is_null());
+      query = query.filter(filter_blocked());
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
@@ -593,7 +592,7 @@ impl<'a> PostQuery<'a> {
     } else {
       let mut query = paginate(
         query,
-        o.page_after.map(|c| c.post_aggregates),
+        o.page_after.map(|c| c.post),
         o.page_before_or_equal,
         o.page_back.unwrap_or_default(),
       );
@@ -620,9 +619,8 @@ impl<'a> PostQuery<'a> {
 
       // Filter by the time range
       if let Some(time_range_seconds) = o.time_range_seconds {
-        query = query.filter(
-          post_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-        );
+        query =
+          query.filter(post::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
       }
 
       // use publish as fallback. especially useful for hot rank which reaches zero after some days.
@@ -634,7 +632,7 @@ impl<'a> PostQuery<'a> {
       };
 
       // finally use unique post id as tie breaker
-      query = query.then_desc(key::post_id);
+      query = query.then_desc(key::id);
 
       query.as_query()
     };
@@ -663,7 +661,6 @@ mod tests {
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
   use lemmy_db_schema::{
-    aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
@@ -686,7 +683,6 @@ mod tests {
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{
@@ -883,22 +879,16 @@ mod tests {
 
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_tegan_person,
-        counts: Default::default(),
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_john_person,
-        counts: Default::default(),
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_bot_person,
-        counts: Default::default(),
       };
 
       let site = Site {
@@ -993,7 +983,7 @@ mod tests {
     )
     .await?;
 
-    let expected_post_listing_with_user = expected_post_view(data, pool).await?;
+    let expected_post_listing_with_user = expected_post_view(data)?;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(
@@ -1049,7 +1039,7 @@ mod tests {
     let read_post_listing_single_no_person =
       PostView::read(pool, data.post.id, None, false).await?;
 
-    let mut expected_post_listing_no_person = expected_post_view(data, pool).await?;
+    let mut expected_post_listing_no_person = expected_post_view(data)?;
     expected_post_listing_no_person.can_mod = false;
 
     // Should be 2 posts, with the bot post, and the blocked
@@ -1182,10 +1172,11 @@ mod tests {
     )
     .await?;
 
-    let mut expected_post_with_upvote = expected_post_view(data, pool).await?;
+    let mut expected_post_with_upvote = expected_post_view(data)?;
     expected_post_with_upvote.my_vote = Some(1);
-    expected_post_with_upvote.counts.score = 1;
-    expected_post_with_upvote.counts.upvotes = 1;
+    expected_post_with_upvote.post.score = 1;
+    expected_post_with_upvote.post.upvotes = 1;
+    expected_post_with_upvote.creator.post_score = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
     let local_user_form = LocalUserUpdateForm {
@@ -1457,13 +1448,10 @@ mod tests {
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(
-      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
-      names(&post_listing_french)
-    );
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listing_french));
     assert_eq!(
       Some(french_id),
-      post_listing_french.get(2).map(|p| p.post.language_id)
+      post_listing_french.get(1).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
@@ -1606,6 +1594,12 @@ mod tests {
   #[serial]
   async fn post_listing_instance_block(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
+    const POST_LISTING_WITH_BLOCKED: [&str; 4] = [
+      POST_FROM_BLOCKED_INSTANCE,
+      POST_WITH_TAGS,
+      POST_BY_BOT,
+      POST,
+    ];
 
     let pool = &data.pool();
     let pool = &mut pool.into();
@@ -1632,15 +1626,7 @@ mod tests {
 
     // no instance block, should return all posts
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(
-      vec![
-        POST_FROM_BLOCKED_INSTANCE,
-        POST_WITH_TAGS,
-        POST_BY_BOT,
-        POST
-      ],
-      names(&post_listings_all)
-    );
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance
     let block_form = InstanceBlockForm {
@@ -1659,18 +1645,19 @@ mod tests {
       .iter()
       .all(|p| p.post.id != post_from_blocked_instance.id));
 
+    // Follow community from the blocked instance to see posts anyway
+    let mut follow_form =
+      CommunityFollowerForm::new(inserted_community.id, data.tegan_local_user_view.person.id);
+    follow_form.state = Some(CommunityFollowerState::Accepted);
+    CommunityFollower::follow(pool, &follow_form).await?;
+    let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
+    CommunityFollower::unfollow(pool, &follow_form).await?;
+
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(
-      vec![
-        POST_FROM_BLOCKED_INSTANCE,
-        POST_WITH_TAGS,
-        POST_BY_BOT,
-        POST
-      ],
-      names(&post_listings_blocked)
-    );
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
     Instance::delete(pool, blocked_instance.id).await?;
     Ok(())
@@ -1735,7 +1722,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_after.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         ..options.clone()
@@ -1746,7 +1733,7 @@ mod tests {
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
       if let Some(p) = post_listings.into_iter().next_back() {
-        page_after = Some(p.counts);
+        page_after = Some(p.post);
       } else {
         break;
       }
@@ -1758,7 +1745,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_before.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         page_back: Some(true),
@@ -1777,7 +1764,7 @@ mod tests {
       listed_post_ids_forward.truncate(index);
 
       if let Some(p) = post_listings.into_iter().next() {
-        page_before = Some(p.counts);
+        page_before = Some(p.post);
       } else {
         break;
       }
@@ -1928,13 +1915,12 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<PostView> {
+  fn expected_post_view(data: &Data) -> LemmyResult<PostView> {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.tegan_local_user_view.person,
       &data.community,
       &data.post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id).await?;
 
     Ok(PostView {
       post: Post {
@@ -1962,6 +1948,19 @@ mod tests {
         featured_local: false,
         url_content_type: None,
         scheduled_publish_time: None,
+        comments: 0,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        newest_comment_time_necro: inserted_post.published,
+        newest_comment_time: inserted_post.published,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
+        controversy_rank: 0.0,
+        scaled_rank: RANK_DEFAULT,
+        instance_id: data.instance.id,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       my_vote: None,
       unread_comments: 0,
@@ -1986,6 +1985,10 @@ mod tests {
         private_key: inserted_person.private_key.clone(),
         public_key: inserted_person.public_key.clone(),
         last_refreshed_at: inserted_person.last_refreshed_at,
+        post_count: 2,
+        post_score: 0,
+        comment_count: 0,
+        comment_score: 0,
       },
       image_details: None,
       creator_banned_from_community: false,
@@ -2020,27 +2023,18 @@ mod tests {
         featured_url: inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
         random_number: inserted_community.random_number,
-      },
-      counts: PostAggregates {
-        post_id: inserted_post.id,
+        subscribers: 0,
+        posts: 4,
         comments: 0,
-        score: 0,
-        upvotes: 0,
-        downvotes: 0,
-        published: agg.published,
-        newest_comment_time_necro: inserted_post.published,
-        newest_comment_time: inserted_post.published,
-        featured_community: false,
-        featured_local: false,
+        users_active_day: 0,
+        users_active_week: 0,
+        users_active_month: 0,
+        users_active_half_year: 0,
         hot_rank: RANK_DEFAULT,
-        hot_rank_active: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        scaled_rank: RANK_DEFAULT,
-        community_id: inserted_post.community_id,
-        creator_id: inserted_post.creator_id,
-        instance_id: data.instance.id,
+        subscribers_local: 0,
         report_count: 0,
         unresolved_report_count: 0,
+        interactions_month: 0,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

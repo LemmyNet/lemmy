@@ -75,7 +75,6 @@ pub enum AnnouncableActivities {
   Page(Page),
 }
 
-#[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     use AnnouncableActivities::*;

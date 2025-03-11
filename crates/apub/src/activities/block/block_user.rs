@@ -30,16 +30,11 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
-    },
+    community::{CommunityPersonBan, CommunityPersonBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
-  traits::{Bannable, Crud, Followable},
+  traits::{Bannable, Crud},
 };
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
@@ -188,11 +183,9 @@ impl ActivityHandler for BlockUser {
         };
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
-        // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
-        CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
-          .await
-          .ok();
+        // Dont unsubscribe the user so that we can receive a potential unban activity.
+        // If we unfollowed the community here, activities from the community would be rejected
+        // in [[can_accept_activity_in_community]] in case are no other local followers.
 
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
