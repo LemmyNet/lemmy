@@ -218,7 +218,7 @@ pub struct ModChangeCommunityVisibilityForm {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub reason: Option<String>,
-  pub new_visibility: CommunityVisibility,
+  pub visibility: CommunityVisibility,
 }
 
 #[skip_serializing_none]
@@ -234,7 +234,7 @@ pub struct ModChangeCommunityVisibility {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub new_visibility: CommunityVisibility,
+  pub visibility: CommunityVisibility,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

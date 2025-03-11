@@ -273,7 +273,7 @@ async fn get_feed_community(
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  if community.visibility.can_view_without_login() {
+  if !community.visibility.can_view_without_login() {
     return Err(LemmyErrorType::NotFound.into());
   }
 

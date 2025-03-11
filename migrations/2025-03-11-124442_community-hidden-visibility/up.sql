@@ -58,7 +58,7 @@ CREATE TABLE mod_change_community_visibility (
     mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),
     reason text,
-    new_visibility community_visibility NOT NULL
+    visibility community_visibility NOT NULL
 );
 
 ALTER TABLE modlog_combined

@@ -790,7 +790,7 @@ mod tests {
     let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.timmy.id,
       community_id: data.community.id,
-      new_visibility: CommunityVisibility::Hidden,
+      visibility: CommunityVisibility::Hidden,
       reason: None,
     };
     ModChangeCommunityVisibility::create(pool, &form).await?;
@@ -799,7 +799,7 @@ mod tests {
     let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.jessica.id,
       community_id: data.community_2.id,
-      new_visibility: CommunityVisibility::Hidden,
+      visibility: CommunityVisibility::Hidden,
       reason: None,
     };
     ModChangeCommunityVisibility::create(pool, &form).await?;
