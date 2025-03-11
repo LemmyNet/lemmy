@@ -145,7 +145,16 @@ impl Object for ApubComment {
       context,
     ))
     .await?;
-    verify_is_remote_object(&note.id, context)?;
+    if let Err(e) = verify_is_remote_object(&note.id, context) {
+      let form = CommentUpdateForm {
+        pending: Some(false),
+        ..Default::default()
+      };
+      if let Ok(comment) = note.id.dereference_local(context).await {
+        Comment::update(&mut context.pool(), comment.id, &form).await?;
+      }
+      return Err(e.into());
+    }
     Box::pin(verify_person_in_community(
       &note.attributed_to,
       &community,

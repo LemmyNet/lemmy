@@ -105,6 +105,7 @@ pub struct CommentUpdateForm {
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub pending: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
