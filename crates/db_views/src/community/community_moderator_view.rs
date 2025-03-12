@@ -91,7 +91,7 @@ impl CommunityModeratorView {
 
     // Show removed communities to admins only
     if !local_user.is_admin() {
-      query = query.filter(community::removed.eq(false))
+      query = query.filter(community::removed.eq(false));
     }
 
     query.load::<Self>(conn).await

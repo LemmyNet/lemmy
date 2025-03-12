@@ -549,6 +549,11 @@ impl<'a> PostQuery<'a> {
     };
 
     query = o.local_user.visible_communities_only(query);
+    query = query.filter(
+      post::pending
+        .eq(false)
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
 
     if !o.local_user.is_admin() {
       query = query.filter(
@@ -1961,6 +1966,7 @@ mod tests {
         instance_id: data.instance.id,
         report_count: 0,
         unresolved_report_count: 0,
+        pending: false,
       },
       my_vote: None,
       unread_comments: 0,
