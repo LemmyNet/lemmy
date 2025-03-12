@@ -52,8 +52,13 @@ impl Plugins {
     // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
     Lazy::new(|| {
       let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-      #[expect(clippy::expect_used)]
-      let plugin_paths = read_dir(dir).expect("read plugin folder");
+      let plugin_paths = match read_dir(dir) {
+        Ok(r) => r,
+        Err(e) => {
+          warn!("Failed to read plugin folder: {e}");
+          return Plugins { plugins: vec![] };
+        }
+      };
 
       let plugins = plugin_paths
         .flat_map(Result::ok)
