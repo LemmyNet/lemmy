@@ -7,8 +7,6 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods};
-#[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -141,36 +139,47 @@ pub struct PersonUpdateForm {
   pub ban_expires: Option<Option<DateTime<Utc>>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, target_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PersonFollower {
-  #[cfg_attr(feature = "full", diesel(column_name = target_id))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonActions {
+  pub target_id: PersonId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = person_id))]
-  pub follower_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = person_actions::followed.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<person_actions::followed>))]
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(select_expression = person_actions::follow_pending.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<person_actions::follow_pending>))]
-  pub pending: bool,
+  #[serde(skip)]
+  pub followed: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub follow_pending: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the person was blocked.
+  pub blocked: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 pub struct PersonFollowerForm {
-  #[cfg_attr(feature = "full", diesel(column_name = target_id))]
+  pub target_id: PersonId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = person_id))]
-  pub follower_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = follow_pending))]
-  pub pending: bool,
+  pub follow_pending: bool,
+  #[new(value = "Utc::now()")]
+  pub followed: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_actions))]
+pub struct PersonBlockForm {
+  // This order is switched so blocks can work the same.
+  pub person_id: PersonId,
+  pub target_id: PersonId,
+  #[new(value = "Utc::now()")]
+  pub blocked: DateTime<Utc>,
 }

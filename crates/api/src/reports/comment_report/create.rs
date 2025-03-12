@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community
 pub async fn create_comment_report(
@@ -59,9 +59,7 @@ pub async fn create_comment_report(
     violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
-  let report = CommentReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = CommentReport::report(&mut context.pool(), &report_form).await?;
 
   let comment_report_view =
     CommentReportView::read(&mut context.pool(), report.id, person_id).await?;

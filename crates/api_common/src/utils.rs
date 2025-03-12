@@ -15,13 +15,11 @@ use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentLike, CommentUpdateForm},
-    community::{Community, CommunityModerator, CommunityUpdateForm},
-    community_block::CommunityBlock,
+    comment::{Comment, CommentActions, CommentUpdateForm},
+    community::{Community, CommunityActions, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
     images::{ImageDetails, RemoteImage},
-    instance::Instance,
-    instance_block::InstanceBlock,
+    instance::{Instance, InstanceActions},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
@@ -34,15 +32,13 @@ use lemmy_db_schema::{
     },
     oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
-    person::{Person, PersonUpdateForm},
-    person_block::PersonBlock,
-    post::{Post, PostLike},
-    post_actions::{PostActions, PostActionsForm},
+    person::{Person, PersonActions, PersonUpdateForm},
+    post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::{Crud, Likeable},
+  traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
   FederationMode,
   RegistrationMode,
@@ -157,13 +153,8 @@ pub async fn update_read_comments(
   read_comments: i64,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let person_post_agg_form = PostActionsForm {
-    person_id,
-    post_id,
-    read_comments,
-  };
-
-  PostActions::upsert(pool, &person_post_agg_form).await?;
+  let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
+  PostActions::update_read_comments(pool, &person_post_agg_form).await?;
 
   Ok(())
 }
@@ -288,9 +279,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
-  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
+  PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
+  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 
@@ -312,9 +303,9 @@ pub async fn check_local_vote_mode(
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
     match post_or_comment_id {
-      PostOrCommentId::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      PostOrCommentId::Post(post_id) => PostActions::remove_like(pool, person_id, post_id).await?,
       PostOrCommentId::Comment(comment_id) => {
-        CommentLike::remove(pool, person_id, comment_id).await?
+        CommentActions::remove_like(pool, person_id, comment_id).await?
       }
     };
   }
@@ -984,7 +975,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
   // Leave communities they mod
-  CommunityModerator::leave_all_communities(pool, person_id).await?;
+  CommunityActions::leave_mod_team_for_all_communities(pool, person_id).await?;
 
   // Delete the oauth accounts linked to the local user
   if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {

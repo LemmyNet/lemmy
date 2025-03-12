@@ -8,7 +8,7 @@ use crate::{
     SearchCombinedView,
     SearchCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
   dsl::not,
@@ -24,7 +24,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
-  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::{CommunityId, PaginationCursor, PersonId},
   schema::{
     comment,
@@ -32,26 +31,17 @@ use lemmy_db_schema::{
     community,
     community_actions,
     image_details,
+    instance_actions,
     local_user,
     person,
     person_actions,
     post,
     post_actions,
-    post_tag,
     search_combined,
-    tag,
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{
-    functions::coalesce,
-    fuzzy_search,
-    get_conn,
-    now,
-    seconds_to_pg_interval,
-    DbPool,
-    ReverseTimestampKey,
-  },
+  utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
   ListingType,
   SearchSortType,
   SearchType,
@@ -128,6 +118,12 @@ impl SearchCombinedViewInternal {
         .and(community_actions::person_id.nullable().eq(my_person_id)),
     );
 
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(person::instance_id)
+        .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    );
+
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
         .eq(post::id)
@@ -158,6 +154,7 @@ impl SearchCombinedViewInternal {
       .left_join(local_user_join)
       .left_join(creator_local_user_join)
       .left_join(community_actions_join)
+      .left_join(instance_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(comment_actions_join)
@@ -230,53 +227,8 @@ impl SearchCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post::id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = SearchCombinedViewInternal::joins(my_person_id)
-      .select((
-        // Post-specific
-        post::all_columns.nullable(),
-        coalesce(
-          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post::comments,
-        )
-        .nullable(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        image_details::all_columns.nullable(),
-        post_tags,
-        // Comment-specific
-        comment::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        // Community-specific
-        community::all_columns.nullable(),
-        community_actions::blocked.nullable().is_not_null(),
-        community_follower_select_subscribed_type(),
-        // // Shared
-        person::all_columns.nullable(),
-        local_user::admin.nullable().is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        local_user_can_mod(),
-      ))
+      .select(SearchCombinedViewInternal::as_select())
       .into_boxed();
 
     // The filters
@@ -359,13 +311,14 @@ impl SearchCombinedQuery {
         query = query.filter(
           community::local
             .eq(true)
-            .and(filter_not_hidden_or_is_subscribed())
+            .and(filter_not_unlisted_or_is_subscribed())
             .or(search_combined::person_id.is_not_null().and(person::local)),
         );
       }
       ListingType::All => {
-        query = query
-          .filter(filter_not_hidden_or_is_subscribed().or(search_combined::person_id.is_not_null()))
+        query = query.filter(
+          filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
+        )
       }
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
@@ -425,47 +378,35 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         post,
         community,
         creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
+        community_actions: v.community_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
+        person_actions: v.person_actions,
+        comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
-        banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (Some(post), Some(creator), Some(community), Some(unread_comments)) = (
-      v.post,
-      v.item_creator.clone(),
-      v.community.clone(),
-      v.post_unread_comments,
-    ) {
+    } else if let (Some(post), Some(creator), Some(community)) =
+      (v.post, v.item_creator.clone(), v.community.clone())
+    {
       Some(SearchCombinedView::Post(PostView {
         post,
         community,
-        unread_comments,
         creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
         image_details: v.image_details,
-        banned_from_community: v.banned_from_community,
-        tags: v.post_tags,
+        community_actions: v.community_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
+        person_actions: v.person_actions,
+        post_actions: v.post_actions,
         can_mod: v.can_mod,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
         community,
-        subscribed: v.subscribed,
-        blocked: v.community_blocked,
-        banned_from_community: v.banned_from_community,
+        community_actions: v.community_actions,
+        instance_actions: v.instance_actions,
         can_mod: v.can_mod,
       }))
     } else if let Some(person) = v.item_creator {
@@ -490,12 +431,12 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
     },
     traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -583,34 +524,22 @@ mod tests {
 
     // Timmy likes and dislikes a few things
     let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, 1);
-    PostLike::like(pool, &timmy_like_post_form).await?;
+    PostActions::like(pool, &timmy_like_post_form).await?;
 
     let timmy_like_sara_post_form = PostLikeForm::new(sara_post.id, timmy.id, 1);
-    PostLike::like(pool, &timmy_like_sara_post_form).await?;
+    PostActions::like(pool, &timmy_like_sara_post_form).await?;
 
     let timmy_dislike_post_form = PostLikeForm::new(timmy_post_2.id, timmy.id, -1);
-    PostLike::like(pool, &timmy_dislike_post_form).await?;
+    PostActions::like(pool, &timmy_dislike_post_form).await?;
 
-    let timmy_like_comment_form = CommentLikeForm {
-      person_id: timmy.id,
-      comment_id: timmy_comment.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &timmy_like_comment_form).await?;
+    let timmy_like_comment_form = CommentLikeForm::new(timmy.id, timmy_comment.id, 1);
+    CommentActions::like(pool, &timmy_like_comment_form).await?;
 
-    let timmy_like_sara_comment_form = CommentLikeForm {
-      person_id: timmy.id,
-      comment_id: sara_comment.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &timmy_like_sara_comment_form).await?;
+    let timmy_like_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment.id, 1);
+    CommentActions::like(pool, &timmy_like_sara_comment_form).await?;
 
-    let timmy_dislike_sara_comment_form = CommentLikeForm {
-      person_id: timmy.id,
-      comment_id: sara_comment_2.id,
-      score: -1,
-    };
-    CommentLike::like(pool, &timmy_dislike_sara_comment_form).await?;
+    let timmy_dislike_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment_2.id, -1);
+    CommentActions::like(pool, &timmy_dislike_sara_comment_form).await?;
 
     Ok(Data {
       instance,

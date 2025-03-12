@@ -10,7 +10,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    person::{Person, PersonFollower},
+    person::{Person, PersonActions},
     site::Site,
   },
   traits::Crud,
@@ -59,7 +59,7 @@ pub(crate) async fn send_activity_in_community(
   // send to user followers
   if !is_mod_action {
     inboxes.add_inboxes(
-      PersonFollower::list_followers(&mut context.pool(), actor.id)
+      PersonActions::list_followers(&mut context.pool(), actor.id)
         .await?
         .into_iter()
         .map(|p| ApubPerson(p).shared_inbox_or_inbox()),

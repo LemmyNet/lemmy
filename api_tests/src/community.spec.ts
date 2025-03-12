@@ -205,17 +205,17 @@ test("Admin actions in remote community are not federated to origin", async () =
   gammaCommunity = (
     await waitUntil(
       () => resolveCommunity(gamma, communityRes.community.ap_id),
-      g => g.community?.subscribed === "Subscribed",
+      g => g.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
   if (!gammaCommunity) {
     throw "Missing gamma community";
   }
-  expect(gammaCommunity.subscribed).toBe("Subscribed");
+  expect(gammaCommunity.community_actions?.follow_state).toBe("Accepted");
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();
-  expect(gammaPost.creator_banned_from_community).toBe(false);
+  expect(gammaPost.creator_community_actions?.received_ban).toBeUndefined();
 
   // admin of beta decides to ban gamma from community
   let betaCommunity = (
@@ -244,11 +244,13 @@ test("Admin actions in remote community are not federated to origin", async () =
 
   // ban doesn't federate to community's origin instance alpha
   let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
-  expect(alphaPost?.creator_banned_from_community).toBe(false);
+  expect(alphaPost?.creator_community_actions?.received_ban).toBeUndefined();
 
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);
-  expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
+  expect(
+    gammaPost2.post_view.creator_community_actions?.received_ban,
+  ).toBeUndefined();
 });
 
 test("moderator view", async () => {
@@ -391,7 +393,7 @@ test.skip("Community follower count is federated", async () => {
   let followed = (
     await waitUntil(
       () => resolveCommunity(alpha, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 
@@ -408,7 +410,7 @@ test.skip("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveCommunity(gamma, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 
@@ -425,7 +427,7 @@ test.skip("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveCommunity(delta, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 

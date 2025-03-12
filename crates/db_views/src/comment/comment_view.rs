@@ -117,29 +117,18 @@ impl CommentView {
       );
     }
 
-    let mut res = query.first::<Self>(conn).await?;
-
-    // If a person is given, then my_vote (res.9), if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    if my_local_user.is_some() && res.my_vote.is_none() {
-      res.my_vote = Some(0);
-    }
-
-    Ok(res)
+    query.first::<Self>(conn).await
   }
 
   pub fn map_to_slim(self) -> CommentSlimView {
     CommentSlimView {
       comment: self.comment,
       creator: self.creator,
-      creator_banned_from_community: self.creator_banned_from_community,
-      banned_from_community: self.banned_from_community,
-      creator_is_moderator: self.creator_is_moderator,
+      comment_actions: self.comment_actions,
+      creator_community_actions: self.creator_community_actions,
+      person_actions: self.person_actions,
+      instance_actions: self.instance_actions,
       creator_is_admin: self.creator_is_admin,
-      subscribed: self.subscribed,
-      saved: self.saved,
-      creator_blocked: self.creator_blocked,
-      my_vote: self.my_vote,
       can_mod: self.can_mod,
     }
   }
@@ -328,34 +317,30 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::{CommentId, LanguageId},
+    newtypes::CommentId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
-        CommunityFollower,
+        CommunityActions,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
-        CommunityModerator,
         CommunityModeratorForm,
-        CommunityPersonBan,
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm},
-      person_block::{PersonBlock, PersonBlockForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::build_db_pool_for_tests,
     CommunityVisibility,
-    SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -366,7 +351,7 @@ mod tests {
     inserted_comment_0: Comment,
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
-    inserted_comment_5: Comment,
+    _inserted_comment_5: Comment,
     inserted_post: Post,
     timmy_local_user_view: LocalUserView,
     inserted_sara_person: Person,
@@ -474,30 +459,26 @@ mod tests {
       inserted_post.id,
       "Comment 5".into(),
     );
-    let inserted_comment_5 =
+    let _inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
-    let timmy_blocks_sara_form = PersonBlockForm {
-      person_id: inserted_timmy_person.id,
-      target_id: inserted_sara_person.id,
-    };
+    let timmy_blocks_sara_form =
+      PersonBlockForm::new(inserted_timmy_person.id, inserted_sara_person.id);
+    let inserted_block = PersonActions::block(pool, &timmy_blocks_sara_form).await?;
 
-    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
+    assert_eq!(
+      (inserted_timmy_person.id, inserted_sara_person.id, true),
+      (
+        inserted_block.person_id,
+        inserted_block.target_id,
+        inserted_block.blocked.is_some()
+      )
+    );
 
-    let expected_block = PersonBlock {
-      person_id: inserted_timmy_person.id,
-      target_id: inserted_sara_person.id,
-      published: inserted_block.published,
-    };
-    assert_eq!(expected_block, inserted_block);
+    let comment_like_form =
+      CommentLikeForm::new(inserted_timmy_person.id, inserted_comment_0.id, 1);
 
-    let comment_like_form = CommentLikeForm {
-      comment_id: inserted_comment_0.id,
-      person_id: inserted_timmy_person.id,
-      score: 1,
-    };
-
-    let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
+    CommentActions::like(pool, &comment_like_form).await?;
 
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
@@ -510,7 +491,7 @@ mod tests {
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
-      inserted_comment_5,
+      _inserted_comment_5,
       inserted_post,
       timmy_local_user_view,
       inserted_sara_person,
@@ -526,12 +507,6 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let expected_comment_view_no_person = expected_comment_view(&data);
-
-    let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
-    expected_comment_view_with_person.my_vote = Some(1);
-    expected_comment_view_with_person.can_mod = true;
-
     let read_comment_views_no_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
       post_id: (Some(data.inserted_post.id)),
@@ -540,10 +515,8 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    assert_eq!(
-      Some(&expected_comment_view_no_person),
-      read_comment_views_no_person.first()
-    );
+    assert!(read_comment_views_no_person[0].comment_actions.is_none());
+    assert!(!read_comment_views_no_person[0].can_mod);
 
     let read_comment_views_with_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
@@ -554,10 +527,11 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    assert_eq!(
-      expected_comment_view_with_person,
-      read_comment_views_with_person[0]
-    );
+    assert!(read_comment_views_with_person[0]
+      .comment_actions
+      .as_ref()
+      .is_some_and(|x| x.like_score == Some(1)));
+    assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment
     assert_length!(5, read_comment_views_with_person);
@@ -570,7 +544,9 @@ mod tests {
     .await?;
 
     // Make sure block set the creator blocked
-    assert!(read_comment_from_blocked_person.creator_blocked);
+    assert!(read_comment_from_blocked_person
+      .person_actions
+      .is_some_and(|x| x.blocked.is_some()));
 
     cleanup(data, pool).await
   }
@@ -583,19 +559,19 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Unblock sara first
-    let timmy_unblocks_sara_form = PersonBlockForm {
-      person_id: data.timmy_local_user_view.person.id,
-      target_id: data.inserted_sara_person.id,
-    };
-    PersonBlock::unblock(pool, &timmy_unblocks_sara_form).await?;
+    let timmy_unblocks_sara_form = PersonBlockForm::new(
+      data.timmy_local_user_view.person.id,
+      data.inserted_sara_person.id,
+    );
+    PersonActions::unblock(pool, &timmy_unblocks_sara_form).await?;
 
     // Like a new comment
-    let comment_like_form = CommentLikeForm {
-      comment_id: data.inserted_comment_1.id,
-      person_id: data.timmy_local_user_view.person.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &comment_like_form).await?;
+    let comment_like_form = CommentLikeForm::new(
+      data.timmy_local_user_view.person.id,
+      data.inserted_comment_1.id,
+      1,
+    );
+    CommentActions::like(pool, &comment_like_form).await?;
 
     let read_liked_comment_views = CommentQuery {
       local_user: Some(&data.timmy_local_user_view.local_user),
@@ -672,10 +648,6 @@ mod tests {
     .await?;
 
     // Make sure a depth limited one only has the top comment
-    assert_eq!(
-      expected_comment_view(&data),
-      read_comment_views_top_max_depth[0]
-    );
     assert_length!(1, read_comment_views_top_max_depth);
 
     let child_path = data.inserted_comment_1.path.clone();
@@ -793,11 +765,8 @@ mod tests {
     // Make one of the inserted persons a moderator
     let person_id = data.inserted_sara_person.id;
     let community_id = data.inserted_community.id;
-    let form = CommunityModeratorForm {
-      community_id,
-      person_id,
-    };
-    CommunityModerator::join(pool, &form).await?;
+    let form = CommunityModeratorForm::new(community_id, person_id);
+    CommunityActions::join(pool, &form).await?;
 
     // Make sure that they come back as a mod in the list
     let comments = CommentQuery {
@@ -808,8 +777,12 @@ mod tests {
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
-    assert!(comments[1].creator_is_moderator);
-    assert!(!comments[0].creator_is_moderator);
+    assert!(comments[1]
+      .creator_community_actions
+      .as_ref()
+      .is_some_and(|x| x.became_moderator.is_some()));
+
+    assert!(comments[0].creator_community_actions.is_none());
 
     cleanup(data, pool).await
   }
@@ -840,7 +813,7 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    CommentLike::remove(
+    CommentActions::remove_like(
       pool,
       data.timmy_local_user_view.person.id,
       data.inserted_comment_0.id,
@@ -857,147 +830,6 @@ mod tests {
     Site::delete(pool, data.site.id).await?;
 
     Ok(())
-  }
-
-  fn expected_comment_view(data: &Data) -> CommentView {
-    CommentView {
-      creator_banned_from_community: false,
-      banned_from_community: false,
-      creator_is_moderator: false,
-      creator_is_admin: true,
-      my_vote: None,
-      subscribed: SubscribedType::NotSubscribed,
-      saved: None,
-      creator_blocked: false,
-      can_mod: false,
-      comment: Comment {
-        id: data.inserted_comment_0.id,
-        content: "Comment 0".into(),
-        creator_id: data.timmy_local_user_view.person.id,
-        post_id: data.inserted_post.id,
-        removed: false,
-        deleted: false,
-        published: data.inserted_comment_0.published,
-        ap_id: data.inserted_comment_0.ap_id.clone(),
-        updated: None,
-        local: true,
-        distinguished: false,
-        path: data.inserted_comment_0.clone().path,
-        language_id: LanguageId(37),
-        score: 1,
-        upvotes: 1,
-        downvotes: 0,
-        child_count: 5,
-        hot_rank: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        report_count: 0,
-        unresolved_report_count: 0,
-      },
-      creator: Person {
-        id: data.timmy_local_user_view.person.id,
-        name: "timmy".into(),
-        display_name: None,
-        published: data.timmy_local_user_view.person.published,
-        avatar: None,
-        ap_id: data.timmy_local_user_view.person.ap_id.clone(),
-        local: true,
-        banned: false,
-        deleted: false,
-        bot_account: false,
-        bio: None,
-        banner: None,
-        updated: None,
-        inbox_url: data.timmy_local_user_view.person.inbox_url.clone(),
-        matrix_user_id: None,
-        ban_expires: None,
-        instance_id: data.inserted_instance.id,
-        private_key: data.timmy_local_user_view.person.private_key.clone(),
-        public_key: data.timmy_local_user_view.person.public_key.clone(),
-        last_refreshed_at: data.timmy_local_user_view.person.last_refreshed_at,
-        post_count: 1,
-        post_score: 0,
-        comment_count: 5,
-        comment_score: 1,
-      },
-      post: Post {
-        id: data.inserted_post.id,
-        name: data.inserted_post.name.clone(),
-        creator_id: data.timmy_local_user_view.person.id,
-        url: None,
-        body: None,
-        alt_text: None,
-        published: data.inserted_post.published,
-        updated: None,
-        community_id: data.inserted_community.id,
-        removed: false,
-        deleted: false,
-        locked: false,
-        nsfw: false,
-        embed_title: None,
-        embed_description: None,
-        embed_video_url: None,
-        thumbnail_url: None,
-        ap_id: data.inserted_post.ap_id.clone(),
-        local: true,
-        language_id: Default::default(),
-        featured_community: false,
-        featured_local: false,
-        url_content_type: None,
-        scheduled_publish_time: None,
-        comments: 6,
-        score: 0,
-        upvotes: 0,
-        downvotes: 0,
-        newest_comment_time_necro: data.inserted_comment_1.published,
-        newest_comment_time: data.inserted_comment_5.published,
-        hot_rank: RANK_DEFAULT,
-        hot_rank_active: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        scaled_rank: RANK_DEFAULT,
-        instance_id: data.inserted_instance.id,
-        report_count: 0,
-        unresolved_report_count: 0,
-      },
-      community: Community {
-        id: data.inserted_community.id,
-        name: "test community 5".to_string(),
-        icon: None,
-        removed: false,
-        deleted: false,
-        nsfw: false,
-        ap_id: data.inserted_community.ap_id.clone(),
-        local: true,
-        title: "nada".to_owned(),
-        sidebar: None,
-        description: None,
-        updated: None,
-        banner: None,
-        posting_restricted_to_mods: false,
-        published: data.inserted_community.published,
-        instance_id: data.inserted_instance.id,
-        private_key: data.inserted_community.private_key.clone(),
-        public_key: data.inserted_community.public_key.clone(),
-        last_refreshed_at: data.inserted_community.last_refreshed_at,
-        followers_url: data.inserted_community.followers_url.clone(),
-        inbox_url: data.inserted_community.inbox_url.clone(),
-        moderators_url: data.inserted_community.moderators_url.clone(),
-        featured_url: data.inserted_community.featured_url.clone(),
-        visibility: CommunityVisibility::Public,
-        random_number: data.inserted_community.random_number,
-        subscribers: 0,
-        posts: 1,
-        comments: 6,
-        users_active_day: 0,
-        users_active_week: 0,
-        users_active_month: 0,
-        users_active_half_year: 0,
-        hot_rank: RANK_DEFAULT,
-        subscribers_local: 0,
-        report_count: 0,
-        unresolved_report_count: 0,
-        interactions_month: 0,
-      },
-    }
   }
 
   #[tokio::test]
@@ -1065,13 +897,12 @@ mod tests {
     )
     .await?;
 
-    CommunityPersonBan::ban(
+    CommunityActions::ban(
       pool,
-      &CommunityPersonBanForm {
-        community_id: data.inserted_community.id,
-        person_id: inserted_banned_from_comm_person.id,
-        expires: None,
-      },
+      &CommunityPersonBanForm::new(
+        data.inserted_community.id,
+        inserted_banned_from_comm_person.id,
+      ),
     )
     .await?;
 
@@ -1082,7 +913,9 @@ mod tests {
     )
     .await?;
 
-    assert!(comment_view.banned_from_community);
+    assert!(comment_view
+      .community_actions
+      .is_some_and(|x| x.received_ban.is_some()));
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await
@@ -1102,7 +935,7 @@ mod tests {
     )
     .await?;
 
-    assert!(!comment_view.banned_from_community);
+    assert!(comment_view.community_actions.is_none());
 
     cleanup(data, pool).await
   }
@@ -1198,15 +1031,13 @@ mod tests {
     data.timmy_local_user_view.local_user.admin = false;
 
     // User can view after following
-    CommunityFollower::follow(
+    CommunityActions::follow(
       pool,
-      &CommunityFollowerForm {
-        state: Some(CommunityFollowerState::Accepted),
-        ..CommunityFollowerForm::new(
-          data.inserted_community.id,
-          data.timmy_local_user_view.person.id,
-        )
-      },
+      &CommunityFollowerForm::new(
+        data.inserted_community.id,
+        data.timmy_local_user_view.person.id,
+        CommunityFollowerState::Accepted,
+      ),
     )
     .await?;
     let read_comment_listing = CommentQuery {

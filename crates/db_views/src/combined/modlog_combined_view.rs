@@ -20,7 +20,7 @@ use crate::{
     ModlogCombinedView,
     ModlogCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -378,7 +378,7 @@ impl ModlogCombinedQuery<'_> {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => query
         .filter(community::local.eq(true))
-        .filter(filter_not_hidden_or_is_subscribed()),
+        .filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 

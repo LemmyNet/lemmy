@@ -20,13 +20,17 @@ use lemmy_db_schema::{
 impl RegistrationApplicationView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
+    let local_user_join =
+      local_user::table.on(registration_application::local_user_id.eq(local_user::id));
+
+    let creator_join = person::table.on(local_user::person_id.eq(person::id));
+    let admin_join = aliases::person1
+      .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable()));
+
     registration_application::table
-      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .left_join(
-        aliases::person1
-          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
-      )
+      .inner_join(local_user_join)
+      .inner_join(creator_join)
+      .left_join(admin_join)
   }
 
   pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {

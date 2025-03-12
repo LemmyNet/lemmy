@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
@@ -123,15 +123,9 @@ pub async fn create_comment(
   .await?;
 
   // You like your own comment by default
-  let like_form = CommentLikeForm {
-    comment_id: inserted_comment.id,
-    person_id: local_user_view.person.id,
-    score: 1,
-  };
+  let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);
 
-  CommentLike::like(&mut context.pool(), &like_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+  CommentActions::like(&mut context.pool(), &like_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),
