@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.13.1)
       lemmy-js-client:
-        specifier: 0.20.0-move-community-hidden.3
-        version: 0.20.0-move-community-hidden.3
+        specifier: 1.0.0-action-structs.1
+        version: 1.0.0-action-structs.1
       prettier:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1528,8 +1528,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@0.20.0-move-community-hidden.3:
-    resolution: {integrity: sha512-X7bbSrnGGgupr//Qk2M1Z9nvFawNU4T116X+4/j912GO6KbQdWN7+10obbQJuoEYr15oCXwSaK8DLusofLxIig==}
+  lemmy-js-client@1.0.0-action-structs.1:
+    resolution: {integrity: sha512-Th/7TAjBQ7jcxJHpSMeHF50Y8GwK2YbCBVbLZ9AEPYmOyll0yK+bwTwhCEyvy/SIgbNQTd1OaIYv3F8iAvjvuw==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4169,7 +4169,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@0.20.0-move-community-hidden.3: {}
+  lemmy-js-client@1.0.0-action-structs.1: {}
 
   leven@3.1.0: {}
 
