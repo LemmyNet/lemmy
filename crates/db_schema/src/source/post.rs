@@ -1,6 +1,5 @@
 use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
-use extism_pdk::{FromBytes, Json, ToBytes};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -98,10 +97,9 @@ pub struct Post {
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
-#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize, FromBytes, ToBytes)]
+#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
-#[encoding(Json)]
 pub struct PostInsertForm {
   pub name: String,
   pub creator_id: PersonId,
@@ -148,10 +146,9 @@ pub struct PostInsertForm {
   pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, FromBytes, ToBytes)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(AsChangeset,))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
-#[encoding(Json)]
 pub struct PostUpdateForm {
   pub name: Option<String>,
   pub nsfw: Option<bool>,

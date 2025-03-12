@@ -71,11 +71,9 @@ LOG_DIR=target/log
 mkdir -p $LOG_DIR
 
 # add test plugin
-# separate target folder to prevent rebuild
-CARGO_TARGET_DIR="target/wasm" cargo build -p lemmy_test_plugin --target wasm32-unknown-unknown
-cp target/wasm/wasm32-unknown-unknown/debug/lemmy_test_plugin.wasm plugins/
-
-exit
+pushd plugins
+tinygo build -o test_plugin.wasm -target wasip1 -buildmode=c-shared main.go
+popd
 
 echo "start alpha"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \

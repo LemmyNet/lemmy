@@ -42,7 +42,7 @@ impl Plugins {
     let plugins = plugin_paths
       .flat_map(|p| p.ok())
       .map(|p| p.path())
-      .filter(|p| p.extension() == Some(OsStr::new("manifest")))
+      .filter(|p| p.extension() == Some(OsStr::new("json")))
       .flat_map(|p| {
         init_plugin(&p)
           .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))

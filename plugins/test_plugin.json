@@ -1,0 +1,7 @@
+{
+  "wasm": [
+    {
+      "path": "plugins/test_plugin.wasm"
+    }
+  ]
+}
