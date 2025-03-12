@@ -84,24 +84,23 @@ pub(crate) fn post_creator_is_admin() -> _ {
 #[diesel::dsl::auto_type]
 pub(crate) fn local_user_can_mod() -> _ {
   let am_admin = local_user::admin.nullable();
+  let i_became_moderator = community_actions::became_moderator.nullable();
+
   let creator_became_moderator = creator_community_actions
     .field(community_actions::became_moderator)
     .nullable();
 
-  let am_higher_mod = community_actions::became_moderator
-    .nullable()
-    .le(creator_became_moderator);
+  let am_higher_mod = i_became_moderator.le(creator_became_moderator);
 
   am_admin.or(am_higher_mod).is_not_distinct_from(true)
 }
 
-/// A special type of can_mod for communities, which dont have creators
+/// A special type of can_mod for communities, which dont have creators.
 #[diesel::dsl::auto_type]
 pub(crate) fn local_user_community_can_mod() -> _ {
-  local_user::admin
-    .nullable()
-    .or(community_actions::became_moderator.nullable().is_not_null())
-    .is_not_distinct_from(true)
+  let am_admin = local_user::admin.nullable();
+  let am_moderator = community_actions::became_moderator.nullable().is_not_null();
+  am_admin.or(am_moderator).is_not_distinct_from(true)
 }
 
 /// Selects the comment columns, but gives an empty string for content when
