@@ -154,11 +154,6 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
   creator_community_actions.fields(community_actions::all_columns)
 }
 
-#[diesel::dsl::auto_type]
-pub fn community_follower_select_subscribed_type() -> _ {
-  community_actions::follow_state.nullable()
-}
-
 type IsSubscribedType =
   Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
 

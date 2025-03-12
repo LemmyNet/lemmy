@@ -1,7 +1,4 @@
-use crate::{
-  structs::{CommunityFollowerView, PendingFollow},
-  utils::community_follower_select_subscribed_type,
-};
+use crate::structs::{CommunityFollowerView, PendingFollow};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
@@ -10,6 +7,7 @@ use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -152,7 +150,7 @@ impl CommunityFollowerView {
         person::all_columns,
         community::all_columns,
         is_new_instance,
-        community_follower_select_subscribed_type(),
+        community_actions::follow_state.nullable(),
       ))
       .into_boxed();
     if all_communities {
