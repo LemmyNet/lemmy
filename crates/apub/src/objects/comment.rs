@@ -145,16 +145,7 @@ impl Object for ApubComment {
       context,
     ))
     .await?;
-    if let Err(e) = verify_is_remote_object(&note.id, context) {
-      let form = CommentUpdateForm {
-        pending: Some(false),
-        ..Default::default()
-      };
-      if let Ok(comment) = note.id.dereference_local(context).await {
-        Comment::update(&mut context.pool(), comment.id, &form).await?;
-      }
-      return Err(e.into());
-    }
+    verify_is_remote_object(&note.id, context)?;
     Box::pin(verify_person_in_community(
       &note.attributed_to,
       &community,
@@ -205,7 +196,6 @@ impl Object for ApubComment {
       distinguished: note.distinguished,
       local: Some(false),
       language_id,
-      pending: Some(false),
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);

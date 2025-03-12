@@ -94,7 +94,6 @@ pub struct Post {
   pub scaled_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
-  pub pending: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -144,8 +143,6 @@ pub struct PostInsertForm {
   pub alt_text: Option<String>,
   #[new(default)]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
-  #[new(default)]
-  pub pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -173,7 +170,6 @@ pub struct PostUpdateForm {
   pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
-  pub pending: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

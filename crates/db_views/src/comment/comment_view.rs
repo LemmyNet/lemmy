@@ -243,11 +243,6 @@ impl CommentQuery<'_> {
     };
 
     query = o.local_user.visible_communities_only(query);
-    query = query.filter(
-      comment::pending
-        .eq(false)
-        .or(comment::creator_id.nullable().eq(my_person_id)),
-    );
 
     if !o.local_user.is_admin() {
       query = query.filter(
@@ -897,7 +892,6 @@ mod tests {
         controversy_rank: 0.0,
         report_count: 0,
         unresolved_report_count: 0,
-        pending: false,
       },
       creator: Person {
         id: data.timmy_local_user_view.person.id,
@@ -963,7 +957,6 @@ mod tests {
         instance_id: data.inserted_instance.id,
         report_count: 0,
         unresolved_report_count: 0,
-        pending: false,
       },
       community: Community {
         id: data.inserted_community.id,

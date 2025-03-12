@@ -62,7 +62,6 @@ pub struct Comment {
   pub controversy_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
-  pub pending: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -88,8 +87,6 @@ pub struct CommentInsertForm {
   pub distinguished: Option<bool>,
   #[new(default)]
   pub language_id: Option<LanguageId>,
-  #[new(default)]
-  pub pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -105,7 +102,6 @@ pub struct CommentUpdateForm {
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
-  pub pending: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
