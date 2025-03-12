@@ -924,8 +924,6 @@ mod tests {
         post_score: 0,
         comment_count: 5,
         comment_score: 1,
-        local_banned: false,
-        local_ban_expires: None,
       },
       post: Post {
         id: data.inserted_post.id,

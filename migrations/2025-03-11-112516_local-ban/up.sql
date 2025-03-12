@@ -1,11 +1,3 @@
--- Separate columns for banning a remote user, this way a ban+unban on home
--- instance wont overwrite local ban
-ALTER TABLE person
-    ADD COLUMN local_banned boolean NOT NULL DEFAULT FALSE;
-
-ALTER TABLE person
-    ADD COLUMN local_ban_expires timestamptz;
-
 -- Same for remote community, local removal should not be overwritten by
 -- remove+restore on home instance
 ALTER TABLE community

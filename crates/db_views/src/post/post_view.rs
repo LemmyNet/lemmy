@@ -1995,8 +1995,6 @@ mod tests {
         post_score: 0,
         comment_count: 0,
         comment_score: 0,
-        local_banned: false,
-        local_ban_expires: None,
       },
       image_details: None,
       creator_banned_from_community: false,

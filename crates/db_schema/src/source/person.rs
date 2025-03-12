@@ -76,9 +76,6 @@ pub struct Person {
   pub comment_count: i64,
   #[serde(skip)]
   pub comment_score: i64,
-  pub local_banned: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub local_ban_expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -120,10 +117,6 @@ pub struct PersonInsertForm {
   pub bot_account: Option<bool>,
   #[new(default)]
   pub ban_expires: Option<DateTime<Utc>>,
-  #[new(default)]
-  pub local_banned: Option<bool>,
-  #[new(default)]
-  pub local_ban_expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -146,8 +139,6 @@ pub struct PersonUpdateForm {
   pub matrix_user_id: Option<Option<String>>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<DateTime<Utc>>>,
-  pub local_banned: Option<bool>,
-  pub local_ban_expires: Option<DateTime<Utc>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

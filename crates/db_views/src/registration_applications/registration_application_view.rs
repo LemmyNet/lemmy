@@ -246,8 +246,6 @@ mod tests {
         post_score: 0,
         comment_count: 0,
         comment_score: 0,
-        local_banned: false,
-        local_ban_expires: None,
       },
       admin: None,
     };
@@ -321,8 +319,6 @@ mod tests {
       post_score: 0,
       comment_count: 0,
       comment_score: 0,
-      local_banned: false,
-      local_ban_expires: None,
     });
     assert_eq!(read_sara_app_view_after_approve, expected_sara_app_view);
 
