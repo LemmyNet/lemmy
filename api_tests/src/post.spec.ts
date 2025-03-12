@@ -39,12 +39,14 @@ import {
   listReports,
   getMyUser,
   listInbox,
+  getModlog,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import {
   AddModToCommunity,
   EditSite,
+  EditPost,
   PersonPostMentionView,
   PostReport,
   PostReportView,
@@ -651,8 +653,13 @@ test("Enforce community ban for federated user", async () => {
   );
   expect(unBanAlpha.banned).toBe(false);
 
-  // Need to re-follow the community
-  await followBeta(alpha);
+  // Check that unban was federated to alpha
+  await waitUntil(
+    () => getModlog(alpha),
+    m =>
+      m.modlog[0].type_ == "ModBanFromCommunity" &&
+      m.modlog[0].mod_ban_from_community.banned == false,
+  );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
   expect(postRes3.post_view.post).toBeDefined();
@@ -918,6 +925,50 @@ test("Rewrite markdown links", async () => {
   // remote markdown link is replaced with local link
   expect(alphaPost2.post?.post.body).toBe(
     `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
+  );
+});
+
+test("Don't allow NSFW posts on instances that disable it", async () => {
+  // Disallow NSFW on gamma
+  let editSiteForm: EditSite = {
+    disallow_nsfw_content: true,
+  };
+  await gamma.editSite(editSiteForm);
+
+  // Wait for cache on Gamma's LocalSite
+  await delay(1_000);
+
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+
+  // Make a NSFW post
+  let postRes = await createPost(beta, betaCommunity.community.id);
+  let form: EditPost = {
+    nsfw: true,
+    post_id: postRes.post_view.post.id,
+  };
+  let updatePost = await beta.editPost(form);
+
+  // Gamma reject resolving the post
+  await expect(
+    resolvePost(gamma, updatePost.post_view.post),
+  ).rejects.toStrictEqual(Error("not_found"));
+
+  // Local users can't create NSFW post on Gamma
+  let gammaCommunity = (
+    await resolveCommunity(gamma, betaCommunity.community.ap_id)
+  ).community?.community;
+  if (!gammaCommunity) {
+    throw "Missing gamma community";
+  }
+  let gammaPost = await createPost(gamma, gammaCommunity.id);
+  let form2: EditPost = {
+    nsfw: true,
+    post_id: gammaPost.post_view.post.id,
+  };
+  await expect(gamma.editPost(form2)).rejects.toStrictEqual(
+    Error("nsfw_not_allowed"),
   );
 });
 

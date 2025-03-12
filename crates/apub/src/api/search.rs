@@ -6,13 +6,10 @@ use lemmy_api_common::{
   site::{Search, SearchResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::{
-  source::{combined::search::SearchCombined, community::Community},
-  traits::{PageCursorBuilder, PageCursorReader},
-};
+use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
 use lemmy_db_views::{
   combined::search_combined_view::SearchCombinedQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{LocalUserView, SearchCombinedView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -37,7 +34,7 @@ pub async fn search(
   };
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(SearchCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(SearchCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -60,7 +57,7 @@ pub async fn search(
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = results.last().map(PageCursorBuilder::cursor);
+  let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(SearchResponse { results, next_page }))
 }

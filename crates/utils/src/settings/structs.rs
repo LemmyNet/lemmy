@@ -49,6 +49,8 @@ pub struct Settings {
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
   cors_origin: Vec<String>,
+  /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
+  pub json_logging: bool,
 }
 
 impl Settings {

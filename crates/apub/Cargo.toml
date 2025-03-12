@@ -35,7 +35,7 @@ url = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
 uuid = { workspace = true }
-async-trait = { workspace = true }
+async-trait = "0.1.86"
 anyhow = { workspace = true }
 reqwest = { workspace = true }
 moka.workspace = true

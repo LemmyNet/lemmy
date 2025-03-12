@@ -1,5 +1,4 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
-use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId},
@@ -38,7 +37,6 @@ static FOLLOW_ADDITIONS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> = LazyLock::n
 static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
   LazyLock::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 
-#[async_trait]
 pub trait DataSource: Send + Sync {
   async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
   async fn get_instance_followed_community_inboxes(
@@ -57,7 +55,6 @@ impl DbDataSource {
   }
 }
 
-#[async_trait]
 impl DataSource for DbDataSource {
   async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site> {
     Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
@@ -231,7 +228,6 @@ mod tests {
   use serde_json::json;
   mock! {
       DataSource {}
-      #[async_trait]
       impl DataSource for DataSource {
           async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
           async fn get_instance_followed_community_inboxes(

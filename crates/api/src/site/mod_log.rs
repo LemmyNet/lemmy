@@ -4,11 +4,11 @@ use lemmy_api_common::{
   site::{GetModlog, GetModlogResponse},
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
-use lemmy_db_schema::{
-  source::{combined::modlog::ModlogCombined, local_site::LocalSite},
-  traits::{PageCursorBuilder, PageCursorReader},
+use lemmy_db_schema::{source::local_site::LocalSite, traits::PaginationCursorBuilder};
+use lemmy_db_views::{
+  combined::modlog_combined_view::ModlogCombinedQuery,
+  structs::{LocalUserView, ModlogCombinedView},
 };
-use lemmy_db_views::{combined::modlog_combined_view::ModlogCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_mod_log(
@@ -36,7 +36,7 @@ pub async fn get_mod_log(
   };
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(ModlogCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(ModlogCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -57,7 +57,7 @@ pub async fn get_mod_log(
   .list(&mut context.pool())
   .await?;
 
-  let next_page = modlog.last().map(PageCursorBuilder::cursor);
+  let next_page = modlog.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(GetModlogResponse { modlog, next_page }))
 }

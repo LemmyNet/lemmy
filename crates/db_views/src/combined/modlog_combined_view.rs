@@ -64,12 +64,12 @@ use lemmy_db_schema::{
     combined::modlog::{modlog_combined_keys as key, ModlogCombined},
     local_user::LocalUser,
   },
-  traits::{InternalToCombinedView, PageCursorBuilder},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   ListingType,
   ModlogActionType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl ModlogCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -227,8 +227,9 @@ impl ModlogCombinedViewInternal {
   }
 }
 
-impl PageCursorBuilder for ModlogCombinedView {
-  fn cursor(&self) -> PaginationCursor {
+impl PaginationCursorBuilder for ModlogCombinedView {
+  type CursorData = ModlogCombined;
+  fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
       ModlogCombinedView::AdminAllowInstance(v) => ('A', v.admin_allow_instance.id.0),
       ModlogCombinedView::AdminBlockInstance(v) => ('B', v.admin_block_instance.id.0),
@@ -248,7 +249,44 @@ impl PageCursorBuilder for ModlogCombinedView {
       ModlogCombinedView::ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
       ModlogCombinedView::ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
     };
-    PaginationCursor::create(prefix, id)
+    PaginationCursor::new(prefix, id)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
+
+    let mut query = modlog_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'A' => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
+      'B' => query.filter(modlog_combined::admin_block_instance_id.eq(id)),
+      'C' => query.filter(modlog_combined::admin_purge_comment_id.eq(id)),
+      'D' => query.filter(modlog_combined::admin_purge_community_id.eq(id)),
+      'E' => query.filter(modlog_combined::admin_purge_person_id.eq(id)),
+      'F' => query.filter(modlog_combined::admin_purge_post_id.eq(id)),
+      'G' => query.filter(modlog_combined::mod_add_id.eq(id)),
+      'H' => query.filter(modlog_combined::mod_add_community_id.eq(id)),
+      'I' => query.filter(modlog_combined::mod_ban_id.eq(id)),
+      'J' => query.filter(modlog_combined::mod_ban_from_community_id.eq(id)),
+      'K' => query.filter(modlog_combined::mod_feature_post_id.eq(id)),
+      'L' => query.filter(modlog_combined::mod_hide_community_id.eq(id)),
+      'M' => query.filter(modlog_combined::mod_lock_post_id.eq(id)),
+      'N' => query.filter(modlog_combined::mod_remove_comment_id.eq(id)),
+      'O' => query.filter(modlog_combined::mod_remove_community_id.eq(id)),
+      'P' => query.filter(modlog_combined::mod_remove_post_id.eq(id)),
+      'Q' => query.filter(modlog_combined::mod_transfer_community_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
 

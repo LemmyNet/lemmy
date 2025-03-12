@@ -3,11 +3,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{ListInbox, ListInboxResponse},
 };
-use lemmy_db_schema::{
-  source::combined::inbox::InboxCombined,
-  traits::{PageCursorBuilder, PageCursorReader},
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views::{
+  combined::inbox_combined_view::InboxCombinedQuery,
+  structs::{InboxCombinedView, LocalUserView},
 };
-use lemmy_db_views::{combined::inbox_combined_view::InboxCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_inbox(
@@ -18,7 +18,7 @@ pub async fn list_inbox(
   let person_id = local_user_view.person.id;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(InboxCombined::from_cursor(cursor, &mut context.pool()).await?)
+    Some(InboxCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -33,7 +33,7 @@ pub async fn list_inbox(
   .list(&mut context.pool(), person_id)
   .await?;
 
-  let next_page = inbox.last().map(PageCursorBuilder::cursor);
+  let next_page = inbox.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListInboxResponse { inbox, next_page }))
 }

@@ -47,17 +47,21 @@ impl Collection for ApubCommunityOutbox {
 
     let mut ordered_items = vec![];
     for post_view in post_views {
-      let create = CreateOrUpdatePage::new(
+      // ignore errors, in particular if post creator was deleted
+      if let Ok(create) = CreateOrUpdatePage::new(
         post_view.post.into(),
         &post_view.creator.into(),
         owner,
         CreateOrUpdateType::Create,
         data,
       )
-      .await?;
-      let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-      let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
-      ordered_items.push(announce);
+      .await
+      {
+        let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
+        if let Ok(announce) = AnnounceActivity::new(announcable.try_into()?, owner, data) {
+          ordered_items.push(announce);
+        }
+      }
     }
 
     Ok(GroupOutbox {
