@@ -4,11 +4,30 @@ import (
 	"github.com/extism/go-pdk"
 	"errors"
 )
+type Metadata struct {
+	Name string `json:"name"`
+	Url string `json:"url"`
+	Description string `json:"description"`
+}
+
+//go:wasmexport metadata
+func metadata() int32 {
+	metadata := Metadata {
+		Name: "Test Plugin",
+		Url: "https://example.com",
+		Description: "Plugin to test Lemmy feature",
+	}
+	err := pdk.OutputJSON(metadata)
+	if err != nil {
+		pdk.SetError(err)
+		return 1
+	}
+	return 0
+}
 
 //go:wasmexport create_local_post
-func api_before_post_post() int32 {
+func create_local_post() int32 {
 	params := make(map[string]interface{})
-	// use json input helper, which automatically unmarshals the plugin input into your struct
 	err := pdk.InputJSON(&params)
 	if err != nil {
 		pdk.SetError(err)
@@ -22,7 +41,6 @@ func api_before_post_post() int32 {
 		return 1
 	}
 
-	// use json output helper, which automatically marshals your struct to the plugin output
 	err = pdk.OutputJSON(params)
 	if err != nil {
 		pdk.SetError(err)

@@ -1,4 +1,4 @@
-use crate::federate_retry_sleep_duration;
+use crate::{federate_retry_sleep_duration, plugins::PluginMetadata};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{
@@ -433,6 +433,7 @@ pub struct GetSiteResponse {
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.
   pub image_upload_disabled: bool,
+  pub active_plugins: Vec<PluginMetadata>,
 }
 
 #[skip_serializing_none]
