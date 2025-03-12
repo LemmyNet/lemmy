@@ -16,6 +16,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl LocalImage {

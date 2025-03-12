@@ -42,6 +42,7 @@ pub async fn list_comment_likes(
     data.comment_id,
     cursor_data,
     data.page_back,
+    data.limit,
   )
   .await?;
 

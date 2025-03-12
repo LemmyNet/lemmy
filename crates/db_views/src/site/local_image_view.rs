@@ -6,9 +6,10 @@ use lemmy_db_schema::{
   newtypes::{LocalUserId, PaginationCursor},
   schema::{local_image, local_user, person},
   source::images::LocalImage,
-  traits::PageCursorBuilder,
+  traits::PaginationCursorBuilder,
   utils::{get_conn, DbPool},
 };
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -74,9 +75,32 @@ impl LocalImageView {
   }
 }
 
-impl PageCursorBuilder for LocalImageView {
-  fn cursor(&self) -> PaginationCursor {
+impl PaginationCursorBuilder for LocalImageView {
+  type CursorData = LocalImage;
+  fn to_cursor(&self) -> PaginationCursor {
     // Use pictrs alias
     PaginationCursor(format!("A{}", self.local_image.pictrs_alias))
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+
+    // This isn't an id, but a string
+    let alias = cursor
+      .0
+      .split_at_checked(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
+      .1;
+
+    let token = local_image::table
+      .select(Self::CursorData::as_select())
+      .filter(local_image::pictrs_alias.eq(alias))
+      .first(conn)
+      .await?;
+
+    Ok(token)
   }
 }

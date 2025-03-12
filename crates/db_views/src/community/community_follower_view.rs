@@ -14,14 +14,19 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
   schema::{community, community_actions, person},
   source::{
-    community::{Community, CommunityFollowerState},
+    community::{
+      community_actions_keys as key,
+      Community,
+      CommunityActions,
+      CommunityFollowerState,
+    },
     person::Person,
   },
-  traits::PageCursorBuilder,
-  utils::{get_conn, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, DbPool, ReverseTimestampKey},
   CommunityVisibility,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -113,6 +118,7 @@ impl CommunityFollowerView {
     pending_only: bool,
     cursor_data: Option<Person>,
     page_back: Option<bool>,
+    limit: Option<i64>,
   ) -> Result<Vec<PendingFollow>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (person_alias, community_follower_alias) = diesel::alias!(
@@ -164,8 +170,9 @@ impl CommunityFollowerView {
       query =
         query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
     }
-    // TODO is this correct?
-    query = query.order_by(community_actions::followed.asc());
+
+    let limit = limit_fetch(limit)?;
+    query = query.limit(limit);
 
     let mut query = PaginatedQueryBuilder::new(query);
 
@@ -175,10 +182,9 @@ impl CommunityFollowerView {
       query = query.after(cursor_data);
     }
 
+    query = query.then_desc(ReverseTimestampKey(key::followed));
+
     let res = query
-      .order_by(community_actions::followed.asc())
-      .limit(limit)
-      .offset(offset)
       .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
       .await?;
     Ok(
@@ -265,9 +271,25 @@ impl CommunityFollowerView {
   }
 }
 
-impl PageCursorBuilder for PendingFollow {
-  fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('P', self.person.id.0)
+impl PaginationCursorBuilder for CommunityFollowerView {
+  type CursorData = CommunityActions;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('P', self.follower.id.0)
+  }
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = community_actions::table
+      .select(Self::CursorData::as_select())
+      .filter(community_actions::person_id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
   }
 }
 

@@ -7,6 +7,8 @@ use crate::{
   CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use strum::{Display, EnumString};
@@ -14,10 +16,11 @@ use strum::{Display, EnumString};
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -177,7 +180,14 @@ pub struct CommunityUpdateForm {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(
   feature = "full",
@@ -187,6 +197,7 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_actions_keys))]
 pub struct CommunityActions {
   pub community_id: CommunityId,
   pub person_id: PersonId,

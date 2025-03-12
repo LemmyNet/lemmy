@@ -176,7 +176,6 @@ impl PersonSavedCombinedViewInternal {
   }
 }
 
->>>>>>> remove-aggregate-tables
 impl PersonSavedCombinedQuery {
   pub async fn list(
     self,

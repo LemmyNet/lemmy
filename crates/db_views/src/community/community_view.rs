@@ -14,12 +14,16 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aggregates::structs::community_aggregates_keys as key,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommunityId, PaginationCursor, PersonId},
   schema::{community, community_actions, instance_actions, local_user},
-  source::{community::Community, local_user::LocalUser, site::Site},
-  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  source::{
+    community::{community_keys as key, Community},
+    local_user::LocalUser,
+    site::Site,
+  },
+  traits::PaginationCursorBuilder,
+  utils::{functions::lower, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -106,9 +110,26 @@ impl CommunityView {
   }
 }
 
-impl PageCursorBuilder for CommunityView {
-  fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('C', self.community.id.0)
+impl PaginationCursorBuilder for CommunityView {
+  type CursorData = Community;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('C', self.community.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = community::table
+      .select(Self::CursorData::as_select())
+      .filter(community::id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
   }
 }
 
@@ -119,6 +140,7 @@ pub struct CommunityQuery<'a> {
   pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
   pub title_only: Option<bool>,
+  pub is_mod_or_admin: Option<bool>,
   pub show_nsfw: Option<bool>,
   pub cursor_data: Option<Community>,
   pub page_back: Option<bool>,
@@ -135,7 +157,7 @@ impl CommunityQuery<'_> {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !o.is_mod_or_admin {
+    if !o.is_mod_or_admin.unwrap_or_default() {
       query = query
         .filter(Community::hide_removed_and_deleted())
         .filter(filter_not_unlisted_or_is_subscribed());
@@ -198,16 +220,16 @@ impl CommunityQuery<'_> {
       Hot => query = query.then_desc(key::hot_rank),
       Comments => query = query.then_desc(key::comments),
       Posts => query = query.then_desc(key::posts),
-      New => query = query.then_desc(community_keys::published),
-      Old => query = query.then_desc(ReverseTimestampKey(community_keys::published)),
+      New => query = query.then_desc(key::published),
+      Old => query = query.then_desc(ReverseTimestampKey(key::published)),
       Subscribers => query = query.then_desc(key::subscribers),
       SubscribersLocal => query = query.then_desc(key::subscribers_local),
       ActiveSixMonths => query = query.then_desc(key::users_active_half_year),
       ActiveMonthly => query = query.then_desc(key::users_active_month),
       ActiveWeekly => query = query.then_desc(key::users_active_week),
       ActiveDaily => query = query.then_desc(key::users_active_day),
-      NameAsc => query = query.then_desc(ReverseTimestampKey(lower(community_keys::name))),
-      NameDesc => query = query.then_desc(lower(community_keys::name)),
+      NameAsc => query = query.then_desc(ReverseTimestampKey(lower(key::name))),
+      NameDesc => query = query.then_desc(lower(key::name)),
     };
 
     query.load::<CommunityView>(conn).await

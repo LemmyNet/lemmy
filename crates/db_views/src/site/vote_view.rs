@@ -6,6 +6,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -14,13 +15,31 @@ use lemmy_db_schema::{
   newtypes::{CommentId, PaginationCursor, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
   source::person::Person,
-  traits::PageCursorBuilder,
-  utils::{get_conn, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
 
-impl PageCursorBuilder for VoteView {
-  fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('P', self.creator.id.0)
+impl PaginationCursorBuilder for VoteView {
+  type CursorData = Person;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('P', self.creator.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = person::table
+      .select(Self::CursorData::as_select())
+      .filter(person::id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
   }
 }
 
@@ -30,8 +49,10 @@ impl VoteView {
     post_id: PostId,
     cursor_data: Option<Person>,
     page_back: Option<bool>,
+    limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -58,7 +79,9 @@ impl VoteView {
           .is_not_null(),
         post_actions::like_score.assume_not_null(),
       ))
+      // TODO this early order by is wrong
       .order_by(post_actions::like_score)
+      .limit(limit)
       .into_boxed();
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -77,8 +100,10 @@ impl VoteView {
     comment_id: CommentId,
     cursor_data: Option<Person>,
     page_back: Option<bool>,
+    limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -105,7 +130,9 @@ impl VoteView {
           .is_not_null(),
         comment_actions::like_score.assume_not_null(),
       ))
+      // TODO this early order by is wrong
       .order_by(comment_actions::like_score)
+      .limit(limit)
       .into_boxed();
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -199,7 +226,8 @@ mod tests {
     expected_post_vote_views[1].creator.post_count = 1;
     expected_post_vote_views[1].creator.comment_count = 1;
 
-    let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
+    let read_post_vote_views =
+      VoteView::list_for_post(pool, inserted_post.id, None, None, None).await?;
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
@@ -226,7 +254,7 @@ mod tests {
     expected_comment_vote_views[0].creator.comment_count = 1;
 
     let read_comment_vote_views =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None).await?;
     assert_eq!(read_comment_vote_views, expected_comment_vote_views);
 
     // Ban timmy from that community
@@ -235,14 +263,14 @@ mod tests {
 
     // Make sure creator_banned_from_community is true
     let read_comment_vote_views_after_ban =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None).await?;
 
     assert!(read_comment_vote_views_after_ban
       .first()
       .is_some_and(|c| c.creator_banned_from_community));
 
     let read_post_vote_views_after_ban =
-      VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
+      VoteView::list_for_post(pool, inserted_post.id, None, None, None).await?;
 
     assert!(read_post_vote_views_after_ban
       .get(1)

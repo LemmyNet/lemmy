@@ -127,6 +127,8 @@ pub struct GetComments {
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
@@ -167,6 +169,8 @@ pub struct ListCommentLikes {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
