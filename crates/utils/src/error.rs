@@ -98,7 +98,6 @@ pub enum LemmyErrorType {
   CommunityUserAlreadyBanned,
   CommunityBlockAlreadyExists,
   CommunityFollowerAlreadyExists,
-  CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
   CouldntLikePost,

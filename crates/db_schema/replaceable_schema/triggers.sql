@@ -595,7 +595,7 @@ CALL r.create_person_saved_combined_trigger ('comment');
 -- mod_ban
 -- mod_ban_from_community
 -- mod_feature_post
--- mod_hide_community
+-- mod_change_community_visibility
 -- mod_lock_post
 -- mod_remove_comment
 -- mod_remove_community
@@ -646,7 +646,7 @@ CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
 
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
 
-CALL r.create_modlog_combined_trigger ('mod_hide_community');
+CALL r.create_modlog_combined_trigger ('mod_change_community_visibility');
 
 CALL r.create_modlog_combined_trigger ('mod_lock_post');
 

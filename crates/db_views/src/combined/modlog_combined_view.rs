@@ -1,23 +1,26 @@
-use crate::structs::{
-  AdminAllowInstanceView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModFeaturePostView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-  ModlogCombinedView,
-  ModlogCombinedViewInternal,
+use crate::{
+  structs::{
+    AdminAllowInstanceView,
+    AdminBlockInstanceView,
+    AdminPurgeCommentView,
+    AdminPurgeCommunityView,
+    AdminPurgePersonView,
+    AdminPurgePostView,
+    ModAddCommunityView,
+    ModAddView,
+    ModBanFromCommunityView,
+    ModBanView,
+    ModChangeCommunityVisibilityView,
+    ModFeaturePostView,
+    ModLockPostView,
+    ModRemoveCommentView,
+    ModRemoveCommunityView,
+    ModRemovePostView,
+    ModTransferCommunityView,
+    ModlogCombinedView,
+    ModlogCombinedViewInternal,
+  },
+  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -49,8 +52,8 @@ use lemmy_db_schema::{
     mod_add_community,
     mod_ban,
     mod_ban_from_community,
+    mod_change_community_visibility,
     mod_feature_post,
-    mod_hide_community,
     mod_lock_post,
     mod_remove_comment,
     mod_remove_community,
@@ -103,7 +106,7 @@ impl ModlogCombinedViewInternal {
             .or(mod_ban::mod_person_id.eq(person::id))
             .or(mod_ban_from_community::mod_person_id.eq(person::id))
             .or(mod_feature_post::mod_person_id.eq(person::id))
-            .or(mod_hide_community::mod_person_id.eq(person::id))
+            .or(mod_change_community_visibility::mod_person_id.eq(person::id))
             .or(mod_lock_post::mod_person_id.eq(person::id))
             .or(mod_remove_comment::mod_person_id.eq(person::id))
             .or(mod_remove_community::mod_person_id.eq(person::id))
@@ -167,7 +170,7 @@ impl ModlogCombinedViewInternal {
             .is_not_null()
             .and(post::community_id.eq(community::id)),
         )
-        .or(mod_hide_community::community_id.eq(community::id))
+        .or(mod_change_community_visibility::community_id.eq(community::id))
         .or(
           mod_lock_post::id
             .is_not_null()
@@ -211,7 +214,7 @@ impl ModlogCombinedViewInternal {
       .left_join(mod_ban::table)
       .left_join(mod_ban_from_community::table)
       .left_join(mod_feature_post::table)
-      .left_join(mod_hide_community::table)
+      .left_join(mod_change_community_visibility::table)
       .left_join(mod_lock_post::table)
       .left_join(mod_remove_comment::table)
       .left_join(mod_remove_community::table)
@@ -230,24 +233,25 @@ impl ModlogCombinedViewInternal {
 impl PaginationCursorBuilder for ModlogCombinedView {
   type CursorData = ModlogCombined;
   fn to_cursor(&self) -> PaginationCursor {
+    use ModlogCombinedView::*;
     let (prefix, id) = match &self {
-      ModlogCombinedView::AdminAllowInstance(v) => ('A', v.admin_allow_instance.id.0),
-      ModlogCombinedView::AdminBlockInstance(v) => ('B', v.admin_block_instance.id.0),
-      ModlogCombinedView::AdminPurgeComment(v) => ('C', v.admin_purge_comment.id.0),
-      ModlogCombinedView::AdminPurgeCommunity(v) => ('D', v.admin_purge_community.id.0),
-      ModlogCombinedView::AdminPurgePerson(v) => ('E', v.admin_purge_person.id.0),
-      ModlogCombinedView::AdminPurgePost(v) => ('F', v.admin_purge_post.id.0),
-      ModlogCombinedView::ModAdd(v) => ('G', v.mod_add.id.0),
-      ModlogCombinedView::ModAddCommunity(v) => ('H', v.mod_add_community.id.0),
-      ModlogCombinedView::ModBan(v) => ('I', v.mod_ban.id.0),
-      ModlogCombinedView::ModBanFromCommunity(v) => ('J', v.mod_ban_from_community.id.0),
-      ModlogCombinedView::ModFeaturePost(v) => ('K', v.mod_feature_post.id.0),
-      ModlogCombinedView::ModHideCommunity(v) => ('L', v.mod_hide_community.id.0),
-      ModlogCombinedView::ModLockPost(v) => ('M', v.mod_lock_post.id.0),
-      ModlogCombinedView::ModRemoveComment(v) => ('N', v.mod_remove_comment.id.0),
-      ModlogCombinedView::ModRemoveCommunity(v) => ('O', v.mod_remove_community.id.0),
-      ModlogCombinedView::ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
-      ModlogCombinedView::ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
+      AdminAllowInstance(v) => ('A', v.admin_allow_instance.id.0),
+      AdminBlockInstance(v) => ('B', v.admin_block_instance.id.0),
+      AdminPurgeComment(v) => ('C', v.admin_purge_comment.id.0),
+      AdminPurgeCommunity(v) => ('D', v.admin_purge_community.id.0),
+      AdminPurgePerson(v) => ('E', v.admin_purge_person.id.0),
+      AdminPurgePost(v) => ('F', v.admin_purge_post.id.0),
+      ModAdd(v) => ('G', v.mod_add.id.0),
+      ModAddCommunity(v) => ('H', v.mod_add_community.id.0),
+      ModBan(v) => ('I', v.mod_ban.id.0),
+      ModBanFromCommunity(v) => ('J', v.mod_ban_from_community.id.0),
+      ModFeaturePost(v) => ('K', v.mod_feature_post.id.0),
+      ModChangeCommunityVisibility(v) => ('L', v.mod_change_community_visibility.id.0),
+      ModLockPost(v) => ('M', v.mod_lock_post.id.0),
+      ModRemoveComment(v) => ('N', v.mod_remove_comment.id.0),
+      ModRemoveCommunity(v) => ('O', v.mod_remove_community.id.0),
+      ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
+      ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
     };
     PaginationCursor::new(prefix, id)
   }
@@ -275,7 +279,7 @@ impl PaginationCursorBuilder for ModlogCombinedView {
       'I' => query.filter(modlog_combined::mod_ban_id.eq(id)),
       'J' => query.filter(modlog_combined::mod_ban_from_community_id.eq(id)),
       'K' => query.filter(modlog_combined::mod_feature_post_id.eq(id)),
-      'L' => query.filter(modlog_combined::mod_hide_community_id.eq(id)),
+      'L' => query.filter(modlog_combined::mod_change_community_visibility_id.eq(id)),
       'M' => query.filter(modlog_combined::mod_lock_post_id.eq(id)),
       'N' => query.filter(modlog_combined::mod_remove_comment_id.eq(id)),
       'O' => query.filter(modlog_combined::mod_remove_community_id.eq(id)),
@@ -355,7 +359,9 @@ impl ModlogCombinedQuery<'_> {
         }
         ModAdd => query.filter(modlog_combined::mod_add_id.is_not_null()),
         ModBan => query.filter(modlog_combined::mod_ban_id.is_not_null()),
-        ModHideCommunity => query.filter(modlog_combined::mod_hide_community_id.is_not_null()),
+        ModChangeCommunityVisibility => {
+          query.filter(modlog_combined::mod_change_community_visibility_id.is_not_null())
+        }
         AdminPurgePerson => query.filter(modlog_combined::admin_purge_person_id.is_not_null()),
         AdminPurgeCommunity => {
           query.filter(modlog_combined::admin_purge_community_id.is_not_null())
@@ -367,13 +373,12 @@ impl ModlogCombinedQuery<'_> {
       }
     }
 
-    let is_subscribed = community_actions::followed.is_not_null();
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
-      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => query
         .filter(community::local.eq(true))
-        .filter(community::hidden.eq(false).or(is_subscribed)),
+        .filter(filter_not_hidden_or_is_subscribed()),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 
@@ -507,14 +512,16 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
         community,
         post,
       }))
-    } else if let (Some(mod_hide_community), Some(community)) =
-      (v.mod_hide_community, v.community.clone())
+    } else if let (Some(mod_change_community_visibility), Some(community)) =
+      (v.mod_change_community_visibility, v.community.clone())
     {
-      Some(ModlogCombinedView::ModHideCommunity(ModHideCommunityView {
-        mod_hide_community,
-        admin: v.moderator,
-        community,
-      }))
+      Some(ModlogCombinedView::ModChangeCommunityVisibility(
+        ModChangeCommunityVisibilityView {
+          mod_change_community_visibility,
+          moderator: v.moderator,
+          community,
+        },
+      ))
     } else if let (Some(mod_lock_post), Some(other_person), Some(community), Some(post)) = (
       v.mod_lock_post,
       v.other_person.clone(),
@@ -626,10 +633,10 @@ mod tests {
           ModBanForm,
           ModBanFromCommunity,
           ModBanFromCommunityForm,
+          ModChangeCommunityVisibility,
+          ModChangeCommunityVisibilityForm,
           ModFeaturePost,
           ModFeaturePostForm,
-          ModHideCommunity,
-          ModHideCommunityForm,
           ModLockPost,
           ModLockPostForm,
           ModRemoveComment,
@@ -647,6 +654,7 @@ mod tests {
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
+    CommunityVisibility,
     ModlogActionType,
   };
   use lemmy_utils::error::LemmyResult;
@@ -778,43 +786,49 @@ mod tests {
     };
     AdminPurgePost::create(pool, &form).await?;
 
-    let form = ModHideCommunityForm {
+    let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.timmy.id,
       community_id: data.community.id,
-      hidden: Some(true),
+      visibility: CommunityVisibility::Unlisted,
       reason: None,
     };
-    ModHideCommunity::create(pool, &form).await?;
+    ModChangeCommunityVisibility::create(pool, &form).await?;
 
     // A 2nd mod hide community, but to a different community, and with jessica
-    let form = ModHideCommunityForm {
+    let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.jessica.id,
       community_id: data.community_2.id,
-      hidden: Some(true),
+      visibility: CommunityVisibility::Unlisted,
       reason: None,
     };
-    ModHideCommunity::create(pool, &form).await?;
+    ModChangeCommunityVisibility::create(pool, &form).await?;
 
     let modlog = ModlogCombinedQuery::default().list(pool).await?;
     assert_eq!(8, modlog.len());
 
-    if let ModlogCombinedView::ModHideCommunity(v) = &modlog[0] {
-      assert_eq!(data.community_2.id, v.mod_hide_community.community_id);
+    if let ModlogCombinedView::ModChangeCommunityVisibility(v) = &modlog[0] {
+      assert_eq!(
+        data.community_2.id,
+        v.mod_change_community_visibility.community_id
+      );
       assert_eq!(data.community_2.id, v.community.id);
       assert_eq!(
         data.jessica.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
     } else {
       panic!("wrong type");
     }
 
-    if let ModlogCombinedView::ModHideCommunity(v) = &modlog[1] {
-      assert_eq!(data.community.id, v.mod_hide_community.community_id);
+    if let ModlogCombinedView::ModChangeCommunityVisibility(v) = &modlog[1] {
+      assert_eq!(
+        data.community.id,
+        v.mod_change_community_visibility.community_id
+      );
       assert_eq!(data.community.id, v.community.id);
       assert_eq!(
         data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
     } else {
       panic!("wrong type");
@@ -906,7 +920,7 @@ mod tests {
 
     // Filter by type
     let modlog_type_filter = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModHideCommunity),
+      type_: Some(ModlogActionType::ModChangeCommunityVisibility),
       ..Default::default()
     }
     .list(pool)
@@ -915,23 +929,29 @@ mod tests {
     // 2 of these, one is jessicas
     assert_eq!(2, modlog_type_filter.len());
 
-    if let ModlogCombinedView::ModHideCommunity(v) = &modlog_type_filter[0] {
-      assert_eq!(data.community_2.id, v.mod_hide_community.community_id);
+    if let ModlogCombinedView::ModChangeCommunityVisibility(v) = &modlog_type_filter[0] {
+      assert_eq!(
+        data.community_2.id,
+        v.mod_change_community_visibility.community_id
+      );
       assert_eq!(data.community_2.id, v.community.id);
       assert_eq!(
         data.jessica.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
     } else {
       panic!("wrong type");
     }
 
-    if let ModlogCombinedView::ModHideCommunity(v) = &modlog_type_filter[1] {
-      assert_eq!(data.community.id, v.mod_hide_community.community_id);
+    if let ModlogCombinedView::ModChangeCommunityVisibility(v) = &modlog_type_filter[1] {
+      assert_eq!(
+        data.community.id,
+        v.mod_change_community_visibility.community_id
+      );
       assert_eq!(data.community.id, v.community.id);
       assert_eq!(
         data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
     } else {
       panic!("wrong type");

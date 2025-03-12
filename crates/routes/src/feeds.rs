@@ -8,7 +8,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommunityVisibility,
   ListingType,
   PostSortType,
 };
@@ -274,7 +273,7 @@ async fn get_feed_community(
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  if community.visibility != CommunityVisibility::Public {
+  if !community.visibility.can_view_without_login() {
     return Err(LemmyErrorType::NotFound.into());
   }
 

@@ -521,7 +521,7 @@ test("Content in local-only community doesn't federate", async () => {
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {
     community_id: communityRes.id,
-    visibility: "LocalOnly",
+    visibility: "LocalOnlyPublic",
   };
   await editCommunity(alpha, form);
 
