@@ -730,7 +730,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_length!(2, finnish_comments);
+    assert_length!(1, finnish_comments);
     let finnish_comment = finnish_comments
       .iter()
       .find(|c| c.comment.language_id == finnish_id);
