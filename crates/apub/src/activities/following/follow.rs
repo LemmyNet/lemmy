@@ -108,7 +108,7 @@ impl ActivityHandler for Follow {
           }
         }
         let follow_state = match c.visibility {
-          Public | Hidden => CommunityFollowerState::Accepted,
+          Public | Unlisted => CommunityFollowerState::Accepted,
           Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
           LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),

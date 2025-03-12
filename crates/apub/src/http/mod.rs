@@ -137,7 +137,7 @@ async fn check_community_content_fetchable(
   use CommunityVisibility::*;
   check_community_removed_or_deleted(community)?;
   match community.visibility {
-    Public | Hidden => Ok(()),
+    Public | Unlisted => Ok(()),
     Private => {
       let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
       if community.local {

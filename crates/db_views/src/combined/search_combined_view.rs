@@ -8,7 +8,7 @@ use crate::{
     SearchCombinedView,
     SearchCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
   dsl::not,
@@ -311,13 +311,14 @@ impl SearchCombinedQuery {
         query = query.filter(
           community::local
             .eq(true)
-            .and(filter_not_hidden_or_is_subscribed())
+            .and(filter_not_unlisted_or_is_subscribed())
             .or(search_combined::person_id.is_not_null().and(person::local)),
         );
       }
       ListingType::All => {
-        query = query
-          .filter(filter_not_hidden_or_is_subscribed().or(search_combined::person_id.is_not_null()))
+        query = query.filter(
+          filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
+        )
       }
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());

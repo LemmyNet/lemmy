@@ -1,6 +1,6 @@
 use crate::{
   structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView},
-  utils::{filter_is_subscribed, filter_not_hidden_or_is_subscribed},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
   result::Error,
@@ -131,16 +131,16 @@ impl CommunityQuery<'_> {
     if !o.is_mod_or_admin {
       query = query
         .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_hidden_or_is_subscribed());
+        .filter(filter_not_unlisted_or_is_subscribed());
     }
 
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(filter_not_hidden_or_is_subscribed()),
+        ListingType::All => query.filter(filter_not_unlisted_or_is_subscribed()),
         ListingType::Subscribed => query.filter(filter_is_subscribed()),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(filter_not_hidden_or_is_subscribed()),
+          .filter(filter_not_unlisted_or_is_subscribed()),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }
