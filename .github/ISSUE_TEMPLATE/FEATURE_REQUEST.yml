@@ -12,7 +12,7 @@ body:
       label: Requirements
       description: Before you create a bug report please do the following.
       options:
-        - label: Is this a feature request? For questions or discussions use https://lemmy.ml/c/lemmy_support
+        - label: Is this a feature request? For questions or discussions use https://lemmy.ml/c/lemmy_support or the [matrix chat](https://matrix.to/#/#lemmy:matrix.org).
           required: true
         - label: Did you check to see if this issue already exists?
           required: true

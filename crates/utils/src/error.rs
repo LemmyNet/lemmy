@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::{backtrace::Backtrace, fmt::Debug};
+use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
@@ -58,6 +58,7 @@ pub enum LemmyErrorType {
   LanguageNotAllowed,
   CouldntUpdatePost,
   NoPostEditAllowed,
+  NsfwNotAllowed,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -73,7 +74,6 @@ pub enum LemmyErrorType {
   ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
-  EmailSmtpServerNeedsAPort,
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
@@ -157,6 +157,7 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
+  CouldntParsePaginationToken,
 }
 
 /// Federation related errors, these dont need to be translated.
@@ -186,13 +187,14 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  PlatformLackingPrivateCommunitySupport,
   Unreachable,
 }
 
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::fmt;
+    use std::{fmt, backtrace::Backtrace};
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {
@@ -242,14 +244,10 @@ cfg_if! {
 
     impl actix_web::error::ResponseError for LemmyError {
       fn status_code(&self) -> actix_web::http::StatusCode {
-        if self.error_type == LemmyErrorType::IncorrectLogin {
-          return actix_web::http::StatusCode::UNAUTHORIZED;
-        }
-        if self.error_type == LemmyErrorType::NotFound {
-          return actix_web::http::StatusCode::NOT_FOUND;
-        }
-        match self.inner.downcast_ref::<diesel::result::Error>() {
-          Some(diesel::result::Error::NotFound) => actix_web::http::StatusCode::NOT_FOUND,
+        match self.error_type {
+          LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
+          LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,
+          LemmyErrorType::RateLimitError => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
           _ => actix_web::http::StatusCode::BAD_REQUEST,
         }
       }

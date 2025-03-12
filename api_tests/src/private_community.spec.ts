@@ -47,7 +47,7 @@ test("Follow a private community", async () => {
   // follow as new user
   const user = await registerUser(beta, betaUrl);
   const betaCommunity = (
-    await resolveCommunity(user, community.community_view.community.actor_id)
+    await resolveCommunity(user, community.community_view.community.ap_id)
   ).community;
   expect(betaCommunity).toBeDefined();
   expect(betaCommunity?.community.visibility).toBe("Private");
@@ -134,7 +134,7 @@ test("Only followers can view and interact with private community content", asyn
   // user is not following the community and cannot view nor create posts
   const user = await registerUser(beta, betaUrl);
   const betaCommunity = (
-    await resolveCommunity(user, community.community_view.community.actor_id)
+    await resolveCommunity(user, community.community_view.community.ap_id)
   ).community!.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
     Error("not_found"),
@@ -179,7 +179,7 @@ test("Reject follower", async () => {
   // user is not following the community and cannot view nor create posts
   const user = await registerUser(beta, betaUrl);
   const betaCommunity1 = (
-    await resolveCommunity(user, community.community_view.community.actor_id)
+    await resolveCommunity(user, community.community_view.community.ap_id)
   ).community!.community;
 
   // follow the community and reject
@@ -216,7 +216,7 @@ test("Follow a private community and receive activities", async () => {
 
   // follow with users from beta and gamma
   const betaCommunity = (
-    await resolveCommunity(beta, community.community_view.community.actor_id)
+    await resolveCommunity(beta, community.community_view.community.ap_id)
   ).community;
   expect(betaCommunity).toBeDefined();
   const betaCommunityId = betaCommunity!.community.id;
@@ -228,7 +228,7 @@ test("Follow a private community and receive activities", async () => {
   await approveFollower(alpha, alphaCommunityId);
 
   const gammaCommunityId = (
-    await resolveCommunity(gamma, community.community_view.community.actor_id)
+    await resolveCommunity(gamma, community.community_view.community.ap_id)
   ).community!.community.id;
   const follow_form_gamma: FollowCommunity = {
     community_id: gammaCommunityId,
@@ -281,7 +281,7 @@ test("Fetch remote content in private community", async () => {
   const alphaCommunityId = community.community_view.community.id;
 
   const betaCommunityId = (
-    await resolveCommunity(beta, community.community_view.community.actor_id)
+    await resolveCommunity(beta, community.community_view.community.ap_id)
   ).community!.community.id;
   const follow_form_beta: FollowCommunity = {
     community_id: betaCommunityId,
@@ -312,7 +312,7 @@ test("Fetch remote content in private community", async () => {
 
   // create gamma user
   const gammaCommunityId = (
-    await resolveCommunity(gamma, community.community_view.community.actor_id)
+    await resolveCommunity(gamma, community.community_view.community.ap_id)
   ).community!.community.id;
   const follow_form: FollowCommunity = {
     community_id: gammaCommunityId,

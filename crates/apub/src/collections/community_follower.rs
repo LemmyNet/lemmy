@@ -9,8 +9,8 @@ use activitypub_federation::{
   traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_followers_url};
-use lemmy_db_schema::aggregates::structs::CommunityAggregates;
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_schema::source::community::Community;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -33,7 +33,7 @@ impl Collection for ApubCommunityFollower {
       CommunityFollowerView::count_community_followers(&mut context.pool(), community_id).await?;
 
     Ok(GroupFollowers {
-      id: generate_followers_url(&community.actor_id)?.into(),
+      id: generate_followers_url(&community.ap_id)?.into(),
       r#type: CollectionType::Collection,
       total_items: community_followers as i32,
       items: vec![],
@@ -54,12 +54,8 @@ impl Collection for ApubCommunityFollower {
     community: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error> {
-    CommunityAggregates::update_federated_followers(
-      &mut context.pool(),
-      community.id,
-      json.total_items,
-    )
-    .await?;
+    Community::update_federated_followers(&mut context.pool(), community.id, json.total_items)
+      .await?;
 
     Ok(ApubCommunityFollower(()))
   }

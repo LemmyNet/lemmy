@@ -13,7 +13,6 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn login(
   data: Json<Login>,
   req: HttpRequest,

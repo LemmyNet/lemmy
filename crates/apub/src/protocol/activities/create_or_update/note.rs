@@ -30,7 +30,6 @@ pub struct CreateOrUpdateNote {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let post = self.object.get_parents(context).await?.0;

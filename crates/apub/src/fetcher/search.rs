@@ -14,7 +14,6 @@ use url::Url;
 /// Converts search query to object id. The query can either be an URL, which will be treated as
 /// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
 /// which gets resolved to an URL.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn search_query_to_object_id(
   mut query: String,
   context: &Data<LemmyContext>,
@@ -39,7 +38,6 @@ pub(crate) async fn search_query_to_object_id(
 /// Converts a search query to an object id.  The query MUST bbe a URL which will bbe treated
 /// as the ObjectId directly.  If the query is a webfinger identifier (@user@example.com or
 /// !community@example.com) this method will return an error.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn search_query_to_object_id_local(
   query: &str,
   context: &Data<LemmyContext>,
@@ -80,7 +78,6 @@ impl Object for SearchableObjects {
   //       a single query.
   //       we could skip this and always return an error, but then it would always fetch objects
   //       over http, and not be able to mark objects as deleted that were deleted by remote server.
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -96,7 +93,6 @@ impl Object for SearchableObjects {
     Ok(None)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       SearchableObjects::PostOrComment(pc) => pc.delete(data).await,
@@ -112,7 +108,6 @@ impl Object for SearchableObjects {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -125,7 +120,6 @@ impl Object for SearchableObjects {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     use SearchableKinds::*;
     use SearchableObjects as SO;

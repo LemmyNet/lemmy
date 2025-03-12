@@ -1,7 +1,7 @@
 use crate::{
   newtypes::{DbUrl, LocalUserId},
   schema::{image_details, local_image, remote_image},
-  source::images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
+  source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -21,7 +21,7 @@ impl LocalImage {
   pub async fn create(
     pool: &mut DbPool<'_>,
     form: &LocalImageForm,
-    image_details_form: &ImageDetailsForm,
+    image_details_form: &ImageDetailsInsertForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     conn
@@ -66,7 +66,7 @@ impl LocalImage {
   }
 
   pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {
-    let alias = url.as_str().split('/').last().ok_or(NotFound)?;
+    let alias = url.as_str().split('/').next_back().ok_or(NotFound)?;
     Self::delete_by_alias(pool, alias).await
   }
 }
@@ -102,7 +102,10 @@ impl RemoteImage {
 }
 
 impl ImageDetails {
-  pub async fn create(pool: &mut DbPool<'_>, form: &ImageDetailsForm) -> Result<usize, Error> {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &ImageDetailsInsertForm,
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(image_details::table)

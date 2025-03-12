@@ -20,8 +20,6 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{
-    action_query,
-    find_action,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     now,
@@ -35,7 +33,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl::{self, exists, insert_into, not},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   pg::Pg,
   result::Error,
@@ -49,9 +47,12 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
+use url::Url;
 
-#[async_trait]
 impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
@@ -84,7 +85,6 @@ impl Crud for Community {
   }
 }
 
-#[async_trait]
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   async fn join(
@@ -135,7 +135,7 @@ impl Community {
     timestamp: DateTime<Utc>,
     form: &CommunityInsertForm,
   ) -> Result<Self, Error> {
-    let is_new_community = match &form.actor_id {
+    let is_new_community = match &form.ap_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
@@ -144,7 +144,7 @@ impl Community {
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(community::actor_id)
+      .on_conflict(community::ap_id)
       .filter_target(coalesce(community::updated, community::published).lt(timestamp))
       .do_update()
       .set(form)
@@ -268,6 +268,31 @@ impl Community {
       .get_result::<CommunityId>(conn)
       .await
   }
+
+  #[diesel::dsl::auto_type(no_type_alias)]
+  pub fn hide_removed_and_deleted() -> _ {
+    community::removed
+      .eq(false)
+      .and(community::deleted.eq(false))
+  }
+
+  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
+  }
+
+  pub async fn update_federated_followers(
+    pool: &mut DbPool<'_>,
+    for_community_id: CommunityId,
+    new_subscribers: i32,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let new_subscribers: i64 = new_subscribers.into();
+    diesel::update(community::table.find(for_community_id))
+      .set(community::dsl::subscribers.eq(new_subscribers))
+      .get_result(conn)
+      .await
+  }
 }
 
 impl CommunityModerator {
@@ -301,7 +326,8 @@ impl CommunityModerator {
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(community_actions::became_moderator)
+    community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
       .filter(community_actions::person_id.eq(for_person_id))
       .select(community_actions::community_id)
       .load::<CommunityId>(conn)
@@ -322,7 +348,8 @@ impl CommunityModerator {
     persons.push(mod_person_id);
     persons.dedup();
 
-    let res = action_query(community_actions::became_moderator)
+    let res = community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
       .filter(community_actions::community_id.eq(for_community_id))
       .filter(community_actions::person_id.eq_any(persons))
       .order_by(community_actions::became_moderator)
@@ -340,7 +367,6 @@ impl CommunityModerator {
   }
 }
 
-#[async_trait]
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   async fn ban(
@@ -382,10 +408,6 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_state> {
-    community_actions::follow_state.nullable()
-  }
-
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
   pub async fn check_has_local_followers(
@@ -393,14 +415,14 @@ impl CommunityFollower {
     remote_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      action_query(community_actions::followed)
-        .filter(community_actions::community_id.eq(remote_community_id)),
-    ))
-    .get_result::<bool>(conn)
-    .await?
-    .then_some(())
-    .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
+    let find_action = community_actions::table
+      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::community_id.eq(remote_community_id));
+    select(exists(find_action))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
 
   pub async fn approve(
@@ -410,18 +432,26 @@ impl CommunityFollower {
     approver_id: PersonId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(find_action(
-      community_actions::followed,
-      (follower_id, community_id),
-    ))
-    .set((
-      community_actions::follow_state.eq(CommunityFollowerState::Accepted),
-      community_actions::follow_approver_id.eq(approver_id),
-    ))
-    .execute(conn)
-    .await?;
+    let find_action = community_actions::table
+      .find((follower_id, community_id))
+      .filter(community_actions::followed.is_not_null());
+    diesel::update(find_action)
+      .set((
+        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_approver_id.eq(approver_id),
+      ))
+      .execute(conn)
+      .await?;
     Ok(())
   }
+}
+
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
+#[diesel::dsl::auto_type]
+pub fn community_follower_select_subscribed_type() -> _ {
+  community_actions::follow_state.nullable()
 }
 
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
@@ -438,7 +468,6 @@ impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerSt
   }
 }
 
-#[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<Self, Error> {
@@ -462,14 +491,14 @@ impl Followable for CommunityFollower {
     person_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(find_action(
-      community_actions::follow_state,
-      (person_id, community_id),
-    ))
-    .set(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
-    .returning(Self::as_select())
-    .get_result::<Self>(conn)
-    .await
+    let find_action = community_actions::table
+      .find((person_id, community_id))
+      .filter(community_actions::follow_state.is_not_null());
+    diesel::update(find_action)
+      .set(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
   }
   async fn unfollow(
     pool: &mut DbPool<'_>,
@@ -485,7 +514,6 @@ impl Followable for CommunityFollower {
   }
 }
 
-#[async_trait]
 impl ApubActor for Community {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
@@ -493,7 +521,7 @@ impl ApubActor for Community {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::actor_id.eq(object_id))
+      .filter(community::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -510,9 +538,7 @@ impl ApubActor for Community {
       .filter(community::local.eq(true))
       .filter(lower(community::name).eq(community_name.to_lowercase()));
     if !include_deleted {
-      q = q
-        .filter(community::deleted.eq(false))
-        .filter(community::removed.eq(false));
+      q = q.filter(Self::hide_removed_and_deleted())
     }
     q.first(conn).await.optional()
   }
@@ -538,6 +564,7 @@ impl ApubActor for Community {
 mod tests {
   use crate::{
     source::{
+      comment::{Comment, CommentInsertForm},
       community::{
         Community,
         CommunityFollower,
@@ -553,9 +580,10 @@ mod tests {
       instance::Instance,
       local_user::LocalUser,
       person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
     CommunityVisibility,
   };
   use lemmy_utils::error::LemmyResult;
@@ -595,7 +623,7 @@ mod tests {
       deleted: false,
       published: inserted_community.published,
       updated: None,
-      actor_id: inserted_community.actor_id.clone(),
+      ap_id: inserted_community.ap_id.clone(),
       local: true,
       private_key: None,
       public_key: "pubkey".to_owned(),
@@ -611,6 +639,18 @@ mod tests {
       instance_id: inserted_instance.id,
       visibility: CommunityVisibility::Public,
       random_number: inserted_community.random_number,
+      subscribers: 1,
+      posts: 0,
+      comments: 0,
+      users_active_day: 0,
+      users_active_week: 0,
+      users_active_month: 0,
+      users_active_half_year: 0,
+      hot_rank: RANK_DEFAULT,
+      subscribers_local: 1,
+      report_count: 0,
+      unresolved_report_count: 0,
+      interactions_month: 0,
     };
 
     let community_follower_form = CommunityFollowerForm {
@@ -718,7 +758,6 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_community, read_community);
-    assert_eq!(expected_community, inserted_community);
     assert_eq!(expected_community, updated_community);
     assert_eq!(expected_community_follower, inserted_community_follower);
     assert_eq!(expected_community_moderator, inserted_bobby_moderator);
@@ -728,6 +767,144 @@ mod tests {
     assert_eq!(uplete::Count::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_aggregates() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
+
+    let inserted_person = Person::create(pool, &new_person).await?;
+
+    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_community_agg");
+
+    let another_inserted_person = Person::create(pool, &another_person).await?;
+
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_community_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let another_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_community_agg_2".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let another_inserted_community = Community::create(pool, &another_community).await?;
+
+    let first_person_follow = CommunityFollowerForm {
+      community_id: inserted_community.id,
+      person_id: inserted_person.id,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
+    };
+
+    CommunityFollower::follow(pool, &first_person_follow).await?;
+
+    let second_person_follow = CommunityFollowerForm {
+      community_id: inserted_community.id,
+      person_id: another_inserted_person.id,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
+    };
+
+    CommunityFollower::follow(pool, &second_person_follow).await?;
+
+    let another_community_follow = CommunityFollowerForm {
+      community_id: another_inserted_community.id,
+      person_id: inserted_person.id,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
+    };
+
+    CommunityFollower::follow(pool, &another_community_follow).await?;
+
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+    let _inserted_child_comment =
+      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
+
+    let community_aggregates_before_delete = Community::read(pool, inserted_community.id).await?;
+
+    assert_eq!(2, community_aggregates_before_delete.subscribers);
+    assert_eq!(2, community_aggregates_before_delete.subscribers_local);
+    assert_eq!(1, community_aggregates_before_delete.posts);
+    assert_eq!(2, community_aggregates_before_delete.comments);
+
+    // Test the other community
+    let another_community_aggs = Community::read(pool, another_inserted_community.id).await?;
+    assert_eq!(1, another_community_aggs.subscribers);
+    assert_eq!(1, another_community_aggs.subscribers_local);
+    assert_eq!(0, another_community_aggs.posts);
+    assert_eq!(0, another_community_aggs.comments);
+
+    // Unfollow test
+    CommunityFollower::unfollow(pool, &second_person_follow).await?;
+    let after_unfollow = Community::read(pool, inserted_community.id).await?;
+    assert_eq!(1, after_unfollow.subscribers);
+    assert_eq!(1, after_unfollow.subscribers_local);
+
+    // Follow again just for the later tests
+    CommunityFollower::follow(pool, &second_person_follow).await?;
+    let after_follow_again = Community::read(pool, inserted_community.id).await?;
+    assert_eq!(2, after_follow_again.subscribers);
+    assert_eq!(2, after_follow_again.subscribers_local);
+
+    // Remove a parent post (the comment count should also be 0)
+    Post::delete(pool, inserted_post.id).await?;
+    let after_parent_post_delete = Community::read(pool, inserted_community.id).await?;
+    assert_eq!(0, after_parent_post_delete.posts);
+    assert_eq!(0, after_parent_post_delete.comments);
+
+    // Remove the 2nd person
+    Person::delete(pool, another_inserted_person.id).await?;
+    let after_person_delete = Community::read(pool, inserted_community.id).await?;
+    assert_eq!(1, after_person_delete.subscribers);
+    assert_eq!(1, after_person_delete.subscribers_local);
+
+    // This should delete all the associated rows, and fire triggers
+    let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
+    assert_eq!(1, person_num_deleted);
+
+    // Delete the community
+    let community_num_deleted = Community::delete(pool, inserted_community.id).await?;
+    assert_eq!(1, community_num_deleted);
+
+    let another_community_num_deleted =
+      Community::delete(pool, another_inserted_community.id).await?;
+    assert_eq!(1, another_community_num_deleted);
+
+    // Should be none found, since the creator was deleted
+    let after_delete = Community::read(pool, inserted_community.id).await;
+    assert!(after_delete.is_err());
 
     Ok(())
   }

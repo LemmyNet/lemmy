@@ -12,14 +12,12 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views::structs::{LocalUserView, PersonView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   VERSION,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -71,8 +69,8 @@ pub async fn leave_admin(
     version: VERSION.to_string(),
     all_languages,
     discussion_languages,
-    oauth_providers: Some(oauth_providers),
-    admin_oauth_providers: None,
+    oauth_providers,
+    admin_oauth_providers: vec![],
     blocked_urls,
     tagline,
     my_user: None,

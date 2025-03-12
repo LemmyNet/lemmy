@@ -4,11 +4,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_admin},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::community_view::CommunityQuery;
+use lemmy_db_views::{
+  community::community_view::CommunityQuery,
+  structs::{LocalUserView, SiteView},
+};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_communities(
   data: Query<ListCommunities>,
   context: Data<LemmyContext>,
@@ -23,15 +24,18 @@ pub async fn list_communities(
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let sort = data.sort;
+  let time_range_seconds = data.time_range_seconds;
   let listing_type = data.type_;
   let show_nsfw = data.show_nsfw.unwrap_or_default();
   let page = data.page;
   let limit = data.limit;
   let local_user = local_user_view.map(|l| l.local_user);
+
   let communities = CommunityQuery {
     listing_type,
     show_nsfw,
     sort,
+    time_range_seconds,
     local_user: local_user.as_ref(),
     page,
     limit,

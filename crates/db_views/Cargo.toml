@@ -41,11 +41,11 @@ ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
-derive-new.workspace = true
+derive-new = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url = { workspace = true }
-test-context = "0.3.0"
+test-context = "0.4.1"

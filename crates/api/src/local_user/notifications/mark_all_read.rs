@@ -9,7 +9,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_all_notifications_read(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

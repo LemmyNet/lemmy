@@ -3,7 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
-  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -13,19 +13,21 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::object::NoteType,
-  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeMarkdownOrHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{get_url_blocklist, is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::Post,
   },
@@ -64,7 +66,6 @@ impl Object for ApubComment {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -76,7 +77,6 @@ impl Object for ApubComment {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
@@ -88,7 +88,6 @@ impl Object for ApubComment {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -110,7 +109,7 @@ impl Object for ApubComment {
     let note = Note {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
+      attributed_to: creator.ap_id.into(),
       to: generate_to(&community)?,
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
@@ -130,7 +129,6 @@ impl Object for ApubComment {
 
   /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
   /// Box::pin all large futures on the heap.
-  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
     expected_domain: &Url,
@@ -170,18 +168,16 @@ impl Object for ApubComment {
   /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
-    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let content = append_attachments_to_comment(content, &note.attachment, context).await?;
-    let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())
@@ -228,7 +224,7 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

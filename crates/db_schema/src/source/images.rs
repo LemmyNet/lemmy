@@ -62,14 +62,17 @@ pub struct ImageDetails {
   pub width: i32,
   pub height: i32,
   pub content_type: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub blurhash: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = image_details))]
-pub struct ImageDetailsForm {
+pub struct ImageDetailsInsertForm {
   pub link: DbUrl,
   pub width: i32,
   pub height: i32,
   pub content_type: String,
+  pub blurhash: Option<String>,
 }

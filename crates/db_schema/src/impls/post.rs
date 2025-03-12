@@ -1,5 +1,4 @@
 use crate::{
-  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{community, person, post, post_actions},
   source::post::{
@@ -18,10 +17,11 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::coalesce,
+    functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
     uplete,
+    DbConn,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -35,15 +35,21 @@ use diesel::{
   dsl::{count, insert_into, not},
   expression::SelectableHelper,
   result::Error,
+  BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  OptionalExtension,
   QueryDsl,
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 
-#[async_trait]
 impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
@@ -180,6 +186,19 @@ impl Post {
       .optional()
   }
 
+  pub async fn delete_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: Url,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let object_id: DbUrl = object_id.into();
+
+    diesel::update(post::table.filter(post::ap_id.eq(object_id)))
+      .set(post::deleted.eq(true))
+      .get_results::<Self>(conn)
+      .await
+  }
+
   pub async fn fetch_pictrs_posts_for_creator(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
@@ -270,9 +289,40 @@ impl Post {
       .first::<i64>(conn)
       .await
   }
+
+  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Diesel can't update based on a join, which is necessary for the scaled_rank
+    // https://github.com/diesel-rs/diesel/issues/1478
+    // Just select the metrics we need manually, for now, since its a single post anyway
+
+    let interactions_month = community::table
+      .select(community::interactions_month)
+      .inner_join(post::table.on(community::id.eq(post::community_id)))
+      .filter(post::id.eq(post_id))
+      .first::<i64>(conn)
+      .await?;
+
+    diesel::update(post::table.find(post_id))
+      .set((
+        post::hot_rank.eq(hot_rank(post::score, post::published)),
+        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro)),
+        post::scaled_rank.eq(scaled_rank(
+          post::score,
+          post::published,
+          interactions_month,
+        )),
+      ))
+      .get_result::<Self>(conn)
+      .await
+  }
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
+  }
 }
 
-#[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
@@ -301,7 +351,6 @@ impl Likeable for PostLike {
   }
 }
 
-#[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
@@ -418,6 +467,14 @@ impl PostActionsCursor {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
+    Self::read_conn(conn, post_id, person_id).await
+  }
+
+  pub async fn read_conn(
+    conn: &mut DbConn<'_>,
+    post_id: PostId,
+    person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
     Ok(if let Some(person_id) = person_id {
       post_actions::table
         .find((person_id, post_id))
@@ -434,9 +491,9 @@ impl PostActionsCursor {
 
 #[cfg(test)]
 mod tests {
-
   use crate::{
     source::{
+      comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -453,9 +510,10 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
   };
   use chrono::DateTime;
+  use diesel::result::Error;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -527,6 +585,19 @@ mod tests {
       featured_local: false,
       url_content_type: None,
       scheduled_publish_time: None,
+      comments: 0,
+      controversy_rank: 0.0,
+      downvotes: 0,
+      upvotes: 1,
+      score: 1,
+      hot_rank: RANK_DEFAULT,
+      hot_rank_active: RANK_DEFAULT,
+      instance_id: inserted_instance.id,
+      newest_comment_time: inserted_post.published,
+      newest_comment_time_necro: inserted_post.published,
+      report_count: 0,
+      scaled_rank: RANK_DEFAULT,
+      unresolved_report_count: 0,
     };
 
     // Post Like
@@ -593,10 +664,209 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_post, read_post);
-    assert_eq!(expected_post, inserted_post);
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_aggregates() -> Result<(), Error> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
+
+    let inserted_person = Person::create(pool, &new_person).await?;
+
+    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_community_agg");
+
+    let another_inserted_person = Person::create(pool, &another_person).await?;
+
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_community_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+    let inserted_child_comment =
+      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
+
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+
+    PostLike::like(pool, &post_like).await?;
+
+    let post_aggs_before_delete = Post::read(pool, inserted_post.id).await?;
+
+    assert_eq!(2, post_aggs_before_delete.comments);
+    assert_eq!(1, post_aggs_before_delete.score);
+    assert_eq!(1, post_aggs_before_delete.upvotes);
+    assert_eq!(0, post_aggs_before_delete.downvotes);
+
+    // Add a post dislike from the other person
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, -1);
+
+    PostLike::like(pool, &post_dislike).await?;
+
+    let post_aggs_after_dislike = Post::read(pool, inserted_post.id).await?;
+
+    assert_eq!(2, post_aggs_after_dislike.comments);
+    assert_eq!(0, post_aggs_after_dislike.score);
+    assert_eq!(1, post_aggs_after_dislike.upvotes);
+    assert_eq!(1, post_aggs_after_dislike.downvotes);
+
+    // Remove the comments
+    Comment::delete(pool, inserted_comment.id).await?;
+    Comment::delete(pool, inserted_child_comment.id).await?;
+    let after_comment_delete = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(0, after_comment_delete.comments);
+    assert_eq!(0, after_comment_delete.score);
+    assert_eq!(1, after_comment_delete.upvotes);
+    assert_eq!(1, after_comment_delete.downvotes);
+
+    // Remove the first post like
+    PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
+    let after_like_remove = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(0, after_like_remove.comments);
+    assert_eq!(-1, after_like_remove.score);
+    assert_eq!(0, after_like_remove.upvotes);
+    assert_eq!(1, after_like_remove.downvotes);
+
+    // This should delete all the associated rows, and fire triggers
+    Person::delete(pool, another_inserted_person.id).await?;
+    let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
+    assert_eq!(1, person_num_deleted);
+
+    // Delete the community
+    let community_num_deleted = Community::delete(pool, inserted_community.id).await?;
+    assert_eq!(1, community_num_deleted);
+
+    // Should be none found, since the creator was deleted
+    let after_delete = Post::read(pool, inserted_post.id).await;
+    assert!(after_delete.is_err());
+
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_aggregates_soft_delete() -> Result<(), Error> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
+
+    let inserted_person = Person::create(pool, &new_person).await?;
+
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_community_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let post_aggregates_before = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(1, post_aggregates_before.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let post_aggregates_after_remove = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(0, post_aggregates_after_remove.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm {
+        removed: Some(false),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let post_aggregates_after_delete = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(0, post_aggregates_after_delete.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let post_aggregates_after_delete_remove = Post::read(pool, inserted_post.id).await?;
+    assert_eq!(0, post_aggregates_after_delete_remove.comments);
+
+    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

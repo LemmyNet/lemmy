@@ -1,5 +1,3 @@
-#![recursion_limit = "256"]
-
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;
@@ -12,11 +10,6 @@ extern crate diesel_derive_newtype;
 extern crate diesel_derive_enum;
 
 #[cfg(feature = "full")]
-#[macro_use]
-extern crate async_trait;
-
-pub mod aggregates;
-#[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
@@ -25,9 +18,10 @@ pub mod sensitive;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::{community_actions, person};
+  use crate::schema::{community_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
+    local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
   );
@@ -44,7 +38,7 @@ pub mod schema_setup;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {diesel::query_source::AliasedField, schema::person, ts_rs::TS};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -64,19 +58,9 @@ pub enum PostSortType {
   Hot,
   New,
   Old,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
+  Top,
   MostComments,
   NewComments,
-  TopHour,
-  TopSixHour,
-  TopTwelveHour,
-  TopThreeMonths,
-  TopSixMonths,
-  TopNineMonths,
   Controversial,
   Scaled,
 }
@@ -99,6 +83,19 @@ pub enum CommentSortType {
   New,
   Old,
   Controversial,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search sort types.
+pub enum SearchSortType {
+  #[default]
+  New,
+  Top,
+  Old,
 }
 
 #[derive(
@@ -166,11 +163,14 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
+  #[default]
   All,
   Comments,
   Posts,
@@ -229,11 +229,23 @@ pub enum InboxDataType {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A list of possible types for the various modlog actions.
+/// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
   Comments,
   Posts,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for reports.
+pub enum ReportType {
+  All,
+  Posts,
+  Comments,
+  PrivateMessages,
+  Communities,
 }
 
 #[derive(
@@ -292,13 +304,6 @@ pub enum FederationMode {
   Disable,
 }
 
-pub trait InternalToCombinedView {
-  type CombinedView;
-
-  /// Maps the combined DB row to an enum
-  fn map_to_enum(self) -> Option<Self::CombinedView>;
-}
-
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
 /// vec on failure.
 #[macro_export]
@@ -307,3 +312,32 @@ macro_rules! assert_length {
     assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
   }};
 }
+
+#[cfg(feature = "full")]
+/// A helper tuple for person alias columns
+pub type Person1AliasAllColumnsTuple = (
+  AliasedField<aliases::Person1, person::id>,
+  AliasedField<aliases::Person1, person::name>,
+  AliasedField<aliases::Person1, person::display_name>,
+  AliasedField<aliases::Person1, person::avatar>,
+  AliasedField<aliases::Person1, person::banned>,
+  AliasedField<aliases::Person1, person::published>,
+  AliasedField<aliases::Person1, person::updated>,
+  AliasedField<aliases::Person1, person::ap_id>,
+  AliasedField<aliases::Person1, person::bio>,
+  AliasedField<aliases::Person1, person::local>,
+  AliasedField<aliases::Person1, person::private_key>,
+  AliasedField<aliases::Person1, person::public_key>,
+  AliasedField<aliases::Person1, person::last_refreshed_at>,
+  AliasedField<aliases::Person1, person::banner>,
+  AliasedField<aliases::Person1, person::deleted>,
+  AliasedField<aliases::Person1, person::inbox_url>,
+  AliasedField<aliases::Person1, person::matrix_user_id>,
+  AliasedField<aliases::Person1, person::bot_account>,
+  AliasedField<aliases::Person1, person::ban_expires>,
+  AliasedField<aliases::Person1, person::instance_id>,
+  AliasedField<aliases::Person1, person::post_count>,
+  AliasedField<aliases::Person1, person::post_score>,
+  AliasedField<aliases::Person1, person::comment_count>,
+  AliasedField<aliases::Person1, person::comment_score>,
+);

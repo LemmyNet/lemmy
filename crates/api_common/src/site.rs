@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    PaginationCursor,
     PersonId,
     PostId,
     RegistrationApplicationId,
@@ -27,22 +28,22 @@ use lemmy_db_schema::{
   PostListingMode,
   PostSortType,
   RegistrationMode,
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_views::structs::{
   CommentView,
-  LocalUserView,
-  PostView,
-  RegistrationApplicationView,
-  SiteView,
-};
-use lemmy_db_views_actor::structs::{
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
+  LocalUserView,
+  ModlogCombinedView,
   PersonView,
+  PostView,
+  RegistrationApplicationView,
+  SearchCombinedView,
+  SiteView,
 };
-use lemmy_db_views_moderator::structs::{ModlogCombinedPaginationCursor, ModlogCombinedView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -52,9 +53,10 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Searches the site, given a query string, and some optional filters.
+/// Searches the site, given a search term, and some optional filters.
 pub struct Search {
-  pub q: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub search_term: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -64,13 +66,13 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<PostSortType>,
+  pub sort: Option<SearchSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -79,19 +81,21 @@ pub struct Search {
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The search response, containing lists of the return type possibilities
-// TODO this should be redone as a list of tagged enums
 pub struct SearchResponse {
-  pub type_: SearchType,
-  pub comments: Vec<CommentView>,
-  pub posts: Vec<PostView>,
-  pub communities: Vec<CommunityView>,
-  pub users: Vec<PersonView>,
+  pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -126,20 +130,30 @@ pub struct ResolveObjectResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches the modlog.
 pub struct GetModlog {
+  /// Filter by the moderator.
   #[cfg_attr(feature = "full", ts(optional))]
   pub mod_person_id: Option<PersonId>,
+  /// Filter by the community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  /// Filter by the modlog action type.
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
+  /// Filter by listing type. When not using All, it will remove the non-community modlog entries,
+  /// such as site bans, instance blocks, adding an admin, etc.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub listing_type: Option<ListingType>,
+  /// Filter by the other / modded person.
   #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
+  /// Filter by post. Will include comments of that post.
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
+  /// Filter by comment.
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -150,6 +164,9 @@ pub struct GetModlog {
 /// The modlog fetch response.
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -180,6 +197,8 @@ pub struct CreateSite {
   pub default_post_listing_mode: Option<PostListingMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub default_post_time_range_seconds: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -240,6 +259,8 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -280,6 +301,9 @@ pub struct EditSite {
   /// The default post sort, usually "active"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
+  /// A default time range limit to apply to post sorts, in seconds. 0 means none.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub default_post_time_range_seconds: Option<i32>,
   /// The default comment sort, usually "hot"
   #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
@@ -371,6 +395,9 @@ pub struct EditSite {
   /// donations.
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_donation_dialog: Option<bool>,
+  /// Block NSFW content being created
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -400,10 +427,8 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
+  pub oauth_providers: Vec<PublicOAuthProvider>,
+  pub admin_oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.

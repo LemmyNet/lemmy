@@ -20,7 +20,6 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   let mut res = HttpResponseBuilder::new(StatusCode::OK);

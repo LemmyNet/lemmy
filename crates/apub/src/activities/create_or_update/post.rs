@@ -22,7 +22,6 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
@@ -60,7 +59,6 @@ impl CreateOrUpdatePage {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub(crate) async fn send(
     post: Post,
     person_id: PersonId,
@@ -102,7 +100,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -114,7 +111,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
@@ -124,7 +120,7 @@ impl ActivityHandler for CreateOrUpdatePage {
     PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
+    Post::update_ranks(&mut context.pool(), post.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let actor = self.actor.dereference(context).await?;

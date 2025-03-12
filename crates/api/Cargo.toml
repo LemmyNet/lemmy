@@ -21,8 +21,6 @@ workspace = true
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
-lemmy_db_views_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
@@ -33,10 +31,10 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
+regex = { workspace = true }
 hound = "3.5.1"
 sitemap-rs = "0.2.2"
 totp-rs = { version = "5.6.0", features = ["gen_secret", "otpauth"] }
-actix-web-httpauth = "0.8.2"
 
 [dev-dependencies]
 serial_test = { workspace = true }

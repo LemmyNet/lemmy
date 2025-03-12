@@ -4,8 +4,7 @@ use lemmy_db_schema::{
   PostFeatureType,
   PostSortType,
 };
-use lemmy_db_views::structs::{PaginationCursor, PostView, VoteView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views::structs::{CommunityView, PostPaginationCursor, PostView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -72,7 +71,6 @@ pub struct GetPost {
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
-  pub moderators: Vec<CommunityModeratorView>,
   /// A list of cross-posts, or other times / communities this link has been posted to.
   pub cross_posts: Vec<PostView>,
 }
@@ -87,6 +85,11 @@ pub struct GetPosts {
   pub type_: Option<ListingType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<PostSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  /// Use Zero to override the local_site and local_user time_range.
+  pub time_range_seconds: Option<i32>,
   /// DEPRECATED, use page_cursor
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
@@ -122,7 +125,7 @@ pub struct GetPosts {
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
+  pub page_cursor: Option<PostPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -136,7 +139,7 @@ pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
+  pub next_page: Option<PostPaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

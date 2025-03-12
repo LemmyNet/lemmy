@@ -9,6 +9,7 @@ use lemmy_api_common::{
     check_community_user_action,
     check_post_deleted_or_removed,
     send_new_report_email_to_admins,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -22,16 +23,14 @@ use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Creates a post report and notifies the moderators of the community
-#[tracing::instrument(skip(context))]
 pub async fn create_post_report(
   data: Json<CreatePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let reason = data.reason.trim().to_string();
-  check_report_reason(&reason, &local_site)?;
+  let slur_regex = slur_regex(&context).await?;
+  check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
   let post_id = data.post_id;
@@ -53,6 +52,7 @@ pub async fn create_post_report(
     original_post_url: post_view.post.url,
     original_post_body: post_view.post.body,
     reason,
+    violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
   let report = PostReport::report(&mut context.pool(), &report_form)
@@ -62,6 +62,7 @@ pub async fn create_post_report(
   let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
+  let local_site = LocalSite::read(&mut context.pool()).await?;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &post_report_view.creator.name,

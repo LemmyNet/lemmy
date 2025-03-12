@@ -9,10 +9,10 @@
       "pt": "https://joinpeertube.org/ns#",
       "sc": "http://schema.org/",
       "Hashtag": "as:Hashtag",
-      "uuid": "sc:identifier",
       "category": "sc:category",
       "licence": "sc:license",
       "subtitleLanguage": "sc:subtitleLanguage",
+      "automaticallyGenerated": "pt:automaticallyGenerated",
       "sensitive": "as:sensitive",
       "language": "sc:inLanguage",
       "identifier": "sc:identifier",
@@ -42,6 +42,14 @@
         "@type": "sc:Number",
         "@id": "pt:tileDuration"
       },
+      "aspectRatio": {
+        "@type": "sc:Float",
+        "@id": "pt:aspectRatio"
+      },
+      "uuid": {
+        "@type": "sc:identifier",
+        "@id": "pt:uuid"
+      },
       "originallyPublishedAt": "sc:datePublished",
       "uploadDate": "sc:uploadDate",
       "hasParts": "sc:hasParts",
@@ -64,6 +72,11 @@
       "commentsEnabled": {
         "@type": "sc:Boolean",
         "@id": "pt:commentsEnabled"
+      },
+      "canReply": "pt:canReply",
+      "commentsPolicy": {
+        "@type": "sc:Number",
+        "@id": "pt:commentsPolicy"
       },
       "downloadEnabled": {
         "@type": "sc:Boolean",
@@ -92,54 +105,57 @@
       "comments": {
         "@id": "as:comments",
         "@type": "@id"
-      }
+      },
+      "PropertyValue": "sc:PropertyValue",
+      "value": "sc:value"
     }
   ],
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "cc": ["https://peertube.stream/accounts/createurs/followers"],
+  "cc": ["https://tilvids.com/accounts/thelinuxexperiment/followers"],
   "type": "Video",
-  "id": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60",
-  "name": "VU du 12/12/23 : Démission \"refrusée\"",
-  "duration": "PT383S",
-  "uuid": "46cc7342-fdd5-4583-ae16-2eeb340d3b60",
+  "id": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1",
+  "name": "Mesa, Wayland & X.org in trouble, Debian leaves X, Facebook blocks Linux: Linux & Open Source News",
+  "duration": "PT1145S",
+  "uuid": "e7946124-7b72-4ad7-9d22-844a84bb2de1",
   "category": {
-    "identifier": "11",
-    "name": "News & Politics"
+    "identifier": "15",
+    "name": "Science & Technology"
   },
-  "views": 83,
+  "licence": {
+    "identifier": "2",
+    "name": "Attribution - Share Alike"
+  },
+  "language": {
+    "identifier": "en",
+    "name": "English"
+  },
+  "views": 360,
   "sensitive": false,
   "waitTranscoding": true,
   "state": 1,
   "commentsEnabled": true,
+  "canReply": null,
+  "commentsPolicy": 1,
   "downloadEnabled": true,
-  "published": "2023-12-12T17:02:02.188Z",
-  "originallyPublishedAt": "2023-12-11T23:00:00.000Z",
-  "updated": "2023-12-14T06:40:34.279Z",
-  "tag": [
-    {
-      "type": "Hashtag",
-      "name": "France3"
-    },
-    {
-      "type": "Hashtag",
-      "name": "lezapping"
-    }
-  ],
+  "published": "2025-02-01T11:59:45.094Z",
+  "originallyPublishedAt": "2025-02-01T11:39:50.000Z",
+  "updated": "2025-02-04T09:00:50.396Z",
+  "tag": [],
   "mediaType": "text/markdown",
-  "content": "Un regard impertinent et libre, orchestré par Patrick Menais et son équipe, sur le monde de l’image.\n\nEn avant-première du lundi au samedi à17h00 sur Facebook, Twitter et YouTube.\n\nDu lundi au samedi à 20h00 sur France 5.\n\nhttps://www.facebook.com/vufrancetv\nhttps://twitter.com/VuFrancetv",
-  "support": null,
+  "content": "Head to https://squarespace.com/thelinuxexperiment to save 10% off your first purchase of a website or domain using code thelinuxexperiment\r\n\r\nGrab a brand new laptop or desktop running Linux: https://www.tuxedocomputers.com/en# \r\n\r\n\r\n👏 SUPPORT THE CHANNEL:\r\nGet access to:\r\n- a Daily Linux News show\r\n- a weekly patroncast for more personal thoughts\r\n- polls on the next topics I cover,\r\n- your name in the credits\r\n\r\nYouTube: https://www.youtube.com/@thelinuxexp/join\r\nPatreon: https://www.patreon.com/thelinuxexperiment\r\n\r\nOr, you can donate whatever you want:\r\nhttps://paypal.me/thelinuxexp\r\nLiberapay: https://liberapay.com/TheLinuxExperiment/\r\n\r\n👕 GET TLE MERCH\r\nSupport the channel AND get cool new gear: https://the-linux-experiment.creator-spring.com/\r\n\r\n🏆 FOLLOW ME ON THE FEDIVERSE:\r\nMastodon: https://mastodon.social/web/@thelinuxEXP\r\nPixelfed: https://pixelfed.social/TLENick\r\nPeerTube: https://tilvids.com/c/thelinuxexperiment_channel/videos\r\n\r\n🎙 LINUX AND OPEN SOURCE NEWS PODCAST:\r\nListen to the latestLinux and open source news, with more in depth coverage, and ad-free!  https://podcast.thelinuxexp.com\r\n\r\nTimestamps:\r\n00:00 Intro\r\n00:34 Sponsor: Squarespace\r\n01:42 Mesa, Wayland and X.org lose their hosting\r\n03:57 Debian quits Twitter\r\n06:07 GNOME 48 alpha is out\r\n08:14 Kernel wifi maintainersteps down without replacement\r\n10:15 Facebook blocked posts linked to Linux\r\n12:12 OpenAI accuses another model of stealing their stolen work\r\n14:13Steam Deck is getting outclassed\r\n17:15 Sponsor: Tuxedo Computers\r\n18:10 Support the channel\r\n\r\nLinks:\r\n\r\nMesa, Wayland and X.org lose their hosting\r\nhttps://www.phoronix.com/news/2025-XOrg-FreeDesktop-Cloud\r\n\r\nDebian quits Twitter\r\nhttps://news.itsfoss.com/debian-logs-off-twitter/\r\n\r\nGNOME 48 alpha is out\r\nhttps://discourse.gnome.org/t/gnome-48-alpha-released/26414\r\nhttps://download.gnome.org/teams/releng/48.alpha.8/NEWS\r\n\r\nKernelwifi maintainer steps down without replacement\r\nhttps://linuxiac.com/linux-kernel-surpasses-40-million-lines/\r\nhttps://www.phoronix.com/news/Linux-Wireless-Maintainer-2025\r\n\r\nFacebook blocking posts linked to Linux\r\nhttps://distrowatch.com/weekly.php?issue=20250127#sitenews\r\nhttps://www.theregister.com/2025/01/28/facebook_blocks_distrowatch/\r\n\r\nOpenAI accuses another model of stealing their stolen work\r\nhttps://www.techradar.com/pro/us-navy-bans-use-of-deepseek-in-any-capacity-due-to-potential-security-and-ethical-concerns\r\nhttps://www.techradar.com/computing/artificial-intelligence/openai-says-deepseek-used-its-models-illegally-and-it-has-evidence-to-prove-it-new-report-claims\r\n\r\nSteam Deck is getting outclassed\r\nhttps://www.forbes.com/sites/jasonevangelho/2025/01/28/the-steam-deck-suddenly-has-a-serious-switch-2-problem/",
+  "support": "Support the channel on Patreon: \r\nhttps://www.patreon.com/thelinuxexperiment\r\n\r\nSupport on Liberapay:\r\nhttps://liberapay.com/TheLinuxExperiment/",
   "subtitleLanguage": [],
   "icon": [
     {
       "type": "Image",
-      "url": "https://peertube.stream/lazy-static/thumbnails/208d2248-6fa3-4a58-a2e6-c6f176559457.jpg",
+      "url": "https://tilvids.com/lazy-static/thumbnails/904efceb-0715-476f-b0dc-b5fba6769851.jpg",
       "mediaType": "image/jpeg",
       "width": 280,
       "height": 157
     },
     {
       "type": "Image",
-      "url": "https://peertube.stream/lazy-static/previews/73d34e91-0233-443b-a1c3-d98a7ec6a87c.jpg",
+      "url": "https://tilvids.com/lazy-static/previews/ef6088ee-c83a-4fcf-8be2-58db95ca5135.jpg",
       "mediaType": "image/jpeg",
       "width": 850,
       "height": 480
@@ -152,256 +168,198 @@
       "url": [
         {
           "mediaType": "image/jpeg",
-          "href": "https://peertube.stream/lazy-static/storyboards/fb103d5f-8f76-4c8b-bc81-f952961cacfd.jpg",
-          "width": 1920,
-          "height": 1080,
+          "href": "https://tilvids.com/lazy-static/storyboards/b94d7ec4-97d4-4860-a4aa-220c5cf5beae.jpg",
+          "width": 2112,
+          "height": 1188,
           "tileWidth": 192,
           "tileHeight": 108,
-          "tileDuration": "PT4S"
+          "tileDuration": "PT10S"
         }
       ]
     }
   ],
+  "aspectRatio": 1.7778,
   "url": [
     {
       "type": "Link",
       "mediaType": "text/html",
-      "href": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60"
+      "href": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1"
     },
     {
       "type": "Link",
       "mediaType": "application/x-mpegURL",
-      "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/7847c00b-17f0-4cd9-b788-94283bd96d5b-master.m3u8",
+      "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/2020efb9-9f43-4e37-b268-3470a4bb89cd-master.m3u8",
       "tag": [
         {
           "type": "Infohash",
-          "name": "f50d9a3e851756a1fc1da7fe8b6e40f849c1f3a1"
+          "name": "bade027756842ecef7a1fb7b437dcaa52eb72350"
         },
         {
           "type": "Infohash",
-          "name": "fdddadfcf01c52808a5716ac9c0f09e379a1ca69"
+          "name": "dc1091029454a93ae893b207cfb1e7faf8d4d8b8"
         },
         {
           "type": "Infohash",
-          "name": "c309597f071c6ab59e1a6935be3dc1ceb58c9250"
-        },
-        {
-          "type": "Infohash",
-          "name": "5c28ed3e05102a678dc047a126650fe53d45ded4"
-        },
-        {
-          "type": "Infohash",
-          "name": "085f2c72c69af02913177534ec601349ca2b4f01"
-        },
-        {
-          "type": "Infohash",
-          "name": "37b9dbeab6f433e94f80a614f888e9a1e9ee3534"
-        },
-        {
-          "type": "Infohash",
-          "name": "cc15513891e63a92743730ba65ab256f8825f071"
+          "name": "c83b5123b8dcb1b81b53fbdb4c95903cf61a2022"
         },
         {
           "type": "Link",
           "name": "sha256",
           "mediaType": "application/json",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/a3f5af94-ba6b-4349-a4b0-151cebdf9af6-segments-sha256.json"
+          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/0c0d34b1-ab46-4fc8-ae02-c97c23bfb2db-segments-sha256.json"
         },
         {
           "type": "Link",
           "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/5a3db28f-a4b2-49ae-963e-7fd9414efe7c-1080-fragmented.mp4",
+          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/0b870685-4461-47a3-8fac-e5531cd8acf5-1080-fragmented.mp4",
           "height": 1080,
-          "size": 90186372,
-          "fps": 25
+          "width": 1920,
+          "size": 245864545,
+          "fps": 60,
+          "attachment": [
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "audio"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "video"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "peertube_format_flag",
+              "value": "fragmented"
+            }
+          ]
         },
         {
           "type": "Link",
           "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570438",
+          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729362",
           "height": 1080,
-          "fps": 25
+          "width": 1920,
+          "fps": 60
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/c3dd78f2-ff9b-41f1-899d-55440f512e09-1080-hls.torrent",
-          "height": 1080
+          "href": "https://tilvids.com/lazy-static/torrents/cf3222e4-b9fe-4cb3-8b43-2da8afd83895-1080-hls.torrent",
+          "height": 1080,
+          "width": 1920,
+          "fps": 60
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2Fc3dd78f2-ff9b-41f1-899d-55440f512e09-1080-hls.torrent&xt=urn:btih:944323d8a38e077cdea5c1b1aa82300d1f49076a&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F5a3db28f-a4b2-49ae-963e-7fd9414efe7c-1080-fragmented.mp4",
-          "height": 1080
+          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Fcf3222e4-b9fe-4cb3-8b43-2da8afd83895-1080-hls.torrent&xt=urn:btih:f9b4ddffa454ad6a7d5d7000d307c33f84aba1d1&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F0b870685-4461-47a3-8fac-e5531cd8acf5-1080-fragmented.mp4",
+          "height": 1080,
+          "width": 1920,
+          "fps": 60
         },
         {
           "type": "Link",
           "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/557f45f0-60b7-418c-bddd-e55701b387bb-720-fragmented.mp4",
-          "height": 720,
-          "size": 50950797,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570447",
-          "height": 720,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/0529c736-0c49-4efd-a9ff-c4989b4c2071-720-hls.torrent",
-          "height": 720
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F0529c736-0c49-4efd-a9ff-c4989b4c2071-720-hls.torrent&xt=urn:btih:a2662d0714edf3882193f782814441eb904460be&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F557f45f0-60b7-418c-bddd-e55701b387bb-720-fragmented.mp4",
-          "height": 720
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/097e6338-4c6e-4c21-8fed-7df0a245c9b3-480-fragmented.mp4",
-          "height": 480,
-          "size": 31542462,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570441",
-          "height": 480,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/56b47f85-b2de-44b1-9089-db13c8534e1c-480-hls.torrent",
-          "height": 480
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F56b47f85-b2de-44b1-9089-db13c8534e1c-480-hls.torrent&xt=urn:btih:9d1cc84a448ba531d2f5422a8910fd79580768ff&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F097e6338-4c6e-4c21-8fed-7df0a245c9b3-480-fragmented.mp4",
-          "height": 480
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/b6db1f0c-0b6f-4f26-b811-d38631f4c42b-360-fragmented.mp4",
+          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/339ea14b-0fb9-495b-870e-218a9a6c22f9-360-fragmented.mp4",
           "height": 360,
-          "size": 23389554,
-          "fps": 25
+          "width": 640,
+          "size": 62546436,
+          "fps": 30,
+          "attachment": [
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "audio"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "video"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "peertube_format_flag",
+              "value": "fragmented"
+            }
+          ]
         },
         {
           "type": "Link",
           "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570442",
+          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729352",
           "height": 360,
-          "fps": 25
+          "width": 640,
+          "fps": 30
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/89df203a-586e-4d09-b645-21c321ae81c2-360-hls.torrent",
-          "height": 360
+          "href": "https://tilvids.com/lazy-static/torrents/dbdbd47d-42e8-4544-bb78-ae7835312cab-360-hls.torrent",
+          "height": 360,
+          "width": 640,
+          "fps": 30
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F89df203a-586e-4d09-b645-21c321ae81c2-360-hls.torrent&xt=urn:btih:40dbe1b6fb96d87d0750b32b26fd52913f22c84e&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2Fb6db1f0c-0b6f-4f26-b811-d38631f4c42b-360-fragmented.mp4",
-          "height": 360
+          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Fdbdbd47d-42e8-4544-bb78-ae7835312cab-360-hls.torrent&xt=urn:btih:913416ac02f6bbfe7bb46e0b19bfe2a4a48d40b8&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F339ea14b-0fb9-495b-870e-218a9a6c22f9-360-fragmented.mp4",
+          "height": 360,
+          "width": 640,
+          "fps": 30
         },
         {
           "type": "Link",
           "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/d0d23e04-a7b2-47f9-8072-94a06dc0c402-240-fragmented.mp4",
-          "height": 240,
-          "size": 16040535,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570448",
-          "height": 240,
-          "fps": 25
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/29c43d5c-b26f-404c-a286-7aff2e2bb139-240-hls.torrent",
-          "height": 240
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F29c43d5c-b26f-404c-a286-7aff2e2bb139-240-hls.torrent&xt=urn:btih:f3f102c22d48b8a0aec19be463d8f04fb3a3f499&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2Fd0d23e04-a7b2-47f9-8072-94a06dc0c402-240-fragmented.mp4",
-          "height": 240
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/6f3b1939-67c4-45f0-bd93-2508721dda69-144-fragmented.mp4",
+          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/15585bf4-ff07-4687-8c01-537922958877-144-fragmented.mp4",
           "height": 144,
-          "size": 10969421,
-          "fps": 25
+          "width": 256,
+          "size": 31021375,
+          "fps": 30,
+          "attachment": [
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "audio"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "ffprobe_codec_type",
+              "value": "video"
+            },
+            {
+              "type": "PropertyValue",
+              "name": "peertube_format_flag",
+              "value": "fragmented"
+            }
+          ]
         },
         {
           "type": "Link",
           "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570449",
+          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729356",
           "height": 144,
-          "fps": 25
+          "width": 256,
+          "fps": 30
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/e39095d9-8fa2-4543-a66f-b4b9d6165a4e-144-hls.torrent",
-          "height": 144
+          "href": "https://tilvids.com/lazy-static/torrents/f8a4e994-7be7-46b5-b823-29e041baf687-144-hls.torrent",
+          "height": 144,
+          "width": 256,
+          "fps": 30
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2Fe39095d9-8fa2-4543-a66f-b4b9d6165a4e-144-hls.torrent&xt=urn:btih:8b263d7e814d611597a36dcd9655d959c86605a4&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F6f3b1939-67c4-45f0-bd93-2508721dda69-144-fragmented.mp4",
-          "height": 144
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/86ab6cca-46e5-4c6e-9c2c-8aef803b85f2-0-fragmented.mp4",
-          "height": 0,
-          "size": 6074306,
-          "fps": 0
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570439",
-          "height": 0,
-          "fps": 0
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://peertube.stream/lazy-static/torrents/25ae194d-c3ec-412a-886f-3b0d02599ca7-0-hls.torrent",
-          "height": 0
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F25ae194d-c3ec-412a-886f-3b0d02599ca7-0-hls.torrent&xt=urn:btih:e4458f2445732a228e9a83e2ae53a103f5e1097e&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F86ab6cca-46e5-4c6e-9c2c-8aef803b85f2-0-fragmented.mp4",
-          "height": 0
+          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Ff8a4e994-7be7-46b5-b823-29e041baf687-144-hls.torrent&xt=urn:btih:6594dbb8a43e77ae7565fcd5744019f630c97706&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F15585bf4-ff07-4687-8c01-537922958877-144-fragmented.mp4",
+          "height": 144,
+          "width": 256,
+          "fps": 30
         }
       ]
     },
@@ -409,33 +367,32 @@
       "type": "Link",
       "name": "tracker-http",
       "rel": ["tracker", "http"],
-      "href": "https://peertube.stream/tracker/announce"
+      "href": "https://tilvids.com/tracker/announce"
     },
     {
       "type": "Link",
       "name": "tracker-websocket",
       "rel": ["tracker", "websocket"],
-      "href": "wss://peertube.stream:443/tracker/socket"
+      "href": "wss://tilvids.com:443/tracker/socket"
     }
   ],
-  "likes": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/likes",
-  "dislikes": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/dislikes",
-  "shares": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/announces",
-  "comments": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/comments",
-  "hasParts": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/chapters",
+  "likes": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/likes",
+  "dislikes": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/dislikes",
+  "shares": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/announces",
+  "comments": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/comments",
+  "hasParts": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/chapters",
   "attributedTo": [
     {
       "type": "Person",
-      "id": "https://peertube.stream/accounts/createurs"
+      "id": "https://tilvids.com/accounts/thelinuxexperiment"
     },
     {
       "type": "Group",
-      "id": "https://peertube.stream/video-channels/vu"
+      "id": "https://tilvids.com/video-channels/thelinuxexperiment_channel"
     }
   ],
   "isLiveBroadcast": false,
   "liveSaveReplay": null,
   "permanentLive": null,
-  "latencyMode": null,
-  "peertubeLiveChat": false
+  "latencyMode": null
 }

@@ -28,7 +28,6 @@ use lemmy_api_common::{
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
@@ -47,7 +46,6 @@ use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
-  #[tracing::instrument(skip(comment, person_id, kind, context))]
   pub(crate) async fn send(
     comment: Comment,
     person_id: PersonId,
@@ -120,7 +118,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -136,7 +133,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
@@ -163,7 +159,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     CommentLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank
-    CommentAggregates::update_hot_rank(&mut context.pool(), comment.id).await?;
+    Comment::update_hot_rank(&mut context.pool(), comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let actor = self.actor.dereference(context).await?;

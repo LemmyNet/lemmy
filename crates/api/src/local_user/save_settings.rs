@@ -3,23 +3,17 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{
-    get_url_blocklist,
-    local_site_to_slur_regex,
-    process_markdown_opt,
-    send_verification_email,
-  },
+  utils::{get_url_blocklist, process_markdown_opt, send_verification_email, slur_regex},
   SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},
-    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::diesel_string_update,
+  utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -28,7 +22,6 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
@@ -36,7 +29,7 @@ pub async fn save_user_settings(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let slur_regex = local_site_to_slur_regex(&site_view.local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let bio = diesel_string_update(
     process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
@@ -55,7 +48,9 @@ pub async fn save_user_settings(
     if previous_email.deref() != email {
       LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
-        &local_user_view,
+        &site_view.local_site,
+        &local_user_view.local_user,
+        &local_user_view.person,
         email,
         &mut context.pool(),
         context.settings(),
@@ -91,6 +86,8 @@ pub async fn save_user_settings(
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
   let default_post_sort_type = data.default_post_sort_type;
+  let default_post_time_range_seconds =
+    diesel_opt_number_update(data.default_post_time_range_seconds);
   let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
@@ -120,6 +117,7 @@ pub async fn save_user_settings(
     blur_nsfw: data.blur_nsfw,
     show_bot_accounts: data.show_bot_accounts,
     default_post_sort_type,
+    default_post_time_range_seconds,
     default_comment_sort_type,
     default_listing_type,
     theme: data.theme.clone(),
@@ -133,20 +131,15 @@ pub async fn save_user_settings(
     collapse_bot_comments: data.collapse_bot_comments,
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     hide_media: data.hide_media,
+    // Update the vote display modes
+    show_score: data.show_scores,
+    show_upvotes: data.show_upvotes,
+    show_downvotes: data.show_downvotes,
+    show_upvote_percentage: data.show_upvote_percentage,
     ..Default::default()
   };
 
   LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
-
-  // Update the vote display modes
-  let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
-    score: data.show_scores,
-    upvotes: data.show_upvotes,
-    downvotes: data.show_downvotes,
-    upvote_percentage: data.show_upvote_percentage,
-  };
-  LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
-    .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

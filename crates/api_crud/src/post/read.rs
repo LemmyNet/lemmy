@@ -12,13 +12,11 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{LocalUserView, PostView, SiteView},
+  post::post_view::PostQuery,
+  structs::{CommunityView, LocalUserView, PostView, SiteView},
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn get_post(
   data: Query<GetPost>,
   context: Data<LemmyContext>,
@@ -71,7 +69,7 @@ pub async fn get_post(
     update_read_comments(
       person_id,
       post_id,
-      post_view.counts.comments,
+      post_view.post.comments,
       &mut context.pool(),
     )
     .await?;
@@ -85,8 +83,6 @@ pub async fn get_post(
     is_mod_or_admin,
   )
   .await?;
-
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
@@ -110,7 +106,6 @@ pub async fn get_post(
   Ok(Json(GetPostResponse {
     post_view,
     community_view,
-    moderators,
     cross_posts,
   }))
 }

@@ -13,8 +13,8 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{FederationError, LemmyResult};
 
-#[async_trait]
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
@@ -45,6 +45,14 @@ impl Reportable for PrivateMessageReport {
       ))
       .execute(conn)
       .await
+  }
+  async fn resolve_apub(
+    _pool: &mut DbPool<'_>,
+    _object_id: Self::ObjectIdType,
+    _report_creator_id: PersonId,
+    _resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    Err(FederationError::Unreachable.into())
   }
 
   // TODO: this is unused because private message doesn't have remove handler
