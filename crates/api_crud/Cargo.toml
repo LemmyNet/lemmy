@@ -34,6 +34,7 @@ tracing.workspace = true
 diesel-async = { workspace = true }
 extism = "1.10.0"
 extism-convert = "1.10.0"
+once_cell = "1.21.0"
 
 [package.metadata.cargo-shear]
 ignored = ["futures"]

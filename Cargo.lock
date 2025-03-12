@@ -3158,6 +3158,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_utils",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",
@@ -3374,6 +3375,7 @@ dependencies = [
 name = "lemmy_test_plugin"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "extism-pdk",
  "lemmy_api_common",
  "serde",
@@ -4071,9 +4073,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "cde51589ab56b20a6f686b2c68f7a0bd6add753d697abf720d63f8db3ab7b1ad"
 
 [[package]]
 name = "overload"

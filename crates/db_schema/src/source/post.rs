@@ -97,6 +97,7 @@ pub struct Post {
   pub unresolved_report_count: i16,
 }
 
+// TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
 #[derive(Debug, Clone, derive_new::new, Serialize, Deserialize, FromBytes, ToBytes)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]

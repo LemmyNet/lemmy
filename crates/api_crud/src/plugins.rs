@@ -1,61 +1,62 @@
 use extism::{Manifest, Plugin};
 use lemmy_api_common::LemmyErrorType;
 use lemmy_utils::error::LemmyResult;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::{ffi::OsStr, fs::read_dir};
-use tracing::info;
+use std::{
+  env,
+  ffi::OsStr,
+  fs::{read_dir, File},
+  io::BufReader,
+  path::PathBuf,
+};
+use tracing::{debug, warn};
 
 pub fn plugin_hook<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a>,
 {
-  let mut plugins = Plugins::load()?;
+  // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
+  // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
+  let mut plugins = Lazy::new(|| Plugins::load());
   plugins.call(name, data)?;
   Ok(())
 }
 
-pub struct Plugins {
+struct Plugins {
   plugins: Vec<Plugin>,
 }
 
-impl Plugins {
-  pub fn load() -> LemmyResult<Self> {
-    // TODO: make dir configurable via env var
-    // TODO: should only read fs once at startup for performance
-    let plugin_paths = read_dir("plugins")?;
+fn init_plugin(path: &PathBuf) -> LemmyResult<Plugin> {
+  let file = File::open(path)?;
+  let reader = BufReader::new(file);
+  let manifest: Manifest = serde_json::from_reader(reader)?;
+  Ok(Plugin::new(manifest, [], true)?)
+}
 
-    let mut wasm_files = vec![];
-    for path in plugin_paths {
-      let path = path?.path();
-      if path.extension() == Some(OsStr::new("wasm")) {
-        wasm_files.push(path);
-      }
-    }
-    let plugins = wasm_files
-      .into_iter()
-      .map(|w| {
-        let manifest = Manifest::new(vec![w]);
-        Plugin::new(manifest, [], true).unwrap()
+impl Plugins {
+  pub fn load() -> Self {
+    let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
+    let plugin_paths = read_dir(dir).expect("read plugin folder");
+
+    let plugins = plugin_paths
+      .flat_map(|p| p.ok())
+      .map(|p| p.path())
+      .filter(|p| p.extension() == Some(OsStr::new("manifest")))
+      .flat_map(|p| {
+        init_plugin(&p)
+          .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
+          .ok()
       })
       .collect();
-    Ok(Self { plugins })
+    Self { plugins }
   }
 
-  pub fn exists(&mut self, name: &str) -> bool {
-    for p in &mut self.plugins {
-      if p.function_exists(name) {
-        return true;
-      }
-    }
-    false
-  }
-
-  pub fn call<T: Serialize + for<'de> Deserialize<'de> + Clone>(
-    &mut self,
-    name: &str,
-    data: &mut T,
-  ) -> LemmyResult<()> {
-    info!("Calling plugin hook {name}");
+  pub fn call<T>(&mut self, name: &str, data: &mut T) -> LemmyResult<()>
+  where
+    T: Serialize + for<'de> Deserialize<'de> + Clone,
+  {
+    debug!("Calling plugin hook {name}");
     for p in &mut self.plugins {
       if p.function_exists(name) {
         *data = p

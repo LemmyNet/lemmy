@@ -974,14 +974,24 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
 
 test.only("Plugin test", async () => {
   let community = await createCommunity(epsilon);
-  let postRes = createPost(
+  let postRes1 = await createPost(
     epsilon,
     community.community_view.community.id,
     "https://example.com/",
     "body",
     "foo",
   );
-  expect((await postRes).post_view.post.name).toBe("bar");
+  expect(postRes1.post_view.post.name).toBe("bar");
+
+  await expect(createPost(
+    epsilon,
+    community.community_view.community.id,
+    "https://example.com/",
+    "body",
+    "blocked",
+  )).rejects.toStrictEqual(
+    Error("plugin_error"),
+  );
 });
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
