@@ -4,6 +4,7 @@ use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  plugins::plugin_hook,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -97,10 +98,11 @@ pub async fn create_comment(
   )
   .await?;
 
-  let comment_form = CommentInsertForm {
+  let mut comment_form = CommentInsertForm {
     language_id: Some(language_id),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
+  plugin_hook("create_local_comment", &mut comment_form)?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);

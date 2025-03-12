@@ -1,11 +1,11 @@
 use super::convert_published_time;
-use crate::plugins::plugin_hook;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::plugin_hook,
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,

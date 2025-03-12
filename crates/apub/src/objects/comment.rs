@@ -22,6 +22,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::plugin_hook,
   utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
@@ -184,7 +185,7 @@ impl Object for ApubComment {
         .await?,
     );
 
-    let form = CommentInsertForm {
+    let mut form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
       content,
@@ -197,6 +198,7 @@ impl Object for ApubComment {
       local: Some(false),
       language_id,
     };
+    plugin_hook("receive_federated_comment", &mut form)?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(

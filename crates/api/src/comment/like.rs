@@ -4,6 +4,7 @@ use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
+  plugins::plugin_hook,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
@@ -64,7 +65,7 @@ pub async fn like_comment(
     }
   }
 
-  let like_form = CommentLikeForm {
+  let mut like_form = CommentLikeForm {
     comment_id: data.comment_id,
     person_id: local_user_view.person.id,
     score: data.score,
@@ -78,6 +79,7 @@ pub async fn like_comment(
   // Only add the like if the score isnt 0
   let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
   if do_add {
+    plugin_hook("comment_vote", &mut like_form)?;
     CommentLike::like(&mut context.pool(), &like_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;

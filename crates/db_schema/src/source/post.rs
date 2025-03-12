@@ -97,8 +97,11 @@ pub struct Post {
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
-#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[derive(Debug, Clone, derive_new::new)]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -146,8 +149,8 @@ pub struct PostInsertForm {
   pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(AsChangeset,))]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
   pub name: Option<String>,
@@ -194,7 +197,10 @@ pub struct PostLike {
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,

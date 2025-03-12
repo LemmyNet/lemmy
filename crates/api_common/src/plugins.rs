@@ -1,5 +1,6 @@
+use crate::LemmyErrorType;
 use extism::{Manifest, Plugin};
-use lemmy_api_common::LemmyErrorType;
+use extism_convert::Json;
 use lemmy_utils::error::LemmyResult;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,7 @@ fn init_plugin(path: &PathBuf) -> LemmyResult<Plugin> {
 }
 
 impl Plugins {
-  pub fn load() -> Self {
+  fn load() -> Self {
     let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
     let plugin_paths = read_dir(dir).expect("read plugin folder");
 
@@ -52,18 +53,18 @@ impl Plugins {
     Self { plugins }
   }
 
-  pub fn call<T>(&mut self, name: &str, data: &mut T) -> LemmyResult<()>
+  fn call<T>(&mut self, name: &str, data: &mut T) -> LemmyResult<()>
   where
     T: Serialize + for<'de> Deserialize<'de> + Clone,
   {
     debug!("Calling plugin hook {name}");
     for p in &mut self.plugins {
       if p.function_exists(name) {
-        *data = p
-          .call::<extism_convert::Json<T>, extism_convert::Json<T>>(name, (*data).clone().into())
-          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?
-          .0
-          .into();
+        let param = (*data).clone().into();
+        let res = p
+          .call::<Json<T>, Json<T>>(name, param)
+          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+        *data = res.0.into();
       }
     }
     Ok(())

@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
+  plugins::plugin_hook,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
@@ -47,7 +48,7 @@ pub async fn like_post(
   )
   .await?;
 
-  let like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
+  let mut like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
@@ -57,6 +58,7 @@ pub async fn like_post(
   // Only add the like if the score isnt 0
   let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
   if do_add {
+    plugin_hook("post_vote", &mut like_form)?;
     PostLike::like(&mut context.pool(), &like_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
