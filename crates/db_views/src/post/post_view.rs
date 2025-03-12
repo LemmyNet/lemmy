@@ -1566,7 +1566,7 @@ mod tests {
       pool,
       data.community.id,
       &CommunityUpdateForm {
-        visibility: Some(CommunityVisibility::Hidden),
+        visibility: Some(CommunityVisibility::Unlisted),
         ..Default::default()
       },
     )

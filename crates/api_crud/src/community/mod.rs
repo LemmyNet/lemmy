@@ -17,7 +17,7 @@ fn check_community_visibility_allowed(
   local_user_view: &LocalUserView,
 ) -> LemmyResult<()> {
   use CommunityVisibility::*;
-  if visibility == Some(Private) || visibility == Some(Hidden) {
+  if visibility == Some(Private) || visibility == Some(Unlisted) {
     is_admin(local_user_view)?;
   }
   Ok(())

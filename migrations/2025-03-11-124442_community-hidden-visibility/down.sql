@@ -134,7 +134,7 @@ SET
         visibility) = (TRUE,
         'Public')
 WHERE
-    visibility = 'Hidden';
+    visibility = 'Unlisted';
 
 ALTER TYPE community_visibility RENAME VALUE 'LocalOnlyPrivate' TO 'LocalOnly';
 

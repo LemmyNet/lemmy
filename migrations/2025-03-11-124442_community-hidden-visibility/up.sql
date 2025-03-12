@@ -8,7 +8,7 @@ CREATE TYPE community_visibility AS enum (
     'LocalOnlyPublic',
     'LocalOnly',
     'Private',
-    'Hidden'
+    'Unlisted'
 );
 
 -- drop default value and index which reference old enum
@@ -28,7 +28,7 @@ ALTER TABLE community
 
 CREATE INDEX idx_community_random_number ON community (random_number) INCLUDE (local, nsfw)
 WHERE
-    NOT (deleted OR removed OR visibility = 'Private' OR visibility = 'Hidden');
+    NOT (deleted OR removed OR visibility = 'Private' OR visibility = 'Unlisted');
 
 DROP TYPE community_visibility__ CASCADE;
 
@@ -38,7 +38,7 @@ ALTER TYPE community_visibility RENAME VALUE 'LocalOnly' TO 'LocalOnlyPrivate';
 UPDATE
     community
 SET
-    visibility = 'Hidden'
+    visibility = 'Unlisted'
 WHERE
     hidden;
 
