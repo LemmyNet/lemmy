@@ -13,8 +13,8 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aggregates::structs::community_aggregates_keys as key,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PaginationCursor, PersonId},
-  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
+  newtypes::{CommunityId, PersonId},
+  schema::{community, community_actions, instance_actions, local_user},
   source::{
     community::{community_keys, Community, CommunityFollowerState},
     local_user::LocalUser,
@@ -52,7 +52,6 @@ impl CommunityView {
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
 
     community::table
-      .inner_join(community_aggregates::table)
       .left_join(community_actions_join)
       .left_join(instance_actions_join)
       .left_join(local_user_join)
@@ -180,11 +179,25 @@ impl CommunityQuery<'_> {
 
     query = o.local_user.visible_communities_only(query);
 
+    match o.sort.unwrap_or_default() {
+      Hot => query = query.order_by(community::hot_rank.desc()),
+      Comments => query = query.order_by(community::comments.desc()),
+      Posts => query = query.order_by(community::posts.desc()),
+      New => query = query.order_by(community::published.desc()),
+      Old => query = query.order_by(community::published.asc()),
+      Subscribers => query = query.order_by(community::subscribers.desc()),
+      SubscribersLocal => query = query.order_by(community::subscribers_local.desc()),
+      ActiveSixMonths => query = query.order_by(community::users_active_half_year.desc()),
+      ActiveMonthly => query = query.order_by(community::users_active_month.desc()),
+      ActiveWeekly => query = query.order_by(community::users_active_week.desc()),
+      ActiveDaily => query = query.order_by(community::users_active_day.desc()),
+      NameAsc => query = query.order_by(lower(community::name).asc()),
+      NameDesc => query = query.order_by(lower(community::name).desc()),
+    };
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(
-        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-      );
+      query =
+        query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     let mut query = PaginatedQueryBuilder::new(query);

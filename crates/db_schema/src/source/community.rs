@@ -19,10 +19,10 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS)
-)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+=======
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -84,6 +84,25 @@ pub struct Community {
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
+  pub subscribers: i64,
+  pub posts: i64,
+  pub comments: i64,
+  /// The number of users with any activity in the last day.
+  pub users_active_day: i64,
+  /// The number of users with any activity in the last week.
+  pub users_active_week: i64,
+  /// The number of users with any activity in the last month.
+  pub users_active_month: i64,
+  /// The number of users with any activity in the last year.
+  pub users_active_half_year: i64,
+  #[serde(skip)]
+  pub hot_rank: f64,
+  pub subscribers_local: i64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
+  /// Number of any interactions over the last month.
+  #[serde(skip)]
+  pub interactions_month: i64,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

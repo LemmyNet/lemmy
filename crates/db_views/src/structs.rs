@@ -15,14 +15,17 @@ use diesel::{
   Queryable,
   Selectable,
 };
+#[cfg(feature = "full")]
 use lemmy_db_schema::{
-  aggregates::structs::{
-    CommentAggregates,
-    CommunityAggregates,
-    PersonAggregates,
-    PostAggregates,
-    SiteAggregates,
-  },
+  aliases::{creator_community_actions, creator_local_user, person1},
+  impls::comment::comment_select_remove_deletes,
+  impls::community::community_follower_select_subscribed_type,
+  impls::local_user::local_user_can_mod,
+  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
+  utils::functions::coalesce,
+  Person1AliasAllColumnsTuple,
+};
+use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -36,7 +39,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
-    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     mod_log::{
       admin::{
         AdminAllowInstance,
@@ -73,16 +75,6 @@ use lemmy_db_schema::{
   },
   SubscribedType,
 };
-#[cfg(feature = "full")]
-use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user, person1},
-  impls::comment::comment_select_remove_deletes,
-  impls::community::community_follower_select_subscribed_type,
-  impls::local_user::local_user_can_mod,
-  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
-  utils::functions::coalesce,
-  Person1AliasAllColumnsTuple,
-};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -101,7 +93,6 @@ pub struct CommentReportView {
   pub community: Community,
   pub creator: Person,
   pub comment_creator: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
@@ -135,8 +126,6 @@ pub struct CommentView {
   pub post: Post,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: CommentAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression =
@@ -222,7 +211,6 @@ pub struct CommentView {
 pub struct CommentSlimView {
   pub comment: Comment,
   pub creator: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -247,7 +235,6 @@ pub struct CommunityReportView {
   pub community_report: CommunityReport,
   pub community: Community,
   pub creator: Person,
-  pub counts: CommunityAggregates,
   pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
@@ -262,11 +249,7 @@ pub struct LocalUserView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
-  #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: PersonAggregates,
 }
 
 #[skip_serializing_none]
@@ -294,7 +277,6 @@ pub struct PostReportView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub counts: PostAggregates,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
@@ -325,7 +307,6 @@ pub struct PostView {
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
-  pub counts: PostAggregates,
   pub subscribed: SubscribedType,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The time when the post was saved.
@@ -390,8 +371,6 @@ pub struct SiteView {
   pub local_site: LocalSite,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site_rate_limit: LocalSiteRateLimit,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: SiteAggregates,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -437,7 +416,6 @@ pub struct ReportCombinedViewInternal {
   // Post-specific
   pub post_report: Option<PostReport>,
   pub post: Option<Post>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -446,7 +424,6 @@ pub struct ReportCombinedViewInternal {
   // Comment-specific
   pub comment_report: Option<CommentReport>,
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Private-message-specific
@@ -454,7 +431,6 @@ pub struct ReportCombinedViewInternal {
   pub private_message: Option<PrivateMessage>,
   // Community-specific
   pub community_report: Option<CommunityReport>,
-  pub community_counts: Option<CommunityAggregates>,
   // Shared
   pub report_creator: Person,
   pub item_creator: Option<Person>,
@@ -485,7 +461,6 @@ pub enum ReportCombinedView {
 /// A combined person_content view
 pub(crate) struct PersonContentCombinedViewInternal {
   // Post-specific
-  pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -495,7 +470,6 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared
@@ -527,7 +501,6 @@ pub enum PersonContentCombinedView {
 /// A combined person_saved view
 pub(crate) struct PersonSavedCombinedViewInternal {
   // Post-specific
-  pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -537,7 +510,6 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared
@@ -618,8 +590,6 @@ pub struct CommunityView {
     )
   )]
   pub blocked: bool,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: CommunityAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = community_actions::received_ban.nullable().is_not_null()
@@ -670,7 +640,6 @@ pub struct PersonCommentMentionView {
   pub post: Post,
   pub community: Community,
   pub recipient: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -699,7 +668,6 @@ pub struct PersonPostMentionView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
   pub recipient: Person,
-  pub counts: PostAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -731,7 +699,6 @@ pub struct CommentReplyView {
   pub post: Post,
   pub community: Community,
   pub recipient: Person,
-  pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -754,8 +721,6 @@ pub struct CommentReplyView {
 pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub counts: PersonAggregates,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,
@@ -806,7 +771,6 @@ pub struct InboxCombinedViewInternal {
   pub person_comment_mention: Option<PersonCommentMention>,
   // Person post mention
   pub person_post_mention: Option<PersonPostMention>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -820,7 +784,6 @@ pub struct InboxCombinedViewInternal {
   pub post: Option<Post>,
   pub community: Option<Community>,
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   pub subscribed: SubscribedType,
@@ -1170,7 +1133,6 @@ pub enum ModlogCombinedView {
 pub(crate) struct SearchCombinedViewInternal {
   // Post-specific
   pub post: Option<Post>,
-  pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
   pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
@@ -1180,16 +1142,12 @@ pub(crate) struct SearchCombinedViewInternal {
   pub post_tags: PostTags,
   // // Comment-specific
   pub comment: Option<Comment>,
-  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // // Community-specific
   pub community: Option<Community>,
-  pub community_counts: Option<CommunityAggregates>,
   pub community_blocked: bool,
   pub subscribed: SubscribedType,
-  // Person
-  pub item_creator_counts: Option<PersonAggregates>,
   // Shared
   pub item_creator: Option<Person>,
   pub item_creator_is_admin: bool,
