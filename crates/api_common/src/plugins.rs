@@ -13,14 +13,24 @@ use std::{
 };
 use tracing::{debug, warn};
 
-pub fn plugin_hook<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
+/// Call a plugin hook without rewriting data
+pub fn plugin_hook<T>(name: &'static str, data: &T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a>,
 {
-  // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
-  // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
-  let mut plugins = Lazy::new(|| Plugins::load());
-  plugins.call(name, data)?;
+  Plugins::load().call(name, data)?;
+  Ok(())
+}
+
+/// Call a plugin hook which can rewrite data
+pub fn plugin_hook_mut<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
+where
+  T: Clone + Serialize + for<'a> Deserialize<'a>,
+{
+  let res = Plugins::load().call(name, data)?;
+  if let Some(res) = res {
+    *data = res;
+  }
   Ok(())
 }
 
@@ -36,37 +46,47 @@ fn init_plugin(path: &PathBuf) -> LemmyResult<Plugin> {
 }
 
 impl Plugins {
-  fn load() -> Self {
-    let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-    let plugin_paths = read_dir(dir).expect("read plugin folder");
+  /// Load and initialize all plugins
+  fn load() -> Lazy<Self> {
+    // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
+    // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
+    Lazy::new(|| {
+      let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
+      let plugin_paths = read_dir(dir).expect("read plugin folder");
 
-    let plugins = plugin_paths
-      .flat_map(|p| p.ok())
-      .map(|p| p.path())
-      .filter(|p| p.extension() == Some(OsStr::new("json")))
-      .flat_map(|p| {
-        init_plugin(&p)
-          .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
-          .ok()
-      })
-      .collect();
-    Self { plugins }
+      let plugins = plugin_paths
+        .flat_map(|p| p.ok())
+        .map(|p| p.path())
+        .filter(|p| p.extension() == Some(OsStr::new("json")))
+        .flat_map(|p| {
+          init_plugin(&p)
+            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
+            .ok()
+        })
+        .collect();
+      Self { plugins }
+    })
   }
 
-  fn call<T>(&mut self, name: &str, data: &mut T) -> LemmyResult<()>
+  /// Call all plugins for a given hook name, taking care not to clone data unnnecessarily.
+  fn call<T>(&mut self, name: &str, data: &T) -> LemmyResult<Option<T>>
   where
     T: Serialize + for<'de> Deserialize<'de> + Clone,
   {
     debug!("Calling plugin hook {name}");
+    if self.plugins.iter().any(|p| p.function_exists(name)) {
+      return Ok(None);
+    }
+
+    let mut res: Json<T> = data.clone().into();
     for p in &mut self.plugins {
       if p.function_exists(name) {
-        let param = (*data).clone().into();
-        let res = p
-          .call::<Json<T>, Json<T>>(name, param)
+        let r = p
+          .call(name, res)
           .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
-        *data = res.0.into();
+        res = r;
       }
     }
-    Ok(())
+    Ok(Some(res.0))
   }
 }

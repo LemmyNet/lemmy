@@ -983,15 +983,15 @@ test.only("Plugin test", async () => {
   );
   expect(postRes1.post_view.post.name).toBe("bar");
 
-  await expect(createPost(
-    epsilon,
-    community.community_view.community.id,
-    "https://example.com/",
-    "body",
-    "blocked",
-  )).rejects.toStrictEqual(
-    Error("plugin_error"),
-  );
+  await expect(
+    createPost(
+      epsilon,
+      community.community_view.community.id,
+      "https://example.com/",
+      "body",
+      "blocked",
+    ),
+  ).rejects.toStrictEqual(Error("plugin_error"));
 });
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {

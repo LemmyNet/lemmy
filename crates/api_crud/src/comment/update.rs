@@ -5,7 +5,7 @@ use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  plugins::plugin_hook,
+  plugins::plugin_hook_mut,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };
@@ -68,7 +68,7 @@ pub async fn update_comment(
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };
-  plugin_hook("update_local_comment", &mut form)?;
+  plugin_hook_mut("update_local_comment", &mut form)?;
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;

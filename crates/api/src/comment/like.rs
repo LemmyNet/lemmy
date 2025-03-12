@@ -65,7 +65,7 @@ pub async fn like_comment(
     }
   }
 
-  let mut like_form = CommentLikeForm {
+  let like_form = CommentLikeForm {
     comment_id: data.comment_id,
     person_id: local_user_view.person.id,
     score: data.score,
@@ -79,10 +79,11 @@ pub async fn like_comment(
   // Only add the like if the score isnt 0
   let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
   if do_add {
-    plugin_hook("comment_vote", &mut like_form)?;
-    CommentLike::like(&mut context.pool(), &like_form)
+    plugin_hook("comment_vote", &like_form)?;
+    let like = CommentLike::like(&mut context.pool(), &like_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    plugin_hook("new_comment_vote", &like)?;
   }
 
   ActivityChannel::submit_activity(

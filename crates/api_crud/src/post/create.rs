@@ -4,7 +4,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
-  plugins::plugin_hook,
+  plugins::{plugin_hook, plugin_hook_mut},
   post::{CreatePost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
@@ -121,11 +121,12 @@ pub async fn create_post(
     )
   };
 
-  plugin_hook("create_local_post", &mut post_form)?;
+  plugin_hook_mut("create_local_post", &mut post_form)?;
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  plugin_hook("new_post", &inserted_post)?;
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

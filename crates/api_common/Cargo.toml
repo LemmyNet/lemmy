@@ -35,7 +35,11 @@ full = [
   "mime",
   "moka",
   "actix-web-httpauth",
-  "webmention","extism", "extism-convert", "once_cell","serde_json"
+  "webmention",
+  "extism",
+  "extism-convert",
+  "once_cell",
+  "serde_json",
 ]
 
 [dependencies]
@@ -60,7 +64,7 @@ anyhow.workspace = true
 enum-map = { workspace = true }
 actix-web = { workspace = true, optional = true }
 urlencoding = { workspace = true }
-serde_json= {workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 mime = { version = "0.3.17", optional = true }
 mime_guess = "2.0.5"
 infer = "0.19.0"

@@ -59,15 +59,16 @@ async fn vote_comment(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let comment_id = comment.id;
-  let mut like_form = CommentLikeForm {
+  let like_form = CommentLikeForm {
     comment_id,
     person_id: actor.id,
     score: vote_type.into(),
   };
   let person_id = actor.id;
   CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
-  plugin_hook("comment_vote", &mut like_form)?;
-  CommentLike::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("comment_vote", &like_form)?;
+  let like = CommentLike::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("new_comment_vote", &like)?;
   Ok(())
 }
 
@@ -78,11 +79,12 @@ async fn vote_post(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let post_id = post.id;
-  let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
+  let like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
   PostLike::remove(&mut context.pool(), person_id, post_id).await?;
-  plugin_hook("post_vote", &mut like_form)?;
-  PostLike::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("post_vote", &like_form)?;
+  let like = PostLike::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("new_post_vote", &like)?;
   Ok(())
 }
 

@@ -5,7 +5,7 @@ use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
-  plugins::plugin_hook,
+  plugins::plugin_hook_mut,
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
@@ -141,7 +141,7 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
-  plugin_hook("update_local_post", &mut post_form)?;
+  plugin_hook_mut("update_local_post", &mut post_form)?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)

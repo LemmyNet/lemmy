@@ -176,10 +176,17 @@ pub struct PostUpdateForm {
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    Serialize,
+    Deserialize
+  )
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]

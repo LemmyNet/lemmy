@@ -110,7 +110,14 @@ pub struct CommentUpdateForm {
 #[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    Serialize,
+    Deserialize
+  )
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
