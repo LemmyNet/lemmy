@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(
   data: Json<CreatePrivateMessageReport>,
@@ -41,9 +41,7 @@ pub async fn create_pm_report(
     reason,
   };
 
-  let report = PrivateMessageReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = PrivateMessageReport::report(&mut context.pool(), &report_form).await?;
 
   let private_message_report_view =
     PrivateMessageReportView::read(&mut context.pool(), report.id).await?;

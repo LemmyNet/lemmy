@@ -16,7 +16,8 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PostId,
-  source::{community::Community, post::PostRead},
+  source::{community::Community, post::PostActions},
+  traits::Readable,
 };
 use lemmy_db_views::{
   post::post_view::PostQuery,
@@ -111,7 +112,8 @@ pub async fn list_posts(
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
     {
       let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
-      PostRead::mark_many_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
+      let forms = PostActions::build_many_read_forms(&post_ids, local_user.person_id);
+      PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;
     }
   }
 

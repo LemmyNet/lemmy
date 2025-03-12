@@ -11,7 +11,6 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
-    hide::hide_community,
     pending_follows::{
       approve::post_pending_follows_approve,
       count::get_pending_follows_count,
@@ -66,6 +65,7 @@ use lemmy_api::{
   private_message::mark_read::mark_pm_as_read,
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
+    community_report::{create::create_community_report, resolve::resolve_community_report},
     post_report::{create::create_post_report, resolve::resolve_post_report},
     private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
     report_combined::list::list_reports,
@@ -214,9 +214,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(get_community))
           .route("", put().to(update_community))
           .route("/random", get().to(get_random_community))
-          .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
+          .route("/report", post().to(create_community_report))
+          .route("/report/resolve", put().to(resolve_community_report))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))

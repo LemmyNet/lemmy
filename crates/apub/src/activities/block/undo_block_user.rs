@@ -26,7 +26,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityPersonBan, CommunityPersonBanForm},
+    community::{CommunityActions, CommunityPersonBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
@@ -130,12 +130,8 @@ impl ActivityHandler for UndoBlockUser {
       }
       SiteOrCommunity::Community(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        let community_user_ban_form = CommunityPersonBanForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          expires: None,
-        };
-        CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form).await?;
+        let community_user_ban_form = CommunityPersonBanForm::new(community.id, blocked_person.id);
+        CommunityActions::unban(&mut context.pool(), &community_user_ban_form).await?;
 
         if self.restore_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(

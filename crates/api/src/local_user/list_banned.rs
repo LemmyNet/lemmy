@@ -1,14 +1,17 @@
 use actix_web::web::{Data, Json};
+use lemmy_api_common::{context::LemmyContext, person::BannedPersonsResponse, utils::is_admin};
+use lemmy_db_views::structs::{LocalUserView, PersonView};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BannedPersonsResponse, ListBannedPersons},
   utils::is_admin,
 };
-use lemmy_db_schema::{
-  source::person::Person,
-  traits::{PageCursorBuilder, PageCursorReader},
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views::{
+  person::person_view::PersonQuery,
+  structs::{LocalUserView, PersonView},
 };
-use lemmy_db_views::{person::person_view::PersonQuery, structs::LocalUserView};
+>>>>>>> create_actions_structs
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_banned_users(
@@ -20,7 +23,7 @@ pub async fn list_banned_users(
   is_admin(&local_user_view)?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(Person::from_cursor(cursor, &mut context.pool()).await?)
+    Some(PersonView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -28,12 +31,13 @@ pub async fn list_banned_users(
   let banned = PersonQuery {
     banned_only: Some(true),
     cursor_data,
+    limit: data.limit,
     ..Default::default()
   }
   .list(&mut context.pool())
   .await?;
 
-  let next_page = banned.last().map(PageCursorBuilder::cursor);
+  let next_page = banned.last().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(BannedPersonsResponse { banned, next_page }))
 }

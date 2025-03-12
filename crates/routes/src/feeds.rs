@@ -8,7 +8,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommunityVisibility,
   ListingType,
   PostSortType,
 };
@@ -274,7 +273,7 @@ async fn get_feed_community(
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  if community.visibility != CommunityVisibility::Public {
+  if !community.visibility.can_view_without_login() {
     return Err(LemmyErrorType::NotFound.into());
   }
 
@@ -489,15 +488,20 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
     // If its a url post, add it to the description
     // and see if we can parse it as a media enclosure.
     let enclosure_opt = p.post.url.map(|url| {
-      let link_html = format!("<br><a href=\"{url}\">{url}</a>");
-      description.push_str(&link_html);
-
       let mime_type = p
         .post
         .url_content_type
         .unwrap_or_else(|| "application/octet-stream".to_string());
-      let mut enclosure_bld = EnclosureBuilder::default();
 
+      // If the url directly links to an image, wrap it in an <img> tag for display.
+      let link_html = if mime_type.starts_with("image/") {
+        format!("<br><a href=\"{url}\"><img src=\"{url}\"/></a>")
+      } else {
+        format!("<br><a href=\"{url}\">{url}</a>")
+      };
+      description.push_str(&link_html);
+
+      let mut enclosure_bld = EnclosureBuilder::default();
       enclosure_bld.url(url.as_str().to_string());
       enclosure_bld.mime_type(mime_type);
       enclosure_bld.length("0".to_string());

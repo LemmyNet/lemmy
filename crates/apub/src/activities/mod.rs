@@ -125,9 +125,8 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
-    Public if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
+    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
     Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
-    LocalOnly => Err(LemmyErrorType::NotFound.into()),
     _ => Ok(()),
   }
 }

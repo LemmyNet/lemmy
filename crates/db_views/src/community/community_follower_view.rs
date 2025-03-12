@@ -7,14 +7,14 @@ use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  impls::community::community_follower_select_subscribed_type,
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_actions, person},
   source::{
     community::{Community, CommunityFollowerState},
@@ -23,7 +23,6 @@ use lemmy_db_schema::{
   traits::PageCursorBuilder,
   utils::{get_conn, DbPool},
   CommunityVisibility,
-  SubscribedType,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -152,7 +151,7 @@ impl CommunityFollowerView {
         person::all_columns,
         community::all_columns,
         is_new_instance,
-        community_follower_select_subscribed_type(),
+        community_actions::follow_state.nullable(),
       ))
       .into_boxed();
     if all_communities {
@@ -177,17 +176,20 @@ impl CommunityFollowerView {
     }
 
     let res = query
-      .load::<(Person, Community, bool, SubscribedType)>(conn)
+      .order_by(community_actions::followed.asc())
+      .limit(limit)
+      .offset(offset)
+      .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
       .await?;
     Ok(
       res
         .into_iter()
         .map(
-          |(person, community, is_new_instance, subscribed)| PendingFollow {
+          |(person, community, is_new_instance, follow_state)| PendingFollow {
             person,
             community,
             is_new_instance,
-            subscribed,
+            follow_state,
           },
         )
         .collect(),
@@ -274,7 +276,7 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      community::{CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       person::PersonInsertForm,
     },
@@ -315,11 +317,12 @@ mod tests {
     assert!(has_followers.is_err());
 
     // insert unapproved follower
-    let mut follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::ApprovalRequired),
-      ..CommunityFollowerForm::new(community.id, person.id)
-    };
-    CommunityFollower::follow(pool, &follower_form).await?;
+    let mut follower_form = CommunityFollowerForm::new(
+      community.id,
+      person.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // still returns error
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(
@@ -331,8 +334,8 @@ mod tests {
     assert!(has_followers.is_err());
 
     // mark follower as accepted
-    follower_form.state = Some(CommunityFollowerState::Accepted);
-    CommunityFollower::follow(pool, &follower_form).await?;
+    follower_form.follow_state = CommunityFollowerState::Accepted;
+    CommunityActions::follow(pool, &follower_form).await?;
 
     // now returns ok
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(

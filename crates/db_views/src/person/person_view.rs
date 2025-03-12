@@ -10,10 +10,37 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{PaginationCursor, PersonId},
   schema::{local_user, person},
-  utils::{get_conn, now, DbPool},
+  source::person::{person_keys as key, Person},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, now, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
+
+impl PaginationCursorBuilder for PersonView {
+  type CursorData = Person;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new('P', self.person.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let id = cursor.prefix_and_id()?.1;
+
+    let token = person::table
+      .select(Self::CursorData::as_select())
+      .filter(person::id.eq(id))
+      .first(conn)
+      .await?;
+
+    Ok(token)
+  }
+}
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -40,18 +67,13 @@ impl PersonView {
   }
 }
 
-impl PageCursorBuilder for PersonView {
-  fn cursor(&self) -> PaginationCursor {
-    PaginationCursor::create('P', self.person.id.0)
-  }
-}
-
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
   pub banned_only: Option<bool>,
   pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl PersonQuery {
@@ -66,7 +88,7 @@ impl PersonQuery {
     // Filters
     if self.banned_only.unwrap_or_default() {
       query = query.filter(
-        person::banned.eq(true).and(
+        person::local.and(person::banned).and(
           person::ban_expires
             .is_null()
             .or(person::ban_expires.gt(now().nullable())),
@@ -75,7 +97,11 @@ impl PersonQuery {
     }
 
     if self.admins_only.unwrap_or_default() {
-      query = query.filter(local_user::admin.eq(true));
+      query = query.filter(local_user::admin);
+    } else {
+      // Only use page limits if its not an admin fetch
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
     }
 
     let mut query = PaginatedQueryBuilder::new(query);

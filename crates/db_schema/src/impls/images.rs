@@ -15,8 +15,7 @@ use diesel::{
   QueryDsl,
   SelectableHelper,
 };
-use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use url::Url;
 
 impl LocalImage {
@@ -27,9 +26,8 @@ impl LocalImage {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
+      .transaction::<_, Error, _>(|conn| {
+        async move {
           let local_insert = insert_into(local_image::table)
             .values(form)
             .get_result::<Self>(conn)
@@ -38,7 +36,8 @@ impl LocalImage {
           ImageDetails::create(&mut conn.into(), image_details_form).await?;
 
           local_insert
-        }) as _
+        }
+        .scope_boxed()
       })
       .await
   }
