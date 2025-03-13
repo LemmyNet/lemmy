@@ -143,15 +143,11 @@ pub enum PictrsImageMode {
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default, deny_unknown_fields)]
 pub struct DatabaseConfig {
-  /// Configure the database by specifying URI pointing to a postgres instance
+  /// Configure the database by specifying URI pointing to a postgres instance. This parameter can
+  /// also be set by environment variable `LEMMY_DATABASE_URL`.
   ///
-  /// This example uses peer authentication to obviate the need for creating,
-  /// configuring, and managing passwords.
-  ///
-  /// For an explanation of how to use connection URIs, see [here][0] in
-  /// PostgreSQL's documentation.
-  ///
-  /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+  /// For an explanation of how to use connection URIs, see PostgreSQL's documentation:
+  /// https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
   #[default("postgres://lemmy:password@localhost:5432/lemmy")]
   #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
   pub(crate) connection: String,
