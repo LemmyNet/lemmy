@@ -204,7 +204,6 @@ diesel::table! {
         followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
-        hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
         #[max_length = 255]
@@ -590,6 +589,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityVisibility;
+
+    mod_change_community_visibility (id) {
+        id -> Int4,
+        community_id -> Int4,
+        mod_person_id -> Int4,
+        published -> Timestamptz,
+        reason -> Nullable<Text>,
+        visibility -> CommunityVisibility,
+    }
+}
+
+diesel::table! {
     mod_feature_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -597,17 +610,6 @@ diesel::table! {
         featured -> Bool,
         published -> Timestamptz,
         is_featured_community -> Bool,
-    }
-}
-
-diesel::table! {
-    mod_hide_community (id) {
-        id -> Int4,
-        community_id -> Int4,
-        mod_person_id -> Int4,
-        published -> Timestamptz,
-        reason -> Nullable<Text>,
-        hidden -> Bool,
     }
 }
 
@@ -679,12 +681,12 @@ diesel::table! {
         mod_ban_id -> Nullable<Int4>,
         mod_ban_from_community_id -> Nullable<Int4>,
         mod_feature_post_id -> Nullable<Int4>,
-        mod_hide_community_id -> Nullable<Int4>,
         mod_lock_post_id -> Nullable<Int4>,
         mod_remove_comment_id -> Nullable<Int4>,
         mod_remove_community_id -> Nullable<Int4>,
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
+        mod_change_community_visibility_id -> Nullable<Int4>,
     }
 }
 
@@ -1108,10 +1110,10 @@ diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
+diesel::joinable!(mod_change_community_visibility -> community (community_id));
+diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> post (post_id));
-diesel::joinable!(mod_hide_community -> community (community_id));
-diesel::joinable!(mod_hide_community -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
@@ -1131,8 +1133,8 @@ diesel::joinable!(modlog_combined -> mod_add (mod_add_id));
 diesel::joinable!(modlog_combined -> mod_add_community (mod_add_community_id));
 diesel::joinable!(modlog_combined -> mod_ban (mod_ban_id));
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
+diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
-diesel::joinable!(modlog_combined -> mod_hide_community (mod_hide_community_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
@@ -1178,77 +1180,77 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-  admin_allow_instance,
-  admin_block_instance,
-  admin_purge_comment,
-  admin_purge_community,
-  admin_purge_person,
-  admin_purge_post,
-  captcha_answer,
-  comment,
-  comment_actions,
-  comment_reply,
-  comment_report,
-  community,
-  community_actions,
-  community_language,
-  community_report,
-  custom_emoji,
-  custom_emoji_keyword,
-  email_verification,
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  image_details,
-  inbox_combined,
-  instance,
-  instance_actions,
-  language,
-  local_image,
-  local_site,
-  local_site_rate_limit,
-  local_site_url_blocklist,
-  local_user,
-  local_user_language,
-  login_token,
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_feature_post,
-  mod_hide_community,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_transfer_community,
-  modlog_combined,
-  oauth_account,
-  oauth_provider,
-  password_reset_request,
-  person,
-  person_actions,
-  person_ban,
-  person_comment_mention,
-  person_content_combined,
-  person_post_mention,
-  person_saved_combined,
-  post,
-  post_actions,
-  post_report,
-  post_tag,
-  previously_run_sql,
-  private_message,
-  private_message_report,
-  received_activity,
-  registration_application,
-  remote_image,
-  report_combined,
-  search_combined,
-  secret,
-  sent_activity,
-  site,
-  site_language,
-  tag,
-  tagline,
+    admin_allow_instance,
+    admin_block_instance,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
+    captcha_answer,
+    comment,
+    comment_actions,
+    comment_reply,
+    comment_report,
+    community,
+    community_actions,
+    community_language,
+    community_report,
+    custom_emoji,
+    custom_emoji_keyword,
+    email_verification,
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    image_details,
+    inbox_combined,
+    instance,
+    instance_actions,
+    language,
+    local_image,
+    local_site,
+    local_site_rate_limit,
+    local_site_url_blocklist,
+    local_user,
+    local_user_language,
+    login_token,
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_change_community_visibility,
+    mod_feature_post,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_transfer_community,
+    modlog_combined,
+    oauth_account,
+    oauth_provider,
+    password_reset_request,
+    person,
+    person_actions,
+    person_ban,
+    person_comment_mention,
+    person_content_combined,
+    person_post_mention,
+    person_saved_combined,
+    post,
+    post_actions,
+    post_report,
+    post_tag,
+    previously_run_sql,
+    private_message,
+    private_message_report,
+    received_activity,
+    registration_application,
+    remote_image,
+    report_combined,
+    search_combined,
+    secret,
+    sent_activity,
+    site,
+    site_language,
+    tag,
+    tagline,
 );

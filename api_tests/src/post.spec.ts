@@ -281,7 +281,7 @@ test("Lock a post", async () => {
   await followCommunity(alpha, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c.community?.subscribed === "Subscribed",
+    c => c.community?.community_actions?.follow_state == "Accepted",
   );
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
@@ -596,8 +596,9 @@ test("Enforce site ban federation for federated user", async () => {
   expect(betaBanRes.post_view.post.removed).toBe(true);
   expect(alphaPostAfterRemoveOnBeta.post_view.post.removed).toBe(true);
   expect(
-    alphaPostAfterRemoveOnBeta.post_view.creator_banned_from_community,
-  ).toBe(true);
+    alphaPostAfterRemoveOnBeta.post_view.creator_community_actions
+      ?.received_ban,
+  ).toBeDefined();
 
   await unfollowRemotes(alpha);
 });
@@ -635,8 +636,12 @@ test("Enforce community ban for federated user", async () => {
     s => s.post_view.post.removed,
   );
   expect(removePostRes.post_view.post.removed).toBe(true);
-  expect(removePostRes.post_view.creator_banned_from_community).toBe(true);
-  expect(removePostRes.community_view.banned_from_community).toBe(true);
+  expect(
+    removePostRes.post_view.creator_community_actions?.received_ban,
+  ).toBeDefined();
+  expect(
+    removePostRes.community_view.community_actions?.received_ban,
+  ).toBeDefined();
 
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(
@@ -670,7 +675,7 @@ test("Enforce community ban for federated user", async () => {
   // Make sure that post makes it to beta community
   let postRes4 = await waitForPost(beta, postRes3.post_view.post);
   expect(postRes4.post).toBeDefined();
-  expect(postRes4.creator_banned_from_community).toBe(false);
+  expect(postRes4.creator_community_actions?.received_ban).toBeUndefined();
 
   await unfollowRemotes(alpha);
 });

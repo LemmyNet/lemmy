@@ -1,33 +1,36 @@
-use crate::newtypes::{
-  CommentId,
-  CommunityId,
-  ModAddCommunityId,
-  ModAddId,
-  ModBanFromCommunityId,
-  ModBanId,
-  ModFeaturePostId,
-  ModHideCommunityId,
-  ModLockPostId,
-  ModRemoveCommentId,
-  ModRemoveCommunityId,
-  ModRemovePostId,
-  ModTransferCommunityId,
-  PersonId,
-  PostId,
-};
 #[cfg(feature = "full")]
 use crate::schema::{
   mod_add,
   mod_add_community,
   mod_ban,
   mod_ban_from_community,
+  mod_change_community_visibility,
   mod_feature_post,
-  mod_hide_community,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_community,
   mod_remove_post,
   mod_transfer_community,
+};
+use crate::{
+  newtypes::{
+    CommentId,
+    CommunityId,
+    ModAddCommunityId,
+    ModAddId,
+    ModBanFromCommunityId,
+    ModBanId,
+    ModChangeCommunityVisibilityId,
+    ModFeaturePostId,
+    ModLockPostId,
+    ModRemoveCommentId,
+    ModRemoveCommunityId,
+    ModRemovePostId,
+    ModTransferCommunityId,
+    PersonId,
+    PostId,
+  },
+  CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -210,29 +213,28 @@ pub struct ModBan {
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = mod_hide_community))]
-pub struct ModHideCommunityForm {
+#[cfg_attr(feature = "full", diesel(table_name = mod_change_community_visibility))]
+pub struct ModChangeCommunityVisibilityForm {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub hidden: Option<bool>,
   pub reason: Option<String>,
+  pub visibility: CommunityVisibility,
 }
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
-#[cfg_attr(feature = "full", diesel(table_name = mod_hide_community))]
+#[cfg_attr(feature = "full", diesel(table_name = mod_change_community_visibility))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// When a community is hidden from public view.
-pub struct ModHideCommunity {
-  pub id: ModHideCommunityId,
+pub struct ModChangeCommunityVisibility {
+  pub id: ModChangeCommunityVisibilityId,
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub hidden: bool,
+  pub visibility: CommunityVisibility,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

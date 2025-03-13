@@ -8,7 +8,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::{LocalUserView, PostReportView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
 pub async fn resolve_post_report(
@@ -30,14 +30,9 @@ pub async fn resolve_post_report(
   .await?;
 
   if data.resolved {
-    PostReport::resolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    PostReport::resolve(&mut context.pool(), report_id, person_id).await?;
   } else {
-    // TODO: not federated
-    PostReport::unresolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    PostReport::unresolve(&mut context.pool(), report_id, person_id).await?;
   }
 
   let post_report_view = PostReportView::read(&mut context.pool(), report_id, person_id).await?;

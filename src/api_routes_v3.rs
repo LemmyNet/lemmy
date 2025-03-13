@@ -11,7 +11,6 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
-    hide::hide_community,
     transfer::transfer_community,
   },
   local_user::{
@@ -184,7 +183,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .wrap(rate_limit.message())
             .route("", get().to(get_community))
             .route("", put().to(update_community))
-            .route("/hide", put().to(hide_community))
             .route("/list", get().to(list_communities))
             .route("/follow", post().to(follow_community))
             .route("/block", post().to(user_block_community))
