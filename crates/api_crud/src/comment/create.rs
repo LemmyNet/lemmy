@@ -1,4 +1,3 @@
-
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
