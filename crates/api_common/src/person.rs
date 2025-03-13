@@ -367,6 +367,8 @@ pub struct BannedPersonsResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

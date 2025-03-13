@@ -29,7 +29,7 @@ use diesel_async::{
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
-use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
+use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
@@ -590,13 +590,14 @@ impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a
 
 pub fn paginate<Q, C>(
   query: Q,
+  sort_direction: SortDirection,
   page_after: Option<C>,
   page_before_or_equal: Option<C>,
-  page_back: bool,
+  page_back: Option<bool>,
 ) -> PaginatedQueryBuilder<C, Q> {
-  let mut query = PaginatedQueryBuilder::new(query);
+  let mut query = PaginatedQueryBuilder::new(query, sort_direction);
 
-  if page_back {
+  if page_back.unwrap_or_default() {
     query = query
       .before(page_after)
       .after_or_equal(page_before_or_equal)

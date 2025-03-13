@@ -8,13 +8,13 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
   schema::{local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, now, DbPool},
+  utils::{get_conn, limit_fetch, now, paginate, DbPool},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -104,21 +104,18 @@ impl PersonQuery {
       query = query.limit(limit);
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
-    // Sorting by published
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
-
-    let res = query.load::<PersonView>(conn).await?;
+    let res = paginated_query.load::<PersonView>(conn).await?;
     Ok(res)
   }
 }
