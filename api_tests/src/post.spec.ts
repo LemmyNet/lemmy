@@ -983,18 +983,16 @@ test.only("Plugin test", async () => {
     epsilon,
     community.community_view.community.id,
     "https://example.com/",
-    "body",
-    "foo",
+    "Rust",
   );
-  expect(postRes1.post_view.post.name).toBe("bar");
+  expect(postRes1.post_view.post.body).toBe("Go");
 
   await expect(
     createPost(
       epsilon,
       community.community_view.community.id,
       "https://example.com/",
-      "body",
-      "blocked",
+      "Java",
     ),
   ).rejects.toStrictEqual(Error("plugin_error"));
 });

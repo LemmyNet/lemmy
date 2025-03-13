@@ -78,7 +78,7 @@ impl Plugins {
     // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
     static PLUGINS: Lazy<Plugins> = Lazy::new(|| {
       let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-      let plugin_paths = match read_dir(dir) {
+      let plugin_paths = match dbg!(read_dir(dir)) {
         Ok(r) => r,
         Err(e) => {
           warn!("Failed to read plugin folder: {e}");
@@ -88,7 +88,7 @@ impl Plugins {
 
       let plugins = plugin_paths
         .flat_map(Result::ok)
-        .map(|p| p.path())
+        .map(|p| dbg!(p.path()))
         .filter(|p| p.extension() == Some(OsStr::new("json")))
         .flat_map(|p| {
           LemmyPlugin::init(&p)

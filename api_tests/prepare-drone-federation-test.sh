@@ -70,11 +70,6 @@ echo "$PWD"
 LOG_DIR=target/log
 mkdir -p $LOG_DIR
 
-# add test plugin
-pushd plugins
-tinygo build -o test_plugin.wasm -target wasip1 -buildmode=c-shared main.go
-popd
-
 echo "start alpha"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_alpha" \
