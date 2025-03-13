@@ -17,7 +17,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
-  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
   newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
@@ -25,18 +24,17 @@ use lemmy_db_schema::{
     community,
     community_actions,
     image_details,
+    instance_actions,
     local_user,
     person,
     person_actions,
     person_saved_combined,
     post,
     post_actions,
-    post_tag,
-    tag,
   },
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{get_conn, DbPool},
   PersonContentType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -134,6 +132,12 @@ impl PersonSavedCombinedViewInternal {
         .and(community_actions::person_id.eq(my_person_id)),
     );
 
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(person::instance_id)
+        .and(instance_actions::person_id.eq(my_person_id)),
+    );
+
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
         .eq(post::id)
@@ -164,6 +168,7 @@ impl PersonSavedCombinedViewInternal {
       .left_join(local_user_join)
       .left_join(creator_local_user_join)
       .left_join(community_actions_join)
+      .left_join(instance_actions_join)
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(comment_actions_join)
@@ -181,54 +186,9 @@ impl PersonSavedCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post::id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = PersonSavedCombinedViewInternal::joins(my_person_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
-      .select((
-        // Post-specific
-        coalesce(
-          post::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post::comments,
-        ),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        image_details::all_columns.nullable(),
-        post_tags,
-        // Comment-specific
-        comment::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        // Shared
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        community_follower_select_subscribed_type(),
-        creator_local_user
-          .field(local_user::admin)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        local_user_can_mod(),
-      ))
+      .select(PersonSavedCombinedViewInternal::as_select())
       .into_boxed();
 
     if let Some(type_) = self.type_ {
@@ -280,34 +240,26 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         post: v.post,
         community: v.community,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
+        community_actions: v.community_actions,
+        comment_actions: v.comment_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
-        banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
     } else {
       Some(PersonSavedCombinedView::Post(PostView {
         post: v.post,
         community: v.community,
-        unread_comments: v.post_unread_comments,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
         image_details: v.image_details,
-        banned_from_community: v.banned_from_community,
-        tags: v.post_tags,
+        community_actions: v.community_actions,
+        post_actions: v.post_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        creator_community_actions: v.creator_community_actions,
+        creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
       }))
     }
@@ -324,12 +276,12 @@ mod tests {
   };
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentInsertForm, CommentSaved, CommentSavedForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostSaved, PostSavedForm},
+      post::{Post, PostActions, PostInsertForm, PostSavedForm},
     },
     traits::{Crud, Saveable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -424,14 +376,14 @@ mod tests {
 
     // Save a few things
     let save_sara_comment_2 =
-      CommentSavedForm::new(data.sara_comment_2.id, data.timmy_view.person.id);
-    CommentSaved::save(pool, &save_sara_comment_2).await?;
+      CommentSavedForm::new(data.timmy_view.person.id, data.sara_comment_2.id);
+    CommentActions::save(pool, &save_sara_comment_2).await?;
 
-    let save_sara_comment = CommentSavedForm::new(data.sara_comment.id, data.timmy_view.person.id);
-    CommentSaved::save(pool, &save_sara_comment).await?;
+    let save_sara_comment = CommentSavedForm::new(data.timmy_view.person.id, data.sara_comment.id);
+    CommentActions::save(pool, &save_sara_comment).await?;
 
     let post_save_form = PostSavedForm::new(data.timmy_post.id, data.timmy.id);
-    PostSaved::save(pool, &post_save_form).await?;
+    PostActions::save(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
       .list(pool, &data.timmy_view)
@@ -459,8 +411,8 @@ mod tests {
     }
 
     // Try unsaving 2 things
-    CommentSaved::unsave(pool, &save_sara_comment).await?;
-    PostSaved::unsave(pool, &post_save_form).await?;
+    CommentActions::unsave(pool, &save_sara_comment).await?;
+    PostActions::unsave(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
       .list(pool, &data.timmy_view)

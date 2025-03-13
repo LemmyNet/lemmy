@@ -122,7 +122,7 @@ pub(crate) async fn get_activity(
 /// Ensure that the community is public and not removed/deleted.
 fn check_community_fetchable(community: &Community) -> LemmyResult<()> {
   check_community_removed_or_deleted(community)?;
-  if community.visibility == CommunityVisibility::LocalOnly {
+  if !community.visibility.can_federate() {
     return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
@@ -137,12 +137,7 @@ async fn check_community_content_fetchable(
   use CommunityVisibility::*;
   check_community_removed_or_deleted(community)?;
   match community.visibility {
-    // content in public community can always be fetched
-    Public => Ok(()),
-    // no federation for local only community
-    LocalOnly => Err(LemmyErrorType::NotFound.into()),
-    // for private community check http signature of request, if there is any approved follower
-    // from the fetching instance then fetching is allowed
+    Public | Unlisted => Ok(()),
     Private => {
       let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
       if community.local {
@@ -167,6 +162,7 @@ async fn check_community_content_fetchable(
         Err(LemmyErrorType::NotFound.into())
       }
     }
+    LocalOnlyPublic | LocalOnlyPrivate => Err(LemmyErrorType::NotFound.into()),
   }
 }
 

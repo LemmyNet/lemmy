@@ -4,11 +4,11 @@ use lemmy_api_common::{
   person::{BlockPerson, BlockPersonResponse},
 };
 use lemmy_db_schema::{
-  source::person_block::{PersonBlock, PersonBlockForm},
+  source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
 };
 use lemmy_db_views::structs::{LocalUserView, PersonView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_person(
   data: Json<BlockPerson>,
@@ -23,10 +23,7 @@ pub async fn user_block_person(
     Err(LemmyErrorType::CantBlockYourself)?
   }
 
-  let person_block_form = PersonBlockForm {
-    person_id,
-    target_id,
-  };
+  let person_block_form = PersonBlockForm::new(person_id, target_id);
 
   let target_user = LocalUserView::read_person(&mut context.pool(), target_id)
     .await
@@ -37,13 +34,9 @@ pub async fn user_block_person(
   }
 
   if data.block {
-    PersonBlock::block(&mut context.pool(), &person_block_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
+    PersonActions::block(&mut context.pool(), &person_block_form).await?;
   } else {
-    PersonBlock::unblock(&mut context.pool(), &person_block_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
+    PersonActions::unblock(&mut context.pool(), &person_block_form).await?;
   }
 
   let person_view = PersonView::read(&mut context.pool(), target_id, false).await?;

@@ -122,6 +122,7 @@ impl Object for ApubCommunity {
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(generate_moderators_url(&self.ap_id)?.into()),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
+      discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
     };
     Ok(group)
   }
@@ -148,6 +149,8 @@ impl Object for ApubCommunity {
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
     let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
       CommunityVisibility::Private
+    } else if !group.discoverable.unwrap_or(true) {
+      CommunityVisibility::Unlisted
     } else {
       CommunityVisibility::Public
     });
