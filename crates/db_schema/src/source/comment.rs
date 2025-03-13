@@ -1,15 +1,15 @@
-#[cfg(feature = "full")]
-use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  crate::newtypes::LtreeDef,
+  crate::schema::{comment, comment_actions},
+  diesel_ltree::Ltree,
+  i_love_jesus::CursorKeysModule,
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -106,13 +106,21 @@ pub struct CommentUpdateForm {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
 pub struct CommentActions {
   pub person_id: PersonId,
   pub comment_id: CommentId,

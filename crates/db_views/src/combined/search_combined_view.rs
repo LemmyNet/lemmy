@@ -21,7 +21,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
   newtypes::{CommunityId, PaginationCursor, PersonId},
@@ -41,7 +41,7 @@ use lemmy_db_schema::{
   },
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
+  utils::{fuzzy_search, get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
   ListingType,
   SearchSortType,
   SearchType,
@@ -172,7 +172,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -180,7 +180,10 @@ impl PaginationCursorBuilder for SearchCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = search_combined::table
       .select(Self::CursorData::as_select())
@@ -214,6 +217,7 @@ pub struct SearchCombinedQuery {
   pub disliked_only: Option<bool>,
   pub cursor_data: Option<SearchCombined>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl SearchCombinedQuery {
@@ -226,9 +230,11 @@ impl SearchCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
 
     let mut query = SearchCombinedViewInternal::joins(my_person_id)
       .select(SearchCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
 
     // The filters
@@ -331,24 +337,28 @@ impl SearchCombinedQuery {
         .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // Only sort by asc if old
+    let sort = self.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == Old);
 
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
+    let mut paginated_query = paginate(
+      query,
+      sort_direction,
+      self.cursor_data,
+      None,
+      self.page_back,
+    );
+
+    paginated_query = match sort {
+      New | Old => paginated_query.then_order_by(key::published),
+      Top => paginated_query.then_order_by(key::score),
     }
-
-    query = match self.sort.unwrap_or_default() {
-      New => query.then_desc(key::published),
-      Old => query.then_desc(ReverseTimestampKey(key::published)),
-      Top => query.then_desc(key::score),
-    };
-
     // finally use unique id as tie breaker
-    query = query.then_desc(key::id);
+    .then_order_by(key::id);
 
-    let res = query.load::<SearchCombinedViewInternal>(conn).await?;
+    let res = paginated_query
+      .load::<SearchCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res

@@ -56,7 +56,7 @@ impl Comment {
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
     removed: bool,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
       .set((
@@ -65,13 +65,14 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 
   pub async fn create(
     pool: &mut DbPool<'_>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
-  ) -> Result<Comment, Error> {
+  ) -> LemmyResult<Comment> {
     Self::insert_apub(pool, None, comment_form, parent_path).await
   }
 
@@ -80,7 +81,7 @@ impl Comment {
     timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
-  ) -> Result<Comment, Error> {
+  ) -> LemmyResult<Comment> {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
 
@@ -93,11 +94,13 @@ impl Comment {
         .set(comment_form)
         .get_result::<Self>(conn)
         .await
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     } else {
       insert_into(comment::table)
         .values(comment_form)
         .get_result::<Self>(conn)
         .await
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     }
   }
 
@@ -147,7 +150,7 @@ impl Crud for Comment {
   type IdType = CommentId;
 
   /// Use [[Comment::create]]
-  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> LemmyResult<Self> {
     debug_assert!(false);
     Comment::create(pool, comment_form, None).await
   }
@@ -156,12 +159,13 @@ impl Crud for Comment {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     comment_form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 }
 

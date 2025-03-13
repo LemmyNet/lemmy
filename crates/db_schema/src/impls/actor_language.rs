@@ -31,7 +31,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
@@ -40,7 +40,7 @@ impl LocalUserLanguage {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_local_user_id: LocalUserId,
-  ) -> Result<Vec<LanguageId>, Error> {
+  ) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
 
     let langs = local_user_language::table
@@ -59,7 +59,7 @@ impl LocalUserLanguage {
     pool: &mut DbPool<'_>,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
@@ -101,11 +101,12 @@ impl LocalUserLanguage {
         .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read_local_raw(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
@@ -114,9 +115,10 @@ impl SiteLanguage {
       .select(site_language::language_id)
       .load(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
     let langs = site_language::table
       .filter(site_language::site_id.eq(for_site_id))
@@ -132,7 +134,7 @@ impl SiteLanguage {
     pool: &mut DbPool<'_>,
     language_ids: Vec<LanguageId>,
     site: &Site,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
@@ -176,6 +178,7 @@ impl SiteLanguage {
         .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -235,7 +238,7 @@ impl CommunityLanguage {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<Vec<LanguageId>, Error> {
+  ) -> LemmyResult<Vec<LanguageId>> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
     let conn = &mut get_conn(pool).await?;
     let langs = community_language
@@ -251,7 +254,7 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local_raw(pool).await?;
     }
@@ -296,6 +299,7 @@ impl CommunityLanguage {
         .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -337,7 +341,7 @@ pub async fn validate_post_language(
 async fn convert_update_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
-) -> Result<Vec<LanguageId>, Error> {
+) -> LemmyResult<Vec<LanguageId>> {
   if language_ids.is_empty() {
     Ok(
       Language::read_all(&mut conn.into())
@@ -356,7 +360,7 @@ async fn convert_update_languages(
 async fn convert_read_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
-) -> Result<Vec<LanguageId>, Error> {
+) -> LemmyResult<Vec<LanguageId>> {
   static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
   let count = ALL_LANGUAGES_COUNT
     .get_or_init(|| async {
@@ -412,7 +416,7 @@ mod tests {
     ])
   }
 
-  async fn create_test_site(pool: &mut DbPool<'_>) -> Result<(Site, Instance), Error> {
+  async fn create_test_site(pool: &mut DbPool<'_>) -> LemmyResult<(Site, Instance)> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
@@ -427,7 +431,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_convert_update_languages() -> Result<(), Error> {
+  async fn test_convert_update_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -445,7 +449,7 @@ mod tests {
   }
   #[tokio::test]
   #[serial]
-  async fn test_convert_read_languages() -> Result<(), Error> {
+  async fn test_convert_read_languages() -> LemmyResult<()> {
     use crate::schema::language::dsl::{id, language};
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
@@ -466,7 +470,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_site_languages() -> Result<(), Error> {
+  async fn test_site_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 

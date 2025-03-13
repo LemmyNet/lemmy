@@ -19,7 +19,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
@@ -42,7 +42,7 @@ use lemmy_db_schema::{
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool, ReverseTimestampKey},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   ReportType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -204,7 +204,7 @@ impl PaginationCursorBuilder for ReportCombinedView {
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -212,7 +212,10 @@ impl PaginationCursorBuilder for ReportCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = report_combined::table
       .select(Self::CursorData::as_select())
@@ -242,6 +245,7 @@ pub struct ReportCombinedQuery {
   pub cursor_data: Option<ReportCombined>,
   pub my_reports_only: Option<bool>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl ReportCombinedQuery {
@@ -253,8 +257,10 @@ impl ReportCombinedQuery {
     let my_person_id = user.local_user.person_id;
 
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
     let mut query = ReportCombinedViewInternal::joins(my_person_id)
       .select(ReportCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
 
     if let Some(community_id) = self.community_id {
@@ -282,14 +288,6 @@ impl ReportCombinedQuery {
       query = query.filter(person::id.eq(my_person_id));
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
-
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
     if let Some(type_) = self.type_ {
       query = match type_ {
         ReportType::All => query,
@@ -304,26 +302,34 @@ impl ReportCombinedQuery {
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
-    if self.unresolved_only.unwrap_or_default() {
-      query = query
-        .filter(
-          post_report::resolved
-            .or(comment_report::resolved)
-            .or(private_message_report::resolved)
-            .or(community_report::resolved)
-            .is_distinct_from(true),
-        )
-        // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
-        // and remove the separate index; unless additional columns are added to this sort
-        .then_desc(ReverseTimestampKey(key::published));
-    } else {
-      query = query.then_desc(key::published);
-    }
+    let unresolved_only = self.unresolved_only.unwrap_or_default();
+    let sort_direction = asc_if(unresolved_only);
 
+    if unresolved_only {
+      query = query.filter(
+        post_report::resolved
+          .or(comment_report::resolved)
+          .or(private_message_report::resolved)
+          .or(community_report::resolved)
+          .is_distinct_from(true),
+      )
+    };
+
+    // Sorting by published
+    let paginated_query = paginate(
+      query,
+      sort_direction,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
     // Tie breaker
-    query = query.then_desc(key::id);
+    .then_order_by(key::id);
 
-    let res = query.load::<ReportCombinedViewInternal>(conn).await?;
+    let res = paginated_query
+      .load::<ReportCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res

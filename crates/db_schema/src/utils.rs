@@ -29,7 +29,7 @@ use diesel_async::{
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
-use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
+use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
@@ -166,25 +166,6 @@ macro_rules! try_join_with_pool {
   }};
 }
 
-pub struct ReverseTimestampKey<K>(pub K);
-
-impl<K, C> CursorKey<C> for ReverseTimestampKey<K>
-where
-  K: CursorKey<C, SqlType = Timestamptz>,
-{
-  type SqlType = sql_types::BigInt;
-  type CursorValue = functions::reverse_timestamp_sort<K::CursorValue>;
-  type SqlValue = functions::reverse_timestamp_sort<K::SqlValue>;
-
-  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
-    functions::reverse_timestamp_sort(K::get_cursor_value(cursor))
-  }
-
-  fn get_sql_value() -> Self::SqlValue {
-    functions::reverse_timestamp_sort(K::get_sql_value())
-  }
-}
-
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output
 #[derive(QueryId)]
 pub struct Commented<T> {
@@ -255,42 +236,16 @@ pub fn fuzzy_search(q: &str) -> String {
   format!("%{replaced}%")
 }
 
-pub fn limit_and_offset(
-  page: Option<i64>,
-  limit: Option<i64>,
-) -> Result<(i64, i64), diesel::result::Error> {
-  let page = match page {
-    Some(page) => {
-      if page < 1 {
-        return Err(QueryBuilderError("Page is < 1".into()));
-      }
-      page
-    }
-    None => 1,
-  };
-  let limit = limit_fetch(limit)?;
-  let offset = limit * (page - 1);
-  Ok((limit, offset))
-}
-
-pub fn limit_fetch(limit: Option<i64>) -> Result<i64, diesel::result::Error> {
+pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
   Ok(match limit {
     Some(limit) => {
       if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
-        return Err(QueryBuilderError(
-          format!("Fetch limit is > {FETCH_LIMIT_MAX}").into(),
-        ));
+        return Err(LemmyErrorType::InvalidFetchLimit.into());
       }
       limit
     }
     None => FETCH_LIMIT_DEFAULT,
   })
-}
-
-pub fn limit_and_offset_unlimited(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
-  let limit = limit.unwrap_or(FETCH_LIMIT_DEFAULT);
-  let offset = limit * (page.unwrap_or(1) - 1);
-  (limit, offset)
 }
 
 pub fn is_email_regex(test: &str) -> bool {

@@ -31,7 +31,7 @@ use lemmy_db_schema::{
     post,
   },
   source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  utils::{get_conn, now, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
@@ -144,11 +144,13 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
+  // TODO get rid of liked / disliked_only
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
   pub max_depth: Option<i32>,
+  pub cursor_data: Option<Comment>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl CommentQuery<'_> {

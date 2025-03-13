@@ -47,9 +47,11 @@ pub async fn list_comment_likes(
   .await?;
 
   let next_page = comment_likes.last().map(PageCursorBuilder::cursor);
+  let prev_page = comment_likes.first().map(PageCursorBuilder::cursor);
 
   Ok(Json(ListCommentLikesResponse {
     comment_likes,
     next_page,
+    prev_page,
   }))
 }

@@ -37,6 +37,7 @@ pub async fn list_registration_applications(
     verified_email_only: Some(local_site.require_email_verification),
     cursor_data,
     page_back: data.page_back,
+    limit: data.limit,
   }
   .list(&mut context.pool())
   .await?;
@@ -45,8 +46,13 @@ pub async fn list_registration_applications(
     .last()
     .map(PageCursorBuilder::cursor);
 
+  let prev_page = registration_applications
+    .first()
+    .map(PageCursorBuilder::cursor);
+
   Ok(Json(ListRegistrationApplicationsResponse {
     registration_applications,
     next_page,
+    prev_page,
   }))
 }

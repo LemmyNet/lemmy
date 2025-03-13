@@ -1,31 +1,28 @@
-#[cfg(feature = "full")]
-use activitypub_federation::{
-  fetch::collection_id::CollectionId,
-  fetch::object_id::ObjectId,
-  traits::Collection,
-  traits::Object,
-};
-#[cfg(feature = "full")]
-use diesel::{
-  backend::Backend,
-  deserialize::FromSql,
-  pg::Pg,
-  serialize::{Output, ToSql},
-  sql_types::Text,
-};
-#[cfg(feature = "full")]
-use diesel_ltree::Ltree;
-#[cfg(feature = "full")]
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
   fmt::{Display, Formatter},
   ops::Deref,
 };
-#[cfg(feature = "full")]
-use ts_rs::TS;
 use url::Url;
+#[cfg(feature = "full")]
+use {
+  activitypub_federation::{
+    fetch::collection_id::CollectionId,
+    fetch::object_id::ObjectId,
+    traits::Collection,
+    traits::Object,
+  },
+  diesel::{
+    backend::Backend,
+    deserialize::FromSql,
+    pg::Pg,
+    serialize::{Output, ToSql},
+    sql_types::Text,
+  },
+  diesel_ltree::Ltree,
+  ts_rs::TS,
+};
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -431,22 +428,38 @@ pub struct PaginationCursor(pub String);
 
 #[cfg(feature = "full")]
 impl PaginationCursor {
-  pub fn new(prefix: char, id: i32) -> Self {
-    // hex encoding to prevent ossification
-    Self(format!("{prefix}{id:x}"))
+  pub fn new_single(prefix: char, id: i32) -> Self {
+    Self::new(&[(prefix, id)])
+  }
+  pub fn new(prefixes_and_ids: &[(char, i32)]) -> Self {
+    Self(
+      prefixes_and_ids
+        .iter()
+        .map(|(prefix, id)| 
+          // hex encoding to prevent ossification
+          format!("{prefix}{id:x}")
+        )
+        .collect::<Vec<String>>()
+        .join("-"),
+    )
   }
 
-  pub fn prefix_and_id(&self) -> LemmyResult<(char, i32)> {
-    let (prefix_str, id_str) = self
+  pub fn prefixes_and_ids(&self) -> Vec<(char, i32)> {
+    let default_prefix = 'Z';
+    let default_id = 0;
+    self
       .0
-      .split_at_checked(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let prefix = prefix_str
-      .chars()
-      .next()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let id = i32::from_str_radix(id_str, 16)?;
-
-    Ok((prefix, id))
+      .split("-")
+      .map(|i| {
+        let opt = i.split_at_checked(1);
+        if let Some((prefix_str, id_str)) = opt {
+          let prefix = prefix_str.chars().next().unwrap_or(default_prefix);
+          let id = i32::from_str_radix(id_str, 16).unwrap_or(default_id);
+          (prefix, id )
+        } else {
+          (default_prefix, default_id)
+        }
+      })
+      .collect()
   }
 }

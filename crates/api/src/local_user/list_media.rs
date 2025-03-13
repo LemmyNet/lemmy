@@ -26,10 +26,16 @@ pub async fn list_media(
     local_user_view.local_user.id,
     cursor_data,
     data.page_back,
+    data.limit,
   )
   .await?;
 
   let next_page = images.last().map(PageCursorBuilder::cursor);
+  let prev_page = images.first().map(PageCursorBuilder::cursor);
 
-  Ok(Json(ListMediaResponse { images, next_page }))
+  Ok(Json(ListMediaResponse {
+    images,
+    next_page,
+    prev_page,
+  }))
 }

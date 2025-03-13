@@ -21,9 +21,16 @@ pub async fn list_all_media(
     None
   };
 
-  let images = LocalImageView::get_all(&mut context.pool(), cursor_data, data.page_back).await?;
+  let images =
+    LocalImageView::get_all_paged(&mut context.pool(), cursor_data, data.page_back, data.limit)
+      .await?;
 
   let next_page = images.last().map(PageCursorBuilder::cursor);
+  let prev_page = images.first().map(PageCursorBuilder::cursor);
 
-  Ok(Json(ListMediaResponse { images, next_page }))
+  Ok(Json(ListMediaResponse {
+    images,
+    next_page,
+    prev_page,
+  }))
 }

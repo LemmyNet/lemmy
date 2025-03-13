@@ -36,13 +36,16 @@ pub async fn list_post_likes(
     data.post_id,
     cursor_data,
     data.page_back,
+    data.limit,
   )
   .await?;
 
   let next_page = post_likes.last().map(PageCursorBuilder::cursor);
+  let prev_page = post_likes.first().map(PageCursorBuilder::cursor);
 
   Ok(Json(ListPostLikesResponse {
     post_likes,
     next_page,
+    prev_page,
   }))
 }

@@ -1,6 +1,5 @@
 use crate::structs::VoteView;
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -9,29 +8,34 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PaginationCursor, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
-  source::person::Person,
-  traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, DbPool},
+  source::{comment::CommentActions, person::Person, post::PostActions},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilder for VoteView {
-  type CursorData = Person;
-  fn to_cursor(&self) -> PaginationCursor {
+impl VoteView {
+  fn to_post_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and post
+    let prefixes_and_ids = [('P', self.follower.id.0), ('O', self.community.id.0)];
+
+    PaginationCursor::new(&prefixes_and_ids)
     PaginationCursor::new('P', self.creator.id.0)
   }
 
-  async fn from_cursor(
+  async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<PostActions> {
     let conn = &mut get_conn(pool).await?;
-    let id = cursor.prefix_and_id()?.1;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let token = person::table
       .select(Self::CursorData::as_select())
@@ -41,16 +45,15 @@ impl PaginationCursorBuilder for VoteView {
 
     Ok(token)
   }
-}
-
-impl VoteView {
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    cursor_data: Option<Person>,
+    cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
+    use lemmy_db_schema::source::post::post_actions_keys as key;
+
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
@@ -79,29 +82,29 @@ impl VoteView {
           .is_not_null(),
         post_actions::like_score.assume_not_null(),
       ))
-      // TODO this early order by is wrong
-      .order_by(post_actions::like_score)
       .limit(limit)
       .into_boxed();
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // Sorting by like score
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::like_score)
+      // Tie breaker
+      .then_order_by(key::person_id);
 
-    if page_back.unwrap_or_default() {
-      query = query.before(cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(cursor_data);
-    }
-
-    query.load::<Self>(conn).await
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    cursor_data: Option<Person>,
+    cursor_data: Option<CommentActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
+    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
@@ -130,20 +133,20 @@ impl VoteView {
           .is_not_null(),
         comment_actions::like_score.assume_not_null(),
       ))
-      // TODO this early order by is wrong
-      .order_by(comment_actions::like_score)
       .limit(limit)
       .into_boxed();
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // TODO create indexes for (like_score asc, person_id asc) for post_actions and comment_actions
+    // Sorting by like score
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::like_score)
+      // Tie breaker
+      .then_order_by(key::person_id);
 
-    if page_back.unwrap_or_default() {
-      query = query.before(cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(cursor_data);
-    }
-
-    query.load::<Self>(conn).await
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -38,14 +38,13 @@ use lemmy_db_schema::{
   source::{
     community::CommunityFollowerState,
     local_user::LocalUser,
-    post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
+    post::{post_actions_keys, post_keys as key, Post},
     site::Site,
   },
   traits::Crud,
   utils::{
     fuzzy_search,
     get_conn,
-    limit_and_offset,
     now,
     paginate,
     seconds_to_pg_interval,

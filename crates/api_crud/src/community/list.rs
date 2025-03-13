@@ -36,16 +36,19 @@ pub async fn list_communities(
     local_user: local_user.as_ref(),
     cursor_data,
     page_back: data.page_back,
+    limit: data.limit,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await?;
 
   let next_page = communities.last().map(PageCursorBuilder::cursor);
+  let prev_page = communities.first().map(PageCursorBuilder::cursor);
 
   // Return the jwt
   Ok(Json(ListCommunitiesResponse {
     communities,
     next_page,
+    prev_page,
   }))
 }

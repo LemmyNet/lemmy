@@ -12,7 +12,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PaginationCursor, PersonId},
@@ -22,11 +22,11 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::PaginationCursorBuilder,
-  utils::{functions::lower, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
   ListingType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -113,23 +113,18 @@ impl CommunityView {
 impl PaginationCursorBuilder for CommunityView {
   type CursorData = Community;
   fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new('C', self.community.id.0)
+    PaginationCursor::new_single('C', self.community.id.0)
   }
 
   async fn from_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let conn = &mut get_conn(pool).await?;
-    let id = cursor.prefix_and_id()?.1;
-
-    let token = community::table
-      .select(Self::CursorData::as_select())
-      .filter(community::id.eq(id))
-      .first(conn)
-      .await?;
-
-    Ok(token)
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Community::read(pool, CommunityId(*id))
   }
 }
 
@@ -144,16 +139,19 @@ pub struct CommunityQuery<'a> {
   pub show_nsfw: Option<bool>,
   pub cursor_data: Option<Community>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl CommunityQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommunityView>> {
     use CommunitySortType::*;
     let conn = &mut get_conn(pool).await?;
     let o = self;
+    let limit = limit_fetch(o.limit)?;
 
     let mut query = CommunityView::joins(o.local_user.person_id())
       .select(CommunityView::as_select())
+      .limit(limit)
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
@@ -186,53 +184,38 @@ impl CommunityQuery<'_> {
 
     query = o.local_user.visible_communities_only(query);
 
-    match o.sort.unwrap_or_default() {
-      Hot => query = query.order_by(community::hot_rank.desc()),
-      Comments => query = query.order_by(community::comments.desc()),
-      Posts => query = query.order_by(community::posts.desc()),
-      New => query = query.order_by(community::published.desc()),
-      Old => query = query.order_by(community::published.asc()),
-      Subscribers => query = query.order_by(community::subscribers.desc()),
-      SubscribersLocal => query = query.order_by(community::subscribers_local.desc()),
-      ActiveSixMonths => query = query.order_by(community::users_active_half_year.desc()),
-      ActiveMonthly => query = query.order_by(community::users_active_month.desc()),
-      ActiveWeekly => query = query.order_by(community::users_active_week.desc()),
-      ActiveDaily => query = query.order_by(community::users_active_day.desc()),
-      NameAsc => query = query.order_by(lower(community::name).asc()),
-      NameDesc => query = query.order_by(lower(community::name).desc()),
-    };
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
       query =
         query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // Only sort by ascending for Old or NameAsc sorts.
+    let sort = o.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
+    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
 
-    // TODO weird bug here.
-    match o.sort.unwrap_or_default() {
-      Hot => query = query.then_desc(key::hot_rank),
-      Comments => query = query.then_desc(key::comments),
-      Posts => query = query.then_desc(key::posts),
-      New => query = query.then_desc(key::published),
-      Old => query = query.then_desc(ReverseTimestampKey(key::published)),
-      Subscribers => query = query.then_desc(key::subscribers),
-      SubscribersLocal => query = query.then_desc(key::subscribers_local),
-      ActiveSixMonths => query = query.then_desc(key::users_active_half_year),
-      ActiveMonthly => query = query.then_desc(key::users_active_month),
-      ActiveWeekly => query = query.then_desc(key::users_active_week),
-      ActiveDaily => query = query.then_desc(key::users_active_day),
-      NameAsc => query = query.then_desc(ReverseTimestampKey(lower(key::name))),
-      NameDesc => query = query.then_desc(lower(key::name)),
+    pq = match sort {
+      Hot => pq.then_order_by(key::hot_rank),
+      Comments => pq.then_order_by(key::comments),
+      Posts => pq.then_order_by(key::posts),
+      New => pq.then_order_by(key::published),
+      Old => pq.then_order_by(key::published),
+      Subscribers => pq.then_order_by(key::subscribers),
+      SubscribersLocal => pq.then_order_by(key::subscribers_local),
+      ActiveSixMonths => pq.then_order_by(key::users_active_half_year),
+      ActiveMonthly => pq.then_order_by(key::users_active_month),
+      ActiveWeekly => pq.then_order_by(key::users_active_week),
+      ActiveDaily => pq.then_order_by(key::users_active_day),
+      // TODO the lower function doesn't work for these
+      NameAsc => pq.then_order_by(key::name),
+      NameDesc => pq.then_order_by(key::name),
     };
 
-    query.load::<CommunityView>(conn).await
+    pq.load::<CommunityView>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -13,10 +13,10 @@ use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
   schema::{local_user, person},
   source::person::{person_keys as key, Person},
-  traits::PaginationCursorBuilder,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, now, paginate, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
   type CursorData = Person;
@@ -29,16 +29,11 @@ impl PaginationCursorBuilder for PersonView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let conn = &mut get_conn(pool).await?;
-    let id = cursor.prefix_and_id()?.1;
-
-    let token = person::table
-      .select(Self::CursorData::as_select())
-      .filter(person::id.eq(id))
-      .first(conn)
-      .await?;
-
-    Ok(token)
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Person::read(pool, PersonId(*id)).await
   }
 }
 
@@ -77,7 +72,7 @@ pub struct PersonQuery {
 }
 
 impl PersonQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = PersonView::joins()

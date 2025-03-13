@@ -1,15 +1,15 @@
 use crate::structs::LocalImageView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PaginationCursor},
   schema::{local_image, local_user, person},
   source::images::LocalImage,
   traits::PaginationCursorBuilder,
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -24,23 +24,23 @@ impl LocalImageView {
     user_id: LocalUserId,
     cursor_data: Option<LocalImage>,
     page_back: Option<bool>,
-  ) -> Result<Vec<Self>, Error> {
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
 
     let query = Self::joins()
       .filter(local_image::local_user_id.eq(user_id))
       .select(Self::as_select())
+      .limit(limit)
       .into_boxed();
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back);
 
-    if page_back.unwrap_or_default() {
-      query = query.before(cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(cursor_data);
-    }
-
-    query.load::<Self>(conn).await
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn get_all_by_local_user_id(
@@ -55,23 +55,25 @@ impl LocalImageView {
       .await
   }
 
-  pub async fn get_all(
+  pub async fn get_all_paged(
     pool: &mut DbPool<'_>,
     cursor_data: Option<LocalImage>,
     page_back: Option<bool>,
-  ) -> Result<Vec<Self>, Error> {
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let query = Self::joins().select(Self::as_select()).into_boxed();
+    let limit = limit_fetch(limit)?;
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    let query = Self::joins()
+      .select(Self::as_select())
+      .limit(limit)
+      .into_boxed();
 
-    if page_back.unwrap_or_default() {
-      query = query.before(cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(cursor_data);
-    }
-
-    query.load::<Self>(conn).await
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back);
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -9,14 +9,15 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
   source::registration_application::RegistrationApplication,
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl RegistrationApplicationView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -78,18 +79,18 @@ pub struct RegistrationApplicationQuery {
   pub verified_email_only: Option<bool>,
   pub cursor_data: Option<RegistrationApplication>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl RegistrationApplicationQuery {
-  pub async fn list(
-    self,
-    pool: &mut DbPool<'_>,
-  ) -> Result<Vec<RegistrationApplicationView>, Error> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<RegistrationApplicationView>> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
     let o = self;
 
     let mut query = RegistrationApplicationView::joins()
       .select(RegistrationApplicationView::as_select())
+      .limit(limit)
       .into_boxed();
 
     if o.unread_only.unwrap_or_default() {
@@ -104,15 +105,13 @@ impl RegistrationApplicationQuery {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // Sorting by published
+    let paginated_query = paginate(query, SortDirection::Desc, o.cursor_data, None, o.page_back);
 
-    if o.page_back.unwrap_or_default() {
-      query = query.before(o.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(o.cursor_data);
-    }
-
-    query.load::<RegistrationApplicationView>(conn).await
+    paginated_query
+      .load::<RegistrationApplicationView>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
