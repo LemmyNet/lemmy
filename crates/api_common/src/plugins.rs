@@ -1,6 +1,6 @@
-use crate::LemmyErrorType;
+use crate::{site::PluginMetadata, LemmyErrorType};
 use anyhow::anyhow;
-use extism::{FromBytes, Manifest, PluginBuilder, Pool};
+use extism::{Manifest, PluginBuilder, Pool};
 use extism_convert::Json;
 use lemmy_utils::error::LemmyResult;
 use once_cell::sync::Lazy;
@@ -16,8 +16,6 @@ use std::{
   time::Duration,
 };
 use tracing::{debug, warn};
-use ts_rs::TS;
-use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(0);
 
@@ -46,16 +44,6 @@ where
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
   Plugins::get().0.into_iter().map(|p| p.metadata).collect()
-}
-
-#[derive(Serialize, Deserialize, FromBytes, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-#[encoding(Json)]
-pub struct PluginMetadata {
-  name: String,
-  url: Url,
-  description: String,
 }
 
 #[derive(Clone)]
