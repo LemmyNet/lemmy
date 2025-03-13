@@ -1,5 +1,5 @@
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::community::{Community, CommunityFollower};
+use lemmy_db_schema::source::community::{Community, CommunityActions};
 
 pub mod comment;
 pub mod community;
@@ -17,7 +17,7 @@ async fn community_use_pending(community: &Community, context: &LemmyContext) ->
   if community.local {
     return false;
   }
-  CommunityFollower::check_has_local_followers(&mut context.pool(), community.id)
+  CommunityActions::check_has_local_followers(&mut context.pool(), community.id)
     .await
     .is_ok()
 }

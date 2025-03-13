@@ -95,6 +95,16 @@ steps:
     when:
       - event: pull_request
 
+  no_empty_files:
+    image: alpine:3
+    commands:
+      # Makes sure there are no files smaller than 2 bytes
+      # Don't use completely empty, as some editors use newlines
+      - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
+      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
+    when:
+      - event: pull_request
+
   cargo_clippy:
     image: *rust_image
     environment:

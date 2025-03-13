@@ -280,7 +280,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, _, path) = init(true, CommunityVisibility::LocalOnly, &context).await?;
+    let (instance, _, path) = init(true, CommunityVisibility::Public, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     // should return tombstone
@@ -320,7 +320,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, _, path) = init(false, CommunityVisibility::LocalOnly, &context).await?;
+    let (instance, _, path) = init(false, CommunityVisibility::LocalOnlyPrivate, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await;
