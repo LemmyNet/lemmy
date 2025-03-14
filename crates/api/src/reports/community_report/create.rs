@@ -3,6 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   reports::community::{CommunityReportResponse, CreateCommunityReport},
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{send_new_report_email_to_admins, slur_regex},
 };
 use lemmy_db_schema::{
