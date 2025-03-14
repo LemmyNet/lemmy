@@ -146,6 +146,7 @@ impl Object for ApubComment {
     ))
     .await?;
     if let Err(e) = verify_is_remote_object(&note.id, context) {
+      // The comment was created locally and sent back, indicating that the community accepted it
       let form = CommentUpdateForm {
         pending: Some(false),
         ..Default::default()
