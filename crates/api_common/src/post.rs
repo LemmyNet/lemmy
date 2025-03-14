@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PaginationCursor, PostId, TagId},
   ListingType,
   PostFeatureType,
   PostSortType,
@@ -90,11 +90,6 @@ pub struct GetPosts {
   /// IE 60 would give results for the past minute.
   /// Use Zero to override the local_site and local_user time_range.
   pub time_range_seconds: Option<i32>,
-  /// DEPRECATED, use page_cursor
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -128,6 +123,8 @@ pub struct GetPosts {
   pub page_cursor: Option<PostPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -140,6 +137,8 @@ pub struct GetPostsResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PostPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -306,14 +305,16 @@ pub struct OpenGraphData {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
   pub post_id: PostId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -324,4 +325,9 @@ pub struct ListPostLikes {
 /// The post likes response
 pub struct ListPostLikesResponse {
   pub post_likes: Vec<VoteView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

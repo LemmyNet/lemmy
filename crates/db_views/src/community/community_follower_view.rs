@@ -12,14 +12,21 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
   schema::{community, community_actions, person},
   source::{
-    community::{Community, CommunityFollowerState},
+    community::{
+      community_actions_keys as key,
+      Community,
+      CommunityActions,
+      CommunityFollowerState,
+    },
     person::Person,
   },
-  utils::{get_conn, limit_and_offset, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   CommunityVisibility,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -109,11 +116,12 @@ impl CommunityFollowerView {
     //       also need to check is_admin()
     all_communities: bool,
     pending_only: bool,
-    page: Option<i64>,
+    cursor_data: Option<CommunityActions>,
+    page_back: Option<bool>,
     limit: Option<i64>,
-  ) -> Result<Vec<PendingFollow>, Error> {
+  ) -> LemmyResult<Vec<PendingFollow>> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let limit = limit_fetch(limit)?;
     let (person_alias, community_follower_alias) = diesel::alias!(
       person as person_alias,
       community_actions as community_follower_alias
@@ -152,6 +160,7 @@ impl CommunityFollowerView {
         is_new_instance,
         community_actions::follow_state.nullable(),
       ))
+      .limit(limit)
       .into_boxed();
     if all_communities {
       // if param is false, only return items for communities where user is a mod
@@ -163,10 +172,12 @@ impl CommunityFollowerView {
       query =
         query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
     }
-    let res = query
-      .order_by(community_actions::followed.asc())
-      .limit(limit)
-      .offset(offset)
+
+    // Sorting by published
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::followed);
+
+    let res = paginated_query
       .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
       .await?;
     Ok(
@@ -250,6 +261,29 @@ impl CommunityFollowerView {
     .await?
     .then_some(())
     .ok_or(diesel::NotFound)
+  }
+}
+
+impl PaginationCursorBuilder for CommunityFollowerView {
+  type CursorData = CommunityActions;
+  fn to_cursor(&self) -> PaginationCursor {
+    // This needs a person and community
+    let prefixes_and_ids = [('P', self.follower.id.0), ('C', self.community.id.0)];
+
+    PaginationCursor::new(&prefixes_and_ids)
+  }
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, person_id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, community_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    CommunityActions::read(pool, CommunityId(*community_id), PersonId(*person_id)).await
   }
 }
 
