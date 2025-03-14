@@ -277,13 +277,13 @@ impl PaginationCursorBuilder for CommunityFollowerView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let pids = cursor.prefixes_and_ids();
-    let (person_prefix, person_id) = pids
+    let (_, person_id) = pids
       .get(0)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let (community_prefix, community_id) = pids
+    let (_, community_id) = pids
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
+    CommunityActions::read(pool, CommunityId(*community_id), PersonId(*person_id)).await
   }
 }
 

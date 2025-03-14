@@ -124,7 +124,7 @@ impl PaginationCursorBuilder for CommunityView {
     let (_, id) = pids
       .get(0)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Community::read(pool, CommunityId(*id))
+    Community::read(pool, CommunityId(*id)).await
   }
 }
 

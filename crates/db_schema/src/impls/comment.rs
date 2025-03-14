@@ -224,6 +224,22 @@ impl Saveable for CommentActions {
   }
 }
 
+impl CommentActions {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    comment_id: CommentId,
+    person_id: PersonId,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    comment_actions::table
+      .find((person_id, comment_id))
+      .select(Self::as_select())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
 #[cfg(test)]
 mod tests {
 

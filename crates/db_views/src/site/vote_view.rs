@@ -5,15 +5,14 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, PaginationCursor, PostId},
+  newtypes::{CommentId, PaginationCursor, PersonId, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
-  source::{comment::CommentActions, person::Person, post::PostActions},
+  source::{comment::CommentActions, post::PostActions},
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -21,30 +20,26 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl VoteView {
   fn to_post_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and post
-    let prefixes_and_ids = [('P', self.follower.id.0), ('O', self.community.id.0)];
+    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.item_id)];
 
     PaginationCursor::new(&prefixes_and_ids)
-    PaginationCursor::new('P', self.creator.id.0)
   }
 
   async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PostActions> {
-    let conn = &mut get_conn(pool).await?;
     let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
+    let (_, person_id) = pids
       .get(0)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, post_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
-    let token = person::table
-      .select(Self::CursorData::as_select())
-      .filter(person::id.eq(id))
-      .first(conn)
-      .await?;
-
-    Ok(token)
+    PostActions::read(pool, PostId(*post_id), PersonId(*person_id)).await
   }
+
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -76,6 +71,7 @@ impl VoteView {
       .filter(post_actions::post_id.eq(post_id))
       .select((
         person::all_columns,
+        post::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -95,6 +91,28 @@ impl VoteView {
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn to_comment_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and comment
+    let prefixes_and_ids = [('P', self.creator.id.0), ('C', self.item_id)];
+
+    PaginationCursor::new(&prefixes_and_ids)
+  }
+
+  async fn from_comment_actions_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<CommentActions> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, person_id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, comment_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+
+    CommentActions::read(pool, CommentId(*comment_id), PersonId(*person_id)).await
   }
 
   pub async fn list_for_comment(
@@ -127,6 +145,7 @@ impl VoteView {
       .filter(comment_actions::comment_id.eq(comment_id))
       .select((
         person::all_columns,
+        comment::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -217,11 +236,13 @@ mod tests {
     let mut expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
+        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_timmy.clone(),
+        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: 1,
       },
@@ -244,11 +265,13 @@ mod tests {
     let mut expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
+        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_sara.clone(),
+        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: 1,
       },

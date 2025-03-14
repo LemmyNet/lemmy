@@ -22,7 +22,7 @@ impl PaginationCursorBuilder for PersonView {
   type CursorData = Person;
 
   fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new('P', self.person.id.0)
+    PaginationCursor::new_single('P', self.person.id.0)
   }
 
   async fn from_cursor(

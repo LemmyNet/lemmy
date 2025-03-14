@@ -14,6 +14,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
@@ -30,12 +31,18 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{get_conn, now, seconds_to_pg_interval, DbPool},
+  source::{
+    comment::{comment_keys as key, Comment},
+    community::CommunityFollowerState,
+    local_user::LocalUser,
+    site::Site,
+  },
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
 };
+use lemmy_utils::error::LemmyResult;
 
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -154,7 +161,7 @@ pub struct CommentQuery<'a> {
 }
 
 impl CommentQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommentView>> {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
@@ -243,8 +250,14 @@ impl CommentQuery<'_> {
       );
     }
 
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query =
+        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
     // A Max depth given means its a tree fetch
-    let (limit, offset) = if let Some(max_depth) = o.max_depth {
+    let limit = if let Some(max_depth) = o.max_depth {
       let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
         parent_path.0.split('.').count() as i32 + max_depth
         // Add one because of root "0"
@@ -258,6 +271,7 @@ impl CommentQuery<'_> {
       // + !post_id isn't used anyways (afaik)
       if o.post_id.is_some() || o.parent_path.is_some() {
         // Always order by the parent path first
+        // TODO not sure if this initial then_order_by will work correctly
         query = query.then_order_by(subpath(comment::path, 0, -1));
       }
 
@@ -271,38 +285,32 @@ impl CommentQuery<'_> {
       // If a max depth is given, then you know its a tree fetch, and limits should be ignored
       // TODO a kludge to prevent attacks. Limit comments to 300 for now.
       // (i64::MAX, 0)
-      (300, 0)
+      300
     } else {
       // limit_and_offset_unlimited(o.page, o.limit)
-      limit_and_offset(o.page, o.limit)?
+      limit_fetch(o.limit)?
     };
+    query = query.limit(limit);
+
+    // Only sort by ascending for Old
+    let sort = o.sort.unwrap_or(CommentSortType::Hot);
+    let sort_direction = asc_if(sort == CommentSortType::Old);
+
+    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
 
     // distinguished comments should go first when viewing post
     if o.post_id.is_some() || o.parent_path.is_some() {
-      query = query.then_order_by(comment::distinguished.desc());
+      pq = pq.then_order_by(key::distinguished);
     }
 
-    query = match o.sort.unwrap_or(CommentSortType::Hot) {
-      CommentSortType::Hot => query
-        .then_order_by(comment::hot_rank.desc())
-        .then_order_by(comment::score.desc()),
-      CommentSortType::Controversial => query.then_order_by(comment::controversy_rank.desc()),
-      CommentSortType::New => query.then_order_by(comment::published.desc()),
-      CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.then_order_by(comment::score.desc()),
+    pq = match sort {
+      CommentSortType::Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
+      CommentSortType::Controversial => pq.then_order_by(key::controversy_rank),
+      CommentSortType::Old | CommentSortType::New => pq.then_order_by(key::published),
+      CommentSortType::Top => pq.then_order_by(key::score),
     };
 
-    // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
-      query =
-        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
-    }
-
-    let res = query
-      .limit(limit)
-      .offset(offset)
-      .load::<CommentView>(conn)
-      .await?;
+    let res = pq.load::<CommentView>(conn).await?;
 
     Ok(res)
   }

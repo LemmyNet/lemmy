@@ -15,12 +15,20 @@ use {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(
+    Queryable,
+    Selectable,
+    Associations,
+    Identifiable,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = comment_keys))]
 /// A comment.
 pub struct Comment {
   pub id: CommentId,
