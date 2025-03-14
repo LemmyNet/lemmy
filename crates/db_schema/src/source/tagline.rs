@@ -1,3 +1,4 @@
+use crate::newtypes::TaglineId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -16,7 +17,7 @@ use {crate::schema::tagline, i_love_jesus::CursorKeysModule, ts_rs::TS};
 #[cfg_attr(feature = "full", cursor_keys_module(name = tagline_keys))]
 /// A tagline, shown at the top of your site.
 pub struct Tagline {
-  pub id: i32,
+  pub id: TaglineId,
   pub content: String,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]

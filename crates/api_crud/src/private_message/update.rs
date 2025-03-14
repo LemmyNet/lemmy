@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
@@ -45,8 +45,7 @@ pub async fn update_private_message(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  .await?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 

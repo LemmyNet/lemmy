@@ -31,7 +31,6 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{exists, insert_into, not},
   expression::SelectableHelper,
-  result::Error,
   select,
   update,
   BoolExpressionMethods,
@@ -298,7 +297,7 @@ impl CommunityActions {
   pub async fn delete_mods_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<uplete::Count, Error> {
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
     uplete::new(
@@ -307,23 +306,25 @@ impl CommunityActions {
     .set_null(community_actions::became_moderator)
     .get_result(conn)
     .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn leave_mod_team_for_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<uplete::Count, Error> {
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
       .set_null(community_actions::became_moderator)
       .get_result(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn get_person_moderated_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error> {
+  ) -> LemmyResult<Vec<CommunityId>> {
     let conn = &mut get_conn(pool).await?;
     community_actions::table
       .filter(community_actions::became_moderator.is_not_null())
@@ -331,6 +332,7 @@ impl CommunityActions {
       .select(community_actions::community_id)
       .load::<CommunityId>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   /// Checks to make sure the acting moderator was added earlier than the target moderator

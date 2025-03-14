@@ -4,10 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
-use lemmy_db_schema::{
-  source::person::Person,
-  traits::{PageCursorBuilder, PageCursorReader},
-};
 use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
 use lemmy_utils::error::LemmyResult;
 
@@ -32,7 +28,7 @@ pub async fn list_comment_likes(
   .await?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(Person::from_cursor(cursor, &mut context.pool()).await?)
+    Some(VoteView::from_comment_actions_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -46,8 +42,12 @@ pub async fn list_comment_likes(
   )
   .await?;
 
-  let next_page = comment_likes.last().map(PageCursorBuilder::cursor);
-  let prev_page = comment_likes.first().map(PageCursorBuilder::cursor);
+  let next_page = comment_likes
+    .last()
+    .map(VoteView::to_comment_actions_cursor);
+  let prev_page = comment_likes
+    .first()
+    .map(VoteView::to_comment_actions_cursor);
 
   Ok(Json(ListCommentLikesResponse {
     comment_likes,

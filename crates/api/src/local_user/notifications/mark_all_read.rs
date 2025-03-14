@@ -7,7 +7,7 @@ use lemmy_db_schema::source::{
   private_message::PrivateMessage,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn mark_all_notifications_read(
   context: Data<LemmyContext>,
@@ -16,24 +16,16 @@ pub async fn mark_all_notifications_read(
   let person_id = local_user_view.person.id;
 
   // Mark all comment_replies as read
-  CommentReply::mark_all_as_read(&mut context.pool(), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  CommentReply::mark_all_as_read(&mut context.pool(), person_id).await?;
 
   // Mark all comment mentions as read
-  PersonCommentMention::mark_all_as_read(&mut context.pool(), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  PersonCommentMention::mark_all_as_read(&mut context.pool(), person_id).await?;
 
   // Mark all post mentions as read
-  PersonPostMention::mark_all_as_read(&mut context.pool(), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+  PersonPostMention::mark_all_as_read(&mut context.pool(), person_id).await?;
 
   // Mark all private_messages as read
-  PrivateMessage::mark_all_as_read(&mut context.pool(), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  PrivateMessage::mark_all_as_read(&mut context.pool(), person_id).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

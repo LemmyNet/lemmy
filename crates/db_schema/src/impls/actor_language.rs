@@ -172,7 +172,11 @@ impl SiteLanguage {
             .execute(conn)
             .await?;
 
-          CommunityLanguage::limit_languages(conn, instance_id).await?;
+          // TODO grep for the rest of _Result< in db_schema
+          CommunityLanguage::limit_languages(conn, instance_id)
+            .await
+            .map_err(|_| diesel::result::Error::NotFound)?;
+
           Ok(())
         }
         .scope_boxed()
@@ -212,7 +216,7 @@ impl CommunityLanguage {
   async fn limit_languages(
     conn: &mut AsyncPgConnection,
     for_instance_id: InstanceId,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     use crate::schema::{
       community::dsl as c,
       community_language::dsl as cl,
@@ -398,18 +402,17 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  async fn test_langs1(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  async fn test_langs1(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     Ok(vec![
       Language::read_id_from_code(pool, "en").await?,
       Language::read_id_from_code(pool, "fr").await?,
       Language::read_id_from_code(pool, "ru").await?,
     ])
   }
-  async fn test_langs2(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  async fn test_langs2(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     Ok(vec![
       Language::read_id_from_code(pool, "fi").await?,
       Language::read_id_from_code(pool, "se").await?,

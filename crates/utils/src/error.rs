@@ -173,6 +173,7 @@ pub enum LemmyErrorType {
   CouldntUpdatePerson,
   CouldntCreateModlog,
   CouldntUpdateModlog,
+  CouldntCreateSite,
   CouldntUpdateSite,
   CouldntCreateRegistrationApplication,
   CouldntUpdateRegistrationApplication,
@@ -180,6 +181,8 @@ pub enum LemmyErrorType {
   CouldntUpdateTag,
   CouldntCreateTagline,
   CouldntUpdateTagline,
+  CouldntCreateImage,
+  CouldntAllowInstance,
 }
 
 /// Federation related errors, these dont need to be translated.

@@ -19,7 +19,7 @@ use lemmy_db_views::{
   comment::comment_view::CommentQuery,
   structs::{CommentView, LocalUserView, SiteView},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
 async fn list_comments_common(
@@ -52,7 +52,6 @@ async fn list_comments_common(
   let disliked_only = data.disliked_only;
   check_conflicting_like_filters(liked_only, disliked_only)?;
 
-  let page = data.page;
   let limit = data.limit;
   let parent_id = data.parent_id;
 
@@ -85,13 +84,10 @@ async fn list_comments_common(
     parent_path: parent_path_cloned,
     post_id,
     local_user,
-    page,
     limit,
-    ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetComments)
 }
 
 pub async fn list_comments(

@@ -4,11 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_community_mod_of_any_or_admin_action,
 };
-use lemmy_db_schema::{
-  source::person::Person,
-  traits::{PageCursorBuilder, PageCursorReader},
-};
-use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView, PendingFollow};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_pending_follows_list(
@@ -21,7 +18,7 @@ pub async fn get_pending_follows_list(
     data.all_communities.unwrap_or_default() && local_user_view.local_user.admin;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(Person::from_cursor(cursor, &mut context.pool()).await?)
+    Some(CommunityFollowerView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -33,13 +30,16 @@ pub async fn get_pending_follows_list(
     data.pending_only.unwrap_or_default(),
     cursor_data,
     data.page_back,
+    data.limit,
   )
   .await?;
 
-  let next_page = items.last().map(PageCursorBuilder::cursor);
+  let next_page = items.last().map(PendingFollow::to_cursor);
+  let prev_page = items.first().map(PendingFollow::to_cursor);
 
   Ok(Json(ListCommunityPendingFollowsResponse {
     items,
     next_page,
+    prev_page,
   }))
 }

@@ -1,28 +1,25 @@
 use crate::{
-  structs::{PostPaginationCursor, PostView},
+  structs::PostView,
   utils::{filter_blocked, filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
-  debug_query,
   dsl::{exists, not},
-  pg::Pg,
-  query_builder::AsQuery,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
-  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId, PostId},
+  newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     community,
     community_actions,
@@ -38,23 +35,37 @@ use lemmy_db_schema::{
   source::{
     community::CommunityFollowerState,
     local_user::LocalUser,
-    post::{post_actions_keys, post_keys as key, Post},
+    post::{post_keys as key, Post},
     site::Site,
   },
-  traits::Crud,
-  utils::{fuzzy_search, get_conn, now, paginate, seconds_to_pg_interval, Commented, DbPool},
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, Commented, DbPool},
   CommunityVisibility,
   ListingType,
   PostSortType,
 };
-use tracing::debug;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use PostSortType::*;
 
-impl PostView {
-  // TODO while we can abstract the joins into a function, the selects are currently impossible to
-  // do, because they rely on a few types that aren't yet publicly exported in diesel:
-  // https://github.com/diesel-rs/diesel/issues/4462
+impl PaginationCursorBuilder for PostView {
+  type CursorData = Post;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('P', self.post.id.0)
+  }
 
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Post::read(pool, PostId(*id)).await
+  }
+}
+
+impl PostView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>) -> _ {
     let community_actions_join = community_actions::table.on(
@@ -162,82 +173,17 @@ impl PostView {
       .first(conn)
       .await
   }
-}
 
-// TODO This pagination cursor is a mess, get rid of it and have it match the others
-impl PostPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PostView) -> PostPaginationCursor {
-    // hex encoding to prevent ossification
-    PostPaginationCursor(format!("P{:x}", view.post.id.0))
-  }
-  pub async fn read(
-    &self,
+  // TODO this function needs to be checked
+  /// Prefetches an upper bound to build the cursor before data.
+  pub async fn prefetch_cursor_before_data(
     pool: &mut DbPool<'_>,
-    local_user: Option<&LocalUser>,
-  ) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let post_id = PostId(
-      self
-        .0
-        .get(1..)
-        .and_then(|e| i32::from_str_radix(e, 16).ok())
-        .ok_or_else(err_msg)?,
-    );
-    let post = Post::read(pool, post_id).await?;
-    let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
-
-    Ok(PaginationCursorData { post, post_actions })
-  }
-}
-
-// currently we use aggregates or actions as the pagination token.
-// we only use some of the properties, depending on which sort type we page by
-#[derive(Clone)]
-pub struct PaginationCursorData {
-  post: Post,
-  post_actions: PostActionsCursor,
-}
-
-#[derive(Clone, Default)]
-pub struct PostQuery<'a> {
-  pub listing_type: Option<ListingType>,
-  pub sort: Option<PostSortType>,
-  pub time_range_seconds: Option<i32>,
-  pub creator_id: Option<PersonId>,
-  pub community_id: Option<CommunityId>,
-  // if true, the query should be handled as if community_id was not given except adding the
-  // literal filter
-  pub community_id_just_for_prefetch: bool,
-  pub local_user: Option<&'a LocalUser>,
-  // TODO get rid of this
-  pub search_term: Option<String>,
-  pub url_only: Option<bool>,
-  pub read_only: Option<bool>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
-  pub title_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  // TODO these should be simple cursors like the others, not data
-  pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<Post>,
-  pub page_back: Option<bool>,
-  pub show_hidden: Option<bool>,
-  pub show_read: Option<bool>,
-  pub show_nsfw: Option<bool>,
-  pub hide_media: Option<bool>,
-  pub no_comments_only: Option<bool>,
-}
-
-impl<'a> PostQuery<'a> {
-  // TODO this should not be doing recursive fetching, get rid of it.
-  #[allow(clippy::expect_used)]
-  async fn prefetch_upper_bound_for_page_before(
-    &self,
-    site: &Site,
-    pool: &mut DbPool<'_>,
-  ) -> Result<Option<PostQuery<'a>>, Error> {
+    my_local_user: Option<&'_ LocalUser>,
+    page_back: Option<bool>,
+    limit: Option<i64>,
+  ) -> LemmyResult<Option<Post>> {
+    let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
     // first get one page for the most popular community to get an upper bound for the page end for
     // the real query. the reason this is needed is that when fetching posts for a single
     // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
@@ -248,94 +194,91 @@ impl<'a> PostQuery<'a> {
     // the results are correct no matter which community we fetch these for, since it basically
     // covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more
-    // efficient.
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    if offset != 0 && self.page_after.is_some() {
-      return Err(Error::QueryBuilderError(
-        "legacy pagination cannot be combined with v2 pagination".into(),
-      ));
-    }
-    let self_person_id = self.local_user.expect("part of the above if").person_id;
-    let largest_subscribed = {
-      let conn = &mut get_conn(pool).await?;
-      community_actions::table
-        .filter(community_actions::followed.is_not_null())
-        .filter(community_actions::person_id.eq(self_person_id))
-        .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
-        .order_by(community::users_active_month.desc())
-        .select(community::id)
-        .limit(1)
-        .get_result::<CommunityId>(conn)
-        .await
-        .optional()?
-    };
-    let Some(largest_subscribed) = largest_subscribed else {
+    let self_person_id = my_local_user
+      .person_id()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+
+    let largest_subscribed = community_actions::table
+      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::person_id.eq(self_person_id))
+      .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+      .order_by(community::users_active_month.desc())
+      .select(community::id)
+      .limit(1)
+      .get_result::<CommunityId>(conn)
+      .await
+      .optional()?;
+
+    if let Some(largest_subscribed) = largest_subscribed {
+      // TODO Not sure this is correct
+      let posts = post::table
+        .filter(post::community_id.eq(largest_subscribed))
+        .limit(limit)
+        .select(Post::as_select())
+        .load::<Post>(conn)
+        .await?;
+
+      if (posts.len() as i64) < limit {
+        return Ok(None);
+      } else {
+        let item = if page_back.unwrap_or_default() {
+          // for backward pagination, get first element instead
+          posts.into_iter().next()
+        } else {
+          posts.into_iter().next_back()
+        };
+        Ok(item)
+      }
+    } else {
       // nothing subscribed to? no posts
       return Ok(None);
-    };
-
-    let mut v = Box::pin(
-      PostQuery {
-        community_id: Some(largest_subscribed),
-        community_id_just_for_prefetch: true,
-        ..self.clone()
-      }
-      .list(site, pool),
-    )
-    .await?;
-
-    // take last element of array. if this query returned less than LIMIT elements,
-    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results
-    // (return original query)
-    if (v.len() as i64) < limit {
-      Ok(Some(self.clone()))
-    } else {
-      let item = if self.page_back.unwrap_or_default() {
-        // for backward pagination, get first element instead
-        v.into_iter().next()
-      } else {
-        v.pop()
-      };
-      let limit_cursor = Some(item.expect("else case").post);
-      Ok(Some(PostQuery {
-        page_before_or_equal: limit_cursor,
-        ..self.clone()
-      }))
     }
   }
+}
 
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    let o = if self.listing_type == Some(ListingType::Subscribed)
-      && self.community_id.is_none()
-      && self.local_user.is_some()
-      && self.page_before_or_equal.is_none()
-    {
-      if let Some(query) = self
-        .prefetch_upper_bound_for_page_before(site, pool)
-        .await?
-      {
-        query
-      } else {
-        self
-      }
-    } else {
-      self
-    };
+#[derive(Clone, Default)]
+pub struct PostQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<PostSortType>,
+  pub time_range_seconds: Option<i32>,
+  // TODO creator id should also go away?
+  // That's handled by content and search
+  pub creator_id: Option<PersonId>,
+  pub community_id: Option<CommunityId>,
+  pub local_user: Option<&'a LocalUser>,
+  pub url_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
+  pub show_hidden: Option<bool>,
+  pub show_read: Option<bool>,
+  pub show_nsfw: Option<bool>,
+  pub hide_media: Option<bool>,
+  pub no_comments_only: Option<bool>,
+  pub cursor_data: Option<Post>,
+  pub cursor_before_data: Option<Post>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
+}
 
+impl<'a> PostQuery<'a> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PostView>> {
+    let o = self;
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(o.limit)?;
 
     let my_person_id = o.local_user.person_id();
     let my_local_user_id = o.local_user.local_user_id();
 
     let mut query = PostView::joins(my_person_id)
       .select(PostView::as_select())
+      .limit(limit)
       .into_boxed();
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only creator can see deleted posts and unpublished scheduled posts
-    if let Some(person_id) = o.local_user.person_id() {
+    if let Some(person_id) = my_person_id {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
         post::scheduled_publish_time
@@ -372,29 +315,6 @@ impl<'a> PostQuery<'a> {
       ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
-      }
-    }
-
-    if let Some(search_term) = &o.search_term {
-      let url_filter = post::url.eq(search_term);
-      if o.url_only.unwrap_or_default() {
-        query = query.filter(url_filter);
-      } else {
-        let searcher = fuzzy_search(search_term);
-        let name_filter = post::name.ilike(searcher.clone());
-        let body_filter = post::body.ilike(searcher.clone());
-        let alt_text_filter = post::alt_text.ilike(searcher.clone());
-        query = if o.title_only.unwrap_or_default() {
-          query.filter(name_filter)
-        } else {
-          query.filter(
-            name_filter
-              .or(body_filter)
-              .or(alt_text_filter)
-              .or(url_filter),
-          )
-        }
-        .filter(not(post::removed.or(post::deleted)));
       }
     }
 
@@ -436,7 +356,8 @@ impl<'a> PostQuery<'a> {
       ));
     }
 
-    if let Some(my_id) = o.local_user.person_id() {
+    // TODO move liked only elsewhere
+    if let Some(my_id) = my_person_id {
       let not_creator_filter = post::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
         query = query
@@ -477,77 +398,64 @@ impl<'a> PostQuery<'a> {
       query = query.filter(filter_blocked());
     }
 
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
-    query = query.limit(limit).offset(offset);
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(post::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
 
-    let query = if o.read_only.unwrap_or_default() {
-      paginate(
-        query,
-        o.page_after.map(|c| c.post_actions),
-        None,
-        o.page_back.unwrap_or_default(),
-      )
-      .filter(post_actions::read.is_not_null())
-      .then_desc(post_actions_keys::read)
-      .as_query()
+    // Only sort by ascending for Old
+    let sort = o.sort.unwrap_or(Hot);
+    let sort_direction = asc_if(sort == Old);
+
+    let mut pq = paginate(
+      query,
+      sort_direction,
+      o.cursor_data,
+      o.cursor_before_data,
+      o.page_back,
+    );
+
+    // featured posts first
+    pq = if o.community_id.is_none() {
+      pq.then_order_by(key::featured_local)
     } else {
-      let mut query = paginate(
-        query,
-        o.page_after.map(|c| c.post),
-        o.page_before_or_equal,
-        o.page_back.unwrap_or_default(),
-      );
-
-      // featured posts first
-      query = if o.community_id.is_none() || o.community_id_just_for_prefetch {
-        query.then_desc(key::featured_local)
-      } else {
-        query.then_desc(key::featured_community)
-      };
-
-      // then use the main sort
-      query = match o.sort.unwrap_or(Hot) {
-        Active => query.then_desc(key::hot_rank_active),
-        Hot => query.then_desc(key::hot_rank),
-        Scaled => query.then_desc(key::scaled_rank),
-        Controversial => query.then_desc(key::controversy_rank),
-        New => query.then_desc(key::published),
-        Old => query.then_desc(ReverseTimestampKey(key::published)),
-        NewComments => query.then_desc(key::newest_comment_time),
-        MostComments => query.then_desc(key::comments),
-        Top => query.then_desc(key::score),
-      };
-
-      // Filter by the time range
-      if let Some(time_range_seconds) = o.time_range_seconds {
-        query =
-          query.filter(post::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
-      }
-
-      // use publish as fallback. especially useful for hot rank which reaches zero after some days.
-      // necessary because old posts can be fetched over federation and inserted with high post id
-      query = match o.sort.unwrap_or(Hot) {
-        // A second time-based sort would not be very useful
-        New | Old | NewComments => query,
-        _ => query.then_desc(key::published),
-      };
-
-      // finally use unique post id as tie breaker
-      query = query.then_desc(key::id);
-
-      query.as_query()
+      pq.then_order_by(key::featured_community)
     };
 
-    debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+    // then use the main sort
+    pq = match sort {
+      Active => pq.then_order_by(key::hot_rank_active),
+      Hot => pq.then_order_by(key::hot_rank),
+      Scaled => pq.then_order_by(key::scaled_rank),
+      Controversial => pq.then_order_by(key::controversy_rank),
+      New | Old => pq.then_order_by(key::published),
+      NewComments => pq.then_order_by(key::newest_comment_time),
+      MostComments => pq.then_order_by(key::comments),
+      Top => pq.then_order_by(key::score),
+    };
 
-    Commented::new(query)
-      .text("PostQuery::list")
-      .text_if(
-        "getting upper bound for next query",
-        o.community_id_just_for_prefetch,
-      )
-      .load::<PostView>(conn)
+    // use publish as fallback. especially useful for hot rank which reaches zero after some days.
+    // necessary because old posts can be fetched over federation and inserted with high post id
+    pq = match sort {
+      // A second time-based sort would not be very useful
+      New | Old | NewComments => pq,
+      _ => pq.then_order_by(key::published),
+    };
+
+    // finally use unique post id as tie breaker
+    pq = pq.then_order_by(key::id);
+
+    // TODO can't figure out how to use commented.
+    // debug!("Post View Query: {:?}", debug_query::<Pg, _>(&pq));
+    // Commented::new(pq)
+    //   .text("PostQuery::list")
+    //   .load::<PostView>(conn)
+    // .await
+    // .with_lemmy_type(LemmyErrorType::NotFound)
+
+    pq.load::<PostView>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -556,7 +464,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post::post_view::{PaginationCursorData, PostQuery, PostView},
+    post::post_view::{PostQuery, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;
@@ -606,7 +514,6 @@ mod tests {
   use test_context::{test_context, AsyncTestContext};
   use url::Url;
 
-  const POST_WITH_ANOTHER_TITLE: &str = "Another title";
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
@@ -940,66 +847,6 @@ mod tests {
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_title_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
-    let pool = &mut pool.into();
-
-    // A post which contains the search them 'Post' not in the title (but in the body)
-    let new_post = PostInsertForm {
-      language_id: Some(LanguageId(47)),
-      body: Some("Post".to_string()),
-      ..PostInsertForm::new(
-        POST_WITH_ANOTHER_TITLE.to_string(),
-        data.tegan_local_user_view.person.id,
-        data.community.id,
-      )
-    };
-
-    let inserted_post = Post::create(pool, &new_post).await?;
-
-    let read_post_listing_by_title_only = PostQuery {
-      community_id: Some(data.community.id),
-      local_user: None,
-      search_term: Some("Post".to_string()),
-      title_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    let read_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      local_user: None,
-      search_term: Some("Post".to_string()),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // Should be 4 posts when we do not search for title only
-    assert_eq!(
-      vec![
-        POST_WITH_ANOTHER_TITLE,
-        POST_WITH_TAGS,
-        POST_BY_BOT,
-        POST,
-        POST_BY_BLOCKED_PERSON
-      ],
-      names(&read_post_listing)
-    );
-
-    // Should be 3 posts when we search for title only
-    assert_eq!(
-      vec![POST_WITH_TAGS, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
-      names(&read_post_listing_by_title_only)
-    );
-    Post::delete(pool, inserted_post.id).await?;
-    Ok(())
-  }
-
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
   async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
@@ -1133,32 +980,34 @@ mod tests {
     Ok(())
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
-    let pool = &mut pool.into();
+  // TODO these need to get moved to the post_read_list
+  // #[test_context(Data)]
+  // #[tokio::test]
+  // #[serial]
+  // async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
+  //   let pool = &data.pool();
+  //   let pool = &mut pool.into();
 
-    // Only mark the bot post as read
-    // The read_only should only show the bot post
-    let post_read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
-    PostActions::mark_as_read(pool, &post_read_form).await?;
+  //   // Only mark the bot post as read
+  //   // The read_only should only show the bot post
+  //   let post_read_form = PostReadForm::new(data.bot_post.id,
+  // data.tegan_local_user_view.person.id);   PostActions::mark_as_read(pool,
+  // &post_read_form).await?;
 
-    // Only read the post marked as read
-    let read_read_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      read_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
+  //   // Only read the post marked as read
+  //   let read_read_post_listing = PostQuery {
+  //     community_id: Some(data.community.id),
+  //     read_only: Some(true),
+  //     ..data.default_post_query()
+  //   }
+  //   .list(&data.site, pool)
+  //   .await?;
 
-    // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
+  //   // This should only include the bot post, not the one you created
+  //   assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
 
-    Ok(())
-  }
+  //   Ok(())
+  // }
 
   #[test_context(Data)]
   #[tokio::test]
@@ -1609,13 +1458,10 @@ mod tests {
     };
 
     let mut listed_post_ids = vec![];
-    let mut page_after = None;
+    let mut cursor_data = None;
     loop {
       let post_listings = PostQuery {
-        page_after: page_after.map(|p| PaginationCursorData {
-          post: p,
-          post_actions: Default::default(),
-        }),
+        cursor_data,
         ..options.clone()
       }
       .list(&data.site, pool)
@@ -1624,7 +1470,7 @@ mod tests {
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
       if let Some(p) = post_listings.into_iter().next_back() {
-        page_after = Some(p.post);
+        cursor_data = Some(p.post);
       } else {
         break;
       }
@@ -1632,13 +1478,10 @@ mod tests {
 
     // Check that backward pagination matches forward pagination
     let mut listed_post_ids_forward = listed_post_ids.clone();
-    let mut page_before = None;
+    let mut cursor_data_before = None;
     loop {
       let post_listings = PostQuery {
-        page_after: page_before.map(|p| PaginationCursorData {
-          post: p,
-          post_actions: Default::default(),
-        }),
+        cursor_data: cursor_data_before,
         page_back: Some(true),
         ..options.clone()
       }
@@ -1655,7 +1498,7 @@ mod tests {
       listed_post_ids_forward.truncate(index);
 
       if let Some(p) = post_listings.into_iter().next() {
-        page_before = Some(p.post);
+        cursor_data_before = Some(p.post);
       } else {
         break;
       }

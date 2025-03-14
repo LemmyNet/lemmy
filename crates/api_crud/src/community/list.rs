@@ -4,10 +4,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PageCursorBuilder;
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   community::community_view::CommunityQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{CommunityView, LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -23,7 +23,7 @@ pub async fn list_communities(
   let local_user = local_user_view.map(|l| l.local_user);
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(Community::from_cursor(cursor, &mut context.pool()).await?)
+    Some(CommunityView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -37,13 +37,12 @@ pub async fn list_communities(
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
-    ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await?;
 
-  let next_page = communities.last().map(PageCursorBuilder::cursor);
-  let prev_page = communities.first().map(PageCursorBuilder::cursor);
+  let next_page = communities.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = communities.first().map(PaginationCursorBuilder::to_cursor);
 
   // Return the jwt
   Ok(Json(ListCommunitiesResponse {

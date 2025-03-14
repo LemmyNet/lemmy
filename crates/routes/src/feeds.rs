@@ -39,7 +39,6 @@ const RSS_FETCH_LIMIT: i64 = 20;
 struct Params {
   sort: Option<String>,
   limit: Option<i64>,
-  page: Option<i64>,
 }
 
 impl Params {
@@ -52,9 +51,6 @@ impl Params {
   }
   fn get_limit(&self) -> i64 {
     self.limit.unwrap_or(RSS_FETCH_LIMIT)
-  }
-  fn get_page(&self) -> i64 {
-    self.page.unwrap_or(1)
   }
 }
 
@@ -100,7 +96,6 @@ async fn get_all_feed(
       ListingType::All,
       info.sort_type()?,
       info.get_limit(),
-      info.get_page(),
     )
     .await?,
   )
@@ -116,7 +111,6 @@ async fn get_local_feed(
       ListingType::Local,
       info.sort_type()?,
       info.get_limit(),
-      info.get_page(),
     )
     .await?,
   )
@@ -127,7 +121,6 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: PostSortType,
   limit: i64,
-  page: i64,
 ) -> LemmyResult<HttpResponse> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
@@ -137,7 +130,6 @@ async fn get_feed_data(
     listing_type: (Some(listing_type)),
     sort: (Some(sort_type)),
     limit: (Some(limit)),
-    page: (Some(page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -187,7 +179,6 @@ async fn get_feed(
         &context,
         &info.sort_type()?,
         &info.get_limit(),
-        &info.get_page(),
         &param,
       )
       .await
@@ -197,7 +188,6 @@ async fn get_feed(
         &context,
         &info.sort_type()?,
         &info.get_limit(),
-        &info.get_page(),
         &param,
       )
       .await
@@ -207,7 +197,6 @@ async fn get_feed(
         &context,
         &info.sort_type()?,
         &info.get_limit(),
-        &info.get_page(),
         &param,
       )
       .await
@@ -229,7 +218,6 @@ async fn get_feed_user(
   context: &LemmyContext,
   sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   user_name: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -244,7 +232,6 @@ async fn get_feed_user(
     sort: (Some(*sort_type)),
     creator_id: (Some(person.id)),
     limit: (Some(*limit)),
-    page: (Some(*page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -266,7 +253,6 @@ async fn get_feed_community(
   context: &LemmyContext,
   sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   community_name: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -283,7 +269,6 @@ async fn get_feed_community(
     sort: (Some(*sort_type)),
     community_id: (Some(community.id)),
     limit: (Some(*limit)),
-    page: (Some(*page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -310,7 +295,6 @@ async fn get_feed_front(
   context: &LemmyContext,
   sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   jwt: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -323,7 +307,6 @@ async fn get_feed_front(
     local_user: (Some(&local_user.local_user)),
     sort: (Some(*sort_type)),
     limit: (Some(*limit)),
-    page: (Some(*page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())

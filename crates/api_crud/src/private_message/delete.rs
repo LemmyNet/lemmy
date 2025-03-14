@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_private_message(
   data: Json<DeletePrivateMessage>,
@@ -35,8 +35,7 @@ pub async fn delete_private_message(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::DeletePrivateMessage(local_user_view.person, private_message, data.deleted),

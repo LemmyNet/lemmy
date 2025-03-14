@@ -43,6 +43,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_utils::error::LemmyResult;
+use CommentSortType::*;
 
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -293,8 +294,8 @@ impl CommentQuery<'_> {
     query = query.limit(limit);
 
     // Only sort by ascending for Old
-    let sort = o.sort.unwrap_or(CommentSortType::Hot);
-    let sort_direction = asc_if(sort == CommentSortType::Old);
+    let sort = o.sort.unwrap_or(Hot);
+    let sort_direction = asc_if(sort == Old);
 
     let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
 
@@ -304,10 +305,10 @@ impl CommentQuery<'_> {
     }
 
     pq = match sort {
-      CommentSortType::Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
-      CommentSortType::Controversial => pq.then_order_by(key::controversy_rank),
-      CommentSortType::Old | CommentSortType::New => pq.then_order_by(key::published),
-      CommentSortType::Top => pq.then_order_by(key::score),
+      Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
+      Controversial => pq.then_order_by(key::controversy_rank),
+      Old | New => pq.then_order_by(key::published),
+      Top => pq.then_order_by(key::score),
     };
 
     let res = pq.load::<CommentView>(conn).await?;

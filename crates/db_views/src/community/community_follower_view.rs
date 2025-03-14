@@ -2,7 +2,6 @@ use crate::structs::{CommunityFollowerView, PendingFollow};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
-  result::Error,
   select,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -70,7 +69,7 @@ impl CommunityFollowerView {
   pub async fn get_community_follower_inboxes(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> Result<Vec<DbUrl>, Error> {
+  ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
     let res = Self::joins()
       .filter(community_actions::community_id.eq(community_id))
@@ -86,18 +85,17 @@ impl CommunityFollowerView {
   pub async fn count_community_followers(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
-    let res = Self::joins()
+    Self::joins()
       .filter(community_actions::community_id.eq(community_id))
       .select(count_star())
       .first::<i64>(conn)
-      .await?;
-
-    Ok(res)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::person_id.eq(person_id))
@@ -107,6 +105,7 @@ impl CommunityFollowerView {
       .order_by(community::title)
       .load::<CommunityFollowerView>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn list_approval_required(
@@ -198,7 +197,7 @@ impl CommunityFollowerView {
   pub async fn count_approval_required(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
@@ -206,6 +205,7 @@ impl CommunityFollowerView {
       .select(count(community_actions::community_id))
       .first::<i64>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
   pub async fn check_private_community_action(
     pool: &mut DbPool<'_>,
@@ -231,7 +231,7 @@ impl CommunityFollowerView {
     community_id: CommunityId,
     instance_id: InstanceId,
     pool: &mut DbPool<'_>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       Self::joins()
@@ -242,14 +242,14 @@ impl CommunityFollowerView {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(diesel::NotFound)
+    .ok_or(LemmyErrorType::NotFound.into())
   }
 
   pub async fn is_follower(
     community_id: CommunityId,
     instance_id: InstanceId,
     pool: &mut DbPool<'_>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       Self::joins()
@@ -260,7 +260,7 @@ impl CommunityFollowerView {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(diesel::NotFound)
+    .ok_or(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -284,6 +284,17 @@ impl PaginationCursorBuilder for CommunityFollowerView {
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     CommunityActions::read(pool, CommunityId(*community_id), PersonId(*person_id)).await
+  }
+}
+
+impl PendingFollow {
+  pub fn to_cursor(&self) -> PaginationCursor {
+    // Build a fake community_follower_view to use its pagination cursor.
+    let cfv = CommunityFollowerView {
+      community: self.community.clone(),
+      follower: self.person.clone(),
+    };
+    cfv.to_cursor()
   }
 }
 

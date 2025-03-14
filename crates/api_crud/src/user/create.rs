@@ -453,9 +453,7 @@ async fn create_person(
   };
 
   // insert the person
-  let inserted_person = Person::create(&mut conn.into(), &person_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+  let inserted_person = Person::create(&mut conn.into(), &person_form).await?;
 
   Ok(inserted_person)
 }

@@ -5,13 +5,10 @@ use lemmy_api_common::{
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::{
-  source::{local_site::LocalSite, registration_application::RegistrationApplication},
-  traits::PageCursorBuilder,
-};
+use lemmy_db_schema::{source::local_site::LocalSite, traits::PaginationCursorBuilder};
 use lemmy_db_views::{
   registration_applications::registration_application_view::RegistrationApplicationQuery,
-  structs::LocalUserView,
+  structs::{LocalUserView, RegistrationApplicationView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -27,7 +24,7 @@ pub async fn list_registration_applications(
   is_admin(&local_user_view)?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(RegistrationApplication::from_cursor(cursor, &mut context.pool()).await?)
+    Some(RegistrationApplicationView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
@@ -44,11 +41,11 @@ pub async fn list_registration_applications(
 
   let next_page = registration_applications
     .last()
-    .map(PageCursorBuilder::cursor);
+    .map(PaginationCursorBuilder::to_cursor);
 
   let prev_page = registration_applications
     .first()
-    .map(PageCursorBuilder::cursor);
+    .map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListRegistrationApplicationsResponse {
     registration_applications,

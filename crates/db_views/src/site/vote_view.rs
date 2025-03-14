@@ -18,14 +18,14 @@ use lemmy_db_schema::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl VoteView {
-  fn to_post_actions_cursor(&self) -> PaginationCursor {
+  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and post
     let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.item_id)];
 
     PaginationCursor::new(&prefixes_and_ids)
   }
 
-  async fn from_post_actions_cursor(
+  pub async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PostActions> {
@@ -93,14 +93,14 @@ impl VoteView {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  fn to_comment_actions_cursor(&self) -> PaginationCursor {
+  pub fn to_comment_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and comment
     let prefixes_and_ids = [('P', self.creator.id.0), ('C', self.item_id)];
 
     PaginationCursor::new(&prefixes_and_ids)
   }
 
-  async fn from_comment_actions_cursor(
+  pub async fn from_comment_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<CommentActions> {

@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::TaglineId,
+  newtypes::{PaginationCursor, TaglineId},
   schema::tagline,
   source::tagline::{tagline_keys as key, Tagline, TaglineInsertForm, TaglineUpdateForm},
   traits::Crud,
@@ -67,5 +67,17 @@ impl Tagline {
       .first::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('T', self.id.0)
+  }
+
+  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .get(0)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Self::read(pool, TaglineId(*id)).await
   }
 }

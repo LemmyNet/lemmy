@@ -10,10 +10,11 @@ use lemmy_db_schema::{
     post::{Post, PostActions, PostReadForm},
   },
   traits::{Crud, Readable},
+  SearchType,
 };
 use lemmy_db_views::{
-  post::post_view::PostQuery,
-  structs::{CommunityView, LocalUserView, PostView, SiteView},
+  combined::search_combined_view::SearchCombinedQuery,
+  structs::{CommunityView, LocalUserView, PostView, SearchCombinedView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -27,6 +28,7 @@ pub async fn get_post(
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
+  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
 
   // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
   let post_id = if let Some(id) = data.id {
@@ -51,8 +53,6 @@ pub async fn get_post(
   )
   .await
   .is_ok();
-
-  let local_user = local_user_view.map(|l| l.local_user);
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
@@ -86,18 +86,27 @@ pub async fn get_post(
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
-    let mut x_posts = PostQuery {
-      url_only: Some(true),
+    SearchCombinedQuery {
       search_term: Some(url.inner().as_str().into()),
-      local_user: local_user.as_ref(),
+      post_url_only: Some(true),
+      type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(&local_site.site, &mut context.pool())
-    .await?;
-
+    .list(&mut context.pool(), &local_user_view)
+    .await?
+    .iter()
+    // Filter map to collect posts
+    .filter_map(|f| {
+      if let SearchCombinedView::Post(v) = f {
+        Some(v)
+      } else {
+        None
+      }
+    })
     // Don't return this post as one of the cross_posts
-    x_posts.retain(|x| x.post.id != post_id);
-    x_posts
+    .filter(|x| x.post.id != post_id)
+    .cloned()
+    .collect::<Vec<PostView>>()
   } else {
     Vec::new()
   };
