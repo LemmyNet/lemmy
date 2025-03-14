@@ -977,21 +977,23 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   );
 });
 
-test.only("Plugin test", async () => {
+test("Plugin test", async () => {
   let community = await createCommunity(epsilon);
   let postRes1 = await createPost(
     epsilon,
     community.community_view.community.id,
     "https://example.com/",
+    randomString(10),
     "Rust",
   );
-  expect(postRes1.post_view.post.body).toBe("Go");
+  expect(postRes1.post_view.post.name).toBe("Go");
 
   await expect(
     createPost(
       epsilon,
       community.community_view.community.id,
       "https://example.com/",
+      randomString(10),
       "Java",
     ),
   ).rejects.toStrictEqual(Error("plugin_error"));
