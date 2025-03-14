@@ -137,6 +137,9 @@ pub struct DatabaseConfig {
   pub(crate) connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
+  ///
+  /// A high value here can result in errors "could not resize shared memory segment". In this case
+  /// it is necessary to increase shared memory size in Docker: https://stackoverflow.com/a/56754077
   #[default(30)]
   pub pool_size: usize,
 }
