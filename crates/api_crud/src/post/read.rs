@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   combined::search_combined_view::SearchCombinedQuery,
-  structs::{CommunityView, LocalUserView, PostView, SearchCombinedView, SiteView},
+  structs::{CommunityView, LocalUserView, PostView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -96,13 +96,7 @@ pub async fn get_post(
     .await?
     .iter()
     // Filter map to collect posts
-    .filter_map(|f| {
-      if let SearchCombinedView::Post(v) = f {
-        Some(v)
-      } else {
-        None
-      }
-    })
+    .filter_map(|f| f.to_post_view())
     // Don't return this post as one of the cross_posts
     .filter(|x| x.post.id != post_id)
     .cloned()

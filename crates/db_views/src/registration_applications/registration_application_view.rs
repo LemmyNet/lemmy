@@ -32,7 +32,8 @@ impl PaginationCursorBuilder for RegistrationApplicationView {
   ) -> LemmyResult<Self::CursorData> {
     let pids = cursor.prefixes_and_ids();
     let (_, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     RegistrationApplication::read(pool, RegistrationApplicationId(*id)).await
   }

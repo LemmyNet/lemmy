@@ -298,7 +298,9 @@ impl InstanceWorker {
         updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
-      Instance::update(&mut self.pool(), self.instance.id, form).await?;
+      Instance::update(&mut self.pool(), self.instance.id, form)
+        .await
+        .map_err(|e| anyhow::anyhow!(e))?;
     }
     Ok(())
   }

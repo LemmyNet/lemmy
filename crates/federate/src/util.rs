@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   utils::{get_conn, DbPool},
 };
+use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
 use serde_json::Value;
@@ -162,7 +163,7 @@ pub(crate) async fn get_actor_cached(
             .into(),
         )),
       };
-      Result::<_, anyhow::Error>::Ok(Arc::new(person))
+      Result::<_, LemmyError>::Ok(Arc::new(person))
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))

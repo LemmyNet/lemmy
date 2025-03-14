@@ -162,6 +162,17 @@ impl SearchCombinedViewInternal {
   }
 }
 
+impl SearchCombinedView {
+  /// Useful in combination with filter_map
+  pub fn to_post_view(&self) -> Option<&PostView> {
+    if let Self::Post(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
+}
+
 impl PaginationCursorBuilder for SearchCombinedView {
   type CursorData = SearchCombined;
 
@@ -182,7 +193,8 @@ impl PaginationCursorBuilder for SearchCombinedView {
     let conn = &mut get_conn(pool).await?;
     let pids = cursor.prefixes_and_ids();
     let (prefix, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = search_combined::table

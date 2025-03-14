@@ -155,20 +155,21 @@ impl Post {
 
   pub async fn update_removed_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-    for_community_id: Option<CommunityId>,
+    creator_id: PersonId,
+    community_id: Option<CommunityId>,
     removed: bool,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut update = diesel::update(post::table).into_boxed();
-    update = update.filter(post::creator_id.eq(for_creator_id));
+    let mut posts = diesel::update(post::table)
+      .filter(post::creator_id.eq(creator_id))
+      .into_boxed();
 
-    if let Some(for_community_id) = for_community_id {
-      update = update.filter(post::community_id.eq(for_community_id));
+    if let Some(community_id) = community_id {
+      posts = posts.filter(post::community_id.eq(community_id));
     }
 
-    update
+    posts
       .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await

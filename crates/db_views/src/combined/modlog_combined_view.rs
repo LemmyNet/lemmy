@@ -263,7 +263,8 @@ impl PaginationCursorBuilder for ModlogCombinedView {
     let conn = &mut get_conn(pool).await?;
     let pids = cursor.prefixes_and_ids();
     let (prefix, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = modlog_combined::table

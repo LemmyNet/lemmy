@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, DbUrl, PersonId},
-  schema::{comment, comment_actions},
+  newtypes::{CommentId, CommunityId, DbUrl, PersonId},
+  schema::{comment, comment_actions, post},
   source::comment::{
     Comment,
     CommentActions,
@@ -38,11 +38,11 @@ use url::Url;
 impl Comment {
   pub async fn permadelete_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
+    creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
+    diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::content.eq(DELETED_REPLACEMENT_TEXT),
         comment::deleted.eq(true),
@@ -54,11 +54,11 @@ impl Comment {
 
   pub async fn update_removed_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
+    creator_id: PersonId,
     removed: bool,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
+    diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::removed.eq(removed),
         comment::updated.eq(Utc::now()),
@@ -66,6 +66,35 @@ impl Comment {
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+  }
+
+  pub async fn update_removed_for_creator_and_community(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    community_id: CommunityId,
+    removed: bool,
+  ) -> LemmyResult<Vec<CommentId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let comment_ids = comment::table
+      .inner_join(post::table)
+      .filter(comment::creator_id.eq(creator_id))
+      .filter(post::community_id.eq(community_id))
+      .select(comment::id)
+      .load::<CommentId>(conn)
+      .await?;
+
+    let form = &CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    };
+
+    for comment_id in &comment_ids {
+      Comment::update(&mut conn.into(), *comment_id, form).await?;
+    }
+
+    Ok(comment_ids)
   }
 
   pub async fn create(

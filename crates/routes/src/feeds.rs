@@ -9,10 +9,14 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
   ListingType,
+  PersonContentType,
   PostSortType,
 };
 use lemmy_db_views::{
-  combined::inbox_combined_view::InboxCombinedQuery,
+  combined::{
+    inbox_combined_view::InboxCombinedQuery,
+    person_content_combined_view::PersonContentCombinedQuery,
+  },
   post::post_view::PostQuery,
   structs::{InboxCombinedView, PostView, SiteView},
 };
@@ -174,32 +178,12 @@ async fn get_feed(
   };
 
   let builder = match request_type {
-    RequestType::User => {
-      get_feed_user(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &param,
-      )
-      .await
-    }
+    RequestType::User => get_feed_user(&context, &info.get_limit(), &param).await,
     RequestType::Community => {
-      get_feed_community(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &param,
-      )
-      .await
+      get_feed_community(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
     RequestType::Front => {
-      get_feed_front(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &param,
-      )
-      .await
+      get_feed_front(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
     RequestType::Inbox => get_feed_inbox(&context, &param).await,
   }
@@ -216,7 +200,6 @@ async fn get_feed(
 
 async fn get_feed_user(
   context: &LemmyContext,
-  sort_type: &PostSortType,
   limit: &i64,
   user_name: &str,
 ) -> LemmyResult<Channel> {
@@ -227,15 +210,22 @@ async fn get_feed_user(
 
   check_private_instance(&None, &site_view.local_site)?;
 
-  let posts = PostQuery {
-    listing_type: (Some(ListingType::All)),
-    sort: (Some(*sort_type)),
-    creator_id: (Some(person.id)),
+  let content = PersonContentCombinedQuery {
+    creator_id: person.id,
+    type_: Some(PersonContentType::Posts),
+    cursor_data: None,
+    page_back: None,
     limit: (Some(*limit)),
-    ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &None)
   .await?;
+
+  let posts = content
+    .iter()
+    // Filter map to collect posts
+    .filter_map(|f| f.to_post_view())
+    .cloned()
+    .collect::<Vec<PostView>>();
 
   let items = create_post_items(posts, context.settings())?;
   let channel = Channel {

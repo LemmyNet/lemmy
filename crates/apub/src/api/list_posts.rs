@@ -44,7 +44,6 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let read_only = data.read_only;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
@@ -88,6 +87,7 @@ pub async fn list_posts(
   } else {
     (None, None)
   };
+  let page_back = data.page_back;
 
   let posts = PostQuery {
     local_user,
@@ -105,8 +105,7 @@ pub async fn list_posts(
     no_comments_only,
     cursor_data,
     cursor_before_data,
-    // TODO
-    // ..Default::default()
+    page_back,
   }
   .list(&site_view.site, &mut context.pool())
   .await?;

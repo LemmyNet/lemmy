@@ -435,10 +435,9 @@ impl PaginationCursor {
     Self(
       prefixes_and_ids
         .iter()
-        .map(|(prefix, id)| 
+        .map(|(prefix, id)|
           // hex encoding to prevent ossification
-          format!("{prefix}{id:x}")
-        )
+          format!("{prefix}{id:x}"))
         .collect::<Vec<String>>()
         .join("-"),
     )
@@ -455,7 +454,7 @@ impl PaginationCursor {
         if let Some((prefix_str, id_str)) = opt {
           let prefix = prefix_str.chars().next().unwrap_or(default_prefix);
           let id = i32::from_str_radix(id_str, 16).unwrap_or(default_id);
-          (prefix, id )
+          (prefix, id)
         } else {
           (default_prefix, default_id)
         }

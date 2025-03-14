@@ -148,6 +148,10 @@ pub struct GetComments {
 /// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -156,6 +160,10 @@ pub struct GetCommentsResponse {
 /// A slimmer comment list response, without the post or community.
 pub struct GetCommentsSlimResponse {
   pub comments: Vec<CommentSlimView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]

@@ -59,7 +59,8 @@ impl PaginationCursorBuilder for PostView {
   ) -> LemmyResult<Self::CursorData> {
     let pids = cursor.prefixes_and_ids();
     let (_, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Post::read(pool, PostId(*id)).await
   }
@@ -219,7 +220,7 @@ impl PostView {
         .await?;
 
       if (posts.len() as i64) < limit {
-        return Ok(None);
+        Ok(None)
       } else {
         let item = if page_back.unwrap_or_default() {
           // for backward pagination, get first element instead
@@ -231,7 +232,7 @@ impl PostView {
       }
     } else {
       // nothing subscribed to? no posts
-      return Ok(None);
+      Ok(None)
     }
   }
 }
@@ -241,12 +242,8 @@ pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<PostSortType>,
   pub time_range_seconds: Option<i32>,
-  // TODO creator id should also go away?
-  // That's handled by content and search
-  pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   pub local_user: Option<&'a LocalUser>,
-  pub url_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub show_hidden: Option<bool>,
@@ -291,18 +288,15 @@ impl<'a> PostQuery<'a> {
         .filter(post::scheduled_publish_time.is_null());
     }
 
-    // only show removed posts to admin when viewing user profile
-    if !(o.creator_id.is_some() && o.local_user.is_admin()) {
+    // only show removed posts to admin
+    if !o.local_user.is_admin() {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
+
     if let Some(community_id) = o.community_id {
       query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if let Some(creator_id) = o.creator_id {
-      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     match o.listing_type.unwrap_or_default() {
@@ -334,15 +328,11 @@ impl<'a> PostQuery<'a> {
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
-      // Do not hide read posts when it is a user profile view
-      // Or, only hide read posts on non-profile views
-      if o.creator_id.is_none() {
-        query = query.filter(post_actions::read.is_null());
-      }
+      query = query.filter(post_actions::read.is_null());
     }
 
-    // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
-    if !o.show_hidden.unwrap_or_default() && o.creator_id.is_none() {
+    // Hide the hidden posts
+    if !o.show_hidden.unwrap_or_default() {
       query = query.filter(post_actions::hidden.is_null());
     }
 
@@ -1235,14 +1225,10 @@ mod tests {
     let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
-    // Removed bot post is shown to admins on its profile page
+    // Removed bot post is shown to admins
     data.tegan_local_user_view.local_user.admin = true;
-    let post_listings_is_admin = PostQuery {
-      creator_id: Some(data.bot_local_user_view.person.id),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
+    let post_listings_is_admin = data.default_post_query().list(&data.site, pool).await?;
+    // TODO this may need fixed
     assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
 
     Ok(())

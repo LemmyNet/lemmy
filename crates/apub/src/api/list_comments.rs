@@ -12,8 +12,9 @@ use lemmy_api_common::{
   utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_db_schema::{
+  newtypes::PaginationCursor,
   source::{comment::Comment, community::Community},
-  traits::Crud,
+  traits::{Crud, PaginationCursorBuilder},
 };
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
@@ -21,12 +22,18 @@ use lemmy_db_views::{
 };
 use lemmy_utils::error::LemmyResult;
 
+struct CommentsCommonOutput {
+  comments: Vec<CommentView>,
+  next_page: Option<PaginationCursor>,
+  prev_page: Option<PaginationCursor>,
+}
+
 /// A common fetcher for both the CommentView, and CommentSlimView.
 async fn list_comments_common(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Vec<CommentView>> {
+) -> LemmyResult<CommentsCommonOutput> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
@@ -63,17 +70,24 @@ async fn list_comments_common(
   ));
 
   // If a parent_id is given, fetch the comment to get the path
-  let parent_path = if let Some(parent_id) = parent_id {
+  let parent_path_ = if let Some(parent_id) = parent_id {
     Some(Comment::read(&mut context.pool(), parent_id).await?.path)
   } else {
     None
   };
 
-  let parent_path_cloned = parent_path.clone();
+  let parent_path = parent_path_.clone();
   let post_id = data.post_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
-  CommentQuery {
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(CommentView::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
+  let page_back = data.page_back;
+
+  let comments = CommentQuery {
     listing_type,
     sort,
     time_range_seconds,
@@ -81,13 +95,24 @@ async fn list_comments_common(
     liked_only,
     disliked_only,
     community_id,
-    parent_path: parent_path_cloned,
+    parent_path,
     post_id,
     local_user,
+    cursor_data,
+    page_back,
     limit,
   }
   .list(&site_view.site, &mut context.pool())
-  .await
+  .await?;
+
+  let next_page = comments.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = comments.first().map(PaginationCursorBuilder::to_cursor);
+
+  Ok(CommentsCommonOutput {
+    comments,
+    next_page,
+    prev_page,
+  })
 }
 
 pub async fn list_comments(
@@ -95,9 +120,13 @@ pub async fn list_comments(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsResponse>> {
-  let comments = list_comments_common(data, context, local_user_view).await?;
+  let common = list_comments_common(data, context, local_user_view).await?;
 
-  Ok(Json(GetCommentsResponse { comments }))
+  Ok(Json(GetCommentsResponse {
+    comments: common.comments,
+    next_page: common.next_page,
+    prev_page: common.prev_page,
+  }))
 }
 
 pub async fn list_comments_slim(
@@ -105,11 +134,17 @@ pub async fn list_comments_slim(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsSlimResponse>> {
-  let comments = list_comments_common(data, context, local_user_view)
-    .await?
+  let common = list_comments_common(data, context, local_user_view).await?;
+
+  let comments = common
+    .comments
     .into_iter()
     .map(CommentView::map_to_slim)
     .collect();
 
-  Ok(Json(GetCommentsSlimResponse { comments }))
+  Ok(Json(GetCommentsSlimResponse {
+    comments,
+    next_page: common.next_page,
+    prev_page: common.prev_page,
+  }))
 }

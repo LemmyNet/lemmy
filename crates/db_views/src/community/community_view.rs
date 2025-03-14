@@ -65,7 +65,9 @@ impl CommunityView {
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
-      query = query.filter(Community::hide_removed_and_deleted());
+      query = query
+        .filter(Community::hide_removed_and_deleted())
+        .filter(filter_not_unlisted_or_is_subscribed());
     }
 
     query = my_local_user.visible_communities_only(query);
@@ -122,7 +124,8 @@ impl PaginationCursorBuilder for CommunityView {
   ) -> LemmyResult<Self::CursorData> {
     let pids = cursor.prefixes_and_ids();
     let (_, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Community::read(pool, CommunityId(*id)).await
   }
@@ -134,8 +137,6 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<CommunitySortType>,
   pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
-  pub title_only: Option<bool>,
-  pub is_mod_or_admin: Option<bool>,
   pub show_nsfw: Option<bool>,
   pub cursor_data: Option<Community>,
   pub page_back: Option<bool>,
@@ -154,8 +155,9 @@ impl CommunityQuery<'_> {
       .limit(limit)
       .into_boxed();
 
-    // Hide deleted and removed for non-admins or mods
-    if !o.is_mod_or_admin.unwrap_or_default() {
+    // Hide deleted and removed for non-admins
+    let is_admin = o.local_user.map(|l| l.admin).unwrap_or_default();
+    if !is_admin {
       query = query
         .filter(Community::hide_removed_and_deleted())
         .filter(filter_not_unlisted_or_is_subscribed());

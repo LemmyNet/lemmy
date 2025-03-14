@@ -18,7 +18,7 @@ use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -37,13 +37,33 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
+  traits::{Crud, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use CommentSortType::*;
+
+impl PaginationCursorBuilder for CommentView {
+  type CursorData = Comment;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('C', self.comment.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Comment::read(pool, CommentId(*id)).await
+  }
+}
 
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -150,7 +170,6 @@ pub struct CommentQuery<'a> {
   pub community_id: Option<CommunityId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
-  pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
   // TODO get rid of liked / disliked_only
   pub liked_only: Option<bool>,
@@ -173,10 +192,6 @@ impl CommentQuery<'_> {
     let mut query = CommentView::joins(my_person_id)
       .select(CommentView::as_select())
       .into_boxed();
-
-    if let Some(creator_id) = o.creator_id {
-      query = query.filter(comment::creator_id.eq(creator_id));
-    };
 
     if let Some(post_id) = o.post_id {
       query = query.filter(comment::post_id.eq(post_id));

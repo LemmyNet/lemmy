@@ -154,7 +154,8 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
     let conn = &mut get_conn(pool).await?;
     let pids = cursor.prefixes_and_ids();
     let (prefix, id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = person_content_combined::table
@@ -169,6 +170,17 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
     let token = query.first(conn).await?;
 
     Ok(token)
+  }
+}
+
+impl PersonContentCombinedView {
+  /// Useful in combination with filter_map
+  pub fn to_post_view(&self) -> Option<&PostView> {
+    if let Self::Post(v) = self {
+      Some(v)
+    } else {
+      None
+    }
   }
 }
 

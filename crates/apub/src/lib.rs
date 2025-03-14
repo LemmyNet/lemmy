@@ -149,15 +149,19 @@ pub(crate) async fn local_site_data_cached(
   Ok(
     CACHE
       .try_get_with((), async {
-        let (local_site, allowed_instances, blocked_instances) =
-          lemmy_db_schema::try_join_with_pool!(pool => (
-            // LocalSite may be missing
-            |pool| async {
-              Ok(LocalSite::read(pool).await.ok())
-            },
-            Instance::allowlist,
-            Instance::blocklist
-          ))?;
+        // TODO try_join broken
+        let local_site = LocalSite::read(pool).await.ok();
+        let allowed_instances = Instance::allowlist(pool).await.unwrap_or_default();
+        let blocked_instances = Instance::blocklist(pool).await.unwrap_or_default();
+        // let (local_site, allowed_instances, blocked_instances) =
+        //   lemmy_db_schema::try_join_with_pool!(pool => (
+        //     // LocalSite may be missing
+        //     |pool| async {
+        //       Ok(LocalSite::read(pool).await.ok())
+        //     },
+        //     Instance::allowlist,
+        //     Instance::blocklist
+        //   ))?;
 
         Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
           local_site,

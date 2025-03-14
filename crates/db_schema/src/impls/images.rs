@@ -35,7 +35,7 @@ impl LocalImage {
 
           ImageDetails::create(&mut conn.into(), image_details_form)
             .await
-            .map_err(|_| diesel::result::Error::NotFound)?;
+            .map_err(|_e| diesel::result::Error::NotFound)?;
 
           local_insert
         }

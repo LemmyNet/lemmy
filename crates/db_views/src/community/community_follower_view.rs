@@ -278,7 +278,8 @@ impl PaginationCursorBuilder for CommunityFollowerView {
   ) -> LemmyResult<Self::CursorData> {
     let pids = cursor.prefixes_and_ids();
     let (_, person_id) = pids
-      .get(0)
+      .as_slice()
+      .first()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     let (_, community_id) = pids
       .get(1)
