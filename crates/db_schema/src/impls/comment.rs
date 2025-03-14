@@ -301,6 +301,7 @@ mod tests {
       hot_rank: RANK_DEFAULT,
       report_count: 0,
       unresolved_report_count: 0,
+      pending: false,
     };
 
     let child_comment_form = CommentInsertForm::new(
