@@ -133,6 +133,7 @@ impl Attachment {
 
     let is_image =
       media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+    let name = name.map(|n| n.replace("\n", " "));
 
     if is_image {
       let url = proxy_image_link(url, context).await?;
