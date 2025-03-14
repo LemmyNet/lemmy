@@ -288,13 +288,6 @@ impl<'a> PostQuery<'a> {
         .filter(post::scheduled_publish_time.is_null());
     }
 
-    // only show removed posts to admin
-    if !o.local_user.is_admin() {
-      query = query
-        .filter(community::removed.eq(false))
-        .filter(post::removed.eq(false));
-    }
-
     if let Some(community_id) = o.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
@@ -363,11 +356,15 @@ impl<'a> PostQuery<'a> {
     query = o.local_user.visible_communities_only(query);
 
     if !o.local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
+      query = query
+        .filter(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        )
+        // only show removed posts to admin
+        .filter(community::removed.eq(false))
+        .filter(post::removed.eq(false));
     }
 
     // Dont filter blocks or missing languages for moderator view type
@@ -1222,14 +1219,17 @@ mod tests {
     .await?;
 
     // Make sure you don't see the removed post in the results
+    data.tegan_local_user_view.local_user.admin = false;
     let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins
     data.tegan_local_user_view.local_user.admin = true;
     let post_listings_is_admin = data.default_post_query().list(&data.site, pool).await?;
-    // TODO this may need fixed
-    assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_is_admin)
+    );
 
     Ok(())
   }

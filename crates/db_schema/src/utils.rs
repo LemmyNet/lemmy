@@ -57,7 +57,7 @@ use std::{
 use tracing::error;
 use url::Url;
 
-const FETCH_LIMIT_DEFAULT: i64 = 10;
+const FETCH_LIMIT_DEFAULT: i64 = 20;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
