@@ -77,6 +77,8 @@ pub struct Group {
   pub(crate) manually_approves_followers: Option<bool>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
+  /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
+  pub(crate) discoverable: Option<bool>,
 }
 
 impl Group {

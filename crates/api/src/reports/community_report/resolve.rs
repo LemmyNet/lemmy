@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::community_report::CommunityReport, traits::Reportable};
 use lemmy_db_views::structs::{CommunityReportView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(
   data: Json<ResolveCommunityReport>,
@@ -18,13 +18,9 @@ pub async fn resolve_community_report(
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
   if data.resolved {
-    CommunityReport::resolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    CommunityReport::resolve(&mut context.pool(), report_id, person_id).await?;
   } else {
-    CommunityReport::unresolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    CommunityReport::unresolve(&mut context.pool(), report_id, person_id).await?;
   }
 
   let community_report_view =

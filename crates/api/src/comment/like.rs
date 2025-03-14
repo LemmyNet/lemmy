@@ -10,14 +10,14 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PostOrCommentId},
   source::{
-    comment::{CommentLike, CommentLikeForm},
+    comment::{CommentActions, CommentLikeForm},
     comment_reply::CommentReply,
     local_site::LocalSite,
   },
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn like_comment(
@@ -64,23 +64,18 @@ pub async fn like_comment(
     }
   }
 
-  let like_form = CommentLikeForm {
-    comment_id: data.comment_id,
-    person_id: local_user_view.person.id,
-    score: data.score,
-  };
+  let like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
 
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
 
   // Only add the like if the score isnt 0
-  let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
+  let do_add =
+    like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    CommentLike::like(&mut context.pool(), &like_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    CommentActions::like(&mut context.pool(), &like_form).await?;
   }
 
   ActivityChannel::submit_activity(

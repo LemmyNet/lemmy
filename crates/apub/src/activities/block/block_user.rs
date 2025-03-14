@@ -30,7 +30,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityPersonBan, CommunityPersonBanForm},
+    community::{CommunityActions, CommunityPersonBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
@@ -177,11 +177,10 @@ impl ActivityHandler for BlockUser {
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          expires: Some(expires),
+          ban_expires: Some(expires),
+          ..CommunityPersonBanForm::new(community.id, blocked_person.id)
         };
-        CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
+        CommunityActions::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Dont unsubscribe the user so that we can receive a potential unban activity.
         // If we unfollowed the community here, activities from the community would be rejected

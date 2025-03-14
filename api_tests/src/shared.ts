@@ -471,8 +471,10 @@ export async function followCommunity(
   const res = await api.followCommunity(form);
   await waitUntil(
     () => getCommunity(api, res.community_view.community.id),
-    g =>
-      g.community_view.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+    g => {
+      let followState = g.community_view.community_actions?.follow_state;
+      return follow ? followState === "Accepted" : followState === undefined;
+    },
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
   await delay(2000);

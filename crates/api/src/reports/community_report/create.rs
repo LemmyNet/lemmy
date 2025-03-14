@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::{CommunityReportView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn create_community_report(
   data: Json<CreateCommunityReport>,
@@ -41,9 +41,7 @@ pub async fn create_community_report(
     reason,
   };
 
-  let report = CommunityReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = CommunityReport::report(&mut context.pool(), &report_form).await?;
 
   let community_report_view =
     CommunityReportView::read(&mut context.pool(), report.id, person_id).await?;

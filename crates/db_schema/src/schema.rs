@@ -204,7 +204,6 @@ diesel::table! {
         followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
-        hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
         #[max_length = 255]
@@ -435,6 +434,7 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
+        disallow_nsfw_content -> Bool,
         users -> Int8,
         posts -> Int8,
         comments -> Int8,
@@ -443,7 +443,6 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        disallow_nsfw_content -> Bool,
     }
 }
 
@@ -589,6 +588,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityVisibility;
+
+    mod_change_community_visibility (id) {
+        id -> Int4,
+        community_id -> Int4,
+        mod_person_id -> Int4,
+        published -> Timestamptz,
+        reason -> Nullable<Text>,
+        visibility -> CommunityVisibility,
+    }
+}
+
+diesel::table! {
     mod_feature_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -596,17 +609,6 @@ diesel::table! {
         featured -> Bool,
         published -> Timestamptz,
         is_featured_community -> Bool,
-    }
-}
-
-diesel::table! {
-    mod_hide_community (id) {
-        id -> Int4,
-        community_id -> Int4,
-        mod_person_id -> Int4,
-        published -> Timestamptz,
-        reason -> Nullable<Text>,
-        hidden -> Bool,
     }
 }
 
@@ -678,12 +680,12 @@ diesel::table! {
         mod_ban_id -> Nullable<Int4>,
         mod_ban_from_community_id -> Nullable<Int4>,
         mod_feature_post_id -> Nullable<Int4>,
-        mod_hide_community_id -> Nullable<Int4>,
         mod_lock_post_id -> Nullable<Int4>,
         mod_remove_comment_id -> Nullable<Int4>,
         mod_remove_community_id -> Nullable<Int4>,
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
+        mod_change_community_visibility_id -> Nullable<Int4>,
     }
 }
 
@@ -1107,10 +1109,10 @@ diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
+diesel::joinable!(mod_change_community_visibility -> community (community_id));
+diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> post (post_id));
-diesel::joinable!(mod_hide_community -> community (community_id));
-diesel::joinable!(mod_hide_community -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
@@ -1130,8 +1132,8 @@ diesel::joinable!(modlog_combined -> mod_add (mod_add_id));
 diesel::joinable!(modlog_combined -> mod_add_community (mod_add_community_id));
 diesel::joinable!(modlog_combined -> mod_ban (mod_ban_id));
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
+diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
-diesel::joinable!(modlog_combined -> mod_hide_community (mod_hide_community_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
@@ -1214,8 +1216,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     mod_add_community,
     mod_ban,
     mod_ban_from_community,
+    mod_change_community_visibility,
     mod_feature_post,
-    mod_hide_community,
     mod_lock_post,
     mod_remove_comment,
     mod_remove_community,

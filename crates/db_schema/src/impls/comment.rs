@@ -1,14 +1,12 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  impls::local_user::local_user_can_mod,
   newtypes::{CommentId, DbUrl, PersonId},
   schema::{comment, comment_actions},
   source::comment::{
     Comment,
+    CommentActions,
     CommentInsertForm,
-    CommentLike,
     CommentLikeForm,
-    CommentSaved,
     CommentSavedForm,
     CommentUpdateForm,
   },
@@ -16,7 +14,6 @@ use crate::{
   utils::{
     functions::{coalesce, hot_rank},
     get_conn,
-    now,
     uplete,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
@@ -24,17 +21,18 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{case_when, insert_into, not},
+  dsl::insert_into,
   expression::SelectableHelper,
   result::Error,
-  BoolExpressionMethods,
   ExpressionMethods,
-  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use url::Url;
 
 impl Comment {
@@ -143,41 +141,6 @@ impl Comment {
   }
 }
 
-/// Selects the comment columns, but gives an empty string for content when
-/// deleted or removed, and you're not a mod/admin.
-#[diesel::dsl::auto_type]
-pub fn comment_select_remove_deletes() -> _ {
-  let deleted_or_removed = comment::deleted.or(comment::removed);
-
-  // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod());
-  let content = case_when(can_view_content, comment::content).otherwise("");
-
-  (
-    comment::id,
-    comment::creator_id,
-    comment::post_id,
-    content,
-    comment::removed,
-    comment::published,
-    comment::updated,
-    comment::deleted,
-    comment::ap_id,
-    comment::local,
-    comment::path,
-    comment::distinguished,
-    comment::language_id,
-    comment::score,
-    comment::upvotes,
-    comment::downvotes,
-    comment::child_count,
-    comment::hot_rank,
-    comment::controversy_rank,
-    comment::report_count,
-    comment::unresolved_report_count,
-  )
-}
-
 impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
@@ -202,65 +165,58 @@ impl Crud for Comment {
   }
 }
 
-impl Likeable for CommentLike {
+impl Likeable for CommentActions {
   type Form = CommentLikeForm;
   type IdType = CommentId;
-  async fn like(pool: &mut DbPool<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
+
+  async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let comment_like_form = (
-      comment_like_form,
-      comment_actions::liked.eq(now().nullable()),
-    );
     insert_into(comment_actions::table)
-      .values(comment_like_form)
+      .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
-      .set(comment_like_form)
+      .set(form)
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
   }
-  async fn remove(
+  async fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    comment_id: CommentId,
-  ) -> Result<uplete::Count, Error> {
+    comment_id: Self::IdType,
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked)
       .get_result(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
   }
 }
 
-impl Saveable for CommentSaved {
+impl Saveable for CommentActions {
   type Form = CommentSavedForm;
-  async fn save(
-    pool: &mut DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
-  ) -> Result<Self, Error> {
+  async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_actions::table)
-      .values(comment_saved_form)
+      .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
-      .set(comment_saved_form)
+      .set(form)
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
   }
-  async fn unsave(
-    pool: &mut DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
-  ) -> Result<uplete::Count, Error> {
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(
-      comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
-    )
-    .set_null(comment_actions::saved)
-    .get_result(conn)
-    .await
+    uplete::new(comment_actions::table.find((form.person_id, form.comment_id)))
+      .set_null(comment_actions::saved)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
   }
 }
 
@@ -356,30 +312,15 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
-    let comment_like_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
+    let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
 
-    let inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
-
-    let expected_comment_like = CommentLike {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      published: inserted_comment_like.published,
-      score: 1,
-    };
+    let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
+    assert_eq!(Some(1), inserted_comment_like.like_score);
 
     // Comment Saved
-    let comment_saved_form = CommentSavedForm::new(inserted_comment.id, inserted_person.id);
-    let inserted_comment_saved = CommentSaved::save(pool, &comment_saved_form).await?;
-
-    let expected_comment_saved = CommentSaved {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      published: inserted_comment_saved.published,
-    };
+    let comment_saved_form = CommentSavedForm::new(inserted_person.id, inserted_comment.id);
+    let inserted_comment_saved = CommentActions::save(pool, &comment_saved_form).await?;
+    assert!(inserted_comment_saved.saved.is_some());
 
     let comment_update_form = CommentUpdateForm {
       content: Some("A test comment".into()),
@@ -389,8 +330,9 @@ mod tests {
     let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form).await?;
 
     let read_comment = Comment::read(pool, inserted_comment.id).await?;
-    let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id).await?;
-    let saved_removed = CommentSaved::unsave(pool, &comment_saved_form).await?;
+    let like_removed =
+      CommentActions::remove_like(pool, inserted_person.id, inserted_comment.id).await?;
+    let saved_removed = CommentActions::unsave(pool, &comment_saved_form).await?;
     let num_deleted = Comment::delete(pool, inserted_comment.id).await?;
     Comment::delete(pool, inserted_child_comment.id).await?;
     Post::delete(pool, inserted_post.id).await?;
@@ -400,8 +342,6 @@ mod tests {
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, updated_comment);
-    assert_eq!(expected_comment_like, inserted_comment_like);
-    assert_eq!(expected_comment_saved, inserted_comment_saved);
     assert_eq!(
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
@@ -415,7 +355,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_aggregates() -> Result<(), Error> {
+  async fn test_aggregates() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -459,13 +399,9 @@ mod tests {
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let comment_like = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
+    let comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
 
-    CommentLike::like(pool, &comment_like).await?;
+    CommentActions::like(pool, &comment_like).await?;
 
     let comment_aggs_before_delete = Comment::read(pool, inserted_comment.id).await?;
 
@@ -474,13 +410,9 @@ mod tests {
     assert_eq!(0, comment_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let comment_dislike = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: another_inserted_person.id,
-      score: -1,
-    };
+    let comment_dislike = CommentLikeForm::new(another_inserted_person.id, inserted_comment.id, -1);
 
-    CommentLike::like(pool, &comment_dislike).await?;
+    CommentActions::like(pool, &comment_dislike).await?;
 
     let comment_aggs_after_dislike = Comment::read(pool, inserted_comment.id).await?;
 
@@ -489,7 +421,7 @@ mod tests {
     assert_eq!(1, comment_aggs_after_dislike.downvotes);
 
     // Remove the first comment like
-    CommentLike::remove(pool, inserted_person.id, inserted_comment.id).await?;
+    CommentActions::remove_like(pool, inserted_person.id, inserted_comment.id).await?;
     let after_like_remove = Comment::read(pool, inserted_comment.id).await?;
     assert_eq!(-1, after_like_remove.score);
     assert_eq!(0, after_like_remove.upvotes);
