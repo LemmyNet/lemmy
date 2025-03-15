@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   reports::community::{CommunityReportResponse, ResolveCommunityReport},
@@ -39,7 +40,7 @@ pub async fn resolve_community_report(
     SendActivityData::SendResolveReportToSite {
       object_id: community_report_view.community.ap_id.inner().clone(),
       actor: local_user_view.person,
-      report_creator: community_report_view.creator,
+      report_creator: community_report_view.creator.clone(),
       site,
     },
     &context,

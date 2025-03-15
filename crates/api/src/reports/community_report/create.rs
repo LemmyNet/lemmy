@@ -1,5 +1,6 @@
 use crate::check_report_reason;
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   reports::community::{CommunityReportResponse, CreateCommunityReport},
