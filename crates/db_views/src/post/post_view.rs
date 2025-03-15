@@ -288,13 +288,6 @@ impl<'a> PostQuery<'a> {
         .filter(post::scheduled_publish_time.is_null());
     }
 
-    // only show removed posts to admin when viewing user profile
-    if !(o.creator_id.is_some() && o.local_user.is_admin()) {
-      query = query
-        .filter(community::removed.eq(false))
-        .filter(community::local_removed.eq(false))
-        .filter(post::removed.eq(false));
-    }
     if let Some(community_id) = o.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
@@ -371,6 +364,7 @@ impl<'a> PostQuery<'a> {
         )
         // only show removed posts to admin
         .filter(community::removed.eq(false))
+        .filter(community::local_removed.eq(false))
         .filter(post::removed.eq(false));
     }
 
