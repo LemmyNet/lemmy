@@ -88,5 +88,6 @@ pub async fn leave_admin(
     tagline,
     my_user: None,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
+    active_plugins: vec![],
   }))
 }

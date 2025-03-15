@@ -9,7 +9,7 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, plugins::plugin_hook};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -62,7 +62,9 @@ async fn vote_comment(
   let like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
   let person_id = actor.id;
   CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
-  CommentActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("comment_vote", &like_form)?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("new_comment_vote", &like)?;
   Ok(())
 }
 
@@ -76,7 +78,9 @@ async fn vote_post(
   let like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
-  PostActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("post_vote", &like_form)?;
+  let like = PostActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook("new_post_vote", &like)?;
   Ok(())
 }
 
