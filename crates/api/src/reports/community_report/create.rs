@@ -11,6 +11,7 @@ use lemmy_db_schema::{
     community::Community,
     community_report::{CommunityReport, CommunityReportForm},
     local_site::LocalSite,
+    site::Site,
   },
   traits::{Crud, Reportable},
 };
@@ -29,6 +30,7 @@ pub async fn create_community_report(
   let person_id = local_user_view.person.id;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
+  let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
   let report_form = CommunityReportForm {
     creator_id: person_id,
@@ -63,10 +65,10 @@ pub async fn create_community_report(
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateReport {
-      object_id: community_view.community.ap_id.inner().clone(),
+    SendActivityData::CreateReportToSite {
+      object_id: community.ap_id.inner().clone(),
       actor: local_user_view.person,
-      target: SiteOrCommunity::Site(todo!()),
+      site,
       reason: data.reason.clone(),
     },
     &context,
