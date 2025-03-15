@@ -671,6 +671,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       interactions_month: 0,
+      local_removed: false,
     };
 
     let community_follower_form = CommunityFollowerForm::new(
