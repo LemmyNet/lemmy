@@ -133,6 +133,9 @@ impl Attachment {
 
     let is_image =
       media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+    // To prevent newlines from creating broken image embeds, we need to add a backslash before the
+    // newline
+    let name = name.map(|n| n.replace("\r\n", "\n").replace("\n", "\\\n"));
 
     if is_image {
       let url = proxy_image_link(url, context).await?;
