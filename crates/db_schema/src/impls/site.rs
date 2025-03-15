@@ -25,13 +25,13 @@ impl Crud for Site {
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_site = match &form.ap_id {
-      Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
+      Some(id) => Site::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
     let conn = &mut get_conn(pool).await?;
 
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
-    let site_ = insert_into(site::table)
+    let site = insert_into(site::table)
       .values(form)
       .on_conflict(site::ap_id)
       .do_update()
@@ -42,9 +42,9 @@ impl Crud for Site {
     // initialize languages if site is newly created
     if is_new_site {
       // initialize with all languages
-      SiteLanguage::update(pool, vec![], &site_).await?;
+      SiteLanguage::update(pool, vec![], &site).await?;
     }
-    Ok(site_)
+    Ok(site)
   }
 
   async fn update(
@@ -63,11 +63,11 @@ impl Crud for Site {
 impl Site {
   pub async fn read_from_instance_id(
     pool: &mut DbPool<'_>,
-    _instance_id: InstanceId,
+    instance_id: InstanceId,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     site::table
-      .filter(site::instance_id.eq(_instance_id))
+      .filter(site::instance_id.eq(instance_id))
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
