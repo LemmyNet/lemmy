@@ -8,6 +8,9 @@
     # https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
     connection: "postgres://lemmy:password@localhost:5432/lemmy"
     # Maximum number of active sql connections
+    # 
+    # A high value here can result in errors "could not resize shared memory segment". In this case
+    # it is necessary to increase shared memory size in Docker: https://stackoverflow.com/a/56754077
     pool_size: 30
   }
   # Pictrs image server configuration.
