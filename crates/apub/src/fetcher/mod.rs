@@ -12,6 +12,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub(crate) mod markdown_links;
 pub mod post_or_comment;
+pub(crate) mod report;
 pub mod search;
 pub mod site_or_community_or_user;
 pub mod user_or_community;

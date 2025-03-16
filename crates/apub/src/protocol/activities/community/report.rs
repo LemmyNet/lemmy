@@ -1,5 +1,6 @@
 use crate::{
-  fetcher::post_or_comment::PostOrComment,
+  activities::block::SiteOrCommunity,
+  fetcher::{post_or_comment::PostOrComment, report::ReportableObjects},
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
@@ -19,7 +20,7 @@ use url::Url;
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
+  pub(crate) to: [ObjectId<SiteOrCommunity>; 1],
   pub(crate) object: ReportObject,
   /// Report reason as sent by Lemmy
   pub(crate) summary: Option<String>,
@@ -43,7 +44,7 @@ impl Report {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub(crate) enum ReportObject {
-  Lemmy(ObjectId<PostOrComment>),
+  Lemmy(ObjectId<ReportableObjects>),
   /// Mastodon sends an array containing user id and one or more post ids
   Mastodon(Vec<Url>),
 }
