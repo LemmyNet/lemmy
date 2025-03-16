@@ -1,9 +1,13 @@
+use super::handle_community_moderators;
 use crate::{
   activities::GetActorType,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, LanguageTag},
+    objects::{
+      group::{AttributedTo, Group},
+      LanguageTag,
+    },
     ImageObject,
     Source,
   },
@@ -120,7 +124,9 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(generate_moderators_url(&self.ap_id)?.into()),
+      attributed_to: Some(AttributedTo::Lemmy(
+        generate_moderators_url(&self.ap_id)?.into(),
+      )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
     };
@@ -181,7 +187,7 @@ impl Object for ApubCommunity {
           .unwrap_or(group.inbox)
           .into(),
       ),
-      moderators_url: group.attributed_to.clone().map(Into::into),
+      moderators_url: group.attributed_to.clone().and_then(AttributedTo::url),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().map(Into::into),
       visibility,
@@ -213,7 +219,17 @@ impl Object for ApubCommunity {
         featured.dereference(&community_, &context_).await.ok();
       }
       if let Some(moderators) = group.attributed_to {
-        moderators.dereference(&community_, &context_).await.ok();
+        match moderators {
+          AttributedTo::Lemmy(l) => {
+            l.dereference(&community_, &context_).await.ok();
+          }
+          AttributedTo::Peertube(p) => {
+            let new_mods = p.iter().map(|p| p.id.clone()).collect();
+            handle_community_moderators(&new_mods, &community_, &context_)
+              .await
+              .ok();
+          }
+        }
       }
       Ok(())
     });
