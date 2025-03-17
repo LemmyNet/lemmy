@@ -62,6 +62,12 @@ pub struct InstanceActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the instance was blocked.
   pub blocked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When this user received a site ban.
+  pub received_ban: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When their ban expires.
+  pub ban_expires: Option<DateTime<Utc>>,
 }
 
 #[derive(derive_new::new)]

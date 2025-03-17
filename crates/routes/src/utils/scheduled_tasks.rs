@@ -27,6 +27,7 @@ use lemmy_db_schema::{
     community_actions,
     federation_blocklist,
     instance,
+    instance_actions,
     person,
     post,
     received_activity,
@@ -401,6 +402,13 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
     .set_null(community_actions::received_ban)
     .set_null(community_actions::ban_expires)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
+
+  uplete::new(instance_actions::table.filter(instance_actions::ban_expires.lt(now().nullable())))
+    .set_null(instance_actions::received_ban)
+    .set_null(instance_actions::ban_expires)
     .as_query()
     .execute(&mut conn)
     .await?;
