@@ -53,7 +53,7 @@ impl ReportObject {
   pub(crate) async fn dereference(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<PostOrComment> {
+  ) -> LemmyResult<ReportableObjects> {
     match self {
       ReportObject::Lemmy(l) => l.dereference(context).await,
       ReportObject::Mastodon(objects) => {
@@ -73,13 +73,13 @@ impl ReportObject {
   pub(crate) async fn object_id(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<ObjectId<PostOrComment>> {
+  ) -> LemmyResult<ObjectId<ReportableObjects>> {
     match self {
       ReportObject::Lemmy(l) => Ok(l.clone()),
       ReportObject::Mastodon(objects) => {
         for o in objects {
           // Same logic as above, but return the ID and not the object itself.
-          let deref = ObjectId::<PostOrComment>::from(o.clone())
+          let deref = ObjectId::<ReportableObjects>::from(o.clone())
             .dereference(context)
             .await;
           if deref.is_ok() {
