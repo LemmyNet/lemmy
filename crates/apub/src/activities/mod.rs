@@ -35,16 +35,18 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::is_admin,
 };
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
+    site::Site,
   },
   traits::Crud,
   CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -131,6 +133,27 @@ pub(crate) async fn verify_mod_action(
 
   let mod_ = mod_id.dereference(context).await?;
   CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
+}
+
+/// Verify that admin action was performed by an admin.
+///
+/// * `mod_id` - Activitypub ID of the admin who performed the action
+/// * `site` - The site that the person should be an admin of
+pub(crate) async fn verify_admin_action(
+  admin_id: &ObjectId<ApubPerson>,
+  site: &Site,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  // admin action comes from the correct instance, so it was presumably done
+  // by an instance admin.
+  // TODO: federate instance admin status and check it here
+  if admin_id.inner().domain() == site.ap_id.domain() {
+    return Ok(());
+  }
+
+  let admin = admin_id.dereference(context).await?;
+  let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
+  is_admin(&local_user_view)
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {

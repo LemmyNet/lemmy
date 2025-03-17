@@ -1,5 +1,6 @@
 use super::report::Report;
 use crate::{
+  activities::block::SiteOrCommunity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
@@ -31,8 +32,11 @@ pub struct ResolveReport {
   pub(crate) id: Url,
 }
 
-impl InCommunity for ResolveReport {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    self.object.community(context).await
+impl ResolveReport {
+  pub(crate) async fn recipient(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<SiteOrCommunity> {
+    self.object.recipient(context).await
   }
 }

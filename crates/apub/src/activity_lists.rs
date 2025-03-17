@@ -1,4 +1,5 @@
 use crate::{
+  activities::block::SiteOrCommunity,
   objects::community::ApubCommunity,
   protocol::{
     activities::{
@@ -92,8 +93,14 @@ impl InCommunity for AnnouncableActivities {
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
-      Report(a) => a.community(context).await,
-      ResolveReport(a) => a.community(context).await,
+      Report(a) => match a.recipient(context).await? {
+        SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
+        SiteOrCommunity::Community(c) => Ok(c),
+      },
+      ResolveReport(a) => match a.recipient(context).await? {
+        SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
+        SiteOrCommunity::Community(c) => Ok(c),
+      },
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }

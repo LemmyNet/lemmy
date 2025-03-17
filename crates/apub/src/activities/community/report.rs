@@ -4,7 +4,7 @@ use crate::{
     block::SiteOrCommunity,
     generate_activity_id,
     send_lemmy_activity,
-    verify_person_in_community,
+    verify_person_in_site_or_community,
   },
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
@@ -91,8 +91,8 @@ impl ActivityHandler for Report {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+    let recipient = self.recipient(context).await?;
+    verify_person_in_site_or_community(&self.actor, &recipient, context).await?;
     Ok(())
   }
 
@@ -129,14 +129,14 @@ impl ActivityHandler for Report {
       }
     };
 
-    let community = self.community(context).await?;
-    if community.local {
+    let recipient = self.recipient(context).await?;
+    if let Some(community) = recipient.local_community() {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
-      let inboxes = report_inboxes(object_id, &community, context).await?;
-      send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let inboxes = report_inboxes(object_id, &recipient, context).await?;
+      send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 
     Ok(())

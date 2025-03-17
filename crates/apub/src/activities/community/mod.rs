@@ -86,11 +86,7 @@ async fn report_inboxes(
   // send report to the community where object was posted
   let mut inboxes = ActivitySendTargets::to_inbox(receiver.shared_inbox_or_inbox());
 
-  let SiteOrCommunity::Community(community) = receiver else {
-    return Ok(inboxes);
-  };
-
-  if community.local {
+  if let Some(community) = receiver.local_community() {
     // send to all moderators
     let moderators =
       CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;

@@ -39,6 +39,14 @@ impl Report {
       .or(self.content.clone())
       .ok_or(LemmyErrorType::NotFound.into())
   }
+
+  pub(crate) async fn recipient(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<SiteOrCommunity> {
+    let recipient = self.to[0].dereference(context).await?;
+    Ok(recipient)
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -89,12 +97,5 @@ impl ReportObject {
         Err(LemmyErrorType::NotFound.into())
       }
     }
-  }
-}
-
-impl InCommunity for Report {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community = self.to[0].dereference(context).await?;
-    Ok(community)
   }
 }
