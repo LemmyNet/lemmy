@@ -1,7 +1,7 @@
 use crate::{
-  activities::send_lemmy_activity,
+  activities::{block::SiteOrCommunity, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::{post_or_comment::PostOrComment, report::ReportableObjects},
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
@@ -79,12 +79,16 @@ pub(crate) async fn send_activity_in_community(
 }
 
 async fn report_inboxes(
-  object_id: ObjectId<PostOrComment>,
-  community: &ApubCommunity,
+  object_id: ObjectId<ReportableObjects>,
+  receiver: &SiteOrCommunity,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<ActivitySendTargets> {
   // send report to the community where object was posted
-  let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+  let mut inboxes = ActivitySendTargets::to_inbox(receiver.shared_inbox_or_inbox());
+
+  let SiteOrCommunity::Community(community) = receiver else {
+    return Ok(inboxes);
+  };
 
   if community.local {
     // send to all moderators
@@ -96,8 +100,9 @@ async fn report_inboxes(
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
-      PostOrComment::Post(p) => p.creator_id,
-      PostOrComment::Comment(c) => c.creator_id,
+      ReportableObjects::PostOrComment(PostOrComment::Post(p)) => p.creator_id,
+      ReportableObjects::PostOrComment(PostOrComment::Comment(c)) => c.creator_id,
+      _ => return Ok(inboxes),
     };
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
     let object_creator_site: Option<ApubSite> =

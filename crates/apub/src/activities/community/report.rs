@@ -1,7 +1,13 @@
 use super::report_inboxes;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activities::{
+    block::SiteOrCommunity,
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_person_in_community,
+  },
   activity_lists::AnnouncableActivities,
+  fetcher::report::ReportableObjects,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -35,9 +41,9 @@ use url::Url;
 
 impl Report {
   pub(crate) fn new(
-    object_id: &ObjectId<PostOrComment>,
+    object_id: &ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    receiver: &SiteOrCommunity,
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
@@ -48,7 +54,7 @@ impl Report {
     )?;
     Ok(Report {
       actor: actor.id().into(),
-      to: [community.id().into()],
+      to: [receiver.id().into()],
       object: ReportObject::Lemmy(object_id.clone()),
       summary: reason,
       content: None,
@@ -58,14 +64,14 @@ impl Report {
   }
 
   pub(crate) async fn send(
-    object_id: ObjectId<PostOrComment>,
+    object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    receiver: &SiteOrCommunity,
     reason: String,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let report = Self::new(&object_id, actor, community, Some(reason), &context)?;
-    let inboxes = report_inboxes(object_id, community, &context).await?;
+    let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
+    let inboxes = report_inboxes(object_id, receiver, &context).await?;
 
     send_lemmy_activity(&context, report, actor, inboxes, false).await
   }
