@@ -26,7 +26,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  plugins::plugin_hook_mut,
+  plugins::{plugin_hook, plugin_hook_mut},
   request::generate_post_link_metadata,
   utils::{
     check_nsfw_allowed,
@@ -279,6 +279,7 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    plugin_hook("new_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 

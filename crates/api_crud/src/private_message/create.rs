@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook, plugin_hook_mut},
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -52,15 +53,17 @@ pub async fn create_private_message(
     check_private_messages_enabled(&recipient_local_user)?;
   }
 
-  let private_message_form = PrivateMessageInsertForm::new(
+  let mut private_message_form = PrivateMessageInsertForm::new(
     local_user_view.person.id,
     data.recipient_id,
     content.clone(),
   );
 
+  plugin_hook_mut("create_local_private_message", &mut private_message_form)?;
   let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
+  plugin_hook("new_private_message", &inserted_private_message)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 

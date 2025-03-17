@@ -22,7 +22,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  plugins::plugin_hook_mut,
+  plugins::{plugin_hook, plugin_hook_mut},
   utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
@@ -208,6 +208,7 @@ impl Object for ApubComment {
       parent_comment_path.as_ref(),
     )
     .await?;
+    plugin_hook("new_comment", &comment)?;
     Ok(comment.into())
   }
 }
