@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
+use block::SiteOrCommunity;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -88,6 +89,27 @@ pub(crate) async fn verify_person_in_community(
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
+}
+
+/// Fetches the person and community or site to verify their type, then checks if person is banned
+/// from local site or community.
+pub(crate) async fn verify_person_in_site_or_community(
+  person_id: &ObjectId<ApubPerson>,
+  site_or_community: &SiteOrCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let person = person_id.dereference(context).await?;
+  if person.banned {
+    Err(FederationError::PersonIsBannedFromSite(
+      person.ap_id.to_string(),
+    ))?
+  }
+  if let SiteOrCommunity::Community(community) = site_or_community {
+    let person_id = person.id;
+    let community_id = community.id;
+    CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
+  }
+  Ok(())
 }
 
 /// Verify that mod action in community was performed by a moderator.
