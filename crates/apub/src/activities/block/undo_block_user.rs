@@ -27,6 +27,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
+    instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
@@ -100,18 +101,21 @@ impl ActivityHandler for UndoBlockUser {
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
-      SiteOrCommunity::Site(_site) => {
+      SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(false),
+        if blocked_person.instance_id == site.instance_id {
+          // user unbanned from home instance, write directly to person table
+          let form = PersonUpdateForm {
+            banned: Some(true),
             ban_expires: Some(expires),
             ..Default::default()
-          },
-        )
-        .await?;
+          };
+          Person::update(&mut context.pool(), blocked_person.id, &form).await?;
+        } else {
+          // user unbanned from remote instance, write to instance actions table
+          let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+          InstanceActions::unban(&mut context.pool(), &form).await?;
+        }
 
         if self.restore_data.unwrap_or(false) {
           remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)

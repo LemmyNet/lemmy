@@ -79,3 +79,14 @@ pub struct InstanceBlockForm {
   #[new(value = "Utc::now()")]
   pub blocked: DateTime<Utc>,
 }
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = instance_actions))]
+pub struct InstanceBanForm {
+  pub person_id: PersonId,
+  pub instance_id: InstanceId,
+  #[new(value = "Utc::now()")]
+  pub received_ban: DateTime<Utc>,
+  pub ban_expires: Option<DateTime<Utc>>,
+}

@@ -12,9 +12,9 @@ use crate::{
   },
   source::{
     federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceActions, InstanceBlockForm, InstanceForm},
+    instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm, InstanceForm},
   },
-  traits::Blockable,
+  traits::{Bannable, Blockable},
   utils::{
     functions::{coalesce, lower},
     get_conn,
@@ -247,5 +247,31 @@ impl Blockable for InstanceActions {
       .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
+  }
+}
+
+impl Bannable for InstanceActions {
+  type Form = InstanceBanForm;
+  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      insert_into(instance_actions::table)
+        .values(form)
+        .on_conflict((instance_actions::person_id, instance_actions::instance_id))
+        .do_update()
+        .set(form)
+        .returning(Self::as_select())
+        .get_result::<Self>(conn)
+        .await?,
+    )
+  }
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+        .set_null(instance_actions::blocked)
+        .get_result(conn)
+        .await?,
+    )
   }
 }

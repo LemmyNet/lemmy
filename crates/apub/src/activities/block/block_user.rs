@@ -31,6 +31,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
+    instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
@@ -149,18 +150,24 @@ impl ActivityHandler for BlockUser {
     let target = self.target.dereference(context).await?;
     let reason = self.summary;
     match target {
-      SiteOrCommunity::Site(_site) => {
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
+      SiteOrCommunity::Site(site) => {
+        if blocked_person.instance_id == site.instance_id {
+          // user banned from home instance, write directly to person table and remove all content
+          let form = PersonUpdateForm {
             banned: Some(true),
             ban_expires: Some(expires),
             ..Default::default()
-          },
-        )
-        .await?;
+          };
+          Person::update(&mut context.pool(), blocked_person.id, &form).await?;
+        } else {
+          // user banned from remote instance, write to instance actions table and remove content
+          // only in communities from that instance
+          let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+          InstanceActions::ban(&mut context.pool(), &form).await?;
+        }
+
         if self.remove_data.unwrap_or(false) {
+          // TODO: only remove content in communities belonging to that instance
           remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
             .await?;
         }
