@@ -27,11 +27,16 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_deleted_removed,
+    check_post_deleted_or_removed,
+  },
 };
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
+    community_report::{CommunityReport, CommunityReportForm},
     post_report::{PostReport, PostReportForm},
   },
   traits::Reportable,
@@ -101,7 +106,7 @@ impl ActivityHandler for Report {
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      ReportableObjects::PostOrComment(PostOrComment::Post(post)) => {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -115,7 +120,7 @@ impl ActivityHandler for Report {
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
-      PostOrComment::Comment(comment) => {
+      ReportableObjects::PostOrComment(PostOrComment::Comment(comment)) => {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {
@@ -126,6 +131,21 @@ impl ActivityHandler for Report {
           violates_instance_rules: false,
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
+      }
+      ReportableObjects::Community(community) => {
+        check_community_deleted_removed(&community)?;
+        let report_form = CommunityReportForm {
+          creator_id: actor.id,
+          community_id: community.id,
+          reason,
+          original_community_name: community.name.clone(),
+          original_community_title: community.title.clone(),
+          original_community_banner: community.banner.clone(),
+          original_community_icon: community.icon.clone(),
+          original_community_description: community.description.clone(),
+          original_community_sidebar: community.sidebar.clone(),
+        };
+        CommunityReport::report(&mut context.pool(), &report_form).await?;
       }
     };
 
