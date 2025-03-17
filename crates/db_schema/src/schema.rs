@@ -227,6 +227,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         interactions_month -> Int8,
+        local_removed -> Bool,
     }
 }
 

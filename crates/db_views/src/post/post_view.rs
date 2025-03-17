@@ -362,6 +362,7 @@ impl<'a> PostQuery<'a> {
     if !(o.creator_id.is_some() && o.local_user.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
+        .filter(community::local_removed.eq(false))
         .filter(post::removed.eq(false));
     }
     if let Some(community_id) = o.community_id {

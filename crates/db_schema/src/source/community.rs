@@ -93,6 +93,7 @@ pub struct Community {
   /// Number of any interactions over the last month.
   #[serde(skip)]
   pub interactions_month: i64,
+  pub local_removed: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -141,6 +142,8 @@ pub struct CommunityInsertForm {
   pub visibility: Option<CommunityVisibility>,
   #[new(default)]
   pub description: Option<String>,
+  #[new(default)]
+  pub local_removed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -168,6 +171,7 @@ pub struct CommunityUpdateForm {
   pub posting_restricted_to_mods: Option<bool>,
   pub visibility: Option<CommunityVisibility>,
   pub description: Option<Option<String>>,
+  pub local_removed: Option<bool>,
 }
 
 #[skip_serializing_none]
