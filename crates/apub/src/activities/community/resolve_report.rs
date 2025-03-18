@@ -1,6 +1,7 @@
 use super::report_inboxes;
 use crate::{
   activities::{
+    block::SiteOrCommunity,
     generate_activity_id,
     send_lemmy_activity,
     verify_mod_action,
@@ -8,6 +9,7 @@ use crate::{
     verify_person_in_site_or_community,
   },
   activity_lists::AnnouncableActivities,
+  fetcher::report::ReportableObjects,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -36,10 +38,10 @@ use url::Url;
 
 impl ResolveReport {
   pub(crate) async fn send(
-    object_id: ObjectId<PostOrComment>,
+    object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
     report_creator: &ApubPerson,
-    community: &ApubCommunity,
+    receiver: &SiteOrCommunity,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
@@ -47,15 +49,15 @@ impl ResolveReport {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let object = Report::new(&object_id, report_creator, community, None, &context)?;
+    let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
       actor: actor.id().into(),
-      to: [community.id().into()],
+      to: [receiver.id().into()],
       object,
       kind,
       id: id.clone(),
     };
-    let inboxes = report_inboxes(object_id, community, &context).await?;
+    let inboxes = report_inboxes(object_id, receiver, &context).await?;
 
     send_lemmy_activity(&context, resolve, actor, inboxes, false).await
   }
