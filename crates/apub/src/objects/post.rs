@@ -164,13 +164,8 @@ impl Object for ApubPost {
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
     if let Err(e) = verify_is_remote_object(&page.id, context) {
-      // The comment was created locally and sent back, indicating that the community accepted it
-      let form = PostUpdateForm {
-        pending: Some(false),
-        ..Default::default()
-      };
       if let Ok(post) = page.id.dereference_local(context).await {
-        Post::update(&mut context.pool(), post.id, &form).await?;
+        post.set_not_pending(&mut context.pool()).await?;
       }
       return Err(e.into());
     }

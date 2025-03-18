@@ -139,6 +139,18 @@ impl Comment {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?.into())
   }
+
+  /// The comment was created locally and sent back, indicating that the community accepted it
+  pub async fn set_not_pending(&self, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    if self.local && self.pending {
+      let form = CommentUpdateForm {
+        pending: Some(false),
+        ..Default::default()
+      };
+      Comment::update(pool, self.id, &form).await?;
+    }
+    Ok(())
+  }
 }
 
 impl Crud for Comment {
