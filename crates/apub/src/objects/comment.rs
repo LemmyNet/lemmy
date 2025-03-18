@@ -2,6 +2,7 @@ use crate::{
   activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
+  is_mod_or_admin,
   mentions::collect_non_local_mentions,
   objects::{append_attachments_to_comment, read_from_string_or_source},
   protocol::{
@@ -22,7 +23,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -155,7 +156,7 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
+    let is_mod_or_admin = is_mod_or_admin(&creator, community.id, context)
       .await
       .is_ok();
     if post.locked && !is_mod_or_admin {

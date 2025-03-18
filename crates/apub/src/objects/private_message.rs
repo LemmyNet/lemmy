@@ -1,5 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
+  check_person_banned,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   objects::read_from_string_or_source,
   protocol::{
@@ -122,13 +123,7 @@ impl Object for ApubPrivateMessage {
 
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
-    if person.banned {
-      Err(FederationError::PersonIsBannedFromSite(
-        person.ap_id.to_string(),
-      ))?
-    } else {
-      Ok(())
-    }
+    check_person_banned(&person, context).await
   }
 
   async fn from_json(

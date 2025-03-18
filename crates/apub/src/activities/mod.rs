@@ -16,6 +16,7 @@ use crate::{
     },
     voting::send_like_activity,
   },
+  check_person_banned,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
@@ -64,12 +65,7 @@ async fn verify_person(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
-  } else {
-    Ok(())
-  }
+  check_person_banned(&person, context).await
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -80,11 +76,7 @@ pub(crate) async fn verify_person_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  }
+  check_person_banned(&person, context).await?;
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
