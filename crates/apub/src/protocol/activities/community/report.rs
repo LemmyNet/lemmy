@@ -1,7 +1,7 @@
 use crate::{
-  fetcher::post_or_comment::PostOrComment,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
+  activities::block::SiteOrCommunity,
+  fetcher::report::ReportableObjects,
+  objects::person::ApubPerson,
 };
 use activitypub_federation::{
   config::Data,
@@ -19,7 +19,7 @@ use url::Url;
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
+  pub(crate) to: [ObjectId<SiteOrCommunity>; 1],
   pub(crate) object: ReportObject,
   /// Report reason as sent by Lemmy
   pub(crate) summary: Option<String>,
@@ -38,12 +38,20 @@ impl Report {
       .or(self.content.clone())
       .ok_or(LemmyErrorType::NotFound.into())
   }
+
+  pub(crate) async fn receiver(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<SiteOrCommunity> {
+    let receiver = self.to[0].dereference(context).await?;
+    Ok(receiver)
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub(crate) enum ReportObject {
-  Lemmy(ObjectId<PostOrComment>),
+  Lemmy(ObjectId<ReportableObjects>),
   /// Mastodon sends an array containing user id and one or more post ids
   Mastodon(Vec<Url>),
 }
@@ -52,7 +60,7 @@ impl ReportObject {
   pub(crate) async fn dereference(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<PostOrComment> {
+  ) -> LemmyResult<ReportableObjects> {
     match self {
       ReportObject::Lemmy(l) => l.dereference(context).await,
       ReportObject::Mastodon(objects) => {
@@ -72,13 +80,13 @@ impl ReportObject {
   pub(crate) async fn object_id(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<ObjectId<PostOrComment>> {
+  ) -> LemmyResult<ObjectId<ReportableObjects>> {
     match self {
       ReportObject::Lemmy(l) => Ok(l.clone()),
       ReportObject::Mastodon(objects) => {
         for o in objects {
           // Same logic as above, but return the ID and not the object itself.
-          let deref = ObjectId::<PostOrComment>::from(o.clone())
+          let deref = ObjectId::<ReportableObjects>::from(o.clone())
             .dereference(context)
             .await;
           if deref.is_ok() {
@@ -88,12 +96,5 @@ impl ReportObject {
         Err(LemmyErrorType::NotFound.into())
       }
     }
-  }
-}
-
-impl InCommunity for Report {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community = self.to[0].dereference(context).await?;
-    Ok(community)
   }
 }
