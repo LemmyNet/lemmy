@@ -437,7 +437,7 @@ pub async fn match_outgoing_activities(
         Report::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &community.into(),
+          &SiteOrCommunity::Community(community.into()),
           reason,
           context,
         )
@@ -453,7 +453,37 @@ pub async fn match_outgoing_activities(
           ObjectId::from(object_id),
           &actor.into(),
           &report_creator.into(),
-          &community.into(),
+          &SiteOrCommunity::Community(community.into()),
+          context,
+        )
+        .await
+      }
+      CreateReportToSite {
+        object_id,
+        actor,
+        site,
+        reason,
+      } => {
+        Report::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &SiteOrCommunity::Site(site.into()),
+          reason,
+          context,
+        )
+        .await
+      }
+      SendResolveReportToSite {
+        object_id,
+        actor,
+        report_creator,
+        site,
+      } => {
+        ResolveReport::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &report_creator.into(),
+          &SiteOrCommunity::Site(site.into()),
           context,
         )
         .await
