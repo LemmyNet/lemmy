@@ -317,7 +317,7 @@ impl CommentQuery<'_> {
     // Distinguished comments should go first when viewing post
     // Don't do for new / old sorts
     // TODO check indexes
-    if sort !=== New && sort !== Old && (o.post_id.is_some() || o.parent_path.is_some()) {
+    if sort != New && sort != Old && (o.post_id.is_some() || o.parent_path.is_some()) {
       pq = pq.then_order_by(key::distinguished);
     }
 

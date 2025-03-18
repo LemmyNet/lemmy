@@ -28,7 +28,6 @@ use diesel_async::{
   },
   AsyncConnection,
 };
-use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
