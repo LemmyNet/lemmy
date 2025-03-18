@@ -7,7 +7,11 @@ use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
+  source::{
+    activity::ReceivedActivity,
+    instance::{Instance, InstanceActions},
+    local_site::LocalSite,
+  },
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views::structs::CommunityView;
@@ -223,16 +227,17 @@ async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> Lem
 }
 
 async fn check_person_banned(person: &ApubPerson, context: &LemmyContext) -> LemmyResult<()> {
-  todo!()
-  /*
-  if person.banned {
+  let received_ban = InstanceActions::read(&mut context.pool(), person.id, person.instance_id)
+    .await?
+    .iter()
+    .any(|i| i.received_ban.is_some());
+  if received_ban {
     Err(FederationError::PersonIsBannedFromSite(
       person.ap_id.to_string(),
     ))?
   } else {
     Ok(())
   }
-  */
 }
 
 async fn is_mod_or_admin(
@@ -240,6 +245,7 @@ async fn is_mod_or_admin(
   community_id: CommunityId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
+  check_person_banned(person, context).await?;
   CommunityView::check_is_mod_or_admin(&mut context.pool(), person.id, community_id).await?;
-  todo!()
+  Ok(())
 }

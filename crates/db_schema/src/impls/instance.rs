@@ -250,6 +250,23 @@ impl Blockable for InstanceActions {
   }
 }
 
+impl InstanceActions {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    instance_id: InstanceId,
+  ) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance_actions::table
+      .filter(instance_actions::person_id.eq(person_id))
+      .filter(instance_actions::instance_id.eq(instance_id))
+      .order_by(instance_actions::blocked)
+      .get_result(conn)
+      .await
+      .optional()
+  }
+}
+
 impl Bannable for InstanceActions {
   type Form = InstanceBanForm;
   async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {

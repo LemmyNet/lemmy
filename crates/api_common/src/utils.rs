@@ -99,7 +99,7 @@ pub async fn is_mod_or_admin_opt(
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(pool, &local_user_view, community_id).await
+      is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
       is_admin(local_user_view)
     }
@@ -122,7 +122,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_valid(local_user_view)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
   } else {
@@ -134,7 +134,7 @@ pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
 ) -> LemmyResult<()> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_valid(local_user_view)?;
   if local_user_view.person.id
     != community_mods
       .first()
