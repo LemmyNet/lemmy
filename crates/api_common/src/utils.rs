@@ -247,6 +247,7 @@ pub async fn check_community_user_action(
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
   CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
     .await?;
+  InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
 }
 

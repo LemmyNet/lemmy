@@ -16,7 +16,6 @@ use crate::{
     },
     voting::send_like_activity,
   },
-  check_person_banned,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
@@ -39,6 +38,7 @@ use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
+    instance::InstanceActions,
   },
   traits::Crud,
   CommunityVisibility,
@@ -64,7 +64,8 @@ async fn verify_person(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  check_person_banned(&person, context).await
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  Ok(())
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -75,7 +76,7 @@ pub(crate) async fn verify_person_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  check_person_banned(&person, context).await?;
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await

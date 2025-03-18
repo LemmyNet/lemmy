@@ -226,26 +226,12 @@ async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> Lem
   Ok(())
 }
 
-async fn check_person_banned(person: &ApubPerson, context: &LemmyContext) -> LemmyResult<()> {
-  let received_ban = InstanceActions::read(&mut context.pool(), person.id, person.instance_id)
-    .await?
-    .iter()
-    .any(|i| i.received_ban.is_some());
-  if received_ban {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  } else {
-    Ok(())
-  }
-}
-
 async fn is_mod_or_admin(
   person: &ApubPerson,
   community_id: CommunityId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  check_person_banned(person, context).await?;
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   CommunityView::check_is_mod_or_admin(&mut context.pool(), person.id, community_id).await?;
   Ok(())
 }
