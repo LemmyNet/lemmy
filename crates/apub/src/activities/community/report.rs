@@ -96,8 +96,8 @@ impl ActivityHandler for Report {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let recipient = self.recipient(context).await?;
-    verify_person_in_site_or_community(&self.actor, &recipient, context).await?;
+    let receiver = self.receiver(context).await?;
+    verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     Ok(())
   }
 
@@ -149,13 +149,13 @@ impl ActivityHandler for Report {
       }
     };
 
-    let recipient = self.recipient(context).await?;
-    if let Some(community) = recipient.local_community() {
+    let receiver = self.receiver(context).await?;
+    if let Some(community) = receiver.local_community() {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
-      let inboxes = report_inboxes(object_id, &recipient, context).await?;
+      let inboxes = report_inboxes(object_id, &receiver, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 

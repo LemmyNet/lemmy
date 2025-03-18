@@ -33,10 +33,10 @@ pub struct ResolveReport {
 }
 
 impl ResolveReport {
-  pub(crate) async fn recipient(
+  pub(crate) async fn receiver(
     &self,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<SiteOrCommunity> {
-    self.object.recipient(context).await
+    self.object.receiver(context).await
   }
 }

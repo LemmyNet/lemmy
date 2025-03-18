@@ -83,10 +83,10 @@ impl ActivityHandler for ResolveReport {
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     self.object.verify(context).await?;
-    let recipient = self.recipient(context).await?;
-    verify_person_in_site_or_community(&self.actor, &recipient, context).await?;
+    let receiver = self.receiver(context).await?;
+    verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     verify_urls_match(self.to[0].inner(), self.object.to[0].inner())?;
-    verify_mod_or_admin_action(&self.actor, &recipient, context).await?;
+    verify_mod_or_admin_action(&self.actor, &receiver, context).await?;
     Ok(())
   }
 
@@ -107,13 +107,13 @@ impl ActivityHandler for ResolveReport {
       }
     };
 
-    let recipient = self.recipient(context).await?;
-    if let Some(community) = recipient.local_community() {
+    let receiver = self.receiver(context).await?;
+    if let Some(community) = receiver.local_community() {
       // forward to remote mods
       let object_id = self.object.object.object_id(context).await?;
       let announce = AnnouncableActivities::ResolveReport(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
-      let inboxes = report_inboxes(object_id, &recipient, context).await?;
+      let inboxes = report_inboxes(object_id, &receiver, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 

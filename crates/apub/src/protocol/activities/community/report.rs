@@ -40,12 +40,12 @@ impl Report {
       .ok_or(LemmyErrorType::NotFound.into())
   }
 
-  pub(crate) async fn recipient(
+  pub(crate) async fn receiver(
     &self,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<SiteOrCommunity> {
-    let recipient = self.to[0].dereference(context).await?;
-    Ok(recipient)
+    let receiver = self.to[0].dereference(context).await?;
+    Ok(receiver)
   }
 }
 

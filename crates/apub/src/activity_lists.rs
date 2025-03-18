@@ -93,11 +93,11 @@ impl InCommunity for AnnouncableActivities {
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
-      Report(a) => match a.recipient(context).await? {
+      Report(a) => match a.receiver(context).await? {
         SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
         SiteOrCommunity::Community(c) => Ok(c),
       },
-      ResolveReport(a) => match a.recipient(context).await? {
+      ResolveReport(a) => match a.receiver(context).await? {
         SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
         SiteOrCommunity::Community(c) => Ok(c),
       },
