@@ -1,6 +1,6 @@
 ALTER TABLE post
-    DROP COLUMN pending;
+    DROP COLUMN federation_pending;
 
 ALTER TABLE comment
-    DROP COLUMN pending;
+    DROP COLUMN federation_pending;
 
