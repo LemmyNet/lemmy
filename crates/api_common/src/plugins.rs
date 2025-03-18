@@ -17,7 +17,7 @@ use std::{
 };
 use tracing::{debug, warn};
 
-const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(0);
+const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Call a plugin hook without rewriting data
 pub fn plugin_hook<T>(name: &'static str, data: &T) -> LemmyResult<()>
