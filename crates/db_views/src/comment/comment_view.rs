@@ -233,7 +233,7 @@ impl CommentQuery<'_> {
 
     query = o.local_user.visible_communities_only(query);
     query = query.filter(
-      comment::pending
+      comment::federation_pending
         .eq(false)
         .or(comment::creator_id.nullable().eq(my_person_id)),
     );

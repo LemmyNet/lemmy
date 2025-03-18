@@ -322,9 +322,9 @@ impl Post {
 
   /// The comment was created locally and sent back, indicating that the community accepted it
   pub async fn set_not_pending(&self, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    if self.local && self.pending {
+    if self.local && self.federation_pending {
       let form = PostUpdateForm {
-        pending: Some(false),
+        federation_pending: Some(false),
         ..Default::default()
       };
       Post::update(pool, self.id, &form).await?;
@@ -636,7 +636,7 @@ mod tests {
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
-      pending: false,
+      federation_pending: false,
     };
 
     // Post Like

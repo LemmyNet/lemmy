@@ -100,7 +100,7 @@ pub async fn create_comment(
 
   let comment_form = CommentInsertForm {
     language_id: Some(language_id),
-    pending: Some(community_use_pending(&post_view.community, &context).await),
+    federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
 

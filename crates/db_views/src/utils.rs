@@ -135,7 +135,7 @@ pub(crate) fn comment_select_remove_deletes() -> _ {
     comment::controversy_rank,
     comment::report_count,
     comment::unresolved_report_count,
-    comment::pending,
+    comment::federation_pending,
   )
 }
 
