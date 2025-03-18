@@ -283,14 +283,6 @@ impl CommentQuery<'_> {
 
       query = query.filter(nlevel(comment::path).le(depth_limit));
 
-      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
-      // + !post_id isn't used anyways (afaik)
-      if o.post_id.is_some() || o.parent_path.is_some() {
-        // Always order by the parent path first
-        // TODO not sure if this initial then_order_by will work correctly
-        query = query.then_order_by(subpath(comment::path, 0, -1));
-      }
-
       // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
       // For now, don't do any limiting for tree fetches
       // https://stackoverflow.com/questions/72983614/postgres-ltree-how-to-limit-the-max-number-of-children-at-any-given-level
@@ -303,7 +295,6 @@ impl CommentQuery<'_> {
       // (i64::MAX, 0)
       300
     } else {
-      // limit_and_offset_unlimited(o.page, o.limit)
       limit_fetch(o.limit)?
     };
     query = query.limit(limit);
@@ -314,8 +305,19 @@ impl CommentQuery<'_> {
 
     let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
 
-    // distinguished comments should go first when viewing post
-    if o.post_id.is_some() || o.parent_path.is_some() {
+    // Order by a subpath for max depth queries
+    // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
+    // + !post_id isn't used anyways (afaik)
+    if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
+      // Always order by the parent path first
+      // TODO not sure if this initial then_order_by will work correctly
+      pq = pq.then_order_by(subpath(key::path, 0, -1));
+    }
+
+    // Distinguished comments should go first when viewing post
+    // Don't do for new / old sorts
+    // TODO check indexes
+    if sort !=== New && sort !== Old && (o.post_id.is_some() || o.parent_path.is_some()) {
       pq = pq.then_order_by(key::distinguished);
     }
 

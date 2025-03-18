@@ -28,8 +28,9 @@ use diesel_async::{
   },
   AsyncConnection,
 };
+use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use futures_util::{future::BoxFuture, FutureExt};
-use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
+use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
@@ -164,6 +165,26 @@ macro_rules! try_join_with_pool {
       }.await,
     }
   }};
+}
+
+/// Necessary to be able to use cursors with the lower SQL function
+pub struct LowerKey<K>(pub K);
+
+impl<K, C> CursorKey<C> for LowerKey<K>
+where
+  K: CursorKey<C, SqlType = sql_types::Text>,
+{
+  type SqlType = sql_types::Text;
+  type CursorValue = functions::lower<K::CursorValue>;
+  type SqlValue = functions::lower<K::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    functions::lower(K::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::lower(K::get_sql_value())
+  }
 }
 
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output

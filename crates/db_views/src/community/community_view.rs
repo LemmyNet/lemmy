@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool, LowerKey},
   ListingType,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -210,9 +210,8 @@ impl CommunityQuery<'_> {
       ActiveMonthly => pq.then_order_by(key::users_active_month),
       ActiveWeekly => pq.then_order_by(key::users_active_week),
       ActiveDaily => pq.then_order_by(key::users_active_day),
-      // TODO the lower function doesn't work for these
-      NameAsc => pq.then_order_by(key::name),
-      NameDesc => pq.then_order_by(key::name),
+      NameAsc => pq.then_order_by(LowerKey(key::name)),
+      NameDesc => pq.then_order_by(LowerKey(key::name)),
     };
 
     pq.load::<CommunityView>(conn)
