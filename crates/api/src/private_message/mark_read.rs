@@ -4,7 +4,7 @@ use lemmy_api_common::{
   private_message::MarkPrivateMessageAsRead,
   SuccessResponse,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };

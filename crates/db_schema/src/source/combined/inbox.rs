@@ -6,7 +6,7 @@ use crate::newtypes::{
   PrivateMessageId,
 };
 #[cfg(feature = "full")]
-use crate::schema::inbox_combined;
+use lemmy_db_schema_file::inbox_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;

@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
+  lemmy_db_schema_file::{comment, comment_actions},
   newtypes::{CommentId, DbUrl, PersonId},
-  schema::{comment, comment_actions},
   source::comment::{
     Comment,
     CommentActions,

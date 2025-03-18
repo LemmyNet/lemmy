@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::comment_report,
   newtypes::{CommentId, CommentReportId, PersonId},
-  schema::comment_report,
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},

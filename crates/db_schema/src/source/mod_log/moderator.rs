@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::{
+use lemmy_db_schema_file::{
   mod_add,
   mod_add_community,
   mod_ban,

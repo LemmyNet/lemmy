@@ -1,6 +1,6 @@
 use crate::newtypes::{CommunityId, CommunityReportId, DbUrl, PersonId};
 #[cfg(feature = "full")]
-use crate::schema::community_report;
+use lemmy_db_schema_file::community_report;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

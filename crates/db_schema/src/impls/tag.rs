@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::{post_tag, tag},
   newtypes::TagId,
-  schema::{post_tag, tag},
   source::tag::{PostTagInsertForm, Tag, TagInsertForm},
   traits::Crud,
   utils::{get_conn, DbPool},

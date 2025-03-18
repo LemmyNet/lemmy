@@ -1,6 +1,6 @@
 use crate::newtypes::InstanceId;
 #[cfg(feature = "full")]
-use crate::schema::federation_allowlist;
+use lemmy_db_schema_file::federation_allowlist;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{MarkPostAsRead, PostResponse},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::post::{PostActions, PostReadForm},
   traits::Readable,
 };

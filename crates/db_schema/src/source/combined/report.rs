@@ -6,7 +6,7 @@ use crate::newtypes::{
   ReportCombinedId,
 };
 #[cfg(feature = "full")]
-use crate::schema::report_combined;
+use lemmy_db_schema_file::report_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;

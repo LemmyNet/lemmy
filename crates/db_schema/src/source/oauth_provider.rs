@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::oauth_provider;
+use lemmy_db_schema_file::oauth_provider;
 use crate::{
   newtypes::{DbUrl, OAuthProviderId},
   sensitive::SensitiveString,

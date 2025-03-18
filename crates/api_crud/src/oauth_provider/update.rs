@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{context::LemmyContext, oauth_provider::EditOAuthProvider, utils::is_admin};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm},
   traits::Crud,
   utils::{diesel_required_string_update, diesel_required_url_update},

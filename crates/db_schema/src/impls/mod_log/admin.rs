@@ -1,4 +1,12 @@
 use crate::{
+  lemmy_db_schema_file::{
+    admin_allow_instance,
+    admin_block_instance,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
+  },
   newtypes::{
     AdminAllowInstanceId,
     AdminBlockInstanceId,
@@ -6,14 +14,6 @@ use crate::{
     AdminPurgeCommunityId,
     AdminPurgePersonId,
     AdminPurgePostId,
-  },
-  schema::{
-    admin_allow_instance,
-    admin_block_instance,
-    admin_purge_comment,
-    admin_purge_community,
-    admin_purge_person,
-    admin_purge_post,
   },
   source::mod_log::admin::{
     AdminAllowInstance,

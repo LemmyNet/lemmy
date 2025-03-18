@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::is_admin,
   SuccessResponse,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     comment::Comment,
     local_user::LocalUser,

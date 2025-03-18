@@ -1,0 +1,21 @@
+[package]
+name = "lemmy_db_schema_file"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_db_schema_file"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+diesel.workspace = true
+diesel_ltree .workspace = true

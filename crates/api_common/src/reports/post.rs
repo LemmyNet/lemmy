@@ -1,4 +1,4 @@
-use lemmy_db_schema::newtypes::{PostId, PostReportId};
+use lemmy_db_lemmy_db_schema_file::newtypes::{PostId, PostReportId};
 use lemmy_db_views::structs::PostReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]

@@ -1,6 +1,6 @@
 use crate::newtypes::{CommentId, CommentReplyId, PersonId};
 #[cfg(feature = "full")]
-use crate::schema::comment_reply;
+use lemmy_db_schema_file::comment_reply;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]

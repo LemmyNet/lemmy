@@ -13,7 +13,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::ActivitySendTargets;
+use lemmy_db_lemmy_db_schema_file::source::activity::ActivitySendTargets;
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;

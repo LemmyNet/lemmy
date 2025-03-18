@@ -1,6 +1,5 @@
 mod diff_check;
 
-use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use diesel::{
@@ -18,6 +17,7 @@ use diesel::{
   RunQueryDsl,
 };
 use diesel_migrations::MigrationHarness;
+use lemmy_db_schema_file::previously_run_sql;
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
 use tracing::debug;

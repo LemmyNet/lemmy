@@ -15,7 +15,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_api_crud::site::update::update_site;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::InstanceId,
   source::{
     instance::Instance,

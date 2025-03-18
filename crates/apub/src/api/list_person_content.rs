@@ -6,7 +6,7 @@ use lemmy_api_common::{
   person::{ListPersonContent, ListPersonContentResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_lemmy_db_schema_file::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::person_content_combined_view::PersonContentCombinedQuery,
   structs::{LocalUserView, PersonContentCombinedView, SiteView},

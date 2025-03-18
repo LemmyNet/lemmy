@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, SuccessResponse};
-use lemmy_db_schema::source::{
+use lemmy_db_lemmy_db_schema_file::source::{
   comment_reply::CommentReply,
   person_comment_mention::PersonCommentMention,
   person_post_mention::PersonPostMention,

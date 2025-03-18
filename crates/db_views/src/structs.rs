@@ -21,7 +21,7 @@ use diesel::{
   Queryable,
   Selectable,
 };
-use lemmy_db_schema::source::{
+use lemmy_db_lemmy_db_schema_file::source::{
   combined::{
     inbox::InboxCombined,
     person_content::PersonContentCombined,
@@ -76,8 +76,8 @@ use lemmy_db_schema::source::{
   tag::Tag,
 };
 #[cfg(feature = "full")]
-use lemmy_db_schema::{
-  schema::local_user,
+use lemmy_db_lemmy_db_schema_file::{
+  lemmy_db_schema_file::local_user,
   utils::functions::coalesce,
   CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,

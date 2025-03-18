@@ -11,7 +11,7 @@ use crate::newtypes::{
   PostId,
 };
 #[cfg(feature = "full")]
-use crate::schema::{
+use lemmy_db_schema_file::{
   admin_allow_instance,
   admin_block_instance,
   admin_purge_comment,

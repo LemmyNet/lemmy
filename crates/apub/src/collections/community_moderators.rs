@@ -10,7 +10,7 @@ use activitypub_federation::{
   traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::community::{CommunityActions, CommunityModeratorForm},
   traits::Joinable,
 };
@@ -98,7 +98,7 @@ mod tests {
     objects::{community::tests::parse_lemmy_community, person::tests::parse_lemmy_person},
     protocol::tests::file_to_json_object,
   };
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     source::{
       community::Community,
       instance::Instance,

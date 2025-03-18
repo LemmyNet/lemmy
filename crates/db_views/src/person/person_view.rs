@@ -9,9 +9,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{PaginationCursor, PersonId},
-  schema::{local_user, person},
+  lemmy_db_schema_file::{local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, now, DbPool},
@@ -128,7 +128,7 @@ impl PersonQuery {
 mod tests {
 
   use super::*;
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     assert_length,
     source::{
       instance::Instance,

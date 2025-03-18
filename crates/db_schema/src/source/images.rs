@@ -1,6 +1,6 @@
 use crate::newtypes::{DbUrl, LocalUserId};
 #[cfg(feature = "full")]
-use crate::schema::{image_details, local_image, remote_image};
+use lemmy_db_schema_file::{image_details, local_image, remote_image};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

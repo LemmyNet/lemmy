@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     community::{Community, CommunityUpdateForm},
     images::LocalImage,

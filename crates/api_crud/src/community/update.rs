@@ -15,7 +15,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},

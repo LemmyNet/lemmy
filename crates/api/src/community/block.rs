@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::community::{CommunityActions, CommunityBlockForm},
   traits::{Blockable, Followable},
 };

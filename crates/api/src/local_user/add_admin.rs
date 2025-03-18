@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{AddAdmin, AddAdminResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
     mod_log::moderator::{ModAdd, ModAddForm},

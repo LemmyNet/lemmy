@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::password_reset_request::dsl::{password_reset_request, published, token},
   newtypes::LocalUserId,
-  schema::password_reset_request::dsl::{password_reset_request, published, token},
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   utils::{get_conn, DbPool},
 };

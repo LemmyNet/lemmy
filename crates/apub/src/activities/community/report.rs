@@ -23,7 +23,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
     post_report::{PostReport, PostReportForm},

@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::{community, community_actions};
+use lemmy_db_schema_file::{community, community_actions};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -240,7 +240,7 @@ pub struct CommunityPersonBanForm {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::CommunityFollowerState"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]

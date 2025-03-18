@@ -19,7 +19,7 @@ use crate::newtypes::{
   ModlogCombinedId,
 };
 #[cfg(feature = "full")]
-use crate::schema::modlog_combined;
+use lemmy_db_schema_file::modlog_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;

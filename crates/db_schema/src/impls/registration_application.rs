@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::registration_application,
   newtypes::{LocalUserId, RegistrationApplicationId},
-  schema::registration_application,
   source::registration_application::{
     RegistrationApplication,
     RegistrationApplicationInsertForm,

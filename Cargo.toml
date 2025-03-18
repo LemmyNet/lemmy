@@ -47,6 +47,7 @@ members = [
   "crates/utils",
   "crates/db_perf",
   "crates/db_schema",
+  "crates/db_schema_file",
   "crates/db_views",
   "crates/routes",
   "crates/federate",
@@ -84,6 +85,7 @@ lemmy_api_crud = { version = "=1.0.0-alpha.2", path = "./crates/api_crud" }
 lemmy_apub = { version = "=1.0.0-alpha.2", path = "./crates/apub" }
 lemmy_utils = { version = "=1.0.0-alpha.2", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.2", path = "./crates/db_schema" }
+lemmy_db_schema_file = { version = "=1.0.0-alpha.2", path = "./crates/db_schema_file" }
 lemmy_api_common = { version = "=1.0.0-alpha.2", path = "./crates/api_common" }
 lemmy_routes = { version = "=1.0.0-alpha.2", path = "./crates/routes" }
 lemmy_db_views = { version = "=1.0.0-alpha.2", path = "./crates/db_views" }
@@ -91,7 +93,13 @@ lemmy_federate = { version = "=1.0.0-alpha.2", path = "./crates/federate" }
 activitypub_federation = { version = "0.6.3", default-features = false, features = [
   "actix-web",
 ] }
-diesel = "2.2.7"
+diesel = { version = "2.2.7", features = [
+  "chrono",
+  "postgres",
+  "serde_json",
+  "uuid",
+  "64-column-tables",
+] }
 diesel_migrations = "2.2.0"
 diesel-async = "0.5.2"
 serde = { version = "1.0.217", features = ["derive"] }

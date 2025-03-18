@@ -1,7 +1,7 @@
 use crate::user::my_user::get_my_user;
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
-use lemmy_db_schema::source::{
+use lemmy_db_lemmy_db_schema_file::source::{
   actor_language::SiteLanguage,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,

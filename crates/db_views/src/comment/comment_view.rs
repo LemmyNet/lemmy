@@ -14,11 +14,11 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, PersonId, PostId},
-  schema::{
+  lemmy_db_schema_file::{
     comment,
     comment_actions,
     community,
@@ -314,7 +314,7 @@ mod tests {
     comment::comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
     structs::LocalUserView,
   };
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::CommentId,

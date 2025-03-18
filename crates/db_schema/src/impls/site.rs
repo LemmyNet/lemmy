@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::{local_site, site},
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::{local_site, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},

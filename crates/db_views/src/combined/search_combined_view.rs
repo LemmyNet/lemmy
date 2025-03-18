@@ -22,10 +22,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::{creator_community_actions, creator_local_user},
   newtypes::{CommunityId, PaginationCursor, PersonId},
-  schema::{
+  lemmy_db_schema_file::{
     comment,
     comment_actions,
     community,
@@ -429,7 +429,7 @@ mod tests {
     combined::search_combined_view::SearchCombinedQuery,
     structs::{LocalUserView, SearchCombinedView},
   };
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     assert_length,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},

@@ -1,5 +1,5 @@
 use crate::{
-  schema::local_site_url_blocklist,
+  lemmy_db_schema_file::local_site_url_blocklist,
   source::local_site_url_blocklist::{LocalSiteUrlBlocklist, LocalSiteUrlBlocklistForm},
   utils::{get_conn, DbPool},
 };

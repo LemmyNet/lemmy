@@ -19,11 +19,11 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId, PostId},
-  schema::{
+  lemmy_db_schema_file::{
     community,
     community_actions,
     image_details,
@@ -572,7 +572,7 @@ mod tests {
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{

@@ -2731,6 +2731,7 @@ dependencies = [
  "diffutils",
  "futures-util",
  "i-love-jesus",
+ "lemmy_db_schema_file",
  "lemmy_utils",
  "pretty_assertions",
  "regex",
@@ -2748,6 +2749,14 @@ dependencies = [
  "tuplex",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "lemmy_db_schema_file"
+version = "1.0.0-alpha.2"
+dependencies = [
+ "diesel",
+ "diesel_ltree",
 ]
 
 [[package]]

@@ -8,10 +8,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
-  schema::{comment, comment_actions, community_actions, person, post, post_actions},
+  lemmy_db_schema_file::{comment, comment_actions, community_actions, person, post, post_actions},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -102,7 +102,7 @@ impl VoteView {
 #[cfg(test)]
 mod tests {
   use crate::structs::VoteView;
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},

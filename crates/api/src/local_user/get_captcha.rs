@@ -14,7 +14,7 @@ use lemmy_api_common::{
   person::{CaptchaResponse, GetCaptchaResponse},
   LemmyErrorType,
 };
-use lemmy_db_schema::source::{
+use lemmy_db_lemmy_db_schema_file::source::{
   captcha_answer::{CaptchaAnswer, CaptchaAnswerForm},
   local_site::LocalSite,
 };

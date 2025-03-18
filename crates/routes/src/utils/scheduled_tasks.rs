@@ -19,8 +19,8 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
-use lemmy_db_schema::{
-  schema::{
+use lemmy_db_lemmy_db_schema_file::{
+  lemmy_db_schema_file::{
     captcha_answer,
     comment,
     community,

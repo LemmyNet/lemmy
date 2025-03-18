@@ -1,4 +1,4 @@
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   impls::actor_language::UNDETERMINED_ID,
   newtypes::LanguageId,
   source::language::Language,

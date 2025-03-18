@@ -6,7 +6,7 @@ use lemmy_api_common::{
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
   utils::{is_admin, send_application_approved_email},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},

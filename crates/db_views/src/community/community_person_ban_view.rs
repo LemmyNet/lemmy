@@ -6,9 +6,9 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{CommunityId, PersonId},
-  schema::community_actions,
+  lemmy_db_schema_file::community_actions,
   utils::{get_conn, DbPool},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
-use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
+use lemmy_db_lemmy_db_schema_file::{newtypes::ActivityId, source::activity::SentActivity};
 use reqwest::Url;
 use std::ops::Deref;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};

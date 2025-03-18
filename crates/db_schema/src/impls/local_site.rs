@@ -1,5 +1,5 @@
 use crate::{
-  schema::local_site,
+  lemmy_db_schema_file::local_site,
   source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
   utils::{get_conn, DbPool},
 };

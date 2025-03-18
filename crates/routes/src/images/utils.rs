@@ -9,7 +9,7 @@ use actix_web::{
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
 use lemmy_api_common::{context::LemmyContext, request::delete_image_from_pictrs};
-use lemmy_db_schema::{newtypes::DbUrl, source::images::LocalImage};
+use lemmy_db_lemmy_db_schema_file::{newtypes::DbUrl, source::images::LocalImage};
 use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
 use reqwest_middleware::RequestBuilder;
 

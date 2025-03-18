@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::password_reset_request;
+use lemmy_db_schema_file::password_reset_request;
 use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
 use chrono::{DateTime, Utc};
 

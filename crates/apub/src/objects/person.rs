@@ -25,7 +25,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   sensitive::SensitiveString,
   source::{
     activity::ActorType,
@@ -218,7 +218,7 @@ pub(crate) mod tests {
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_lemmy_db_schema_file::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

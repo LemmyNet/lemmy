@@ -2,9 +2,9 @@ use crate::structs::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
-  schema::{local_user, oauth_account, person},
+  lemmy_db_schema_file::{local_user, oauth_account, person},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},

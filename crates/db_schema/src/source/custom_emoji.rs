@@ -1,6 +1,6 @@
 use crate::newtypes::{CustomEmojiId, DbUrl};
 #[cfg(feature = "full")]
-use crate::schema::custom_emoji;
+use lemmy_db_schema_file::custom_emoji;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

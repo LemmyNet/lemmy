@@ -5,7 +5,7 @@ use lemmy_api_common::{
   person::{ListPersonSaved, ListPersonSavedResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_lemmy_db_schema_file::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::person_saved_combined_view::PersonSavedCombinedQuery,
   structs::{LocalUserView, PersonSavedCombinedView, SiteView},

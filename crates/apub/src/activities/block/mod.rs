@@ -18,7 +18,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_expire_time,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::CommunityId,
   source::{community::Community, person::Person, site::Site},
   traits::Crud,

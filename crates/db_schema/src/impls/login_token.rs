@@ -1,7 +1,7 @@
 use crate::{
   diesel::{ExpressionMethods, QueryDsl},
+  lemmy_db_schema_file::login_token::{dsl::login_token, user_id},
   newtypes::LocalUserId,
-  schema::login_token::{dsl::login_token, user_id},
   source::login_token::{LoginToken, LoginTokenCreateForm},
   utils::{get_conn, DbPool},
 };

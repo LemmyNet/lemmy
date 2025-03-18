@@ -14,11 +14,8 @@ pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
 #[cfg(feature = "full")]
-#[rustfmt::skip]
-pub mod schema;
-#[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::{community_actions, local_user, person};
+  use lemmy_db_schema_file::{community_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
     local_user as creator_local_user: CreatorLocalUser,
@@ -40,7 +37,7 @@ use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use {
   diesel::query_source::AliasedField,
-  schema::{community_actions, person},
+  lemmy_db_schema_file::{community_actions, person},
   ts_rs::TS,
 };
 
@@ -50,7 +47,7 @@ use {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::PostSortTypeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::PostSortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -75,7 +72,7 @@ pub enum PostSortType {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommentSortTypeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::CommentSortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -108,7 +105,7 @@ pub enum SearchSortType {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::ListingTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -131,7 +128,7 @@ pub enum ListingType {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::RegistrationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -152,7 +149,7 @@ pub enum RegistrationMode {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::PostListingModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -261,7 +258,7 @@ pub enum PostFeatureType {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommunityVisibility"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::CommunityVisibility"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
@@ -298,7 +295,7 @@ impl CommunityVisibility {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::FederationModeEnum"
+  ExistingTypePath = "lemmy_db_schema_file::sql_types::FederationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]

@@ -1,7 +1,6 @@
 use crate::{
   diesel::dsl::IntervalDsl,
-  newtypes::{InstanceId, PersonId},
-  schema::{
+  lemmy_db_schema_file::{
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
@@ -10,6 +9,7 @@ use crate::{
     local_site,
     site,
   },
+  newtypes::{InstanceId, PersonId},
   source::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceActions, InstanceBlockForm, InstanceForm},
@@ -40,7 +40,7 @@ impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
   pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> Result<Self, Error> {
-    use crate::schema::instance::domain;
+    use lemmy_db_schema_file::instance::domain;
     let conn = &mut get_conn(pool).await?;
 
     // First try to read the instance row and return directly if found

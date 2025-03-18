@@ -1,9 +1,9 @@
 use crate::{
-  newtypes::CustomEmojiId,
-  schema::{
+  lemmy_db_schema_file::{
     custom_emoji::dsl::custom_emoji,
     custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
   },
+  newtypes::CustomEmojiId,
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},

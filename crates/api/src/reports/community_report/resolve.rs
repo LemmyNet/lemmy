@@ -4,7 +4,7 @@ use lemmy_api_common::{
   reports::community::{CommunityReportResponse, ResolveCommunityReport},
   utils::is_admin,
 };
-use lemmy_db_schema::{source::community_report::CommunityReport, traits::Reportable};
+use lemmy_db_lemmy_db_schema_file::{source::community_report::CommunityReport, traits::Reportable};
 use lemmy_db_views::structs::{CommunityReportView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 

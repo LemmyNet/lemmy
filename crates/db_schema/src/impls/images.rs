@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::{image_details, local_image, remote_image},
   newtypes::{DbUrl, LocalUserId},
-  schema::{image_details, local_image, remote_image},
   source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
 };

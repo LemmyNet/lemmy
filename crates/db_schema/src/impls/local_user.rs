@@ -1,6 +1,12 @@
 use crate::{
+  lemmy_db_schema_file::{
+    community,
+    community_actions,
+    local_user,
+    person,
+    registration_application,
+  },
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{community, community_actions, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -152,7 +158,7 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     person_id_: PersonId,
   ) -> Result<UserBackupLists, Error> {
-    use crate::schema::{
+    use lemmy_db_schema_file::{
       comment,
       comment_actions,
       community,

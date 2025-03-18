@@ -1,11 +1,11 @@
 use crate::{
-  newtypes::LocalUserId,
-  schema::email_verification::dsl::{
+  lemmy_db_schema_file::email_verification::dsl::{
     email_verification,
     local_user_id,
     published,
     verification_token,
   },
+  newtypes::LocalUserId,
   source::email_verification::{EmailVerification, EmailVerificationForm},
   utils::{get_conn, DbPool},
 };

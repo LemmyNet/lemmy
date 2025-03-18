@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
-use lemmy_db_schema::source::{
+use lemmy_db_lemmy_db_schema_file::source::{
   actor_language::CommunityLanguage,
   community::Community,
   local_site::LocalSite,

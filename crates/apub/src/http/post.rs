@@ -6,7 +6,7 @@ use crate::{
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::PostId,
   source::{community::Community, post::Post},
   traits::Crud,

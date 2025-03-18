@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::local_site;
+use lemmy_db_schema_file::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
   CommentSortType,

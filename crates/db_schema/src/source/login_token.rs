@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::login_token;
+use lemmy_db_schema_file::login_token;
 use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

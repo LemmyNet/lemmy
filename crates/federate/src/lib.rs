@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   lemmy_utils::settings::structs::FederationWorkerConfig,
 };
-use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
+use lemmy_db_lemmy_db_schema_file::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::error::LemmyResult;
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
@@ -199,7 +199,7 @@ mod test {
   use super::*;
   use activitypub_federation::config::Data;
   use chrono::DateTime;
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     source::{
       federation_allowlist::{FederationAllowList, FederationAllowListForm},
       federation_blocklist::{FederationBlockList, FederationBlockListForm},

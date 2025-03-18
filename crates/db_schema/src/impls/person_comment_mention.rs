@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
+  lemmy_db_schema_file::person_comment_mention,
   newtypes::{CommentId, PersonCommentMentionId, PersonId},
-  schema::person_comment_mention,
   source::person_comment_mention::{
     PersonCommentMention,
     PersonCommentMentionInsertForm,

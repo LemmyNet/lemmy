@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::{person, person_actions};
+use lemmy_db_schema_file::{person, person_actions};
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,

@@ -1,6 +1,6 @@
 use crate::newtypes::{CommentId, CommunityId, PersonId, PostId, SearchCombinedId};
 #[cfg(feature = "full")]
-use crate::schema::search_combined;
+use lemmy_db_schema_file::search_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;

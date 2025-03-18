@@ -1,6 +1,6 @@
 use crate::federate_retry_sleep_duration;
 use chrono::{DateTime, Utc};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{
     CommentId,
     CommunityId,

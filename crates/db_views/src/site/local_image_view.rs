@@ -1,9 +1,9 @@
 use crate::structs::LocalImageView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::LocalUserId,
-  schema::{local_image, local_user, person},
+  lemmy_db_schema_file::{local_image, local_user, person},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 

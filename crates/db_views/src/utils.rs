@@ -7,9 +7,9 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::{creator_community_actions, creator_local_user, person1, person2},
-  schema::{
+  lemmy_db_schema_file::{
     comment,
     community,
     community_actions,
@@ -154,13 +154,13 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
 }
 
 type IsSubscribedType =
-  Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
+  Eq<lemmy_db_lemmy_db_schema_file::lemmy_db_schema_file::community_actions::follow_state, Option<CommunityFollowerState>>;
 
 pub(crate) fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
 }
 
-type IsNotUnlistedType = NotEq<lemmy_db_schema::schema::community::visibility, CommunityVisibility>;
+type IsNotUnlistedType = NotEq<lemmy_db_lemmy_db_schema_file::lemmy_db_schema_file::community::visibility, CommunityVisibility>;
 
 #[diesel::dsl::auto_type]
 pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {

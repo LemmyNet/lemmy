@@ -10,7 +10,7 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
+use lemmy_db_lemmy_db_schema_file::{source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PersonView, PostView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
@@ -73,7 +73,7 @@ mod tests {
   use crate::api::resolve_object::resolve_object;
   use actix_web::web::Query;
   use lemmy_api_common::{context::LemmyContext, site::ResolveObject};
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,

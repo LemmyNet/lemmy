@@ -21,7 +21,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,

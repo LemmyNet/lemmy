@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::federation_blocklist,
   newtypes::InstanceId,
-  schema::federation_blocklist,
   source::federation_blocklist::{FederationBlockList, FederationBlockListForm},
   utils::{get_conn, DbPool},
 };

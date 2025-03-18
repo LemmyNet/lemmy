@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, local_user_view_from_jwt},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{community::Community, person::Person},
   traits::ApubActor,
   ListingType,

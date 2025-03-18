@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::{community, person, post, post_actions},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, person, post, post_actions},
   source::post::{
     Post,
     PostActions,

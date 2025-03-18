@@ -11,7 +11,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{comment::Comment, community::Community},
   traits::Crud,
 };

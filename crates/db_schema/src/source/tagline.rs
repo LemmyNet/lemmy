@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::tagline;
+use lemmy_db_schema_file::tagline;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

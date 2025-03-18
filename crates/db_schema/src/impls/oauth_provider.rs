@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::oauth_provider,
   newtypes::OAuthProviderId,
-  schema::oauth_provider,
   source::oauth_provider::{
     OAuthProvider,
     OAuthProviderInsertForm,

@@ -18,10 +18,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   aliases::{self, creator_community_actions, creator_local_user},
   newtypes::{PaginationCursor, PersonId},
-  schema::{
+  lemmy_db_schema_file::{
     comment,
     comment_actions,
     comment_reply,
@@ -454,7 +454,7 @@ mod tests {
     combined::inbox_combined_view::InboxCombinedQuery,
     structs::{InboxCombinedView, InboxCombinedViewInternal, PrivateMessageView},
   };
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},

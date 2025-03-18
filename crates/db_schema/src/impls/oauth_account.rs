@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::{oauth_account, oauth_account::dsl::local_user_id},
   newtypes::LocalUserId,
-  schema::{oauth_account, oauth_account::dsl::local_user_id},
   source::oauth_account::{OAuthAccount, OAuthAccountInsertForm},
   utils::{get_conn, DbPool},
 };

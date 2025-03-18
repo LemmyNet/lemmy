@@ -1,6 +1,6 @@
 use crate::newtypes::{InstanceId, PersonId};
 #[cfg(feature = "full")]
-use crate::schema::{instance, instance_actions};
+use lemmy_db_schema_file::{instance, instance_actions};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

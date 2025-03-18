@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
+  lemmy_db_schema_file::{comment, community, instance, local_user, person, person_actions, post},
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
     PersonActions,

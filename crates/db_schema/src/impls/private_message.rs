@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
+  lemmy_db_schema_file::private_message,
   newtypes::{DbUrl, PersonId, PrivateMessageId},
-  schema::private_message,
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
   utils::{functions::coalesce, get_conn, DbPool},

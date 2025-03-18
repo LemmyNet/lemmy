@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
+  lemmy_db_schema_file::{community, community_actions, instance, post},
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_actions, instance, post},
   source::{
     actor_language::CommunityLanguage,
     community::{

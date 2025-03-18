@@ -12,9 +12,9 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_actions, person},
+  lemmy_db_schema_file::{community, community_actions, person},
   source::{
     community::{Community, CommunityFollowerState},
     person::Person,
@@ -257,7 +257,7 @@ impl CommunityFollowerView {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use lemmy_db_schema::{
+  use lemmy_db_lemmy_db_schema_file::{
     source::{
       community::{CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,

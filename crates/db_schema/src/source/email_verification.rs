@@ -1,6 +1,6 @@
 use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
-use crate::schema::email_verification;
+use lemmy_db_schema_file::email_verification;
 use chrono::{DateTime, Utc};
 
 #[derive(Clone)]

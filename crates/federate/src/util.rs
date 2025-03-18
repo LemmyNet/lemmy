@@ -5,7 +5,7 @@ use lemmy_apub::{
   activity_lists::SharedInboxActivities,
   fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   newtypes::ActivityId,
   source::{
     activity::{ActorType, SentActivity},
@@ -208,7 +208,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
   CACHE
     .try_get_with((), async {
       use diesel::dsl::max;
-      use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
+      use lemmy_db_lemmy_db_schema_file::lemmy_db_schema_file::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       let latest_id = seq.unwrap_or(ActivityId(0));

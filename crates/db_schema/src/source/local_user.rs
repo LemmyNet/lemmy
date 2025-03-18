@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::local_user;
+use lemmy_db_schema_file::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
   sensitive::SensitiveString,

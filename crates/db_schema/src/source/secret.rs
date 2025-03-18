@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::secret;
+use lemmy_db_schema_file::secret;
 use crate::sensitive::SensitiveString;
 
 #[derive(Clone)]

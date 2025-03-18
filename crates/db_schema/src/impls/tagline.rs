@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::tagline::dsl::{published, tagline},
   newtypes::TaglineId,
-  schema::tagline::dsl::{published, tagline},
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   traits::Crud,
   utils::{functions::random, get_conn, limit_and_offset, DbPool},

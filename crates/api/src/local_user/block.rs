@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BlockPerson, BlockPersonResponse},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
 };

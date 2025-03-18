@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{ListInbox, ListInboxResponse},
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_lemmy_db_schema_file::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::inbox_combined_view::InboxCombinedQuery,
   structs::{InboxCombinedView, LocalUserView},

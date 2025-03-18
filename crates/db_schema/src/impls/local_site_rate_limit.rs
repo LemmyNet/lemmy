@@ -1,6 +1,6 @@
 use crate::{
   diesel::OptionalExtension,
-  schema::local_site_rate_limit,
+  lemmy_db_schema_file::local_site_rate_limit,
   source::local_site_rate_limit::{
     LocalSiteRateLimit,
     LocalSiteRateLimitInsertForm,

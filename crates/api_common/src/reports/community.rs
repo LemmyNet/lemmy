@@ -1,4 +1,4 @@
-use lemmy_db_schema::newtypes::{CommunityId, CommunityReportId};
+use lemmy_db_lemmy_db_schema_file::newtypes::{CommunityId, CommunityReportId};
 use lemmy_db_views::structs::CommunityReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]

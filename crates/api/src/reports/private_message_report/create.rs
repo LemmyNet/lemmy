@@ -5,7 +5,7 @@ use lemmy_api_common::{
   reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   utils::{send_new_report_email_to_admins, slur_regex},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{
     local_site::LocalSite,
     private_message::PrivateMessage,

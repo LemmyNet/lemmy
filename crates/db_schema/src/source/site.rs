@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::site;
+use lemmy_db_schema_file::site;
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
   sensitive::SensitiveString,

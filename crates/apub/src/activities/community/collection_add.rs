@@ -25,7 +25,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
 };
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   impls::community::CollectionType,
   newtypes::{CommunityId, PersonId},
   source::{

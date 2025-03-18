@@ -1,6 +1,6 @@
 use crate::{
+  lemmy_db_schema_file::community_report,
   newtypes::{CommunityId, CommunityReportId, PersonId},
-  schema::community_report,
   source::community_report::{CommunityReport, CommunityReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},

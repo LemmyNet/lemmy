@@ -2,7 +2,7 @@
 use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{comment, comment_actions};
+use lemmy_db_schema_file::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;

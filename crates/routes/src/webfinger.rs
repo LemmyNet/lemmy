@@ -4,7 +4,7 @@ use activitypub_federation::{
 };
 use actix_web::{web, web::Query, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_schema::{
+use lemmy_db_lemmy_db_schema_file::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
