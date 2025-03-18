@@ -159,17 +159,17 @@ impl ActivityHandler for BlockUser {
             ..Default::default()
           };
           Person::update(&mut context.pool(), blocked_person.id, &form).await?;
+
+          if self.remove_data.unwrap_or(false) {
+            // TODO: only remove content in communities belonging to that instance
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+              .await?;
+          }
         } else {
           // user banned from remote instance, write to instance actions table and remove content
           // only in communities from that instance
           let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
           InstanceActions::ban(&mut context.pool(), &form).await?;
-        }
-
-        if self.remove_data.unwrap_or(false) {
-          // TODO: only remove content in communities belonging to that instance
-          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
-            .await?;
         }
 
         // write mod log
@@ -179,6 +179,7 @@ impl ActivityHandler for BlockUser {
           reason,
           banned: Some(true),
           expires,
+          instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }

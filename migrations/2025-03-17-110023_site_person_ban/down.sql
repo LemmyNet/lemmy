@@ -4,3 +4,6 @@ ALTER TABLE instance_actions
 ALTER TABLE instance_actions
     DROP COLUMN ban_expires;
 
+ALTER TABLE mod_ban
+    DROP COLUMN instance_id;
+

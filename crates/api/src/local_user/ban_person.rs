@@ -81,6 +81,7 @@ pub async fn ban_from_site(
     reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
+    instance_id: local_user_view.person.instance_id,
   };
 
   ModBan::create(&mut context.pool(), &form).await?;

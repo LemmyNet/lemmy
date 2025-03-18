@@ -104,6 +104,10 @@ impl ActivityHandler for UndoBlockUser {
       SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
         if blocked_person.instance_id == site.instance_id {
+          if self.restore_data.unwrap_or(false) {
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+              .await?;
+          }
           // user unbanned from home instance, write directly to person table
           let form = PersonUpdateForm {
             banned: Some(true),
@@ -117,11 +121,6 @@ impl ActivityHandler for UndoBlockUser {
           InstanceActions::unban(&mut context.pool(), &form).await?;
         }
 
-        if self.restore_data.unwrap_or(false) {
-          remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
-            .await?;
-        }
-
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
@@ -129,6 +128,7 @@ impl ActivityHandler for UndoBlockUser {
           reason: self.object.summary,
           banned: Some(false),
           expires,
+          instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }

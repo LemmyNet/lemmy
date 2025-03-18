@@ -574,6 +574,7 @@ diesel::table! {
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
         published -> Timestamptz,
+        instance_id -> Int4,
     }
 }
 
