@@ -842,7 +842,7 @@ pub async fn remove_or_restore_user_data(
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -926,7 +926,8 @@ pub async fn remove_or_restore_user_data_in_community(
 ) -> LemmyResult<()> {
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+      .await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,

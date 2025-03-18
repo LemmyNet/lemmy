@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    post::Post,
   },
   traits::{Bannable, Crud},
 };
@@ -99,6 +100,7 @@ impl ActivityHandler for UndoBlockUser {
     let expires = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
+    let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
@@ -109,14 +111,22 @@ impl ActivityHandler for UndoBlockUser {
           }
           // user unbanned from home instance, write directly to person table
           InstanceActions::unban(
-            &mut context.pool(),
+            pool,
             &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
           )
           .await?;
         } else {
           // user unbanned from remote instance, write to instance actions table
           let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
-          InstanceActions::unban(&mut context.pool(), &form).await?;
+          InstanceActions::unban(pool, &form).await?;
+          Post::update_removed_for_creator(
+            pool,
+            blocked_person.id,
+            None,
+            Some(site.instance_id),
+            false,
+          )
+          .await?;
         }
 
         // write mod log

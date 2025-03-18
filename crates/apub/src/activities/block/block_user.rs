@@ -33,6 +33,7 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    post::Post,
   },
   traits::{Bannable, Crud},
 };
@@ -148,18 +149,18 @@ impl ActivityHandler for BlockUser {
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
     let reason = self.summary;
+    let pool = &mut context.pool();
     match target {
       SiteOrCommunity::Site(site) => {
         if blocked_person.instance_id == site.instance_id {
           // user banned from home instance, write directly to person table and remove all content
           InstanceActions::ban(
-            &mut context.pool(),
+            pool,
             &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
           )
           .await?;
 
           if self.remove_data.unwrap_or(false) {
-            // TODO: only remove content in communities belonging to that instance
             remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
               .await?;
           }
@@ -167,7 +168,15 @@ impl ActivityHandler for BlockUser {
           // user banned from remote instance, write to instance actions table and remove content
           // only in communities from that instance
           let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
-          InstanceActions::ban(&mut context.pool(), &form).await?;
+          InstanceActions::ban(pool, &form).await?;
+          Post::update_removed_for_creator(
+            pool,
+            blocked_person.id,
+            None,
+            Some(site.instance_id),
+            true,
+          )
+          .await?;
         }
 
         // write mod log
