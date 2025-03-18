@@ -1,0 +1,7 @@
+{
+  "wasm": [
+    {
+      "path": "api_tests/plugins/go_replace_words.wasm"
+    }
+  ]
+}

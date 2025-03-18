@@ -1,7 +1,0 @@
-{
-  "wasm": [
-    {
-      "path": "plugins/go_replace_words.wasm"
-    }
-  ]
-}
