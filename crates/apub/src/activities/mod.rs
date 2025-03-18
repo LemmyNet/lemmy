@@ -156,6 +156,17 @@ pub(crate) async fn verify_admin_action(
   is_admin(&local_user_view)
 }
 
+pub(crate) async fn verify_mod_or_admin_action(
+  person_id: &ObjectId<ApubPerson>,
+  site_or_community: &SiteOrCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  match site_or_community {
+    SiteOrCommunity::Site(site) => verify_admin_action(person_id, site, context).await,
+    SiteOrCommunity::Community(community) => verify_mod_action(person_id, community, context).await,
+  }
+}
+
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
     Err(FederationError::ObjectIsNotPublic)?

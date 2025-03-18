@@ -5,6 +5,7 @@ use crate::{
     generate_activity_id,
     send_lemmy_activity,
     verify_mod_action,
+    verify_mod_or_admin_action,
     verify_person_in_community,
     verify_person_in_site_or_community,
   },
@@ -30,7 +31,11 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{comment_report::CommentReport, post_report::PostReport},
+  source::{
+    comment_report::CommentReport,
+    community_report::CommunityReport,
+    post_report::PostReport,
+  },
   traits::Reportable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -81,7 +86,7 @@ impl ActivityHandler for ResolveReport {
     let recipient = self.recipient(context).await?;
     verify_person_in_site_or_community(&self.actor, &recipient, context).await?;
     verify_urls_match(self.to[0].inner(), self.object.to[0].inner())?;
-    verify_mod_action(&self.actor, &recipient, context).await?;
+    verify_mod_or_admin_action(&self.actor, &recipient, context).await?;
     Ok(())
   }
 
@@ -90,11 +95,15 @@ impl ActivityHandler for ResolveReport {
     let reporter = self.object.actor.dereference(context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      ReportableObjects::PostOrComment(PostOrComment::Post(post)) => {
         PostReport::resolve_apub(&mut context.pool(), post.id, reporter.id, actor.id).await?;
       }
-      PostOrComment::Comment(comment) => {
+      ReportableObjects::PostOrComment(PostOrComment::Comment(comment)) => {
         CommentReport::resolve_apub(&mut context.pool(), comment.id, reporter.id, actor.id).await?;
+      }
+      ReportableObjects::Community(community) => {
+        CommunityReport::resolve_apub(&mut context.pool(), community.id, reporter.id, actor.id)
+          .await?;
       }
     };
 
