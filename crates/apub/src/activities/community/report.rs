@@ -9,13 +9,10 @@ use crate::{
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      report::{Report, ReportObject},
-    },
-    InCommunity,
+  objects::person::ApubPerson,
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::{Report, ReportObject},
   },
   PostOrComment,
 };

@@ -21,7 +21,7 @@ pub(crate) enum ReportableObjects {
 #[serde(untagged)]
 pub(crate) enum ReportableKinds {
   PageOrNote(PageOrNote),
-  Group(Group),
+  Group(Box<Group>),
 }
 
 #[async_trait::async_trait]
@@ -57,7 +57,7 @@ impl Object for ReportableObjects {
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     Ok(match self {
       ReportableObjects::PostOrComment(p) => ReportableKinds::PageOrNote(p.into_json(data).await?),
-      ReportableObjects::Community(c) => ReportableKinds::Group(c.into_json(data).await?),
+      ReportableObjects::Community(c) => ReportableKinds::Group(Box::new(c.into_json(data).await?)),
     })
   }
 
@@ -78,7 +78,7 @@ impl Object for ReportableObjects {
         ReportableObjects::PostOrComment(PostOrComment::from_json(p, data).await?)
       }
       ReportableKinds::Group(g) => {
-        ReportableObjects::Community(ApubCommunity::from_json(g, data).await?)
+        ReportableObjects::Community(ApubCommunity::from_json(*g, data).await?)
       }
     })
   }

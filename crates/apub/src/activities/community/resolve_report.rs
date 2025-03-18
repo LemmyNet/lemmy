@@ -4,22 +4,17 @@ use crate::{
     block::SiteOrCommunity,
     generate_activity_id,
     send_lemmy_activity,
-    verify_mod_action,
     verify_mod_or_admin_action,
-    verify_person_in_community,
     verify_person_in_site_or_community,
   },
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      report::Report,
-      resolve_report::{ResolveReport, ResolveType},
-    },
-    InCommunity,
+  objects::person::ApubPerson,
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::Report,
+    resolve_report::{ResolveReport, ResolveType},
   },
   PostOrComment,
 };

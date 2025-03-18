@@ -1,8 +1,7 @@
 use crate::{
   activities::block::SiteOrCommunity,
-  fetcher::{post_or_comment::PostOrComment, report::ReportableObjects},
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
+  fetcher::report::ReportableObjects,
+  objects::person::ApubPerson,
 };
 use activitypub_federation::{
   config::Data,

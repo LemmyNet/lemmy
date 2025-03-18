@@ -2,7 +2,6 @@ use super::report::Report;
 use crate::{
   activities::block::SiteOrCommunity,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
 };
 use activitypub_federation::{
   config::Data,
