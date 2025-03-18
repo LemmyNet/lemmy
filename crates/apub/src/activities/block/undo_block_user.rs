@@ -29,7 +29,6 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud},
 };
@@ -109,12 +108,11 @@ impl ActivityHandler for UndoBlockUser {
               .await?;
           }
           // user unbanned from home instance, write directly to person table
-          let form = PersonUpdateForm {
-            banned: Some(true),
-            ban_expires: Some(expires),
-            ..Default::default()
-          };
-          Person::update(&mut context.pool(), blocked_person.id, &form).await?;
+          InstanceActions::unban(
+            &mut context.pool(),
+            &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
+          )
+          .await?;
         } else {
           // user unbanned from remote instance, write to instance actions table
           let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);

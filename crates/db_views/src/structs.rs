@@ -253,6 +253,9 @@ pub struct LocalUserView {
   pub local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub instance_actions: Option<InstanceActions>,
 }
 
 #[skip_serializing_none]
@@ -837,6 +840,9 @@ pub struct PersonView {
     )
   )]
   pub is_admin: bool,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub instance_actions: Option<InstanceActions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

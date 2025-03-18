@@ -3,6 +3,7 @@ use diesel::{
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
@@ -11,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
-  schema::{local_user, person},
+  schema::{instance_actions, local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, now, DbPool},
@@ -45,7 +46,13 @@ impl PaginationCursorBuilder for PersonView {
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    person::table.left_join(local_user::table)
+    person::table.left_join(local_user::table).left_join(
+      instance_actions::table.on(
+        instance_actions::person_id
+          .eq(person::id)
+          .and(instance_actions::instance_id.eq(person::instance_id)),
+      ),
+    )
   }
 
   pub async fn read(
@@ -88,11 +95,13 @@ impl PersonQuery {
     // Filters
     if self.banned_only.unwrap_or_default() {
       query = query.filter(
-        person::local.and(person::banned).and(
-          person::ban_expires
-            .is_null()
-            .or(person::ban_expires.gt(now().nullable())),
-        ),
+        person::local
+          .and(instance_actions::received_ban.is_not_null())
+          .and(
+            instance_actions::ban_expires
+              .is_null()
+              .or(instance_actions::ban_expires.gt(now().nullable())),
+          ),
       );
     }
 
@@ -128,14 +137,15 @@ impl PersonQuery {
 mod tests {
 
   use super::*;
+  use chrono::Utc;
   use lemmy_db_schema::{
     assert_length,
     source::{
-      instance::Instance,
+      instance::{Instance, InstanceActions, InstanceBanForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm, PersonUpdateForm},
     },
-    traits::Crud,
+    traits::{Bannable, Crud},
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
@@ -220,12 +230,13 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    Person::update(
+    InstanceActions::ban(
       pool,
-      data.alice.id,
-      &PersonUpdateForm {
-        banned: Some(true),
-        ..Default::default()
+      &InstanceBanForm {
+        person_id: data.alice.id,
+        instance_id: data.alice.instance_id,
+        received_ban: Utc::now(),
+        ban_expires: None,
       },
     )
     .await?;

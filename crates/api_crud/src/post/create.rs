@@ -81,7 +81,7 @@ pub async fn create_post(
   }
 
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
 
   // If its an NSFW community, then use that as a default
   let nsfw = data.nsfw.or(Some(community.nsfw));

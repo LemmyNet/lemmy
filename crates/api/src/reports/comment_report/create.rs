@@ -42,7 +42,7 @@ pub async fn create_comment_report(
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &comment_view.community,
     &mut context.pool(),
   )

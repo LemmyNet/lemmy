@@ -8,3 +8,4 @@ ALTER TABLE instance_actions
 ALTER TABLE mod_ban
     ADD COLUMN instance_id int NOT NULL REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE;
 
+alter table person drop column banned;alter table person drop column ban_expires;

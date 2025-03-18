@@ -310,6 +310,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: timmy.clone(),
+      instance_actions: None,
     };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");

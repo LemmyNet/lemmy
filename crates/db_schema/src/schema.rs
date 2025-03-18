@@ -741,7 +741,6 @@ diesel::table! {
         #[max_length = 255]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
-        banned -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         #[max_length = 255]
@@ -757,7 +756,6 @@ diesel::table! {
         inbox_url -> Varchar,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
-        ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
         post_count -> Int8,
         post_score -> Int8,

@@ -9,11 +9,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
     mod_log::admin::{AdminPurgePerson, AdminPurgePersonForm},
-    person::{Person, PersonUpdateForm},
+    person::Person,
   },
-  traits::Crud,
+  traits::{Bannable, Crud},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
@@ -52,13 +53,9 @@ pub async fn purge_person(
   purge_user_account(data.person_id, &context).await?;
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
-  let person = Person::update(
+  InstanceActions::ban(
     &mut context.pool(),
-    data.person_id,
-    &PersonUpdateForm {
-      banned: Some(true),
-      ..Default::default()
-    },
+    &InstanceBanForm::new(person.id, person.instance_id, None),
   )
   .await?;
 

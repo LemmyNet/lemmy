@@ -31,13 +31,7 @@ pub async fn ban_from_community(
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify that only mods or admins can ban
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),

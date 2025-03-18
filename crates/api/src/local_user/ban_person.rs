@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
@@ -8,16 +9,17 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
     login_token::LoginToken,
     mod_log::moderator::{ModBan, ModBanForm},
-    person::{Person, PersonUpdateForm},
+    person::Person,
   },
-  traits::Crud,
+  traits::{Bannable, Crud},
 };
 use lemmy_db_views::structs::{LocalUserView, PersonView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt2, LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
@@ -43,20 +45,21 @@ pub async fn ban_from_site(
 
   let expires = check_expire_time(data.expires)?;
 
-  let person = Person::update(
+  let target_person = Person::read(&mut context.pool(), data.person_id).await?;
+  InstanceActions::ban(
     &mut context.pool(),
-    data.person_id,
-    &PersonUpdateForm {
-      banned: Some(data.ban),
-      ban_expires: Some(expires),
-      ..Default::default()
+    &InstanceBanForm {
+      person_id: target_person.id,
+      instance_id: target_person.instance_id,
+      received_ban: Utc::now(),
+      ban_expires: expires,
     },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
   // if its a local user, invalidate logins
-  let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;
+  let local_user = LocalUserView::read_person(&mut context.pool(), target_person.id).await;
   if let Ok(local_user) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
@@ -66,7 +69,7 @@ pub async fn ban_from_site(
     let removed = data.ban;
     remove_or_restore_user_data(
       local_user_view.person.id,
-      person.id,
+      target_person.id,
       removed,
       &data.reason,
       &context,
@@ -77,7 +80,7 @@ pub async fn ban_from_site(
   // Mod tables
   let form = ModBanForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: person.id,
+    other_person_id: target_person.id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
@@ -86,7 +89,7 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), person.id, false).await?;
+  let person_view = PersonView::read(&mut context.pool(), target_person.id, false).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {

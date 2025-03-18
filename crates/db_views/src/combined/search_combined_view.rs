@@ -414,6 +414,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Person(PersonView {
         person,
         is_admin: v.item_creator_is_admin,
+        instance_actions: v.instance_actions,
       }))
     } else {
       None
@@ -477,6 +478,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: timmy.clone(),
+      instance_actions: None,
     };
 
     let community_form = CommunityInsertForm {

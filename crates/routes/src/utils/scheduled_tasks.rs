@@ -9,6 +9,7 @@ use diesel::{
   sql_types::{Integer, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
@@ -390,15 +391,6 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  diesel::update(
-    person::table
-      .filter(person::banned.eq(true))
-      .filter(person::ban_expires.lt(now().nullable())),
-  )
-  .set(person::banned.eq(false))
-  .execute(&mut conn)
-  .await?;
-
   uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
     .set_null(community_actions::received_ban)
     .set_null(community_actions::ban_expires)
@@ -439,13 +431,22 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
-    .inner_join(person::table)
+    .inner_join(
+      person::table.left_join(
+        instance_actions::table.on(
+          instance_actions::person_id
+            .eq(person::id)
+            .and(instance_actions::instance_id.eq(person::instance_id)),
+        ),
+      ),
+    )
     // find all posts which have scheduled_publish_time that is in the  past
     .filter(post::scheduled_publish_time.is_not_null())
     .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
     // make sure the post, person and community are still around
     .filter(not(post::deleted.or(post::removed)))
-    .filter(not(person::banned.or(person::deleted)))
+    .filter(not(person::deleted))
+    .filter(instance_actions::received_ban.is_null())
     .filter(not(community::removed.or(community::deleted)))
     // ensure that user isnt banned from community
     .filter(not(exists(not_banned_action)))

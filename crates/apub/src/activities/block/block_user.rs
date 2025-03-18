@@ -33,7 +33,6 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud},
 };
@@ -153,12 +152,11 @@ impl ActivityHandler for BlockUser {
       SiteOrCommunity::Site(site) => {
         if blocked_person.instance_id == site.instance_id {
           // user banned from home instance, write directly to person table and remove all content
-          let form = PersonUpdateForm {
-            banned: Some(true),
-            ban_expires: Some(expires),
-            ..Default::default()
-          };
-          Person::update(&mut context.pool(), blocked_person.id, &form).await?;
+          InstanceActions::ban(
+            &mut context.pool(),
+            &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
+          )
+          .await?;
 
           if self.remove_data.unwrap_or(false) {
             // TODO: only remove content in communities belonging to that instance

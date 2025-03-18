@@ -7,3 +7,5 @@ ALTER TABLE instance_actions
 ALTER TABLE mod_ban
     DROP COLUMN instance_id;
 
+alter table person add column banned boolean not null;
+alter table person drop column ban_expires timestamptz;
