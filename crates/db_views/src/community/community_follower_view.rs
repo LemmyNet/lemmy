@@ -96,6 +96,7 @@ impl CommunityFollowerView {
       .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
+      .filter(community::local_removed.eq(false))
       .select(Self::as_select())
       .order_by(community::title)
       .load::<CommunityFollowerView>(conn)

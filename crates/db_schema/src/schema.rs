@@ -1,45 +1,45 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "actor_type_enum"))]
-    pub struct ActorTypeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "actor_type_enum"))]
+  pub struct ActorTypeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
-    pub struct CommentSortTypeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+  pub struct CommentSortTypeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "community_follower_state"))]
-    pub struct CommunityFollowerState;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "community_follower_state"))]
+  pub struct CommunityFollowerState;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "community_visibility"))]
-    pub struct CommunityVisibility;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "community_visibility"))]
+  pub struct CommunityVisibility;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "federation_mode_enum"))]
-    pub struct FederationModeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "federation_mode_enum"))]
+  pub struct FederationModeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "listing_type_enum"))]
-    pub struct ListingTypeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "listing_type_enum"))]
+  pub struct ListingTypeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "ltree"))]
-    pub struct Ltree;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "ltree"))]
+  pub struct Ltree;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
-    pub struct PostListingModeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+  pub struct PostListingModeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "post_sort_type_enum"))]
-    pub struct PostSortTypeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_sort_type_enum"))]
+  pub struct PostSortTypeEnum;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "registration_mode_enum"))]
-    pub struct RegistrationModeEnum;
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "registration_mode_enum"))]
+  pub struct RegistrationModeEnum;
 }
 
 diesel::table! {
@@ -226,6 +226,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         interactions_month -> Int8,
+        local_removed -> Bool,
     }
 }
 

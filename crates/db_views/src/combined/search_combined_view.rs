@@ -90,6 +90,7 @@ impl SearchCombinedViewInternal {
         .eq(community::id.nullable())
         .or(post::community_id.eq(community::id))
         .and(not(community::removed))
+        .and(not(community::local_removed))
         .and(not(community::deleted)),
     );
 
