@@ -1,5 +1,5 @@
 use crate::structs::LocalImageView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -46,13 +46,14 @@ impl LocalImageView {
   pub async fn get_all_by_local_user_id(
     pool: &mut DbPool<'_>,
     user_id: LocalUserId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(local_image::local_user_id.eq(user_id))
       .select(Self::as_select())
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn get_all_paged(

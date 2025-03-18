@@ -6,7 +6,7 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -81,7 +81,7 @@ impl CommentReply {
     pool: &mut DbPool<'_>,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     comment_reply::table
       .filter(comment_reply::comment_id.eq(for_comment_id))
@@ -89,5 +89,6 @@ impl CommentReply {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

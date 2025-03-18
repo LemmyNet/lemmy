@@ -4,7 +4,6 @@ use crate::{
 };
 use diesel::{
   dsl::exists,
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -43,7 +42,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   ListingType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use CommentSortType::*;
 
 impl PaginationCursorBuilder for CommentView {
@@ -123,7 +122,7 @@ impl CommentView {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'_ LocalUser>,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = Self::joins(my_local_user.person_id())
@@ -145,7 +144,10 @@ impl CommentView {
       );
     }
 
-    query.first::<Self>(conn).await
+    query
+      .first::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub fn map_to_slim(self) -> CommentSlimView {
@@ -311,7 +313,7 @@ impl CommentQuery<'_> {
     if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
       // Always order by the parent path first
       // TODO not sure if this initial then_order_by will work correctly
-      pq = pq.then_order_by(subpath(key::path, 0, -1));
+      // pq = pq.then_order_by(subpath(key::path, 0, -1));
     }
 
     // Distinguished comments should go first when viewing post

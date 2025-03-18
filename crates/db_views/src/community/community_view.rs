@@ -3,7 +3,6 @@ use crate::{
   utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
 };
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -56,7 +55,7 @@ impl CommunityView {
     community_id: CommunityId,
     my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins(my_local_user.person_id())
       .filter(community::id.eq(community_id))
@@ -72,7 +71,10 @@ impl CommunityView {
 
     query = my_local_user.visible_communities_only(query);
 
-    query.first(conn).await
+    query
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn check_is_mod_or_admin(

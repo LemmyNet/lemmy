@@ -9,7 +9,6 @@ use crate::structs::{
 };
 use chrono::{DateTime, Days, Utc};
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -45,7 +44,7 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_fetch, paginate, DbPool},
   ReportType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -159,7 +158,7 @@ impl ReportCombinedViewInternal {
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
     community_id: Option<CommunityId>,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
@@ -190,7 +189,10 @@ impl ReportCombinedViewInternal {
       query = query.filter(filter_mod_reports());
     }
 
-    query.first::<i64>(conn).await
+    query
+      .first::<i64>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

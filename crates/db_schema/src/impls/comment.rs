@@ -20,13 +20,7 @@ use crate::{
   },
 };
 use chrono::{DateTime, Utc};
-use diesel::{
-  dsl::insert_into,
-  expression::SelectableHelper,
-  result::Error,
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::insert_into, expression::SelectableHelper, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use lemmy_utils::{
@@ -39,7 +33,7 @@ impl Comment {
   pub async fn permadelete_for_creator(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
@@ -50,6 +44,7 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 
   pub async fn update_removed_for_creator(
@@ -136,7 +131,7 @@ impl Comment {
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     comment::table
@@ -144,6 +139,7 @@ impl Comment {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub fn parent_comment_id(&self) -> Option<CommentId> {
@@ -156,16 +152,14 @@ impl Comment {
       None
     }
   }
-  pub async fn update_hot_rank(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-  ) -> Result<Self, Error> {
+  pub async fn update_hot_rank(pool: &mut DbPool<'_>, comment_id: CommentId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(comment::table.find(comment_id))
       .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();

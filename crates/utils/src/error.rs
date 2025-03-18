@@ -71,7 +71,6 @@ pub enum LemmyErrorType {
   PersonIsBannedFromCommunity,
   NoIdGiven,
   IncorrectLogin,
-  ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
   InvalidEmailAddress(String),
@@ -113,8 +112,6 @@ pub enum LemmyErrorType {
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivateMessage,
   SystemErrLogin,
-  CouldntSetAllRegistrationsAccepted,
-  CouldntSetAllEmailVerified,
   BlockedUrl,
   InvalidUrl,
   EmailSendFailed,
@@ -178,6 +175,16 @@ pub enum LemmyErrorType {
   CouldntUpdateTagline,
   CouldntCreateImage,
   CouldntAllowInstance,
+  CouldntBlockInstance,
+  CouldntInsertActivity,
+  CouldntCreateRateLimit,
+  CouldntCreateCaptchaAnswer,
+  CouldntUpdateFederationQueueState,
+  CouldntCreateOauthAccount,
+  CouldntCreatePasswordResetRequest,
+  CouldntCreateLoginToken,
+  CouldntUpdateLocalSiteUrlBlocklist,
+  CouldntCreateEmailVerification,
 }
 
 /// Federation related errors, these dont need to be translated.

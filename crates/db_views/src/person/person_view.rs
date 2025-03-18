@@ -1,6 +1,5 @@
 use crate::structs::PersonView;
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -16,7 +15,7 @@ use lemmy_db_schema::{
   traits::{Crud, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, now, paginate, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
   type CursorData = Person;
@@ -48,7 +47,7 @@ impl PersonView {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     is_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins()
       .filter(person::id.eq(person_id))
@@ -59,7 +58,10 @@ impl PersonView {
       query = query.filter(person::deleted.eq(false))
     }
 
-    query.first(conn).await
+    query
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

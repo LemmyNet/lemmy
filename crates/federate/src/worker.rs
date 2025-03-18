@@ -427,7 +427,9 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
-    FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
+    FederationQueueState::upsert(&mut self.pool(), &self.state)
+      .await
+      .map_err(|e| anyhow::anyhow!(e))?;
     self.stats_sender.send(FederationQueueStateWithDomain {
       state: self.state.clone(),
       domain: self.instance.domain.clone(),

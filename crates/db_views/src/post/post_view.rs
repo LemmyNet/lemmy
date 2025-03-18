@@ -4,7 +4,6 @@ use crate::{
 };
 use diesel::{
   dsl::{exists, not},
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -126,7 +125,7 @@ impl PostView {
     post_id: PostId,
     my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = my_local_user.person_id();
 
@@ -173,6 +172,7 @@ impl PostView {
       .text("PostView::read")
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   // TODO this function needs to be checked

@@ -182,9 +182,7 @@ pub(crate) async fn get_activity_cached(
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = SentActivity::read(pool, activity_id)
-        .await
-        .context("could not read activity");
+      let row = SentActivity::read(pool, activity_id).await;
       let Ok(mut row) = row else {
         return anyhow::Result::<_, anyhow::Error>::Ok(None);
       };

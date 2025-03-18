@@ -1,7 +1,6 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
-  result::Error,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -55,29 +54,31 @@ impl RegistrationApplicationView {
       .left_join(admin_join)
   }
 
-  pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(registration_application::id.eq(id))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     verified_email_only: bool,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = Self::joins()
@@ -89,7 +90,10 @@ impl RegistrationApplicationView {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    query.first::<i64>(conn).await
+    query
+      .first::<i64>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

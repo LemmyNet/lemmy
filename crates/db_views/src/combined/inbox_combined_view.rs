@@ -8,7 +8,6 @@ use crate::structs::{
 };
 use diesel::{
   dsl::not,
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -44,7 +43,7 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_fetch, paginate, DbPool},
   InboxDataType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -177,7 +176,7 @@ impl InboxCombinedViewInternal {
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     show_bot_accounts: bool,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
@@ -210,7 +209,10 @@ impl InboxCombinedViewInternal {
       query = query.filter(not(person::bot_account));
     }
 
-    query.first::<i64>(conn).await
+    query
+      .first::<i64>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
