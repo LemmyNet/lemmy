@@ -1,6 +1,13 @@
 use crate::structs::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
-use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
@@ -23,7 +30,16 @@ use std::future::{ready, Ready};
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    local_user::table.inner_join(person::table.left_join(instance_actions::table))
+    local_user::table.inner_join(
+      person::table.left_join(
+        // join with instance actions for local instance
+        instance_actions::table.on(
+          instance_actions::instance_id
+            .eq(person::instance_id)
+            .and(instance_actions::person_id.eq(person::id)),
+        ),
+      ),
+    )
   }
 
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {

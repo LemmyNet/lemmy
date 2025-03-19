@@ -1,6 +1,5 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
@@ -46,17 +45,16 @@ pub async fn ban_from_site(
   let expires = check_expire_time(data.expires)?;
 
   let target_person = Person::read(&mut context.pool(), data.person_id).await?;
-  InstanceActions::ban(
-    &mut context.pool(),
-    &InstanceBanForm {
-      person_id: target_person.id,
-      instance_id: target_person.instance_id,
-      received_ban: Utc::now(),
-      ban_expires: expires,
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  let form = InstanceBanForm::new(target_person.id, target_person.instance_id, expires);
+  if data.ban {
+    InstanceActions::ban(&mut context.pool(), &form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  } else {
+    InstanceActions::unban(&mut context.pool(), &form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  }
 
   // if its a local user, invalidate logins
   let local_user = LocalUserView::read_person(&mut context.pool(), target_person.id).await;

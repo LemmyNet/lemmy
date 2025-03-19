@@ -292,7 +292,8 @@ impl Bannable for InstanceActions {
     let conn = &mut get_conn(pool).await?;
     Ok(
       uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
-        .set_null(instance_actions::blocked)
+        .set_null(instance_actions::received_ban)
+        .set_null(instance_actions::ban_expires)
         .get_result(conn)
         .await?,
     )

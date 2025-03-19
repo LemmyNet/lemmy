@@ -18,10 +18,8 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::BlockType,
-  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
@@ -37,7 +35,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -117,21 +115,8 @@ impl ActivityHandler for BlockUser {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
-      SiteOrCommunity::Site(site) => {
+      SiteOrCommunity::Site(_site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let domain = self
-          .object
-          .inner()
-          .domain()
-          .ok_or(FederationError::UrlWithoutDomain)?;
-        if context.settings().hostname == domain {
-          return Err(
-            anyhow!("Site bans from remote instance can't affect user's home instance").into(),
-          );
-        }
-        // site ban can only target a user who is on the same instance as the actor (admin)
-        verify_domains_match(&site.id(), self.actor.inner())?;
-        verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
@@ -152,31 +137,26 @@ impl ActivityHandler for BlockUser {
     let pool = &mut context.pool();
     match target {
       SiteOrCommunity::Site(site) => {
-        if blocked_person.instance_id == site.instance_id {
-          // user banned from home instance, write directly to person table and remove all content
-          InstanceActions::ban(
-            pool,
-            &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
-          )
-          .await?;
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        InstanceActions::ban(pool, &form).await?;
 
-          if self.remove_data.unwrap_or(false) {
+        if self.remove_data.unwrap_or(false) {
+          if blocked_person.instance_id == site.instance_id {
+            // user banned from home instance, remove all content
             remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
               .await?;
+          } else {
+            // user banned from remote instance, remove content only in communities from that
+            // instance
+            Post::update_removed_for_creator(
+              pool,
+              blocked_person.id,
+              None,
+              Some(site.instance_id),
+              true,
+            )
+            .await?;
           }
-        } else {
-          // user banned from remote instance, write to instance actions table and remove content
-          // only in communities from that instance
-          let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
-          InstanceActions::ban(pool, &form).await?;
-          Post::update_removed_for_creator(
-            pool,
-            blocked_person.id,
-            None,
-            Some(site.instance_id),
-            true,
-          )
-          .await?;
         }
 
         // write mod log
