@@ -163,7 +163,12 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
-    verify_is_remote_object(&page.id, context)?;
+    if let Err(e) = verify_is_remote_object(&page.id, context) {
+      if let Ok(post) = page.id.dereference_local(context).await {
+        post.set_not_pending(&mut context.pool()).await?;
+      }
+      return Err(e.into());
+    }
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;

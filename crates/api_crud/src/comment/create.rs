@@ -1,3 +1,4 @@
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -99,6 +100,7 @@ pub async fn create_comment(
 
   let comment_form = CommentInsertForm {
     language_id: Some(language_id),
+    federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
 
