@@ -138,6 +138,9 @@ impl Attachment {
 
     let is_image =
       media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+    // Markdown images can't have linebreaks in them, so to prevent creating
+    // broken image embeds, replace them with spaces
+    let name = name.map(|n| n.split_whitespace().collect::<Vec<_>>().join(" "));
 
     if is_image {
       let url = proxy_image_link(url, context).await?;
