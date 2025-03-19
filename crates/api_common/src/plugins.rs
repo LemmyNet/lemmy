@@ -15,18 +15,35 @@ use std::{
   thread::available_parallelism,
   time::Duration,
 };
-use tracing::{debug, warn};
+use tracing::warn;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Call a plugin hook without rewriting data
 pub fn plugin_hook<T>(name: &'static str, data: &T) -> LemmyResult<()>
 where
-  T: Clone + Serialize + for<'a> Deserialize<'a>,
+  T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
+  let plugins = LemmyPlugins::init();
+  if !plugins.loaded(name) {
+    return Ok(());
+  }
+
   // TODO: as this doesnt return any data it could run multiple plugins in parallel
   //       and/or in background thread
-  Plugins::get().call(name, data)?;
+  for p in plugins.0 {
+    // TODO: add helper method (requires PoolPlugin to be public)
+    // https://github.com/extism/extism/pull/696/files#r2003467812
+    let p = p
+      .plugin_pool
+      .get(&(), GET_PLUGIN_TIMEOUT)?
+      .ok_or(anyhow!("plugin timeout"))?;
+    if p.plugin().function_exists(name) {
+      let params: Json<T> = data.clone().into();
+      p.call::<Json<T>, ()>(name, params)
+        .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+    }
+  }
   Ok(())
 }
 
@@ -35,19 +52,36 @@ pub fn plugin_hook_mut<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a>,
 {
-  let res = Plugins::get().call(name, data)?;
-  if let Some(res) = res {
-    *data = res;
+  let mut plugins = LemmyPlugins::init();
+  let mut res: Json<T> = data.clone().into();
+  for p in &mut plugins.0 {
+    // TODO: add helper method (requires PoolPlugin to be public)
+    // https://github.com/extism/extism/pull/696/files#r2003467812
+    let plugin = p
+      .plugin_pool
+      .get(&(), GET_PLUGIN_TIMEOUT)?
+      .ok_or(anyhow!("plugin timeout"))?;
+    if plugin.plugin().function_exists(name) {
+      let r = plugin
+        .call(name, res)
+        .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+      res = r;
+    }
   }
+  *data = res.0;
   Ok(())
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
-  Plugins::get().0.into_iter().map(|p| p.metadata).collect()
+  LemmyPlugins::init()
+    .0
+    .into_iter()
+    .map(|p| p.metadata)
+    .collect()
 }
 
 #[derive(Clone)]
-struct Plugins(Vec<LemmyPlugin>);
+struct LemmyPlugins(Vec<LemmyPlugin>);
 
 #[derive(Clone)]
 struct LemmyPlugin {
@@ -71,18 +105,18 @@ impl LemmyPlugin {
   }
 }
 
-impl Plugins {
+impl LemmyPlugins {
   /// Load and initialize all plugins
-  fn get() -> Self {
+  fn init() -> Self {
     // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
     // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
-    static PLUGINS: Lazy<Plugins> = Lazy::new(|| {
+    static PLUGINS: Lazy<LemmyPlugins> = Lazy::new(|| {
       let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
       let plugin_paths = match read_dir(dir) {
         Ok(r) => r,
         Err(e) => {
           warn!("Failed to read plugin folder: {e}");
-          return Plugins(vec![]);
+          return LemmyPlugins(vec![]);
         }
       };
 
@@ -96,17 +130,13 @@ impl Plugins {
             .ok()
         })
         .collect();
-      Plugins(plugins)
+      LemmyPlugins(plugins)
     });
     PLUGINS.deref().clone()
   }
 
-  /// Call all plugins for a given hook name, taking care not to clone data unnnecessarily.
-  fn call<T>(&mut self, name: &str, data: &T) -> LemmyResult<Option<T>>
-  where
-    T: Serialize + for<'de> Deserialize<'de> + Clone,
-  {
-    debug!("Calling plugin hook {name}");
+  /// Return early if no plugin is loaded for the given hook name
+  fn loaded(&self, name: &'static str) -> bool {
     // Check if there is any plugin active for this hook, to avoid unnecessary data cloning
     // TODO: not currently supported by pool
     /*
@@ -114,20 +144,6 @@ impl Plugins {
       return Ok(None);
     }
     */
-
-    let mut res: Json<T> = data.clone().into();
-    for p in &mut self.0 {
-      let plugin = p
-        .plugin_pool
-        .get(&(), GET_PLUGIN_TIMEOUT)?
-        .ok_or(anyhow!("plugin timeout"))?;
-      if plugin.plugin().function_exists(name) {
-        let r = plugin
-          .call(name, res)
-          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
-        res = r;
-      }
-    }
-    Ok(Some(res.0))
+    true
   }
 }
