@@ -1,5 +1,5 @@
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, handle_community_moderators, person::ApubPerson},
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
@@ -10,10 +10,6 @@ use activitypub_federation::{
   traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
-use lemmy_db_schema::{
-  source::community::{CommunityActions, CommunityModeratorForm},
-  traits::Joinable,
-};
 use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -55,34 +51,7 @@ impl Collection for ApubCommunityModerators {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> LemmyResult<Self> {
-    let community_id = owner.id;
-    let current_moderators =
-      CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
-    // Remove old mods from database which arent in the moderators collection anymore
-    for mod_user in &current_moderators {
-      let mod_id = ObjectId::from(mod_user.moderator.ap_id.clone());
-      if !apub.ordered_items.contains(&mod_id) {
-        let community_moderator_form =
-          CommunityModeratorForm::new(mod_user.community.id, mod_user.moderator.id);
-        CommunityActions::leave(&mut data.pool(), &community_moderator_form).await?;
-      }
-    }
-
-    // Add new mods to database which have been added to moderators collection
-    for mod_id in apub.ordered_items {
-      // Ignore errors as mod accounts might be deleted or instances unavailable.
-      let mod_user: Option<ApubPerson> = mod_id.dereference(data).await.ok();
-      if let Some(mod_user) = mod_user {
-        if !current_moderators
-          .iter()
-          .map(|c| c.moderator.ap_id.clone())
-          .any(|x| x == mod_user.ap_id)
-        {
-          let community_moderator_form = CommunityModeratorForm::new(owner.id, mod_user.id);
-          CommunityActions::join(&mut data.pool(), &community_moderator_form).await?;
-        }
-      }
-    }
+    handle_community_moderators(&apub.ordered_items, owner, data).await?;
 
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators(()))
@@ -100,12 +69,12 @@ mod tests {
   };
   use lemmy_db_schema::{
     source::{
-      community::Community,
+      community::{Community, CommunityActions, CommunityModeratorForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::Crud,
+    traits::{Crud, Joinable},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

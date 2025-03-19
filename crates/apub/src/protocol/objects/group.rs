@@ -6,7 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  objects::community::ApubCommunity,
+  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
     objects::{Endpoints, LanguageTag},
     ImageObject,
@@ -16,7 +16,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
-  kinds::actor::GroupType,
+  kinds::actor::{GroupType, PersonType},
   protocol::{
     helpers::deserialize_skip_error,
     public_key::PublicKey,
@@ -26,6 +26,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::slur_regex};
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},
@@ -65,7 +66,7 @@ pub struct Group {
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) attributed_to: Option<CollectionId<ApubCommunityModerators>>,
+  pub(crate) attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: CollectionId<ApubCommunityOutbox>,
@@ -96,5 +97,29 @@ impl Group {
     check_slurs_opt(&self.name, &slur_regex)?;
     check_slurs_opt(&self.summary, &slur_regex)?;
     Ok(())
+  }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub(crate) enum AttributedTo {
+  Lemmy(CollectionId<ApubCommunityModerators>),
+  Peertube(Vec<AttributedToPeertube>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AttributedToPeertube {
+  #[serde(rename = "type")]
+  pub kind: PersonType,
+  pub id: ObjectId<ApubPerson>,
+}
+
+impl AttributedTo {
+  pub(crate) fn url(self) -> Option<DbUrl> {
+    match self {
+      AttributedTo::Lemmy(l) => Some(l.into()),
+      AttributedTo::Peertube(_) => None,
+    }
   }
 }

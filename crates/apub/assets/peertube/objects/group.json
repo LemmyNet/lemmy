@@ -64,7 +64,13 @@
       "url": "https://tilvids.com/lazy-static/banners/1a8d6881-30c8-47cb-8576-7af62d869c45.jpg"
     }
   ],
-  "summary": "I'm Nick, and I like to tinker with Linux stuff. I'll bumble through distro reviews, tutorials, and general helpful tidbits and impressions onLinux desktop environments, applications, and news. \n\nYou might see a bit of Linux gaming here and there, and some more personal opinion pieces, but in the end, it's more or less all about Linux and FOSS !\n\nIf you want to stay up to snuff, follow me on Mastodon: https://mastodon.social/@thelinuxEXP \n\nIf you can, consider supporting the channel here: \nhttps://www.patreon.com/thelinuxexperiment",
+  "summary": "I'm Nick, and I like to tinker with Linux stuff. I'll bumble through distro reviews, tutorials, and general helpful tidbits and impressions on Linux desktop environments, applications, and news. \n\nYou might see a bit of Linux gaming here and there, and some more personal opinion pieces, but in the end, it's more or less all about Linux and FOSS !\n\nIf you want to stay up to snuff, follow me on Mastodon: https://mastodon.social/@thelinuxEXP \n\nIf you can, consider supporting the channel here: \nhttps://www.patreon.com/thelinuxexperiment",
   "support": "Support the channel on Patreon: \nhttps://www.patreon.com/thelinuxexperiment\n\nSupport on Liberapay:\nhttps://liberapay.com/TheLinuxExperiment/",
-  "postingRestrictedToMods": true
+  "postingRestrictedToMods": true,
+  "attributedTo": [
+    {
+      "type": "Person",
+      "id": "https://tilvids.com/accounts/thelinuxexperiment"
+    }
+  ]
 }
