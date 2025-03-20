@@ -104,29 +104,26 @@ impl ActivityHandler for UndoBlockUser {
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        if blocked_person.instance_id == site.instance_id {
-          if self.restore_data.unwrap_or(false) {
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        InstanceActions::ban(pool, &form).await?;
+
+        if self.restore_data.unwrap_or(false) {
+          if blocked_person.instance_id == site.instance_id {
+            // user unbanned from home instance, restore all content
             remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
               .await?;
+          } else {
+            // user banned from remote instance, restore content only in communities from that
+            // instance
+            Post::update_removed_for_creator(
+              pool,
+              blocked_person.id,
+              None,
+              Some(site.instance_id),
+              false,
+            )
+            .await?;
           }
-          // user unbanned from home instance, write directly to person table
-          InstanceActions::unban(
-            pool,
-            &InstanceBanForm::new(blocked_person.id, blocked_person.instance_id, expires),
-          )
-          .await?;
-        } else {
-          // user unbanned from remote instance, write to instance actions table
-          let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
-          InstanceActions::unban(pool, &form).await?;
-          Post::update_removed_for_creator(
-            pool,
-            blocked_person.id,
-            None,
-            Some(site.instance_id),
-            false,
-          )
-          .await?;
         }
 
         // write mod log

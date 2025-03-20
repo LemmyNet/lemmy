@@ -144,7 +144,6 @@ impl PersonQuery {
 mod tests {
 
   use super::*;
-  use chrono::Utc;
   use lemmy_db_schema::{
     assert_length,
     source::{
