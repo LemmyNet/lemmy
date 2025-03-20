@@ -53,10 +53,13 @@ where
   T: Clone + Serialize + for<'a> Deserialize<'a>,
 {
   let mut plugins = LemmyPlugins::init();
+  if !plugins.loaded(name) {
+    return Ok(());
+  }
+
   let mut res: Json<T> = data.clone().into();
   for p in &mut plugins.0 {
-    // TODO: add helper method (requires PoolPlugin to be public)
-    // https://github.com/extism/extism/pull/696/files#r2003467812
+    // TODO: add helper method (see above)
     let plugin = p
       .plugin_pool
       .get(&(), GET_PLUGIN_TIMEOUT)?
@@ -136,7 +139,7 @@ impl LemmyPlugins {
   }
 
   /// Return early if no plugin is loaded for the given hook name
-  fn loaded(&self, name: &'static str) -> bool {
+  fn loaded(&self, _name: &'static str) -> bool {
     // Check if there is any plugin active for this hook, to avoid unnecessary data cloning
     // TODO: not currently supported by pool
     /*
@@ -144,6 +147,6 @@ impl LemmyPlugins {
       return Ok(None);
     }
     */
-    true
+    !self.0.is_empty()
   }
 }
