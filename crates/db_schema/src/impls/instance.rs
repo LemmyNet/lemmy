@@ -260,7 +260,6 @@ impl InstanceActions {
     let instance_actions = instance_actions::table
       .filter(instance_actions::person_id.eq(person_id))
       .filter(instance_actions::instance_id.eq(instance_id))
-      .order_by(instance_actions::blocked)
       .get_result::<Self>(conn)
       .await
       .optional()?;
