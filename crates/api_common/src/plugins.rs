@@ -31,14 +31,12 @@ where
 
   let data = data.clone();
   tokio::spawn(async move {
-    run_plugin_hook(plugins, name, data)
-      .await
-      .inspect_err(|e| warn!("Plugin error: {e}"))
+    run_plugin_hook(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
   });
   Ok(())
 }
 
-async fn run_plugin_hook<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+fn run_plugin_hook<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
