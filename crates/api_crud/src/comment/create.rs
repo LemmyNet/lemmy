@@ -57,16 +57,11 @@ pub async fn create_comment(
   let post = post_view.post;
   let community_id = post_view.community.id;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post_view.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
   if post.locked && !is_mod_or_admin {

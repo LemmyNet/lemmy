@@ -554,6 +554,7 @@ mod tests {
       reason: None,
       banned: None,
       expires: None,
+      instance_id: inserted_instance.id,
     };
     let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await?;
     let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await?;
@@ -565,6 +566,7 @@ mod tests {
       banned: true,
       expires: None,
       published: inserted_mod_ban.published,
+      instance_id: inserted_instance.id,
     };
 
     // mod add community

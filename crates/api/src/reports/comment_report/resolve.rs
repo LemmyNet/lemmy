@@ -22,7 +22,7 @@ pub async fn resolve_comment_report(
 
   let person_id = local_user_view.person.id;
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     &report.community,
     true,
     &mut context.pool(),

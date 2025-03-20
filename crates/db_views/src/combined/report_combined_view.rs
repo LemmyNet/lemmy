@@ -513,6 +513,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: inserted_timmy.clone(),
+      instance_actions: None,
     };
 
     // Make an admin, to be able to see private message reports.
@@ -523,6 +524,7 @@ mod tests {
     let admin_view = LocalUserView {
       local_user: admin_local_user,
       person: inserted_admin.clone(),
+      instance_actions: None,
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");

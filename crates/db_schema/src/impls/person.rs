@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_actions, post},
+  schema::{instance, local_user, person, person_actions},
   source::person::{
     Person,
     PersonActions,
@@ -18,7 +18,6 @@ use diesel::{
   dsl::{exists, insert_into, not, select},
   expression::SelectableHelper,
   result::Error,
-  CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
@@ -100,31 +99,6 @@ impl Person {
         person::updated.eq(Utc::now()),
       ))
       .get_result::<Self>(conn)
-      .await
-  }
-
-  /// Lists local community ids for all posts and comments for a given creator.
-  pub async fn list_local_community_ids(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment::table
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .filter(community::local.eq(true))
-      .filter(not(community::deleted))
-      .filter(not(community::removed))
-      .filter(comment::creator_id.eq(for_creator_id))
-      .select(community::id)
-      .union(
-        post::table
-          .inner_join(community::table)
-          .filter(community::local.eq(true))
-          .filter(post::creator_id.eq(for_creator_id))
-          .select(community::id),
-      )
-      .load::<CommunityId>(conn)
       .await
   }
 
@@ -357,7 +331,6 @@ mod tests {
       display_name: None,
       avatar: None,
       banner: None,
-      banned: false,
       deleted: false,
       published: inserted_person.published,
       updated: None,
@@ -370,7 +343,6 @@ mod tests {
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       matrix_user_id: None,
-      ban_expires: None,
       instance_id: inserted_instance.id,
       post_count: 0,
       post_score: 0,

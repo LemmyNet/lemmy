@@ -12,12 +12,7 @@ pub async fn get_pending_follows_count(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetCommunityPendingFollowsCountResponse>> {
-  is_mod_or_admin(
-    &mut context.pool(),
-    &local_user_view.person,
-    data.community_id,
-  )
-  .await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, data.community_id).await?;
   let count =
     CommunityFollowerView::count_approval_required(&mut context.pool(), data.community_id).await?;
   Ok(Json(GetCommunityPendingFollowsCountResponse { count }))

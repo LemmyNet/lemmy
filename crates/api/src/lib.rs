@@ -1,20 +1,5 @@
-use activitypub_federation::config::Data;
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_api_common::{
-  community::BanFromCommunity,
-  context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
-  utils::check_expire_time,
-};
-use lemmy_db_schema::{
-  source::{
-    community::{CommunityActions, CommunityPersonBanForm},
-    mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
-  },
-  traits::{Bannable, Crud, Followable},
-};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -130,89 +115,6 @@ fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<T
     username.to_string(),
   )
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
-}
-
-/// Site bans are only federated for local users.
-/// This is a problem, because site-banning non-local users will still leave content
-/// they've posted to our local communities, on other servers.
-///
-/// So when doing a site ban for a non-local user, you need to federate/send a
-/// community ban for every local community they've participated in.
-/// See https://github.com/LemmyNet/lemmy/issues/4118
-pub(crate) async fn ban_nonlocal_user_from_local_communities(
-  local_user_view: &LocalUserView,
-  target: &Person,
-  ban: bool,
-  reason: &Option<String>,
-  remove_or_restore_data: &Option<bool>,
-  expires: &Option<i64>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  // Only run this code for federated users
-  if !target.local {
-    let ids = Person::list_local_community_ids(&mut context.pool(), target.id).await?;
-
-    for community_id in ids {
-      let expires_dt = check_expire_time(*expires)?;
-
-      // Ban / unban them from our local communities
-      let community_user_ban_form = CommunityPersonBanForm {
-        ban_expires: Some(expires_dt),
-        ..CommunityPersonBanForm::new(community_id, target.id)
-      };
-
-      if ban {
-        // Ignore all errors for these
-        CommunityActions::ban(&mut context.pool(), &community_user_ban_form)
-          .await
-          .ok();
-
-        // Also unsubscribe them from the community, if they are subscribed
-
-        CommunityActions::unfollow(&mut context.pool(), target.id, community_id)
-          .await
-          .ok();
-      } else {
-        CommunityActions::unban(&mut context.pool(), &community_user_ban_form)
-          .await
-          .ok();
-      }
-
-      // Mod tables
-      let form = ModBanFromCommunityForm {
-        mod_person_id: local_user_view.person.id,
-        other_person_id: target.id,
-        community_id,
-        reason: reason.clone(),
-        banned: Some(ban),
-        expires: expires_dt,
-      };
-
-      ModBanFromCommunity::create(&mut context.pool(), &form).await?;
-
-      // Federate the ban from community
-      let ban_from_community = BanFromCommunity {
-        community_id,
-        person_id: target.id,
-        ban,
-        reason: reason.clone(),
-        remove_or_restore_data: *remove_or_restore_data,
-        expires: *expires,
-      };
-
-      ActivityChannel::submit_activity(
-        SendActivityData::BanFromCommunity {
-          moderator: local_user_view.person.clone(),
-          community_id,
-          target: target.clone(),
-          data: ban_from_community,
-        },
-        context,
-      )?;
-    }
-  }
-
-  Ok(())
 }
 
 #[cfg(test)]

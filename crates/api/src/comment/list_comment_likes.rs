@@ -22,7 +22,7 @@ pub async fn list_comment_likes(
 
   is_mod_or_admin(
     &mut context.pool(),
-    &local_user_view.person,
+    &local_user_view,
     comment_view.community.id,
   )
   .await?;

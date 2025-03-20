@@ -34,7 +34,7 @@ pub async fn delete_comment(
   }
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     &mut context.pool(),
   )

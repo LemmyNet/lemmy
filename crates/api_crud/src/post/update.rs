@@ -94,12 +94,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &orig_post.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {

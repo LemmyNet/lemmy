@@ -27,8 +27,9 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
+    instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
+    post::Post,
   },
   traits::{Bannable, Crud},
 };
@@ -99,23 +100,30 @@ impl ActivityHandler for UndoBlockUser {
     let expires = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
+    let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
-      SiteOrCommunity::Site(_site) => {
+      SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(false),
-            ban_expires: Some(expires),
-            ..Default::default()
-          },
-        )
-        .await?;
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        InstanceActions::ban(pool, &form).await?;
 
         if self.restore_data.unwrap_or(false) {
-          remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+          if blocked_person.instance_id == site.instance_id {
+            // user unbanned from home instance, restore all content
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+              .await?;
+          } else {
+            // user banned from remote instance, restore content only in communities from that
+            // instance
+            Post::update_removed_for_creator(
+              pool,
+              blocked_person.id,
+              None,
+              Some(site.instance_id),
+              false,
+            )
             .await?;
+          }
         }
 
         // write mod log
@@ -125,6 +133,7 @@ impl ActivityHandler for UndoBlockUser {
           reason: self.object.summary,
           banned: Some(false),
           expires,
+          instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }

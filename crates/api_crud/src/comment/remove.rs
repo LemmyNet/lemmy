@@ -34,7 +34,7 @@ pub async fn remove_comment(
   .await?;
 
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     false,
     &mut context.pool(),

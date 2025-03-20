@@ -22,7 +22,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    instance::Instance,
+    instance::{Instance, InstanceActions},
     person::{Person, PersonActions},
     private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
   },
@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use semver::{Version, VersionReq};
@@ -122,13 +122,8 @@ impl Object for ApubPrivateMessage {
 
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
-    if person.banned {
-      Err(FederationError::PersonIsBannedFromSite(
-        person.ap_id.to_string(),
-      ))?
-    } else {
-      Ok(())
-    }
+    InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+    Ok(())
   }
 
   async fn from_json(

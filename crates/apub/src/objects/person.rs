@@ -152,8 +152,6 @@ impl Object for ApubPerson {
     let person_form = PersonInsertForm {
       name: person.preferred_username,
       display_name,
-      banned: None,
-      ban_expires: None,
       deleted: Some(false),
       avatar,
       banner,

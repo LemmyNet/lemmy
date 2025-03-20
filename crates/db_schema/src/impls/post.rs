@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   schema::{community, person, post, post_actions},
   source::post::{
     Post,
@@ -149,6 +149,7 @@ impl Post {
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
+    for_instance_id: Option<InstanceId>,
     removed: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -158,6 +159,10 @@ impl Post {
 
     if let Some(for_community_id) = for_community_id {
       update = update.filter(post::community_id.eq(for_community_id));
+    }
+
+    if let Some(for_instance_id) = for_instance_id {
+      update = update.filter(post::instance_id.eq(for_instance_id));
     }
 
     update

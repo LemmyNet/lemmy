@@ -24,13 +24,7 @@ pub async fn remove_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    true,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, true, &mut context.pool()).await?;
 
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_deleted_removed, check_user_valid},
+  utils::{check_community_deleted_removed, check_local_user_valid},
 };
 use lemmy_db_schema::{
   source::{
@@ -22,7 +22,7 @@ pub async fn follow_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(&local_user_view)?;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   let person_id = local_user_view.person.id;
 

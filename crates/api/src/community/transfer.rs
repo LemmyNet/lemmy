@@ -30,7 +30,7 @@ pub async fn transfer_community(
   let mut community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
 
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
 
   // Make sure transferrer is either the top community mod, or an admin
   if !(is_top_mod(&local_user_view, &community_mods).is_ok() || is_admin(&local_user_view).is_ok())

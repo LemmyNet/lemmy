@@ -46,7 +46,7 @@ pub async fn build_community_response(
   local_user_view: LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
   let local_user = local_user_view.local_user;
@@ -71,10 +71,10 @@ pub async fn build_post_response(
   local_user_view: LocalUserView,
   post_id: PostId,
 ) -> LemmyResult<Json<PostResponse>> {
-  let local_user = local_user_view.local_user;
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
+  let local_user = local_user_view.local_user;
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,

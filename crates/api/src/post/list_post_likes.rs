@@ -15,12 +15,7 @@ pub async fn list_post_likes(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListPostLikesResponse>> {
   let post = Post::read(&mut context.pool(), data.post_id).await?;
-  is_mod_or_admin(
-    &mut context.pool(),
-    &local_user_view.person,
-    post.community_id,
-  )
-  .await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, post.community_id).await?;
 
   let post_likes =
     VoteView::list_for_post(&mut context.pool(), data.post_id, data.page, data.limit).await?;

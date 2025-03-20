@@ -60,7 +60,7 @@ pub async fn delete_community_icon(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let community = Community::read(&mut context.pool(), data.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   delete_old_image(&community.icon, &context).await?;
 
@@ -79,7 +79,7 @@ pub async fn delete_community_banner(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let community = Community::read(&mut context.pool(), data.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   delete_old_image(&community.icon, &context).await?;
 

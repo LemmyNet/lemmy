@@ -40,12 +40,7 @@ pub async fn like_post(
   // Check for a community ban
   let post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
 
   let like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
