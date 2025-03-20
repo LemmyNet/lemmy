@@ -141,7 +141,7 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
-  plugin_hook_mut("update_local_post", &mut post_form)?;
+  plugin_hook_mut("update_local_post", &mut post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)

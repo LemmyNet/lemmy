@@ -22,15 +22,26 @@ const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 /// Call a plugin hook without rewriting data
 pub fn plugin_hook<T>(name: &'static str, data: &T) -> LemmyResult<()>
 where
-  T: Clone + Serialize + for<'b> Deserialize<'b>,
+  T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
   let plugins = LemmyPlugins::init();
   if !plugins.loaded(name) {
     return Ok(());
   }
 
-  // TODO: as this doesnt return any data it could run multiple plugins in parallel
-  //       and/or in background thread
+  let data = data.clone();
+  tokio::spawn(async move {
+    run_plugin_hook(plugins, name, data)
+      .await
+      .inspect_err(|e| warn!("Plugin error: {e}"))
+  });
+  Ok(())
+}
+
+async fn run_plugin_hook<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+where
+  T: Clone + Serialize + for<'b> Deserialize<'b>,
+{
   for p in plugins.0 {
     // TODO: add helper method (requires PoolPlugin to be public)
     // https://github.com/extism/extism/pull/696/files#r2003467812
@@ -48,17 +59,26 @@ where
 }
 
 /// Call a plugin hook which can rewrite data
-pub fn plugin_hook_mut<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
+pub async fn plugin_hook_mut<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
 where
-  T: Clone + Serialize + for<'a> Deserialize<'a>,
+  T: Clone + Serialize + for<'a> Deserialize<'a> + Sync + Send + 'static,
 {
-  let mut plugins = LemmyPlugins::init();
+  let plugins = LemmyPlugins::init();
   if !plugins.loaded(name) {
     return Ok(());
   }
 
-  let mut res: Json<T> = data.clone().into();
-  for p in &mut plugins.0 {
+  let data_ = data.clone();
+  *data = tokio::spawn(async move { run_plugin_hook_mut(plugins, name, data_) }).await??;
+  Ok(())
+}
+
+fn run_plugin_hook_mut<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<T>
+where
+  T: Clone + Serialize + for<'a> Deserialize<'a>,
+{
+  let mut res: Json<T> = data.into();
+  for p in plugins.0 {
     // TODO: add helper method (see above)
     let plugin = p
       .plugin_pool
@@ -71,8 +91,7 @@ where
       res = r;
     }
   }
-  *data = res.0;
-  Ok(())
+  Ok(res.0)
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {

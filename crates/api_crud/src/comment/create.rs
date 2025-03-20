@@ -102,7 +102,7 @@ pub async fn create_comment(
     language_id: Some(language_id),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
-  plugin_hook_mut("create_local_comment", &mut comment_form)?;
+  plugin_hook_mut("create_local_comment", &mut comment_form).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);

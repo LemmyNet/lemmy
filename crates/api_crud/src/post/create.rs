@@ -121,7 +121,7 @@ pub async fn create_post(
     )
   };
 
-  plugin_hook_mut("create_local_post", &mut post_form)?;
+  plugin_hook_mut("create_local_post", &mut post_form).await?;
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
