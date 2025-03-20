@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -120,9 +120,7 @@ pub async fn create_post(
     )
   };
 
-  let inserted_post = Post::create(&mut context.pool(), &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

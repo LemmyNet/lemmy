@@ -21,7 +21,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{markdown::markdown_to_html, validation::is_valid_body_field},
 };
 
@@ -58,9 +58,8 @@ pub async fn create_private_message(
     content.clone(),
   );
 
-  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
+  let inserted_private_message =
+    PrivateMessage::create(&mut context.pool(), &private_message_form).await?;
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
