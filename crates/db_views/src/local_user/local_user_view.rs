@@ -145,6 +145,13 @@ impl LocalUserView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub fn banned(&self) -> bool {
+    self
+      .instance_actions
+      .as_ref()
+      .is_some_and(|i| i.received_ban.is_some())
+  }
 }
 
 impl FromRequest for LocalUserView {

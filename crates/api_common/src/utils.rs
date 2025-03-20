@@ -162,11 +162,7 @@ pub async fn update_read_comments(
 
 pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
-  let received_ban = local_user_view
-    .instance_actions
-    .iter()
-    .any(|i| i.received_ban.is_some());
-  if received_ban {
+  if local_user_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
@@ -178,11 +174,7 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
 }
 pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
   // Check for a site ban
-  let received_ban = person_view
-    .instance_actions
-    .iter()
-    .any(|i| i.received_ban.is_some());
-  if received_ban {
+  if person_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
@@ -426,11 +418,7 @@ pub async fn send_email_to_user(
   body: &str,
   settings: &Settings,
 ) {
-  let received_ban = local_user_view
-    .instance_actions
-    .iter()
-    .any(|i| i.received_ban.is_some());
-  if received_ban || !local_user_view.local_user.send_notifications_to_email {
+  if local_user_view.banned() || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 
