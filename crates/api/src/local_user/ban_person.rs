@@ -12,7 +12,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     login_token::LoginToken,
     mod_log::moderator::{ModBan, ModBanForm},
-    person::Person,
   },
   traits::{Bannable, Crud},
 };
@@ -44,8 +43,7 @@ pub async fn ban_from_site(
 
   let expires = check_expire_time(data.expires)?;
 
-  let target_person = Person::read(&mut context.pool(), data.person_id).await?;
-  let form = InstanceBanForm::new(target_person.id, target_person.instance_id, expires);
+  let form = InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, expires);
   if data.ban {
     InstanceActions::ban(&mut context.pool(), &form)
       .await
@@ -57,7 +55,7 @@ pub async fn ban_from_site(
   }
 
   // if its a local user, invalidate logins
-  let local_user = LocalUserView::read_person(&mut context.pool(), target_person.id).await;
+  let local_user = LocalUserView::read_person(&mut context.pool(), data.person_id).await;
   if let Ok(local_user) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
@@ -67,7 +65,7 @@ pub async fn ban_from_site(
     let removed = data.ban;
     remove_or_restore_user_data(
       local_user_view.person.id,
-      target_person.id,
+      data.person_id,
       removed,
       &data.reason,
       &context,
@@ -78,7 +76,7 @@ pub async fn ban_from_site(
   // Mod tables
   let form = ModBanForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: target_person.id,
+    other_person_id: data.person_id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
@@ -87,7 +85,7 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), target_person.id, false).await?;
+  let person_view = PersonView::read(&mut context.pool(), data.person_id, false).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {

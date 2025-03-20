@@ -55,7 +55,7 @@ pub async fn purge_person(
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   InstanceActions::ban(
     &mut context.pool(),
-    &InstanceBanForm::new(person.id, person.instance_id, None),
+    &InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, None),
   )
   .await?;
 
