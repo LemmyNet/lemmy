@@ -5,6 +5,7 @@ use extism_convert::Json;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   settings::SETTINGS,
+  VERSION,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -118,6 +119,9 @@ impl LemmyPlugin {
       "lemmy_url".to_string(),
       format!("http://{}:{}/", SETTINGS.bind, SETTINGS.port),
     );
+    manifest
+      .config
+      .insert("lemmy_version".to_string(), VERSION.to_string());
     let plugin_pool: Pool<()> = Pool::new(available_parallelism()?.into());
     let builder = PluginBuilder::new(manifest).with_wasi(true);
     let metadata: PluginMetadata = builder.clone().build()?.call("metadata", 0)?;
