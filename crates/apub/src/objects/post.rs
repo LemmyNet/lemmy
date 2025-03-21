@@ -279,7 +279,7 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook("new_post", &post)?;
+    plugin_hook("after_receive_federated_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 

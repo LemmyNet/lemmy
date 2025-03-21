@@ -167,7 +167,7 @@ impl Object for ApubPrivateMessage {
     plugin_hook_mut("before_receive_federated_private_message", &mut form).await?;
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let pm = DbPrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook("new_private_message", &pm)?;
+    plugin_hook("after_receive_federated_private_message", &pm)?;
     Ok(pm.into())
   }
 }

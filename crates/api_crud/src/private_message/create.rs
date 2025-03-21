@@ -67,7 +67,10 @@ pub async fn create_private_message(
   let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
-  plugin_hook("new_private_message", &inserted_private_message)?;
+  plugin_hook(
+    "after_create_local_private_message",
+    &inserted_private_message,
+  )?;
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 

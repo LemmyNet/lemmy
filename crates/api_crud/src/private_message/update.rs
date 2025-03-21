@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
-  plugins::plugin_hook_mut,
+  plugins::{plugin_hook, plugin_hook_mut},
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{get_url_blocklist, process_markdown, slur_regex},
@@ -43,9 +43,10 @@ pub async fn update_private_message(
     ..Default::default()
   };
   plugin_hook_mut("before_update_local_private_message", &mut form).await?;
-  PrivateMessage::update(&mut context.pool(), private_message_id, &form)
+  let private_message = PrivateMessage::update(&mut context.pool(), private_message_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  plugin_hook("after_update_local_private_message", &private_message)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 

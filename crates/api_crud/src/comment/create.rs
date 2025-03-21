@@ -109,7 +109,7 @@ pub async fn create_comment(
   let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
-  plugin_hook("new_comment", &inserted_comment)?;
+  plugin_hook("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
 
