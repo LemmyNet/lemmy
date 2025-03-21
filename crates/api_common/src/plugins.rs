@@ -24,7 +24,7 @@ use tracing::warn;
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Call a plugin hook without rewriting data
-pub fn plugin_hook<T>(name: &'static str, data: &T) -> LemmyResult<()>
+pub fn plugin_hook_after<T>(name: &'static str, data: &T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
@@ -35,12 +35,12 @@ where
 
   let data = data.clone();
   spawn_blocking(move || {
-    run_plugin_hook(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
+    run_plugin_hook_after(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
   });
   Ok(())
 }
 
-fn run_plugin_hook<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+fn run_plugin_hook_after<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
@@ -61,7 +61,7 @@ where
 }
 
 /// Call a plugin hook which can rewrite data
-pub async fn plugin_hook_mut<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
+pub async fn plugin_hook_before<T>(name: &'static str, data: &mut T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a> + Sync + Send + 'static,
 {

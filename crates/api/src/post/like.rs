@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
-  plugins::{plugin_hook, plugin_hook_mut},
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
@@ -59,9 +59,9 @@ pub async fn like_post(
   let do_add =
     like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    plugin_hook_mut("before_post_vote", &mut like_form).await?;
+    plugin_hook_before("before_post_vote", &mut like_form).await?;
     let like = PostActions::like(&mut context.pool(), &like_form).await?;
-    plugin_hook("after_post_vote", &like)?;
+    plugin_hook_after("after_post_vote", &like)?;
   }
 
   // Mark Post Read

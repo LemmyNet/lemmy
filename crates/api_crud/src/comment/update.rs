@@ -5,7 +5,7 @@ use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  plugins::{plugin_hook, plugin_hook_mut},
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };
@@ -68,11 +68,11 @@ pub async fn update_comment(
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };
-  plugin_hook_mut("before_update_local_comment", &mut form).await?;
+  plugin_hook_before("before_update_local_comment", &mut form).await?;
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
-  plugin_hook("after_update_local_comment", &updated_comment)?;
+  plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
   let updated_comment_content = updated_comment.content.clone();
