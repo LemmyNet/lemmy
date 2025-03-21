@@ -59,9 +59,9 @@ pub async fn like_post(
   let do_add =
     like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    plugin_hook_mut("post_vote", &mut like_form).await?;
+    plugin_hook_mut("before_post_vote", &mut like_form).await?;
     let like = PostActions::like(&mut context.pool(), &like_form).await?;
-    plugin_hook("new_post_vote", &like)?;
+    plugin_hook("after_post_vote", &like)?;
   }
 
   // Mark Post Read

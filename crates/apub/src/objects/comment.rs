@@ -198,7 +198,7 @@ impl Object for ApubComment {
       local: Some(false),
       language_id,
     };
-    plugin_hook_mut("receive_federated_comment", &mut form).await?;
+    plugin_hook_mut("before_receive_federated_comment", &mut form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(

@@ -76,9 +76,9 @@ pub async fn like_comment(
   let do_add =
     like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    plugin_hook_mut("comment_vote", &mut like_form).await?;
+    plugin_hook_mut("before_comment_vote", &mut like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-    plugin_hook("new_comment_vote", &like)?;
+    plugin_hook("after_comment_vote", &like)?;
   }
 
   ActivityChannel::submit_activity(
