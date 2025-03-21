@@ -2,7 +2,7 @@ use crate::{site::PluginMetadata, LemmyErrorType};
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool};
 use extism_convert::Json;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -15,6 +15,7 @@ use std::{
   thread::available_parallelism,
   time::Duration,
 };
+use tokio::task::spawn_blocking;
 use tracing::warn;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
@@ -30,7 +31,7 @@ where
   }
 
   let data = data.clone();
-  tokio::spawn(async move {
+  spawn_blocking(move || {
     run_plugin_hook(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
   });
   Ok(())
@@ -67,29 +68,25 @@ where
   }
 
   let data_ = data.clone();
-  *data = tokio::spawn(async move { run_plugin_hook_mut(plugins, name, data_) }).await??;
-  Ok(())
-}
-
-fn run_plugin_hook_mut<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<T>
-where
-  T: Clone + Serialize + for<'a> Deserialize<'a>,
-{
-  let mut res: Json<T> = data.into();
-  for p in plugins.0 {
-    // TODO: add helper method (see above)
-    let plugin = p
-      .plugin_pool
-      .get(&(), GET_PLUGIN_TIMEOUT)?
-      .ok_or(anyhow!("plugin timeout"))?;
-    if plugin.plugin().function_exists(name) {
-      let r = plugin
-        .call(name, res)
-        .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
-      res = r;
+  *data = spawn_blocking(move || {
+    let mut res: Json<T> = data_.into();
+    for p in plugins.0 {
+      // TODO: add helper method (see above)
+      let plugin = p
+        .plugin_pool
+        .get(&(), GET_PLUGIN_TIMEOUT)?
+        .ok_or(anyhow!("plugin timeout"))?;
+      if plugin.plugin().function_exists(name) {
+        let r = plugin
+          .call(name, res)
+          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+        res = r;
+      }
     }
-  }
-  Ok(res.0)
+    Ok::<_, LemmyError>(res.0)
+  })
+  .await??;
+  Ok(())
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
