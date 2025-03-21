@@ -26,6 +26,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   utils::{
     check_nsfw_allowed,
@@ -261,7 +262,7 @@ impl Object for ApubPost {
         .await?,
     );
 
-    let form = PostInsertForm {
+    let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
       alt_text,
@@ -274,9 +275,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
+    plugin_hook_before("before_receive_federated_post", &mut form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    plugin_hook_after("after_receive_federated_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 

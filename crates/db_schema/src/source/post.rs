@@ -95,8 +95,12 @@ pub struct Post {
   pub unresolved_report_count: i16,
 }
 
+// TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -145,7 +149,7 @@ pub struct PostInsertForm {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
   pub name: Option<String>,
@@ -171,11 +175,10 @@ pub struct PostUpdateForm {
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
 }
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(Identifiable, Queryable, Selectable, Associations, TS,)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
@@ -210,7 +213,10 @@ pub struct PostActions {
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,

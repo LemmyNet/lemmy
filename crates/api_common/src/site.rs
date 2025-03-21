@@ -46,8 +46,9 @@ use lemmy_db_views::structs::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {extism::FromBytes, extism_convert::encoding, extism_convert::Json, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -433,6 +434,7 @@ pub struct GetSiteResponse {
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.
   pub image_upload_disabled: bool,
+  pub active_plugins: Vec<PluginMetadata>,
 }
 
 #[skip_serializing_none]
@@ -641,4 +643,14 @@ pub struct AdminAllowInstanceParams {
   pub allow: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "full", derive(TS, FromBytes))]
+#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", encoding(Json))]
+pub struct PluginMetadata {
+  name: String,
+  url: Url,
+  description: String,
 }
