@@ -2,7 +2,10 @@ use crate::{site::PluginMetadata, LemmyErrorType};
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool};
 use extism_convert::Json;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  settings::SETTINGS,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -110,7 +113,11 @@ impl LemmyPlugin {
   fn init(path: &PathBuf) -> LemmyResult<Self> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
-    let manifest: Manifest = serde_json::from_reader(reader)?;
+    let mut manifest: Manifest = serde_json::from_reader(reader)?;
+    manifest.config.insert(
+      "lemmy_url".to_string(),
+      format!("http://{}:{}/", SETTINGS.bind, SETTINGS.port),
+    );
     let plugin_pool: Pool<()> = Pool::new(available_parallelism()?.into());
     let builder = PluginBuilder::new(manifest).with_wasi(true);
     let metadata: PluginMetadata = builder.clone().build()?.call("metadata", 0)?;
