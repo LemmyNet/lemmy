@@ -93,6 +93,7 @@ markdown-it-ruby = "1.0.1"
 markdown-it-footnote = "0.2.0"
 moka = { workspace = true, optional = true }
 git-version = "0.3.9"
+unicode-segmentation = "1.9.0"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
