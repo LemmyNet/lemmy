@@ -1,6 +1,12 @@
+use crate::{
+  collections::community_moderators::ApubCommunityModerators,
+  fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
+  objects::person::ApubPerson,
+};
+use activitypub_federation::fetch::{collection_id::CollectionId, object_id::ObjectId};
 use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
-  newtypes::LanguageId,
+  newtypes::{DbUrl, LanguageId},
   source::language::Language,
   utils::DbPool,
 };
@@ -96,6 +102,32 @@ impl LanguageTag {
     }
 
     Ok(language_ids.into_iter().collect())
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(untagged)]
+pub(crate) enum AttributedTo {
+  Creator(ObjectId<ApubPerson>),
+  Moderators(CollectionId<ApubCommunityModerators>),
+  Peertube(Vec<AttributedToPeertube>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AttributedToPeertube {
+  #[serde(rename = "type")]
+  pub kind: PersonOrGroupType,
+  pub id: ObjectId<UserOrCommunity>,
+}
+
+impl AttributedTo {
+  pub(crate) fn url(self) -> Option<DbUrl> {
+    match self {
+      AttributedTo::Moderators(l) => Some(l.into()),
+      AttributedTo::Creator(_) => None,
+      AttributedTo::Peertube(_) => None,
+    }
   }
 }
 

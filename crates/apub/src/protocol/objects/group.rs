@@ -3,12 +3,11 @@ use crate::{
   collections::{
     community_featured::ApubCommunityFeatured,
     community_follower::ApubCommunityFollower,
-    community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::community::ApubCommunity,
   protocol::{
-    objects::{Endpoints, LanguageTag},
+    objects::{AttributedTo, AttributedToPeertube, Endpoints, LanguageTag},
     ImageObject,
     Source,
   },
@@ -16,7 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
-  kinds::actor::{GroupType, PersonType},
+  kinds::actor::GroupType,
   protocol::{
     helpers::deserialize_skip_error,
     public_key::PublicKey,
@@ -26,15 +25,31 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::slur_regex};
-use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 use url::Url;
+
+pub fn deserialize_make_moderator<'de, D>(deserializer: D) -> Result<Option<AttributedTo>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let value = serde_json::Value::deserialize(deserializer)?;
+  let url = Url::deserialize(&value);
+  if let Ok(u) = url {
+    Ok(Some(AttributedTo::Moderators(u.into())))
+  } else {
+    Ok(
+      Vec::<AttributedToPeertube>::deserialize(&value)
+        .ok()
+        .map(|p| AttributedTo::Peertube(p)),
+    )
+  }
+}
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -65,7 +80,7 @@ pub struct Group {
   pub(crate) image: Option<ImageObject>,
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_make_moderator", default)]
   pub(crate) attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
@@ -97,29 +112,5 @@ impl Group {
     check_slurs_opt(&self.name, &slur_regex)?;
     check_slurs_opt(&self.summary, &slur_regex)?;
     Ok(())
-  }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(untagged)]
-pub(crate) enum AttributedTo {
-  Lemmy(CollectionId<ApubCommunityModerators>),
-  Peertube(Vec<AttributedToPeertube>),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AttributedToPeertube {
-  #[serde(rename = "type")]
-  pub kind: PersonType,
-  pub id: ObjectId<ApubPerson>,
-}
-
-impl AttributedTo {
-  pub(crate) fn url(self) -> Option<DbUrl> {
-    match self {
-      AttributedTo::Lemmy(l) => Some(l.into()),
-      AttributedTo::Peertube(_) => None,
-    }
   }
 }

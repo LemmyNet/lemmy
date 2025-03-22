@@ -10,11 +10,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, read_from_string_or_source_opt},
-  protocol::{
-    activities::community::update::UpdateCommunity,
-    objects::group::AttributedTo,
-    InCommunity,
-  },
+  protocol::{activities::community::update::UpdateCommunity, objects::AttributedTo, InCommunity},
 };
 use activitypub_federation::{
   config::Data,

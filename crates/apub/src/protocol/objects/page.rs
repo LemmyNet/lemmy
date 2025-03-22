@@ -1,7 +1,12 @@
 use crate::{
-  fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
+  fetcher::user_or_community::PersonOrGroupType,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
+  protocol::{
+    objects::{AttributedTo, LanguageTag},
+    ImageObject,
+    InCommunity,
+    Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -144,21 +149,6 @@ impl Attachment {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub(crate) enum AttributedTo {
-  Lemmy(ObjectId<ApubPerson>),
-  Peertube([AttributedToPeertube; 2]),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AttributedToPeertube {
-  #[serde(rename = "type")]
-  pub kind: PersonOrGroupType,
-  pub id: ObjectId<UserOrCommunity>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Hashtag {
   pub(crate) href: Url,
   pub(crate) name: String,
@@ -174,12 +164,13 @@ pub enum HashtagType {
 impl Page {
   pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
-      AttributedTo::Lemmy(l) => Ok(l.clone()),
+      AttributedTo::Creator(l) => Ok(l.clone()),
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
         .ok_or_else(|| FederationError::PageDoesNotSpecifyCreator.into()),
+      AttributedTo::Moderators(_) => Err(FederationError::PageDoesNotSpecifyCreator.into()),
     }
   }
 }
@@ -229,7 +220,7 @@ impl ActivityHandler for Page {
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match &self.attributed_to {
-      AttributedTo::Lemmy(_) => {
+      AttributedTo::Creator(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
@@ -250,6 +241,7 @@ impl InCommunity for Page {
           .dereference(context)
           .await?
       }
+      AttributedTo::Moderators(_) => Err(LemmyErrorType::NotFound)?,
     };
 
     Ok(community)

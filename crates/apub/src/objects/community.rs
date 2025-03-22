@@ -1,19 +1,20 @@
-use super::handle_community_moderators;
+use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
   activities::GetActorType,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
+  fetcher::{
+    markdown_links::markdown_rewrite_remote_links_opt,
+    user_or_community::PersonOrGroupType,
+  },
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{
-      group::{AttributedTo, Group},
-      LanguageTag,
-    },
+    objects::{group::Group, AttributedTo, LanguageTag},
     ImageObject,
     Source,
   },
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   kinds::actor::GroupType,
   protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
@@ -124,7 +125,7 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(AttributedTo::Lemmy(
+      attributed_to: Some(AttributedTo::Moderators(
         generate_moderators_url(&self.ap_id)?.into(),
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
@@ -219,16 +220,17 @@ impl Object for ApubCommunity {
         featured.dereference(&community_, &context_).await.ok();
       }
       if let Some(moderators) = group.attributed_to {
-        match moderators {
-          AttributedTo::Lemmy(l) => {
-            l.dereference(&community_, &context_).await.ok();
-          }
-          AttributedTo::Peertube(p) => {
-            let new_mods = p.iter().map(|p| p.id.clone()).collect();
-            handle_community_moderators(&new_mods, &community_, &context_)
-              .await
-              .ok();
-          }
+        if let AttributedTo::Moderators(l) = moderators {
+          l.dereference(&community_, &context_).await.ok();
+        } else if let AttributedTo::Peertube(p) = moderators {
+          let new_mods = p
+            .iter()
+            .filter(|p| p.kind == PersonOrGroupType::Person)
+            .map(|p| ObjectId::<ApubPerson>::from(p.id.clone().into_inner()))
+            .collect();
+          handle_community_moderators(&new_mods, &community_, &context_)
+            .await
+            .ok();
         }
       }
       Ok(())
