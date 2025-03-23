@@ -7,7 +7,7 @@ use crate::{
   },
   objects::community::ApubCommunity,
   protocol::{
-    objects::{AttributedTo, AttributedToPeertube, Endpoints, LanguageTag},
+    objects::{AttributedTo, Endpoints, LanguageTag},
     ImageObject,
     Source,
   },
@@ -29,27 +29,10 @@ use lemmy_utils::{
   error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},
 };
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 use url::Url;
-
-pub fn deserialize_make_moderator<'de, D>(deserializer: D) -> Result<Option<AttributedTo>, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let value = serde_json::Value::deserialize(deserializer)?;
-  let url = Url::deserialize(&value);
-  if let Ok(u) = url {
-    Ok(Some(AttributedTo::Moderators(u.into())))
-  } else {
-    Ok(
-      Vec::<AttributedToPeertube>::deserialize(&value)
-        .ok()
-        .map(AttributedTo::Peertube),
-    )
-  }
-}
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -80,7 +63,7 @@ pub struct Group {
   pub(crate) image: Option<ImageObject>,
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
-  #[serde(deserialize_with = "deserialize_make_moderator", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,

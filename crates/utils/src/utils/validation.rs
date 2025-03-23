@@ -351,6 +351,7 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
+#[allow(clippy::indexing_slicing)]
 pub fn truncate_for_db(string: String, len: usize) -> String {
   if string.chars().count() <= len {
     return string;

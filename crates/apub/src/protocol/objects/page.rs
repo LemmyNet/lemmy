@@ -167,13 +167,12 @@ pub enum HashtagType {
 impl Page {
   pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
-      AttributedTo::Creator(l) => Ok(l.clone()),
+      AttributedTo::Lemmy(l) => Ok(l.creator()),
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
         .ok_or_else(|| FederationError::PageDoesNotSpecifyCreator.into()),
-      AttributedTo::Moderators(_) => Err(FederationError::PageDoesNotSpecifyCreator.into()),
     }
   }
 }
@@ -223,7 +222,7 @@ impl ActivityHandler for Page {
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match &self.attributed_to {
-      AttributedTo::Creator(_) => {
+      AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
@@ -244,7 +243,6 @@ impl InCommunity for Page {
           .dereference(context)
           .await?
       }
-      AttributedTo::Moderators(_) => Err(LemmyErrorType::NotFound)?,
     };
 
     Ok(community)

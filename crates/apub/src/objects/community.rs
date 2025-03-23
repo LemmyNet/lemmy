@@ -125,7 +125,7 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(AttributedTo::Moderators(
+      attributed_to: Some(AttributedTo::Lemmy(
         generate_moderators_url(&self.ap_id)?.into(),
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
@@ -220,8 +220,11 @@ impl Object for ApubCommunity {
         featured.dereference(&community_, &context_).await.ok();
       }
       if let Some(moderators) = group.attributed_to {
-        if let AttributedTo::Moderators(l) = moderators {
-          l.dereference(&community_, &context_).await.ok();
+        if let AttributedTo::Lemmy(l) = moderators {
+          l.moderators()
+            .dereference(&community_, &context_)
+            .await
+            .ok();
         } else if let AttributedTo::Peertube(p) = moderators {
           let new_mods = p
             .iter()

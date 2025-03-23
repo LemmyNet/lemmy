@@ -12,6 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 use url::Url;
 
 pub(crate) mod group;
@@ -105,11 +106,37 @@ impl LanguageTag {
   }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub(crate) struct PersonOrGroupModerators(Url);
+
+impl Deref for PersonOrGroupModerators {
+  type Target = Url;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<DbUrl> for PersonOrGroupModerators {
+  fn from(value: DbUrl) -> Self {
+    PersonOrGroupModerators(value.into())
+  }
+}
+
+impl PersonOrGroupModerators {
+  pub(crate) fn creator(&self) -> ObjectId<ApubPerson> {
+    self.deref().clone().into()
+  }
+
+  pub(crate) fn moderators(&self) -> CollectionId<ApubCommunityModerators> {
+    self.deref().clone().into()
+  }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub(crate) enum AttributedTo {
-  Creator(ObjectId<ApubPerson>),
-  Moderators(CollectionId<ApubCommunityModerators>),
+  Lemmy(PersonOrGroupModerators),
   Peertube(Vec<AttributedToPeertube>),
 }
 
@@ -124,8 +151,7 @@ pub(crate) struct AttributedToPeertube {
 impl AttributedTo {
   pub(crate) fn url(self) -> Option<DbUrl> {
     match self {
-      AttributedTo::Moderators(l) => Some(l.into()),
-      AttributedTo::Creator(_) => None,
+      AttributedTo::Lemmy(l) => Some(l.moderators().into()),
       AttributedTo::Peertube(_) => None,
     }
   }
