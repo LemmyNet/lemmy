@@ -407,6 +407,7 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       site_or_community_description_length_check,
+      truncate_for_db,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -720,6 +721,16 @@ Line3",
     );
 
     assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
+    Ok(())
+  }
+
+  #[test]
+  fn test_truncate() -> LemmyResult<()> {
+    assert_eq!("Hell", truncate_for_db("Hello".to_string(), 4));
+    assert_eq!("word", truncate_for_db("word".to_string(), 10));
+    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿".to_string(), 10));
+    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿".to_string(), 14));
+
     Ok(())
   }
 }

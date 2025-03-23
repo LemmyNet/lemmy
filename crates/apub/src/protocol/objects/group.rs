@@ -46,7 +46,7 @@ where
     Ok(
       Vec::<AttributedToPeertube>::deserialize(&value)
         .ok()
-        .map(|p| AttributedTo::Peertube(p)),
+        .map(AttributedTo::Peertube),
     )
   }
 }
