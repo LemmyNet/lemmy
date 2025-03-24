@@ -49,7 +49,7 @@ members = [
   "crates/db_schema",
   "crates/db_views",
   "crates/routes",
-  "crates/federate",
+  "crates/federate", "crates/rss_automation",
 ]
 
 [workspace.lints.clippy]
