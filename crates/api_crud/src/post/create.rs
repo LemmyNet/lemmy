@@ -126,7 +126,7 @@ pub async fn create_post(
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
-  plugin_hook_after("before_update_local_post", &inserted_post)?;
+  plugin_hook_after("after_create_local_post", &inserted_post)?;
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {
