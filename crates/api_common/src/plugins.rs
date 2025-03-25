@@ -71,26 +71,24 @@ where
     return Ok(data);
   }
 
-  Ok(
-    spawn_blocking(move || {
-      let mut res: Json<T> = data.into();
-      for p in plugins.0 {
-        // TODO: add helper method (see above)
-        let plugin = p
-          .plugin_pool
-          .get(&(), GET_PLUGIN_TIMEOUT)?
-          .ok_or(anyhow!("plugin timeout"))?;
-        if plugin.plugin().function_exists(name) {
-          let r = plugin
-            .call(name, res)
-            .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
-          res = r;
-        }
+  spawn_blocking(move || {
+    let mut res: Json<T> = data.into();
+    for p in plugins.0 {
+      // TODO: add helper method (see above)
+      let plugin = p
+        .plugin_pool
+        .get(&(), GET_PLUGIN_TIMEOUT)?
+        .ok_or(anyhow!("plugin timeout"))?;
+      if plugin.plugin().function_exists(name) {
+        let r = plugin
+          .call(name, res)
+          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+        res = r;
       }
-      Ok::<_, LemmyError>(res.0)
-    })
-    .await??,
-  )
+    }
+    Ok::<_, LemmyError>(res.0)
+  })
+  .await?
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
