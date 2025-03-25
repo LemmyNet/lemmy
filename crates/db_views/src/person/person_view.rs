@@ -1,6 +1,5 @@
-use crate::structs::PersonView;
+use crate::structs::{PersonView, SiteView};
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -11,7 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  newtypes::{PaginationCursor, PersonId},
+  newtypes::{InstanceId, PaginationCursor, PersonId},
   schema::{instance_actions, local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
@@ -45,12 +44,12 @@ impl PaginationCursorBuilder for PersonView {
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins() -> _ {
+  fn joins(local_instance_id: InstanceId) -> _ {
     person::table.left_join(local_user::table).left_join(
       instance_actions::table.on(
         instance_actions::person_id
           .eq(person::id)
-          .and(instance_actions::instance_id.eq(person::instance_id)),
+          .and(instance_actions::instance_id.eq(local_instance_id)),
       ),
     )
   }
@@ -59,9 +58,9 @@ impl PersonView {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     is_admin: bool,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = Self::joins()
+  ) -> LemmyResult<Self> {
+    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+    let mut query = Self::joins(local_instance_id)
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .into_boxed();
@@ -70,7 +69,7 @@ impl PersonView {
       query = query.filter(person::deleted.eq(false))
     }
 
-    query.first(conn).await
+    Ok(query.first(&mut get_conn(pool).await?).await?)
   }
 
   pub fn banned(&self) -> bool {
@@ -91,10 +90,9 @@ pub struct PersonQuery {
 }
 
 impl PersonQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let mut query = PersonView::joins()
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
+    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+    let mut query = PersonView::joins(local_instance_id)
       .filter(person::deleted.eq(false))
       .select(PersonView::as_select())
       .into_boxed();
@@ -134,7 +132,7 @@ impl PersonQuery {
       // Tie breaker
       .then_desc(key::id);
 
-    let res = query.load::<PersonView>(conn).await?;
+    let res = query.load::<PersonView>(&mut get_conn(pool).await?).await?;
     Ok(res)
   }
 }
