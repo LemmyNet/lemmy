@@ -146,7 +146,12 @@ impl Object for ApubComment {
       context,
     ))
     .await?;
-    verify_is_remote_object(&note.id, context)?;
+    if let Err(e) = verify_is_remote_object(&note.id, context) {
+      if let Ok(comment) = note.id.dereference_local(context).await {
+        comment.set_not_pending(&mut context.pool()).await?;
+      }
+      return Err(e.into());
+    }
     Box::pin(verify_person_in_community(
       &note.attributed_to,
       &community,
@@ -197,6 +202,7 @@ impl Object for ApubComment {
       distinguished: note.distinguished,
       local: Some(false),
       language_id,
+      federation_pending: Some(false),
     };
     form = plugin_hook_before("before_receive_federated_comment", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);

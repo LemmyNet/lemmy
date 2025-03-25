@@ -64,6 +64,7 @@ async fn vote_comment(
   let comment_id = comment.id;
   let mut like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
   let person_id = actor.id;
+  comment.set_not_pending(&mut context.pool()).await?;
   CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
   like_form = plugin_hook_before("before_comment_vote", like_form).await?;
   let like = CommentActions::like(&mut context.pool(), &like_form).await?;
@@ -80,6 +81,7 @@ async fn vote_post(
   let post_id = post.id;
   let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
+  post.set_not_pending(&mut context.pool()).await?;
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
   like_form = plugin_hook_before("before_post_vote", like_form).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
