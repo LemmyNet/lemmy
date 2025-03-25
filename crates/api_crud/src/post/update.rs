@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -142,9 +142,7 @@ pub async fn update_post(
   };
 
   let post_id = data.post_id;
-  let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+  let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());

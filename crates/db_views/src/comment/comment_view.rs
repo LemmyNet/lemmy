@@ -4,7 +4,6 @@ use crate::{
 };
 use diesel::{
   dsl::exists,
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -14,10 +13,11 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -30,12 +30,39 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  source::{
+    comment::{comment_keys as key, Comment},
+    community::CommunityFollowerState,
+    local_user::LocalUser,
+    site::Site,
+  },
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use CommentSortType::*;
+
+impl PaginationCursorBuilder for CommentView {
+  type CursorData = Comment;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('C', self.comment.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Comment::read(pool, CommentId(*id)).await
+  }
+}
 
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -95,7 +122,7 @@ impl CommentView {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'_ LocalUser>,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = Self::joins(my_local_user.person_id())
@@ -117,7 +144,10 @@ impl CommentView {
       );
     }
 
-    query.first::<Self>(conn).await
+    query
+      .first::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub fn map_to_slim(self) -> CommentSlimView {
@@ -142,17 +172,18 @@ pub struct CommentQuery<'a> {
   pub community_id: Option<CommunityId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
-  pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
+  // TODO get rid of liked / disliked_only
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
   pub max_depth: Option<i32>,
+  pub cursor_data: Option<Comment>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl CommentQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommentView>> {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
@@ -163,10 +194,6 @@ impl CommentQuery<'_> {
     let mut query = CommentView::joins(my_person_id)
       .select(CommentView::as_select())
       .into_boxed();
-
-    if let Some(creator_id) = o.creator_id {
-      query = query.filter(comment::creator_id.eq(creator_id));
-    };
 
     if let Some(post_id) = o.post_id {
       query = query.filter(comment::post_id.eq(post_id));
@@ -246,8 +273,14 @@ impl CommentQuery<'_> {
       );
     }
 
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query =
+        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
     // A Max depth given means its a tree fetch
-    let (limit, offset) = if let Some(max_depth) = o.max_depth {
+    let limit = if let Some(max_depth) = o.max_depth {
       let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
         parent_path.0.split('.').count() as i32 + max_depth
         // Add one because of root "0"
@@ -256,13 +289,6 @@ impl CommentQuery<'_> {
       };
 
       query = query.filter(nlevel(comment::path).le(depth_limit));
-
-      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
-      // + !post_id isn't used anyways (afaik)
-      if o.post_id.is_some() || o.parent_path.is_some() {
-        // Always order by the parent path first
-        query = query.then_order_by(subpath(comment::path, 0, -1));
-      }
 
       // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
       // For now, don't do any limiting for tree fetches
@@ -274,38 +300,42 @@ impl CommentQuery<'_> {
       // If a max depth is given, then you know its a tree fetch, and limits should be ignored
       // TODO a kludge to prevent attacks. Limit comments to 300 for now.
       // (i64::MAX, 0)
-      (300, 0)
+      300
     } else {
-      // limit_and_offset_unlimited(o.page, o.limit)
-      limit_and_offset(o.page, o.limit)?
+      limit_fetch(o.limit)?
     };
+    query = query.limit(limit);
 
-    // distinguished comments should go first when viewing post
-    if o.post_id.is_some() || o.parent_path.is_some() {
-      query = query.then_order_by(comment::distinguished.desc());
+    // Only sort by ascending for Old
+    let sort = o.sort.unwrap_or(Hot);
+    let sort_direction = asc_if(sort == Old);
+
+    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+
+    // Order by a subpath for max depth queries
+    // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
+    // + !post_id isn't used anyways (afaik)
+    if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
+      // Always order by the parent path first
+      // TODO not sure if this initial then_order_by will work correctly
+      // pq = pq.then_order_by(subpath(key::path, 0, -1));
     }
 
-    query = match o.sort.unwrap_or(CommentSortType::Hot) {
-      CommentSortType::Hot => query
-        .then_order_by(comment::hot_rank.desc())
-        .then_order_by(comment::score.desc()),
-      CommentSortType::Controversial => query.then_order_by(comment::controversy_rank.desc()),
-      CommentSortType::New => query.then_order_by(comment::published.desc()),
-      CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.then_order_by(comment::score.desc()),
-    };
-
-    // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
-      query =
-        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    // Distinguished comments should go first when viewing post
+    // Don't do for new / old sorts
+    // TODO check indexes
+    if sort != New && sort != Old && (o.post_id.is_some() || o.parent_path.is_some()) {
+      pq = pq.then_order_by(key::distinguished);
     }
 
-    let res = query
-      .limit(limit)
-      .offset(offset)
-      .load::<CommentView>(conn)
-      .await?;
+    pq = match sort {
+      Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
+      Controversial => pq.then_order_by(key::controversy_rank),
+      Old | New => pq.then_order_by(key::published),
+      Top => pq.then_order_by(key::score),
+    };
+
+    let res = pq.load::<CommentView>(conn).await?;
 
     Ok(res)
   }

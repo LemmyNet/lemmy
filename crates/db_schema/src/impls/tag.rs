@@ -5,9 +5,9 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{insert_into, result::Error, QueryDsl};
+use diesel::{insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for Tag {
   type InsertForm = TagInsertForm;
@@ -16,24 +16,22 @@ impl Crud for Tag {
 
   type IdType = TagId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(tag::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreateTag)
   }
 
-  async fn update(
-    pool: &mut DbPool<'_>,
-    pid: TagId,
-    form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: &mut DbPool<'_>, pid: TagId, form: &Self::UpdateForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(tag::table.find(pid))
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
   }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, DbUrl, PersonId},
-  schema::{comment, comment_actions},
+  newtypes::{CommentId, CommunityId, DbUrl, PersonId},
+  schema::{comment, comment_actions, post},
   source::comment::{
     Comment,
     CommentActions,
@@ -20,13 +20,7 @@ use crate::{
   },
 };
 use chrono::{DateTime, Utc};
-use diesel::{
-  dsl::insert_into,
-  expression::SelectableHelper,
-  result::Error,
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::insert_into, expression::SelectableHelper, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use lemmy_utils::{
@@ -38,11 +32,11 @@ use url::Url;
 impl Comment {
   pub async fn permadelete_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
+    creator_id: PersonId,
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
+    diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::content.eq(DELETED_REPLACEMENT_TEXT),
         comment::deleted.eq(true),
@@ -50,28 +44,59 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 
   pub async fn update_removed_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
+    creator_id: PersonId,
     removed: bool,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
+    diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::removed.eq(removed),
         comment::updated.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+  }
+
+  pub async fn update_removed_for_creator_and_community(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    community_id: CommunityId,
+    removed: bool,
+  ) -> LemmyResult<Vec<CommentId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let comment_ids = comment::table
+      .inner_join(post::table)
+      .filter(comment::creator_id.eq(creator_id))
+      .filter(post::community_id.eq(community_id))
+      .select(comment::id)
+      .load::<CommentId>(conn)
+      .await?;
+
+    let form = &CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    };
+
+    for comment_id in &comment_ids {
+      Comment::update(&mut conn.into(), *comment_id, form).await?;
+    }
+
+    Ok(comment_ids)
   }
 
   pub async fn create(
     pool: &mut DbPool<'_>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
-  ) -> Result<Comment, Error> {
+  ) -> LemmyResult<Comment> {
     Self::insert_apub(pool, None, comment_form, parent_path).await
   }
 
@@ -80,7 +105,7 @@ impl Comment {
     timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
-  ) -> Result<Comment, Error> {
+  ) -> LemmyResult<Comment> {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
 
@@ -93,18 +118,20 @@ impl Comment {
         .set(comment_form)
         .get_result::<Self>(conn)
         .await
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     } else {
       insert_into(comment::table)
         .values(comment_form)
         .get_result::<Self>(conn)
         .await
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     }
   }
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     comment::table
@@ -112,6 +139,7 @@ impl Comment {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub fn parent_comment_id(&self) -> Option<CommentId> {
@@ -124,16 +152,14 @@ impl Comment {
       None
     }
   }
-  pub async fn update_hot_rank(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-  ) -> Result<Self, Error> {
+  pub async fn update_hot_rank(pool: &mut DbPool<'_>, comment_id: CommentId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(comment::table.find(comment_id))
       .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
@@ -159,7 +185,7 @@ impl Crud for Comment {
   type IdType = CommentId;
 
   /// Use [[Comment::create]]
-  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> LemmyResult<Self> {
     debug_assert!(false);
     Comment::create(pool, comment_form, None).await
   }
@@ -168,12 +194,13 @@ impl Crud for Comment {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     comment_form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 }
 
@@ -229,6 +256,22 @@ impl Saveable for CommentActions {
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
+  }
+}
+
+impl CommentActions {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    comment_id: CommentId,
+    person_id: PersonId,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    comment_actions::table
+      .find((person_id, comment_id))
+      .select(Self::as_select())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

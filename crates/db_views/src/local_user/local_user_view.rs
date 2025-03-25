@@ -1,6 +1,6 @@
 use crate::structs::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
-use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
@@ -26,37 +26,40 @@ impl LocalUserView {
     local_user::table.inner_join(person::table)
   }
 
-  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(local_user::id.eq(local_user_id))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(lower(person::name).eq(name.to_lowercase()))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn find_by_email_or_name(
     pool: &mut DbPool<'_>,
     name_or_email: &str,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(
@@ -67,22 +70,24 @@ impl LocalUserView {
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn find_by_oauth_id(
     pool: &mut DbPool<'_>,
     oauth_provider_id: OAuthProviderId,
     oauth_user_id: &str,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .inner_join(oauth_account::table)
@@ -91,9 +96,10 @@ impl LocalUserView {
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(local_user::email.is_not_null())
@@ -101,6 +107,7 @@ impl LocalUserView {
       .select(Self::as_select())
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn create_test_user(
@@ -125,9 +132,7 @@ impl LocalUserView {
     };
     let local_user = LocalUser::create(pool, &user_form, vec![]).await?;
 
-    LocalUserView::read(pool, local_user.id)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+    LocalUserView::read(pool, local_user.id).await
   }
 }
 

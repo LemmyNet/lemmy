@@ -9,10 +9,14 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
   ListingType,
+  PersonContentType,
   PostSortType,
 };
 use lemmy_db_views::{
-  combined::inbox_combined_view::InboxCombinedQuery,
+  combined::{
+    inbox_combined_view::InboxCombinedQuery,
+    person_content_combined_view::PersonContentCombinedQuery,
+  },
   post::post_view::PostQuery,
   structs::{InboxCombinedView, PostView, SiteView},
 };
@@ -39,7 +43,6 @@ const RSS_FETCH_LIMIT: i64 = 20;
 struct Params {
   sort: Option<String>,
   limit: Option<i64>,
-  page: Option<i64>,
 }
 
 impl Params {
@@ -52,9 +55,6 @@ impl Params {
   }
   fn get_limit(&self) -> i64 {
     self.limit.unwrap_or(RSS_FETCH_LIMIT)
-  }
-  fn get_page(&self) -> i64 {
-    self.page.unwrap_or(1)
   }
 }
 
@@ -100,7 +100,6 @@ async fn get_all_feed(
       ListingType::All,
       info.sort_type()?,
       info.get_limit(),
-      info.get_page(),
     )
     .await?,
   )
@@ -116,7 +115,6 @@ async fn get_local_feed(
       ListingType::Local,
       info.sort_type()?,
       info.get_limit(),
-      info.get_page(),
     )
     .await?,
   )
@@ -127,7 +125,6 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: PostSortType,
   limit: i64,
-  page: i64,
 ) -> LemmyResult<HttpResponse> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
@@ -137,7 +134,6 @@ async fn get_feed_data(
     listing_type: (Some(listing_type)),
     sort: (Some(sort_type)),
     limit: (Some(limit)),
-    page: (Some(page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -182,35 +178,12 @@ async fn get_feed(
   };
 
   let builder = match request_type {
-    RequestType::User => {
-      get_feed_user(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &info.get_page(),
-        &param,
-      )
-      .await
-    }
+    RequestType::User => get_feed_user(&context, &info.get_limit(), &param).await,
     RequestType::Community => {
-      get_feed_community(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &info.get_page(),
-        &param,
-      )
-      .await
+      get_feed_community(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
     RequestType::Front => {
-      get_feed_front(
-        &context,
-        &info.sort_type()?,
-        &info.get_limit(),
-        &info.get_page(),
-        &param,
-      )
-      .await
+      get_feed_front(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
     RequestType::Inbox => get_feed_inbox(&context, &param).await,
   }
@@ -227,9 +200,7 @@ async fn get_feed(
 
 async fn get_feed_user(
   context: &LemmyContext,
-  sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   user_name: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -239,16 +210,22 @@ async fn get_feed_user(
 
   check_private_instance(&None, &site_view.local_site)?;
 
-  let posts = PostQuery {
-    listing_type: (Some(ListingType::All)),
-    sort: (Some(*sort_type)),
-    creator_id: (Some(person.id)),
+  let content = PersonContentCombinedQuery {
+    creator_id: person.id,
+    type_: Some(PersonContentType::Posts),
+    cursor_data: None,
+    page_back: None,
     limit: (Some(*limit)),
-    page: (Some(*page)),
-    ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &None)
   .await?;
+
+  let posts = content
+    .iter()
+    // Filter map to collect posts
+    .filter_map(|f| f.to_post_view())
+    .cloned()
+    .collect::<Vec<PostView>>();
 
   let items = create_post_items(posts, context.settings())?;
   let channel = Channel {
@@ -266,7 +243,6 @@ async fn get_feed_community(
   context: &LemmyContext,
   sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   community_name: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -283,7 +259,6 @@ async fn get_feed_community(
     sort: (Some(*sort_type)),
     community_id: (Some(community.id)),
     limit: (Some(*limit)),
-    page: (Some(*page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -310,7 +285,6 @@ async fn get_feed_front(
   context: &LemmyContext,
   sort_type: &PostSortType,
   limit: &i64,
-  page: &i64,
   jwt: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -323,7 +297,6 @@ async fn get_feed_front(
     local_user: (Some(&local_user.local_user)),
     sort: (Some(*sort_type)),
     limit: (Some(*limit)),
-    page: (Some(*page)),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())

@@ -151,7 +151,7 @@ tokio-postgres = "0.7.13"
 tokio-postgres-rustls = "0.13.0"
 urlencoding = "2.1.3"
 moka = { version = "0.12.10", features = ["future"] }
-i-love-jesus = { version = "0.1.0" }
+i-love-jesus = { version = "0.2.0" }
 clap = { version = "4.5.29", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
