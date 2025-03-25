@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use block::SiteOrCommunity;
+use either::Either;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -95,7 +96,7 @@ pub(crate) async fn verify_person_in_community(
 /// from local site or community.
 pub(crate) async fn verify_person_in_site_or_community(
   person_id: &ObjectId<ApubPerson>,
-  site_or_community: &SiteOrCommunity,
+  site_or_community: Either<&ApubSite, &ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
@@ -156,7 +157,7 @@ pub(crate) async fn verify_admin_action(
 
 pub(crate) async fn verify_mod_or_admin_action(
   person_id: &ObjectId<ApubPerson>,
-  site_or_community: &SiteOrCommunity,
+  site_or_community: Either<&ApubSite, &ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   match site_or_community {

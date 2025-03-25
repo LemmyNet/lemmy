@@ -6,6 +6,7 @@ use crate::{
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -80,7 +81,7 @@ pub(crate) async fn send_activity_in_community(
 
 async fn report_inboxes(
   object_id: ObjectId<ReportableObjects>,
-  receiver: &SiteOrCommunity,
+  receiver: Either<&ApubSite, &ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<ActivitySendTargets> {
   // send report to the community where object was posted
@@ -111,4 +112,11 @@ async fn report_inboxes(
     }
   }
   Ok(inboxes)
+}
+
+async fn local_community(site_or_community: Either<&ApubSite, &ApubCommunity>) -> Option<&ApubCommunity> {
+  match site_or_community {
+    Either::Right(c) if c.local => Some(c),
+    _ => None,
+  }
 }
