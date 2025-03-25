@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId};
+use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -86,8 +86,6 @@ pub struct Post {
   pub hot_rank_active: f64,
   #[serde(skip)]
   pub controversy_rank: f64,
-  #[serde(skip)]
-  pub instance_id: InstanceId,
   /// A rank that amplifies smaller communities
   #[serde(skip)]
   pub scaled_rank: f64,
