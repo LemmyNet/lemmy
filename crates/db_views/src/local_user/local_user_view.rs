@@ -1,6 +1,6 @@
 use crate::{
   structs::{LocalUserView, SiteView},
-  utils::person_with_instance_actions,
+  utils::local_instance_person_join,
 };
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
@@ -26,8 +26,8 @@ use std::future::{ready, Ready};
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(local_instance_id: InstanceId) -> _ {
-    let p: person_with_instance_actions = person_with_instance_actions(local_instance_id);
-    local_user::table.inner_join(p)
+    let p: local_instance_person_join = local_instance_person_join(local_instance_id);
+    local_user::table.inner_join(person::table.left_join(p))
   }
 
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> LemmyResult<Self> {

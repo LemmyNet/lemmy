@@ -175,12 +175,10 @@ pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {
 ///
 /// Requires annotation for return type, see https://docs.diesel.rs/2.2.x/diesel/dsl/attr.auto_type.html#annotating-types
 #[diesel::dsl::auto_type]
-pub fn person_with_instance_actions(local_instance_id: InstanceId) -> _ {
-  person::table.left_join(
-    instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(local_instance_id)
-        .and(instance_actions::person_id.eq(person::id)),
-    ),
+pub fn local_instance_person_join(local_instance_id: InstanceId) -> _ {
+  instance_actions::table.on(
+    instance_actions::instance_id
+      .eq(local_instance_id)
+      .and(instance_actions::person_id.eq(person::id)),
   )
 }

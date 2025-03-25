@@ -1,6 +1,6 @@
 use crate::{
   structs::{PersonView, SiteView},
-  utils::person_with_instance_actions,
+  utils::local_instance_person_join,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -47,8 +47,8 @@ impl PaginationCursorBuilder for PersonView {
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(local_instance_id: InstanceId) -> _ {
-    let p: person_with_instance_actions = person_with_instance_actions(local_instance_id);
-    p.left_join(local_user::table)
+    let p: local_instance_person_join = local_instance_person_join(local_instance_id);
+    person::table.left_join(p).left_join(local_user::table)
   }
 
   pub async fn read(
