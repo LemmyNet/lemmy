@@ -319,6 +319,18 @@ impl Post {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
   }
+
+  /// The comment was created locally and sent back, indicating that the community accepted it
+  pub async fn set_not_pending(&self, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    if self.local && self.federation_pending {
+      let form = PostUpdateForm {
+        federation_pending: Some(false),
+        ..Default::default()
+      };
+      Post::update(pool, self.id, &form).await?;
+    }
+    Ok(())
+  }
 }
 
 impl Likeable for PostActions {
@@ -624,6 +636,7 @@ mod tests {
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
+      federation_pending: false,
     };
 
     // Post Like
