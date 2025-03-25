@@ -438,6 +438,8 @@ pub struct SiteView {
   pub local_site: LocalSite,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site_rate_limit: LocalSiteRateLimit,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub instance: Instance,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
