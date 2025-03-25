@@ -2,7 +2,6 @@ use crate::{
   activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
-  is_mod_or_admin,
   mentions::collect_non_local_mentions,
   objects::{append_attachments_to_comment, read_from_string_or_source},
   protocol::{
@@ -34,6 +33,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::CommunityView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -156,9 +156,10 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let is_mod_or_admin = is_mod_or_admin(&creator, community.id, context)
-      .await
-      .is_ok();
+    let is_mod_or_admin =
+      CommunityView::check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
+        .await
+        .is_ok();
     if post.locked && !is_mod_or_admin {
       Err(FederationError::PostIsLocked)?
     } else {

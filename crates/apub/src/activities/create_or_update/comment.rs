@@ -9,7 +9,6 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  is_mod_or_admin,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -39,6 +38,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::CommunityView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -145,7 +145,8 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(&creator, post.community_id, context).await?;
+        CommunityView::check_is_mod_or_admin(&mut context.pool(), creator.id, post.community_id)
+          .await?;
       }
     }
 

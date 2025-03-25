@@ -6,22 +6,15 @@ use activitypub_federation::{
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{
-    activity::ReceivedActivity,
-    instance::{Instance, InstanceActions},
-    local_site::LocalSite,
-  },
+  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_db_views::structs::CommunityView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
-use objects::person::ApubPerson;
 use serde_json::Value;
 use std::sync::{Arc, LazyLock};
 use tracing::debug;
@@ -223,15 +216,5 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
   debug!("Received activity {}", ap_id.to_string());
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
-  Ok(())
-}
-
-async fn is_mod_or_admin(
-  person: &ApubPerson,
-  community_id: CommunityId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
-  CommunityView::check_is_mod_or_admin(&mut context.pool(), person.id, community_id).await?;
   Ok(())
 }
