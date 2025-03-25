@@ -226,7 +226,8 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
+  use lemmy_db_schema::source::{instance::Instance, local_site::LocalSite, site::Site};
+  use lemmy_db_views::site::site_view::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -260,6 +261,7 @@ pub(crate) mod tests {
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -278,6 +280,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment_id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -285,6 +288,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -304,6 +308,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment.id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 

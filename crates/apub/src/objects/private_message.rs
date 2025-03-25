@@ -176,6 +176,7 @@ mod tests {
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
+  use lemmy_db_views::site::site_view::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -209,6 +210,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_pm() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
     let json: PrivateMessage = file_to_json_object("assets/lemmy/objects/private_message.json")?;
@@ -225,6 +227,7 @@ mod tests {
 
     DbPrivateMessage::delete(&mut context.pool(), pm_id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -232,6 +235,7 @@ mod tests {
   #[serial]
   async fn test_parse_pleroma_pm() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;
@@ -245,6 +249,7 @@ mod tests {
 
     DbPrivateMessage::delete(&mut context.pool(), pm.id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 }

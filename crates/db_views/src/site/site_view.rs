@@ -3,6 +3,13 @@ use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, Selectab
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{instance, local_site, local_site_rate_limit, site},
+  source::{
+    instance::Instance,
+    local_site::{LocalSite, LocalSiteInsertForm},
+    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+    site::{Site, SiteInsertForm},
+  },
+  traits::Crud,
   utils::{get_conn, DbPool},
 };
 use lemmy_utils::{
@@ -29,10 +36,18 @@ impl SiteView {
           .first(conn)
           .await
           .optional()?
-          .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+          .unwrap();
         Ok(local_site)
       })
       .await
       .map_err(|_e: Arc<LemmyError>| LemmyErrorType::LocalSiteNotSetup.into())
   }
+}
+
+pub async fn create_test_instance(pool: &mut DbPool<'_>) -> LemmyResult<Instance> {
+  let instance = Instance::read_or_create(pool, "example.com".to_string()).await?;
+  let site = Site::create(pool, &SiteInsertForm::new("name".to_string(), instance.id)).await?;
+  let local_site = LocalSite::create(pool, &LocalSiteInsertForm::new(site.id)).await?;
+  LocalSiteRateLimit::create(pool, &LocalSiteRateLimitInsertForm::new(local_site.id)).await?;
+  Ok(instance)
 }
