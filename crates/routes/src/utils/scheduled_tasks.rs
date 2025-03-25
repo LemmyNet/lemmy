@@ -9,7 +9,6 @@ use diesel::{
   sql_types::{Integer, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
@@ -43,6 +42,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
+use lemmy_db_views::{structs::SiteView, utils::person_with_instance_actions};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -423,6 +423,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 /// Find all unpublished posts with scheduled date in the future, and publish them.
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()> {
   let pool = &mut context.pool();
+  let local_instance_id = SiteView::read_local(pool).await?.instance.id;
   let mut conn = get_conn(pool).await?;
 
   let not_banned_action = community_actions::table
@@ -431,15 +432,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
-    .inner_join(
-      person::table.left_join(
-        instance_actions::table.on(
-          instance_actions::person_id
-            .eq(person::id)
-            .and(instance_actions::instance_id.eq(person::instance_id)),
-        ),
-      ),
-    )
+    .inner_join(person_with_instance_actions(local_instance_id))
     // find all posts which have scheduled_publish_time that is in the  past
     .filter(post::scheduled_publish_time.is_not_null())
     .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))

@@ -3,12 +3,14 @@ use diesel::{
   helper_types::{Eq, NotEq},
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
 };
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user, person1, person2},
+  newtypes::InstanceId,
   schema::{
     comment,
     community,
@@ -167,4 +169,18 @@ pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {
   let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
   let is_subscribed: IsSubscribedType = filter_is_subscribed();
   not_unlisted.or(is_subscribed)
+}
+
+/// join with instance actions for local instance
+///
+/// Requires annotation for return type, see https://docs.diesel.rs/2.2.x/diesel/dsl/attr.auto_type.html#annotating-types
+#[diesel::dsl::auto_type]
+pub fn person_with_instance_actions(local_instance_id: InstanceId) -> _ {
+  person::table.inner_join(
+    instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(local_instance_id)
+        .and(instance_actions::person_id.eq(person::id)),
+    ),
+  )
 }

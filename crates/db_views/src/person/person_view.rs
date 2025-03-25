@@ -1,8 +1,10 @@
-use crate::structs::{PersonView, SiteView};
+use crate::{
+  structs::{PersonView, SiteView},
+  utils::person_with_instance_actions,
+};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
@@ -45,13 +47,8 @@ impl PaginationCursorBuilder for PersonView {
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(local_instance_id: InstanceId) -> _ {
-    person::table.left_join(local_user::table).left_join(
-      instance_actions::table.on(
-        instance_actions::person_id
-          .eq(person::id)
-          .and(instance_actions::instance_id.eq(local_instance_id)),
-      ),
-    )
+    let p: person_with_instance_actions = person_with_instance_actions(local_instance_id);
+    p.left_join(local_user::table)
   }
 
   pub async fn read(
@@ -60,6 +57,7 @@ impl PersonView {
     is_admin: bool,
   ) -> LemmyResult<Self> {
     let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+    let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins(local_instance_id)
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
@@ -69,7 +67,7 @@ impl PersonView {
       query = query.filter(person::deleted.eq(false))
     }
 
-    Ok(query.first(&mut get_conn(pool).await?).await?)
+    Ok(query.first(conn).await?)
   }
 
   pub fn banned(&self) -> bool {
@@ -92,6 +90,7 @@ pub struct PersonQuery {
 impl PersonQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
     let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+    let conn = &mut get_conn(pool).await?;
     let mut query = PersonView::joins(local_instance_id)
       .filter(person::deleted.eq(false))
       .select(PersonView::as_select())
@@ -132,7 +131,7 @@ impl PersonQuery {
       // Tie breaker
       .then_desc(key::id);
 
-    let res = query.load::<PersonView>(&mut get_conn(pool).await?).await?;
+    let res = query.load::<PersonView>(conn).await?;
     Ok(res)
   }
 }
