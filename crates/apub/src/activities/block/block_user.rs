@@ -1,4 +1,4 @@
-use super::to;
+use super::{to, update_removed_for_instance};
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -31,7 +31,6 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    post::Post,
   },
   traits::{Bannable, Crud},
 };
@@ -146,16 +145,7 @@ impl ActivityHandler for BlockUser {
             remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
               .await?;
           } else {
-            // user banned from remote instance, remove content only in communities from that
-            // instance
-            Post::update_removed_for_creator(
-              pool,
-              blocked_person.id,
-              None,
-              Some(site.instance_id),
-              true,
-            )
-            .await?;
+            update_removed_for_instance(&blocked_person, &site, true, pool).await?;
           }
         }
 

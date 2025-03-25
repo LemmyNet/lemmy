@@ -20,7 +20,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{community::Community, person::Person, site::Site},
+  source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
   traits::Crud,
   utils::DbPool,
 };
@@ -205,4 +205,30 @@ fn to(target: &SiteOrCommunity) -> LemmyResult<Vec<Url>> {
   } else {
     vec![public()]
   })
+}
+
+// user banned from remote instance, remove content only in communities from that
+// instance
+async fn update_removed_for_instance(
+  blocked_person: &Person,
+  site: &ApubSite,
+  removed: bool,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  Post::update_removed_for_creator(
+    pool,
+    blocked_person.id,
+    None,
+    Some(site.instance_id),
+    removed,
+  )
+  .await?;
+  Comment::update_removed_for_creator_and_instance(
+    pool,
+    blocked_person.id,
+    site.instance_id,
+    removed,
+  )
+  .await?;
+  Ok(())
 }
