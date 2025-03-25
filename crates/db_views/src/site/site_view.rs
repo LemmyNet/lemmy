@@ -36,7 +36,7 @@ impl SiteView {
           .first(conn)
           .await
           .optional()?
-          .unwrap();
+          .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
         Ok(local_site)
       })
       .await

@@ -32,7 +32,7 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
   if admins.len() == 1 {
     Err(LemmyErrorType::CannotLeaveAdmin)?
@@ -67,7 +67,7 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(site_view.instance.id, &mut context.pool())
   .await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;

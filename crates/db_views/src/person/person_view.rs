@@ -88,8 +88,11 @@ pub struct PersonQuery {
 }
 
 impl PersonQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+  pub async fn list(
+    self,
+    local_instance_id: InstanceId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonView>> {
     let conn = &mut get_conn(pool).await?;
     let mut query = PersonView::joins(local_instance_id)
       .filter(person::deleted.eq(false))
@@ -244,7 +247,7 @@ mod tests {
       banned_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(data.alice.instance_id, pool)
     .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
@@ -273,7 +276,7 @@ mod tests {
       admins_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(data.alice.instance_id, pool)
     .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);

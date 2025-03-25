@@ -61,7 +61,7 @@ pub async fn add_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
 
   Ok(Json(AddAdminResponse { admins }))
