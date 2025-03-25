@@ -37,6 +37,10 @@ ALTER TABLE comment
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count;
 
+SET CONSTRAINTS comment_aggregates_comment_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS comment_aggregates_comment_id_fkey DEFERRED;
+
 CREATE INDEX idx_comment_aggregates_controversy ON comment_aggregates USING btree (controversy_rank DESC);
 
 CREATE INDEX idx_comment_aggregates_hot ON comment_aggregates USING btree (hot_rank DESC, score DESC);
@@ -109,6 +113,10 @@ ALTER TABLE post
     DROP COLUMN scaled_rank,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count;
+
+SET CONSTRAINTS post_aggregates_community_id_fkey, post_aggregates_creator_id_fkey, post_aggregates_instance_id_fkey, post_aggregates_post_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS post_aggregates_community_id_fkey, post_aggregates_creator_id_fkey, post_aggregates_instance_id_fkey, post_aggregates_post_id_fkey DEFERRED;
 
 CREATE INDEX idx_post_aggregates_community_active ON post_aggregates USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, post_id DESC);
 
@@ -241,6 +249,10 @@ ALTER TABLE community
     DROP COLUMN interactions_month,
     ALTER CONSTRAINT community_instance_id_fkey NOT DEFERRABLE INITIALLY IMMEDIATE;
 
+SET CONSTRAINTS community_aggregates_community_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS community_aggregates_community_id_fkey DEFERRED;
+
 CREATE INDEX idx_community_aggregates_hot ON public.community_aggregates USING btree (hot_rank DESC);
 
 CREATE INDEX idx_community_aggregates_nonzero_hotrank ON public.community_aggregates USING btree (published)
@@ -278,6 +290,10 @@ ALTER TABLE person
     DROP COLUMN post_score,
     DROP COLUMN comment_count,
     DROP COLUMN comment_score;
+
+SET CONSTRAINTS person_aggregates_person_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS person_aggregates_person_id_fkey DEFERRED;
 
 CREATE INDEX idx_person_aggregates_comment_score ON public.person_aggregates USING btree (comment_score DESC);
 
@@ -346,6 +362,10 @@ ALTER TABLE local_user
     DROP COLUMN show_upvote_percentage;
 
 CREATE INDEX idx_search_combined_score ON public.search_combined USING btree (score DESC, id DESC);
+
+SET CONSTRAINTS site_aggregates_site_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS site_aggregates_site_id_fkey DEFERRED;
 
 CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USING btree ((TRUE));
 

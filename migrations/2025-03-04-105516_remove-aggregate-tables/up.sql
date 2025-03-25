@@ -48,7 +48,7 @@ ALTER TABLE post
     ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN hot_rank_active double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN instance_id int NOT NULL DEFAULT 0 REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
     ADD COLUMN scaled_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
@@ -73,6 +73,13 @@ FROM
     post_aggregates AS pa
 WHERE
     post.id = pa.post_id;
+
+SET CONSTRAINTS post_instance_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS post_instance_id_fkey DEFERRED;
+
+ALTER TABLE post
+    ALTER COLUMN instance_id SET NOT NULL;
 
 DROP TABLE post_aggregates;
 
