@@ -42,7 +42,7 @@ pub async fn update_private_message(
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };
-  plugin_hook_before("before_update_local_private_message", &mut form).await?;
+  form = plugin_hook_before("before_update_local_private_message", form).await?;
   let private_message = PrivateMessage::update(&mut context.pool(), private_message_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;

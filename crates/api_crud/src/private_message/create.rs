@@ -53,18 +53,14 @@ pub async fn create_private_message(
     check_private_messages_enabled(&recipient_local_user)?;
   }
 
-  let mut private_message_form = PrivateMessageInsertForm::new(
+  let mut form = PrivateMessageInsertForm::new(
     local_user_view.person.id,
     data.recipient_id,
     content.clone(),
   );
 
-  plugin_hook_before(
-    "before_create_local_private_message",
-    &mut private_message_form,
-  )
-  .await?;
-  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
+  form = plugin_hook_before("before_create_local_private_message", form).await?;
+  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
   plugin_hook_after(

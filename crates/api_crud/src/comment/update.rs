@@ -68,7 +68,7 @@ pub async fn update_comment(
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };
-  plugin_hook_before("before_update_local_comment", &mut form).await?;
+  form = plugin_hook_before("before_update_local_comment", form).await?;
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
