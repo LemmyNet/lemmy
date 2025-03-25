@@ -107,43 +107,6 @@ impl Object for SiteOrCommunity {
   }
 }
 
-impl Actor for SiteOrCommunity {
-  fn id(&self) -> Url {
-    match self {
-      SiteOrCommunity::Site(u) => u.id(),
-      SiteOrCommunity::Community(c) => c.id(),
-    }
-  }
-
-  fn public_key_pem(&self) -> &str {
-    match self {
-      SiteOrCommunity::Site(p) => p.public_key_pem(),
-      SiteOrCommunity::Community(p) => p.public_key_pem(),
-    }
-  }
-
-  fn private_key_pem(&self) -> Option<String> {
-    match self {
-      SiteOrCommunity::Site(p) => p.private_key_pem(),
-      SiteOrCommunity::Community(p) => p.private_key_pem(),
-    }
-  }
-
-  fn inbox(&self) -> Url {
-    match self {
-      SiteOrCommunity::Site(u) => u.inbox(),
-      SiteOrCommunity::Community(c) => c.inbox(),
-    }
-  }
-
-  fn shared_inbox(&self) -> Option<Url> {
-    match self {
-      SiteOrCommunity::Site(u) => u.shared_inbox(),
-      SiteOrCommunity::Community(c) => c.shared_inbox(),
-    }
-  }
-}
-
 impl SiteOrCommunity {
   fn id(&self) -> ObjectId<SiteOrCommunity> {
     match self {
