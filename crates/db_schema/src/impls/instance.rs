@@ -257,15 +257,16 @@ impl InstanceActions {
     instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    let instance_actions = instance_actions::table
-      .filter(instance_actions::person_id.eq(person_id))
-      .filter(instance_actions::instance_id.eq(instance_id))
-      .get_result::<Self>(conn)
-      .await
-      .optional()?;
+    let ban_exists = select(exists(
+      instance_actions::table
+        .filter(instance_actions::person_id.eq(person_id))
+        .filter(instance_actions::instance_id.eq(instance_id))
+        .filter(instance_actions::received_ban.is_not_null()),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
 
-    let received_ban = instance_actions.iter().any(|i| i.received_ban.is_some());
-    if received_ban {
+    if ban_exists {
       return Err(LemmyErrorType::SiteBan.into());
     }
     Ok(())
