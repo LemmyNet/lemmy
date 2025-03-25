@@ -29,7 +29,6 @@ use activitypub_federation::{
   kinds::{activity::AnnounceType, public},
   traits::{ActivityHandler, Actor},
 };
-use anyhow::anyhow;
 use block::SiteOrCommunity;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
@@ -47,7 +46,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
 };
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -68,8 +67,7 @@ async fn verify_person(
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+    Err(FederationError::PersonIsBannedFromSite(person.ap_id.to_string()).into())
   } else {
     Ok(())
   }
