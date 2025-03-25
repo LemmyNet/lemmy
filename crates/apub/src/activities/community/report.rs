@@ -9,7 +9,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
   insert_received_activity,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
@@ -22,7 +22,6 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
@@ -46,7 +45,7 @@ impl Report {
   pub(crate) fn new(
     object_id: &ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    receiver: Either<&ApubSite, &ApubCommunity>,
+    receiver: &SiteOrCommunity,
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
@@ -69,7 +68,7 @@ impl Report {
   pub(crate) async fn send(
     object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    receiver: Either<&ApubSite, &ApubCommunity>,
+    receiver: &SiteOrCommunity,
     reason: String,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {

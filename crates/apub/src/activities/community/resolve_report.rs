@@ -24,7 +24,6 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
-use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -42,7 +41,7 @@ impl ResolveReport {
     object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
     report_creator: &ApubPerson,
-    receiver: Either<&ApubSite, &ApubCommunity>,
+    receiver: &SiteOrCommunity,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
