@@ -1,5 +1,5 @@
 ALTER TABLE post
-    ADD COLUMN instance_id int NOT NULL DEFAULT 0 REFERENCES local_site (site_id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN instance_id int NOT NULL DEFAULT 0 REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Update the historical rows
 UPDATE
