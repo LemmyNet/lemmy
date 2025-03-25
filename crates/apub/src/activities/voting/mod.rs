@@ -61,6 +61,7 @@ async fn vote_comment(
   let comment_id = comment.id;
   let like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
   let person_id = actor.id;
+  comment.set_not_pending(&mut context.pool()).await?;
   CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
   CommentActions::like(&mut context.pool(), &like_form).await?;
   Ok(())
@@ -75,6 +76,7 @@ async fn vote_post(
   let post_id = post.id;
   let like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
+  post.set_not_pending(&mut context.pool()).await?;
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
   PostActions::like(&mut context.pool(), &like_form).await?;
   Ok(())
