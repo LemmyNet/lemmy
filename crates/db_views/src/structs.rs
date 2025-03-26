@@ -181,6 +181,11 @@ pub struct CommentView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
@@ -220,6 +225,11 @@ pub struct CommentSlimView {
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
 }
@@ -355,6 +365,11 @@ pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
@@ -581,6 +596,10 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -639,6 +658,10 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -770,6 +793,11 @@ pub struct PersonCommentMentionView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
@@ -798,6 +826,11 @@ pub struct PersonPostMentionView {
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
@@ -825,6 +858,11 @@ pub struct CommentReplyView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
@@ -930,6 +968,10 @@ pub struct InboxCombinedViewInternal {
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
