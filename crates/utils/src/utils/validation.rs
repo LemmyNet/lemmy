@@ -3,6 +3,7 @@ use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
+use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
@@ -348,6 +349,45 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   Ok(out)
 }
 
+// Shorten a string to n chars, being mindful of unicode grapheme
+// boundaries
+pub fn truncate_for_db(text: &str, len: usize) -> String {
+  if text.chars().count() <= len {
+    text.to_string()
+  } else {
+    let offset = text
+      .char_indices()
+      .nth(len)
+      .unwrap_or(text.char_indices().last().unwrap_or_default());
+    let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
+    let mut index = 0;
+    // Walk the string backwards and find the first char within our length
+    for idx in (0..graphemes.len()).rev() {
+      if let Some(grapheme) = graphemes.get(idx) {
+        if grapheme.0 < offset.0 {
+          index = idx;
+          break;
+        }
+      }
+    }
+    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let grapheme_count = grapheme.1.chars().count();
+    // `take` isn't inclusive, so if the last grapheme can fit we add its char
+    // length
+    let char_count = if grapheme_count + grapheme.0 <= len {
+      grapheme.0 + grapheme_count
+    } else {
+      grapheme.0
+    };
+
+    text.chars().take(char_count).collect::<String>()
+  }
+}
+
+pub fn truncate_description(text: &str) -> String {
+  truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -368,6 +408,7 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       site_or_community_description_length_check,
+      truncate_for_db,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -681,6 +722,16 @@ Line3",
     );
 
     assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
+    Ok(())
+  }
+
+  #[test]
+  fn test_truncate() -> LemmyResult<()> {
+    assert_eq!("Hell", truncate_for_db("Hello", 4));
+    assert_eq!("word", truncate_for_db("word", 10));
+    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
+    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+
     Ok(())
   }
 }

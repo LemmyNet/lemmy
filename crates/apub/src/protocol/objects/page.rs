@@ -1,7 +1,12 @@
 use crate::{
-  fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
+  fetcher::user_or_community::PersonOrGroupType,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
+  protocol::{
+    objects::{AttributedTo, LanguageTag},
+    ImageObject,
+    InCommunity,
+    Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -147,21 +152,6 @@ impl Attachment {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub(crate) enum AttributedTo {
-  Lemmy(ObjectId<ApubPerson>),
-  Peertube([AttributedToPeertube; 2]),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AttributedToPeertube {
-  #[serde(rename = "type")]
-  pub kind: PersonOrGroupType,
-  pub id: ObjectId<UserOrCommunity>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Hashtag {
   pub(crate) href: Url,
   pub(crate) name: String,
@@ -177,7 +167,7 @@ pub enum HashtagType {
 impl Page {
   pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
-      AttributedTo::Lemmy(l) => Ok(l.clone()),
+      AttributedTo::Lemmy(l) => Ok(l.creator()),
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)

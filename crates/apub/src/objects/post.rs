@@ -5,7 +5,8 @@ use crate::{
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
+      page::{Attachment, Hashtag, HashtagType, Page, PageType},
+      AttributedTo,
       LanguageTag,
     },
     ImageObject,
@@ -249,7 +250,11 @@ impl Object for ApubPost {
     let url = if let Some(url) = url {
       is_url_blocked(&url, &url_blocklist)?;
       is_valid_url(&url)?;
-      to_local_url(url.as_str(), context).await.or(Some(url))
+      if page.kind != PageType::Video {
+        to_local_url(url.as_str(), context).await.or(Some(url))
+      } else {
+        Some(url)
+      }
     } else {
       None
     };
