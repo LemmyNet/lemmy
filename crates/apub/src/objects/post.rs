@@ -5,7 +5,8 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
+      page::{Attachment, Hashtag, HashtagType, Page, PageType},
+      AttributedTo,
       LanguageTag,
     },
     ImageObject,
