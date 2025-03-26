@@ -439,13 +439,6 @@ BEGIN
     -- Set aggregates
     NEW.newest_comment_time = NEW.published;
     NEW.newest_comment_time_necro = NEW.published;
-    NEW.instance_id = (
-        SELECT
-            community.instance_id
-        FROM
-            community
-        WHERE
-            community.id = NEW.community_id);
     RETURN NEW;
 END
 $$;
