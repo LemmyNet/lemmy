@@ -454,12 +454,6 @@ async fn initialize_local_site_2022_10_10(
 
   // Create the rate limit table
   let local_site_rate_limit_form = LocalSiteRateLimitInsertForm {
-    message: Some(999),
-    post: Some(999),
-    register: Some(999),
-    image: Some(999),
-    comment: Some(999),
-    search: Some(999),
     ..LocalSiteRateLimitInsertForm::new(local_site.id)
   };
   // TODO these have to be set, because the database defaults are too low for the federation
