@@ -9,13 +9,10 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,
-  source::{
-    local_site::LocalSite,
-    post::{PostActions, PostLikeForm, PostReadForm},
-  },
+  source::post::{PostActions, PostLikeForm, PostReadForm},
   traits::{Likeable, Readable},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views::structs::{LocalUserView, PostView, SiteView};
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
@@ -24,7 +21,7 @@ pub async fn like_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let post_id = data.post_id;
 
   check_local_vote_mode(

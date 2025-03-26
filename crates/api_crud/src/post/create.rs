@@ -22,13 +22,12 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
-    local_site::LocalSite,
     post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   },
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -50,7 +49,7 @@ pub async fn create_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   honeypot_check(&data.honeypot)?;
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;

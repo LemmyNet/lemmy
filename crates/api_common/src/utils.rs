@@ -555,7 +555,10 @@ pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
   Ok(
     CACHE
       .try_get_with((), async {
-        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        let local_site = SiteView::read_local(&mut context.pool())
+          .await
+          .ok()
+          .map(|s| s.local_site);
         build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
       })
       .await

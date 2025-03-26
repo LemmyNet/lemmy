@@ -14,14 +14,12 @@ use lemmy_api_common::{
   person::{CaptchaResponse, GetCaptchaResponse},
   LemmyErrorType,
 };
-use lemmy_db_schema::source::{
-  captcha_answer::{CaptchaAnswer, CaptchaAnswerForm},
-  local_site::LocalSite,
-};
+use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let mut res = HttpResponseBuilder::new(StatusCode::OK);
   res.insert_header(CacheControl(vec![CacheDirective::NoStore]));
 

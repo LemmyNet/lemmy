@@ -6,12 +6,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, read_site_for_actor},
 };
-use lemmy_db_schema::source::{
-  actor_language::CommunityLanguage,
-  community::Community,
-  local_site::LocalSite,
-};
-use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView};
+use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
+use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn get_community(
@@ -19,7 +15,7 @@ pub async fn get_community(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommunityResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   if data.name.is_none() && data.id.is_none() {
     Err(LemmyErrorType::NoIdGiven)?

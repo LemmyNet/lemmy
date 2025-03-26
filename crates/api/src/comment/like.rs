@@ -12,11 +12,10 @@ use lemmy_db_schema::{
   source::{
     comment::{CommentActions, CommentLikeForm},
     comment_reply::CommentReply,
-    local_site::LocalSite,
   },
   traits::Likeable,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
+use lemmy_db_views::structs::{CommentView, LocalUserView, SiteView};
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
@@ -25,7 +24,7 @@ pub async fn like_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let comment_id = data.comment_id;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();

@@ -10,8 +10,15 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
-use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PersonView, PostView};
+use lemmy_db_schema::utils::DbPool;
+use lemmy_db_views::structs::{
+  CommentView,
+  CommunityView,
+  LocalUserView,
+  PersonView,
+  PostView,
+  SiteView,
+};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 pub async fn resolve_object(
@@ -19,7 +26,7 @@ pub async fn resolve_object(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.

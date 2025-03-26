@@ -38,13 +38,12 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views::structs::{CommunityModeratorView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -178,7 +177,10 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 

@@ -388,7 +388,7 @@ async fn initialize_local_site_2022_10_10(
   info!("Running initialize_local_site_2022_10_10");
 
   // Check to see if local_site exists
-  if LocalSite::read(pool).await.is_ok() {
+  if SiteView::read_local(pool).await.is_ok() {
     return Ok(());
   }
   info!("No Local Site found, creating it.");

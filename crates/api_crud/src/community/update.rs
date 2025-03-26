@@ -19,12 +19,11 @@ use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
-    local_site::LocalSite,
   },
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
@@ -35,7 +34,7 @@ pub async fn update_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
