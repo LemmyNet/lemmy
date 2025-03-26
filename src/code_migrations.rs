@@ -505,19 +505,25 @@ async fn initialize_local_site_2022_10_10(
   let local_site = LocalSite::create(pool, &local_site_form).await?;
 
   // Create the rate limit table
-  let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
+  let local_site_rate_limit_form = if cfg!(debug_assertions) {
     // TODO these have to be set, because the database defaults are too low for the federation
     // tests to pass, and there's no way to live update the rate limits without restarting the
     // server.
     // This can be removed once live rate limits are enabled.
-    .message(Some(999))
-    .post(Some(999))
-    .register(Some(999))
-    .image(Some(999))
-    .comment(Some(999))
-    .search(Some(999))
-    .local_site_id(local_site.id)
-    .build();
+    LocalSiteRateLimitInsertForm::builder()
+      .local_site_id(local_site.id)
+      .message(Some(999))
+      .post(Some(999))
+      .register(Some(999))
+      .image(Some(999))
+      .comment(Some(999))
+      .search(Some(999))
+      .build()
+  } else {
+    LocalSiteRateLimitInsertForm::builder()
+      .local_site_id(local_site.id)
+      .build()
+  };
   LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
 
   Ok(())
