@@ -179,7 +179,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      description: group.summary.map(truncate_description),
+      description: group.summary.as_deref().map(truncate_description),
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(
         group

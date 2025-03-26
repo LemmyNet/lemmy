@@ -91,8 +91,7 @@ pub(crate) async fn handle_community_moderators(
     if let Some(mod_user) = mod_user {
       if !current_moderators
         .iter()
-        .map(|c| c.moderator.ap_id.clone())
-        .any(|x| x == mod_user.ap_id)
+        .any(|x| x.moderator.ap_id == mod_user.ap_id)
       {
         let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
         CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;

@@ -351,41 +351,41 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
-#[allow(clippy::indexing_slicing)]
-pub fn truncate_for_db(string: String, len: usize) -> String {
-  if string.chars().count() <= len {
-    return string;
-  }
-
-  let offset = string
-    .char_indices()
-    .nth(len)
-    .unwrap_or(string.char_indices().last().unwrap_or_default());
-  let graphemes: Vec<(usize, _)> = string.as_str().grapheme_indices(true).collect();
-  let mut index = 0;
-  // Walk the string backwards and find the first char within our length
-  for idx in (0..graphemes.len()).rev() {
-    let grapheme = graphemes[idx];
-    if grapheme.0 < offset.0 {
-      index = idx;
-      break;
-    }
-  }
-  let grapheme = graphemes[index];
-  let grapheme_count = grapheme.1.chars().count();
-  // `take` isn't inclusive, so if the last grapheme can fit we add its char
-  // length
-  let char_count = if grapheme_count + grapheme.0 <= len {
-    grapheme.0 + grapheme_count
+pub fn truncate_for_db(text: &str, len: usize) -> String {
+  if text.chars().count() <= len {
+    text.to_string()
   } else {
-    grapheme.0
-  };
+    let offset = text
+      .char_indices()
+      .nth(len)
+      .unwrap_or(text.char_indices().last().unwrap_or_default());
+    let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
+    let mut index = 0;
+    // Walk the string backwards and find the first char within our length
+    for idx in (0..graphemes.len()).rev() {
+      if let Some(grapheme) = graphemes.get(idx) {
+        if grapheme.0 < offset.0 {
+          index = idx;
+          break;
+        }
+      }
+    }
+    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let grapheme_count = grapheme.1.chars().count();
+    // `take` isn't inclusive, so if the last grapheme can fit we add its char
+    // length
+    let char_count = if grapheme_count + grapheme.0 <= len {
+      grapheme.0 + grapheme_count
+    } else {
+      grapheme.0
+    };
 
-  string.chars().take(char_count).collect::<String>()
+    text.chars().take(char_count).collect::<String>()
+  }
 }
 
-pub fn truncate_description(string: String) -> String {
-  truncate_for_db(string, SITE_DESCRIPTION_MAX_LENGTH)
+pub fn truncate_description(text: &str) -> String {
+  truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
 }
 
 #[cfg(test)]
@@ -727,10 +727,10 @@ Line3",
 
   #[test]
   fn test_truncate() -> LemmyResult<()> {
-    assert_eq!("Hell", truncate_for_db("Hello".to_string(), 4));
-    assert_eq!("word", truncate_for_db("word".to_string(), 10));
-    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿".to_string(), 10));
-    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿".to_string(), 14));
+    assert_eq!("Hell", truncate_for_db("Hello", 4));
+    assert_eq!("word", truncate_for_db("word", 10));
+    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
+    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
 
     Ok(())
   }

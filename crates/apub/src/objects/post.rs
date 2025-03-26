@@ -250,7 +250,7 @@ impl Object for ApubPost {
     let url = if let Some(url) = url {
       is_url_blocked(&url, &url_blocklist)?;
       is_valid_url(&url)?;
-      if !(page.kind == PageType::Video) {
+      if page.kind != PageType::Video {
         to_local_url(url.as_str(), context).await.or(Some(url))
       } else {
         Some(url)
