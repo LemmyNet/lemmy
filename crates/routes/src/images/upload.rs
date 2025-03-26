@@ -6,7 +6,6 @@ use lemmy_api_common::{
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
   LemmyErrorType,
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -49,17 +48,17 @@ pub async fn upload_user_avatar(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.avatar, &context).await?;
 
   let form = PersonUpdateForm {
-    avatar: Some(Some(image.image_url.into())),
+    avatar: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_user_banner(
@@ -67,17 +66,17 @@ pub async fn upload_user_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.banner, &context).await?;
 
   let form = PersonUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_community_icon(
@@ -86,7 +85,7 @@ pub async fn upload_community_icon(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
 
@@ -94,12 +93,12 @@ pub async fn upload_community_icon(
   delete_old_image(&community.icon, &context).await?;
 
   let form = CommunityUpdateForm {
-    icon: Some(Some(image.image_url.into())),
+    icon: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_community_banner(
@@ -108,7 +107,7 @@ pub async fn upload_community_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
 
@@ -116,12 +115,12 @@ pub async fn upload_community_banner(
   delete_old_image(&community.banner, &context).await?;
 
   let form = CommunityUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_site_icon(
@@ -129,7 +128,7 @@ pub async fn upload_site_icon(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
   let site = Site::read_local(&mut context.pool()).await?;
 
@@ -137,12 +136,12 @@ pub async fn upload_site_icon(
   delete_old_image(&site.icon, &context).await?;
 
   let form = SiteUpdateForm {
-    icon: Some(Some(image.image_url.into())),
+    icon: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Site::update(&mut context.pool(), site.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_site_banner(
@@ -150,7 +149,7 @@ pub async fn upload_site_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
   let site = Site::read_local(&mut context.pool()).await?;
 
@@ -158,12 +157,12 @@ pub async fn upload_site_banner(
   delete_old_image(&site.banner, &context).await?;
 
   let form = SiteUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Site::update(&mut context.pool(), site.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn do_upload_image(

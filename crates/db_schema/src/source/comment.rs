@@ -60,6 +60,9 @@ pub struct Comment {
   pub controversy_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
+  /// If a local user comments in a remote community, the comment is hidden until it is confirmed
+  /// accepted by the community (by receiving it back via federation).
+  pub federation_pending: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -85,6 +88,8 @@ pub struct CommentInsertForm {
   pub distinguished: Option<bool>,
   #[new(default)]
   pub language_id: Option<LanguageId>,
+  #[new(default)]
+  pub federation_pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -100,6 +105,7 @@ pub struct CommentUpdateForm {
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub federation_pending: Option<bool>,
 }
 
 #[skip_serializing_none]
