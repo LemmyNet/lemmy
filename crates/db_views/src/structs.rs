@@ -1,3 +1,4 @@
+use crate::utils::home_instance_actions_select;
 #[cfg(feature = "full")]
 use crate::utils::{
   comment_creator_is_admin,
@@ -21,60 +22,6 @@ use diesel::{
   Queryable,
   Selectable,
 };
-use lemmy_db_schema::source::{
-  combined::{
-    inbox::InboxCombined,
-    person_content::PersonContentCombined,
-    person_saved::PersonSavedCombined,
-    report::ReportCombined,
-    search::SearchCombined,
-  },
-  comment::{Comment, CommentActions},
-  comment_reply::CommentReply,
-  comment_report::CommentReport,
-  community::{Community, CommunityActions, CommunityFollowerState},
-  community_report::CommunityReport,
-  custom_emoji::CustomEmoji,
-  custom_emoji_keyword::CustomEmojiKeyword,
-  images::{ImageDetails, LocalImage},
-  instance::{Instance, InstanceActions},
-  local_site::LocalSite,
-  local_site_rate_limit::LocalSiteRateLimit,
-  local_user::LocalUser,
-  mod_log::{
-    admin::{
-      AdminAllowInstance,
-      AdminBlockInstance,
-      AdminPurgeComment,
-      AdminPurgeCommunity,
-      AdminPurgePerson,
-      AdminPurgePost,
-    },
-    moderator::{
-      ModAdd,
-      ModAddCommunity,
-      ModBan,
-      ModBanFromCommunity,
-      ModChangeCommunityVisibility,
-      ModFeaturePost,
-      ModLockPost,
-      ModRemoveComment,
-      ModRemoveCommunity,
-      ModRemovePost,
-      ModTransferCommunity,
-    },
-  },
-  person::{Person, PersonActions},
-  person_comment_mention::PersonCommentMention,
-  person_post_mention::PersonPostMention,
-  post::{Post, PostActions},
-  post_report::PostReport,
-  private_message::PrivateMessage,
-  private_message_report::PrivateMessageReport,
-  registration_application::RegistrationApplication,
-  site::Site,
-  tag::Tag,
-};
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
   schema::local_user,
@@ -82,6 +29,63 @@ use lemmy_db_schema::{
   CreatorCommunityActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
+};
+use lemmy_db_schema::{
+  source::{
+    combined::{
+      inbox::InboxCombined,
+      person_content::PersonContentCombined,
+      person_saved::PersonSavedCombined,
+      report::ReportCombined,
+      search::SearchCombined,
+    },
+    comment::{Comment, CommentActions},
+    comment_reply::CommentReply,
+    comment_report::CommentReport,
+    community::{Community, CommunityActions, CommunityFollowerState},
+    community_report::CommunityReport,
+    custom_emoji::CustomEmoji,
+    custom_emoji_keyword::CustomEmojiKeyword,
+    images::{ImageDetails, LocalImage},
+    instance::{Instance, InstanceActions},
+    local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
+    local_user::LocalUser,
+    mod_log::{
+      admin::{
+        AdminAllowInstance,
+        AdminBlockInstance,
+        AdminPurgeComment,
+        AdminPurgeCommunity,
+        AdminPurgePerson,
+        AdminPurgePost,
+      },
+      moderator::{
+        ModAdd,
+        ModAddCommunity,
+        ModBan,
+        ModBanFromCommunity,
+        ModChangeCommunityVisibility,
+        ModFeaturePost,
+        ModLockPost,
+        ModRemoveComment,
+        ModRemoveCommunity,
+        ModRemovePost,
+        ModTransferCommunity,
+      },
+    },
+    person::{Person, PersonActions},
+    person_comment_mention::PersonCommentMention,
+    person_post_mention::PersonPostMention,
+    post::{Post, PostActions},
+    post_report::PostReport,
+    private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
+    registration_application::RegistrationApplication,
+    site::Site,
+    tag::Tag,
+  },
+  HomeInstanceActionsAllColumnsTuple,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -845,6 +849,11 @@ pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub home_instance_actions: Option<InstanceActions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1296,6 +1305,10 @@ pub(crate) struct SearchCombinedViewInternal {
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
+      select_expression = home_instance_actions_select()))]
+  pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

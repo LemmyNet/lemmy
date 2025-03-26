@@ -1,5 +1,5 @@
 use diesel::{
-  dsl::{case_when, exists, not},
+  dsl::{case_when, exists, not, Nullable},
   helper_types::{Eq, NotEq},
   BoolExpressionMethods,
   ExpressionMethods,
@@ -9,7 +9,13 @@ use diesel::{
   QueryDsl,
 };
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user, person1, person2},
+  aliases::{
+    creator_community_actions,
+    creator_local_user,
+    home_instance_actions,
+    person1,
+    person2,
+  },
   newtypes::InstanceId,
   schema::{
     comment,
@@ -24,6 +30,7 @@ use lemmy_db_schema::{
   source::community::CommunityFollowerState,
   CommunityVisibility,
   CreatorCommunityActionsAllColumnsTuple,
+  HomeInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -155,6 +162,12 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
   creator_community_actions.fields(community_actions::all_columns)
 }
 
+pub(crate) fn home_instance_actions_select() -> Nullable<HomeInstanceActionsAllColumnsTuple> {
+  home_instance_actions
+    .fields(instance_actions::all_columns)
+    .nullable()
+}
+
 type IsSubscribedType =
   Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
 
@@ -180,5 +193,19 @@ pub fn local_instance_person_join(local_instance_id: InstanceId) -> _ {
     instance_actions::instance_id
       .eq(local_instance_id)
       .and(instance_actions::person_id.eq(person::id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub fn home_instance_person_join() -> _ {
+  home_instance_actions.on(
+    home_instance_actions
+      .field(instance_actions::instance_id)
+      .eq(person::instance_id)
+      .and(
+        home_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
   )
 }

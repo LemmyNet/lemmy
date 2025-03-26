@@ -8,7 +8,7 @@ use crate::{
     SearchCombinedView,
     SearchCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed, home_instance_person_join},
 };
 use diesel::{
   dsl::not,
@@ -54,21 +54,23 @@ impl SearchCombinedViewInternal {
   fn joins(my_person_id: Option<PersonId>) -> _ {
     let item_creator = person::id;
 
-    let item_creator_join = person::table.on(
-      search_combined::person_id
-        .eq(item_creator.nullable())
-        .or(
-          search_combined::comment_id
-            .is_not_null()
-            .and(comment::creator_id.eq(item_creator)),
-        )
-        .or(
-          search_combined::post_id
-            .is_not_null()
-            .and(post::creator_id.eq(item_creator)),
-        )
-        .and(not(person::deleted)),
-    );
+    let item_creator_join = person::table
+      .on(
+        search_combined::person_id
+          .eq(item_creator.nullable())
+          .or(
+            search_combined::comment_id
+              .is_not_null()
+              .and(comment::creator_id.eq(item_creator)),
+          )
+          .or(
+            search_combined::post_id
+              .is_not_null()
+              .and(post::creator_id.eq(item_creator)),
+          )
+          .and(not(person::deleted)),
+      )
+      .left_join(home_instance_person_join());
 
     let comment_join = comment::table.on(
       search_combined::comment_id
@@ -415,6 +417,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person,
         is_admin: v.item_creator_is_admin,
         instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
       }))
     } else {
       None

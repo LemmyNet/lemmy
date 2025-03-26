@@ -1,6 +1,6 @@
 use crate::{
   structs::{PersonView, SiteView},
-  utils::local_instance_person_join,
+  utils::{home_instance_person_join, local_instance_person_join},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -48,7 +48,10 @@ impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(local_instance_id: InstanceId) -> _ {
     let p: local_instance_person_join = local_instance_person_join(local_instance_id);
-    person::table.left_join(p).left_join(local_user::table)
+    person::table
+      .left_join(p)
+      .left_join(local_user::table)
+      .left_join(home_instance_person_join())
   }
 
   pub async fn read(
