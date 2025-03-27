@@ -19,7 +19,7 @@ pub async fn send_mention_email(
   settings: &Settings,
 ) {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&mention_user_view);
+  let lang = user_language(mention_user_view);
   let content = markdown_to_html(content);
   send_email_to_user(
     mention_user_view,
@@ -39,7 +39,7 @@ pub async fn send_comment_reply_email(
   settings: &Settings,
 ) -> LemmyResult<()> {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&parent_user_view);
+  let lang = user_language(parent_user_view);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
     parent_user_view,
@@ -66,7 +66,7 @@ pub async fn send_post_reply_email(
   settings: &Settings,
 ) -> LemmyResult<()> {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&parent_user_view);
+  let lang = user_language(parent_user_view);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
     parent_user_view,
@@ -91,7 +91,7 @@ pub async fn send_private_message_email(
   settings: &Settings,
 ) {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&local_recipient);
+  let lang = user_language(local_recipient);
   let sender_name = &sender.person.name;
   let content = markdown_to_html(content);
   send_email_to_user(

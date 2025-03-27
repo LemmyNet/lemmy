@@ -90,7 +90,7 @@ fn user_language(local_user_view: &LocalUserView) -> Lang {
   })
 }
 
-fn user_email<'a>(local_user_view: &'a LocalUserView) -> LemmyResult<SensitiveString> {
+fn user_email(local_user_view: &LocalUserView) -> LemmyResult<SensitiveString> {
   local_user_view
     .local_user
     .email
