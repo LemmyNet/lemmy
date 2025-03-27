@@ -1,0 +1,68 @@
+[package]
+name = "lemmy_email"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_email"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_utils = {workspace = true, features = ["full"]}
+lemmy_db_schema = {workspace = true, features = ["full"]}
+lemmy_db_views = {workspace = true, features = ["full"]}
+regex = { workspace = true, optional = true }
+tracing = { workspace = true }
+itertools = { workspace = true, optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+reqwest-middleware = { workspace = true, optional = true }
+strum = { workspace = true }
+futures = { workspace = true, optional = true }
+diesel = { workspace = true, optional = true, features = ["chrono"] }
+http = { workspace = true, optional = true }
+doku = { workspace = true, features = ["url-2"], optional = true }
+uuid = { workspace = true, features = ["v4"] }
+rosetta-i18n = { workspace = true }
+tokio = { workspace = true, optional = true }
+urlencoding = { workspace = true, optional = true }
+html2text =  "0.14.0"
+deser-hjson = { version = "2.2.4", optional = true }
+smart-default = { version = "0.7.1", optional = true }
+lettre = { version = "0.11.12", default-features = false, features = [
+  "builder",
+  "smtp-transport",
+  "tokio1-rustls-tls",
+  "pool",
+]}
+markdown-it = { version = "0.6.1", optional = true }
+ts-rs = { workspace = true, optional = true }
+enum-map = { version = "2.7", optional = true }
+cfg-if = "1"
+clearurls = { version = "0.0.4", features = ["linkify"] }
+markdown-it-block-spoiler = "1.0.1"
+markdown-it-sub = "1.0.1"
+markdown-it-sup = "1.0.1"
+markdown-it-ruby = "1.0.1"
+markdown-it-footnote = "0.2.0"
+moka = { workspace = true, optional = true }
+git-version = "0.3.9"
+unicode-segmentation = "1.9.0"
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+
+[build-dependencies]
+rosetta-build = { version = "0.1.3", default-features = false }

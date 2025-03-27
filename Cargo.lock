@@ -2776,6 +2776,52 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_email"
+version = "1.0.0-alpha.3"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "cfg-if",
+ "clearurls",
+ "deser-hjson",
+ "diesel",
+ "doku",
+ "enum-map",
+ "futures",
+ "git-version",
+ "html2text",
+ "http 1.2.0",
+ "itertools 0.14.0",
+ "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_utils",
+ "lettre",
+ "markdown-it",
+ "markdown-it-block-spoiler",
+ "markdown-it-footnote",
+ "markdown-it-ruby",
+ "markdown-it-sub",
+ "markdown-it-sup",
+ "moka",
+ "pretty_assertions",
+ "regex",
+ "reqwest-middleware",
+ "rosetta-build",
+ "rosetta-i18n",
+ "serde",
+ "serde_json",
+ "smart-default",
+ "strum",
+ "tokio",
+ "tracing",
+ "ts-rs",
+ "unicode-segmentation",
+ "url",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
 name = "lemmy_federate"
 version = "1.0.0-alpha.3"
 dependencies = [

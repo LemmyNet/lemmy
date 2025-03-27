@@ -3,7 +3,7 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_instance_community_block, is_mod_or_admin, send_email_to_user},
+  utils::{check_person_instance_community_block, is_mod_or_admin},
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
