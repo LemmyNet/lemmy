@@ -1,4 +1,3 @@
-use html2text;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -51,9 +50,9 @@ pub async fn send_mention_email(
 ) {
   let inbox_link = inbox_link(settings);
   let lang = user_language(&mention_user_view.local_user);
-  let content = markdown_to_html(&content);
+  let content = markdown_to_html(content);
   send_email_to_user(
-    &mention_user_view,
+    mention_user_view,
     &lang.notification_mentioned_by_subject(&person.name),
     &lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
     settings,
@@ -73,7 +72,7 @@ pub async fn send_comment_reply_email(
   let lang = user_language(&parent_user_view.local_user);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
-    &parent_user_view,
+    parent_user_view,
     &lang.notification_comment_reply_subject(&person.name),
     &lang.notification_comment_reply_body(
       comment.local_url(settings)?,
@@ -100,7 +99,7 @@ pub async fn send_post_reply_email(
   let lang = user_language(&parent_user_view.local_user);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
-    &parent_user_view,
+    parent_user_view,
     &lang.notification_post_reply_subject(&person.name),
     &lang.notification_post_reply_body(
       comment.local_url(settings)?,
@@ -179,7 +178,7 @@ pub async fn send_private_message_email(
   let sender_name = &sender.person.name;
   let content = markdown_to_html(content);
   send_email_to_user(
-    &local_recipient,
+    local_recipient,
     &lang.notification_private_message_subject(sender_name),
     &lang.notification_private_message_body(inbox_link, &content, sender_name),
     settings,
@@ -300,7 +299,7 @@ pub async fn send_email_verified_email(local_user_view: &LocalUserView, settings
   let lang = user_language(&local_user_view.local_user);
   let subject = lang.email_verified_subject(&local_user_view.person.name);
   let body = lang.email_verified_body();
-  send_email_to_user(&local_user_view, &subject, &body, settings).await;
+  send_email_to_user(local_user_view, &subject, body, settings).await;
 }
 
 /// Send a report to all admins

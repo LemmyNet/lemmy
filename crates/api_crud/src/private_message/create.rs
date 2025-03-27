@@ -17,7 +17,7 @@ use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_email::send_private_message_email;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::{markdown::markdown_to_html, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 pub async fn create_private_message(

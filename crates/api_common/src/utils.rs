@@ -17,13 +17,11 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentActions, CommentUpdateForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
-    email_verification::{EmailVerification, EmailVerificationForm},
     images::{ImageDetails, RemoteImage},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -31,7 +29,6 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    password_reset_request::PasswordResetRequest,
     person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
@@ -58,10 +55,7 @@ use lemmy_db_views::{
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::{
-    structs::{PictrsImageMode, Settings},
-    SETTINGS,
-  },
+  settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
@@ -74,7 +68,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use std::sync::LazyLock;
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
 use webmention::{Webmention, WebmentionError};

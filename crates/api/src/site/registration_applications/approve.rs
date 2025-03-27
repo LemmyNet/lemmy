@@ -16,10 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
 use lemmy_email::{send_application_approved_email, send_application_denied_email};
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  settings::structs::Settings,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,

@@ -22,10 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
 use lemmy_email::{send_comment_reply_email, send_mention_email, send_post_reply_email};
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::{markdown::markdown_to_html, mention::MentionData},
-};
+use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
 
 pub async fn build_comment_response(
   context: &LemmyContext,
@@ -189,7 +186,7 @@ pub async fn send_local_notifs(
         send_mention_email(
           &mention_user_view,
           &comment_content_or_post_body,
-          &person,
+          person,
           link,
           context.settings(),
         )
