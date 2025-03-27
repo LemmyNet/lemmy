@@ -50,8 +50,7 @@ pub async fn save_user_settings(
       LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &site_view.local_site,
-        &local_user_view.local_user,
-        &local_user_view.person,
+        &local_user_view,
         email,
         &mut context.pool(),
         context.settings(),

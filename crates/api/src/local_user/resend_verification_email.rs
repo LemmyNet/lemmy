@@ -16,8 +16,7 @@ pub async fn resend_verification_email(
 
   send_verification_email_if_required(
     &site_view.local_site,
-    &local_user_view.local_user,
-    &local_user_view.person,
+    &local_user_view,
     &mut context.pool(),
     context.settings(),
   )

@@ -1,4 +1,4 @@
-use crate::{inbox_link, send_email_to_user, user_language};
+use crate::{inbox_link, send_email, user_language};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{comment::Comment, person::Person, post::Post},
@@ -9,6 +9,7 @@ use lemmy_utils::{
   settings::structs::Settings,
   utils::markdown::markdown_to_html,
 };
+use tracing::warn;
 
 pub async fn send_mention_email(
   mention_user_view: &LocalUserView,
@@ -18,7 +19,7 @@ pub async fn send_mention_email(
   settings: &Settings,
 ) {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&mention_user_view.local_user);
+  let lang = user_language(&mention_user_view);
   let content = markdown_to_html(content);
   send_email_to_user(
     mention_user_view,
@@ -38,7 +39,7 @@ pub async fn send_comment_reply_email(
   settings: &Settings,
 ) -> LemmyResult<()> {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&parent_user_view.local_user);
+  let lang = user_language(&parent_user_view);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
     parent_user_view,
@@ -65,7 +66,7 @@ pub async fn send_post_reply_email(
   settings: &Settings,
 ) -> LemmyResult<()> {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&parent_user_view.local_user);
+  let lang = user_language(&parent_user_view);
   let content = markdown_to_html(&comment.content);
   send_email_to_user(
     parent_user_view,
@@ -90,7 +91,7 @@ pub async fn send_private_message_email(
   settings: &Settings,
 ) {
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&local_recipient.local_user);
+  let lang = user_language(&local_recipient);
   let sender_name = &sender.person.name;
   let content = markdown_to_html(content);
   send_email_to_user(
@@ -100,4 +101,30 @@ pub async fn send_private_message_email(
     settings,
   )
   .await;
+}
+
+async fn send_email_to_user(
+  local_user_view: &LocalUserView,
+  subject: &str,
+  body: &str,
+  settings: &Settings,
+) {
+  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
+    return;
+  }
+
+  if let Some(user_email) = &local_user_view.local_user.email {
+    match send_email(
+      subject,
+      user_email,
+      &local_user_view.person.name,
+      body,
+      settings,
+    )
+    .await
+    {
+      Ok(_o) => _o,
+      Err(e) => warn!("{}", e),
+    };
+  }
 }

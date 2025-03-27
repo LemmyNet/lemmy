@@ -133,7 +133,7 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_local_site = local_site.clone();
   let tx_settings = context.settings();
-  let (person, local_user) = conn
+  let user = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
         // We have to create both a person, and local_user
@@ -169,7 +169,7 @@ pub async fn register(
           }
         }
 
-        Ok((person, local_user))
+        Ok(LocalUserView { person, local_user })
       }
       .scope_boxed()
     })
@@ -191,13 +191,12 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    let jwt = Claims::generate(user.local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
     login_response.verify_email_sent = send_verification_email_if_required(
       &local_site,
-      &local_user,
-      &person,
+      &user,
       &mut context.pool(),
       context.settings(),
     )
@@ -356,7 +355,7 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_local_site = local_site.clone();
       let tx_settings = context.settings();
-      let (person, local_user) = conn
+      let user = conn
         .transaction::<_, LemmyError, _>(|conn| {
           async move {
             // make sure the username is provided
@@ -420,7 +419,7 @@ pub async fn authenticate_with_oauth(
                 login_response.registration_created = true;
               }
             }
-            Ok((person, local_user))
+            Ok(LocalUserView { person, local_user })
           }
           .scope_boxed()
         })
@@ -429,13 +428,12 @@ pub async fn authenticate_with_oauth(
       // Check email is verified when required
       login_response.verify_email_sent = send_verification_email_if_required(
         &local_site,
-        &local_user,
-        &person,
+        &user,
         &mut context.pool(),
         context.settings(),
       )
       .await?;
-      local_user
+      user.local_user
     }
   };
 

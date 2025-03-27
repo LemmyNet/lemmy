@@ -1,4 +1,4 @@
-use lemmy_db_schema::source::local_user::LocalUser;
+use lemmy_db_schema::sensitive::SensitiveString;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -13,7 +13,6 @@ use lettre::{
 };
 use rosetta_i18n::{Language, LanguageId};
 use std::{str::FromStr, sync::OnceLock};
-use tracing::warn;
 use translations::Lang;
 use uuid::Uuid;
 
@@ -28,32 +27,6 @@ type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 
 fn inbox_link(settings: &Settings) -> String {
   format!("{}/inbox", settings.get_protocol_and_hostname())
-}
-
-async fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject: &str,
-  body: &str,
-  settings: &Settings,
-) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
-    return;
-  }
-
-  if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      body,
-      settings,
-    )
-    .await
-    {
-      Ok(_o) => _o,
-      Err(e) => warn!("{}", e),
-    };
-  }
 }
 
 async fn send_email(
@@ -109,10 +82,18 @@ async fn send_email(
 }
 
 #[allow(clippy::expect_used)]
-fn user_language(local_user: &LocalUser) -> Lang {
-  let lang_id = LanguageId::new(&local_user.interface_language);
+fn user_language(local_user_view: &LocalUserView) -> Lang {
+  let lang_id = LanguageId::new(&local_user_view.local_user.interface_language);
   Lang::from_language_id(&lang_id).unwrap_or_else(|| {
     let en = LanguageId::new("en");
     Lang::from_language_id(&en).expect("default language")
   })
+}
+
+fn user_email<'a>(local_user_view: &'a LocalUserView) -> LemmyResult<SensitiveString> {
+  local_user_view
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired.into())
 }
