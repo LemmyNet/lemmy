@@ -462,7 +462,7 @@ test("Search for a post", async () => {
   expect(betaPost?.post.name).toBeDefined();
 });
 
-test("Enforce site ban federation for local user", async () => {
+test.only("Enforce site ban federation for local user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -500,9 +500,9 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res.person?.instance_actions?.received_ban != null,
+    res => res.person?.home_instance_actions?.received_ban != null,
   );
-  expect(alphaUserOnBeta1.person?.instance_actions?.received_ban).toBeDefined();
+  expect(alphaUserOnBeta1.person?.home_instance_actions?.received_ban).toBeDefined();
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(

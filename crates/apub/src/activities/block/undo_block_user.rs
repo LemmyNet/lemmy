@@ -104,7 +104,7 @@ impl ActivityHandler for UndoBlockUser {
       SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
         let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
-        InstanceActions::ban(pool, &form).await?;
+        InstanceActions::unban(pool, &form).await?;
 
         if self.restore_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
@@ -112,7 +112,7 @@ impl ActivityHandler for UndoBlockUser {
             remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
               .await?;
           } else {
-            update_removed_for_instance(&blocked_person, &site, true, pool).await?;
+            update_removed_for_instance(&blocked_person, &site, false, pool).await?;
           }
         }
 
