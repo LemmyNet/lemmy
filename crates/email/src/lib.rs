@@ -168,6 +168,25 @@ pub async fn send_password_reset_email(
   Ok(())
 }
 
+pub async fn send_private_message_email(
+  sender: &LocalUserView,
+  local_recipient: &LocalUserView,
+  content: &str,
+  settings: &Settings,
+) {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(&local_recipient.local_user);
+  let sender_name = &sender.person.name;
+  let content = markdown_to_html(content);
+  send_email_to_user(
+    &local_recipient,
+    &lang.notification_private_message_subject(sender_name),
+    &lang.notification_private_message_body(inbox_link, &content, sender_name),
+    settings,
+  )
+  .await;
+}
+
 /// Send a verification email
 pub async fn send_verification_email(
   local_site: &LocalSite,
@@ -249,6 +268,39 @@ pub async fn send_new_applicant_email_to_admins(
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
+}
+
+pub async fn send_application_approved_email(
+  user: &LocalUserView,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let lang = user_language(&user.local_user);
+  let subject = lang.registration_approved_subject(&user.person.name);
+  let body = lang.registration_approved_body(&settings.hostname);
+  send_email_to_user(user, &subject, &body, settings).await;
+  Ok(())
+}
+
+pub async fn send_application_denied_email(
+  user: &LocalUserView,
+  deny_reason: Option<String>,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let lang = user_language(&user.local_user);
+  let subject = lang.registration_denied_subject(&user.person.name);
+  let body = lang.new_registration_denied_body(
+    &settings.hostname,
+    deny_reason.unwrap_or("unknown".to_string()),
+  );
+  send_email_to_user(user, &subject, &body, settings).await;
+  Ok(())
+}
+
+pub async fn send_email_verified_email(local_user_view: &LocalUserView, settings: &Settings) {
+  let lang = user_language(&local_user_view.local_user);
+  let subject = lang.email_verified_subject(&local_user_view.person.name);
+  let body = lang.email_verified_body();
+  send_email_to_user(&local_user_view, &subject, &body, settings).await;
 }
 
 /// Send a report to all admins

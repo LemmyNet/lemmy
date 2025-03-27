@@ -5,12 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   reports::comment::{CommentReportResponse, CreateCommentReport},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_comment_deleted_or_removed,
-    check_community_user_action,
-    send_new_report_email_to_admins,
-    slur_regex,
-  },
+  utils::{check_comment_deleted_or_removed, check_community_user_action, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -20,6 +15,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
+use lemmy_email::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community

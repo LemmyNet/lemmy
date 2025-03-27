@@ -13,8 +13,6 @@ use lemmy_api_common::{
     generate_inbox_url,
     honeypot_check,
     password_length_check,
-    send_new_applicant_email_to_admins,
-    send_verification_email_if_required,
     slur_regex,
   },
 };
@@ -36,6 +34,7 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_email::{send_new_applicant_email_to_admins, send_verification_email_if_required};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -192,8 +191,14 @@ pub async fn register(
     let jwt = Claims::generate(local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    login_response.verify_email_sent =
-      send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+    login_response.verify_email_sent = send_verification_email_if_required(
+      &local_site,
+      &local_user,
+      &person,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -419,8 +424,14 @@ pub async fn authenticate_with_oauth(
         .await?;
 
       // Check email is verified when required
-      login_response.verify_email_sent =
-        send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+      login_response.verify_email_sent = send_verification_email_if_required(
+        &local_site,
+        &local_user,
+        &person,
+        &mut context.pool(),
+        context.settings(),
+      )
+      .await?;
       local_user
     }
   };
