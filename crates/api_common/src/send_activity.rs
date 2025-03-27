@@ -9,6 +9,7 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
     private_message::PrivateMessage,
+    site::Site,
   },
 };
 use lemmy_db_views::structs::PrivateMessageView;
@@ -104,6 +105,18 @@ pub enum SendActivityData {
     actor: Person,
     report_creator: Person,
     community: Community,
+  },
+  CreateReportToSite {
+    object_id: Url,
+    actor: Person,
+    site: Site,
+    reason: String,
+  },
+  SendResolveReportToSite {
+    object_id: Url,
+    actor: Person,
+    report_creator: Person,
+    site: Site,
   },
 }
 
