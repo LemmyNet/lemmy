@@ -36,13 +36,12 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
-use schema::instance_actions;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use {
   diesel::query_source::AliasedField,
-  schema::{community_actions, person},
+  schema::{community_actions, instance_actions, person},
   ts_rs::TS,
 };
 
