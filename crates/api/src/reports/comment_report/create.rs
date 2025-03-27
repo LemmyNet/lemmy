@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
-use lemmy_email::send_new_report_email_to_admins;
+use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community

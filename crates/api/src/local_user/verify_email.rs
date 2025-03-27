@@ -5,7 +5,7 @@ use lemmy_db_schema::source::{
   local_user::{LocalUser, LocalUserUpdateForm},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_email::{send_email_verified_email, send_new_applicant_email_to_admins};
+use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_email_to_admins};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn verify_email(

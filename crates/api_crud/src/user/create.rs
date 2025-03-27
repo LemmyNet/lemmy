@@ -34,7 +34,10 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_email::{send_new_applicant_email_to_admins, send_verification_email_if_required};
+use lemmy_email::{
+  account::send_verification_email_if_required,
+  admin::send_new_applicant_email_to_admins,
+};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

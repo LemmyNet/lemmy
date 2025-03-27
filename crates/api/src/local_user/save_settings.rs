@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_email::send_verification_email;
+use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},

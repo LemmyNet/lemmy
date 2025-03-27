@@ -6,7 +6,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_email::send_password_reset_email;
+use lemmy_email::account::send_password_reset_email;
 use lemmy_utils::error::LemmyResult;
 use tracing::error;
 

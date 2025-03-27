@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, person::ResendVerificationEmail, SuccessResponse};
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_email::send_verification_email_if_required;
+use lemmy_email::account::send_verification_email_if_required;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resend_verification_email(

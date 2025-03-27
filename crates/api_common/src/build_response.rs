@@ -21,7 +21,11 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
-use lemmy_email::{send_comment_reply_email, send_mention_email, send_post_reply_email};
+use lemmy_email::notifications::{
+  send_comment_reply_email,
+  send_mention_email,
+  send_post_reply_email,
+};
 use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
 
 pub async fn build_comment_response(

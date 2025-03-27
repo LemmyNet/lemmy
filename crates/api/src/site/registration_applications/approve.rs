@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   utils::{diesel_string_update, get_conn},
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_email::{send_application_approved_email, send_application_denied_email};
+use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn approve_registration_application(
