@@ -1,6 +1,16 @@
 use crate::{
   structs::{CommentSlimView, CommentView},
-  utils::{filter_blocked, home_instance_person_join},
+  utils::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    filter_blocked,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_actions_join,
+    my_local_user_join,
+    my_person_actions_join,
+  },
 };
 use diesel::{
   dsl::exists,
@@ -15,19 +25,15 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
     community,
     community_actions,
-    instance_actions,
-    local_user,
     local_user_language,
     person,
-    person_actions,
     post,
   },
   source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
@@ -39,68 +45,41 @@ use lemmy_db_schema::{
 
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>) -> _ {
+  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let community_join = community::table.on(post::community_id.eq(community::id));
 
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(post::community_id)
-        .and(community_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(comment::creator_id)
-        .and(person_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(community::instance_id)
-        .and(instance_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let comment_creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(post::community_id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(comment::creator_id),
-        ),
-    );
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let person_join = person::table.left_join(home_instance_person_join());
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(my_person_id);
+    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_join: my_instance_actions_join = my_instance_actions_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     comment::table
-      .inner_join(person_join)
+      .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community_join)
-      .left_join(community_actions_join)
-      .left_join(comment_actions_join)
-      .left_join(person_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(comment_creator_community_actions_join)
-      .left_join(local_user_join)
+      .left_join(my_community_actions_join)
+      .left_join(my_comment_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_local_user_join)
+      .left_join(my_instance_actions_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(creator_community_actions_join())
   }
 
   pub async fn read(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'_ LocalUser>,
+    local_instance_id: InstanceId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = Self::joins(my_local_user.person_id())
+    let mut query = Self::joins(my_local_user.person_id(), local_instance_id)
       .filter(comment::id.eq(comment_id))
       .select(Self::as_select())
       .into_boxed();
@@ -130,7 +109,8 @@ impl CommentView {
       creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
-      home_instance_actions: self.home_instance_actions,
+      creator_home_instance_actions: self.creator_home_instance_actions,
+      creator_local_instance_actions: self.creator_local_instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
     }
@@ -163,7 +143,7 @@ impl CommentQuery<'_> {
     let my_person_id = o.local_user.person_id();
     let local_user_id = o.local_user.local_user_id();
 
-    let mut query = CommentView::joins(my_person_id)
+    let mut query = CommentView::joins(my_person_id, site.instance_id)
       .select(CommentView::as_select())
       .into_boxed();
 

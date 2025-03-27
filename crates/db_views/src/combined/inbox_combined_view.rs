@@ -1,13 +1,10 @@
-use crate::{
-  structs::{
-    CommentReplyView,
-    InboxCombinedView,
-    InboxCombinedViewInternal,
-    PersonCommentMentionView,
-    PersonPostMentionView,
-    PrivateMessageView,
-  },
-  utils::home_instance_person_join,
+use crate::structs::{
+  CommentReplyView,
+  InboxCombinedView,
+  InboxCombinedViewInternal,
+  PersonCommentMentionView,
+  PersonPostMentionView,
+  PrivateMessageView,
 };
 use diesel::{
   dsl::not,
@@ -55,18 +52,16 @@ impl InboxCombinedViewInternal {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let item_creator_join = person::table
-      .on(
-        comment::creator_id
-          .eq(item_creator)
-          .or(
-            inbox_combined::person_post_mention_id
-              .is_not_null()
-              .and(post::creator_id.eq(item_creator)),
-          )
-          .or(private_message::creator_id.eq(item_creator)),
-      )
-      .left_join(home_instance_person_join());
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        .or(
+          inbox_combined::person_post_mention_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
+        .or(private_message::creator_id.eq(item_creator)),
+    );
 
     let recipient_join = aliases::person1.on(
       comment_reply::recipient_id
@@ -395,7 +390,6 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,

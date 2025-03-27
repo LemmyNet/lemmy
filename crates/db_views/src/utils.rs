@@ -11,26 +11,31 @@ use diesel::{
 use lemmy_db_schema::{
   aliases::{
     creator_community_actions,
+    creator_home_instance_actions,
+    creator_local_instance_actions,
     creator_local_user,
-    home_instance_actions,
     person1,
     person2,
   },
-  newtypes::InstanceId,
+  newtypes::{InstanceId, PersonId},
   schema::{
     comment,
+    comment_actions,
     community,
     community_actions,
+    image_details,
     instance_actions,
     local_user,
     person,
     person_actions,
     post,
+    post_actions,
   },
   source::community::CommunityFollowerState,
   CommunityVisibility,
   CreatorCommunityActionsAllColumnsTuple,
-  HomeInstanceActionsAllColumnsTuple,
+  CreatorHomeInstanceActionsAllColumnsTuple,
+  CreatorLocalInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -162,8 +167,16 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
   creator_community_actions.fields(community_actions::all_columns)
 }
 
-pub(crate) fn home_instance_actions_select() -> Nullable<HomeInstanceActionsAllColumnsTuple> {
-  home_instance_actions
+pub(crate) fn creator_home_instance_actions_select(
+) -> Nullable<CreatorHomeInstanceActionsAllColumnsTuple> {
+  creator_home_instance_actions
+    .fields(instance_actions::all_columns)
+    .nullable()
+}
+
+pub(crate) fn creator_local_instance_actions_select(
+) -> Nullable<CreatorLocalInstanceActionsAllColumnsTuple> {
+  creator_local_instance_actions
     .fields(instance_actions::all_columns)
     .nullable()
 }
@@ -184,27 +197,102 @@ pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {
   not_unlisted.or(is_subscribed)
 }
 
+#[diesel::dsl::auto_type]
+pub fn creator_home_instance_actions_join() -> _ {
+  creator_home_instance_actions.on(
+    creator_home_instance_actions
+      .field(instance_actions::instance_id)
+      .eq(person::instance_id)
+      .and(
+        creator_home_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
+  )
+}
+
 /// join with instance actions for local instance
 ///
 /// Requires annotation for return type, see https://docs.diesel.rs/2.2.x/diesel/dsl/attr.auto_type.html#annotating-types
 #[diesel::dsl::auto_type]
-pub fn local_instance_person_join(local_instance_id: InstanceId) -> _ {
-  instance_actions::table.on(
-    instance_actions::instance_id
+pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
+  creator_local_instance_actions.on(
+    creator_local_instance_actions
+      .field(instance_actions::instance_id)
       .eq(local_instance_id)
-      .and(instance_actions::person_id.eq(person::id)),
+      .and(
+        creator_local_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
   )
 }
 
 #[diesel::dsl::auto_type]
-pub fn home_instance_person_join() -> _ {
-  home_instance_actions.on(
-    home_instance_actions
-      .field(instance_actions::instance_id)
-      .eq(person::instance_id)
+pub(crate) fn image_details_join() -> _ {
+  image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()))
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_community_actions_join(my_person_id: Option<PersonId>) -> _ {
+  community_actions::table.on(
+    community_actions::community_id
+      .eq(community::id)
+      .and(community_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_post_actions_join(my_person_id: Option<PersonId>) -> _ {
+  post_actions::table.on(
+    post_actions::post_id
+      .eq(post::id)
+      .and(post_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_comment_actions_join(my_person_id: Option<PersonId>) -> _ {
+  comment_actions::table.on(
+    comment_actions::comment_id
+      .eq(comment::id)
+      .and(comment_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_person_actions_join(my_person_id: Option<PersonId>) -> _ {
+  person_actions::table.on(
+    person_actions::target_id
+      .eq(person::id)
+      .and(person_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_local_user_join(my_person_id: Option<PersonId>) -> _ {
+  local_user::table.on(local_user::person_id.nullable().eq(my_person_id))
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_instance_actions_join(my_person_id: Option<PersonId>) -> _ {
+  instance_actions::table.on(
+    instance_actions::instance_id
+      // TODO is the community correct here, or should it be the person?
+      .eq(community::instance_id)
+      .and(instance_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn creator_community_actions_join() -> _ {
+  creator_community_actions.on(
+    creator_community_actions
+      .field(community_actions::community_id)
+      .eq(community::id)
       .and(
-        home_instance_actions
-          .field(instance_actions::person_id)
+        creator_community_actions
+          .field(community_actions::person_id)
           .eq(person::id),
       ),
   )
