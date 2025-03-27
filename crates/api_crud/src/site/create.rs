@@ -104,7 +104,6 @@ pub async fn create_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
-    disable_donation_dialog: data.disable_donation_dialog,
     disallow_nsfw_content: data.disallow_nsfw_content,
     ..Default::default()
   };
