@@ -2,7 +2,11 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::VerifyEmail,
-  utils::send_new_applicant_email_to_admins,
+  utils::{
+    get_interface_language_from_settings,
+    send_email_to_user,
+    send_new_applicant_email_to_admins,
+  },
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -37,19 +41,24 @@ pub async fn verify_email(
 
   EmailVerification::delete_old_tokens_for_local_user(&mut context.pool(), local_user_id).await?;
 
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+
   // send out notification about registration application to admins if enabled
   if site_view.local_site.application_email_admins {
-    let local_user = LocalUserView::read(&mut context.pool(), local_user_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
-
     send_new_applicant_email_to_admins(
-      &local_user.person.name,
+      &local_user_view.person.name,
       &mut context.pool(),
       context.settings(),
     )
     .await?;
   }
+
+  let lang = get_interface_language_from_settings(&local_user_view);
+  let subject = lang.email_verified_subject(&local_user_view.person.name);
+  let body = lang.email_verified_body();
+  send_email_to_user(&local_user_view, &subject, &body, context.settings()).await;
 
   Ok(Json(SuccessResponse::default()))
 }
