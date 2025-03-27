@@ -574,21 +574,6 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
-pub async fn send_application_approved_email(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  let email = &user
-    .local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = lang.registration_approved_subject(&user.person.ap_id);
-  let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings).await
-}
-
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,

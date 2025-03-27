@@ -4,7 +4,7 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, send_application_approved_email},
+  utils::{is_admin, send_email_to_user},
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +15,10 @@ use lemmy_db_schema::{
   utils::{diesel_string_update, get_conn},
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  settings::structs::Settings,
+};
 
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,
@@ -58,14 +61,20 @@ pub async fn approve_registration_application(
     })
     .await?;
 
-  if data.approve {
-    let approved_local_user_view =
-      LocalUserView::read(&mut context.pool(), approved_user_id).await?;
-    if approved_local_user_view.local_user.email.is_some() {
-      // Email sending may fail, but this won't revert the application approval
+  let approved_local_user_view = LocalUserView::read(&mut context.pool(), approved_user_id).await?;
+  if approved_local_user_view.local_user.email.is_some() {
+    // Email sending may fail, but this won't revert the application approval
+    if data.approve {
       send_application_approved_email(&approved_local_user_view, context.settings()).await?;
+    } else {
+      send_application_denied_email(
+        &approved_local_user_view,
+        data.deny_reason.clone(),
+        context.settings(),
+      )
+      .await?;
     }
-  };
+  }
 
   // Read the view
   let registration_application =
@@ -74,4 +83,30 @@ pub async fn approve_registration_application(
   Ok(Json(RegistrationApplicationResponse {
     registration_application,
   }))
+}
+
+async fn send_application_approved_email(
+  user: &LocalUserView,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let lang = &user.local_user.interface_i18n_language();
+  let subject = lang.registration_approved_subject(&user.person.name);
+  let body = lang.registration_approved_body(&settings.hostname);
+  send_email_to_user(user, &subject, &body, settings).await;
+  Ok(())
+}
+
+async fn send_application_denied_email(
+  user: &LocalUserView,
+  deny_reason: Option<String>,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let lang = &user.local_user.interface_i18n_language();
+  let subject = lang.registration_denied_subject(&user.person.name);
+  let body = lang.new_registration_denied_body(
+    &settings.hostname,
+    deny_reason.unwrap_or("unknown".to_string()),
+  );
+  send_email_to_user(user, &subject, &body, settings).await;
+  Ok(())
 }

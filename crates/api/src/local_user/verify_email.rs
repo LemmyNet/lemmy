@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::VerifyEmail,
-  utils::send_new_applicant_email_to_admins,
+  utils::{send_email_to_user, send_new_applicant_email_to_admins},
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -47,6 +47,11 @@ pub async fn verify_email(
     )
     .await?;
   }
+
+  let lang = &local_user_view.local_user.interface_i18n_language();
+  let subject = lang.email_verified_subject(&local_user_view.person.name);
+  let body = lang.email_verified_body();
+  send_email_to_user(&local_user_view, &subject, &body, context.settings()).await;
 
   Ok(Json(SuccessResponse::default()))
 }
