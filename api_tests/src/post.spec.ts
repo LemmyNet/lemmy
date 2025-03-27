@@ -502,7 +502,9 @@ test.only("Enforce site ban federation for local user", async () => {
     () => resolvePerson(beta, alphaUserActorId!),
     res => res.person?.home_instance_actions?.received_ban != null,
   );
-  expect(alphaUserOnBeta1.person?.home_instance_actions?.received_ban).toBeDefined();
+  expect(
+    alphaUserOnBeta1.person?.home_instance_actions?.received_ban,
+  ).toBeDefined();
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(
