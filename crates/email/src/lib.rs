@@ -1,11 +1,14 @@
 use html2text;
 use lemmy_db_schema::{
+  newtypes::DbUrl,
   source::{
+    comment::Comment,
     email_verification::{EmailVerification, EmailVerificationForm},
     local_site::LocalSite,
     local_user::LocalUser,
     password_reset_request::PasswordResetRequest,
     person::Person,
+    post::Post,
   },
   utils::DbPool,
   RegistrationMode,
@@ -14,6 +17,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
+  utils::markdown::markdown_to_html,
 };
 use lettre::{
   message::{Mailbox, MultiPart},
@@ -33,6 +37,83 @@ pub mod translations {
 }
 
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
+
+fn inbox_link(settings: &Settings) -> String {
+  format!("{}/inbox", settings.get_protocol_and_hostname())
+}
+
+pub async fn send_mention_email(
+  mention_user_view: &LocalUserView,
+  content: &str,
+  person: &Person,
+  link: DbUrl,
+  settings: &Settings,
+) {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(&mention_user_view.local_user);
+  let content = markdown_to_html(&content);
+  send_email_to_user(
+    &mention_user_view,
+    &lang.notification_mentioned_by_subject(&person.name),
+    &lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
+    settings,
+  )
+  .await
+}
+
+pub async fn send_comment_reply_email(
+  parent_user_view: &LocalUserView,
+  comment: &Comment,
+  person: &Person,
+  parent_comment: &Comment,
+  post: &Post,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(&parent_user_view.local_user);
+  let content = markdown_to_html(&comment.content);
+  send_email_to_user(
+    &parent_user_view,
+    &lang.notification_comment_reply_subject(&person.name),
+    &lang.notification_comment_reply_body(
+      comment.local_url(settings)?,
+      &content,
+      &inbox_link,
+      &parent_comment.content,
+      &post.name,
+      &person.name,
+    ),
+    settings,
+  )
+  .await;
+  Ok(())
+}
+
+pub async fn send_post_reply_email(
+  parent_user_view: &LocalUserView,
+  comment: &Comment,
+  person: &Person,
+  post: &Post,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(&parent_user_view.local_user);
+  let content = markdown_to_html(&comment.content);
+  send_email_to_user(
+    &parent_user_view,
+    &lang.notification_post_reply_subject(&person.name),
+    &lang.notification_post_reply_body(
+      comment.local_url(settings)?,
+      &content,
+      &inbox_link,
+      &post.name,
+      &person.name,
+    ),
+    settings,
+  )
+  .await;
+  Ok(())
+}
 
 async fn send_email_to_user(
   local_user_view: &LocalUserView,

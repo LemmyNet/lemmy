@@ -2616,6 +2616,7 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "mime",
  "mime_guess",
