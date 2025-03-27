@@ -567,3 +567,11 @@ pub struct ListLoginsResponse {
 pub struct ResendVerificationEmail {
   pub email: SensitiveString,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a request to resend your verification email.
+pub struct DonationDialogShown {
+  pub hide_permanently: Option<bool>,
+}
