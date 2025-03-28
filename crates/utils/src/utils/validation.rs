@@ -271,22 +271,6 @@ pub fn clean_urls_in_text(text: &str) -> String {
   }
 }
 
-pub fn check_site_visibility_valid(
-  current_private_instance: bool,
-  current_federation_enabled: bool,
-  new_private_instance: &Option<bool>,
-  new_federation_enabled: &Option<bool>,
-) -> LemmyResult<()> {
-  let private_instance = new_private_instance.unwrap_or(current_private_instance);
-  let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
-
-  if private_instance && federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
-  } else {
-    Ok(())
-  }
-}
-
 pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
     Err(LemmyErrorType::InvalidUrlScheme)?
@@ -395,7 +379,6 @@ mod tests {
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       check_urls_are_valid,
       clean_url,
       clean_urls_in_text,
@@ -648,18 +631,6 @@ Line3",
           expected_err
         );
       });
-  }
-
-  #[test]
-  fn test_check_site_visibility_valid() {
-    assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
-    assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &Some(true)).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
   }
 
   #[test]

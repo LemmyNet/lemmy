@@ -630,7 +630,6 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      instance_id: inserted_instance.id,
       newest_comment_time: inserted_post.published,
       newest_comment_time_necro: inserted_post.published,
       report_count: 0,
