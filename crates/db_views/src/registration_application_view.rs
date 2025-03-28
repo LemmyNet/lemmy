@@ -266,6 +266,7 @@ mod tests {
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
+        last_donation_notification: inserted_sara_local_user.last_donation_notification,
       },
       creator: Person {
         id: inserted_sara_person.id,

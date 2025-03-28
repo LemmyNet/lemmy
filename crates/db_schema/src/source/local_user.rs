@@ -7,6 +7,7 @@ use crate::{
   PostListingMode,
   SortType,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -66,6 +67,9 @@ pub struct LocalUser {
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
+  /// The last time a donation request was shown to this user. If this is more than a year ago,
+  /// a new notification request should be shown.
+  pub last_donation_notification: DateTime<Utc>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -122,6 +126,8 @@ pub struct LocalUserInsertForm {
   pub enable_animated_images: Option<bool>,
   #[new(default)]
   pub collapse_bot_comments: Option<bool>,
+  #[new(default)]
+  pub last_donation_notification: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -153,4 +159,5 @@ pub struct LocalUserUpdateForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub last_donation_notification: Option<DateTime<Utc>>,
 }

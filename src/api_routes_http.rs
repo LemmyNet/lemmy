@@ -25,6 +25,7 @@ use lemmy_api::{
     block::block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
+    donation_dialog_shown::donation_dialog_shown,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
@@ -343,7 +344,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", web::post().to(generate_totp_secret))
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
-          .route("/validate_auth", web::get().to(validate_auth)),
+          .route("/validate_auth", web::get().to(validate_auth))
+          .route(
+            "/donation_dialog_shown",
+            web::post().to(donation_dialog_shown),
+          ),
       )
       // Admin Actions
       .service(
