@@ -1,6 +1,6 @@
 use crate::{
-  structs::{PersonView, SiteView},
-  utils::{home_instance_person_join, local_instance_person_join},
+  structs::PersonView,
+  utils::{creator_home_instance_actions_join, creator_local_instance_actions_join},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -12,6 +12,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
+  aliases::creator_local_instance_actions,
   newtypes::{InstanceId, PaginationCursor, PersonId},
   schema::{instance_actions, local_user, person},
   source::person::{person_keys as key, Person},
@@ -47,19 +48,21 @@ impl PaginationCursorBuilder for PersonView {
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(local_instance_id: InstanceId) -> _ {
-    let p: local_instance_person_join = local_instance_person_join(local_instance_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
+
     person::table
-      .left_join(p)
       .left_join(local_user::table)
-      .left_join(home_instance_person_join())
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
   }
 
   pub async fn read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
+    local_instance_id: InstanceId,
     is_admin: bool,
   ) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins(local_instance_id)
       .filter(person::id.eq(person_id))
@@ -75,7 +78,7 @@ impl PersonView {
 
   pub fn banned(&self) -> bool {
     self
-      .instance_actions
+      .local_instance_actions
       .as_ref()
       .is_some_and(|i| i.received_ban.is_some())
   }
@@ -104,13 +107,17 @@ impl PersonQuery {
 
     // Filters
     if self.banned_only.unwrap_or_default() {
+      let actions = creator_local_instance_actions;
+
       query = query.filter(
         person::local
-          .and(instance_actions::received_ban.is_not_null())
+          .and(actions.field(instance_actions::received_ban).is_not_null())
           .and(
-            instance_actions::ban_expires
-              .is_null()
-              .or(instance_actions::ban_expires.gt(now().nullable())),
+            actions.field(instance_actions::ban_expires).is_null().or(
+              actions
+                .field(instance_actions::ban_expires)
+                .gt(now().nullable()),
+            ),
           ),
       );
     }
@@ -223,11 +230,11 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id, false).await;
+    let read = PersonView::read(pool, data.alice.id, data.alice.instance_id, false).await;
     assert!(read.is_err());
 
     // only admin can view deleted users
-    let read = PersonView::read(pool, data.alice.id, true).await;
+    let read = PersonView::read(pool, data.alice.id, data.alice.instance_id, true).await;
     assert!(read.is_ok());
 
     cleanup(data, pool).await
@@ -284,10 +291,14 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id, false).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.alice.id, data.alice.instance_id, false)
+      .await?
+      .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id, false).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.bob.id, data.alice.instance_id, false)
+      .await?
+      .is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await
