@@ -211,6 +211,13 @@ pub async fn generate_post_link_metadata(
   let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
+  // Proxy the post url itself if it is an image
+  let url = if let (true, Some(url)) = (is_image_post, post.url.clone()) {
+    Some(Some(proxy_image_link(url.into(), &context).await?))
+  } else {
+    None
+  };
+
   let image_url = if is_image_post {
     post.url
   } else {
@@ -237,6 +244,7 @@ pub async fn generate_post_link_metadata(
   };
 
   let form = PostUpdateForm {
+    url,
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
