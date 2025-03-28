@@ -5,6 +5,7 @@ use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
@@ -123,7 +124,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let post_form = PostUpdateForm {
+  let mut post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -134,11 +135,13 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
+  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+  plugin_hook_after("after_update_local_post", &post_form)?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());

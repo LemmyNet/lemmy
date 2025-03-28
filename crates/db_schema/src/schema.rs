@@ -138,6 +138,7 @@ diesel::table! {
         controversy_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -862,6 +863,7 @@ diesel::table! {
         scaled_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 

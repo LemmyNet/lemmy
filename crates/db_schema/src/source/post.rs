@@ -93,10 +93,17 @@ pub struct Post {
   pub scaled_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
+  /// If a local user posts in a remote community, the comment is hidden until it is confirmed
+  /// accepted by the community (by receiving it back via federation).
+  pub federation_pending: bool,
 }
 
+// TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -142,10 +149,12 @@ pub struct PostInsertForm {
   pub alt_text: Option<String>,
   #[new(default)]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub federation_pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
   pub name: Option<String>,
@@ -169,13 +178,13 @@ pub struct PostUpdateForm {
   pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
+  pub federation_pending: Option<bool>,
 }
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(Identifiable, Queryable, Selectable, Associations, TS,)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
@@ -210,7 +219,10 @@ pub struct PostActions {
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,

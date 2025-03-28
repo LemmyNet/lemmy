@@ -325,8 +325,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/resend_verification_email",
             post().to(resend_verification_email),
-          )
-          .route("/saved", get().to(list_person_saved)),
+          ),
       )
       .service(
         scope("/account")
@@ -358,6 +357,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
           )
+          .route("/saved", get().to(list_person_saved))
           .route("/settings/save", put().to(save_user_settings))
           // Account settings import / export have a strict rate limit
           .service(
