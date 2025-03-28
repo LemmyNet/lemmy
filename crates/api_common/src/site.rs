@@ -259,8 +259,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub disable_donation_dialog: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
 }
 
@@ -392,10 +390,6 @@ pub struct EditSite {
   /// What kind of comment downvotes your site allows.
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
-  /// If this is true, users will never see the dialog asking to support Lemmy development with
-  /// donations.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub disable_donation_dialog: Option<bool>,
   /// Block NSFW content being created
   #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
