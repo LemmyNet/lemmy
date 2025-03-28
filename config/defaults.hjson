@@ -132,4 +132,6 @@
   # Sets a response Access-Control-Allow-Origin CORS header
   # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   cors_origin: "lemmy.tld"
+  # Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
+  json_logging: false
 }
