@@ -1,0 +1,8 @@
+{
+  "wasm": [
+    {
+      "url": "https://github.com/LemmyNet/lemmy-plugins/releases/download/0.1.0/go_replace_words.wasm",
+      "hash": "d4f4fcc10360b24ea2f805aa89427b4e4dcf5c34263aedd55b528d2e28ef04b4"
+    }
+  ]
+}

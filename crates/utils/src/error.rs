@@ -158,6 +158,7 @@ pub enum LemmyErrorType {
     error: Option<FederationError>,
   },
   CouldntParsePaginationToken,
+  PluginError(String),
 }
 
 /// Federation related errors, these dont need to be translated.

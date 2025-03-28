@@ -9,7 +9,10 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
+};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -59,11 +62,13 @@ async fn vote_comment(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let comment_id = comment.id;
-  let like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
+  let mut like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
   let person_id = actor.id;
   comment.set_not_pending(&mut context.pool()).await?;
   CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
-  CommentActions::like(&mut context.pool(), &like_form).await?;
+  like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook_after("after_comment_vote", &like)?;
   Ok(())
 }
 
@@ -74,11 +79,13 @@ async fn vote_post(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let post_id = post.id;
-  let like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
+  let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
   post.set_not_pending(&mut context.pool()).await?;
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
-  PostActions::like(&mut context.pool(), &like_form).await?;
+  like_form = plugin_hook_before("before_post_vote", like_form).await?;
+  let like = PostActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook_after("after_post_vote", &like)?;
   Ok(())
 }
 

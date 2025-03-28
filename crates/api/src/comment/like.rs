@@ -4,6 +4,7 @@ use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
@@ -64,7 +65,7 @@ pub async fn like_comment(
     }
   }
 
-  let like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
+  let mut like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
@@ -75,7 +76,9 @@ pub async fn like_comment(
   let do_add =
     like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    CommentActions::like(&mut context.pool(), &like_form).await?;
+    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+    plugin_hook_after("after_comment_vote", &like)?;
   }
 
   ActivityChannel::submit_activity(
