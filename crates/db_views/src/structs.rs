@@ -271,7 +271,9 @@ pub struct LocalUserView {
   pub local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
 }
@@ -606,9 +608,13 @@ pub(crate) struct PersonContentCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -668,9 +674,13 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -980,7 +990,15 @@ pub struct InboxCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub local_instance_actions: Option<InstanceActions>,
+  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1357,9 +1375,13 @@ pub(crate) struct SearchCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

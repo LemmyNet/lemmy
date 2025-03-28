@@ -1,10 +1,25 @@
-use crate::structs::{
-  CommentReplyView,
-  InboxCombinedView,
-  InboxCombinedViewInternal,
-  PersonCommentMentionView,
-  PersonPostMentionView,
-  PrivateMessageView,
+use crate::{
+  structs::{
+    CommentReplyView,
+    InboxCombinedView,
+    InboxCombinedViewInternal,
+    PersonCommentMentionView,
+    PersonPostMentionView,
+    PrivateMessageView,
+  },
+  utils::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_actions_join,
+    my_local_user_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
 };
 use diesel::{
   dsl::not,
@@ -19,24 +34,19 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{self, creator_community_actions, creator_local_user},
-  newtypes::{PaginationCursor, PersonId},
+  aliases::{self},
+  newtypes::{InstanceId, PaginationCursor, PersonId},
   schema::{
     comment,
-    comment_actions,
     comment_reply,
     community,
-    community_actions,
-    image_details,
     inbox_combined,
     instance_actions,
-    local_user,
     person,
     person_actions,
     person_comment_mention,
     person_post_mention,
     post,
-    post_actions,
     private_message,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
@@ -48,7 +58,7 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: PersonId) -> _ {
+  fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
@@ -99,57 +109,15 @@ impl InboxCombinedViewInternal {
 
     let community_join = community::table.on(post::community_id.eq(community::id));
 
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let creator_local_user_join = creator_local_user.on(
-      item_creator
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
-
-    let creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(post::community_id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(item_creator),
-        ),
-    );
-
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(post::community_id)
-        .and(community_actions::person_id.eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(person::instance_id)
-        .and(instance_actions::person_id.eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(item_creator)
-        .and(person_actions::person_id.eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.eq(my_person_id)),
-    );
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(Some(my_person_id));
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
+    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_join: my_instance_actions_join = my_instance_actions_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     inbox_combined::table
       .left_join(comment_reply::table)
@@ -161,21 +129,24 @@ impl InboxCombinedViewInternal {
       .left_join(community_join)
       .inner_join(item_creator_join)
       .inner_join(recipient_join)
-      .left_join(image_details_join)
+      .left_join(image_details_join())
       .left_join(creator_community_actions_join)
-      .left_join(local_user_join)
-      .left_join(creator_local_user_join)
-      .left_join(community_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(post_actions_join)
-      .left_join(person_actions_join)
-      .left_join(comment_actions_join)
+      .left_join(my_local_user_join)
+      .left_join(creator_local_user_admin_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_instance_actions_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_comment_actions_join)
   }
 
   /// Gets the number of unread mentions
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
+    local_instance_id: InstanceId,
     show_bot_accounts: bool,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -194,7 +165,7 @@ impl InboxCombinedViewInternal {
           .and(private_message::recipient_id.eq(my_person_id)),
       );
 
-    let mut query = Self::joins(my_person_id)
+    let mut query = Self::joins(my_person_id, local_instance_id)
       // Filter for your user
       .filter(recipient_person.eq(my_person_id))
       // Filter unreads
@@ -265,13 +236,14 @@ impl InboxCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<InboxCombinedView>> {
     let conn = &mut get_conn(pool).await?;
 
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let mut query = InboxCombinedViewInternal::joins(my_person_id)
+    let mut query = InboxCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(InboxCombinedViewInternal::as_select())
       .into_boxed();
 

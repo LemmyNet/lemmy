@@ -89,6 +89,14 @@ pub(crate) fn post_creator_is_admin() -> _ {
   )
 }
 
+#[diesel::dsl::auto_type]
+pub(crate) fn creator_local_user_admin_join() -> _ {
+  creator_local_user.on(
+    person::id
+      .eq(creator_local_user.field(local_user::person_id))
+      .and(creator_local_user.field(local_user::admin).eq(true)),
+  )
+}
 /// Checks to see if you can mod an item.
 ///
 /// Caveat: Since admin status isn't federated or ordered, it can't know whether

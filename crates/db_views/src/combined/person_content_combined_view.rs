@@ -1,12 +1,9 @@
-use crate::{
-  structs::{
-    CommentView,
-    LocalUserView,
-    PersonContentCombinedView,
-    PersonContentCombinedViewInternal,
-    PostView,
-  },
-  utils::home_instance_person_join,
+use crate::structs::{
+  CommentView,
+  LocalUserView,
+  PersonContentCombinedView,
+  PersonContentCombinedViewInternal,
+  PostView,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -115,14 +112,15 @@ impl PersonContentCombinedViewInternal {
         .and(person_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(my_person_id);
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
+    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_join: my_instance_actions_join = my_instance_actions_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     person_content_combined::table
       .left_join(comment_join)

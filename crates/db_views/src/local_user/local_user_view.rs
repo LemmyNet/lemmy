@@ -1,12 +1,9 @@
-use crate::{
-  structs::{LocalUserView, SiteView},
-  utils::local_instance_person_join,
-};
+use crate::{structs::LocalUserView, utils::creator_home_instance_actions_join};
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, LocalUserId, OAuthProviderId, PersonId},
+  newtypes::{LocalUserId, OAuthProviderId, PersonId},
   schema::{local_user, oauth_account, person},
   source::{
     instance::Instance,
@@ -25,16 +22,16 @@ use std::future::{ready, Ready};
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(local_instance_id: InstanceId) -> _ {
-    let p: local_instance_person_join = local_instance_person_join(local_instance_id);
-    local_user::table.inner_join(person::table.left_join(p))
+  fn joins() -> _ {
+    local_user::table
+      .inner_join(person::table)
+      .left_join(creator_home_instance_actions_join())
   }
 
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(local_user::id.eq(local_user_id))
         .select(Self::as_select())
         .first(conn)
@@ -43,10 +40,9 @@ impl LocalUserView {
   }
 
   pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(person::id.eq(person_id))
         .select(Self::as_select())
         .first(conn)
@@ -55,10 +51,9 @@ impl LocalUserView {
   }
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(lower(person::name).eq(name.to_lowercase()))
         .select(Self::as_select())
         .first(conn)
@@ -70,10 +65,9 @@ impl LocalUserView {
     pool: &mut DbPool<'_>,
     name_or_email: &str,
   ) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(
           lower(person::name)
             .eq(lower(name_or_email.to_lowercase()))
@@ -86,10 +80,9 @@ impl LocalUserView {
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
         .select(Self::as_select())
         .first(conn)
@@ -102,10 +95,9 @@ impl LocalUserView {
     oauth_provider_id: OAuthProviderId,
     oauth_user_id: &str,
   ) -> LemmyResult<Self> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .inner_join(oauth_account::table)
         .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
         .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
@@ -116,10 +108,9 @@ impl LocalUserView {
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
-    let local_instance_id = SiteView::read_local(pool).await?.instance.id;
     let conn = &mut get_conn(pool).await?;
     Ok(
-      Self::joins(local_instance_id)
+      Self::joins()
         .filter(local_user::email.is_not_null())
         .filter(local_user::admin.eq(true))
         .select(Self::as_select())

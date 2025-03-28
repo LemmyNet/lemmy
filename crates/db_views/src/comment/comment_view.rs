@@ -524,6 +524,7 @@ mod tests {
       pool,
       data.inserted_comment_1.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await?;
 
@@ -848,13 +849,20 @@ mod tests {
     .await?;
     assert_eq!(5, authenticated_query.len());
 
-    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    let unauthenticated_comment = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      None,
+      data.inserted_instance.id,
+    )
+    .await;
     assert!(unauthenticated_comment.is_err());
 
     let authenticated_comment = CommentView::read(
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await;
     assert!(authenticated_comment.is_ok());
@@ -894,6 +902,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&inserted_banned_from_comm_local_user),
+      data.inserted_instance.id,
     )
     .await?;
 
@@ -916,6 +925,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await?;
 
@@ -974,7 +984,13 @@ mod tests {
     // No comments returned without auth
     let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
     assert_eq!(0, read_comment_listing.len());
-    let comment_view = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      None,
+      data.inserted_instance.id,
+    )
+    .await;
     assert!(comment_view.is_err());
 
     // No comments returned for non-follower who is not admin
@@ -991,6 +1007,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await;
     assert!(comment_view.is_err());
@@ -1009,6 +1026,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await;
     assert!(comment_view.is_ok());
@@ -1036,6 +1054,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await;
     assert!(comment_view.is_ok());
@@ -1073,6 +1092,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await?;
     assert_eq!("", comment_view.comment.content);
@@ -1101,6 +1121,7 @@ mod tests {
       pool,
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
+      data.inserted_instance.id,
     )
     .await?;
     assert_eq!(
