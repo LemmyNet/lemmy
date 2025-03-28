@@ -87,7 +87,7 @@ impl PostView {
 
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
-        .eq(post::instance_id)
+        .eq(community::instance_id)
         .and(instance_actions::person_id.nullable().eq(my_person_id)),
     );
 
