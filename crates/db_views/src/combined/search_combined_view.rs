@@ -8,7 +8,21 @@ use crate::{
     SearchCombinedView,
     SearchCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed, home_instance_person_join},
+  utils::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    filter_is_subscribed,
+    filter_not_unlisted_or_is_subscribed,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_actions_join,
+    my_local_user_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
 };
 use diesel::{
   dsl::not,
@@ -23,18 +37,13 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user},
-  newtypes::{CommunityId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   schema::{
     comment,
     comment_actions,
     community,
     community_actions,
-    image_details,
-    instance_actions,
-    local_user,
     person,
-    person_actions,
     post,
     post_actions,
     search_combined,
@@ -51,26 +60,24 @@ use SearchSortType::*;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>) -> _ {
+  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
 
-    let item_creator_join = person::table
-      .on(
-        search_combined::person_id
-          .eq(item_creator.nullable())
-          .or(
-            search_combined::comment_id
-              .is_not_null()
-              .and(comment::creator_id.eq(item_creator)),
-          )
-          .or(
-            search_combined::post_id
-              .is_not_null()
-              .and(post::creator_id.eq(item_creator)),
-          )
-          .and(not(person::deleted)),
-      )
-      .left_join(home_instance_person_join());
+    let item_creator_join = person::table.on(
+      search_combined::person_id
+        .eq(item_creator.nullable())
+        .or(
+          search_combined::comment_id
+            .is_not_null()
+            .and(comment::creator_id.eq(item_creator)),
+        )
+        .or(
+          search_combined::post_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
+        .and(not(person::deleted)),
+    );
 
     let comment_join = comment::table.on(
       search_combined::comment_id
@@ -96,72 +103,32 @@ impl SearchCombinedViewInternal {
         .and(not(community::deleted)),
     );
 
-    let creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(community::id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(item_creator),
-        ),
-    );
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let creator_local_user_join = creator_local_user.on(
-      item_creator
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    );
-
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(community::id)
-        .and(community_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(person::instance_id)
-        .and(instance_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(item_creator)
-        .and(person_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(Some(my_person_id));
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
+    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_join: my_instance_actions_join = my_instance_actions_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     search_combined::table
       .left_join(comment_join)
       .left_join(post_join)
       .left_join(item_creator_join)
       .left_join(community_join)
-      .left_join(creator_community_actions_join)
-      .left_join(local_user_join)
-      .left_join(creator_local_user_join)
-      .left_join(community_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(post_actions_join)
-      .left_join(person_actions_join)
-      .left_join(comment_actions_join)
-      .left_join(image_details_join)
+      .left_join(creator_community_actions_join())
+      .left_join(my_local_user_join)
+      .left_join(creator_local_user_admin_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_instance_actions_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_comment_actions_join)
+      .left_join(image_details_join())
   }
 }
 
@@ -224,13 +191,14 @@ impl SearchCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &Option<LocalUserView>,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<SearchCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = SearchCombinedViewInternal::joins(my_person_id)
+    let mut query = SearchCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(SearchCombinedViewInternal::as_select())
       .into_boxed();
 

@@ -207,7 +207,12 @@ pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub fn creator_home_instance_actions_join() -> _ {
+pub(crate) fn community_join() -> _ {
+  community::table.on(post::community_id.eq(community::id))
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn creator_home_instance_actions_join() -> _ {
   creator_home_instance_actions.on(
     creator_home_instance_actions
       .field(instance_actions::instance_id)
@@ -224,7 +229,7 @@ pub fn creator_home_instance_actions_join() -> _ {
 ///
 /// Requires annotation for return type, see https://docs.diesel.rs/2.2.x/diesel/dsl/attr.auto_type.html#annotating-types
 #[diesel::dsl::auto_type]
-pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
+pub(crate) fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
   creator_local_instance_actions.on(
     creator_local_instance_actions
       .field(instance_actions::instance_id)
@@ -234,6 +239,16 @@ pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
           .field(instance_actions::person_id)
           .eq(person::id),
       ),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn my_instance_actions_join(my_person_id: Option<PersonId>) -> _ {
+  instance_actions::table.on(
+    instance_actions::instance_id
+      // TODO is the community correct here, or should it be the person?
+      .eq(community::instance_id)
+      .and(instance_actions::person_id.nullable().eq(my_person_id)),
   )
 }
 
@@ -281,16 +296,6 @@ pub(crate) fn my_person_actions_join(my_person_id: Option<PersonId>) -> _ {
 #[diesel::dsl::auto_type]
 pub(crate) fn my_local_user_join(my_person_id: Option<PersonId>) -> _ {
   local_user::table.on(local_user::person_id.nullable().eq(my_person_id))
-}
-
-#[diesel::dsl::auto_type]
-pub(crate) fn my_instance_actions_join(my_person_id: Option<PersonId>) -> _ {
-  instance_actions::table.on(
-    instance_actions::instance_id
-      // TODO is the community correct here, or should it be the person?
-      .eq(community::instance_id)
-      .and(instance_actions::person_id.nullable().eq(my_person_id)),
-  )
 }
 
 #[diesel::dsl::auto_type]

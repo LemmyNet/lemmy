@@ -8,6 +8,7 @@ use crate::{
     PrivateMessageView,
   },
   utils::{
+    community_join,
     creator_community_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
@@ -39,7 +40,6 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_reply,
-    community,
     inbox_combined,
     instance_actions,
     person,
@@ -107,8 +107,6 @@ impl InboxCombinedViewInternal {
         .and(not(private_message::removed)),
     );
 
-    let community_join = community::table.on(post::community_id.eq(community::id));
-
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(Some(my_person_id));
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
@@ -126,7 +124,7 @@ impl InboxCombinedViewInternal {
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
-      .left_join(community_join)
+      .left_join(community_join())
       .inner_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join())
