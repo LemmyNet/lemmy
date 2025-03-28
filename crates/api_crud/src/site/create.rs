@@ -32,7 +32,6 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       is_valid_body_field,
       site_name_length_check,
       site_or_community_description_length_check,
@@ -166,13 +165,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
 
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &create_site.private_instance,
-    &create_site.federation_enabled,
-  )?;
-
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(body) = &create_site.sidebar {
     is_valid_body_field(body, false)?;
@@ -264,38 +256,6 @@ mod tests {
         &CreateSite {
           name: String::from("site_name"),
           default_post_listing_type: Some(ListingType::Subscribed),
-          ..Default::default()
-        },
-      ),
-      (
-        "CreateSite is both private and federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          private_instance: Some(true),
-          federation_enabled: Some(true),
-          ..Default::default()
-        },
-      ),
-      (
-        "LocalSite is private, but CreateSite also makes it federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          registration_mode: RegistrationMode::Open,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          federation_enabled: Some(true),
           ..Default::default()
         },
       ),

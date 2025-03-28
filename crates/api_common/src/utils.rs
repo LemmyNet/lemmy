@@ -659,14 +659,6 @@ pub async fn send_new_report_email_to_admins(
   Ok(())
 }
 
-pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> LemmyResult<()> {
-  if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
-  } else {
-    Ok(())
-  }
-}
-
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
   let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
