@@ -33,7 +33,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       is_valid_body_field,
       site_description_length_check,
       site_name_length_check,
@@ -176,13 +175,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
 
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &create_site.private_instance,
-    &create_site.federation_enabled,
-  )?;
-
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(body) = &create_site.sidebar {
     is_valid_body_field(body, false)?;
@@ -302,54 +294,6 @@ mod tests {
           None::<String>,
           None::<bool>,
           None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
-      ),
-      (
-        "CreateSite is both private and federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          Some(true),
-          Some(true),
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
-      ),
-      (
-        "LocalSite is private, but CreateSite also makes it federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          Some(true),
           None::<String>,
           None::<RegistrationMode>,
         ),

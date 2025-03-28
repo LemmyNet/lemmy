@@ -29,10 +29,7 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
-  utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
-  },
+  utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
@@ -151,8 +148,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   if federation_enabled {
     println!("Federation enabled, host is {}", &SETTINGS.hostname);
   }
-
-  check_private_instance_and_federation_enabled(&local_site)?;
 
   // Set up the rate limiter
   let rate_limit_config =

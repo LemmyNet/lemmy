@@ -627,15 +627,7 @@ pub async fn send_new_report_email_to_admins(
   Ok(())
 }
 
-pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> LemmyResult<()> {
-  if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Read the site for an actor_id.
+/// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
 pub async fn read_site_for_actor(

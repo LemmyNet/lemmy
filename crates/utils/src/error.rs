@@ -65,7 +65,6 @@ pub enum LemmyErrorType {
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,
-  CantEnablePrivateInstanceAndFederationTogether,
   Locked,
   CouldntCreateComment,
   MaxCommentDepthReached,
