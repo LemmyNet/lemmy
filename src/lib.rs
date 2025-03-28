@@ -63,7 +63,6 @@ use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
-use url::Url;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -386,7 +385,7 @@ fn cors_config(settings: &Settings) -> Cors {
   }
 }
 
-pub fn init_logging(opentelemetry_url: &Option<Url>) -> LemmyResult<()> {
+pub fn init_logging(settings: &Settings) -> LemmyResult<()> {
   LogTracer::init()?;
 
   let log_description = env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
@@ -396,27 +395,43 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> LemmyResult<()> {
     .trim_matches('"')
     .parse::<Targets>()?;
 
-  let format_layer = {
-    #[cfg(feature = "json-log")]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false).json();
-    #[cfg(not(feature = "json-log"))]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false);
+  if settings.json_logging {
+    let format_layer = {
+      let layer = tracing_subscriber::fmt::layer().with_ansi(false).json();
+      layer.with_filter(targets.clone())
+    };
 
-    layer.with_filter(targets.clone())
-  };
+    let subscriber = Registry::default()
+      .with(format_layer)
+      .with(ErrorLayer::default());
 
-  let subscriber = Registry::default()
-    .with(format_layer)
-    .with(ErrorLayer::default());
-
-  if let Some(_url) = opentelemetry_url {
-    #[cfg(feature = "console")]
-    telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
-    #[cfg(not(feature = "console"))]
-    tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
+    if let Some(_url) = &settings.opentelemetry_url {
+      #[cfg(feature = "console")]
+      telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
+      #[cfg(not(feature = "console"))]
+      tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
+    } else {
+      set_global_default(subscriber)?;
+    }
   } else {
-    set_global_default(subscriber)?;
-  }
+    let format_layer = {
+      let layer = tracing_subscriber::fmt::layer().with_ansi(false);
+      layer.with_filter(targets.clone())
+    };
+
+    let subscriber = Registry::default()
+      .with(format_layer)
+      .with(ErrorLayer::default());
+
+    if let Some(_url) = &settings.opentelemetry_url {
+      #[cfg(feature = "console")]
+      telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
+      #[cfg(not(feature = "console"))]
+      tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
+    } else {
+      set_global_default(subscriber)?;
+    }
+  };
 
   Ok(())
 }

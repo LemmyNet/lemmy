@@ -47,7 +47,6 @@ console = [
   "tracing-opentelemetry",
   "reqwest-tracing/opentelemetry_0_16",
 ]
-json-log = ["tracing-subscriber/json"]
 default = []
 
 [workspace]
@@ -121,7 +120,7 @@ tracing = "0.1.40"
 tracing-actix-web = { version = "0.7.11", default-features = false }
 tracing-error = "0.2.0"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 url = { version = "2.5.2", features = ["serde"] }
 reqwest = { version = "0.11.27", default-features = false, features = [
   "json",
