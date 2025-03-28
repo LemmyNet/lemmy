@@ -18,7 +18,8 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
-use lemmy_db_schema::{source::local_site::LocalSite, FederationMode};
+use lemmy_db_schema::FederationMode;
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -65,8 +66,9 @@ impl ActivityHandler for Vote {
     check_bot_account(&actor.0)?;
 
     // Check for enabled federation votes
-    let local_site = LocalSite::read(&mut context.pool())
+    let local_site = SiteView::read_local(&mut context.pool())
       .await
+      .map(|s| s.local_site)
       .unwrap_or_default();
 
     let (downvote_setting, upvote_setting) = match object {

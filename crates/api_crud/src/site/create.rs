@@ -45,7 +45,7 @@ pub async fn create_site(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin; other types of users should not create site data...
   is_admin(&local_user_view)?;

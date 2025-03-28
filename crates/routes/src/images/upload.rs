@@ -87,7 +87,7 @@ pub async fn upload_community_icon(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&community.icon, &context).await?;
@@ -109,7 +109,7 @@ pub async fn upload_community_banner(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
   delete_old_image(&community.banner, &context).await?;

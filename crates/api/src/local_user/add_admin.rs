@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{person::person_view::PersonQuery, structs::LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
   data: Json<AddAdmin>,
@@ -61,7 +61,7 @@ pub async fn add_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
 
   Ok(Json(AddAdminResponse { admins }))
