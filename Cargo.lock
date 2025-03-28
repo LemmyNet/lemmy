@@ -3098,6 +3098,7 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "pretty_assertions",
  "regex",
@@ -3127,6 +3128,7 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "mime",
  "mime_guess",
@@ -3145,7 +3147,6 @@ dependencies = [
  "ts-rs",
  "url",
  "urlencoding",
- "uuid",
  "webmention",
  "webpage",
 ]
@@ -3165,6 +3166,7 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "regex",
  "serde",
@@ -3289,6 +3291,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_email"
+version = "1.0.0-alpha.3"
+dependencies = [
+ "html2text",
+ "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_utils",
+ "lettre",
+ "rosetta-build",
+ "rosetta-i18n",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "lemmy_federate"
 version = "1.0.0-alpha.3"
 dependencies = [
@@ -3390,10 +3407,8 @@ dependencies = [
  "enum-map",
  "futures",
  "git-version",
- "html2text",
  "http 1.2.0",
  "itertools 0.14.0",
- "lettre",
  "markdown-it",
  "markdown-it-block-spoiler",
  "markdown-it-footnote",
@@ -3404,8 +3419,6 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "reqwest-middleware",
- "rosetta-build",
- "rosetta-i18n",
  "serde",
  "serde_json",
  "smart-default",
@@ -3416,7 +3429,6 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "urlencoding",
- "uuid",
 ]
 
 [[package]]

@@ -1,15 +1,11 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::VerifyEmail,
-  utils::send_new_applicant_email_to_admins,
-  SuccessResponse,
-};
+use lemmy_api_common::{context::LemmyContext, person::VerifyEmail, SuccessResponse};
 use lemmy_db_schema::source::{
   email_verification::EmailVerification,
   local_user::{LocalUser, LocalUserUpdateForm},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_email_to_admins};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn verify_email(
@@ -47,6 +43,8 @@ pub async fn verify_email(
     )
     .await?;
   }
+
+  send_email_verified_email(&local_user_view, context.settings()).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

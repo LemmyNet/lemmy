@@ -3,7 +3,7 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_instance_community_block, is_mod_or_admin, send_email_to_user},
+  utils::{check_person_instance_community_block, is_mod_or_admin},
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
@@ -21,10 +21,12 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::{markdown::markdown_to_html, mention::MentionData},
+use lemmy_email::notifications::{
+  send_comment_reply_email,
+  send_mention_email,
+  send_post_reply_email,
 };
+use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
 
 pub async fn build_comment_response(
   context: &LemmyContext,
@@ -135,8 +137,6 @@ pub async fn send_local_notifs(
     }
   };
 
-  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
-
   // Send the local mentions
   for mention in mentions
     .iter()
@@ -187,15 +187,14 @@ pub async fn send_local_notifs(
 
       // Send an email to those local users that have notifications on
       if do_send_email {
-        let lang = &mention_user_view.local_user.interface_i18n_language();
-        let content = markdown_to_html(&comment_content_or_post_body);
-        send_email_to_user(
+        send_mention_email(
           &mention_user_view,
-          &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
+          &comment_content_or_post_body,
+          person,
+          link,
           context.settings(),
         )
-        .await
+        .await;
       }
     }
   }
@@ -240,22 +239,15 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = &parent_user_view.local_user.interface_i18n_language();
-              let content = markdown_to_html(&comment.content);
-              send_email_to_user(
+              send_comment_reply_email(
                 &parent_user_view,
-                &lang.notification_comment_reply_subject(&person.name),
-                &lang.notification_comment_reply_body(
-                  comment.local_url(context.settings())?,
-                  &content,
-                  &inbox_link,
-                  &parent_comment.content,
-                  &post.name,
-                  &person.name,
-                ),
+                comment,
+                person,
+                &parent_comment,
+                &post,
                 context.settings(),
               )
-              .await
+              .await?;
             }
           }
         }
@@ -293,21 +285,14 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = &parent_user_view.local_user.interface_i18n_language();
-              let content = markdown_to_html(&comment.content);
-              send_email_to_user(
+              send_post_reply_email(
                 &parent_user_view,
-                &lang.notification_post_reply_subject(&person.name),
-                &lang.notification_post_reply_body(
-                  comment.local_url(context.settings())?,
-                  &content,
-                  &inbox_link,
-                  &post.name,
-                  &person.name,
-                ),
+                comment,
+                person,
+                &post,
                 context.settings(),
               )
-              .await
+              .await?;
             }
           }
         }
