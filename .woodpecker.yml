@@ -57,8 +57,10 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter
+    image: debian:bookworm
     commands:
+      - apt-get update
+      - apt-get --yes --no-install-recommends --no-install-suggests install pgformatter
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
