@@ -1,6 +1,6 @@
 use crate::user::my_user::get_my_user;
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
+use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
@@ -75,5 +75,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     oauth_providers,
     admin_oauth_providers,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
+    active_plugins: plugin_metadata(),
   })
 }

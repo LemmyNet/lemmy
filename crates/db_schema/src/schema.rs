@@ -138,6 +138,7 @@ diesel::table! {
         controversy_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -858,10 +859,10 @@ diesel::table! {
         hot_rank -> Float8,
         hot_rank_active -> Float8,
         controversy_rank -> Float8,
-        instance_id -> Int4,
         scaled_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -1156,7 +1157,6 @@ diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
-diesel::joinable!(post -> instance (instance_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));

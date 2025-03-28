@@ -3,12 +3,11 @@ use crate::{
   collections::{
     community_featured::ApubCommunityFeatured,
     community_follower::ApubCommunityFollower,
-    community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
   objects::community::ApubCommunity,
   protocol::{
-    objects::{Endpoints, LanguageTag},
+    objects::{AttributedTo, Endpoints, LanguageTag},
     ImageObject,
     Source,
   },
@@ -65,7 +64,7 @@ pub struct Group {
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) attributed_to: Option<CollectionId<ApubCommunityModerators>>,
+  pub(crate) attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: CollectionId<ApubCommunityOutbox>,

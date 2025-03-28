@@ -1,9 +1,11 @@
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -92,16 +94,19 @@ pub async fn create_comment(
   )
   .await?;
 
-  let comment_form = CommentInsertForm {
+  let mut comment_form = CommentInsertForm {
     language_id: Some(language_id),
+    federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
+  comment_form = plugin_hook_before("before_create_local_comment", comment_form).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
   let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+  plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
 
