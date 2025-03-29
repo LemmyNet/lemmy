@@ -1,11 +1,10 @@
-use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId};
+use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::schema::{post, post_actions},
-  diesel::{dsl, expression_methods::NullableExpressionMethods},
   i_love_jesus::CursorKeysModule,
   ts_rs::TS,
 };
@@ -16,8 +15,8 @@ use {
   feature = "full",
   derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
 )]
-#[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 /// A post.
@@ -87,17 +86,22 @@ pub struct Post {
   pub hot_rank_active: f64,
   #[serde(skip)]
   pub controversy_rank: f64,
-  #[serde(skip)]
-  pub instance_id: InstanceId,
   /// A rank that amplifies smaller communities
   #[serde(skip)]
   pub scaled_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
+  /// If a local user posts in a remote community, the comment is hidden until it is confirmed
+  /// accepted by the community (by receiving it back via federation).
+  pub federation_pending: bool,
 }
 
+// TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -143,10 +147,12 @@ pub struct PostInsertForm {
   pub alt_text: Option<String>,
   #[new(default)]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub federation_pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
   pub name: Option<String>,
@@ -170,55 +176,58 @@ pub struct PostUpdateForm {
   pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
+  pub federation_pending: Option<bool>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, TS,)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostLike {
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PostActions {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::like_score.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::like_score>))]
-  pub score: i16,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::liked.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::liked>))]
-  pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was read.
+  pub read: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When was the last time you read the comments.
+  pub read_comments: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The number of comments you read last. Subtract this from total comments to get an unread
+  /// count.
+  pub read_comments_amount: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was saved.
+  pub saved: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was liked.
+  pub liked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The like / score of the post.
+  pub like_score: Option<i16>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the post was hidden.
+  pub hidden: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
-  pub score: i16,
+  pub like_score: i16,
   #[new(value = "Utc::now()")]
   pub liked: DateTime<Utc>,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostSaved {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::saved.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::saved>))]
-  pub published: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -231,24 +240,7 @@ pub struct PostSavedForm {
   pub saved: DateTime<Utc>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostRead {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read>))]
-  pub published: DateTime<Utc>,
-}
-
-#[derive(derive_new::new)]
+#[derive(derive_new::new, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostReadForm {
@@ -258,21 +250,15 @@ pub struct PostReadForm {
   pub read: DateTime<Utc>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostHide {
+pub struct PostReadCommentsForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::hidden.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::hidden>))]
-  pub published: DateTime<Utc>,
+  pub read_comments_amount: i64,
+  #[new(value = "Utc::now()")]
+  pub read_comments: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]

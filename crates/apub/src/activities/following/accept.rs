@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityFollower},
+  source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -66,7 +66,7 @@ impl ActivityHandler for AcceptFollow {
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
-    CommunityFollower::follow_accepted(&mut context.pool(), community_id, person_id).await?;
+    CommunityActions::follow_accepted(&mut context.pool(), community_id, person_id).await?;
 
     Ok(())
   }

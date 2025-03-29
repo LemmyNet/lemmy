@@ -347,13 +347,29 @@ pub struct BanPerson {
   pub expires: Option<i64>,
 }
 
-// TODO, this should be paged, since the list can be quite long.
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// List the banned persons.
+pub struct ListBannedPersons {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The list of banned persons.
 pub struct BannedPersonsResponse {
   pub banned: Vec<PersonView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -553,4 +569,13 @@ pub struct ListLoginsResponse {
 /// Make a request to resend your verification email.
 pub struct ResendVerificationEmail {
   pub email: SensitiveString,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a request to resend your verification email.
+pub struct DonationDialogShown {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub hide_permanently: Option<bool>,
 }

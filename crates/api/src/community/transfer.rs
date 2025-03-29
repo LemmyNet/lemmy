@@ -7,14 +7,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
   },
   traits::{Crud, Joinable},
 };
 use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   location_info,
 };
 
@@ -30,7 +30,7 @@ pub async fn transfer_community(
   let mut community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
 
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
 
   // Make sure transferrer is either the top community mod, or an admin
   if !(is_top_mod(&local_user_view, &community_mods).is_ok() || is_admin(&local_user_view).is_ok())
@@ -50,19 +50,15 @@ pub async fn transfer_community(
   // Delete all the mods
   let community_id = data.community_id;
 
-  CommunityModerator::delete_for_community(&mut context.pool(), community_id).await?;
+  CommunityActions::delete_mods_for_community(&mut context.pool(), community_id).await?;
 
   // TODO: this should probably be a bulk operation
   // Re-add the mods, in the new order
   for cmod in &community_mods {
-    let community_moderator_form = CommunityModeratorForm {
-      community_id: cmod.community.id,
-      person_id: cmod.moderator.id,
-    };
+    let community_moderator_form =
+      CommunityModeratorForm::new(cmod.community.id, cmod.moderator.id);
 
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
   }
 
   // Mod tables

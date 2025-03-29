@@ -50,7 +50,6 @@ pub enum LemmyErrorType {
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,
-  CantEnablePrivateInstanceAndFederationTogether,
   Locked,
   CouldntCreateComment,
   MaxCommentDepthReached,
@@ -100,12 +99,12 @@ pub enum LemmyErrorType {
   CommunityUserAlreadyBanned,
   CommunityBlockAlreadyExists,
   CommunityFollowerAlreadyExists,
-  CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
+  CouldntUpdateReadComments,
   CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
@@ -160,6 +159,7 @@ pub enum LemmyErrorType {
     error: Option<FederationError>,
   },
   CouldntParsePaginationToken,
+  PluginError(String),
 }
 
 /// Federation related errors, these dont need to be translated.

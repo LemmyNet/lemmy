@@ -10,9 +10,10 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
+    community_report::CommunityReport,
     mod_log::moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -23,13 +24,7 @@ pub async fn remove_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    true,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, true, &mut context.pool()).await?;
 
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;
@@ -47,6 +42,13 @@ pub async fn remove_community(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+
+  CommunityReport::resolve_all_for_object(
+    &mut context.pool(),
+    community_id,
+    local_user_view.person.id,
+  )
+  .await?;
 
   // Mod tables
   let form = ModRemoveCommunityForm {

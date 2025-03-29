@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
     post::{Post, PostUpdateForm},
   },
@@ -124,11 +124,8 @@ impl ActivityHandler for CollectionRemove {
           .dereference(context)
           .await?;
 
-        let form = CommunityModeratorForm {
-          community_id: community.id,
-          person_id: remove_mod.id,
-        };
-        CommunityModerator::leave(&mut context.pool(), &form).await?;
+        let form = CommunityModeratorForm::new(community.id, remove_mod.id);
+        CommunityActions::leave(&mut context.pool(), &form).await?;
 
         // write mod log
         let actor = self.actor.dereference(context).await?;

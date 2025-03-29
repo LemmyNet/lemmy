@@ -60,8 +60,10 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter
+    image: debian:bookworm
     commands:
+      - apt-get update
+      - apt-get --yes --no-install-recommends --no-install-suggests install pgformatter
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
@@ -92,6 +94,16 @@ steps:
       - apk add git
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+    when:
+      - event: pull_request
+
+  no_empty_files:
+    image: alpine:3
+    commands:
+      # Makes sure there are no files smaller than 2 bytes
+      # Don't use completely empty, as some editors use newlines
+      - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
+      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
     when:
       - event: pull_request
 

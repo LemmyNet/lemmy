@@ -280,7 +280,7 @@ END;
 
 $$);
 
-CALL r.create_triggers ('person', $$
+CALL r.create_triggers ('local_user', $$
 BEGIN
     UPDATE
         local_site AS a
@@ -290,7 +290,7 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (person).local) AS diff
+        WHERE (local_user).accepted_application) AS diff
 WHERE
     diff.users != 0;
 
@@ -439,13 +439,6 @@ BEGIN
     -- Set aggregates
     NEW.newest_comment_time = NEW.published;
     NEW.newest_comment_time_necro = NEW.published;
-    NEW.instance_id = (
-        SELECT
-            community.instance_id
-        FROM
-            community
-        WHERE
-            community.id = NEW.community_id);
     RETURN NEW;
 END
 $$;
@@ -595,7 +588,7 @@ CALL r.create_person_saved_combined_trigger ('comment');
 -- mod_ban
 -- mod_ban_from_community
 -- mod_feature_post
--- mod_hide_community
+-- mod_change_community_visibility
 -- mod_lock_post
 -- mod_remove_comment
 -- mod_remove_community
@@ -646,7 +639,7 @@ CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
 
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
 
-CALL r.create_modlog_combined_trigger ('mod_hide_community');
+CALL r.create_modlog_combined_trigger ('mod_change_community_visibility');
 
 CALL r.create_modlog_combined_trigger ('mod_lock_post');
 

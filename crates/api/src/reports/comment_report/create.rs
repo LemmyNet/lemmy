@@ -13,14 +13,11 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  source::{
-    comment_report::{CommentReport, CommentReportForm},
-    local_site::LocalSite,
-  },
+  source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView, SiteView};
+use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community
 pub async fn create_comment_report(
@@ -42,7 +39,7 @@ pub async fn create_comment_report(
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &comment_view.community,
     &mut context.pool(),
   )
@@ -59,15 +56,13 @@ pub async fn create_comment_report(
     violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
-  let report = CommentReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = CommentReport::report(&mut context.pool(), &report_form).await?;
 
   let comment_report_view =
     CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &comment_report_view.creator.name,
