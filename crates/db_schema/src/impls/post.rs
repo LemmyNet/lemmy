@@ -40,7 +40,6 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
-  TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::{
@@ -208,75 +207,6 @@ impl Post {
       .set(post::deleted.eq(true))
       .get_results::<Self>(conn)
       .await
-  }
-
-  pub async fn fetch_pictrs_posts_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    post::table
-      .filter(post::creator_id.eq(for_creator_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::creator_id.eq(for_creator_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
-  }
-
-  pub async fn fetch_pictrs_posts_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-    post::table
-      .filter(post::community_id.eq(for_community_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::community_id.eq(for_community_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
   }
 
   pub async fn user_scheduled_post_count(
