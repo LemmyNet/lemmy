@@ -526,6 +526,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    local_user_keyword_block (local_user_id, keyword) {
+        local_user_id -> Int4,
+        #[max_length = 50]
+        keyword -> Varchar,
+    }
+}
+
+diesel::table! {
     local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
@@ -1064,14 +1072,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    user_post_keyword_block (person_id, keyword) {
-        #[max_length = 50]
-        keyword -> Varchar,
-        person_id -> Int4,
-    }
-}
-
 diesel::joinable!(admin_allow_instance -> instance (instance_id));
 diesel::joinable!(admin_allow_instance -> person (admin_person_id));
 diesel::joinable!(admin_block_instance -> instance (instance_id));
@@ -1110,6 +1110,7 @@ diesel::joinable!(local_image -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
+diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
@@ -1183,7 +1184,6 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
-diesel::joinable!(user_post_keyword_block -> person (person_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_allow_instance,
@@ -1217,6 +1217,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     local_site_rate_limit,
     local_site_url_blocklist,
     local_user,
+    local_user_keyword_block,
     local_user_language,
     login_token,
     mod_add,
@@ -1259,5 +1260,4 @@ diesel::allow_tables_to_appear_in_same_query!(
     site_language,
     tag,
     tagline,
-    user_post_keyword_block,
 );

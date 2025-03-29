@@ -1,6 +1,6 @@
-CREATE TABLE user_post_keyword_block (
+CREATE TABLE local_user_keyword_block (
+    local_user_id int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     keyword varchar(50) NOT NULL,
-    person_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    PRIMARY KEY (person_id, keyword)
+    PRIMARY KEY (local_user_id, keyword)
 );
 

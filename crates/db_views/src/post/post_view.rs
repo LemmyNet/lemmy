@@ -4,11 +4,10 @@ use crate::{
 };
 use diesel::{
   debug_query,
-  dsl::{exists, not, sql},
+  dsl::{exists, not},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types::{Array, Bool, Text},
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -39,7 +38,7 @@ use lemmy_db_schema::{
     post_actions,
     post_tag,
     tag,
-    user_post_keyword_block,
+    local_user_keyword_block,
   },
   source::{
     community::CommunityFollowerState,
@@ -577,35 +576,18 @@ impl<'a> PostQuery<'a> {
 
       query = query.filter(filter_blocked());
       if let Some(person_id) = o.local_user.person_id() {
-        let blocked_keywords: Vec<String> = user_post_keyword_block::table
-          .filter(user_post_keyword_block::person_id.eq(person_id))
-          .select(user_post_keyword_block::keyword)
+        let blocked_keywords: Vec<String> = local_user_keyword_block::table
+          .filter(local_user_keyword_block::local_user_id.eq(person_id))
+          .select(local_user_keyword_block::keyword)
           .load::<String>(conn)
           .await?;
         if !blocked_keywords.is_empty() {
-          let transformed_strings: Vec<String> = blocked_keywords
-            .iter()
-            .map(|s| format!("%{}%", s))
-            .collect();
-          query = query.filter(
-            sql::<Bool>("NOT (post.name LIKE ANY(")
-              .bind::<Array<Text>, _>(transformed_strings.clone())
-              .sql("))")
-              .and(
-                post::url.is_null().or(
-                  sql::<Bool>("NOT (post.url LIKE ANY(")
-                    .bind::<Array<Text>, _>(transformed_strings.clone())
-                    .sql("))"),
-                ),
-              )
-              .and(
-                post::body.is_null().or(
-                  sql::<Bool>("NOT (post.body LIKE ANY(")
-                    .bind::<Array<Text>, _>(transformed_strings.clone())
-                    .sql("))"),
-                ),
-              ),
-          );
+          for keyword in blocked_keywords {
+              let pattern = format!("%{}%", keyword);
+              query = query.filter(post::name.not_ilike(pattern.clone()));
+              query = query.filter(post::url.not_ilike(pattern.clone()));
+              query = query.filter(post::body.not_ilike(pattern.clone()));
+          }
         }
       }
     }
@@ -730,7 +712,7 @@ mod tests {
       },
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
-      user_post_keyword_block::{UserPostKeywordBlock, UserPostKeywordBlockForm},
+      keyword_block::LocalUserKeywordBlock,
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
@@ -848,12 +830,12 @@ mod tests {
 
       PersonBlock::block(pool, &person_block).await?;
 
-      let post_keyword_block = UserPostKeywordBlockForm {
-        person_id: inserted_tegan_person.id,
-        keyword: POST_KEYWORD_BLOCKED.to_string(),
-      };
-
-      UserPostKeywordBlock::block_keyword(pool, &post_keyword_block).await?;
+      LocalUserKeywordBlock::update(
+        pool,
+        vec![POST_KEYWORD_BLOCKED.to_string()],
+        inserted_tegan_local_user.id
+      )
+      .await?;
 
       // Two community post tags
       let tag_1 = Tag::create(
@@ -2484,20 +2466,20 @@ mod tests {
   async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
-
+  
     let name_blocked = format!("post_{POST_KEYWORD_BLOCKED}");
     let name_blocked2 = format!("post2_{POST_KEYWORD_BLOCKED}2");
     let url = Some(Url::parse(&format!("https://google.com/{POST_KEYWORD_BLOCKED}"))?.into());
     let body = format!("post body with {POST_KEYWORD_BLOCKED}");
     let name_not_blocked = "post_with_name_not_blocked".to_string();
     let name_not_blocked2 = "post_with_name_not_blocked2".to_string();
-
+  
     let post_name_blocked = PostInsertForm::new(
       name_blocked.clone(),
       data.tegan_local_user_view.person.id,
       data.community.id,
     );
-
+  
     let post_body_blocked = PostInsertForm {
       body: Some(body),
       ..PostInsertForm::new(
@@ -2506,7 +2488,7 @@ mod tests {
         data.community.id,
       )
     };
-
+  
     let post_url_blocked = PostInsertForm {
       url,
       ..PostInsertForm::new(
@@ -2515,7 +2497,7 @@ mod tests {
         data.community.id,
       )
     };
-
+  
     let post_name_blocked_but_not_body_and_url = PostInsertForm {
       body: Some("Some body".to_string()),
       url: Some(Url::parse("https://google.com")?.into()),
@@ -2529,20 +2511,20 @@ mod tests {
     Post::create(pool, &post_body_blocked).await?;
     Post::create(pool, &post_url_blocked).await?;
     Post::create(pool, &post_name_blocked_but_not_body_and_url).await?;
-
+  
     let post_listings = PostQuery {
       local_user: Some(&data.tegan_local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
-
+  
     // Should not have any of the posts
     assert!(!names(&post_listings).contains(&name_blocked.as_str()));
     assert!(!names(&post_listings).contains(&name_blocked2.as_str()));
     assert!(!names(&post_listings).contains(&name_not_blocked.as_str()));
     assert!(!names(&post_listings).contains(&name_not_blocked2.as_str()));
-
+  
     // Should contain not blocked posts
     assert!(names(&post_listings).contains(&POST_BY_BOT));
     assert!(names(&post_listings).contains(&POST));
