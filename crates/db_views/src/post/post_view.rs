@@ -499,9 +499,9 @@ impl<'a> PostQuery<'a> {
       }
 
       query = query.filter(filter_blocked());
-      if let Some(person_id) = o.local_user.person_id() {
+      if o.local_user.is_some() {
         let blocked_keywords: Vec<String> = local_user_keyword_block::table
-          .filter(local_user_keyword_block::local_user_id.eq(person_id))
+          .filter(local_user_keyword_block::local_user_id.nullable().eq(my_local_user_id))
           .select(local_user_keyword_block::keyword)
           .load::<String>(conn)
           .await?;
@@ -509,8 +509,8 @@ impl<'a> PostQuery<'a> {
           for keyword in blocked_keywords {
               let pattern = format!("%{}%", keyword);
               query = query.filter(post::name.not_ilike(pattern.clone()));
-              query = query.filter(post::url.not_ilike(pattern.clone()));
-              query = query.filter(post::body.not_ilike(pattern.clone()));
+              query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
+              query = query.filter(post::body.is_null().or(post::body.not_ilike(pattern.clone())));
           }
         }
       }
@@ -576,7 +576,6 @@ impl<'a> PostQuery<'a> {
 
       query.as_query()
     };
-
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
     Commented::new(query)
       .text("PostQuery::list")
