@@ -21,6 +21,8 @@ use lemmy_utils::{
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 use std::ops::Deref;
+use lemmy_db_schema::source::keyword_block::LocalUserKeywordBlock;
+use lemmy_utils::utils::validation::check_blocking_keywords_are_valid;
 
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
@@ -106,6 +108,14 @@ pub async fn save_user_settings(
 
   if let Some(discussion_languages) = data.discussion_languages.clone() {
     LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
+  }
+
+  if let Some(blocking_keywords) = data.blocking_keywords.clone() {
+    let trimmed_blocking_keywords = blocking_keywords.iter().map(
+      |blocking_keyword| {blocking_keyword.trim().to_string()}
+    ).collect();
+    check_blocking_keywords_are_valid(&trimmed_blocking_keywords)?;
+    LocalUserKeywordBlock::update(&mut context.pool(), trimmed_blocking_keywords, local_user_id).await?;
   }
 
   let local_user_form = LocalUserUpdateForm {

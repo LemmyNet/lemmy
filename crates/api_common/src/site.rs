@@ -19,8 +19,7 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
-    tagline::Tagline,
-    user_post_keyword_block::UserPostKeywordBlock,
+    tagline::Tagline
   },
   CommentSortType,
   FederationMode,
@@ -458,7 +457,7 @@ pub struct MyUserInfo {
   pub community_blocks: Vec<Community>,
   pub instance_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
-  pub post_keyword_blocks: Vec<UserPostKeywordBlock>,
+  pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
 }
 
