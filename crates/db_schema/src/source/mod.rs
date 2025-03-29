@@ -45,7 +45,7 @@ pub mod secret;
 pub mod site;
 pub mod tag;
 pub mod tagline;
-pub mod user_post_keyword_block;
+pub mod keyword_block;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
 ///

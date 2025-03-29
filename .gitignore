@@ -34,4 +34,3 @@ dev_pgdata/
 
 # database dumps
 *.sqldump
-tmp.schema

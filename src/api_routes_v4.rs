@@ -53,7 +53,6 @@ use lemmy_api::{
     verify_email::verify_email,
   },
   post::{
-    block::user_block_keyword_for_posts,
     feature::feature_post,
     get_link_metadata::get_link_metadata,
     hide::hide_post,
@@ -357,7 +356,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance))
-              .route("/post_keywords", post().to(user_block_keyword_for_posts)),
           )
           .route("/settings/save", put().to(save_user_settings))
           // Account settings import / export have a strict rate limit

@@ -1,4 +1,3 @@
-pub mod block;
 pub mod feature;
 pub mod get_link_metadata;
 pub mod hide;
