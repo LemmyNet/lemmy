@@ -1,4 +1,4 @@
-use crate::newtypes::{LocalUserId};
+use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::local_user_keyword_block;
 use serde::{Deserialize, Serialize};

@@ -9,6 +9,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
+    keyword_block::LocalUserKeywordBlock,
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
   },
@@ -18,11 +19,14 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
+  utils::validation::{
+    check_blocking_keywords_are_valid,
+    is_valid_bio_field,
+    is_valid_display_name,
+    is_valid_matrix_id,
+  },
 };
 use std::ops::Deref;
-use lemmy_db_schema::source::keyword_block::LocalUserKeywordBlock;
-use lemmy_utils::utils::validation::check_blocking_keywords_are_valid;
 
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
@@ -111,11 +115,17 @@ pub async fn save_user_settings(
   }
 
   if let Some(blocking_keywords) = data.blocking_keywords.clone() {
-    let trimmed_blocking_keywords = blocking_keywords.iter().map(
-      |blocking_keyword| {blocking_keyword.trim().to_string()}
-    ).collect();
+    let trimmed_blocking_keywords = blocking_keywords
+      .iter()
+      .map(|blocking_keyword| blocking_keyword.trim().to_string())
+      .collect();
     check_blocking_keywords_are_valid(&trimmed_blocking_keywords)?;
-    LocalUserKeywordBlock::update(&mut context.pool(), trimmed_blocking_keywords, local_user_id).await?;
+    LocalUserKeywordBlock::update(
+      &mut context.pool(),
+      trimmed_blocking_keywords,
+      local_user_id,
+    )
+    .await?;
   }
 
   let local_user_form = LocalUserUpdateForm {

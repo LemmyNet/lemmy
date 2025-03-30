@@ -34,12 +34,12 @@ use lemmy_db_schema::{
     image_details,
     instance_actions,
     local_user,
+    local_user_keyword_block,
     local_user_language,
     person,
     person_actions,
     post,
     post_actions,
-    local_user_keyword_block,
   },
   source::{
     community::CommunityFollowerState,
@@ -501,16 +501,24 @@ impl<'a> PostQuery<'a> {
       query = query.filter(filter_blocked());
       if o.local_user.is_some() {
         let blocked_keywords: Vec<String> = local_user_keyword_block::table
-          .filter(local_user_keyword_block::local_user_id.nullable().eq(my_local_user_id))
+          .filter(
+            local_user_keyword_block::local_user_id
+              .nullable()
+              .eq(my_local_user_id),
+          )
           .select(local_user_keyword_block::keyword)
           .load::<String>(conn)
           .await?;
         if !blocked_keywords.is_empty() {
           for keyword in blocked_keywords {
-              let pattern = format!("%{}%", keyword);
-              query = query.filter(post::name.not_ilike(pattern.clone()));
-              query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
-              query = query.filter(post::body.is_null().or(post::body.not_ilike(pattern.clone())));
+            let pattern = format!("%{}%", keyword);
+            query = query.filter(post::name.not_ilike(pattern.clone()));
+            query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
+            query = query.filter(
+              post::body
+                .is_null()
+                .or(post::body.not_ilike(pattern.clone())),
+            );
           }
         }
       }
@@ -616,6 +624,7 @@ mod tests {
         CommunityUpdateForm,
       },
       instance::{Instance, InstanceActions, InstanceBlockForm},
+      keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -630,7 +639,6 @@ mod tests {
       },
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
-      keyword_block::LocalUserKeywordBlock,
     },
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
@@ -746,7 +754,7 @@ mod tests {
       LocalUserKeywordBlock::update(
         pool,
         vec![POST_KEYWORD_BLOCKED.to_string()],
-        inserted_tegan_local_user.id
+        inserted_tegan_local_user.id,
       )
       .await?;
 
@@ -2216,7 +2224,7 @@ mod tests {
     Ok(())
   }
 
-      #[test_context(Data)]
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
   async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {

@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
-    tagline::Tagline
+    tagline::Tagline,
   },
   CommentSortType,
   FederationMode,

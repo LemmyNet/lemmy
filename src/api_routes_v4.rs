@@ -355,7 +355,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             scope("/block")
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
-              .route("/instance", post().to(user_block_instance))
+              .route("/instance", post().to(user_block_instance)),
           )
           .route("/saved", get().to(list_person_saved))
           .route("/settings/save", put().to(save_user_settings))

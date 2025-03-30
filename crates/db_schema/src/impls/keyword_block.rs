@@ -1,11 +1,11 @@
 use crate::{
+  newtypes::LocalUserId,
+  schema::local_user_keyword_block,
   source::keyword_block::{LocalUserKeywordBlock, LocalUserKeywordBlockForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, QueryDsl};
 use diesel_async::{AsyncConnection, RunQueryDsl};
-use crate::newtypes::LocalUserId;
-use crate::schema::local_user_keyword_block;
 
 impl LocalUserKeywordBlock {
   pub async fn read(
@@ -17,13 +17,12 @@ impl LocalUserKeywordBlock {
       .filter(local_user_keyword_block::local_user_id.eq(for_local_user_id))
       .load::<LocalUserKeywordBlock>(conn)
       .await?;
-    let keywords =keyword_blocks.iter().map(
-      |keyword_block|
-          {keyword_block.keyword.clone()}).collect();
+    let keywords = keyword_blocks
+      .iter()
+      .map(|keyword_block| keyword_block.keyword.clone())
+      .collect();
     Ok(keywords)
   }
-
-
 
   pub async fn update(
     pool: &mut DbPool<'_>,
@@ -48,12 +47,15 @@ impl LocalUserKeywordBlock {
             .collect::<Vec<_>>();
           let insert_new = insert_into(local_user_keyword_block::table)
             .values(forms)
-            .on_conflict((local_user_keyword_block::keyword, local_user_keyword_block::local_user_id))
+            .on_conflict((
+              local_user_keyword_block::keyword,
+              local_user_keyword_block::local_user_id,
+            ))
             .do_nothing()
             .execute(conn);
           tokio::try_join!(delete_old, insert_new)?;
           Ok(())
-       }) as _
+        }) as _
       })
       .await
   }

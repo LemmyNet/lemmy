@@ -19,6 +19,7 @@ pub mod federation_blocklist;
 pub mod federation_queue_state;
 pub mod images;
 pub mod instance;
+pub mod keyword_block;
 pub mod language;
 pub mod local_site;
 pub mod local_site_rate_limit;
@@ -41,7 +42,6 @@ pub mod secret;
 pub mod site;
 pub mod tag;
 pub mod tagline;
-pub mod keyword_block;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
 ///
