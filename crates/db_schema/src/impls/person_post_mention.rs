@@ -1,6 +1,5 @@
 use crate::{
   diesel::OptionalExtension,
-  lemmy_db_schema_file::person_post_mention,
   newtypes::{PersonId, PersonPostMentionId, PostId},
   source::person_post_mention::{
     PersonPostMention,
@@ -12,6 +11,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::person_post_mention;
 
 impl Crud for PersonPostMention {
   type InsertForm = PersonPostMentionInsertForm;

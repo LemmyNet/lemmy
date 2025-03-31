@@ -1,7 +1,10 @@
 use crate::newtypes::{ActivityId, CommunityId, DbUrl};
 use chrono::{DateTime, Utc};
-use diesel::{sql_types::Nullable, Queryable};
-use lemmy_db_schema_file::{received_activity, sent_activity};
+use diesel::Queryable;
+use lemmy_db_schema_file::{
+  enums::ActorType,
+  schema::{received_activity, sent_activity},
+};
 use serde_json::Value;
 use std::{collections::HashSet, fmt::Debug};
 use url::Url;
@@ -77,14 +80,6 @@ pub struct SentActivityForm {
   pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: DbUrl,
-}
-
-#[derive(Clone, Copy, Debug, diesel_derive_enum::DbEnum, PartialEq, Eq)]
-#[ExistingTypePath = "lemmy_db_schema_file::sql_types::ActorTypeEnum"]
-pub enum ActorType {
-  Site,
-  Community,
-  Person,
 }
 
 #[derive(PartialEq, Eq, Debug)]

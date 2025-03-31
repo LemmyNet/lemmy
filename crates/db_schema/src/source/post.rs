@@ -5,7 +5,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   i_love_jesus::CursorKeysModule,
-  lemmy_db_schema_file::{post, post_actions},
+  lemmy_db_schema_file::schema::{post, post_actions},
   ts_rs::TS,
 };
 

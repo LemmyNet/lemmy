@@ -10,7 +10,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::{CommunityId, PersonId},
   source::{community::Community, person::Person},
   traits::Crud,

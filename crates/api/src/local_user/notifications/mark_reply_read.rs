@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, person::MarkCommentReplyAsRead, SuccessResponse};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::comment_reply::{CommentReply, CommentReplyUpdateForm},
   traits::Crud,
 };

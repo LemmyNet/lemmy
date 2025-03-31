@@ -2,7 +2,7 @@ use crate::context::LemmyContext;
 use actix_web::{http::header::USER_AGENT, HttpRequest};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::LocalUserId,
   sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
@@ -73,7 +73,7 @@ mod tests {
 
   use crate::{claims::Claims, context::LemmyContext};
   use actix_web::test::TestRequest;
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},

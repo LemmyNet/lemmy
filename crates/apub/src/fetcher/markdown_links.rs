@@ -2,7 +2,7 @@ use super::{search::SearchableObjects, user_or_community::UserOrCommunity};
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{newtypes::InstanceId, source::instance::Instance};
+use lemmy_db_lemmy_db_schema_file::schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::{
   error::LemmyResult,
   utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
@@ -98,7 +98,7 @@ async fn format_actor_url(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     source::{
       community::{Community, CommunityInsertForm},
       post::{Post, PostInsertForm},

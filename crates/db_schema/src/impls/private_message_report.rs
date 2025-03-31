@@ -1,10 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::private_message_report::dsl::{
-    private_message_report,
-    resolved,
-    resolver_id,
-    updated,
-  },
   newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
@@ -17,6 +11,12 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::private_message_report::dsl::{
+  private_message_report,
+  resolved,
+  resolver_id,
+  updated,
+};
 use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {

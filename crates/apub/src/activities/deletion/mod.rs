@@ -29,7 +29,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentUpdateForm},

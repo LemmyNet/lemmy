@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::{get_url_blocklist, process_markdown_opt, send_verification_email, slur_regex},
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},

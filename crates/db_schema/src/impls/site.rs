@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::{local_site, site},
   newtypes::{DbUrl, InstanceId, SiteId},
   source::{
     actor_language::SiteLanguage,
@@ -10,6 +9,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{local_site, site};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 

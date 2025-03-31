@@ -16,7 +16,7 @@ use lemmy_api_common::{
   federate_retry_sleep_duration,
   lemmy_utils::settings::structs::FederationWorkerConfig,
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::ActivityId,
   source::{
     federation_queue_state::FederationQueueState,
@@ -450,7 +450,7 @@ mod test {
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
   use lemmy_api_common::utils::generate_inbox_url;
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     newtypes::DbUrl,
     source::{
       activity::{ActorType, SentActivity, SentActivityForm},

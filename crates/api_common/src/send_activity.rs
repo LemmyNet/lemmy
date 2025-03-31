@@ -1,7 +1,7 @@
 use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
     comment::Comment,

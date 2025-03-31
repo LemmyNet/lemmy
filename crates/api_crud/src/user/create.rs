@@ -18,7 +18,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,

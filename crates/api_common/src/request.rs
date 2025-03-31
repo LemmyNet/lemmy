@@ -1,6 +1,6 @@
 use crate::{
   context::LemmyContext,
-  lemmy_db_lemmy_db_schema_file::traits::Crud,
+  lemmy_db_lemmy_db_schema_file::schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
   utils::proxy_image_link,
@@ -9,7 +9,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_lemmy_db_schema_file::source::{
+use lemmy_db_lemmy_db_schema_file::schema::source::{
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
   site::Site,

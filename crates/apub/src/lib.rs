@@ -5,7 +5,7 @@ use activitypub_federation::{
 };
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
@@ -150,7 +150,7 @@ pub(crate) async fn local_site_data_cached(
     CACHE
       .try_get_with((), async {
         let (local_site, allowed_instances, blocked_instances) =
-          lemmy_db_lemmy_db_schema_file::try_join_with_pool!(pool => (
+          lemmy_db_lemmy_db_schema_file::schema::try_join_with_pool!(pool => (
             // LocalSite may be missing
             |pool| async {
               Ok(LocalSite::read(pool).await.ok())

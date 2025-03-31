@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_private_instance,
 };
-use lemmy_db_lemmy_db_schema_file::source::local_site::LocalSite;
+use lemmy_db_lemmy_db_schema_file::schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

@@ -8,10 +8,10 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   aliases,
+  lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message},
   newtypes::PrivateMessageId,
-  lemmy_db_schema_file::{instance_actions, person, person_actions, private_message},
   utils::{get_conn, DbPool},
 };
 

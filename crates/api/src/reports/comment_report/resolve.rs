@@ -6,7 +6,10 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_lemmy_db_schema_file::{source::comment_report::CommentReport, traits::Reportable};
+use lemmy_db_lemmy_db_schema_file::schema::{
+  source::comment_report::CommentReport,
+  traits::Reportable,
+};
 use lemmy_db_views::structs::{CommentReportView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 

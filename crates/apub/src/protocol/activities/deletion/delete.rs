@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };

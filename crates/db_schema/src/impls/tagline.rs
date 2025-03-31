@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::tagline::dsl::{published, tagline},
   newtypes::TaglineId,
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   traits::Crud,
@@ -7,6 +6,7 @@ use crate::{
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::tagline::dsl::{published, tagline};
 
 impl Crud for Tagline {
   type InsertForm = TaglineInsertForm;

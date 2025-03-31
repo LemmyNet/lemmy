@@ -9,7 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::newtypes::InstanceId;
+use lemmy_db_lemmy_db_schema_file::schema::newtypes::InstanceId;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};

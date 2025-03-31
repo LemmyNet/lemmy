@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::post_report,
   newtypes::{PersonId, PostId, PostReportId},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
@@ -13,6 +12,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::post_report;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {

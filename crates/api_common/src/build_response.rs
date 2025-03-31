@@ -6,7 +6,7 @@ use crate::{
   utils::{check_person_instance_community_block, is_mod_or_admin, send_email_to_user},
 };
 use actix_web::web::Json;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PostId, PostOrCommentId},
   source::{
     actor_language::CommunityLanguage,

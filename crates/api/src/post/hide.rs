@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{HidePost, PostResponse},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::post::{PostActions, PostHideForm},
   traits::Hideable,
 };

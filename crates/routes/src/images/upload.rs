@@ -8,7 +8,7 @@ use lemmy_api_common::{
   LemmyErrorType,
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     community::{Community, CommunityUpdateForm},
     images::{LocalImage, LocalImageForm},

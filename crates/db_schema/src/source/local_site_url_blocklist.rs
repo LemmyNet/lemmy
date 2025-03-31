@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::local_site_url_blocklist;
+use lemmy_db_schema_file::schema::local_site_url_blocklist;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

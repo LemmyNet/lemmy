@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::source::post::Post;
+use lemmy_db_lemmy_db_schema_file::schema::source::post::Post;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

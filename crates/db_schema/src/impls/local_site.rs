@@ -1,10 +1,10 @@
 use crate::{
-  lemmy_db_schema_file::local_site,
   source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::local_site;
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock};
 use std::sync::LazyLock;
 

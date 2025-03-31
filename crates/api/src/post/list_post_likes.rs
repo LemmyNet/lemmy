@@ -4,7 +4,7 @@ use lemmy_api_common::{
   post::{ListPostLikes, ListPostLikesResponse},
   utils::is_mod_or_admin,
 };
-use lemmy_db_lemmy_db_schema_file::{source::post::Post, traits::Crud};
+use lemmy_db_lemmy_db_schema_file::schema::{source::post::Post, traits::Crud};
 use lemmy_db_views::structs::{LocalUserView, VoteView};
 use lemmy_utils::error::LemmyResult;
 

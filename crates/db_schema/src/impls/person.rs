@@ -1,6 +1,5 @@
 use crate::{
   diesel::OptionalExtension,
-  lemmy_db_schema_file::{comment, community, instance, local_user, person, person_actions, post},
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   source::person::{
     Person,
@@ -24,6 +23,15 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  comment,
+  community,
+  instance,
+  local_user,
+  person,
+  person_actions,
+  post,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

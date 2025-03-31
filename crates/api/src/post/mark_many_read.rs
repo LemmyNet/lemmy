@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, post::MarkManyPostsAsRead, SuccessResponse};
-use lemmy_db_lemmy_db_schema_file::{source::post::PostActions, traits::Readable};
+use lemmy_db_lemmy_db_schema_file::schema::{source::post::PostActions, traits::Readable};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 

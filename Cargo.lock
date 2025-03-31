@@ -2756,7 +2756,12 @@ name = "lemmy_db_schema_file"
 version = "1.0.0-alpha.2"
 dependencies = [
  "diesel",
+ "diesel-derive-enum",
+ "diesel-derive-newtype",
  "diesel_ltree",
+ "serde",
+ "strum",
+ "ts-rs",
 ]
 
 [[package]]

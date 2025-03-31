@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_user_action,
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::PostOrCommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,

@@ -1,6 +1,6 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use chrono::{DateTime, TimeZone, Utc};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::{CommunityId, DbUrl, InstanceId},
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
@@ -219,7 +219,7 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
     source::activity::{ActorType, SentActivity},
   };

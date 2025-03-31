@@ -24,7 +24,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
     community::Community,
@@ -224,7 +224,7 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_lemmy_db_schema_file::source::{local_site::LocalSite, site::Site};
+  use lemmy_db_lemmy_db_schema_file::schema::source::{local_site::LocalSite, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

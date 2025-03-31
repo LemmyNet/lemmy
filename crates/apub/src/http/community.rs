@@ -22,7 +22,7 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::community::Community,
   traits::ApubActor,
   CommunityVisibility,
@@ -165,7 +165,7 @@ pub(crate) mod tests {
   use super::*;
   use crate::protocol::objects::{group::Group, tombstone::Tombstone};
   use actix_web::{body::to_bytes, test::TestRequest};
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     newtypes::InstanceId,
     source::{
       community::CommunityInsertForm,

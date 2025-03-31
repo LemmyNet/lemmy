@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::{community, person, post, post_actions},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::post::{
     Post,
@@ -43,6 +42,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{community, person, post, post_actions};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   reports::combined::{ListReports, ListReportsResponse},
   utils::check_community_mod_of_any_or_admin_action,
 };
-use lemmy_db_lemmy_db_schema_file::traits::PaginationCursorBuilder;
+use lemmy_db_lemmy_db_schema_file::schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   combined::report_combined_view::ReportCombinedQuery,
   structs::{LocalUserView, ReportCombinedView},

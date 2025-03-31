@@ -23,7 +23,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},

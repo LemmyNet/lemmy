@@ -10,7 +10,7 @@ use lemmy_api_common::{
     remove_or_restore_user_data_in_community,
   },
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,

@@ -6,7 +6,7 @@ use lemmy_api_common::{
   site::{Search, SearchResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::community::Community,
   traits::PaginationCursorBuilder,
 };

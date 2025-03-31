@@ -5,7 +5,7 @@ use lemmy_api_common::{
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::is_admin,
 };
-use lemmy_db_lemmy_db_schema_file::source::local_site::LocalSite;
+use lemmy_db_lemmy_db_schema_file::schema::source::local_site::LocalSite;
 use lemmy_db_views::{
   registration_applications::registration_application_view::RegistrationApplicationQuery,
   structs::LocalUserView,

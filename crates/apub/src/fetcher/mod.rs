@@ -6,7 +6,7 @@ use activitypub_federation::{
 use diesel::NotFound;
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_lemmy_db_schema_file::traits::ApubActor;
+use lemmy_db_lemmy_db_schema_file::schema::traits::ApubActor;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 

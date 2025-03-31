@@ -5,7 +5,7 @@ use lemmy_api_common::{
   reports::community::{CommunityReportResponse, CreateCommunityReport},
   utils::{send_new_report_email_to_admins, slur_regex},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     community::Community,
     community_report::{CommunityReport, CommunityReportForm},

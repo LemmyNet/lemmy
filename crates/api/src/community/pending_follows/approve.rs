@@ -7,7 +7,10 @@ use lemmy_api_common::{
   utils::is_mod_or_admin,
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::{source::community::CommunityActions, traits::Followable};
+use lemmy_db_lemmy_db_schema_file::schema::{
+  source::community::CommunityActions,
+  traits::Followable,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

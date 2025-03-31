@@ -1,13 +1,13 @@
 use super::actor_language::UNDETERMINED_ID;
 use crate::{
   diesel::ExpressionMethods,
-  lemmy_db_schema_file::language,
   newtypes::LanguageId,
   source::language::Language,
   utils::{get_conn, DbPool},
 };
 use diesel::{result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::language;
 
 impl Language {
   pub async fn read_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

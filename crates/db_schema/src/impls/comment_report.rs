@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::comment_report,
   newtypes::{CommentId, CommentReportId, PersonId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
@@ -13,6 +12,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::comment_report;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommentReport {

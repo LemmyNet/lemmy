@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::{post_tag, tag},
   newtypes::TagId,
   source::tag::{PostTagInsertForm, Tag, TagInsertForm},
   traits::Crud,
@@ -7,6 +6,7 @@ use crate::{
 };
 use diesel::{insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::LemmyResult;
 
 impl Crud for Tag {

@@ -4,7 +4,10 @@ use lemmy_api_common::{
   site::{GetModlog, GetModlogResponse},
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
-use lemmy_db_lemmy_db_schema_file::{source::local_site::LocalSite, traits::PaginationCursorBuilder};
+use lemmy_db_lemmy_db_schema_file::schema::{
+  source::local_site::LocalSite,
+  traits::PaginationCursorBuilder,
+};
 use lemmy_db_views::{
   combined::modlog_combined_view::ModlogCombinedQuery,
   structs::{LocalUserView, ModlogCombinedView},

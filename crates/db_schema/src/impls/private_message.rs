@@ -1,6 +1,5 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  lemmy_db_schema_file::private_message,
   newtypes::{DbUrl, PersonId, PrivateMessageId},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
@@ -9,6 +8,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::private_message;
 use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 

@@ -1,5 +1,4 @@
 use crate::{
-  lemmy_db_schema_file::registration_application,
   newtypes::{LocalUserId, RegistrationApplicationId},
   source::registration_application::{
     RegistrationApplication,
@@ -11,6 +10,7 @@ use crate::{
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::registration_application;
 
 impl Crud for RegistrationApplication {
   type InsertForm = RegistrationApplicationInsertForm;

@@ -4,7 +4,10 @@ use lemmy_api_common::{
   reports::private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   utils::is_admin,
 };
-use lemmy_db_lemmy_db_schema_file::{source::private_message_report::PrivateMessageReport, traits::Reportable};
+use lemmy_db_lemmy_db_schema_file::schema::{
+  source::private_message_report::PrivateMessageReport,
+  traits::Reportable,
+};
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
 use lemmy_utils::error::LemmyResult;
 

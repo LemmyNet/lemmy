@@ -13,7 +13,7 @@ use activitypub_federation::{
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,

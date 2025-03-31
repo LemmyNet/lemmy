@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_user_valid};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -24,7 +24,7 @@ pub async fn get_my_user(
   let pool = &mut context.pool();
 
   let (follows, community_blocks, instance_blocks, person_blocks, moderates, discussion_languages) =
-    lemmy_db_lemmy_db_schema_file::try_join_with_pool!(pool => (
+    lemmy_db_lemmy_db_schema_file::schema::try_join_with_pool!(pool => (
       |pool| CommunityFollowerView::for_person(pool, person_id),
       |pool| CommunityActions::read_blocks_for_person(pool, person_id),
       |pool| InstanceActions::read_blocks_for_person(pool, person_id),

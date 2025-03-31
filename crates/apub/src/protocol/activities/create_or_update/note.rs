@@ -9,7 +9,7 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::{source::community::Community, traits::Crud};
+use lemmy_db_lemmy_db_schema_file::schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;

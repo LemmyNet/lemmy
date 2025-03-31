@@ -15,10 +15,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   aliases::{creator_community_actions, creator_local_user},
-  newtypes::{PaginationCursor, PersonId},
-  lemmy_db_schema_file::{
+  lemmy_db_schema_file::schema::{
     comment,
     comment_actions,
     community,
@@ -32,6 +31,7 @@ use lemmy_db_lemmy_db_schema_file::{
     post,
     post_actions,
   },
+  newtypes::{PaginationCursor, PersonId},
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
@@ -274,7 +274,7 @@ mod tests {
     combined::person_saved_combined_view::PersonSavedCombinedQuery,
     structs::{LocalUserView, PersonSavedCombinedView},
   };
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
       community::{Community, CommunityInsertForm},

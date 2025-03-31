@@ -35,7 +35,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,

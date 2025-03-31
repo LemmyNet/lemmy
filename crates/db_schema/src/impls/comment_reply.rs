@@ -7,7 +7,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::comment_reply;
+use lemmy_db_schema_file::schema::comment_reply;
 
 impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;

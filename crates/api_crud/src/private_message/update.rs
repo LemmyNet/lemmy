@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };

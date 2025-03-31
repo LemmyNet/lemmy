@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::MarkPersonCommentMentionAsRead,
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   traits::Crud,
 };

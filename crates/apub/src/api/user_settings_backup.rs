@@ -9,7 +9,7 @@ use actix_web::web::Json;
 use futures::{future::try_join_all, StreamExt};
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, SuccessResponse};
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   newtypes::DbUrl,
   source::{
     comment::{CommentActions, CommentSavedForm},
@@ -279,7 +279,7 @@ pub(crate) mod tests {
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
-  use lemmy_db_lemmy_db_schema_file::{
+  use lemmy_db_lemmy_db_schema_file::schema::{
     source::{
       community::{
         Community,

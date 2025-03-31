@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
-use lemmy_db_lemmy_db_schema_file::{
+use lemmy_db_lemmy_db_schema_file::schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
