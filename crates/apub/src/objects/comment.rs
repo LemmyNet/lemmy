@@ -23,7 +23,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,6 +34,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::CommunityView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -161,9 +162,10 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
-      .await
-      .is_ok();
+    let is_mod_or_admin =
+      CommunityView::check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
+        .await
+        .is_ok();
     if post.locked && !is_mod_or_admin {
       Err(FederationError::PostIsLocked)?
     } else {
@@ -233,7 +235,8 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
+  use lemmy_db_schema::source::{instance::Instance, local_site::LocalSite, site::Site};
+  use lemmy_db_views::site::site_view::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -267,6 +270,7 @@ pub(crate) mod tests {
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -285,6 +289,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment_id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -292,6 +297,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -311,6 +317,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment.id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 

@@ -5,8 +5,6 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{build_cache, error::LemmyResult, CacheLock};
-use std::sync::LazyLock;
 
 impl LocalSite {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> Result<Self, Error> {
@@ -16,17 +14,14 @@ impl LocalSite {
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    static CACHE: CacheLock<LocalSite> = LazyLock::new(build_cache);
-    Ok(
-      CACHE
-        .try_get_with((), async {
-          let conn = &mut get_conn(pool).await?;
-          local_site::table.first(conn).await
-        })
-        .await?,
-    )
+
+  /// Only used for tests
+  #[cfg(test)]
+  async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    local_site::table.first(conn).await
   }
+
   pub async fn update(pool: &mut DbPool<'_>, form: &LocalSiteUpdateForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_site::table)
@@ -56,6 +51,7 @@ mod tests {
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

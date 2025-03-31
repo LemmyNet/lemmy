@@ -33,8 +33,6 @@ pub struct Person {
   /// A URL for an avatar.
   #[cfg_attr(feature = "full", ts(optional))]
   pub avatar: Option<DbUrl>,
-  /// Whether the person is banned.
-  pub banned: bool,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
@@ -64,9 +62,6 @@ pub struct Person {
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
   pub bot_account: bool,
-  /// When their ban, if it exists, expires, if at all.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
   pub post_count: i64,
   #[serde(skip)]
@@ -87,8 +82,6 @@ pub struct PersonInsertForm {
   pub display_name: Option<String>,
   #[new(default)]
   pub avatar: Option<DbUrl>,
-  #[new(default)]
-  pub banned: Option<bool>,
   #[new(default)]
   pub published: Option<DateTime<Utc>>,
   #[new(default)]
@@ -113,8 +106,6 @@ pub struct PersonInsertForm {
   pub matrix_user_id: Option<String>,
   #[new(default)]
   pub bot_account: Option<bool>,
-  #[new(default)]
-  pub ban_expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -123,7 +114,6 @@ pub struct PersonInsertForm {
 pub struct PersonUpdateForm {
   pub display_name: Option<Option<String>>,
   pub avatar: Option<Option<DbUrl>>,
-  pub banned: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub bio: Option<Option<String>>,
@@ -136,7 +126,6 @@ pub struct PersonUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<Option<String>>,
   pub bot_account: Option<bool>,
-  pub ban_expires: Option<Option<DateTime<Utc>>>,
 }
 
 #[skip_serializing_none]

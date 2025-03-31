@@ -11,8 +11,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   image::{ImageGetParams, ImageProxyParams},
 };
-use lemmy_db_schema::source::{images::RemoteImage, local_site::LocalSite};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_schema::source::images::RemoteImage;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 
@@ -25,7 +25,7 @@ pub async fn get_image(
 ) -> LemmyResult<HttpResponse> {
   // block access to images if instance is private
   if local_user_view.is_none() {
-    let local_site = LocalSite::read(&mut context.pool()).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     if local_site.private_instance {
       return Ok(HttpResponse::Unauthorized().finish());
     }

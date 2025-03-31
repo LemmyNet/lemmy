@@ -1,6 +1,6 @@
 use crate::{
   structs::{CommentSlimView, CommentView},
-  utils::filter_blocked,
+  utils::{filter_blocked, home_instance_person_join},
 };
 use diesel::{
   dsl::exists,
@@ -79,8 +79,10 @@ impl CommentView {
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
+    let person_join = person::table.left_join(home_instance_person_join());
+
     comment::table
-      .inner_join(person::table)
+      .inner_join(person_join)
       .inner_join(post::table)
       .inner_join(community_join)
       .left_join(community_actions_join)
@@ -128,6 +130,7 @@ impl CommentView {
       creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
+      home_instance_actions: self.home_instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
     }
@@ -488,6 +491,7 @@ mod tests {
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
       person: inserted_timmy_person.clone(),
+      instance_actions: None,
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;

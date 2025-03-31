@@ -1,9 +1,12 @@
-use crate::structs::{
-  CommentView,
-  LocalUserView,
-  PersonSavedCombinedView,
-  PersonSavedCombinedViewInternal,
-  PostView,
+use crate::{
+  structs::{
+    CommentView,
+    LocalUserView,
+    PersonSavedCombinedView,
+    PersonSavedCombinedViewInternal,
+    PostView,
+  },
+  utils::home_instance_person_join,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -93,17 +96,19 @@ impl PersonSavedCombinedViewInternal {
         .or(comment::post_id.eq(post::id)),
     );
 
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        // Need to filter out the post rows where the post_id given is null
-        // Otherwise you'll get duped post rows
-        .or(
-          post::creator_id
-            .eq(item_creator)
-            .and(person_saved_combined::post_id.is_not_null()),
-        ),
-    );
+    let item_creator_join = person::table
+      .on(
+        comment::creator_id
+          .eq(item_creator)
+          // Need to filter out the post rows where the post_id given is null
+          // Otherwise you'll get duped post rows
+          .or(
+            post::creator_id
+              .eq(item_creator)
+              .and(person_saved_combined::post_id.is_not_null()),
+          ),
+      )
+      .left_join(home_instance_person_join());
 
     let community_join = community::table.on(post::community_id.eq(community::id));
 
@@ -244,6 +249,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -258,6 +264,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -310,6 +317,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: timmy.clone(),
+      instance_actions: None,
     };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");

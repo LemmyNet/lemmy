@@ -54,8 +54,6 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
   )
   .await?;
 
-  let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
-
   let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
   let site = Site::create(pool, &site_form).await?;
 
@@ -74,6 +72,8 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
   // requirement or registration mode
   let rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
   LocalSiteRateLimit::create(pool, &rate_limit_form).await?;
+
+  let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
 
   Ok((inserted_instance, admin_local_user_view))
 }

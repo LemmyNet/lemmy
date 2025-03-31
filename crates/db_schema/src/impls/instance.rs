@@ -12,9 +12,9 @@ use crate::{
   },
   source::{
     federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceActions, InstanceBlockForm, InstanceForm},
+    instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm, InstanceForm},
   },
-  traits::Blockable,
+  traits::{Bannable, Blockable},
   utils::{
     functions::{coalesce, lower},
     get_conn,
@@ -247,5 +247,55 @@ impl Blockable for InstanceActions {
       .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
+  }
+}
+
+impl InstanceActions {
+  pub async fn check_ban(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    instance_id: InstanceId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let ban_exists = select(exists(
+      instance_actions::table
+        .filter(instance_actions::person_id.eq(person_id))
+        .filter(instance_actions::instance_id.eq(instance_id))
+        .filter(instance_actions::received_ban.is_not_null()),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+
+    if ban_exists {
+      return Err(LemmyErrorType::SiteBan.into());
+    }
+    Ok(())
+  }
+}
+
+impl Bannable for InstanceActions {
+  type Form = InstanceBanForm;
+  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      insert_into(instance_actions::table)
+        .values(form)
+        .on_conflict((instance_actions::person_id, instance_actions::instance_id))
+        .do_update()
+        .set(form)
+        .returning(Self::as_select())
+        .get_result::<Self>(conn)
+        .await?,
+    )
+  }
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+        .set_null(instance_actions::received_ban)
+        .set_null(instance_actions::ban_expires)
+        .get_result(conn)
+        .await?,
+    )
   }
 }

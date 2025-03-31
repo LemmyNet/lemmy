@@ -16,6 +16,7 @@ use crate::{
   newtypes::{
     CommentId,
     CommunityId,
+    InstanceId,
     ModAddCommunityId,
     ModAddId,
     ModBanFromCommunityId,
@@ -210,6 +211,7 @@ pub struct ModBan {
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
   pub published: DateTime<Utc>,
+  pub instance_id: InstanceId,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -245,6 +247,7 @@ pub struct ModBanForm {
   pub reason: Option<String>,
   pub banned: Option<bool>,
   pub expires: Option<DateTime<Utc>>,
+  pub instance_id: InstanceId,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

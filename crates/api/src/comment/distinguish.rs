@@ -24,7 +24,7 @@ pub async fn distinguish_comment(
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     &mut context.pool(),
   )
@@ -37,7 +37,7 @@ pub async fn distinguish_comment(
 
   // Verify that only a mod or admin can distinguish a comment
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     false,
     &mut context.pool(),

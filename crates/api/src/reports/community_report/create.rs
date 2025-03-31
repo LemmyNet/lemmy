@@ -9,11 +9,10 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     community_report::{CommunityReport, CommunityReportForm},
-    local_site::LocalSite,
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_views::structs::{CommunityReportView, LocalUserView};
+use lemmy_db_views::structs::{CommunityReportView, LocalUserView, SiteView};
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
@@ -48,7 +47,7 @@ pub async fn create_community_report(
     CommunityReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &community_report_view.creator.name,

@@ -31,6 +31,7 @@ impl CommunityView {
         .and(community_actions::person_id.nullable().eq(person_id)),
     );
 
+    // join with instance actions for community instance
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
         .eq(community::instance_id)

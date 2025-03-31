@@ -39,11 +39,11 @@ use lemmy_db_schema::{
     activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
-    local_site::LocalSite,
   },
   traits::{ApubActor, Crud},
   CommunityVisibility,
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -144,7 +144,10 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;

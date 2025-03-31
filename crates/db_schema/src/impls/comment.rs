@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, DbUrl, PersonId},
-  schema::{comment, comment_actions},
+  newtypes::{CommentId, DbUrl, InstanceId, PersonId},
+  schema::{comment, comment_actions, community, post},
   source::comment::{
     Comment,
     CommentActions,
@@ -24,7 +24,9 @@ use diesel::{
   dsl::insert_into,
   expression::SelectableHelper,
   result::Error,
+  update,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -65,6 +67,36 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
+  }
+
+  pub async fn update_removed_for_creator_and_instance(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    instance_id: InstanceId,
+    removed: bool,
+  ) -> Result<Vec<CommentId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let comment_ids = comment::table
+      .inner_join(post::table)
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .filter(comment::creator_id.eq(creator_id))
+      .filter(community::instance_id.eq(instance_id))
+      .select(comment::id)
+      .load::<CommentId>(conn)
+      .await?;
+
+    let form = &CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    };
+
+    update(comment::table)
+      .filter(comment::id.eq_any(comment_ids.clone()))
+      .set(form)
+      .execute(conn)
+      .await?;
+    Ok(comment_ids)
   }
 
   pub async fn create(
