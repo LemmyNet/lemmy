@@ -69,7 +69,7 @@ impl PersonContentCombinedViewInternal {
     );
 
     let my_community_actions_join: my_community_actions_join =
-      my_community_actions_join(Some(my_person_id));
+      my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);

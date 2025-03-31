@@ -16,10 +16,13 @@ pub async fn distinguish_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   let orig_comment = CommentView::read(
     &mut context.pool(),
     data.comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
@@ -57,6 +60,7 @@ pub async fn distinguish_comment(
     &mut context.pool(),
     data.comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 

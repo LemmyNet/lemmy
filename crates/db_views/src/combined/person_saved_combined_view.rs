@@ -143,9 +143,9 @@ impl PersonSavedCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
-    local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<PersonSavedCombinedView>> {
     let my_person_id = user.local_user.person_id;
+    let local_instance_id = user.person.instance_id;
 
     let conn = &mut get_conn(pool).await?;
 
@@ -338,7 +338,7 @@ mod tests {
 
     // Do a batch read of timmy saved
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view, data.instance.id)
+      .list(pool, &data.timmy_view)
       .await?;
     assert_eq!(0, timmy_saved.len());
 
@@ -354,7 +354,7 @@ mod tests {
     PostActions::save(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view, data.instance.id)
+      .list(pool, &data.timmy_view)
       .await?;
     assert_eq!(3, timmy_saved.len());
 
@@ -383,7 +383,7 @@ mod tests {
     PostActions::unsave(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view, data.instance.id)
+      .list(pool, &data.timmy_view)
       .await?;
     assert_eq!(1, timmy_saved.len());
 

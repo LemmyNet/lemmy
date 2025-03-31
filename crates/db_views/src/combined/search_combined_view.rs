@@ -104,7 +104,7 @@ impl SearchCombinedViewInternal {
     );
 
     let my_community_actions_join: my_community_actions_join =
-      my_community_actions_join(Some(my_person_id));
+      my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
@@ -351,7 +351,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator,
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
@@ -707,7 +708,9 @@ mod tests {
     .await?;
 
     // 2 things got removed, but the post also has another comment which got removed
-    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    let search = SearchCombinedQuery::default()
+      .list(pool, &None, data.instance.id)
+      .await?;
     assert_length!(7, search);
 
     cleanup(data, pool).await?;
@@ -727,7 +730,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, community_search);
 
@@ -750,7 +753,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(1, community_search_by_id);
 
@@ -760,7 +763,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, community_search_by_name);
@@ -779,7 +782,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert!(community_search_title_only.is_empty());
@@ -801,7 +804,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, person_search);
 
@@ -824,7 +827,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(1, person_search_by_id);
     if let SearchCombinedView::Person(v) = &person_search_by_id[0] {
@@ -839,7 +842,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, person_search_by_name);
@@ -855,7 +858,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, person_search_sort_top);
 
@@ -883,7 +886,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, post_search);
 
@@ -915,7 +918,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, post_search_by_community);
 
@@ -925,7 +928,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, post_search_by_name);
@@ -938,7 +941,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert!(post_search_title_only.is_empty());
@@ -951,7 +954,7 @@ mod tests {
       post_url_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, post_search_url_only);
@@ -962,7 +965,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     // Should only be 1 not 2, because liked only ignores your own content
@@ -973,7 +976,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     // Should be zero because you disliked your own post
@@ -985,7 +988,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, post_search_sort_top);
 
@@ -1014,7 +1017,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, comment_search);
 
@@ -1049,7 +1052,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, comment_search_by_community);
 
@@ -1059,7 +1062,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(2, comment_search_by_name);
@@ -1070,7 +1073,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, comment_search_liked_only);
@@ -1080,7 +1083,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, comment_search_disliked_only);
@@ -1091,7 +1094,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, comment_search_sort_top);
 
