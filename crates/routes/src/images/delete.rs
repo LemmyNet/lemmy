@@ -127,6 +127,7 @@ pub async fn delete_image(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  is_admin(&local_user_view)?;
   LocalImage::delete_by_alias_and_user(
     &mut context.pool(),
     &data.filename,
