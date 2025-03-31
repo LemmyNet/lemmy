@@ -6,7 +6,7 @@ pub extern crate rustls;
 
 #[tokio::main]
 pub async fn main() -> LemmyResult<()> {
-  init_logging(&SETTINGS.opentelemetry_url)?;
+  init_logging(&SETTINGS)?;
   let args = CmdArgs::parse();
 
   rustls::crypto::ring::default_provider()
