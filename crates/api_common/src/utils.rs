@@ -570,7 +570,6 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
-
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
