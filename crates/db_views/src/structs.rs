@@ -852,10 +852,15 @@ pub struct PersonPostMentionView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,

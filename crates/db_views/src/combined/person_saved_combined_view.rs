@@ -207,7 +207,8 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -222,7 +223,8 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -336,7 +338,7 @@ mod tests {
 
     // Do a batch read of timmy saved
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view)
+      .list(pool, &data.timmy_view, data.instance.id)
       .await?;
     assert_eq!(0, timmy_saved.len());
 
@@ -352,7 +354,7 @@ mod tests {
     PostActions::save(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view)
+      .list(pool, &data.timmy_view, data.instance.id)
       .await?;
     assert_eq!(3, timmy_saved.len());
 
@@ -381,7 +383,7 @@ mod tests {
     PostActions::unsave(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()
-      .list(pool, &data.timmy_view)
+      .list(pool, &data.timmy_view, data.instance.id)
       .await?;
     assert_eq!(1, timmy_saved.len());
 

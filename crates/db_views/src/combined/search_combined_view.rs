@@ -369,7 +369,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         image_details: v.image_details,
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
@@ -386,8 +387,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Person(PersonView {
         person,
         is_admin: v.item_creator_is_admin,
-        instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        home_instance_actions: v.creator_home_instance_actions,
+        local_instance_actions: v.creator_local_instance_actions,
       }))
     } else {
       None
@@ -547,7 +548,9 @@ mod tests {
     let data = init_data(pool).await?;
 
     // search
-    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    let search = SearchCombinedQuery::default()
+      .list(pool, &None, data.instance.id)
+      .await?;
     assert_length!(10, search);
 
     // Make sure the types are correct
@@ -625,7 +628,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(5, search_by_community);
 
@@ -634,7 +637,7 @@ mod tests {
       creator_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(4, search_by_creator);
 
@@ -643,7 +646,7 @@ mod tests {
       search_term: Some("gold".into()),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(2, search_by_name);
@@ -653,7 +656,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(2, search_liked_only);
@@ -662,7 +665,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, search_disliked_only);
@@ -673,7 +676,7 @@ mod tests {
       sort: Some(SearchSortType::Old),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
     if let SearchCombinedView::Person(v) = &search_old_sort[0] {
       assert_eq!(data.sara.id, v.person.id);

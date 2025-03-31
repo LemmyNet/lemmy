@@ -219,7 +219,8 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -234,7 +235,8 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -344,7 +346,7 @@ mod tests {
 
     // Do a batch read of timmy
     let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, &None)
+      .list(pool, &None, data.instance.id)
       .await?;
     assert_eq!(3, timmy_content.len());
 
@@ -370,7 +372,7 @@ mod tests {
 
     // Do a batch read of sara
     let sara_content = PersonContentCombinedQuery::new(data.sara.id)
-      .list(pool, &None)
+      .list(pool, &None, data.instance.id)
       .await?;
     assert_eq!(3, sara_content.len());
 

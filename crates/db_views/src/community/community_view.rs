@@ -14,7 +14,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommunityId, InstanceId, PersonId},
   schema::{community, community_actions, instance_actions, local_user},
   source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
@@ -72,11 +72,12 @@ impl CommunityView {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let is_mod =
       CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
     if is_mod.is_ok()
-      || PersonView::read(pool, person_id, false)
+      || PersonView::read(pool, person_id, local_instance_id, false)
         .await
         .is_ok_and(|t| t.is_admin)
     {
@@ -90,11 +91,12 @@ impl CommunityView {
   pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let is_mod_of_any =
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
     if is_mod_of_any.is_ok()
-      || PersonView::read(pool, person_id, false)
+      || PersonView::read(pool, person_id, local_instance_id, false)
         .await
         .is_ok_and(|t| t.is_admin)
     {

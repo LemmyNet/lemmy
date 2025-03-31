@@ -109,11 +109,13 @@ impl InboxCombinedViewInternal {
 
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(Some(my_person_id));
-    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
-    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
-    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
-    let my_instance_actions_join: my_instance_actions_join = my_instance_actions_join(my_person_id);
-    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person_id));
+    let my_comment_actions_join: my_comment_actions_join =
+      my_comment_actions_join(Some(my_person_id));
+    let my_local_user_join: my_local_user_join = my_local_user_join(Some(my_person_id));
+    let my_instance_actions_join: my_instance_actions_join =
+      my_instance_actions_join(Some(my_person_id));
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
@@ -128,7 +130,7 @@ impl InboxCombinedViewInternal {
       .inner_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join())
-      .left_join(creator_community_actions_join)
+      .left_join(creator_community_actions_join())
       .left_join(my_local_user_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
@@ -360,6 +362,8 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -382,7 +386,8 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           comment_actions: v.comment_actions,
           person_actions: v.person_actions,
           instance_actions: v.instance_actions,
-          home_instance_actions: v.home_instance_actions,
+          creator_home_instance_actions: v.creator_home_instance_actions,
+          creator_local_instance_actions: v.creator_local_instance_actions,
           creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
           can_mod: v.can_mod,
@@ -400,7 +405,8 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         community_actions: v.community_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         post_actions: v.post_actions,
         image_details: v.image_details,
         creator_community_actions: v.creator_community_actions,
@@ -547,11 +553,12 @@ mod tests {
     let reply = CommentReply::create(pool, &form).await?;
 
     let timmy_unread_replies =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, true).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
+        .await?;
     assert_eq!(1, timmy_unread_replies);
 
     let timmy_inbox = InboxCombinedQuery::default()
-      .list(pool, data.timmy.id)
+      .list(pool, data.timmy.id, data.instance.id)
       .await?;
     assert_length!(1, timmy_inbox);
 
@@ -570,14 +577,15 @@ mod tests {
     CommentReply::update(pool, reply.id, &form).await?;
 
     let timmy_unread_replies =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, true).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
+        .await?;
     assert_eq!(0, timmy_unread_replies);
 
     let timmy_inbox_unread = InboxCombinedQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.timmy.id)
+    .list(pool, data.timmy.id, data.instance.id)
     .await?;
     assert_length!(0, timmy_inbox_unread);
 
@@ -611,11 +619,12 @@ mod tests {
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, true)
+        .await?;
     assert_eq!(2, sara_unread_mentions);
 
     let sara_inbox = InboxCombinedQuery::default()
-      .list(pool, data.sara.id)
+      .list(pool, data.sara.id, data.instance.id)
       .await?;
     assert_length!(2, sara_inbox);
 
@@ -643,11 +652,12 @@ mod tests {
     PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
     let sara_unread_mentions_after_block =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, true)
+        .await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
     let sara_inbox_after_block = InboxCombinedQuery::default()
-      .list(pool, data.sara.id)
+      .list(pool, data.sara.id, data.instance.id)
       .await?;
     assert_length!(1, sara_inbox_after_block);
 
@@ -665,7 +675,7 @@ mod tests {
       type_: Some(InboxDataType::PostMention),
       ..Default::default()
     }
-    .list(pool, data.sara.id)
+    .list(pool, data.sara.id, data.instance.id)
     .await?;
     assert_length!(1, sara_inbox_post_mentions_only);
 
@@ -683,11 +693,12 @@ mod tests {
 
     // Make sure sara hides bots
     let sara_unread_mentions_after_hide_bots =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, false).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, false)
+        .await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
     let sara_inbox_after_hide_bots = InboxCombinedQuery::default()
-      .list(pool, data.sara.id)
+      .list(pool, data.sara.id, data.instance.id)
       .await?;
     assert_length!(1, sara_inbox_after_hide_bots);
 
@@ -703,14 +714,15 @@ mod tests {
 
     // Make sure none come back
     let sara_unread_mentions =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, false).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, false)
+        .await?;
     assert_eq!(0, sara_unread_mentions);
 
     let sara_inbox_unread = InboxCombinedQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.sara.id)
+    .list(pool, data.sara.id, data.instance.id)
     .await?;
     assert_length!(0, sara_inbox_unread);
 
@@ -745,7 +757,7 @@ mod tests {
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery::default()
-        .list(pool, data.timmy.id)
+        .list(pool, data.timmy.id, data.instance.id)
         .await?,
     );
 
@@ -759,7 +771,8 @@ mod tests {
     assert_eq!(timmy_messages[2].recipient.id, data.timmy.id);
 
     let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
+        .await?;
     assert_eq!(2, timmy_unread);
 
     let timmy_unread_messages = map_to_pm(
@@ -767,7 +780,7 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id)
+      .list(pool, data.timmy.id, data.instance.id)
       .await?,
     );
 
@@ -810,14 +823,15 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id)
+      .list(pool, data.timmy.id, data.instance.id)
       .await?,
     );
 
     assert_length!(1, &timmy_messages);
 
     let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
+        .await?;
     assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
@@ -852,14 +866,15 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id)
+      .list(pool, data.timmy.id, data.instance.id)
       .await?,
     );
 
     assert_length!(0, &timmy_messages);
 
     let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
+        .await?;
     assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;
