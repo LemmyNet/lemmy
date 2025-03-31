@@ -15,7 +15,11 @@ use activitypub_federation::{
   protocol::context::WithContext,
   traits::{Collection, Object},
 };
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use actix_web::{
+  web::{Bytes, Path},
+  HttpRequest,
+  HttpResponse,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
@@ -29,7 +33,7 @@ pub(crate) struct CommunityQuery {
 /// Return the ActivityPub json representation of a local community over HTTP.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_http(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -62,7 +66,7 @@ pub async fn community_inbox(
 
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
@@ -76,7 +80,7 @@ pub(crate) async fn get_apub_community_followers(
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
 /// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -91,7 +95,7 @@ pub(crate) async fn get_apub_community_outbox(
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_moderators(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -106,7 +110,7 @@ pub(crate) async fn get_apub_community_moderators(
 
 /// Returns collection of featured (stickied) posts.
 pub(crate) async fn get_apub_community_featured(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -134,6 +138,8 @@ pub(crate) mod tests {
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
@@ -146,7 +152,7 @@ pub(crate) mod tests {
     deleted: bool,
     visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<(Instance, Community)> {
+  ) -> LemmyResult<(Instance, Community, Path<CommunityQuery>)> {
     let instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
     create_local_site(context, instance.id).await?;
@@ -160,7 +166,11 @@ pub(crate) mod tests {
       .visibility(Some(visibility))
       .build();
     let community = Community::create(&mut context.pool(), &community_form).await?;
-    Ok((instance, community))
+    let query: Path<CommunityQuery> = CommunityQuery {
+      community_name: community.name.clone(),
+    }
+    .into();
+    Ok((instance, community, query))
   }
 
   /// Necessary for the community outbox fetching
@@ -195,19 +205,15 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community) = init(false, CommunityVisibility::Public, &context).await?;
+    let (instance, community, query) = init(false, CommunityVisibility::Public, &context).await?;
 
     // fetch invalid community
-    let query = CommunityQuery {
+    let query_err = CommunityQuery {
       community_name: "asd".to_string(),
     };
-    let res = get_apub_community_http(query.into(), context.reset_request_count()).await;
+    let res = get_apub_community_http(query_err.into(), context.reset_request_count()).await;
     assert!(res.is_err());
 
-    // fetch valid community
-    let query = CommunityQuery {
-      community_name: community.name.clone(),
-    };
     let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
     let res_group: Group = decode_response(res).await?;
@@ -224,7 +230,7 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await?;
+    let res = get_apub_community_outbox(query, context.reset_request_count()).await?;
     assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
@@ -235,12 +241,8 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community) = init(true, CommunityVisibility::LocalOnly, &context).await?;
+    let (instance, _, query) = init(true, CommunityVisibility::LocalOnly, &context).await?;
 
-    // should return tombstone
-    let query = CommunityQuery {
-      community_name: community.name.clone(),
-    };
     let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await?;
     assert_eq!(410, res.status());
     let res_tombstone = decode_response::<Tombstone>(res).await;
@@ -255,7 +257,7 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await;
+    let res = get_apub_community_outbox(query, context.reset_request_count()).await;
     assert!(res.is_err());
 
     //Community::delete(&mut context.pool(), community.id).await?;
@@ -267,11 +269,8 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community) = init(false, CommunityVisibility::LocalOnly, &context).await?;
+    let (instance, _, query) = init(false, CommunityVisibility::LocalOnly, &context).await?;
 
-    let query = CommunityQuery {
-      community_name: community.name.clone(),
-    };
     let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
     let res =
@@ -283,8 +282,33 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await;
+    let res = get_apub_community_outbox(query, context.reset_request_count()).await;
     assert!(res.is_err());
+
+    Instance::delete(&mut context.pool(), instance.id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_outbox_deleted_user() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let (instance, community, path) = init(false, CommunityVisibility::Public, &context).await?;
+
+    // post from deleted user shouldnt break outbox
+    let mut form = PersonInsertForm::new("jerry".to_string(), String::new(), instance.id);
+    form.deleted = Some(true);
+    let person = Person::create(&mut context.pool(), &form).await?;
+
+    let form = PostInsertForm::builder()
+      .name("title".to_string())
+      .creator_id(person.id)
+      .community_id(community.id)
+      .build();
+    Post::create(&mut context.pool(), &form).await?;
+
+    let res = get_apub_community_outbox(path, context.reset_request_count()).await?;
+    assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
