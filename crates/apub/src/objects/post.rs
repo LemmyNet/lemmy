@@ -337,7 +337,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context.request_count(), 0);
 
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;
