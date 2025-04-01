@@ -28,10 +28,11 @@ use lemmy_db_schema::{
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_schema_file::{
-  enums::{ListingType, SearchSortType},
+  enums::ListingType,
   schema::{
     comment,
     comment_actions,

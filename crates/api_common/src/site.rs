@@ -22,6 +22,7 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   ModlogActionType,
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_schema_file::enums::{
@@ -31,7 +32,6 @@ use lemmy_db_schema_file::enums::{
   PostListingMode,
   PostSortType,
   RegistrationMode,
-  SearchSortType,
 };
 use lemmy_db_views::structs::{
   CommentView,

@@ -452,7 +452,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use super::*;
+  
   use crate::{
     combined::report_combined_view::ReportCombinedQuery,
     structs::{

@@ -84,8 +84,9 @@ use lemmy_db_schema::{
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::{enums::CommunityFollowerState, schema::local_user};
+use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

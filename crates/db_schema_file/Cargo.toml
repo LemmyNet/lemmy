@@ -16,11 +16,13 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+full = ["diesel","diesel_ltree","diesel-derive-enum","ts-rs"]
+
 [dependencies]
-diesel.workspace = true
-diesel_ltree.workspace = true
 serde = { workspace = true }
 strum = { workspace = true }
-ts-rs = { workspace = true }
-diesel-derive-newtype = { workspace = true }
-diesel-derive-enum = { workspace = true }
+diesel = { workspace = true, optional = true }
+diesel_ltree = { workspace = true, optional = true }
+ts-rs = { workspace = true, optional = true }
+diesel-derive-enum = { workspace = true, optional = true }

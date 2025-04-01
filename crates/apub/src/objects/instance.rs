@@ -34,7 +34,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::{

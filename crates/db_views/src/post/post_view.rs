@@ -577,9 +577,8 @@ impl<'a> PostQuery<'a> {
 #[expect(clippy::expect_used)]
 #[cfg(test)]
 mod tests {
-  use super::*;
   use crate::{
-    post::post_view::{PaginationCursorData, PostQuery, PostView},
+    post::post_view::{PaginationCursorData, PostQuery, PostSortType, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;
@@ -619,6 +618,7 @@ mod tests {
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
   };
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;

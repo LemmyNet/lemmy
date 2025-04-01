@@ -3242,7 +3242,6 @@ dependencies = [
  "derive-new",
  "diesel",
  "diesel-async",
- "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
@@ -3275,7 +3274,6 @@ version = "1.0.0-alpha.4"
 dependencies = [
  "diesel",
  "diesel-derive-enum",
- "diesel-derive-newtype",
  "diesel_ltree",
  "serde",
  "strum",
@@ -3384,7 +3382,6 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_apub",
  "lemmy_db_schema",
- "lemmy_db_schema_file",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",

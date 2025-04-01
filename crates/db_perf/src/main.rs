@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{build_db_pool, get_conn, now},
 };
-use lemmy_db_schema_file::schema::post;
+use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_db_views::{post::post_view::PostQuery, structs::PostPaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;

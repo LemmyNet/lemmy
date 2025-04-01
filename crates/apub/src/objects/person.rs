@@ -30,7 +30,7 @@ use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
 };
-use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{

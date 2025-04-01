@@ -28,8 +28,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::DbPool,
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

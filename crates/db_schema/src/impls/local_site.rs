@@ -5,8 +5,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::local_site;
-use lemmy_utils::{build_cache, error::LemmyResult, CacheLock};
-use std::sync::LazyLock;
 
 impl LocalSite {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> Result<Self, Error> {

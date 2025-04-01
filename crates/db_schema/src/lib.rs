@@ -39,6 +39,19 @@ use {
 };
 
 #[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search sort types.
+pub enum SearchSortType {
+  #[default]
+  New,
+  Top,
+  Old,
+}
+
+#[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
 #[cfg_attr(feature = "full", derive(TS))]
