@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::send_new_applicant_email_to_admins,
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::schema::source::{
+use lemmy_db_schema::source::{
   email_verification::EmailVerification,
   local_user::{LocalUser, LocalUserUpdateForm},
 };

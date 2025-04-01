@@ -15,7 +15,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::schema::{
   newtypes::DbUrl,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
@@ -192,7 +192,7 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::schema::{
     source::local_site::LocalSite,
     ListingType,
     PostSortType,

@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{community::Community, post::Post},
   utils::FETCH_LIMIT_MAX,
 };

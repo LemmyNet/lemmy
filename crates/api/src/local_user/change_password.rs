@@ -9,10 +9,7 @@ use lemmy_api_common::{
   person::{ChangePassword, LoginResponse},
   utils::password_length_check,
 };
-use lemmy_db_lemmy_db_schema_file::schema::source::{
-  local_user::LocalUser,
-  login_token::LoginToken,
-};
+use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

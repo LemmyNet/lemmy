@@ -1,6 +1,6 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
 };

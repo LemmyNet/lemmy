@@ -12,10 +12,10 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  lemmy_db_schema_file::schema::{community, community_actions, instance_actions, local_user},
   newtypes::{CommunityId, PersonId},
+  schema::{community, community_actions, instance_actions, local_user},
   source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   ListingType,
@@ -195,7 +195,7 @@ mod tests {
     community::community_view::CommunityQuery,
     structs::{CommunitySortType, CommunityView},
   };
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     source::{
       community::{
         Community,

@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, is_admin},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     community::Community,
     mod_log::moderator::{ModFeaturePost, ModFeaturePostForm},

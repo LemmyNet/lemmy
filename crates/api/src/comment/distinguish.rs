@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_community_mod_action, check_community_user_action},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };

@@ -7,7 +7,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     person::{Person, PersonActions},

@@ -20,9 +20,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  lemmy_db_schema_file::schema::{
+  newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
+  schema::{
     comment,
     comment_actions,
     comment_report,
@@ -39,7 +40,6 @@ use lemmy_db_lemmy_db_schema_file::schema::{
     private_message_report,
     report_combined,
   },
-  newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool, ReverseTimestampKey},
@@ -466,9 +466,9 @@ mod tests {
   use chrono::{Days, Utc};
   use diesel::{update, ExpressionMethods, QueryDsl};
   use diesel_async::RunQueryDsl;
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     assert_length,
-    lemmy_db_schema_file::schema::report_combined,
+    schema::report_combined,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},

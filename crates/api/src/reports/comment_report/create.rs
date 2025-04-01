@@ -12,7 +12,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
     local_site::LocalSite,

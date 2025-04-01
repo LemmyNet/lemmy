@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{read_auth_token, AUTH_COOKIE_NAME},
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::schema::source::login_token::LoginToken;
+use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

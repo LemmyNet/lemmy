@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{BannedPersonsResponse, ListBannedPersons},
   utils::is_admin,
 };
-use lemmy_db_lemmy_db_schema_file::schema::traits::PaginationCursorBuilder;
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   person::person_view::PersonQuery,
   structs::{LocalUserView, PersonView},

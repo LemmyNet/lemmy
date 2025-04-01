@@ -1,4 +1,4 @@
-use lemmy_db_lemmy_db_schema_file::schema::newtypes::{PrivateMessageId, PrivateMessageReportId};
+use lemmy_db_schema::newtypes::{PrivateMessageId, PrivateMessageReportId};
 use lemmy_db_views::structs::PrivateMessageReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]

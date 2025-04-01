@@ -9,10 +9,10 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   aliases,
-  lemmy_db_schema_file::schema::{local_user, person, registration_application},
   newtypes::{PersonId, RegistrationApplicationId},
+  schema::{local_user, person, registration_application},
   source::registration_application::RegistrationApplication,
   utils::{get_conn, limit_and_offset, DbPool},
 };
@@ -120,7 +120,7 @@ mod tests {
     RegistrationApplicationQuery,
     RegistrationApplicationView,
   };
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},

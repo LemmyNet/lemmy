@@ -8,9 +8,9 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_lemmy_db_schema_file::schema::{
-  lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword},
+use lemmy_db_schema::{
   newtypes::CustomEmojiId,
+  schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
   utils::{get_conn, limit_and_offset, DbPool},
 };

@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_expire_time,
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     community::{CommunityActions, CommunityPersonBanForm},
     mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},

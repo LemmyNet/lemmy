@@ -1,7 +1,7 @@
 use crate::{fetcher::resolve_ap_identifier, objects::person::ApubPerson};
 use activitypub_federation::config::Data;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{local_site::LocalSite, local_user::LocalUser, person::Person},
   CommentSortType,

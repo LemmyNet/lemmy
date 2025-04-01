@@ -1,4 +1,4 @@
-use lemmy_db_lemmy_db_schema_file::schema::{newtypes::TaglineId, source::tagline::Tagline};
+use lemmy_db_schema::{newtypes::TaglineId, source::tagline::Tagline};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

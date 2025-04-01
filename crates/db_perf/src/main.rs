@@ -10,7 +10,7 @@ use diesel::{
   IntoSql,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::schema::{
   lemmy_db_schema_file::schema::post,
   source::{
     community::{Community, CommunityInsertForm},

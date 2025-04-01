@@ -27,7 +27,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,

@@ -102,7 +102,7 @@ mod tests {
 
   use actix_web::test::TestRequest;
   use lemmy_api_common::{claims::Claims, context::LemmyContext};
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},

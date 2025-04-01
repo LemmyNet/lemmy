@@ -33,10 +33,11 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   aliases,
   impls::local_user::LocalUserOptionHelper,
-  lemmy_db_schema_file::schema::{
+  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+  schema::{
     admin_allow_instance,
     admin_block_instance,
     admin_purge_comment,
@@ -62,7 +63,6 @@ use lemmy_db_lemmy_db_schema_file::schema::{
     person,
     post,
   },
-  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
   source::{
     combined::modlog::{modlog_combined_keys as key, ModlogCombined},
     local_user::LocalUser,
@@ -342,7 +342,7 @@ impl ModlogCombinedQuery<'_> {
     }
 
     if let Some(type_) = self.type_ {
-      use lemmy_db_lemmy_db_schema_file::schema::ModlogActionType::*;
+      use lemmy_db_schema::ModlogActionType::*;
       query = match type_ {
         All => query,
         ModRemovePost => query.filter(modlog_combined::mod_remove_post_id.is_not_null()),
@@ -603,7 +603,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
 mod tests {
 
   use crate::{combined::modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     newtypes::PersonId,
     source::{
       comment::{Comment, CommentInsertForm},

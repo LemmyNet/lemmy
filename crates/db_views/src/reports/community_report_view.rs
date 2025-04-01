@@ -9,10 +9,10 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   aliases,
-  lemmy_db_schema_file::schema::{community, community_actions, community_report, person},
   newtypes::{CommunityReportId, PersonId},
+  schema::{community, community_actions, community_report, person},
   utils::{get_conn, DbPool},
 };
 

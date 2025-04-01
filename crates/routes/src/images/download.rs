@@ -11,7 +11,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   image::{ImageGetParams, ImageProxyParams},
 };
-use lemmy_db_lemmy_db_schema_file::schema::source::{images::RemoteImage, local_site::LocalSite};
+use lemmy_db_schema::source::{images::RemoteImage, local_site::LocalSite};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 use url::Url;

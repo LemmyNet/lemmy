@@ -7,7 +7,7 @@ use lemmy_api_common::{
   LemmyErrorType,
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,

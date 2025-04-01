@@ -14,7 +14,7 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, post::PostActions},
   traits::Readable,

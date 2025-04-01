@@ -1,7 +1,7 @@
 use crate::util::{get_latest_activity_id, FederationQueueStateWithDomain};
 use chrono::Local;
 use lemmy_api_common::federate_retry_sleep_duration;
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::InstanceId,
   utils::{ActualDbPool, DbPool},
 };

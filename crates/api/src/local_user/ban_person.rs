@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     local_user::LocalUser,
     login_token::LoginToken,

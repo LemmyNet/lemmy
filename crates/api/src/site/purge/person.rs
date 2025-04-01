@@ -8,7 +8,7 @@ use lemmy_api_common::{
   utils::{is_admin, purge_user_account},
   SuccessResponse,
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     local_user::LocalUser,
     mod_log::admin::{AdminPurgePerson, AdminPurgePersonForm},

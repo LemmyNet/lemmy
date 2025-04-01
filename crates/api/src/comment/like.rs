@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::{LocalUserId, PostOrCommentId},
   source::{
     comment::{CommentActions, CommentLikeForm},

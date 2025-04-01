@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   tagline::{ListTaglines, ListTaglinesResponse},
 };
-use lemmy_db_lemmy_db_schema_file::schema::source::tagline::Tagline;
+use lemmy_db_schema::schema::source::tagline::Tagline;
 use lemmy_utils::error::LemmyError;
 
 pub async fn list_taglines(

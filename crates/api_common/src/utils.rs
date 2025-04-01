@@ -12,7 +12,7 @@ use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions, CommentUpdateForm},
@@ -1202,7 +1202,7 @@ pub fn send_webmention(post: Post, community: Community) {
 mod tests {
 
   use super::*;
-  use lemmy_db_lemmy_db_schema_file::schema::{
+  use lemmy_db_schema::{
     source::{
       comment::CommentInsertForm,
       community::CommunityInsertForm,

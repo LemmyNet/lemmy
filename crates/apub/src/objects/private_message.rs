@@ -20,7 +20,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
-use lemmy_db_lemmy_db_schema_file::schema::{
+use lemmy_db_schema::{
   source::{
     instance::Instance,
     person::{Person, PersonActions},
@@ -180,7 +180,7 @@ mod tests {
     protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
-  use lemmy_db_lemmy_db_schema_file::schema::source::site::Site;
+  use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
