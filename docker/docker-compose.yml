@@ -22,30 +22,14 @@ services:
     logging: *default-logging
 
   lemmy:
-    # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.19.6
-    # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
-    # use "build" to build your local lemmy server image for development. make sure to comment out "image".
-    # run: docker compose up --build
-
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
-    # args:
-    #   RUST_RELEASE_MODE: release
-    #   CARGO_BUILD_FEATURES: default
-    # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
+    image: dessalines/lemmy:1.0.0-alpha.4
     hostname: lemmy
     restart: unless-stopped
     environment:
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
-      - RUST_BACKTRACE=full
-    ports:
-      # prometheus metrics can be enabled with the `prometheus` config option. they are available on
-      # port 10002, path /metrics by default
-      - "10002:10002"
+      - RUST_LOG=extism=info,lemmy_api_common=info,error
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z
+      - ./plugins:/plugins:Z
     depends_on:
       - postgres
       - pictrs
@@ -83,8 +67,6 @@ services:
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
       - PICTRS__API_KEY=API_KEY
-      - RUST_LOG=debug
-      - RUST_BACKTRACE=full
       - PICTRS__MEDIA__VIDEO_CODEC=vp9
       - PICTRS__MEDIA__GIF__MAX_WIDTH=256
       - PICTRS__MEDIA__GIF__MAX_HEIGHT=256

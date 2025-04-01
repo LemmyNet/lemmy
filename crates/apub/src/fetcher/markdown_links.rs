@@ -55,7 +55,7 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   if object_id.inner().domain() == Some(local_domain) {
     return None;
   }
-  let dereferenced = object_id.dereference(context).await.ok()?;
+  let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
     SearchableObjects::PostOrComment(pc) => match *pc {
       PostOrComment::Post(post) => post.local_url(context.settings()),

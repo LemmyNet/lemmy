@@ -24,10 +24,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{
-  email::{lang_str_to_lang, translations::Lang},
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalUser {
   pub async fn create(
@@ -290,10 +287,6 @@ impl LocalUser {
     } else {
       Err(LemmyErrorType::NotHigherMod)?
     }
-  }
-
-  pub fn interface_i18n_language(&self) -> Lang {
-    lang_str_to_lang(&self.interface_language)
   }
 }
 
