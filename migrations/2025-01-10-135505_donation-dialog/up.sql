@@ -3,6 +3,3 @@
 ALTER TABLE local_user
     ADD COLUMN last_donation_notification timestamptz NOT NULL DEFAULT (now() - (random() * (interval '12 months')));
 
-ALTER TABLE local_site
-    ADD COLUMN disable_donation_dialog boolean NOT NULL DEFAULT FALSE;
-

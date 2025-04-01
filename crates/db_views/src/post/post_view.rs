@@ -1,6 +1,11 @@
 use crate::{
   structs::{PostPaginationCursor, PostView},
-  utils::{filter_blocked, filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+  utils::{
+    filter_blocked,
+    filter_is_subscribed,
+    filter_not_unlisted_or_is_subscribed,
+    home_instance_person_join,
+  },
 };
 use diesel::{
   debug_query,
@@ -87,7 +92,7 @@ impl PostView {
 
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
-        .eq(post::instance_id)
+        .eq(community::instance_id)
         .and(instance_actions::person_id.nullable().eq(my_person_id)),
     );
 
@@ -107,8 +112,10 @@ impl PostView {
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
+    let person_join = person::table.left_join(home_instance_person_join());
+
     post::table
-      .inner_join(person::table)
+      .inner_join(person_join)
       .inner_join(community::table)
       .left_join(image_details_join)
       .left_join(community_actions_join)
@@ -461,6 +468,11 @@ impl<'a> PostQuery<'a> {
     };
 
     query = o.local_user.visible_communities_only(query);
+    query = query.filter(
+      post::federation_pending
+        .eq(false)
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
 
     if !o.local_user.is_admin() {
       query = query.filter(
@@ -782,15 +794,18 @@ mod tests {
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
         person: inserted_tegan_person,
+        instance_actions: None,
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
         person: inserted_john_person,
+        instance_actions: None,
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
         person: inserted_bot_person,
+        instance_actions: None,
       };
 
       let site = Site {

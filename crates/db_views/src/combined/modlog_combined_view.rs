@@ -990,6 +990,7 @@ mod tests {
       banned: Some(true),
       reason: None,
       expires: None,
+      instance_id: data.instance.id,
     };
     ModBan::create(pool, &form).await?;
 

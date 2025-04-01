@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   schema::{community, person, post, post_actions},
   source::post::{
     Post,
@@ -40,7 +40,6 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
-  TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::{
@@ -149,6 +148,7 @@ impl Post {
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
+    for_instance_id: Option<InstanceId>,
     removed: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -158,6 +158,18 @@ impl Post {
 
     if let Some(for_community_id) = for_community_id {
       update = update.filter(post::community_id.eq(for_community_id));
+    }
+
+    if let Some(for_instance_id) = for_instance_id {
+      // Diesel can't update from join unfortunately, so you'll need to loop over these
+      let post_ids = post::table
+        .inner_join(community::table)
+        .filter(post::creator_id.eq(for_creator_id))
+        .filter(community::instance_id.eq(for_instance_id))
+        .select(post::id)
+        .load::<PostId>(conn)
+        .await?;
+      update = update.filter(post::id.eq_any(post_ids));
     }
 
     update
@@ -195,75 +207,6 @@ impl Post {
       .set(post::deleted.eq(true))
       .get_results::<Self>(conn)
       .await
-  }
-
-  pub async fn fetch_pictrs_posts_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    post::table
-      .filter(post::creator_id.eq(for_creator_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::creator_id.eq(for_creator_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
-  }
-
-  pub async fn fetch_pictrs_posts_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-    post::table
-      .filter(post::community_id.eq(for_community_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::community_id.eq(for_community_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
   }
 
   pub async fn user_scheduled_post_count(
@@ -318,6 +261,18 @@ impl Post {
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
+  }
+
+  /// The comment was created locally and sent back, indicating that the community accepted it
+  pub async fn set_not_pending(&self, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    if self.local && self.federation_pending {
+      let form = PostUpdateForm {
+        federation_pending: Some(false),
+        ..Default::default()
+      };
+      Post::update(pool, self.id, &form).await?;
+    }
+    Ok(())
   }
 }
 
@@ -618,12 +573,12 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      instance_id: inserted_instance.id,
       newest_comment_time: inserted_post.published,
       newest_comment_time_necro: inserted_post.published,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
+      federation_pending: false,
     };
 
     // Post Like

@@ -22,7 +22,8 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{get_url_blocklist, is_mod_or_admin, process_markdown, slur_regex},
+  plugins::{plugin_hook_after, plugin_hook_before},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -33,6 +34,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::CommunityView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -145,7 +147,12 @@ impl Object for ApubComment {
       context,
     ))
     .await?;
-    verify_is_remote_object(&note.id, context)?;
+    if let Err(e) = verify_is_remote_object(&note.id, context) {
+      if let Ok(comment) = note.id.dereference_local(context).await {
+        comment.set_not_pending(&mut context.pool()).await?;
+      }
+      return Err(e.into());
+    }
     Box::pin(verify_person_in_community(
       &note.attributed_to,
       &community,
@@ -155,9 +162,10 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
-      .await
-      .is_ok();
+    let is_mod_or_admin =
+      CommunityView::check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
+        .await
+        .is_ok();
     if post.locked && !is_mod_or_admin {
       Err(FederationError::PostIsLocked)?
     } else {
@@ -184,7 +192,7 @@ impl Object for ApubComment {
         .await?,
     );
 
-    let form = CommentInsertForm {
+    let mut form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
       content,
@@ -196,7 +204,9 @@ impl Object for ApubComment {
       distinguished: note.distinguished,
       local: Some(false),
       language_id,
+      federation_pending: Some(false),
     };
+    form = plugin_hook_before("before_receive_federated_comment", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
@@ -206,6 +216,7 @@ impl Object for ApubComment {
       parent_comment_path.as_ref(),
     )
     .await?;
+    plugin_hook_after("after_receive_federated_comment", &comment)?;
     Ok(comment.into())
   }
 }
@@ -224,7 +235,8 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::{local_site::LocalSite, site::Site};
+  use lemmy_db_schema::source::{instance::Instance, local_site::LocalSite, site::Site};
+  use lemmy_db_views::site::site_view::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -258,6 +270,7 @@ pub(crate) mod tests {
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -276,6 +289,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment_id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -283,6 +297,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -302,6 +317,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment.id).await?;
     cleanup(data, &context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 

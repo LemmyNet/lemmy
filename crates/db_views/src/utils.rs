@@ -1,14 +1,22 @@
 use diesel::{
-  dsl::{case_when, exists, not},
+  dsl::{case_when, exists, not, Nullable},
   helper_types::{Eq, NotEq},
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
 };
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user, person1, person2},
+  aliases::{
+    creator_community_actions,
+    creator_local_user,
+    home_instance_actions,
+    person1,
+    person2,
+  },
+  newtypes::InstanceId,
   schema::{
     comment,
     community,
@@ -22,6 +30,7 @@ use lemmy_db_schema::{
   source::community::CommunityFollowerState,
   CommunityVisibility,
   CreatorCommunityActionsAllColumnsTuple,
+  HomeInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -135,6 +144,7 @@ pub(crate) fn comment_select_remove_deletes() -> _ {
     comment::controversy_rank,
     comment::report_count,
     comment::unresolved_report_count,
+    comment::federation_pending,
   )
 }
 
@@ -153,6 +163,12 @@ pub(crate) fn creator_community_actions_select() -> CreatorCommunityActionsAllCo
   creator_community_actions.fields(community_actions::all_columns)
 }
 
+pub(crate) fn home_instance_actions_select() -> Nullable<HomeInstanceActionsAllColumnsTuple> {
+  home_instance_actions
+    .fields(instance_actions::all_columns)
+    .nullable()
+}
+
 type IsSubscribedType =
   Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
 
@@ -167,4 +183,30 @@ pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {
   let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
   let is_subscribed: IsSubscribedType = filter_is_subscribed();
   not_unlisted.or(is_subscribed)
+}
+
+/// join with instance actions for local instance
+///
+/// Requires annotation for return type, see https://docs.diesel.rs/2.2.x/diesel/dsl/attr.auto_type.html#annotating-types
+#[diesel::dsl::auto_type]
+pub fn local_instance_person_join(local_instance_id: InstanceId) -> _ {
+  instance_actions::table.on(
+    instance_actions::instance_id
+      .eq(local_instance_id)
+      .and(instance_actions::person_id.eq(person::id)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub fn home_instance_person_join() -> _ {
+  home_instance_actions.on(
+    home_instance_actions
+      .field(instance_actions::instance_id)
+      .eq(person::instance_id)
+      .and(
+        home_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
+  )
 }

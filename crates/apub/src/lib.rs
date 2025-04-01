@@ -9,6 +9,7 @@ use lemmy_db_schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   CacheLock,
@@ -153,7 +154,7 @@ pub(crate) async fn local_site_data_cached(
           lemmy_db_schema::try_join_with_pool!(pool => (
             // LocalSite may be missing
             |pool| async {
-              Ok(LocalSite::read(pool).await.ok())
+              Ok(SiteView::read_local(pool).await.ok().map(|s| s.local_site))
             },
             Instance::allowlist,
             Instance::blocklist

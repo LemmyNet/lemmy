@@ -55,7 +55,7 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   if object_id.inner().domain() == Some(local_domain) {
     return None;
   }
-  let dereferenced = object_id.dereference(context).await.ok()?;
+  let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
     SearchableObjects::PostOrComment(pc) => match *pc {
       PostOrComment::Post(post) => post.local_url(context.settings()),
@@ -105,7 +105,7 @@ mod tests {
     },
     traits::Crud,
   };
-  use lemmy_db_views::structs::LocalUserView;
+  use lemmy_db_views::{site::site_view::create_test_instance, structs::LocalUserView};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -113,7 +113,7 @@ mod tests {
   #[tokio::test]
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
+    let instance = create_test_instance(&mut context.pool()).await?;
     let community = Community::create(
       &mut context.pool(),
       &CommunityInsertForm::new(

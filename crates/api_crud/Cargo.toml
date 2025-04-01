@@ -17,6 +17,7 @@ lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
@@ -30,7 +31,7 @@ regex = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
-diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+diesel-async = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["futures"]

@@ -1,9 +1,12 @@
-use crate::structs::{
-  CommentView,
-  LocalUserView,
-  PersonContentCombinedView,
-  PersonContentCombinedViewInternal,
-  PostView,
+use crate::{
+  structs::{
+    CommentView,
+    LocalUserView,
+    PersonContentCombinedView,
+    PersonContentCombinedViewInternal,
+    PostView,
+  },
+  utils::home_instance_person_join,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -54,17 +57,19 @@ impl PersonContentCombinedViewInternal {
         .or(comment::post_id.eq(post::id)),
     );
 
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        // Need to filter out the post rows where the post_id given is null
-        // Otherwise you'll get duped post rows
-        .or(
-          post::creator_id
-            .eq(item_creator)
-            .and(person_content_combined::post_id.is_not_null()),
-        ),
-    );
+    let item_creator_join = person::table
+      .on(
+        comment::creator_id
+          .eq(item_creator)
+          // Need to filter out the post rows where the post_id given is null
+          // Otherwise you'll get duped post rows
+          .or(
+            post::creator_id
+              .eq(item_creator)
+              .and(person_content_combined::post_id.is_not_null()),
+          ),
+      )
+      .left_join(home_instance_person_join());
 
     let community_join = community::table.on(post::community_id.eq(community::id));
 
@@ -257,6 +262,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
@@ -271,6 +277,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
