@@ -253,6 +253,8 @@ steps:
     image: alpine:3
     commands: 
       - pwd
+      - ls -la
+      - chmod 777 .
     when:
       - event: tag
 
