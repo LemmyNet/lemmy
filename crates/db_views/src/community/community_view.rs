@@ -194,7 +194,6 @@ impl CommunityQuery<'_> {
 #[cfg(test)]
 mod tests {
 
-  use super::*;
   use crate::{
     community::community_view::CommunityQuery,
     structs::{CommunitySortType, CommunityView},
