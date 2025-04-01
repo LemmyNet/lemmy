@@ -34,7 +34,6 @@ use lemmy_db_schema::{
     image_details,
     instance_actions,
     local_user,
-    local_user_keyword_block,
     local_user_language,
     person,
     person_actions,
@@ -64,6 +63,7 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use tracing::debug;
+use lemmy_db_schema::source::keyword_block::LocalUserKeywordBlock;
 use PostSortType::*;
 
 impl PostView {
@@ -340,8 +340,6 @@ impl<'a> PostQuery<'a> {
       self
     };
 
-    let conn = &mut get_conn(pool).await?;
-
     let my_person_id = o.local_user.person_id();
     let my_local_user_id = o.local_user.local_user_id();
 
@@ -499,15 +497,8 @@ impl<'a> PostQuery<'a> {
       }
 
       query = query.filter(filter_blocked());
-      if o.local_user.is_some() {
-        let blocked_keywords: Vec<String> = local_user_keyword_block::table
-          .filter(
-            local_user_keyword_block::local_user_id
-              .nullable()
-              .eq(my_local_user_id),
-          )
-          .select(local_user_keyword_block::keyword)
-          .load::<String>(conn)
+      if let Some(local_user_id) = my_local_user_id {
+        let blocked_keywords: Vec<String> = LocalUserKeywordBlock::read(pool, local_user_id)
           .await?;
         if !blocked_keywords.is_empty() {
           for keyword in blocked_keywords {
@@ -585,6 +576,7 @@ impl<'a> PostQuery<'a> {
       query.as_query()
     };
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+    let conn = &mut get_conn(pool).await?;
     Commented::new(query)
       .text("PostQuery::list")
       .text_if(
