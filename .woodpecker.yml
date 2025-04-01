@@ -289,13 +289,15 @@ steps:
     when:
       - event: tag
 
+  # https://woodpecker-ci.org/plugins/Release
   publish_native_binary:
     image: woodpeckerci/plugin-release
     settings:
       files:
         - lemmy_server.gz
         - sha256sum.txt
-      title: ${CI_COMMIT_TAG##v}
+      title: ${CI_COMMIT_TAG}
+      prerelease: true
       api-key:
         from_secret: github_token
     when:
