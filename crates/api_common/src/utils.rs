@@ -506,21 +506,6 @@ pub async fn purge_post_images(
   }
 }
 
-pub async fn purge_image_posts_for_person(
-  banned_person_id: PersonId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let pool = &mut context.pool();
-  let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
-  for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await;
-  }
-
-  Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
-
-  Ok(())
-}
-
 /// Delete a local_user's images
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
@@ -538,21 +523,6 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
   Ok(())
 }
 
-pub async fn purge_image_posts_for_community(
-  banned_community_id: CommunityId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let pool = &mut context.pool();
-  let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
-  for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await;
-  }
-
-  Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;
-
-  Ok(())
-}
-
 /// Removes or restores user data.
 pub async fn remove_or_restore_user_data(
   mod_person_id: PersonId,
@@ -563,16 +533,9 @@ pub async fn remove_or_restore_user_data(
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  // Only these actions are possible when removing, not restoring
+  // These actions are only possible when removing, not restoring
   if removed {
-    // Purge user images
-    let person = Person::read(pool, banned_person_id).await?;
-    if let Some(avatar) = person.avatar {
-      purge_image_from_pictrs(&avatar, context).await.ok();
-    }
-    if let Some(banner) = person.banner {
-      purge_image_from_pictrs(&banner, context).await.ok();
-    }
+    delete_local_user_images(banned_person_id, context).await?;
 
     // Update the fields to None
     Person::update(
@@ -586,9 +549,6 @@ pub async fn remove_or_restore_user_data(
       },
     )
     .await?;
-
-    // Purge image posts
-    purge_image_posts_for_person(banned_person_id, context).await?;
 
     // Communities
     // Remove all communities where they're the top mod
@@ -613,13 +573,6 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
 
-      // Delete the community images
-      if let Some(icon) = first_mod_community.community.icon {
-        purge_image_from_pictrs(&icon, context).await.ok();
-      }
-      if let Some(banner) = first_mod_community.community.banner {
-        purge_image_from_pictrs(&banner, context).await.ok();
-      }
       // Update the fields to None
       Community::update(
         pool,
@@ -770,21 +723,9 @@ pub async fn remove_or_restore_user_data_in_community(
 pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  let person = Person::read(pool, person_id).await?;
-
   // Delete their local images, if they're a local user
-  delete_local_user_images(person_id, context).await.ok();
-
   // No need to update avatar and banner, those are handled in Person::delete_account
-  if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(&avatar, context).await.ok();
-  }
-  if let Some(banner) = person.banner {
-    purge_image_from_pictrs(&banner, context).await.ok();
-  }
-
-  // Purge image posts
-  purge_image_posts_for_person(person_id, context).await.ok();
+  delete_local_user_images(person_id, context).await.ok();
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
