@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.6.3"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd8c76cad52a3d0f637f1f4ba06d96ac63c92512082f6a1ca86145b66a0a5371"
+checksum = "b58dd6127cbb797b5626306bebef8ca464fdb38c50f2ed6ecc7a3fcf45d422ec"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -22,6 +22,7 @@ dependencies = [
  "chrono",
  "derive_builder",
  "dyn-clone",
+ "either",
  "enum_delegate",
  "futures",
  "futures-core",
@@ -77,13 +78,13 @@ dependencies = [
 
 [[package]]
 name = "actix-cors"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9e772b3bcafe335042b5db010ab7c09013dad6eac4915c91d8d50902769f331"
+checksum = "daa239b93927be1ff123eebada5a3ff23e89f0124ccb8609234e5103d5a5ae6d"
 dependencies = [
  "actix-utils",
  "actix-web",
- "derive_more",
+ "derive_more 2.0.1",
  "futures-util",
  "log",
  "once_cell",
@@ -107,7 +108,7 @@ dependencies = [
  "brotli",
  "bytes",
  "bytestring",
- "derive_more",
+ "derive_more 0.99.18",
  "encoding_rs",
  "flate2",
  "futures-core",
@@ -242,7 +243,7 @@ dependencies = [
  "bytestring",
  "cfg-if",
  "cookie",
- "derive_more",
+ "derive_more 0.99.18",
  "encoding_rs",
  "futures-core",
  "futures-util",
@@ -450,9 +451,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.96"
+version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b964d184e89d9b6b67dd2715bc8e74cf3107fb2b529990c90cf517326150bf4"
+checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 dependencies = [
  "backtrace",
 ]
@@ -505,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.86"
+version = "0.1.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "644dd749086bf3771a2fbc5f256fdb982d53f011c7d5d560304eafeecebce79d"
+checksum = "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1501,6 +1502,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+ "unicode-xid",
+]
+
+[[package]]
 name = "deser-hjson"
 version = "2.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1762,9 +1784,9 @@ checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
 
 [[package]]
 name = "either"
-version = "1.13.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
+checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "elementtree"
@@ -3099,6 +3121,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "pretty_assertions",
  "regex",
@@ -3129,6 +3152,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "mime",
  "mime_guess",
@@ -3147,7 +3171,6 @@ dependencies = [
  "ts-rs",
  "url",
  "urlencoding",
- "uuid",
  "webmention",
  "webpage",
 ]
@@ -3168,6 +3191,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views",
+ "lemmy_email",
  "lemmy_utils",
  "regex",
  "serde",
@@ -3307,6 +3331,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_email"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "html2text",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views",
+ "lemmy_utils",
+ "lettre",
+ "rosetta-build",
+ "rosetta-i18n",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "lemmy_federate"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3410,10 +3450,8 @@ dependencies = [
  "enum-map",
  "futures",
  "git-version",
- "html2text",
  "http 1.2.0",
  "itertools 0.14.0",
- "lettre",
  "markdown-it",
  "markdown-it-block-spoiler",
  "markdown-it-footnote",
@@ -3424,8 +3462,6 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "reqwest-middleware",
- "rosetta-build",
- "rosetta-i18n",
  "serde",
  "serde_json",
  "smart-default",
@@ -3436,7 +3472,6 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "urlencoding",
- "uuid",
 ]
 
 [[package]]
@@ -3482,7 +3517,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3649,7 +3684,7 @@ dependencies = [
  "argparse",
  "const_format",
  "derivative",
- "derive_more",
+ "derive_more 0.99.18",
  "downcast-rs",
  "entities",
  "html-escape",
@@ -7068,7 +7103,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

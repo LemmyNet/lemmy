@@ -29,13 +29,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
-  utils::{
-    check_nsfw_allowed,
-    get_url_blocklist,
-    process_markdown_opt,
-    purge_post_images,
-    slur_regex,
-  },
+  utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -241,9 +235,9 @@ impl Object for ApubPost {
     // posts that get updated to be NSFW
     let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
     if let Err(e) = block_for_nsfw {
-      let url = url.clone().map(std::convert::Into::into);
-      let thumbnail_url = page.image.map(|i| i.url.into());
-      purge_post_images(url, thumbnail_url, context).await;
+      // TODO: Remove locally generated thumbnail if one exists, depends on
+      //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
+      //       safely do this.
       Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
       Err(e)?
     }
@@ -337,7 +331,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context.request_count(), 0);
 
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;
