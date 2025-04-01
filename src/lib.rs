@@ -25,7 +25,8 @@ use lemmy_apub::{
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
-use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema_file::schema_setup;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,

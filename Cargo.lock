@@ -3426,6 +3426,7 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_apub",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
