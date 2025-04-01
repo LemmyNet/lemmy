@@ -17,6 +17,13 @@ use lemmy_db_schema::{
     person2,
   },
   newtypes::InstanceId,
+  CreatorCommunityActionsAllColumnsTuple,
+  HomeInstanceActionsAllColumnsTuple,
+  Person1AliasAllColumnsTuple,
+  Person2AliasAllColumnsTuple,
+};
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility},
   schema::{
     comment,
     community,
@@ -27,12 +34,6 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  source::community::CommunityFollowerState,
-  CommunityVisibility,
-  CreatorCommunityActionsAllColumnsTuple,
-  HomeInstanceActionsAllColumnsTuple,
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -170,13 +171,14 @@ pub(crate) fn home_instance_actions_select() -> Nullable<HomeInstanceActionsAllC
 }
 
 type IsSubscribedType =
-  Eq<lemmy_db_schema::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
+  Eq<lemmy_db_schema_file::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
 
 pub(crate) fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
 }
 
-type IsNotUnlistedType = NotEq<lemmy_db_schema::schema::community::visibility, CommunityVisibility>;
+type IsNotUnlistedType =
+  NotEq<lemmy_db_schema_file::schema::community::visibility, CommunityVisibility>;
 
 #[diesel::dsl::auto_type]
 pub(crate) fn filter_not_unlisted_or_is_subscribed() -> _ {

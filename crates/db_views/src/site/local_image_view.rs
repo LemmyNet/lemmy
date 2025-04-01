@@ -3,9 +3,9 @@ use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHe
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  schema::{local_image, local_user, person},
   utils::{get_conn, limit_and_offset, DbPool},
 };
+use lemmy_db_schema_file::schema::{local_image, local_user, person};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]

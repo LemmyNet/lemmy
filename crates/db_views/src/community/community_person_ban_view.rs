@@ -8,9 +8,9 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::community_actions,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::schema::community_actions;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityPersonBanView {

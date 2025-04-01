@@ -25,6 +25,13 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user},
   newtypes::{CommunityId, PaginationCursor, PersonId},
+  source::combined::search::{search_combined_keys as key, SearchCombined},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
+  SearchType,
+};
+use lemmy_db_schema_file::{
+  enums::{ListingType, SearchSortType},
   schema::{
     comment,
     comment_actions,
@@ -39,12 +46,6 @@ use lemmy_db_schema::{
     post_actions,
     search_combined,
   },
-  source::combined::search::{search_combined_keys as key, SearchCombined},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
-  ListingType,
-  SearchSortType,
-  SearchType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use SearchSortType::*;
@@ -430,7 +431,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-
+  use super::*;
   use crate::{
     combined::search_combined_view::SearchCombinedQuery,
     structs::{LocalUserView, SearchCombinedView},
@@ -447,7 +448,6 @@ mod tests {
     },
     traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
-    SearchSortType,
     SearchType,
   };
   use lemmy_utils::error::LemmyResult;

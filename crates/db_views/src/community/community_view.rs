@@ -15,10 +15,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, instance_actions, local_user},
   source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
-  ListingType,
+};
+use lemmy_db_schema_file::{
+  enums::ListingType,
+  schema::{community, community_actions, instance_actions, local_user},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -192,6 +194,7 @@ impl CommunityQuery<'_> {
 #[cfg(test)]
 mod tests {
 
+  use super::*;
   use crate::{
     community::community_view::CommunityQuery,
     structs::{CommunitySortType, CommunityView},
@@ -202,7 +205,6 @@ mod tests {
         Community,
         CommunityActions,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityUpdateForm,
@@ -214,7 +216,6 @@ mod tests {
     },
     traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
-    CommunityVisibility,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;

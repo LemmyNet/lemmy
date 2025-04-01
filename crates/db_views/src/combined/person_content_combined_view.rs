@@ -22,24 +22,24 @@ use lemmy_db_schema::{
   self,
   aliases::{creator_community_actions, creator_local_user},
   newtypes::{PaginationCursor, PersonId},
-  schema::{
-    comment,
-    comment_actions,
-    community,
-    community_actions,
-    image_details,
-    instance_actions,
-    local_user,
-    person,
-    person_actions,
-    person_content_combined,
-    post,
-    post_actions,
-  },
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   PersonContentType,
+};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  community,
+  community_actions,
+  image_details,
+  instance_actions,
+  local_user,
+  person,
+  person_actions,
+  person_content_combined,
+  post,
+  post_actions,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

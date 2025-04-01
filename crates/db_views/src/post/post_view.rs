@@ -28,20 +28,7 @@ use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId, PostId},
-  schema::{
-    community,
-    community_actions,
-    image_details,
-    instance_actions,
-    local_user,
-    local_user_language,
-    person,
-    person_actions,
-    post,
-    post_actions,
-  },
   source::{
-    community::CommunityFollowerState,
     local_user::LocalUser,
     post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,
@@ -58,9 +45,21 @@ use lemmy_db_schema::{
     DbPool,
     ReverseTimestampKey,
   },
-  CommunityVisibility,
-  ListingType,
-  PostSortType,
+};
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType},
+  schema::{
+    community,
+    community_actions,
+    image_details,
+    instance_actions,
+    local_user,
+    local_user_language,
+    person,
+    person_actions,
+    post,
+    post_actions,
+  },
 };
 use tracing::debug;
 use PostSortType::*;
@@ -578,6 +577,7 @@ impl<'a> PostQuery<'a> {
 #[expect(clippy::expect_used)]
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     post::post_view::{PaginationCursorData, PostQuery, PostView},
     structs::LocalUserView,
@@ -595,7 +595,6 @@ mod tests {
         CommunityActions,
         CommunityBlockForm,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityPersonBanForm,
@@ -619,8 +618,6 @@ mod tests {
     },
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
-    CommunityVisibility,
-    PostSortType,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
