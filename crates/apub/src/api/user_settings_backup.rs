@@ -288,11 +288,15 @@ pub(crate) mod tests {
         CommunityFollowerState,
         CommunityInsertForm,
       },
+      instance::Instance,
       person::Person,
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
+  use lemmy_db_views::{
+    site::site_view::create_test_instance,
+    structs::{CommunityFollowerView, LocalUserView},
+  };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
@@ -303,6 +307,7 @@ pub(crate) mod tests {
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "hanna", "my bio", false).await?;
 
@@ -344,6 +349,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -352,6 +358,7 @@ pub(crate) mod tests {
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
@@ -380,6 +387,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -388,6 +396,7 @@ pub(crate) mod tests {
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let import_user = LocalUserView::create_test_user(pool, "larry", "larry bio", false).await?;
 
@@ -408,6 +417,7 @@ pub(crate) mod tests {
     // local_user can be deserialized without id/person_id fields
     assert_eq!("my_theme", import_user_updated.local_user.theme);
 
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 }

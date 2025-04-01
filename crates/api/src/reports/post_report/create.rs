@@ -13,13 +13,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    post_report::{PostReport, PostReportForm},
-  },
+  source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
+use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView, SiteView};
 use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
@@ -36,12 +33,7 @@ pub async fn create_post_report(
   let post_id = data.post_id;
   let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post_view.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
 
   check_post_deleted_or_removed(&post_view.post)?;
 
@@ -60,7 +52,7 @@ pub async fn create_post_report(
   let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &post_report_view.creator.name,

@@ -32,7 +32,6 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       is_valid_body_field,
       site_name_length_check,
       site_or_community_description_length_check,
@@ -46,7 +45,7 @@ pub async fn create_site(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin; other types of users should not create site data...
   is_admin(&local_user_view)?;
@@ -104,7 +103,6 @@ pub async fn create_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
-    disable_donation_dialog: data.disable_donation_dialog,
     disallow_nsfw_content: data.disallow_nsfw_content,
     ..Default::default()
   };
@@ -165,13 +163,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   }
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
-
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &create_site.private_instance,
-    &create_site.federation_enabled,
-  )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(body) = &create_site.sidebar {
@@ -264,38 +255,6 @@ mod tests {
         &CreateSite {
           name: String::from("site_name"),
           default_post_listing_type: Some(ListingType::Subscribed),
-          ..Default::default()
-        },
-      ),
-      (
-        "CreateSite is both private and federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          private_instance: Some(true),
-          federation_enabled: Some(true),
-          ..Default::default()
-        },
-      ),
-      (
-        "LocalSite is private, but CreateSite also makes it federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          registration_mode: RegistrationMode::Open,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          federation_enabled: Some(true),
           ..Default::default()
         },
       ),

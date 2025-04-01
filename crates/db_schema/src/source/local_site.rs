@@ -83,9 +83,6 @@ pub struct LocalSite {
   pub comment_upvotes: FederationMode,
   /// What kind of comment downvotes your site allows.
   pub comment_downvotes: FederationMode,
-  /// If this is true, users will never see the dialog asking to support Lemmy development with
-  /// donations.
-  pub disable_donation_dialog: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
@@ -163,8 +160,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub comment_downvotes: Option<FederationMode>,
   #[new(default)]
-  pub disable_donation_dialog: Option<bool>,
-  #[new(default)]
   pub default_post_time_range_seconds: Option<Option<i32>>,
   #[new(default)]
   pub disallow_nsfw_content: bool,
@@ -201,7 +196,6 @@ pub struct LocalSiteUpdateForm {
   pub post_downvotes: Option<FederationMode>,
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
-  pub disable_donation_dialog: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub disallow_nsfw_content: Option<bool>,
 }

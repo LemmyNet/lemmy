@@ -1,9 +1,11 @@
 use super::convert_published_time;
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{CreatePost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
@@ -22,13 +24,12 @@ use lemmy_db_schema::schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
-    local_site::LocalSite,
     post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   },
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -50,7 +51,7 @@ pub async fn create_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   honeypot_check(&data.honeypot)?;
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
@@ -81,7 +82,7 @@ pub async fn create_post(
   }
 
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
 
   // If its an NSFW community, then use that as a default
   let nsfw = data.nsfw.or(Some(community.nsfw));
@@ -106,12 +107,13 @@ pub async fn create_post(
 
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
-  let post_form = PostInsertForm {
+  let mut post_form = PostInsertForm {
     url,
     body,
     alt_text: data.alt_text.clone(),
     nsfw,
     language_id: Some(language_id),
+    federation_pending: Some(community_use_pending(&community, &context).await),
     scheduled_publish_time,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
@@ -120,9 +122,12 @@ pub async fn create_post(
     )
   };
 
+  post_form = plugin_hook_before("before_create_local_post", post_form).await?;
+
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  plugin_hook_after("after_create_local_post", &inserted_post)?;
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

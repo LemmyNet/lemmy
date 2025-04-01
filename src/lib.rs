@@ -17,10 +17,7 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
-  utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
-  },
+  utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
@@ -193,7 +190,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
-  check_private_instance_and_federation_enabled(&site_view.local_site)?;
 
   println!(
     "Starting HTTP server at {}:{}",

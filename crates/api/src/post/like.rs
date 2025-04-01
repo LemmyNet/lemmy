@@ -3,19 +3,17 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,
-  source::{
-    local_site::LocalSite,
-    post::{PostActions, PostLikeForm, PostReadForm},
-  },
+  source::post::{PostActions, PostLikeForm, PostReadForm},
   traits::{Likeable, Readable},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views::structs::{LocalUserView, PostView, SiteView};
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
@@ -24,7 +22,7 @@ pub async fn like_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let post_id = data.post_id;
 
   check_local_vote_mode(
@@ -40,14 +38,9 @@ pub async fn like_post(
   // Check for a community ban
   let post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
 
-  let like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
+  let mut like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
@@ -58,7 +51,9 @@ pub async fn like_post(
   let do_add =
     like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    PostActions::like(&mut context.pool(), &like_form).await?;
+    like_form = plugin_hook_before("before_post_vote", like_form).await?;
+    let like = PostActions::like(&mut context.pool(), &like_form).await?;
+    plugin_hook_after("after_post_vote", &like)?;
   }
 
   // Mark Post Read

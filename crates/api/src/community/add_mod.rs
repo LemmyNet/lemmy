@@ -24,13 +24,7 @@ pub async fn add_mod_to_community(
 ) -> LemmyResult<Json<AddModToCommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   // Verify that only mods or admins can add mod
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   // If its a mod removal, also check that you're a higher mod.
   if !data.added {

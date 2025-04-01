@@ -138,6 +138,7 @@ diesel::table! {
         controversy_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -372,6 +373,8 @@ diesel::table! {
         person_id -> Int4,
         instance_id -> Int4,
         blocked -> Nullable<Timestamptz>,
+        received_ban -> Nullable<Timestamptz>,
+        ban_expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -433,7 +436,6 @@ diesel::table! {
         post_downvotes -> FederationModeEnum,
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
-        disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         disallow_nsfw_content -> Bool,
         users -> Int8,
@@ -572,6 +574,7 @@ diesel::table! {
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
         published -> Timestamptz,
+        instance_id -> Int4,
     }
 }
 
@@ -738,7 +741,6 @@ diesel::table! {
         #[max_length = 255]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
-        banned -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         #[max_length = 255]
@@ -754,7 +756,6 @@ diesel::table! {
         inbox_url -> Varchar,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
-        ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
         post_count -> Int8,
         post_score -> Int8,
@@ -857,10 +858,10 @@ diesel::table! {
         hot_rank -> Float8,
         hot_rank_active -> Float8,
         controversy_rank -> Float8,
-        instance_id -> Int4,
         scaled_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -1155,7 +1156,6 @@ diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
-diesel::joinable!(post -> instance (instance_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));

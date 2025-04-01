@@ -5,8 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_private_instance,
 };
+<<<<<<< HEAD
 use lemmy_db_schema::schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
+=======
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_comment(
@@ -14,7 +17,7 @@ pub async fn get_comment(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   check_private_instance(&local_user_view, &local_site)?;
 

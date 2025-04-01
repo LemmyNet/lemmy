@@ -8,8 +8,8 @@ use lemmy_api_common::{
   person::{LoginResponse, Register},
   utils::{
     check_email_verified,
+    check_local_user_valid,
     check_registration_application,
-    check_user_valid,
     generate_inbox_url,
     honeypot_check,
     password_length_check,
@@ -281,7 +281,7 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    check_user_valid(&user_view.person)?;
+    check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
@@ -318,7 +318,7 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        check_user_valid(&user_view.person)?;
+        check_local_user_valid(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
 

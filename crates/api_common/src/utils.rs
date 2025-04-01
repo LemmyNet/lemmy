@@ -52,6 +52,7 @@ use lemmy_db_views::{
     CommunityView,
     LocalImageView,
     LocalUserView,
+    PersonView,
     SiteView,
   },
 };
@@ -84,11 +85,11 @@ pub const AUTH_COOKIE_NAME: &str = "jwt";
 
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
-  person: &Person,
+  local_user_view: &LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<()> {
-  check_user_valid(person)?;
-  CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
+  check_local_user_valid(local_user_view)?;
+  CommunityView::check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -98,7 +99,7 @@ pub async fn is_mod_or_admin_opt(
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(pool, &local_user_view.person, community_id).await
+      is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
       is_admin(local_user_view)
     }
@@ -116,12 +117,12 @@ pub async fn check_community_mod_of_any_or_admin_action(
 ) -> LemmyResult<()> {
   let person = &local_user_view.person;
 
-  check_user_valid(person)?;
+  check_local_user_valid(local_user_view)?;
   CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(local_user_view)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
   } else {
@@ -133,7 +134,7 @@ pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
 ) -> LemmyResult<()> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(local_user_view)?;
   if local_user_view.person.id
     != community_mods
       .first()
@@ -159,13 +160,25 @@ pub async fn update_read_comments(
   Ok(())
 }
 
-pub fn check_user_valid(person: &Person) -> LemmyResult<()> {
+pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
-  if person.banned {
+  if local_user_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
-  else if person.deleted {
+  else if local_user_view.person.deleted {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
+  }
+}
+pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
+  // Check for a site ban
+  if person_view.banned() {
+    Err(LemmyErrorType::SiteBan)?
+  }
+  // check for account deletion
+  else if person_view.person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
@@ -217,14 +230,16 @@ pub async fn check_registration_application(
 /// In particular it checks that neither the user nor community are banned or deleted, and that
 /// the user isn't banned.
 pub async fn check_community_user_action(
-  person: &Person,
+  local_user_view: &LocalUserView,
   community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_user_valid(person)?;
+  check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
-  CommunityPersonBanView::check(pool, person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
+  CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
+  CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
+    .await?;
+  InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
 }
 
@@ -240,13 +255,13 @@ pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()>
 /// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
-  person: &Person,
+  local_user_view: &LocalUserView,
   community: &Community,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community.id).await?;
-  CommunityPersonBanView::check(pool, person.id, community.id).await?;
+  is_mod_or_admin(pool, local_user_view, community.id).await?;
+  CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
@@ -403,7 +418,7 @@ pub async fn send_email_to_user(
   body: &str,
   settings: &Settings,
 ) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
+  if local_user_view.banned() || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 
@@ -540,7 +555,10 @@ pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
   Ok(
     CACHE
       .try_get_with((), async {
-        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        let local_site = SiteView::read_local(&mut context.pool())
+          .await
+          .ok()
+          .map(|s| s.local_site);
         build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
       })
       .await
@@ -639,14 +657,6 @@ pub async fn send_new_report_email_to_admins(
     }
   }
   Ok(())
-}
-
-pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> LemmyResult<()> {
-  if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
-  } else {
-    Ok(())
-  }
 }
 
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
@@ -815,7 +825,7 @@ pub async fn remove_or_restore_user_data(
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -899,7 +909,8 @@ pub async fn remove_or_restore_user_data_in_community(
 ) -> LemmyResult<()> {
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+      .await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -1158,7 +1169,7 @@ pub async fn local_user_view_from_jwt(
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(&local_user_view)?;
 
   Ok(local_user_view)
 }
