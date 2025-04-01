@@ -160,26 +160,6 @@ derive-new = "0.7.0"
 tuplex = "0.1.2"
 
 [dependencies]
-lemmy_api = { workspace = true }
-lemmy_api_crud = { workspace = true }
-lemmy_apub = { workspace = true }
-lemmy_utils = { workspace = true }
-lemmy_db_schema = { workspace = true }
-lemmy_api_common = { workspace = true }
-lemmy_routes = { workspace = true }
-lemmy_federate = { workspace = true }
-activitypub_federation = { workspace = true }
-actix-web = { workspace = true }
-tracing = { workspace = true }
-tracing-actix-web = { workspace = true }
-tracing-subscriber = { workspace = true }
-reqwest-middleware = { workspace = true }
-reqwest-tracing = { workspace = true }
-serde_json = { workspace = true }
-rustls = { workspace = true }
-tokio.workspace = true
-clap = { workspace = true }
-mimalloc = "0.1.43"
 
 # Speedup RSA key generation
 # https://github.com/RustCrypto/RSA/blob/master/README.md#example
