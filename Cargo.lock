@@ -3259,7 +3259,6 @@ name = "lemmy_db_schema"
 version = "1.0.0-alpha.4"
 dependencies = [
  "activitypub_federation",
- "anyhow",
  "bcrypt",
  "chrono",
  "deadpool",
@@ -3268,7 +3267,6 @@ dependencies = [
  "diesel-async",
  "diesel-derive-newtype",
  "diesel_ltree",
- "diesel_migrations",
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",

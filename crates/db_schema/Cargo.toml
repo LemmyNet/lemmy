@@ -21,7 +21,6 @@ full = [
   "lemmy_utils/full",
   "diesel",
   "diesel-derive-newtype",
-  "diesel_migrations",
   "bcrypt",
   "lemmy_utils",
   "activitypub_federation",
