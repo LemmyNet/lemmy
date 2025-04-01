@@ -3269,7 +3269,6 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
- "diffutils",
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",
@@ -3296,11 +3295,18 @@ dependencies = [
 name = "lemmy_db_schema_file"
 version = "1.0.0-alpha.4"
 dependencies = [
+ "anyhow",
+ "chrono",
  "diesel",
  "diesel-derive-enum",
  "diesel_ltree",
+ "diesel_migrations",
+ "diffutils",
+ "lemmy_utils",
  "serde",
+ "serial_test",
  "strum",
+ "tracing",
  "ts-rs",
 ]
 

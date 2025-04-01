@@ -26,9 +26,6 @@ pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
-#[cfg(feature = "full")]
-pub mod schema_setup;
-
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
