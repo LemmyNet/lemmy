@@ -20,6 +20,9 @@ impl PrivateMessageView {
   fn joins() -> _ {
     let recipient_id = aliases::person1.field(person::id);
 
+    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
+    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
+
     let person_actions_join = person_actions::table.on(
       person_actions::target_id
         .eq(private_message::creator_id)
@@ -31,10 +34,6 @@ impl PrivateMessageView {
         .eq(person::instance_id)
         .and(instance_actions::person_id.eq(recipient_id)),
     );
-
-    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
-
-    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
 
     private_message::table
       .inner_join(creator_join)

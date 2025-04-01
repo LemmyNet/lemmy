@@ -242,12 +242,22 @@ pub(crate) fn creator_local_instance_actions_join(local_instance_id: InstanceId)
   )
 }
 
+/// Your instance actions for the community's instance.
 #[diesel::dsl::auto_type]
-pub(crate) fn my_instance_actions_join(my_person_id: Option<PersonId>) -> _ {
+pub(crate) fn my_instance_actions_community_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
     instance_actions::instance_id
-      // TODO is the community correct here, or should it be the person?
       .eq(community::instance_id)
+      .and(instance_actions::person_id.nullable().eq(my_person_id)),
+  )
+}
+
+/// Your instance actions for the person's instance.
+#[diesel::dsl::auto_type]
+pub(crate) fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
+  instance_actions::table.on(
+    instance_actions::instance_id
+      .eq(person::instance_id)
       .and(instance_actions::person_id.nullable().eq(my_person_id)),
   )
 }

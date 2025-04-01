@@ -16,7 +16,7 @@ use crate::{
     image_details_join,
     my_comment_actions_join,
     my_community_actions_join,
-    my_instance_actions_join,
+    my_instance_actions_person_join,
     my_local_user_join,
     my_person_actions_join,
     my_post_actions_join,
@@ -113,8 +113,8 @@ impl InboxCombinedViewInternal {
     let my_comment_actions_join: my_comment_actions_join =
       my_comment_actions_join(Some(my_person_id));
     let my_local_user_join: my_local_user_join = my_local_user_join(Some(my_person_id));
-    let my_instance_actions_join: my_instance_actions_join =
-      my_instance_actions_join(Some(my_person_id));
+    let my_instance_actions_person_join: my_instance_actions_person_join =
+      my_instance_actions_person_join(Some(my_person_id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -134,7 +134,7 @@ impl InboxCombinedViewInternal {
       .left_join(my_local_user_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_join)
+      .left_join(my_instance_actions_person_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_post_actions_join)
