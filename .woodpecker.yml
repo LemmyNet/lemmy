@@ -265,6 +265,13 @@ steps:
     when:
       - event: tag
 
+  publish_native_binary:
+    image: dessalines/lemmy:${CI_COMMIT_TAG}
+    commands: 
+      - ls -lah /usr/local/bin/lemmy_server
+    when:
+      - event: tag
+
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
     settings:
