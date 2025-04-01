@@ -95,19 +95,17 @@ impl PersonSavedCombinedViewInternal {
         .or(comment::post_id.eq(post::id)),
     );
 
-    let item_creator_join = person::table
-      .on(
-        comment::creator_id
-          .eq(item_creator)
-          // Need to filter out the post rows where the post_id given is null
-          // Otherwise you'll get duped post rows
-          .or(
-            post::creator_id
-              .eq(item_creator)
-              .and(person_saved_combined::post_id.is_not_null()),
-          ),
-      )
-      .left_join(home_instance_person_join());
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        // Need to filter out the post rows where the post_id given is null
+        // Otherwise you'll get duped post rows
+        .or(
+          post::creator_id
+            .eq(item_creator)
+            .and(person_saved_combined::post_id.is_not_null()),
+        ),
+    );
 
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(Some(my_person_id));

@@ -3,7 +3,7 @@ use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, LocalUserId, OAuthProviderId, PersonId},
+  newtypes::{LocalUserId, OAuthProviderId, PersonId},
   schema::{local_user, oauth_account, person},
   source::{
     instance::Instance,
@@ -66,7 +66,7 @@ impl LocalUserView {
     name_or_email: &str,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    
+    Ok(
       Self::joins()
         .filter(
           lower(person::name)
@@ -75,19 +75,19 @@ impl LocalUserView {
         )
         .select(Self::as_select())
         .first(conn)
-        .await?
-    
+        .await?,
+    )
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    
+    Ok(
       Self::joins()
         .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
         .select(Self::as_select())
         .first(conn)
         .await?,
-    
+    )
   }
 
   pub async fn find_by_oauth_id(
@@ -96,7 +96,7 @@ impl LocalUserView {
     oauth_user_id: &str,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-   
+    Ok(
       Self::joins()
         .inner_join(oauth_account::table)
         .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
@@ -104,19 +104,19 @@ impl LocalUserView {
         .select(Self::as_select())
         .first(conn)
         .await?,
-    
+    )
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    
+    Ok(
       Self::joins()
         .filter(local_user::email.is_not_null())
         .filter(local_user::admin.eq(true))
         .select(Self::as_select())
         .load::<Self>(conn)
         .await?,
-    
+    )
   }
 
   pub async fn create_test_user(

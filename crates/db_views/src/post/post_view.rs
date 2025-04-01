@@ -74,10 +74,8 @@ impl PostView {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    let person_join = person::table.left_join(home_instance_person_join());
-
     post::table
-      .inner_join(person_join)
+      .inner_join(person::table)
       .inner_join(community::table)
       .left_join(image_details_join())
       .left_join(my_community_actions_join)
