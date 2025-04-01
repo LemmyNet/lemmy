@@ -36,13 +36,12 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
-    activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
   },
   traits::{ApubActor, Crud},
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},

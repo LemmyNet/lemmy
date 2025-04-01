@@ -5,7 +5,7 @@ use lemmy_api_common::{
   custom_emoji::{CreateCustomEmoji, CustomEmojiResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},

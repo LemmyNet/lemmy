@@ -17,7 +17,7 @@ use lemmy_api_common::{
     update_read_comments,
   },
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{

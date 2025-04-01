@@ -217,6 +217,7 @@ mod tests {
     traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
   };
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use url::Url;

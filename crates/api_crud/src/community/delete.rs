@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, is_top_mod},
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };

@@ -453,11 +453,12 @@ mod test {
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{
-      activity::{ActorType, SentActivity, SentActivityForm},
+      activity::{SentActivity, SentActivityForm},
       person::{Person, PersonInsertForm},
     },
     traits::Crud,
   };
+  use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
   use serial_test::serial;

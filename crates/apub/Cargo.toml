@@ -23,6 +23,7 @@ lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
 diesel = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }

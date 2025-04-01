@@ -8,9 +8,8 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  ListingType,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views::{
   combined::inbox_combined_view::InboxCombinedQuery,
   post::post_view::PostQuery,

@@ -174,6 +174,7 @@ lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_federate = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   post::{GetPost, GetPostResponse},
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::{
     comment::Comment,
     post::{Post, PostActions, PostReadForm},

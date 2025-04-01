@@ -5,7 +5,7 @@ use lemmy_api_common::{
   tagline::{CreateTagline, TaglineResponse},
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::tagline::{Tagline, TaglineInsertForm},
   traits::Crud,
 };

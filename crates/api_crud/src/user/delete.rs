@@ -8,7 +8,7 @@ use lemmy_api_common::{
   utils::purge_user_account,
   SuccessResponse,
 };
-use lemmy_db_schema::schema::source::{
+use lemmy_db_schema::source::{
   login_token::LoginToken,
   oauth_account::OAuthAccount,
   person::Person,

@@ -40,9 +40,8 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
-  FederationMode,
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
   structs::{

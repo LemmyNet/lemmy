@@ -1,12 +1,7 @@
 use crate::user::my_user::get_my_user;
 use actix_web::web::{Data, Json};
-<<<<<<< HEAD
-use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
-use lemmy_db_schema::schema::source::{
-=======
 use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
 use lemmy_db_schema::source::{
->>>>>>> main
   actor_language::SiteLanguage,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,

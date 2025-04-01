@@ -56,7 +56,7 @@ pub async fn run_advanced_migrations(
 }
 
 async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::person::dsl::{ap_id, local, person};
+  use lemmy_db_schema_file::schema::person::dsl::{ap_id, local, person};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
@@ -91,7 +91,7 @@ async fn community_updates_2020_04_02(
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::community::dsl::{ap_id, community, local};
+  use lemmy_db_schema_file::schema::community::dsl::{ap_id, community, local};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
@@ -124,7 +124,7 @@ async fn community_updates_2020_04_02(
 }
 
 async fn post_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::post::dsl::{ap_id, local, post};
+  use lemmy_db_schema_file::schema::post::dsl::{ap_id, local, post};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
@@ -155,7 +155,7 @@ async fn post_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> 
 }
 
 async fn comment_updates_2020_04_03(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::comment::dsl::{ap_id, comment, local};
+  use lemmy_db_schema_file::schema::comment::dsl::{ap_id, comment, local};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
@@ -189,7 +189,7 @@ async fn private_message_updates_2020_05_05(
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::private_message::dsl::{ap_id, local, private_message};
+  use lemmy_db_schema_file::schema::private_message::dsl::{ap_id, local, private_message};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
@@ -223,7 +223,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
   pool: &mut DbPool<'_>,
   protocol_and_hostname: &str,
 ) -> LemmyResult<()> {
-  use lemmy_db_schema::schema::post::dsl::{post, thumbnail_url};
+  use lemmy_db_schema_file::schema::post::dsl::{post, thumbnail_url};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
@@ -255,7 +255,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
-    use lemmy_db_schema::schema::person::dsl::{inbox_url, person};
+    use lemmy_db_schema_file::schema::person::dsl::{inbox_url, person};
     let persons = person
       .filter(inbox_url.like("http://changeme%"))
       .load::<Person>(conn)
@@ -271,7 +271,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   }
 
   {
-    use lemmy_db_schema::schema::community::dsl::{community, followers_url, inbox_url};
+    use lemmy_db_schema_file::schema::community::dsl::{community, followers_url, inbox_url};
     let communities = community
       .filter(inbox_url.like("http://changeme%"))
       .load::<Community>(conn)
@@ -331,7 +331,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> LemmyResult
 
   {
     // update communities with empty pubkey
-    use lemmy_db_schema::schema::community::dsl::{community, local, public_key};
+    use lemmy_db_schema_file::schema::community::dsl::{community, local, public_key};
     let communities: Vec<Community> = community
       .filter(local.eq(true))
       .filter(public_key.eq(""))
@@ -354,7 +354,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> LemmyResult
 
   {
     // update persons with empty pubkey
-    use lemmy_db_schema::schema::person::dsl::{local, person, public_key};
+    use lemmy_db_schema_file::schema::person::dsl::{local, person, public_key};
     let persons = person
       .filter(local.eq(true))
       .filter(public_key.eq(""))

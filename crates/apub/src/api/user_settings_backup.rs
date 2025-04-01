@@ -13,12 +13,7 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     comment::{CommentActions, CommentSavedForm},
-    community::{
-      CommunityActions,
-      CommunityBlockForm,
-      CommunityFollowerForm,
-      CommunityFollowerState,
-    },
+    community::{CommunityActions, CommunityBlockForm, CommunityFollowerForm},
     instance::{Instance, InstanceActions, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
@@ -26,6 +21,7 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Followable, Saveable},
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
@@ -276,18 +272,13 @@ where
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 pub(crate) mod tests {
+  use super::*;
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
-      community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityFollowerState,
-        CommunityInsertForm,
-      },
+      community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       person::Person,
     },

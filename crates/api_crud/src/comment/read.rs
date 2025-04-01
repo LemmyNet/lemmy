@@ -5,10 +5,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::check_private_instance,
 };
-<<<<<<< HEAD
-use lemmy_db_schema::schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::LocalUserView;
-=======
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::LemmyResult;
 

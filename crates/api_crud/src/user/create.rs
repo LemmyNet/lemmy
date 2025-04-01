@@ -18,7 +18,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
@@ -33,8 +33,8 @@ use lemmy_db_schema::schema::{
   },
   traits::Crud,
   utils::get_conn,
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},

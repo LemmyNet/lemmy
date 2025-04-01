@@ -5,7 +5,7 @@ use lemmy_api_common::{
   oauth_provider::CreateOAuthProvider,
   utils::is_admin,
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm},
   traits::Crud,
 };

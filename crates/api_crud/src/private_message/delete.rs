@@ -5,7 +5,7 @@ use lemmy_api_common::{
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };

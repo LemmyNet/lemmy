@@ -13,7 +13,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   source::{
     person::PersonActions,
     private_message::{PrivateMessage, PrivateMessageInsertForm},

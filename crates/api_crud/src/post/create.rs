@@ -19,7 +19,7 @@ use lemmy_api_common::{
     slur_regex,
   },
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{

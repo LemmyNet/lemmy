@@ -9,7 +9,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };
-use lemmy_db_schema::schema::{
+use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::comment::{Comment, CommentUpdateForm},
