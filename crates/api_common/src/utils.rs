@@ -123,8 +123,10 @@ pub async fn check_community_mod_of_any_or_admin_action(
 ) -> LemmyResult<()> {
   let person = &local_user_view.person;
 
-  check_local_user_valid(local_user_view)?;
-  CommunityView::check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
+==== BASE ====
+  check_user_valid(person)?;
+  CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
+==== BASE ====
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {

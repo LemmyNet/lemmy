@@ -73,7 +73,7 @@ impl PersonView {
       query = query.filter(person::deleted.eq(false))
     }
 
-    Ok(query.first(conn).await?)
+    query.first(conn).await
   }
 
   pub fn banned(&self) -> bool {

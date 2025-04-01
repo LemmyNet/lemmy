@@ -436,7 +436,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
-    .inner_join(person::table)
+    .inner_join(person::table.left_join(local_instance_person_join(local_instance_id)))
     // find all posts which have scheduled_publish_time that is in the  past
     .filter(post::scheduled_publish_time.is_not_null())
     .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))

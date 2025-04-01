@@ -436,7 +436,6 @@ diesel::table! {
         post_downvotes -> FederationModeEnum,
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
-        disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         disallow_nsfw_content -> Bool,
         users -> Int8,

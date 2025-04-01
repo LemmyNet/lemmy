@@ -62,16 +62,18 @@ impl InboxCombinedViewInternal {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        .or(
-          inbox_combined::person_post_mention_id
-            .is_not_null()
-            .and(post::creator_id.eq(item_creator)),
-        )
-        .or(private_message::creator_id.eq(item_creator)),
-    );
+    let item_creator_join = person::table
+      .on(
+        comment::creator_id
+          .eq(item_creator)
+          .or(
+            inbox_combined::person_post_mention_id
+              .is_not_null()
+              .and(post::creator_id.eq(item_creator)),
+          )
+          .or(private_message::creator_id.eq(item_creator)),
+      )
+      .left_join(home_instance_person_join());
 
     let recipient_join = aliases::person1.on(
       comment_reply::recipient_id
