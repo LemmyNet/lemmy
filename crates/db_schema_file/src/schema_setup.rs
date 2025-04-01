@@ -1,4 +1,6 @@
-use crate::{diff_check, schema::previously_run_sql};
+#[cfg(test)]
+use crate::diff_check;
+use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use diesel::{
