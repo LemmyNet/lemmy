@@ -13,8 +13,6 @@ use lemmy_api_common::{
     generate_inbox_url,
     honeypot_check,
     password_length_check,
-    send_new_applicant_email_to_admins,
-    send_verification_email_if_required,
     slur_regex,
   },
 };
@@ -36,6 +34,10 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_email::{
+  account::send_verification_email_if_required,
+  admin::send_new_applicant_email_to_admins,
+};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -131,7 +133,7 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_local_site = local_site.clone();
   let tx_settings = context.settings();
-  let (person, local_user) = conn
+  let user = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
         // We have to create both a person, and local_user
@@ -167,7 +169,11 @@ pub async fn register(
           }
         }
 
-        Ok((person, local_user))
+        Ok(LocalUserView {
+          person,
+          local_user,
+          instance_actions: None,
+        })
       }
       .scope_boxed()
     })
@@ -189,11 +195,16 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    let jwt = Claims::generate(user.local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    login_response.verify_email_sent =
-      send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+    login_response.verify_email_sent = send_verification_email_if_required(
+      &local_site,
+      &user,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -348,7 +359,7 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_local_site = local_site.clone();
       let tx_settings = context.settings();
-      let (person, local_user) = conn
+      let user = conn
         .transaction::<_, LemmyError, _>(|conn| {
           async move {
             // make sure the username is provided
@@ -412,16 +423,25 @@ pub async fn authenticate_with_oauth(
                 login_response.registration_created = true;
               }
             }
-            Ok((person, local_user))
+            Ok(LocalUserView {
+              person,
+              local_user,
+              instance_actions: None,
+            })
           }
           .scope_boxed()
         })
         .await?;
 
       // Check email is verified when required
-      login_response.verify_email_sent =
-        send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
-      local_user
+      login_response.verify_email_sent = send_verification_email_if_required(
+        &local_site,
+        &user,
+        &mut context.pool(),
+        context.settings(),
+      )
+      .await?;
+      user.local_user
     }
   };
 

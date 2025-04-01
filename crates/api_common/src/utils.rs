@@ -17,13 +17,11 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentActions, CommentUpdateForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
-    email_verification::{EmailVerification, EmailVerificationForm},
     images::{ImageDetails, RemoteImage},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -31,7 +29,6 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    password_reset_request::PasswordResetRequest,
     person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
@@ -57,13 +54,9 @@ use lemmy_db_views::{
   },
 };
 use lemmy_utils::{
-  email::send_email,
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::{
-    structs::{PictrsImageMode, Settings},
-    SETTINGS,
-  },
+  settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
@@ -76,7 +69,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use std::sync::LazyLock;
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
 use webmention::{Webmention, WebmentionError};
@@ -412,121 +405,6 @@ pub fn honeypot_check(honeypot: &Option<String>) -> LemmyResult<()> {
   }
 }
 
-pub async fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject: &str,
-  body: &str,
-  settings: &Settings,
-) {
-  if local_user_view.banned() || !local_user_view.local_user.send_notifications_to_email {
-    return;
-  }
-
-  if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      body,
-      settings,
-    )
-    .await
-    {
-      Ok(_o) => _o,
-      Err(e) => warn!("{}", e),
-    };
-  }
-}
-
-pub async fn send_password_reset_email(
-  user: &LocalUserView,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Generate a random token
-  let token = uuid::Uuid::new_v4().to_string();
-
-  let email = &user
-    .local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = &lang.password_reset_subject(&user.person.name);
-  let protocol_and_hostname = settings.get_protocol_and_hostname();
-  let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
-  let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings).await?;
-
-  // Insert the row after successful send, to avoid using daily reset limit while
-  // email sending is broken.
-  let local_user_id = user.local_user.id;
-  PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
-  Ok(())
-}
-
-/// Send a verification email
-pub async fn send_verification_email(
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-  new_email: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  let form = EmailVerificationForm {
-    local_user_id: local_user.id,
-    email: new_email.to_string(),
-    verification_token: uuid::Uuid::new_v4().to_string(),
-  };
-  let verify_link = format!(
-    "{}/verify_email/{}",
-    settings.get_protocol_and_hostname(),
-    &form.verification_token
-  );
-  EmailVerification::create(pool, &form).await?;
-
-  let lang = local_user.interface_i18n_language();
-  let subject = lang.verify_email_subject(&settings.hostname);
-
-  // If an application is required, use a translation that includes that warning.
-  let body = if local_site.registration_mode == RegistrationMode::RequireApplication {
-    lang.verify_email_body_with_application(&settings.hostname, &person.name, verify_link)
-  } else {
-    lang.verify_email_body(&settings.hostname, &person.name, verify_link)
-  };
-
-  send_email(&subject, new_email, &person.name, &body, settings).await
-}
-
-/// Returns true if email was sent.
-pub async fn send_verification_email_if_required(
-  context: &LemmyContext,
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-) -> LemmyResult<bool> {
-  let email = &local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    send_verification_email(
-      local_site,
-      local_user,
-      person,
-      email,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
-    Ok(true)
-  } else {
-    Ok(false)
-  }
-}
-
 pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
@@ -590,73 +468,6 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
       .await
       .map_err(|e| anyhow::anyhow!("Failed to build URL blocklist due to `{}`", e))?,
   )
-}
-
-pub async fn send_application_approved_email(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  let email = &user
-    .local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = lang.registration_approved_subject(&user.person.ap_id);
-  let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings).await
-}
-
-/// Send a new applicant email notification to all admins
-pub async fn send_new_applicant_email_to_admins(
-  applicant_username: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(pool).await?;
-
-  let applications_link = &format!(
-    "{}/registration_applications",
-    settings.get_protocol_and_hostname(),
-  );
-
-  for admin in &admins {
-    let email = &admin
-      .local_user
-      .email
-      .clone()
-      .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = &admin.local_user.interface_i18n_language();
-    let subject = lang.new_application_subject(&settings.hostname, applicant_username);
-    let body = lang.new_application_body(applications_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
-  }
-  Ok(())
-}
-
-/// Send a report to all admins
-pub async fn send_new_report_email_to_admins(
-  reporter_username: &str,
-  reported_username: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(pool).await?;
-
-  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
-
-  for admin in &admins {
-    if let Some(email) = &admin.local_user.email {
-      let lang = &admin.local_user.interface_i18n_language();
-      let subject =
-        lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
-      let body = lang.new_report_body(reports_link);
-      send_email(&subject, email, &admin.person.name, &body, settings).await?;
-    }
-  }
-  Ok(())
 }
 
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {

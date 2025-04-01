@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{send_new_report_email_to_admins, slur_regex},
+  utils::slur_regex,
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView, SiteView};
+use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(

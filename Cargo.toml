@@ -50,6 +50,7 @@ members = [
   "crates/db_views",
   "crates/routes",
   "crates/federate",
+  "crates/email",
 ]
 
 [workspace.lints.clippy]
@@ -88,6 +89,7 @@ lemmy_api_common = { version = "=1.0.0-alpha.4", path = "./crates/api_common" }
 lemmy_routes = { version = "=1.0.0-alpha.4", path = "./crates/routes" }
 lemmy_db_views = { version = "=1.0.0-alpha.4", path = "./crates/db_views" }
 lemmy_federate = { version = "=1.0.0-alpha.4", path = "./crates/federate" }
+lemmy_email = { version = "=1.0.0-alpha.4", path = "./crates/email" }
 activitypub_federation = { version = "0.6.3", default-features = false, features = [
   "actix-web",
 ] }

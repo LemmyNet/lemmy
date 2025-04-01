@@ -166,10 +166,10 @@ pub struct EmailConfig {
   /// https://docs.rs/lettre/0.11.14/lettre/transport/smtp/struct.AsyncSmtpTransport.html#method.from_url
   #[default("smtp://localhost:25")]
   #[doku(example = "smtps://user:pass@hostname:port")]
-  pub(crate) connection: String,
+  pub connection: String,
   /// Address to send emails from, eg "noreply@your-instance.com"
   #[doku(example = "noreply@example.com")]
-  pub(crate) smtp_from_address: String,
+  pub smtp_from_address: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
