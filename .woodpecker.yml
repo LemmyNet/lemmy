@@ -265,13 +265,15 @@ steps:
     when:
       - event: tag
 
+  # lemmy container doesnt run as root so we need to change permissions to let it copy the binary 
   chmod_for_native_binary:
     image: alpine:3
-    commands: 
+    commands:
       - chmod 777 .
     when:
       - event: tag
 
+  # extract lemmy binary from newly built docker image into workspace folder
   extract_native_binary:
     image: dessalines/lemmy:${CI_COMMIT_TAG}
     commands:
