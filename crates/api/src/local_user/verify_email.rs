@@ -58,7 +58,7 @@ pub async fn verify_email(
   let lang = get_interface_language_from_settings(&local_user_view);
   let subject = lang.email_verified_subject(&local_user_view.person.name);
   let body = lang.email_verified_body();
-  send_email_to_user(&local_user_view, &subject, &body, context.settings()).await;
+  send_email_to_user(&local_user_view, &subject, body, context.settings()).await;
 
   Ok(Json(SuccessResponse::default()))
 }
