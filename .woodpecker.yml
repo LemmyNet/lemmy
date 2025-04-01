@@ -249,15 +249,6 @@ steps:
       - event: pull_request
         status: failure
 
-  pwd:
-    image: alpine:3
-    commands: 
-      - pwd
-      - ls -la
-      - chmod 777 .
-    when:
-      - event: tag
-
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     settings:
@@ -274,10 +265,16 @@ steps:
     when:
       - event: tag
 
+  chmod_for_native_binary:
+    image: alpine:3
+    commands: 
+      - chmod 777 .
+    when:
+      - event: tag
+
   extract_native_binary:
     image: dessalines/lemmy:${CI_COMMIT_TAG}
-    commands: 
-      - pwd
+    commands:
       - cp /usr/local/bin/lemmy_server .
     when:
       - event: tag
