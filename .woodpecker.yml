@@ -275,7 +275,7 @@ steps:
 
   # extract lemmy binary from newly built docker image into workspace folder
   extract_native_binary:
-    image: dessalines/lemmy:${CI_COMMIT_TAG}
+    image: dessalines/lemmy:${CI_COMMIT_TAG=default}
     commands:
       - cp /usr/local/bin/lemmy_server .
     when:
