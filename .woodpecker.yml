@@ -265,7 +265,7 @@ steps:
     when:
       - event: tag
 
-  # lemmy container doesnt run as root so we need to change permissions to let it copy the binary 
+  # lemmy container doesnt run as root so we need to change permissions to let it copy the binary
   chmod_for_native_binary:
     image: alpine:3
     commands:
