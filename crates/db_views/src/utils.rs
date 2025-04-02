@@ -153,6 +153,7 @@ pub(crate) fn comment_select_remove_deletes() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+// Gets the post tags set on a specific post
 pub(crate) fn post_tags_fragment() -> _ {
   let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
   post_tag::table
@@ -164,6 +165,7 @@ pub(crate) fn post_tags_fragment() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+/// Gets the post tags available within a specific community
 pub(crate) fn community_post_tags_fragment() -> _ {
   let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
   tag::table

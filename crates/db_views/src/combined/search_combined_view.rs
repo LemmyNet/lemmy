@@ -415,7 +415,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
         can_mod: v.can_mod,
-        post_tags: v.post_tags,
+        post_tags: v.community_post_tags,
       }))
     } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {

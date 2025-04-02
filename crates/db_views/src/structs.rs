@@ -201,10 +201,10 @@ pub struct CommentView {
   )]
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
-  diesel(
-    select_expression = post_tags_fragment()
-  )
-)]
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
   pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
@@ -897,6 +897,7 @@ pub struct CommentReplyView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
+  pub post_tags: TagsView,
   pub can_mod: bool,
 }
 
@@ -1407,7 +1408,15 @@ pub(crate) struct SearchCombinedViewInternal {
       select_expression = post_tags_fragment()
     )
   )]
+  /// tags of this post
   pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_post_tags_fragment()
+    )
+  )]
+  /// available tags in this community
+  pub community_post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
