@@ -25,13 +25,7 @@ pub async fn create_community_tag(
 
   tag_name_length_check(&data.display_name)?;
   // Verify that only mods can create tags
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   // Create the tag
   let tag_form = TagInsertForm {
@@ -54,13 +48,7 @@ pub async fn update_community_tag(
   let community = Community::read(&mut context.pool(), tag.community_id).await?;
 
   // Verify that only mods can update tags
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   tag_name_length_check(&data.display_name)?;
   // Update the tag
@@ -84,13 +72,7 @@ pub async fn delete_community_tag(
   let community = Community::read(&mut context.pool(), tag.community_id).await?;
 
   // Verify that only mods can delete tags
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   // Soft delete the tag
   let tag_form = TagUpdateForm {

@@ -649,8 +649,8 @@ mod tests {
     post: Post,
     bot_post: Post,
     post_with_tags: Post,
-    _tag_1: Tag,
-    _tag_2: Tag,
+    tag_1: Tag,
+    tag_2: Tag,
     site: Site,
   }
 
@@ -830,8 +830,8 @@ mod tests {
         post,
         bot_post,
         post_with_tags,
-        _tag_1: tag_1,
-        _tag_2: tag_2,
+        tag_1,
+        tag_2,
         site,
       })
     }
@@ -2201,14 +2201,20 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(2, post_view.tags.0.len());
-    assert_eq!(data.tag_1.display_name, post_view.tags.0[0].display_name);
-    assert_eq!(data.tag_2.display_name, post_view.tags.0[1].display_name);
+    assert_eq!(2, post_view.post_tags.0.len());
+    assert_eq!(
+      data.tag_1.display_name,
+      post_view.post_tags.0[0].display_name
+    );
+    assert_eq!(
+      data.tag_2.display_name,
+      post_view.post_tags.0[1].display_name
+    );
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
-    assert_eq!(0, all_posts[1].tags.0.len()); // bot post
-    assert_eq!(0, all_posts[2].tags.0.len()); // normal post
+    assert_eq!(2, all_posts[0].post_tags.0.len()); // post with tags
+    assert_eq!(0, all_posts[1].post_tags.0.len()); // bot post
+    assert_eq!(0, all_posts[2].post_tags.0.len()); // normal post
 
     Ok(())
   }

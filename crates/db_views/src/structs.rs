@@ -2,6 +2,7 @@
 use crate::utils::{
   comment_creator_is_admin,
   comment_select_remove_deletes,
+  community_post_tags_fragment,
   creator_community_actions_select,
   creator_is_admin,
   home_instance_actions_select,
@@ -11,6 +12,7 @@ use crate::utils::{
   person1_select,
   person2_select,
   post_creator_is_admin,
+  post_tags_fragment,
 };
 #[cfg(feature = "full")]
 use diesel::{
@@ -22,8 +24,6 @@ use diesel::{
   Queryable,
   Selectable,
 };
-#[cfg(feature = "full")]
-use diesel::{expression::SqlLiteral, sql_types::Json};
 use lemmy_db_schema::source::{
   combined::{
     inbox::InboxCombined,
@@ -81,7 +81,6 @@ use lemmy_db_schema::source::{
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
   schema::local_user,
-  schema::tag,
   utils::functions::coalesce,
   CreatorCommunityActionsAllColumnsTuple,
   HomeInstanceActionsAllColumnsTuple,
@@ -201,6 +200,12 @@ pub struct CommentView {
     )
   )]
   pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+  diesel(
+    select_expression = post_tags_fragment()
+  )
+)]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -387,12 +392,15 @@ pub struct PostView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
-  pub my_vote: Option<i16>,
-  pub unread_comments: i64,
-  pub tags: TagsView,
   pub can_mod: bool,
 }
 
@@ -620,6 +628,12 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
@@ -680,6 +694,12 @@ pub(crate) struct PersonSavedCombinedViewInternal {
     )
   )]
   pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -749,36 +769,18 @@ pub struct CommunityView {
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = community_actions::received_ban.nullable().is_not_null()
-    )
-  )]
-  pub banned_from_community: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user::admin.nullable()
-        .or(community_actions::became_moderator.nullable().is_not_null())
-        .is_not_distinct_from(true)
+      select_expression = local_user_community_can_mod()
     )
   )]
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = tag_fragment()
+      select_expression = community_post_tags_fragment()
     )
   )]
   pub post_tags: TagsView,
 }
 
-#[cfg(feature = "full")]
-#[diesel::dsl::auto_type]
-fn tag_fragment() -> _ {
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
-  tag::table
-    .select(sel)
-    .filter(tag::community_id.eq(community::id))
-    .filter(tag::deleted.eq(false))
-    .single_value()
-}
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -1013,6 +1015,12 @@ pub struct InboxCombinedViewInternal {
     )
   )]
   pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -1394,6 +1402,12 @@ pub(crate) struct SearchCombinedViewInternal {
     )
   )]
   pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()

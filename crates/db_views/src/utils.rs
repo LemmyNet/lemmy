@@ -1,6 +1,8 @@
 use diesel::{
   dsl::{case_when, exists, not, Nullable},
+  expression::SqlLiteral,
   helper_types::{Eq, NotEq},
+  sql_types::Json,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -26,6 +28,8 @@ use lemmy_db_schema::{
     person,
     person_actions,
     post,
+    post_tag,
+    tag,
   },
   source::community::CommunityFollowerState,
   CommunityVisibility,
@@ -146,6 +150,27 @@ pub(crate) fn comment_select_remove_deletes() -> _ {
     comment::unresolved_report_count,
     comment::federation_pending,
   )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn post_tags_fragment() -> _ {
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
+  post_tag::table
+    .inner_join(tag::table)
+    .select(sel)
+    .filter(post_tag::post_id.eq(post::id))
+    .filter(tag::deleted.eq(false))
+    .single_value()
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn community_post_tags_fragment() -> _ {
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
+  tag::table
+    .select(sel)
+    .filter(tag::community_id.eq(community::id))
+    .filter(tag::deleted.eq(false))
+    .single_value()
 }
 
 /// The select for the person1 alias.
