@@ -101,15 +101,14 @@ impl VoteView {
 
 #[cfg(test)]
 mod tests {
-
   use crate::structs::VoteView;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
-      community::{Community, CommunityInsertForm, CommunityPersonBan, CommunityPersonBanForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
+      community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Bannable, Crud, Likeable},
     utils::build_db_pool_for_tests,
@@ -158,13 +157,13 @@ mod tests {
 
     // Timmy upvotes his own post
     let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, 1);
-    PostLike::like(pool, &timmy_post_vote_form).await?;
+    PostActions::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
     let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, -1);
-    PostLike::like(pool, &sara_post_vote_form).await?;
+    PostActions::like(pool, &sara_post_vote_form).await?;
 
-    let expected_post_vote_views = [
+    let mut expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned_from_community: false,
@@ -176,27 +175,21 @@ mod tests {
         score: 1,
       },
     ];
+    expected_post_vote_views[1].creator.post_count = 1;
+    expected_post_vote_views[1].creator.comment_count = 1;
 
     let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
-    let timmy_comment_vote_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_timmy.id,
-      score: -1,
-    };
-    CommentLike::like(pool, &timmy_comment_vote_form).await?;
+    let timmy_comment_vote_form = CommentLikeForm::new(inserted_timmy.id, inserted_comment.id, -1);
+    CommentActions::like(pool, &timmy_comment_vote_form).await?;
 
     // Sara upvotes timmy's comment
-    let sara_comment_vote_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_sara.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &sara_comment_vote_form).await?;
+    let sara_comment_vote_form = CommentLikeForm::new(inserted_sara.id, inserted_comment.id, 1);
+    CommentActions::like(pool, &sara_comment_vote_form).await?;
 
-    let expected_comment_vote_views = [
+    let mut expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned_from_community: false,
@@ -208,18 +201,16 @@ mod tests {
         score: 1,
       },
     ];
+    expected_comment_vote_views[0].creator.post_count = 1;
+    expected_comment_vote_views[0].creator.comment_count = 1;
 
     let read_comment_vote_views =
       VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
     assert_eq!(read_comment_vote_views, expected_comment_vote_views);
 
     // Ban timmy from that community
-    let ban_timmy_form = CommunityPersonBanForm {
-      community_id: inserted_community.id,
-      person_id: inserted_timmy.id,
-      expires: None,
-    };
-    CommunityPersonBan::ban(pool, &ban_timmy_form).await?;
+    let ban_timmy_form = CommunityPersonBanForm::new(inserted_community.id, inserted_timmy.id);
+    CommunityActions::ban(pool, &ban_timmy_form).await?;
 
     // Make sure creator_banned_from_community is true
     let read_comment_vote_views_after_ban =

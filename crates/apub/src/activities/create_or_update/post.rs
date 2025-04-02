@@ -22,13 +22,12 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
     community::Community,
     person::Person,
-    post::{Post, PostLike, PostLikeForm},
+    post::{Post, PostActions, PostLikeForm},
   },
   traits::{Crud, Likeable},
 };
@@ -118,10 +117,10 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     // author likes their own post by default
     let like_form = PostLikeForm::new(post.id, post.creator_id, 1);
-    PostLike::like(&mut context.pool(), &like_form).await?;
+    PostActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
+    Post::update_ranks(&mut context.pool(), post.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let actor = self.actor.dereference(context).await?;

@@ -6,7 +6,6 @@ use lemmy_api_common::{
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
   LemmyErrorType,
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -49,17 +48,17 @@ pub async fn upload_user_avatar(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.avatar, &context).await?;
 
   let form = PersonUpdateForm {
-    avatar: Some(Some(image.image_url.into())),
+    avatar: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_user_banner(
@@ -67,17 +66,17 @@ pub async fn upload_user_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.banner, &context).await?;
 
   let form = PersonUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_community_icon(
@@ -86,20 +85,20 @@ pub async fn upload_community_icon(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&community.icon, &context).await?;
 
   let form = CommunityUpdateForm {
-    icon: Some(Some(image.image_url.into())),
+    icon: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_community_banner(
@@ -108,20 +107,20 @@ pub async fn upload_community_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
-  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
   delete_old_image(&community.banner, &context).await?;
 
   let form = CommunityUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_site_icon(
@@ -129,7 +128,7 @@ pub async fn upload_site_icon(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
   let site = Site::read_local(&mut context.pool()).await?;
 
@@ -137,12 +136,12 @@ pub async fn upload_site_icon(
   delete_old_image(&site.icon, &context).await?;
 
   let form = SiteUpdateForm {
-    icon: Some(Some(image.image_url.into())),
+    icon: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Site::update(&mut context.pool(), site.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn upload_site_banner(
@@ -150,7 +149,7 @@ pub async fn upload_site_banner(
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
   let site = Site::read_local(&mut context.pool()).await?;
 
@@ -158,12 +157,12 @@ pub async fn upload_site_banner(
   delete_old_image(&site.banner, &context).await?;
 
   let form = SiteUpdateForm {
-    banner: Some(Some(image.image_url.into())),
+    banner: Some(Some(image.image_url.clone().into())),
     ..Default::default()
   };
   Site::update(&mut context.pool(), site.id, &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(image))
 }
 
 pub async fn do_upload_image(
@@ -174,10 +173,13 @@ pub async fn do_upload_image(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<UploadImageResponse> {
   let pictrs = context.settings().pictrs()?;
+  let max_upload_size = pictrs.max_upload_size.map(|m| m.to_string());
   let image_url = format!("{}image", pictrs.url);
 
   let mut client_req = adapt_request(&req, image_url, context);
 
+  // Set pictrs parameters to downscale images and restrict file types.
+  // https://git.asonix.dog/asonix/pict-rs/#api
   client_req = match upload_type {
     Avatar => {
       let max_size = pictrs.max_avatar_size.to_string();
@@ -195,7 +197,13 @@ pub async fn do_upload_image(
         ("allow_video", "false"),
       ])
     }
-    _ => client_req,
+    Other => {
+      let mut query = vec![("allow_video", pictrs.allow_video_uploads.to_string())];
+      if let Some(max_upload_size) = max_upload_size {
+        query.push(("resize", max_upload_size));
+      }
+      client_req.query(&query)
+    }
   };
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())

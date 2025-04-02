@@ -1,15 +1,20 @@
+use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
   activities::GetActorType,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
+  fetcher::{
+    markdown_links::markdown_rewrite_remote_links_opt,
+    user_or_community::PersonOrGroupType,
+  },
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, LanguageTag},
+    objects::{group::Group, AttributedTo, LanguageTag},
     ImageObject,
     Source,
   },
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   kinds::actor::GroupType,
   protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
@@ -18,6 +23,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
@@ -37,10 +43,11 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
   CommunityVisibility,
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
-  utils::markdown::markdown_to_html,
+  utils::{markdown::markdown_to_html, validation::truncate_description},
 };
 use std::ops::Deref;
 use url::Url;
@@ -118,8 +125,11 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(generate_moderators_url(&self.ap_id)?.into()),
+      attributed_to: Some(AttributedTo::Lemmy(
+        generate_moderators_url(&self.ap_id)?.into(),
+      )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
+      discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
     };
     Ok(group)
   }
@@ -134,6 +144,10 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
@@ -145,9 +159,17 @@ impl Object for ApubCommunity {
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
     let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
       CommunityVisibility::Private
+    } else if !group.discoverable.unwrap_or(true) {
+      CommunityVisibility::Unlisted
     } else {
       CommunityVisibility::Public
     });
+
+    // If NSFW is not allowed, then remove NSFW communities
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+      .err()
+      .map(|_| true);
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -159,7 +181,8 @@ impl Object for ApubCommunity {
       icon,
       banner,
       sidebar,
-      description: group.summary,
+      removed,
+      description: group.summary.as_deref().map(truncate_description),
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(
         group
@@ -168,7 +191,7 @@ impl Object for ApubCommunity {
           .unwrap_or(group.inbox)
           .into(),
       ),
-      moderators_url: group.attributed_to.clone().map(Into::into),
+      moderators_url: group.attributed_to.clone().and_then(AttributedTo::url),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().map(Into::into),
       visibility,
@@ -200,7 +223,21 @@ impl Object for ApubCommunity {
         featured.dereference(&community_, &context_).await.ok();
       }
       if let Some(moderators) = group.attributed_to {
-        moderators.dereference(&community_, &context_).await.ok();
+        if let AttributedTo::Lemmy(l) = moderators {
+          l.moderators()
+            .dereference(&community_, &context_)
+            .await
+            .ok();
+        } else if let AttributedTo::Peertube(p) = moderators {
+          let new_mods = p
+            .iter()
+            .filter(|p| p.kind == PersonOrGroupType::Person)
+            .map(|p| ObjectId::<ApubPerson>::from(p.id.clone().into_inner()))
+            .collect();
+          handle_community_moderators(&new_mods, &community_, &context_)
+            .await
+            .ok();
+        }
       }
       Ok(())
     });

@@ -4,18 +4,20 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  scoped_futures::ScopedFutureExt,
+  AsyncConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 
 impl LocalSiteUrlBlocklist {
-  pub async fn replace(pool: &mut DbPool<'_>, url_blocklist: Vec<String>) -> Result<(), Error> {
+  pub async fn replace(pool: &mut DbPool<'_>, url_blocklist: Vec<String>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
     conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::local_site_url_blocklist::dsl::local_site_url_blocklist;
-
+      .transaction::<_, Error, _>(|conn| {
+        async move {
           Self::clear(conn).await?;
 
           let forms = url_blocklist
@@ -23,13 +25,12 @@ impl LocalSiteUrlBlocklist {
             .map(|url| LocalSiteUrlBlocklistForm { url, updated: None })
             .collect::<Vec<_>>();
 
-          insert_into(local_site_url_blocklist)
+          insert_into(local_site_url_blocklist::table)
             .values(forms)
             .execute(conn)
-            .await?;
-
-          Ok(())
-        }) as _
+            .await
+        }
+        .scope_boxed()
       })
       .await
   }

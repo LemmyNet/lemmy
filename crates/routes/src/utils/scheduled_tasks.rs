@@ -27,6 +27,7 @@ use lemmy_db_schema::{
     community_actions,
     federation_blocklist,
     instance,
+    instance_actions,
     person,
     post,
     received_activity,
@@ -41,6 +42,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
+use lemmy_db_views::{structs::SiteView, utils::local_instance_person_join};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -207,17 +209,15 @@ async fn process_ranks_in_batches(
     // Raw `sql_query` is used as a performance optimization - Diesel does not support doing this
     // in a single query (neither as a CTE, nor using a subquery)
     let updated_rows = sql_query(format!(
-      r#"WITH batch AS (SELECT a.{id_column}
-               FROM {aggregates_table} a
+      r#"WITH batch AS (SELECT a.id
+               FROM {table_name} a
                WHERE a.published > $1 AND ({where_clause})
                ORDER BY a.published
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
-         UPDATE {aggregates_table} a {set_clause}
-             FROM batch WHERE a.{id_column} = batch.{id_column} RETURNING a.published;
+         UPDATE {table_name} a {set_clause}
+             FROM batch WHERE a.id = batch.id RETURNING a.published;
     "#,
-      id_column = format_args!("{table_name}_id"),
-      aggregates_table = format_args!("{table_name}_aggregates"),
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
@@ -247,20 +247,20 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
     let updated_rows = sql_query(
-      r#"WITH batch AS (SELECT pa.post_id
-           FROM post_aggregates pa
+      r#"WITH batch AS (SELECT pa.id
+           FROM post pa
            WHERE pa.published > $1
            AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
            ORDER BY pa.published
            LIMIT $2
            FOR UPDATE SKIP LOCKED)
-      UPDATE post_aggregates pa
+      UPDATE post pa
       SET hot_rank = r.hot_rank(pa.score, pa.published),
           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
-      FROM batch, community_aggregates ca
-      WHERE pa.post_id = batch.post_id
-      AND pa.community_id = ca.community_id
+      FROM batch, community ca
+      WHERE pa.id = batch.id
+      AND pa.community_id = ca.id
       RETURNING pa.published;
 "#,
     )
@@ -368,16 +368,16 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   for (full_form, abbr) in &intervals {
     let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
+      "update local_site set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
     sql_query(update_site_stmt).execute(&mut conn).await?;
 
-    let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
+    let update_community_stmt = format!("update community ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.id = mv.community_id_", abbr, full_form);
     sql_query(update_community_stmt).execute(&mut conn).await?;
   }
 
-  let update_interactions_stmt = "update community_aggregates ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.community_id = mv.community_id_";
+  let update_interactions_stmt = "update community ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.id = mv.community_id_";
   sql_query(update_interactions_stmt)
     .execute(&mut conn)
     .await?;
@@ -391,18 +391,16 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  diesel::update(
-    person::table
-      .filter(person::banned.eq(true))
-      .filter(person::ban_expires.lt(now().nullable())),
-  )
-  .set(person::banned.eq(false))
-  .execute(&mut conn)
-  .await?;
-
   uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
     .set_null(community_actions::received_ban)
     .set_null(community_actions::ban_expires)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
+
+  uplete::new(instance_actions::table.filter(instance_actions::ban_expires.lt(now().nullable())))
+    .set_null(instance_actions::received_ban)
+    .set_null(instance_actions::ban_expires)
     .as_query()
     .execute(&mut conn)
     .await?;
@@ -425,6 +423,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 /// Find all unpublished posts with scheduled date in the future, and publish them.
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()> {
   let pool = &mut context.pool();
+  let local_instance_id = SiteView::read_local(pool).await?.instance.id;
   let mut conn = get_conn(pool).await?;
 
   let not_banned_action = community_actions::table
@@ -433,13 +432,14 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
-    .inner_join(person::table)
+    .inner_join(person::table.left_join(local_instance_person_join(local_instance_id)))
     // find all posts which have scheduled_publish_time that is in the  past
     .filter(post::scheduled_publish_time.is_not_null())
     .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
     // make sure the post, person and community are still around
     .filter(not(post::deleted.or(post::removed)))
-    .filter(not(person::banned.or(person::deleted)))
+    .filter(not(person::deleted))
+    .filter(instance_actions::received_ban.is_null())
     .filter(not(community::removed.or(community::deleted)))
     // ensure that user isnt banned from community
     .filter(not(exists(not_banned_action)))
@@ -557,6 +557,7 @@ mod tests {
 
   use super::*;
   use lemmy_api_common::request::client_builder;
+  use lemmy_db_views::site::site_view::create_test_instance;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
@@ -589,11 +590,13 @@ mod tests {
   #[serial]
   async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = create_test_instance(&mut context.pool()).await?;
 
     startup_jobs(&mut context.pool()).await?;
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 }

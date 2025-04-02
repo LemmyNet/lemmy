@@ -205,17 +205,17 @@ test("Admin actions in remote community are not federated to origin", async () =
   gammaCommunity = (
     await waitUntil(
       () => resolveCommunity(gamma, communityRes.community.ap_id),
-      g => g.community?.subscribed === "Subscribed",
+      g => g.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
   if (!gammaCommunity) {
     throw "Missing gamma community";
   }
-  expect(gammaCommunity.subscribed).toBe("Subscribed");
+  expect(gammaCommunity.community_actions?.follow_state).toBe("Accepted");
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();
-  expect(gammaPost.creator_banned_from_community).toBe(false);
+  expect(gammaPost.creator_community_actions?.received_ban).toBeUndefined();
 
   // admin of beta decides to ban gamma from community
   let betaCommunity = (
@@ -244,11 +244,13 @@ test("Admin actions in remote community are not federated to origin", async () =
 
   // ban doesn't federate to community's origin instance alpha
   let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
-  expect(alphaPost?.creator_banned_from_community).toBe(false);
+  expect(alphaPost?.creator_community_actions?.received_ban).toBeUndefined();
 
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);
-  expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
+  expect(
+    gammaPost2.post_view.creator_community_actions?.received_ban,
+  ).toBeUndefined();
 });
 
 test("moderator view", async () => {
@@ -391,12 +393,12 @@ test.skip("Community follower count is federated", async () => {
   let followed = (
     await waitUntil(
       () => resolveCommunity(alpha, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 
   // Make sure there is 1 subscriber
-  expect(followed?.counts.subscribers).toBe(1);
+  expect(followed?.community.subscribers).toBe(1);
 
   // Follow the community from gamma
   resolved = await resolveCommunity(gamma, communityActorId);
@@ -408,12 +410,12 @@ test.skip("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveCommunity(gamma, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 
   // Make sure there are 2 subscribers
-  expect(followed?.counts?.subscribers).toBe(2);
+  expect(followed?.community?.subscribers).toBe(2);
 
   // Follow the community from delta
   resolved = await resolveCommunity(delta, communityActorId);
@@ -425,18 +427,18 @@ test.skip("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveCommunity(delta, communityActorId),
-      c => c.community?.subscribed === "Subscribed",
+      c => c.community?.community_actions?.follow_state == "Accepted",
     )
   ).community;
 
   // Make sure there are 3 subscribers
-  expect(followed?.counts?.subscribers).toBe(3);
+  expect(followed?.community?.subscribers).toBe(3);
 });
 
 test("Dont receive community activities after unsubscribe", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
-  expect(communityRes.community_view.counts.subscribers).toBe(1);
+  expect(communityRes.community_view.community.subscribers).toBe(1);
 
   let betaCommunity = (
     await resolveCommunity(beta, communityRes.community_view.community.ap_id)
@@ -451,7 +453,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     alpha,
     communityRes.community_view.community.id,
   );
-  expect(communityRes1.community_view.counts.subscribers).toBe(2);
+  expect(communityRes1.community_view.community.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
   var allow_instance_params: AdminAllowInstanceParams = {
@@ -470,7 +472,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     alpha,
     communityRes.community_view.community.id,
   );
-  expect(communityRes2.community_view.counts.subscribers).toBe(2);
+  expect(communityRes2.community_view.community.subscribers).toBe(2);
 
   // unblock alpha
   allow_instance_params.allow = true;
@@ -492,7 +494,7 @@ test("Dont receive community activities after unsubscribe", async () => {
 test("Fetch community, includes posts", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
-  expect(communityRes.community_view.counts.subscribers).toBe(1);
+  expect(communityRes.community_view.community.subscribers).toBe(1);
 
   let postRes = await createPost(
     alpha,
@@ -521,7 +523,7 @@ test("Content in local-only community doesn't federate", async () => {
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {
     community_id: communityRes.id,
-    visibility: "LocalOnly",
+    visibility: "LocalOnlyPublic",
   };
   await editCommunity(alpha, form);
 

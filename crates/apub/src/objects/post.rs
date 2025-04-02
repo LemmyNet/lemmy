@@ -5,7 +5,8 @@ use crate::{
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
+      page::{Attachment, Hashtag, HashtagType, Page, PageType},
+      AttributedTo,
       LanguageTag,
     },
     ImageObject,
@@ -26,8 +27,9 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
-  utils::{get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -37,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views::structs::{CommunityModeratorView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -156,7 +158,12 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
-    verify_is_remote_object(&page.id, context)?;
+    if let Err(e) = verify_is_remote_object(&page.id, context) {
+      if let Ok(post) = page.id.dereference_local(context).await {
+        post.set_not_pending(&mut context.pool()).await?;
+      }
+      return Err(e.into());
+    }
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
@@ -171,6 +178,10 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -220,12 +231,27 @@ impl Object for ApubPost {
       None
     };
 
+    // If NSFW is not allowed, reject NSFW posts and delete existing
+    // posts that get updated to be NSFW
+    let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
+    if let Err(e) = block_for_nsfw {
+      // TODO: Remove locally generated thumbnail if one exists, depends on
+      //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
+      //       safely do this.
+      Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
+      Err(e)?
+    }
+
     let url_blocklist = get_url_blocklist(context).await?;
 
     let url = if let Some(url) = url {
       is_url_blocked(&url, &url_blocklist)?;
       is_valid_url(&url)?;
-      to_local_url(url.as_str(), context).await.or(Some(url))
+      if page.kind != PageType::Video {
+        to_local_url(url.as_str(), context).await.or(Some(url))
+      } else {
+        Some(url)
+      }
     } else {
       None
     };
@@ -242,7 +268,7 @@ impl Object for ApubPost {
         .await?,
     );
 
-    let form = PostInsertForm {
+    let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
       alt_text,
@@ -255,9 +281,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
+    form = plugin_hook_before("before_receive_federated_post", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    plugin_hook_after("after_receive_federated_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
@@ -303,7 +331,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context.request_count(), 0);
 
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;

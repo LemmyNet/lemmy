@@ -12,16 +12,17 @@ use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    comment::{CommentSaved, CommentSavedForm},
-    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
-    community_block::{CommunityBlock, CommunityBlockForm},
-    instance::Instance,
-    instance_block::{InstanceBlock, InstanceBlockForm},
+    comment::{CommentActions, CommentSavedForm},
+    community::{
+      CommunityActions,
+      CommunityBlockForm,
+      CommunityFollowerForm,
+      CommunityFollowerState,
+    },
+    instance::{Instance, InstanceActions, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
-    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
-    person::{Person, PersonUpdateForm},
-    person_block::{PersonBlock, PersonBlockForm},
-    post::{PostSaved, PostSavedForm},
+    person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
+    post::{PostActions, PostSavedForm},
   },
   traits::{Blockable, Crud, Followable, Saveable},
 };
@@ -55,7 +56,6 @@ pub struct UserSettingsBackup {
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,
-  pub vote_display_mode_settings: Option<LocalUserVoteDisplayMode>,
   #[serde(default)]
   pub followed_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
@@ -85,7 +85,6 @@ pub async fn export_settings(
     matrix_id: local_user_view.person.matrix_user_id,
     bot_account: local_user_view.person.bot_account.into(),
     settings: Some(local_user_view.local_user),
-    vote_display_mode_settings: Some(local_user_view.local_user_vote_display_mode),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
     blocked_instances: lists.blocked_instances,
@@ -130,33 +129,16 @@ pub async fn import_settings(
     blur_nsfw: data.settings.as_ref().map(|s| s.blur_nsfw),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
+    show_score: data.settings.as_ref().map(|s| s.show_score),
+    show_upvotes: data.settings.as_ref().map(|s| s.show_upvotes),
+    show_downvotes: data.settings.as_ref().map(|s| s.show_downvotes),
+    show_upvote_percentage: data.settings.as_ref().map(|s| s.show_upvote_percentage),
     ..Default::default()
   };
   LocalUser::update(
     &mut context.pool(),
     local_user_view.local_user.id,
     &local_user_form,
-  )
-  .await?;
-
-  // Update the vote display mode settings
-  let vote_display_mode_form = LocalUserVoteDisplayModeUpdateForm {
-    score: data.vote_display_mode_settings.as_ref().map(|s| s.score),
-    upvotes: data.vote_display_mode_settings.as_ref().map(|s| s.upvotes),
-    downvotes: data
-      .vote_display_mode_settings
-      .as_ref()
-      .map(|s| s.downvotes),
-    upvote_percentage: data
-      .vote_display_mode_settings
-      .as_ref()
-      .map(|s| s.upvote_percentage),
-  };
-
-  LocalUserVoteDisplayMode::update(
-    &mut context.pool(),
-    local_user_view.local_user.id,
-    &vote_display_mode_form,
   )
   .await?;
 
@@ -183,11 +165,9 @@ pub async fn import_settings(
       &context,
       |(followed, context)| async move {
         let community = followed.dereference(&context).await?;
-        let form = CommunityFollowerForm {
-          state: Some(CommunityFollowerState::Pending),
-          ..CommunityFollowerForm::new(community.id, person_id)
-        };
-        CommunityFollower::follow(&mut context.pool(), &form).await?;
+        let form =
+          CommunityFollowerForm::new(community.id, person_id, CommunityFollowerState::Pending);
+        CommunityActions::follow(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -199,7 +179,7 @@ pub async fn import_settings(
       |(saved, context)| async move {
         let post = saved.dereference(&context).await?;
         let form = PostSavedForm::new(post.id, person_id);
-        PostSaved::save(&mut context.pool(), &form).await?;
+        PostActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -210,8 +190,8 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let comment = saved.dereference(&context).await?;
-        let form = CommentSavedForm::new(comment.id, person_id);
-        CommentSaved::save(&mut context.pool(), &form).await?;
+        let form = CommentSavedForm::new(person_id, comment.id);
+        CommentActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -222,11 +202,8 @@ pub async fn import_settings(
       &context,
       |(blocked, context)| async move {
         let community = blocked.dereference(&context).await?;
-        let form = CommunityBlockForm {
-          person_id,
-          community_id: community.id,
-        };
-        CommunityBlock::block(&mut context.pool(), &form).await?;
+        let form = CommunityBlockForm::new(community.id, person_id);
+        CommunityActions::block(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -238,11 +215,8 @@ pub async fn import_settings(
       |(blocked, context)| async move {
         let context = context.reset_request_count();
         let target = blocked.dereference(&context).await?;
-        let form = PersonBlockForm {
-          person_id,
-          target_id: target.id,
-        };
-        PersonBlock::block(&mut context.pool(), &form).await?;
+        let form = PersonBlockForm::new(person_id, target.id);
+        PersonActions::block(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -250,11 +224,8 @@ pub async fn import_settings(
 
     try_join_all(data.blocked_instances.iter().map(|domain| async {
       let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
-      let form = InstanceBlockForm {
-        person_id,
-        instance_id: instance.id,
-      };
-      InstanceBlock::block(&mut context.pool(), &form).await?;
+      let form = InstanceBlockForm::new(person_id, instance.id);
+      InstanceActions::block(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;
@@ -312,16 +283,20 @@ pub(crate) mod tests {
     source::{
       community::{
         Community,
-        CommunityFollower,
+        CommunityActions,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
       },
+      instance::Instance,
       person::Person,
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
+  use lemmy_db_views::{
+    site::site_view::create_test_instance,
+    structs::{CommunityFollowerView, LocalUserView},
+  };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
@@ -332,6 +307,7 @@ pub(crate) mod tests {
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "hanna", "my bio", false).await?;
 
@@ -342,11 +318,12 @@ pub(crate) mod tests {
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
-    let follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, export_user.person.id)
-    };
-    CommunityFollower::follow(pool, &follower_form).await?;
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      export_user.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
@@ -372,6 +349,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -380,6 +358,7 @@ pub(crate) mod tests {
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
@@ -408,6 +387,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -416,6 +396,7 @@ pub(crate) mod tests {
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let import_user = LocalUserView::create_test_user(pool, "larry", "larry bio", false).await?;
 
@@ -436,6 +417,7 @@ pub(crate) mod tests {
     // local_user can be deserialized without id/person_id fields
     assert_eq!("my_theme", import_user_updated.local_user.theme);
 
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 }

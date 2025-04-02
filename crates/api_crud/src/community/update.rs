@@ -7,7 +7,13 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{
+    check_community_mod_action,
+    check_nsfw_allowed,
+    get_url_blocklist,
+    process_markdown_opt,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -17,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
@@ -28,9 +34,12 @@ pub async fn update_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
@@ -48,13 +57,7 @@ pub async fn update_community(
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify its a mod (only mods can edit it)
-  check_community_mod_action(
-    &local_user_view.person,
-    &old_community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &old_community, false, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {

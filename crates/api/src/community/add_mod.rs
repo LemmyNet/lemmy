@@ -8,14 +8,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
@@ -24,13 +24,7 @@ pub async fn add_mod_to_community(
 ) -> LemmyResult<Json<AddModToCommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   // Verify that only mods or admins can add mod
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   // If its a mod removal, also check that you're a higher mod.
   if !data.added {
@@ -56,18 +50,11 @@ pub async fn add_mod_to_community(
   }
 
   // Update in local database
-  let community_moderator_form = CommunityModeratorForm {
-    community_id: data.community_id,
-    person_id: data.person_id,
-  };
+  let community_moderator_form = CommunityModeratorForm::new(data.community_id, data.person_id);
   if data.added {
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
   } else {
-    CommunityModerator::leave(&mut context.pool(), &community_moderator_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+    CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
   }
 
   // Mod tables

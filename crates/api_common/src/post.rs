@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   PostFeatureType,
   PostSortType,
 };
-use lemmy_db_views::structs::{CommunityView, PaginationCursor, PostView, VoteView};
+use lemmy_db_views::structs::{CommunityView, PostPaginationCursor, PostView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -125,7 +125,7 @@ pub struct GetPosts {
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
+  pub page_cursor: Option<PostPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -139,7 +139,7 @@ pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
+  pub next_page: Option<PostPaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

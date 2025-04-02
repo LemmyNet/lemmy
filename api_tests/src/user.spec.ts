@@ -181,7 +181,7 @@ test("Create user with accept-language", async () => {
     .map(l => l.code);
   // should have languages from accept header, as well as "undetermined"
   // which is automatically enabled by backend
-  expect(langs).toStrictEqual(["und", "de", "en", "fr"]);
+  expect(langs).toStrictEqual(["de", "en", "fr"]);
 });
 
 test("Set a new avatar, old avatar is deleted", async () => {

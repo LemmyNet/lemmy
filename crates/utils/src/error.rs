@@ -48,7 +48,6 @@ pub enum LemmyErrorType {
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,
-  CantEnablePrivateInstanceAndFederationTogether,
   Locked,
   CouldntCreateComment,
   MaxCommentDepthReached,
@@ -58,6 +57,7 @@ pub enum LemmyErrorType {
   LanguageNotAllowed,
   CouldntUpdatePost,
   NoPostEditAllowed,
+  NsfwNotAllowed,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -73,7 +73,6 @@ pub enum LemmyErrorType {
   ObjectNotLocal,
   NoEmailSetup,
   LocalSiteNotSetup,
-  EmailSmtpServerNeedsAPort,
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
@@ -98,12 +97,12 @@ pub enum LemmyErrorType {
   CommunityUserAlreadyBanned,
   CommunityBlockAlreadyExists,
   CommunityFollowerAlreadyExists,
-  CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
+  CouldntUpdateReadComments,
   CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
@@ -159,6 +158,8 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
+  CouldntParsePaginationToken,
+  PluginError(String),
 }
 
 /// Federation related errors, these dont need to be translated.

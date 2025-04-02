@@ -5,12 +5,14 @@ use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed,
     get_url_blocklist,
     process_markdown_opt,
     send_webmention,
@@ -27,7 +29,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
 };
-use lemmy_db_views::structs::{CommunityView, LocalUserView, PostView};
+use lemmy_db_views::structs::{CommunityView, LocalUserView, PostView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -49,6 +51,7 @@ pub async fn update_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
@@ -62,6 +65,8 @@ pub async fn update_post(
       .await?
       .as_deref(),
   );
+
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 
@@ -90,12 +95,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &orig_post.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   if let Some(tags) = &data.tags {
     // post view does not include communityview.post_tags
@@ -139,7 +139,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let post_form = PostUpdateForm {
+  let mut post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -150,11 +150,13 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
+  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+  plugin_hook_after("after_update_local_post", &post_form)?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());

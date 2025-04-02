@@ -13,20 +13,15 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentLike, CommentUpdateForm},
-    community::{Community, CommunityModerator, CommunityUpdateForm},
-    community_block::CommunityBlock,
-    email_verification::{EmailVerification, EmailVerificationForm},
+    comment::{Comment, CommentActions, CommentUpdateForm},
+    community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
-    instance::Instance,
-    instance_block::InstanceBlock,
+    instance::{Instance, InstanceActions},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -34,17 +29,14 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    password_reset_request::PasswordResetRequest,
-    person::{Person, PersonUpdateForm},
-    person_block::PersonBlock,
-    post::{Post, PostLike},
+    person::{Person, PersonActions, PersonUpdateForm},
+    post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::{Crud, Likeable},
+  traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
-  CommunityVisibility,
   FederationMode,
   RegistrationMode,
 };
@@ -57,17 +49,14 @@ use lemmy_db_views::{
     CommunityView,
     LocalImageView,
     LocalUserView,
+    PersonView,
     SiteView,
   },
 };
 use lemmy_utils::{
-  email::send_email,
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::{
-    structs::{PictrsImageMode, Settings},
-    SETTINGS,
-  },
+  settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
@@ -80,7 +69,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use std::sync::LazyLock;
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
 use webmention::{Webmention, WebmentionError};
@@ -89,11 +78,11 @@ pub const AUTH_COOKIE_NAME: &str = "jwt";
 
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
-  person: &Person,
+  local_user_view: &LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<()> {
-  check_user_valid(person)?;
-  CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
+  check_local_user_valid(local_user_view)?;
+  CommunityView::check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -103,7 +92,7 @@ pub async fn is_mod_or_admin_opt(
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(pool, &local_user_view.person, community_id).await
+      is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
       is_admin(local_user_view)
     }
@@ -121,12 +110,12 @@ pub async fn check_community_mod_of_any_or_admin_action(
 ) -> LemmyResult<()> {
   let person = &local_user_view.person;
 
-  check_user_valid(person)?;
+  check_local_user_valid(local_user_view)?;
   CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(local_user_view)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
   } else {
@@ -138,7 +127,7 @@ pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
 ) -> LemmyResult<()> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(local_user_view)?;
   if local_user_view.person.id
     != community_mods
       .first()
@@ -158,24 +147,31 @@ pub async fn update_read_comments(
   read_comments: i64,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let person_post_agg_form = PersonPostAggregatesForm {
-    person_id,
-    post_id,
-    read_comments,
-  };
-
-  PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
+  let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
+  PostActions::update_read_comments(pool, &person_post_agg_form).await?;
 
   Ok(())
 }
 
-pub fn check_user_valid(person: &Person) -> LemmyResult<()> {
+pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
-  if person.banned {
+  if local_user_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
-  else if person.deleted {
+  else if local_user_view.person.deleted {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
+  }
+}
+pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
+  // Check for a site ban
+  if person_view.banned() {
+    Err(LemmyErrorType::SiteBan)?
+  }
+  // check for account deletion
+  else if person_view.person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
@@ -227,14 +223,16 @@ pub async fn check_registration_application(
 /// In particular it checks that neither the user nor community are banned or deleted, and that
 /// the user isn't banned.
 pub async fn check_community_user_action(
-  person: &Person,
+  local_user_view: &LocalUserView,
   community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_user_valid(person)?;
+  check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
-  CommunityPersonBanView::check(pool, person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
+  CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
+  CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
+    .await?;
+  InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
 }
 
@@ -250,13 +248,13 @@ pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()>
 /// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
-  person: &Person,
+  local_user_view: &LocalUserView,
   community: &Community,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community.id).await?;
-  CommunityPersonBanView::check(pool, person.id, community.id).await?;
+  is_mod_or_admin(pool, local_user_view, community.id).await?;
+  CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
@@ -289,9 +287,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
-  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
+  PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
+  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 
@@ -313,9 +311,9 @@ pub async fn check_local_vote_mode(
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
     match post_or_comment_id {
-      PostOrCommentId::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      PostOrCommentId::Post(post_id) => PostActions::remove_like(pool, person_id, post_id).await?,
       PostOrCommentId::Comment(comment_id) => {
-        CommentLike::remove(pool, person_id, comment_id).await?
+        CommentActions::remove_like(pool, person_id, comment_id).await?
       }
     };
   }
@@ -407,121 +405,6 @@ pub fn honeypot_check(honeypot: &Option<String>) -> LemmyResult<()> {
   }
 }
 
-pub async fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject: &str,
-  body: &str,
-  settings: &Settings,
-) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
-    return;
-  }
-
-  if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      body,
-      settings,
-    )
-    .await
-    {
-      Ok(_o) => _o,
-      Err(e) => warn!("{}", e),
-    };
-  }
-}
-
-pub async fn send_password_reset_email(
-  user: &LocalUserView,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Generate a random token
-  let token = uuid::Uuid::new_v4().to_string();
-
-  let email = &user
-    .local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = &lang.password_reset_subject(&user.person.name);
-  let protocol_and_hostname = settings.get_protocol_and_hostname();
-  let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
-  let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings).await?;
-
-  // Insert the row after successful send, to avoid using daily reset limit while
-  // email sending is broken.
-  let local_user_id = user.local_user.id;
-  PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
-  Ok(())
-}
-
-/// Send a verification email
-pub async fn send_verification_email(
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-  new_email: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  let form = EmailVerificationForm {
-    local_user_id: local_user.id,
-    email: new_email.to_string(),
-    verification_token: uuid::Uuid::new_v4().to_string(),
-  };
-  let verify_link = format!(
-    "{}/verify_email/{}",
-    settings.get_protocol_and_hostname(),
-    &form.verification_token
-  );
-  EmailVerification::create(pool, &form).await?;
-
-  let lang = local_user.interface_i18n_language();
-  let subject = lang.verify_email_subject(&settings.hostname);
-
-  // If an application is required, use a translation that includes that warning.
-  let body = if local_site.registration_mode == RegistrationMode::RequireApplication {
-    lang.verify_email_body_with_application(&settings.hostname, &person.name, verify_link)
-  } else {
-    lang.verify_email_body(&settings.hostname, &person.name, verify_link)
-  };
-
-  send_email(&subject, new_email, &person.name, &body, settings).await
-}
-
-/// Returns true if email was sent.
-pub async fn send_verification_email_if_required(
-  context: &LemmyContext,
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-) -> LemmyResult<bool> {
-  let email = &local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    send_verification_email(
-      local_site,
-      local_user,
-      person,
-      email,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
-    Ok(true)
-  } else {
-    Ok(false)
-  }
-}
-
 pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
@@ -550,7 +433,10 @@ pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
   Ok(
     CACHE
       .try_get_with((), async {
-        let local_site = LocalSite::read(&mut context.pool()).await.ok();
+        let local_site = SiteView::read_local(&mut context.pool())
+          .await
+          .ok()
+          .map(|s| s.local_site);
         build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
       })
       .await
@@ -584,79 +470,15 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
-pub async fn send_application_approved_email(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  let email = &user
-    .local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = lang.registration_approved_subject(&user.person.ap_id);
-  let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings).await
-}
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
+  let is_nsfw = nsfw.unwrap_or_default();
+  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
 
-/// Send a new applicant email notification to all admins
-pub async fn send_new_applicant_email_to_admins(
-  applicant_username: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(pool).await?;
-
-  let applications_link = &format!(
-    "{}/registration_applications",
-    settings.get_protocol_and_hostname(),
-  );
-
-  for admin in &admins {
-    let email = &admin
-      .local_user
-      .email
-      .clone()
-      .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = &admin.local_user.interface_i18n_language();
-    let subject = lang.new_application_subject(&settings.hostname, applicant_username);
-    let body = lang.new_application_body(applications_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+  if nsfw_disallowed && is_nsfw {
+    Err(LemmyErrorType::NsfwNotAllowed)?
   }
+
   Ok(())
-}
-
-/// Send a report to all admins
-pub async fn send_new_report_email_to_admins(
-  reporter_username: &str,
-  reported_username: &str,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> LemmyResult<()> {
-  // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(pool).await?;
-
-  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
-
-  for admin in &admins {
-    if let Some(email) = &admin.local_user.email {
-      let lang = &admin.local_user.interface_i18n_language();
-      let subject =
-        lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
-      let body = lang.new_report_body(reports_link);
-      send_email(&subject, email, &admin.person.name, &body, settings).await?;
-    }
-  }
-  Ok(())
-}
-
-pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> LemmyResult<()> {
-  if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
-  } else {
-    Ok(())
-  }
 }
 
 /// Read the site for an ap_id.
@@ -671,24 +493,17 @@ pub async fn read_site_for_actor(
   Ok(site)
 }
 
-pub async fn purge_image_posts_for_person(
-  banned_person_id: PersonId,
+pub async fn purge_post_images(
+  url: Option<DbUrl>,
+  thumbnail_url: Option<DbUrl>,
   context: &LemmyContext,
-) -> LemmyResult<()> {
-  let pool = &mut context.pool();
-  let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
-  for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
+) {
+  if let Some(url) = url {
+    purge_image_from_pictrs(&url, context).await.ok();
   }
-
-  Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
-
-  Ok(())
+  if let Some(thumbnail_url) = thumbnail_url {
+    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+  }
 }
 
 /// Delete a local_user's images
@@ -708,26 +523,6 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
   Ok(())
 }
 
-pub async fn purge_image_posts_for_community(
-  banned_community_id: CommunityId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let pool = &mut context.pool();
-  let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
-  for post in posts {
-    if let Some(url) = post.url {
-      purge_image_from_pictrs(&url, context).await.ok();
-    }
-    if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-    }
-  }
-
-  Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;
-
-  Ok(())
-}
-
 /// Removes or restores user data.
 pub async fn remove_or_restore_user_data(
   mod_person_id: PersonId,
@@ -738,16 +533,9 @@ pub async fn remove_or_restore_user_data(
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  // Only these actions are possible when removing, not restoring
+  // These actions are only possible when removing, not restoring
   if removed {
-    // Purge user images
-    let person = Person::read(pool, banned_person_id).await?;
-    if let Some(avatar) = person.avatar {
-      purge_image_from_pictrs(&avatar, context).await.ok();
-    }
-    if let Some(banner) = person.banner {
-      purge_image_from_pictrs(&banner, context).await.ok();
-    }
+    delete_local_user_images(banned_person_id, context).await?;
 
     // Update the fields to None
     Person::update(
@@ -761,9 +549,6 @@ pub async fn remove_or_restore_user_data(
       },
     )
     .await?;
-
-    // Purge image posts
-    purge_image_posts_for_person(banned_person_id, context).await?;
 
     // Communities
     // Remove all communities where they're the top mod
@@ -788,13 +573,6 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
 
-      // Delete the community images
-      if let Some(icon) = first_mod_community.community.icon {
-        purge_image_from_pictrs(&icon, context).await.ok();
-      }
-      if let Some(banner) = first_mod_community.community.banner {
-        purge_image_from_pictrs(&banner, context).await.ok();
-      }
       // Update the fields to None
       Community::update(
         pool,
@@ -811,7 +589,7 @@ pub async fn remove_or_restore_user_data(
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -895,7 +673,8 @@ pub async fn remove_or_restore_user_data_in_community(
 ) -> LemmyResult<()> {
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+      .await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -944,21 +723,9 @@ pub async fn remove_or_restore_user_data_in_community(
 pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  let person = Person::read(pool, person_id).await?;
-
   // Delete their local images, if they're a local user
-  delete_local_user_images(person_id, context).await.ok();
-
   // No need to update avatar and banner, those are handled in Person::delete_account
-  if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(&avatar, context).await.ok();
-  }
-  if let Some(banner) = person.banner {
-    purge_image_from_pictrs(&banner, context).await.ok();
-  }
-
-  // Purge image posts
-  purge_image_posts_for_person(person_id, context).await.ok();
+  delete_local_user_images(person_id, context).await.ok();
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
@@ -971,7 +738,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
   // Leave communities they mod
-  CommunityModerator::leave_all_communities(pool, person_id).await?;
+  CommunityActions::leave_mod_team_for_all_communities(pool, person_id).await?;
 
   // Delete the oauth accounts linked to the local user
   if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
@@ -1154,7 +921,7 @@ pub async fn local_user_view_from_jwt(
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(&local_user_view)?;
 
   Ok(local_user_view)
 }
@@ -1176,7 +943,7 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
 
 pub fn send_webmention(post: Post, community: &Community) {
   if let Some(url) = post.url.clone() {
-    if community.visibility == CommunityVisibility::Public {
+    if community.visibility.can_view_without_login() {
       spawn_try_task(async move {
         let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);

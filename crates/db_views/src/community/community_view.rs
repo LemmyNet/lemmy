@@ -1,4 +1,7 @@
-use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
+use crate::{
+  structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView},
+  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -12,12 +15,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
-  source::{
-    community::{Community, CommunityFollowerState},
-    local_user::LocalUser,
-    site::Site,
-  },
+  schema::{community, community_actions, instance_actions, local_user},
+  source::{community::Community, local_user::LocalUser, site::Site},
   utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
   ListingType,
 };
@@ -32,6 +31,7 @@ impl CommunityView {
         .and(community_actions::person_id.nullable().eq(person_id)),
     );
 
+    // join with instance actions for community instance
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
         .eq(community::instance_id)
@@ -41,7 +41,6 @@ impl CommunityView {
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
 
     community::table
-      .inner_join(community_aggregates::table)
       .left_join(community_actions_join)
       .left_join(instance_actions_join)
       .left_join(local_user_join)
@@ -131,22 +130,18 @@ impl CommunityQuery<'_> {
 
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
-      query = query.filter(Community::hide_removed_and_deleted()).filter(
-        community::hidden
-          .eq(false)
-          .or(community_actions::follow_state.is_not_null()),
-      );
+      query = query
+        .filter(Community::hide_removed_and_deleted())
+        .filter(filter_not_unlisted_or_is_subscribed());
     }
-
-    let is_subscribed = community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted));
 
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
-        ListingType::Subscribed => query.filter(is_subscribed),
+        ListingType::All => query.filter(filter_not_unlisted_or_is_subscribed()),
+        ListingType::Subscribed => query.filter(filter_is_subscribed()),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed)),
+          .filter(filter_not_unlisted_or_is_subscribed()),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }
@@ -164,27 +159,24 @@ impl CommunityQuery<'_> {
     query = o.local_user.visible_communities_only(query);
 
     match o.sort.unwrap_or_default() {
-      Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      Comments => query = query.order_by(community_aggregates::comments.desc()),
-      Posts => query = query.order_by(community_aggregates::posts.desc()),
+      Hot => query = query.order_by(community::hot_rank.desc()),
+      Comments => query = query.order_by(community::comments.desc()),
+      Posts => query = query.order_by(community::posts.desc()),
       New => query = query.order_by(community::published.desc()),
       Old => query = query.order_by(community::published.asc()),
-      Subscribers => query = query.order_by(community_aggregates::subscribers.desc()),
-      SubscribersLocal => query = query.order_by(community_aggregates::subscribers_local.desc()),
-      ActiveSixMonths => {
-        query = query.order_by(community_aggregates::users_active_half_year.desc())
-      }
-      ActiveMonthly => query = query.order_by(community_aggregates::users_active_month.desc()),
-      ActiveWeekly => query = query.order_by(community_aggregates::users_active_week.desc()),
-      ActiveDaily => query = query.order_by(community_aggregates::users_active_day.desc()),
+      Subscribers => query = query.order_by(community::subscribers.desc()),
+      SubscribersLocal => query = query.order_by(community::subscribers_local.desc()),
+      ActiveSixMonths => query = query.order_by(community::users_active_half_year.desc()),
+      ActiveMonthly => query = query.order_by(community::users_active_month.desc()),
+      ActiveWeekly => query = query.order_by(community::users_active_week.desc()),
+      ActiveDaily => query = query.order_by(community::users_active_day.desc()),
       NameAsc => query = query.order_by(lower(community::name).asc()),
       NameDesc => query = query.order_by(lower(community::name).desc()),
     };
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(
-        community_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-      );
+      query =
+        query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
@@ -208,11 +200,10 @@ mod tests {
     source::{
       community::{
         Community,
-        CommunityFollower,
+        CommunityActions,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
-        CommunityModerator,
         CommunityModeratorForm,
         CommunityUpdateForm,
       },
@@ -224,7 +215,6 @@ mod tests {
     traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
-    SubscribedType,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
@@ -321,28 +311,31 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn subscribe_state() -> LemmyResult<()> {
+  async fn follow_state() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
     let community = &data.communities[0];
 
     let unauthenticated = CommunityView::read(pool, community.id, None, false).await?;
-    assert_eq!(SubscribedType::NotSubscribed, unauthenticated.subscribed);
+    assert!(unauthenticated.community_actions.is_none());
 
     let authenticated =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert_eq!(SubscribedType::NotSubscribed, authenticated.subscribed);
+    assert!(authenticated.community_actions.is_none());
 
-    let form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Pending),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
-    CommunityFollower::follow(pool, &form).await?;
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::Pending,
+    );
+    CommunityActions::follow(pool, &form).await?;
 
     let with_pending_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert_eq!(SubscribedType::Pending, with_pending_follow.subscribed);
+    assert!(with_pending_follow
+      .community_actions
+      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Pending)));
 
     // mark community private and set follow as approval required
     Community::update(
@@ -354,27 +347,30 @@ mod tests {
       },
     )
     .await?;
-    let form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::ApprovalRequired),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
-    CommunityFollower::follow(pool, &form).await?;
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &form).await?;
 
     let with_approval_required_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert_eq!(
-      SubscribedType::ApprovalRequired,
-      with_approval_required_follow.subscribed
-    );
+    assert!(with_approval_required_follow
+      .community_actions
+      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::ApprovalRequired)));
 
-    let form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
-    };
-    CommunityFollower::follow(pool, &form).await?;
+    let form = CommunityFollowerForm::new(
+      community.id,
+      data.local_user.person_id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &form).await?;
     let with_accepted_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert_eq!(SubscribedType::Subscribed, with_accepted_follow.subscribed);
+    assert!(with_accepted_follow
+      .community_actions
+      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Accepted)));
 
     cleanup(data, pool).await
   }
@@ -390,7 +386,7 @@ mod tests {
       pool,
       data.communities[0].id,
       &CommunityUpdateForm {
-        visibility: Some(CommunityVisibility::LocalOnly),
+        visibility: Some(CommunityVisibility::LocalOnlyPrivate),
         ..Default::default()
       },
     )
@@ -472,17 +468,11 @@ mod tests {
     let person_id = data.local_user.person_id;
 
     // Now join the mod team of test community 1 and 2
-    let mod_form_1 = CommunityModeratorForm {
-      community_id: data.communities[0].id,
-      person_id,
-    };
-    CommunityModerator::join(pool, &mod_form_1).await?;
+    let mod_form_1 = CommunityModeratorForm::new(data.communities[0].id, person_id);
+    CommunityActions::join(pool, &mod_form_1).await?;
 
-    let mod_form_2 = CommunityModeratorForm {
-      community_id: data.communities[1].id,
-      person_id,
-    };
-    CommunityModerator::join(pool, &mod_form_2).await?;
+    let mod_form_2 = CommunityModeratorForm::new(data.communities[1].id, person_id);
+    CommunityActions::join(pool, &mod_form_2).await?;
 
     let mod_query = CommunityQuery {
       local_user: Some(&data.local_user),

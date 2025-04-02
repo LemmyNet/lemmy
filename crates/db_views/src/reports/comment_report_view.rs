@@ -1,22 +1,20 @@
 use crate::structs::CommentReportView;
 use diesel::{
-  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  impls::community::community_follower_select_subscribed_type,
   newtypes::{CommentReportId, PersonId},
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     comment_report,
     community,
     community_actions,
@@ -25,7 +23,7 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{get_conn, DbPool},
 };
 
 impl CommentReportView {
@@ -47,9 +45,6 @@ impl CommentReportView {
     );
 
     let comment_creator_join = aliases::person1.on(comment::creator_id.eq(recipient_id));
-
-    let comment_aggregates_join =
-      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
 
     let comment_actions_join = comment_actions::table.on(
       comment_actions::comment_id
@@ -88,7 +83,6 @@ impl CommentReportView {
       .inner_join(community_join)
       .inner_join(report_creator_join)
       .inner_join(comment_creator_join)
-      .inner_join(comment_aggregates_join)
       .left_join(comment_actions_join)
       .left_join(resolver_join)
       .left_join(creator_community_actions_join)
@@ -108,38 +102,7 @@ impl CommentReportView {
     let conn = &mut get_conn(pool).await?;
     Self::joins(my_person_id)
       .filter(comment_report::id.eq(report_id))
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        coalesce(
-          creator_community_actions
-            .field(community_actions::received_ban)
-            .nullable()
-            .is_not_null()
-            .or(
-              creator_community_actions
-                .field(community_actions::ban_expires)
-                .nullable()
-                .gt(now),
-            ),
-          false,
-        ),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        local_user::admin.nullable().is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_follower_select_subscribed_type(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        aliases::person2.fields(person::all_columns).nullable(),
-      ))
+      .select(Self::as_select())
       .first(conn)
       .await
   }

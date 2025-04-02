@@ -29,7 +29,6 @@ use activitypub_federation::{
   kinds::{activity::AnnounceType, public},
   traits::{ActivityHandler, Actor},
 };
-use anyhow::anyhow;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -39,12 +38,13 @@ use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
+    instance::InstanceActions,
   },
   traits::Crud,
   CommunityVisibility,
 };
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -64,12 +64,8 @@ async fn verify_person(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
-  } else {
-    Ok(())
-  }
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  Ok(())
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -80,11 +76,7 @@ pub(crate) async fn verify_person_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  }
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
@@ -125,9 +117,8 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
-    Public if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
+    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
     Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
-    LocalOnly => Err(LemmyErrorType::NotFound.into()),
     _ => Ok(()),
   }
 }

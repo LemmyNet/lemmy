@@ -8,34 +8,31 @@ use crate::{
 use chrono::Utc;
 use diesel::{
   dsl::{insert_into, update},
-  result::Error,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{FederationError, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
   type ObjectIdType = PrivateMessageId;
 
-  async fn report(
-    pool: &mut DbPool<'_>,
-    pm_report_form: &PrivateMessageReportForm,
-  ) -> Result<Self, Error> {
+  async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message_report)
-      .values(pm_report_form)
+      .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreateReport)
   }
 
   async fn resolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report.find(report_id))
       .set((
@@ -45,6 +42,7 @@ impl Reportable for PrivateMessageReport {
       ))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
   }
   async fn resolve_apub(
     _pool: &mut DbPool<'_>,
@@ -60,15 +58,15 @@ impl Reportable for PrivateMessageReport {
     _pool: &mut DbPool<'_>,
     _pm_id_: PrivateMessageId,
     _by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    Err(Error::NotFound)
+  ) -> LemmyResult<usize> {
+    Err(LemmyErrorType::NotFound.into())
   }
 
   async fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report.find(report_id))
       .set((
@@ -78,5 +76,6 @@ impl Reportable for PrivateMessageReport {
       ))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
   }
 }

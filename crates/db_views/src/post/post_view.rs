@@ -1,6 +1,11 @@
 use crate::{
-  structs::{PaginationCursor, PostView},
-  utils::filter_blocked,
+  structs::{PostPaginationCursor, PostView},
+  utils::{
+    filter_blocked,
+    filter_is_subscribed,
+    filter_not_unlisted_or_is_subscribed,
+    home_instance_person_join,
+  },
 };
 use diesel::{
   debug_query,
@@ -15,16 +20,13 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::{post_aggregates_keys as key, PostAggregates},
-  aliases::{creator_community_actions, creator_local_user},
-  impls::{
-    community::community_follower_select_subscribed_type,
-    local_user::{local_user_can_mod, LocalUserOptionHelper},
-  },
+  aliases::creator_community_actions,
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId, PostId},
   schema::{
     community,
@@ -37,18 +39,15 @@ use lemmy_db_schema::{
     person_actions,
     post,
     post_actions,
-    post_aggregates,
-    post_tag,
-    tag,
   },
   source::{
     community::CommunityFollowerState,
     local_user::LocalUser,
-    post::{post_actions_keys, PostActionsCursor},
+    post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,
   },
+  traits::Crud,
   utils::{
-    functions::coalesce,
     fuzzy_search,
     get_conn,
     limit_and_offset,
@@ -75,36 +74,36 @@ impl PostView {
   fn joins(my_person_id: Option<PersonId>) -> _ {
     let community_actions_join = community_actions::table.on(
       community_actions::community_id
-        .eq(post_aggregates::community_id)
+        .eq(post::community_id)
         .and(community_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let person_actions_join = person_actions::table.on(
       person_actions::target_id
-        .eq(post_aggregates::creator_id)
+        .eq(post::creator_id)
         .and(person_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
-        .eq(post_aggregates::post_id)
+        .eq(post::id)
         .and(post_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let instance_actions_join = instance_actions::table.on(
       instance_actions::instance_id
-        .eq(post_aggregates::instance_id)
+        .eq(community::instance_id)
         .and(instance_actions::person_id.nullable().eq(my_person_id)),
     );
 
     let post_creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
         .field(community_actions::community_id)
-        .eq(post_aggregates::community_id)
+        .eq(post::community_id)
         .and(
           creator_community_actions
             .field(community_actions::person_id)
-            .eq(post_aggregates::creator_id),
+            .eq(post::creator_id),
         ),
     );
 
@@ -113,10 +112,11 @@ impl PostView {
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
-    post_aggregates::table
-      .inner_join(person::table)
+    let person_join = person::table.left_join(home_instance_person_join());
+
+    post::table
+      .inner_join(person_join)
       .inner_join(community::table)
-      .inner_join(post::table)
       .left_join(image_details_join)
       .left_join(community_actions_join)
       .left_join(person_actions_join)
@@ -124,17 +124,6 @@ impl PostView {
       .left_join(instance_actions_join)
       .left_join(post_creator_community_actions_join)
       .left_join(local_user_join)
-  }
-
-  #[diesel::dsl::auto_type(no_type_alias)]
-  fn creator_is_admin() -> _ {
-    exists(
-      creator_local_user.filter(
-        post_aggregates::creator_id
-          .eq(creator_local_user.field(local_user::person_id))
-          .and(creator_local_user.field(local_user::admin).eq(true)),
-      ),
-    )
   }
 
   pub async fn read(
@@ -146,46 +135,9 @@ impl PostView {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = my_local_user.person_id();
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post_aggregates::post_id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = Self::joins(my_person_id)
-      .filter(post_aggregates::post_id.eq(post_id))
-      .select((
-        post::all_columns,
-        person::all_columns,
-        community::all_columns,
-        image_details::all_columns.nullable(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        Self::creator_is_admin(),
-        post_aggregates::all_columns,
-        community_follower_select_subscribed_type(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
-        ),
-        post_tags,
-        local_user_can_mod(),
-      ))
+      .filter(post::id.eq(post_id))
+      .select(Self::as_select())
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
@@ -229,11 +181,12 @@ impl PostView {
   }
 }
 
-impl PaginationCursor {
+// TODO This pagination cursor is a mess, get rid of it and have it match the others
+impl PostPaginationCursor {
   // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PostView) -> PaginationCursor {
+  pub fn after_post(view: &PostView) -> PostPaginationCursor {
     // hex encoding to prevent ossification
-    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
+    PostPaginationCursor(format!("P{:x}", view.post.id.0))
   }
   pub async fn read(
     &self,
@@ -248,13 +201,10 @@ impl PaginationCursor {
         .and_then(|e| i32::from_str_radix(e, 16).ok())
         .ok_or_else(err_msg)?,
     );
-    let post_aggregates = PostAggregates::read(pool, post_id).await?;
+    let post = Post::read(pool, post_id).await?;
     let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
 
-    Ok(PaginationCursorData {
-      post_aggregates,
-      post_actions,
-    })
+    Ok(PaginationCursorData { post, post_actions })
   }
 }
 
@@ -262,7 +212,7 @@ impl PaginationCursor {
 // we only use some of the properties, depending on which sort type we page by
 #[derive(Clone)]
 pub struct PaginationCursorData {
-  post_aggregates: PostAggregates,
+  post: Post,
   post_actions: PostActionsCursor,
 }
 
@@ -277,6 +227,7 @@ pub struct PostQuery<'a> {
   // literal filter
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUser>,
+  // TODO get rid of this
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
   pub read_only: Option<bool>,
@@ -285,8 +236,9 @@ pub struct PostQuery<'a> {
   pub title_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  // TODO these should be simple cursors like the others, not data
   pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PostAggregates>,
+  pub page_before_or_equal: Option<Post>,
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
@@ -296,6 +248,7 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  // TODO this should not be doing recursive fetching, get rid of it.
   #[allow(clippy::expect_used)]
   async fn prefetch_upper_bound_for_page_before(
     &self,
@@ -313,11 +266,6 @@ impl<'a> PostQuery<'a> {
     // covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more
     // efficient.
-    use lemmy_db_schema::schema::community_aggregates::dsl::{
-      community_aggregates,
-      community_id,
-      users_active_month,
-    };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     if offset != 0 && self.page_after.is_some() {
       return Err(Error::QueryBuilderError(
@@ -330,9 +278,9 @@ impl<'a> PostQuery<'a> {
       community_actions::table
         .filter(community_actions::followed.is_not_null())
         .filter(community_actions::person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
-        .order_by(users_active_month.desc())
-        .select(community_id)
+        .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+        .order_by(community::users_active_month.desc())
+        .select(community::id)
         .limit(1)
         .get_result::<CommunityId>(conn)
         .await
@@ -365,7 +313,7 @@ impl<'a> PostQuery<'a> {
       } else {
         v.pop()
       };
-      let limit_cursor = Some(item.expect("else case").counts);
+      let limit_cursor = Some(item.expect("else case").post);
       Ok(Some(PostQuery {
         page_before_or_equal: limit_cursor,
         ..self.clone()
@@ -396,45 +344,8 @@ impl<'a> PostQuery<'a> {
     let my_person_id = o.local_user.person_id();
     let my_local_user_id = o.local_user.local_user_id();
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post_aggregates::post_id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = PostView::joins(my_person_id)
-      .select((
-        post::all_columns,
-        person::all_columns,
-        community::all_columns,
-        image_details::all_columns.nullable(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        PostView::creator_is_admin(),
-        post_aggregates::all_columns,
-        community_follower_select_subscribed_type(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
-        ),
-        post_tags,
-        local_user_can_mod(),
-      ))
+      .select(PostView::as_select())
       .into_boxed();
 
     // hide posts from deleted communities
@@ -458,33 +369,34 @@ impl<'a> PostQuery<'a> {
     if !(o.creator_id.is_some() && o.local_user.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
+        .filter(community::local_removed.eq(false))
         .filter(post::removed.eq(false));
     }
     if let Some(community_id) = o.community_id {
-      query = query.filter(post_aggregates::community_id.eq(community_id));
+      query = query.filter(post::community_id.eq(community_id));
     }
 
     if let Some(creator_id) = o.creator_id {
-      query = query.filter(post_aggregates::creator_id.eq(creator_id));
+      query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    let is_subscribed = community_actions::followed.is_not_null();
     match o.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
       ListingType::Local => {
         query = query
           .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed));
+          .filter(filter_not_unlisted_or_is_subscribed());
       }
-      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
     }
 
     if let Some(search_term) = &o.search_term {
+      let url_filter = post::url.eq(search_term);
       if o.url_only.unwrap_or_default() {
-        query = query.filter(post::url.eq(search_term));
+        query = query.filter(url_filter);
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());
@@ -493,7 +405,12 @@ impl<'a> PostQuery<'a> {
         query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
-          query.filter(name_filter.or(body_filter).or(alt_text_filter))
+          query.filter(
+            name_filter
+              .or(body_filter)
+              .or(alt_text_filter)
+              .or(url_filter),
+          )
         }
         .filter(not(post::removed.or(post::deleted)));
       }
@@ -511,7 +428,7 @@ impl<'a> PostQuery<'a> {
 
     // Filter to show only posts with no comments
     if o.no_comments_only.unwrap_or_default() {
-      query = query.filter(post_aggregates::comments.eq(0));
+      query = query.filter(post::comments.eq(0));
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
@@ -538,7 +455,7 @@ impl<'a> PostQuery<'a> {
     }
 
     if let Some(my_id) = o.local_user.person_id() {
-      let not_creator_filter = post_aggregates::creator_id.ne(my_id);
+      let not_creator_filter = post::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
@@ -551,6 +468,11 @@ impl<'a> PostQuery<'a> {
     };
 
     query = o.local_user.visible_communities_only(query);
+    query = query.filter(
+      post::federation_pending
+        .eq(false)
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
 
     if !o.local_user.is_admin() {
       query = query.filter(
@@ -594,7 +516,7 @@ impl<'a> PostQuery<'a> {
     } else {
       let mut query = paginate(
         query,
-        o.page_after.map(|c| c.post_aggregates),
+        o.page_after.map(|c| c.post),
         o.page_before_or_equal,
         o.page_back.unwrap_or_default(),
       );
@@ -621,9 +543,8 @@ impl<'a> PostQuery<'a> {
 
       // Filter by the time range
       if let Some(time_range_seconds) = o.time_range_seconds {
-        query = query.filter(
-          post_aggregates::published.gt(now() - seconds_to_pg_interval(time_range_seconds)),
-        );
+        query =
+          query.filter(post::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
       }
 
       // use publish as fallback. especially useful for hot rank which reaches zero after some days.
@@ -635,7 +556,7 @@ impl<'a> PostQuery<'a> {
       };
 
       // finally use unique post id as tie breaker
-      query = query.then_desc(key::post_id);
+      query = query.then_desc(key::id);
 
       query.as_query()
     };
@@ -664,7 +585,6 @@ mod tests {
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
   use lemmy_db_schema::{
-    aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
@@ -672,42 +592,35 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{
         Community,
-        CommunityFollower,
+        CommunityActions,
+        CommunityBlockForm,
         CommunityFollowerForm,
         CommunityFollowerState,
         CommunityInsertForm,
-        CommunityModerator,
         CommunityModeratorForm,
-        CommunityPersonBan,
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      community_block::{CommunityBlock, CommunityBlockForm},
-      instance::Instance,
-      instance_block::{InstanceBlock, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
-      person::{Person, PersonInsertForm},
-      person_block::{PersonBlock, PersonBlockForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{
         Post,
-        PostHide,
+        PostActions,
+        PostHideForm,
         PostInsertForm,
-        PostLike,
         PostLikeForm,
-        PostRead,
         PostReadForm,
         PostUpdateForm,
       },
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
-    utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
+    traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
+    utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
     CommunityVisibility,
     PostSortType,
-    SubscribedType,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
@@ -736,8 +649,8 @@ mod tests {
     post: Post,
     bot_post: Post,
     post_with_tags: Post,
-    tag_1: Tag,
-    tag_2: Tag,
+    _tag_1: Tag,
+    _tag_2: Tag,
     site: Site,
   }
 
@@ -811,12 +724,8 @@ mod tests {
       Post::create(pool, &post_from_blocked_person).await?;
 
       // block that person
-      let person_block = PersonBlockForm {
-        person_id: inserted_tegan_person.id,
-        target_id: inserted_john_person.id,
-      };
-
-      PersonBlock::block(pool, &person_block).await?;
+      let person_block = PersonBlockForm::new(inserted_tegan_person.id, inserted_john_person.id);
+      PersonActions::block(pool, &person_block).await?;
 
       // Two community post tags
       let tag_1 = Tag::create(
@@ -878,22 +787,19 @@ mod tests {
 
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_tegan_person,
-        counts: Default::default(),
+        instance_actions: None,
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_john_person,
-        counts: Default::default(),
+        instance_actions: None,
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_bot_person,
-        counts: Default::default(),
+        instance_actions: None,
       };
 
       let site = Site {
@@ -924,8 +830,8 @@ mod tests {
         post,
         bot_post,
         post_with_tags,
-        tag_1,
-        tag_2,
+        _tag_1: tag_1,
+        _tag_2: tag_2,
         site,
       })
     }
@@ -988,17 +894,11 @@ mod tests {
     )
     .await?;
 
-    let expected_post_listing_with_user = expected_post_view(data, pool).await?;
-
-    // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(
       vec![post_listing_single_with_person.clone()],
       read_post_listing
     );
-    assert_eq!(
-      expected_post_listing_with_user,
-      post_listing_single_with_person
-    );
+    assert_eq!(data.post.id, post_listing_single_with_person.post.id);
 
     let local_user_form = LocalUserUpdateForm {
       show_bot_accounts: Some(true),
@@ -1044,23 +944,16 @@ mod tests {
     let read_post_listing_single_no_person =
       PostView::read(pool, data.post.id, None, false).await?;
 
-    let mut expected_post_listing_no_person = expected_post_view(data, pool).await?;
-    expected_post_listing_no_person.can_mod = false;
-
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
       names(&read_post_listing_multiple_no_person)
     );
 
-    assert_eq!(
-      Some(&expected_post_listing_no_person),
-      read_post_listing_multiple_no_person.get(2)
-    );
-    assert_eq!(
-      expected_post_listing_no_person,
-      read_post_listing_single_no_person
-    );
+    assert!(read_post_listing_multiple_no_person
+      .get(2)
+      .is_some_and(|x| x.post.id == data.post.id));
+    assert_eq!(false, read_post_listing_single_no_person.can_mod);
     Ok(())
   }
 
@@ -1131,11 +1024,9 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let community_block = CommunityBlockForm {
-      person_id: data.tegan_local_user_view.person.id,
-      community_id: data.community.id,
-    };
-    CommunityBlock::block(pool, &community_block).await?;
+    let community_block =
+      CommunityBlockForm::new(data.community.id, data.tegan_local_user_view.person.id);
+    CommunityActions::block(pool, &community_block).await?;
 
     let read_post_listings_with_person_after_block = PostQuery {
       community_id: Some(data.community.id),
@@ -1146,7 +1037,7 @@ mod tests {
     // Should be 0 posts after the community block
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
-    CommunityBlock::unblock(pool, &community_block).await?;
+    CommunityActions::unblock(pool, &community_block).await?;
     Ok(())
   }
 
@@ -1159,15 +1050,16 @@ mod tests {
 
     let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
 
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
+    let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
-    let expected_post_like = PostLike {
-      post_id: data.post.id,
-      person_id: data.tegan_local_user_view.person.id,
-      published: inserted_post_like.published,
-      score: 1,
-    };
-    assert_eq!(expected_post_like, inserted_post_like);
+    assert_eq!(
+      (data.post.id, data.tegan_local_user_view.person.id, Some(1)),
+      (
+        inserted_post_like.post_id,
+        inserted_post_like.person_id,
+        inserted_post_like.like_score,
+      )
+    );
 
     let post_listing_single_with_person = PostView::read(
       pool,
@@ -1177,11 +1069,17 @@ mod tests {
     )
     .await?;
 
-    let mut expected_post_with_upvote = expected_post_view(data, pool).await?;
-    expected_post_with_upvote.my_vote = Some(1);
-    expected_post_with_upvote.counts.score = 1;
-    expected_post_with_upvote.counts.upvotes = 1;
-    assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
+    assert_eq!(
+      (true, 1, 1, 1),
+      (
+        post_listing_single_with_person
+          .post_actions
+          .is_some_and(|t| t.like_score == Some(1)),
+        post_listing_single_with_person.post.score,
+        post_listing_single_with_person.post.upvotes,
+        post_listing_single_with_person.creator.post_score,
+      )
+    );
 
     let local_user_form = LocalUserUpdateForm {
       show_bot_accounts: Some(false),
@@ -1202,10 +1100,13 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     read_post_listing.remove(0);
-    assert_eq!(vec![expected_post_with_upvote], read_post_listing);
+    assert_eq!(
+      post_listing_single_with_person.post.id,
+      read_post_listing[0].post.id
+    );
 
     let like_removed =
-      PostLike::remove(pool, data.tegan_local_user_view.person.id, data.post.id).await?;
+      PostActions::remove_like(pool, data.tegan_local_user_view.person.id, data.post.id).await?;
     assert_eq!(uplete::Count::only_deleted(1), like_removed);
     Ok(())
   }
@@ -1220,11 +1121,11 @@ mod tests {
     // Like both the bot post, and your own
     // The liked_only should not show your own post
     let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
-    PostLike::like(pool, &post_like_form).await?;
+    PostActions::like(pool, &post_like_form).await?;
 
     let bot_post_like_form =
       PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, 1);
-    PostLike::like(pool, &bot_post_like_form).await?;
+    PostActions::like(pool, &bot_post_like_form).await?;
 
     // Read the liked only
     let read_liked_post_listing = PostQuery {
@@ -1262,7 +1163,7 @@ mod tests {
     // Only mark the bot post as read
     // The read_only should only show the bot post
     let post_read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
-    PostRead::mark_as_read(pool, &post_read_form).await?;
+    PostActions::mark_as_read(pool, &post_read_form).await?;
 
     // Only read the post marked as read
     let read_read_post_listing = PostQuery {
@@ -1297,8 +1198,9 @@ mod tests {
     .map(|p| {
       (
         p.creator.name,
-        p.creator_is_moderator,
-        p.creator_is_admin,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
         p.can_mod,
       )
     })
@@ -1306,24 +1208,20 @@ mod tests {
 
     // Tegan is an admin, so can_mod should be always true
     let expected_post_listing = vec![
-      ("tegan".to_owned(), false, true, true),
-      ("mybot".to_owned(), false, false, true),
-      ("tegan".to_owned(), false, true, true),
+      ("tegan".to_owned(), false, true),
+      ("mybot".to_owned(), false, true),
+      ("tegan".to_owned(), false, true),
     ];
     assert_eq!(expected_post_listing, tegan_listings);
 
     // Have john become a moderator, then the bot
-    let john_mod_form = CommunityModeratorForm {
-      community_id,
-      person_id: data.john_local_user_view.person.id,
-    };
-    CommunityModerator::join(pool, &john_mod_form).await?;
+    let john_mod_form =
+      CommunityModeratorForm::new(community_id, data.john_local_user_view.person.id);
+    CommunityActions::join(pool, &john_mod_form).await?;
 
-    let bot_mod_form = CommunityModeratorForm {
-      community_id,
-      person_id: data.bot_local_user_view.person.id,
-    };
-    CommunityModerator::join(pool, &bot_mod_form).await?;
+    let bot_mod_form =
+      CommunityModeratorForm::new(community_id, data.bot_local_user_view.person.id);
+    CommunityActions::join(pool, &bot_mod_form).await?;
 
     let john_listings = PostQuery {
       sort: Some(PostSortType::New),
@@ -1336,8 +1234,9 @@ mod tests {
     .map(|p| {
       (
         p.creator.name,
-        p.creator_is_moderator,
-        p.creator_is_admin,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
         p.can_mod,
       )
     })
@@ -1345,10 +1244,10 @@ mod tests {
 
     // John is a mod, so he can_mod the bots (and his own) posts, but not tegans.
     let expected_post_listing = vec![
-      ("tegan".to_owned(), false, true, false),
-      ("mybot".to_owned(), true, false, true),
-      ("tegan".to_owned(), false, true, false),
-      ("john".to_owned(), true, false, true),
+      ("tegan".to_owned(), false, false),
+      ("mybot".to_owned(), true, true),
+      ("tegan".to_owned(), false, false),
+      ("john".to_owned(), true, true),
     ];
     assert_eq!(expected_post_listing, john_listings);
 
@@ -1364,23 +1263,24 @@ mod tests {
     .map(|p| {
       (
         p.creator.name,
-        p.creator_is_moderator,
-        p.creator_is_admin,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
         p.can_mod,
       )
     })
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
-      ("tegan".to_owned(), false, true, false),
-      ("mybot".to_owned(), true, false, true),
-      ("tegan".to_owned(), false, true, false),
-      ("john".to_owned(), true, false, false),
+      ("tegan".to_owned(), false, false),
+      ("mybot".to_owned(), true, true),
+      ("tegan".to_owned(), false, false),
+      ("john".to_owned(), true, false),
     ];
     assert_eq!(expected_post_listing, bot_listings);
 
     // Make the bot leave the mod team, and make sure it can_mod is false.
-    CommunityModerator::leave(pool, &bot_mod_form).await?;
+    CommunityActions::leave(pool, &bot_mod_form).await?;
 
     let bot_listings = PostQuery {
       sort: Some(PostSortType::New),
@@ -1393,18 +1293,19 @@ mod tests {
     .map(|p| {
       (
         p.creator.name,
-        p.creator_is_moderator,
-        p.creator_is_admin,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
         p.can_mod,
       )
     })
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
-      ("tegan".to_owned(), false, true, false),
-      ("mybot".to_owned(), false, false, false),
-      ("tegan".to_owned(), false, true, false),
-      ("john".to_owned(), true, false, false),
+      ("tegan".to_owned(), false, false),
+      ("mybot".to_owned(), false, false),
+      ("tegan".to_owned(), false, false),
+      ("john".to_owned(), true, false),
     ];
     assert_eq!(expected_post_listing, bot_listings);
 
@@ -1452,13 +1353,10 @@ mod tests {
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(
-      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
-      names(&post_listing_french)
-    );
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listing_french));
     assert_eq!(
       Some(french_id),
-      post_listing_french.get(2).map(|p| p.post.language_id)
+      post_listing_french.get(1).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
@@ -1571,7 +1469,7 @@ mod tests {
       pool,
       data.community.id,
       &CommunityUpdateForm {
-        hidden: Some(true),
+        visibility: Some(CommunityVisibility::Unlisted),
         ..Default::default()
       },
     )
@@ -1584,11 +1482,12 @@ mod tests {
     assert!(posts.is_empty());
 
     // Follow the community
-    let form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
-    };
-    CommunityFollower::follow(pool, &form).await?;
+    let form = CommunityFollowerForm::new(
+      data.community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &form).await?;
 
     let posts = data.default_post_query().list(&data.site, pool).await?;
     assert!(!posts.is_empty());
@@ -1636,11 +1535,9 @@ mod tests {
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance
-    let block_form = InstanceBlockForm {
-      person_id: data.tegan_local_user_view.person.id,
-      instance_id: blocked_instance.id,
-    };
-    InstanceBlock::block(pool, &block_form).await?;
+    let block_form =
+      InstanceBlockForm::new(data.tegan_local_user_view.person.id, blocked_instance.id);
+    InstanceActions::block(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
@@ -1653,16 +1550,23 @@ mod tests {
       .all(|p| p.post.id != post_from_blocked_instance.id));
 
     // Follow community from the blocked instance to see posts anyway
-    let mut follow_form =
-      CommunityFollowerForm::new(inserted_community.id, data.tegan_local_user_view.person.id);
-    follow_form.state = Some(CommunityFollowerState::Accepted);
-    CommunityFollower::follow(pool, &follow_form).await?;
+    let follow_form = CommunityFollowerForm::new(
+      inserted_community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form).await?;
     let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
-    CommunityFollower::unfollow(pool, &follow_form).await?;
+    CommunityActions::unfollow(
+      pool,
+      data.tegan_local_user_view.person.id,
+      inserted_community.id,
+    )
+    .await?;
 
     // after unblocking it should return all posts again
-    InstanceBlock::unblock(pool, &block_form).await?;
+    InstanceActions::unblock(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
@@ -1729,7 +1633,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_after.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         ..options.clone()
@@ -1740,7 +1644,7 @@ mod tests {
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
       if let Some(p) = post_listings.into_iter().next_back() {
-        page_after = Some(p.counts);
+        page_after = Some(p.post);
       } else {
         break;
       }
@@ -1752,7 +1656,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_before.map(|p| PaginationCursorData {
-          post_aggregates: p,
+          post: p,
           post_actions: Default::default(),
         }),
         page_back: Some(true),
@@ -1771,7 +1675,7 @@ mod tests {
       listed_post_ids_forward.truncate(index);
 
       if let Some(p) = post_listings.into_iter().next() {
-        page_before = Some(p.counts);
+        page_before = Some(p.post);
       } else {
         break;
       }
@@ -1808,7 +1712,7 @@ mod tests {
 
     // Mark a post as read
     let read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
-    PostRead::mark_as_read(pool, &read_form).await?;
+    PostActions::mark_as_read(pool, &read_form).await?;
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
@@ -1848,7 +1752,8 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark a post as hidden
-    PostHide::hide(pool, data.bot_post.id, data.tegan_local_user_view.person.id).await?;
+    let hide_form = PostHideForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
+    PostActions::hide(pool, &hide_form).await?;
 
     // Make sure you don't see the hidden post in the results
     let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
@@ -1872,7 +1777,9 @@ mod tests {
     );
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| p.hidden));
+    assert!(&post_listings_show_hidden
+      .get(1)
+      .is_some_and(|p| p.post_actions.as_ref().is_some_and(|a| a.hidden.is_some())));
 
     Ok(())
   }
@@ -1922,129 +1829,6 @@ mod tests {
     Ok(())
   }
 
-  async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<PostView> {
-    let (inserted_person, inserted_community, inserted_post) = (
-      &data.tegan_local_user_view.person,
-      &data.community,
-      &data.post,
-    );
-    let agg = PostAggregates::read(pool, inserted_post.id).await?;
-
-    Ok(PostView {
-      post: Post {
-        id: inserted_post.id,
-        name: inserted_post.name.clone(),
-        creator_id: inserted_person.id,
-        url: None,
-        body: None,
-        alt_text: None,
-        published: inserted_post.published,
-        updated: None,
-        community_id: inserted_community.id,
-        removed: false,
-        deleted: false,
-        locked: false,
-        nsfw: false,
-        embed_title: None,
-        embed_description: None,
-        embed_video_url: None,
-        thumbnail_url: None,
-        ap_id: inserted_post.ap_id.clone(),
-        local: true,
-        language_id: LanguageId(47),
-        featured_community: false,
-        featured_local: false,
-        url_content_type: None,
-        scheduled_publish_time: None,
-      },
-      my_vote: None,
-      unread_comments: 0,
-      creator: Person {
-        id: inserted_person.id,
-        name: inserted_person.name.clone(),
-        display_name: None,
-        published: inserted_person.published,
-        avatar: None,
-        ap_id: inserted_person.ap_id.clone(),
-        local: true,
-        bot_account: false,
-        banned: false,
-        deleted: false,
-        bio: None,
-        banner: None,
-        updated: None,
-        inbox_url: inserted_person.inbox_url.clone(),
-        matrix_user_id: None,
-        ban_expires: None,
-        instance_id: data.instance.id,
-        private_key: inserted_person.private_key.clone(),
-        public_key: inserted_person.public_key.clone(),
-        last_refreshed_at: inserted_person.last_refreshed_at,
-      },
-      image_details: None,
-      creator_banned_from_community: false,
-      banned_from_community: false,
-      creator_is_moderator: false,
-      creator_is_admin: true,
-      can_mod: true,
-      community: Community {
-        id: inserted_community.id,
-        name: inserted_community.name.clone(),
-        icon: None,
-        removed: false,
-        deleted: false,
-        nsfw: false,
-        ap_id: inserted_community.ap_id.clone(),
-        local: true,
-        title: "nada".to_owned(),
-        sidebar: None,
-        description: None,
-        updated: None,
-        banner: None,
-        hidden: false,
-        posting_restricted_to_mods: false,
-        published: inserted_community.published,
-        instance_id: data.instance.id,
-        private_key: inserted_community.private_key.clone(),
-        public_key: inserted_community.public_key.clone(),
-        last_refreshed_at: inserted_community.last_refreshed_at,
-        followers_url: inserted_community.followers_url.clone(),
-        inbox_url: inserted_community.inbox_url.clone(),
-        moderators_url: inserted_community.moderators_url.clone(),
-        featured_url: inserted_community.featured_url.clone(),
-        visibility: CommunityVisibility::Public,
-        random_number: inserted_community.random_number,
-      },
-      counts: PostAggregates {
-        post_id: inserted_post.id,
-        comments: 0,
-        score: 0,
-        upvotes: 0,
-        downvotes: 0,
-        published: agg.published,
-        newest_comment_time_necro: inserted_post.published,
-        newest_comment_time: inserted_post.published,
-        featured_community: false,
-        featured_local: false,
-        hot_rank: RANK_DEFAULT,
-        hot_rank_active: RANK_DEFAULT,
-        controversy_rank: 0.0,
-        scaled_rank: RANK_DEFAULT,
-        community_id: inserted_post.community_id,
-        creator_id: inserted_post.creator_id,
-        instance_id: data.instance.id,
-        report_count: 0,
-        unresolved_report_count: 0,
-      },
-      subscribed: SubscribedType::NotSubscribed,
-      read: false,
-      hidden: false,
-      saved: None,
-      creator_blocked: false,
-      tags: TagsView::default(),
-    })
-  }
-
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
@@ -2056,7 +1840,7 @@ mod tests {
       pool,
       data.community.id,
       &CommunityUpdateForm {
-        visibility: Some(CommunityVisibility::LocalOnly),
+        visibility: Some(CommunityVisibility::LocalOnlyPrivate),
         ..Default::default()
       },
     )
@@ -2111,13 +1895,9 @@ mod tests {
     )
     .await?;
 
-    CommunityPersonBan::ban(
+    CommunityActions::ban(
       pool,
-      &CommunityPersonBanForm {
-        community_id: data.community.id,
-        person_id: inserted_banned_from_comm_person.id,
-        expires: None,
-      },
+      &CommunityPersonBanForm::new(data.community.id, inserted_banned_from_comm_person.id),
     )
     .await?;
 
@@ -2129,7 +1909,9 @@ mod tests {
     )
     .await?;
 
-    assert!(post_view.banned_from_community);
+    assert!(post_view
+      .community_actions
+      .is_some_and(|x| x.received_ban.is_some()));
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     Ok(())
@@ -2150,7 +1932,7 @@ mod tests {
     )
     .await?;
 
-    assert!(!post_view.banned_from_community);
+    assert!(post_view.community_actions.is_none());
 
     Ok(())
   }
@@ -2313,14 +2095,13 @@ mod tests {
     data.tegan_local_user_view.local_user.admin = false;
 
     // User can view after following
-    CommunityFollower::follow(
-      pool,
-      &CommunityFollowerForm {
-        state: Some(CommunityFollowerState::Accepted),
-        ..CommunityFollowerForm::new(data.community.id, data.tegan_local_user_view.person.id)
-      },
-    )
-    .await?;
+    let follow_form = CommunityFollowerForm::new(
+      data.community.id,
+      data.tegan_local_user_view.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form).await?;
+
     let read_post_listing = PostQuery {
       community_id: Some(data.community.id),
       local_user: Some(&data.tegan_local_user_view.local_user),
@@ -2405,7 +2186,6 @@ mod tests {
 
     Ok(())
   }
-
   #[test_context(Data)]
   #[tokio::test]
   #[serial]

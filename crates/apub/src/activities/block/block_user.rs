@@ -1,4 +1,4 @@
-use super::to;
+use super::{to, update_removed_for_instance};
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -18,10 +18,8 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::BlockType,
-  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
@@ -30,18 +28,13 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
-    },
+    community::{CommunityActions, CommunityPersonBanForm},
+    instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
   },
-  traits::{Bannable, Crud, Followable},
+  traits::{Bannable, Crud},
 };
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -121,21 +114,8 @@ impl ActivityHandler for BlockUser {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
-      SiteOrCommunity::Site(site) => {
+      SiteOrCommunity::Site(_site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let domain = self
-          .object
-          .inner()
-          .domain()
-          .ok_or(FederationError::UrlWithoutDomain)?;
-        if context.settings().hostname == domain {
-          return Err(
-            anyhow!("Site bans from remote instance can't affect user's home instance").into(),
-          );
-        }
-        // site ban can only target a user who is on the same instance as the actor (admin)
-        verify_domains_match(&site.id(), self.actor.inner())?;
-        verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
@@ -153,21 +133,20 @@ impl ActivityHandler for BlockUser {
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
     let reason = self.summary;
+    let pool = &mut context.pool();
     match target {
-      SiteOrCommunity::Site(_site) => {
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(true),
-            ban_expires: Some(expires),
-            ..Default::default()
-          },
-        )
-        .await?;
+      SiteOrCommunity::Site(site) => {
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        InstanceActions::ban(pool, &form).await?;
+
         if self.remove_data.unwrap_or(false) {
-          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
-            .await?;
+          if blocked_person.instance_id == site.instance_id {
+            // user banned from home instance, remove all content
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+              .await?;
+          } else {
+            update_removed_for_instance(&blocked_person, &site, true, pool).await?;
+          }
         }
 
         // write mod log
@@ -177,22 +156,20 @@ impl ActivityHandler for BlockUser {
           reason,
           banned: Some(true),
           expires,
+          instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          expires: Some(expires),
+          ban_expires: Some(expires),
+          ..CommunityPersonBanForm::new(community.id, blocked_person.id)
         };
-        CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
+        CommunityActions::ban(&mut context.pool(), &community_user_ban_form).await?;
 
-        // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
-        CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
-          .await
-          .ok();
+        // Dont unsubscribe the user so that we can receive a potential unban activity.
+        // If we unfollowed the community here, activities from the community would be rejected
+        // in [[can_accept_activity_in_community]] in case are no other local followers.
 
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(

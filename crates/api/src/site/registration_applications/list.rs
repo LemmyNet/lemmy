@@ -5,10 +5,9 @@ use lemmy_api_common::{
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::{
   registration_applications::registration_application_view::RegistrationApplicationQuery,
-  structs::LocalUserView,
+  structs::{LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -18,7 +17,7 @@ pub async fn list_registration_applications(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListRegistrationApplicationsResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin
   is_admin(&local_user_view)?;

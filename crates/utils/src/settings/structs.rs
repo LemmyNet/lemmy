@@ -49,6 +49,8 @@ pub struct Settings {
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
   cors_origin: Vec<String>,
+  /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
+  pub json_logging: bool,
 }
 
 impl Settings {
@@ -93,14 +95,22 @@ pub struct PictrsConfig {
   #[default(512)]
   pub max_thumbnail_size: u32,
 
-  /// Maximum size for user avatar, community icon and site icon.
+  /// Maximum size for user avatar, community icon and site icon. Larger images are downscaled.
   #[default(512)]
   pub max_avatar_size: u32,
 
-  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
-  /// into a square of this size.
+  /// Maximum size for user, community and site banner. Larger images are downscaled.
   #[default(1024)]
   pub max_banner_size: u32,
+
+  /// Maximum size for other uploads (e.g. post images or markdown embed images). Larger
+  /// images are downscaled.
+  #[doku(example = "1024")]
+  pub max_upload_size: Option<u32>,
+
+  /// Whether users can upload videos as post image or markdown embed.
+  #[default(true)]
+  pub allow_video_uploads: bool,
 
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
@@ -133,20 +143,19 @@ pub enum PictrsImageMode {
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default, deny_unknown_fields)]
 pub struct DatabaseConfig {
-  /// Configure the database by specifying URI pointing to a postgres instance
+  /// Configure the database by specifying URI pointing to a postgres instance. This parameter can
+  /// also be set by environment variable `LEMMY_DATABASE_URL`.
   ///
-  /// This example uses peer authentication to obviate the need for creating,
-  /// configuring, and managing passwords.
-  ///
-  /// For an explanation of how to use connection URIs, see [here][0] in
-  /// PostgreSQL's documentation.
-  ///
-  /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+  /// For an explanation of how to use connection URIs, see PostgreSQL's documentation:
+  /// https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
   #[default("postgres://lemmy:password@localhost:5432/lemmy")]
   #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
   pub(crate) connection: String,
 
   /// Maximum number of active sql connections
+  ///
+  /// A high value here can result in errors "could not resize shared memory segment". In this case
+  /// it is necessary to increase shared memory size in Docker: https://stackoverflow.com/a/56754077
   #[default(30)]
   pub pool_size: usize,
 }
@@ -154,28 +163,13 @@ pub struct DatabaseConfig {
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
 #[serde(default, deny_unknown_fields)]
 pub struct EmailConfig {
-  /// Hostname and port of the smtp server
-  #[doku(example = "localhost:25")]
-  pub smtp_server: String,
-  /// Login name for smtp server
-  pub smtp_login: Option<String>,
-  /// Password to login to the smtp server
-  smtp_password: Option<String>,
-  #[doku(example = "noreply@example.com")]
+  /// https://docs.rs/lettre/0.11.14/lettre/transport/smtp/struct.AsyncSmtpTransport.html#method.from_url
+  #[default("smtp://localhost:25")]
+  #[doku(example = "smtps://user:pass@hostname:port")]
+  pub connection: String,
   /// Address to send emails from, eg "noreply@your-instance.com"
+  #[doku(example = "noreply@example.com")]
   pub smtp_from_address: String,
-  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
-  #[default("none")]
-  #[doku(example = "none")]
-  pub tls_type: String,
-}
-
-impl EmailConfig {
-  pub fn smtp_password(&self) -> Option<String> {
-    std::env::var("LEMMY_SMTP_PASSWORD")
-      .ok()
-      .or(self.smtp_password.clone())
-  }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]

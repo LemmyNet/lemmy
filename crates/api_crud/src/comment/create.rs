@@ -1,9 +1,11 @@
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -19,7 +21,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
@@ -57,16 +59,11 @@ pub async fn create_comment(
   let post = post_view.post;
   let community_id = post_view.community.id;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post_view.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
   if post.locked && !is_mod_or_admin {
@@ -97,16 +94,19 @@ pub async fn create_comment(
   )
   .await?;
 
-  let comment_form = CommentInsertForm {
+  let mut comment_form = CommentInsertForm {
     language_id: Some(language_id),
+    federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
+  comment_form = plugin_hook_before("before_create_local_comment", comment_form).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
   let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+  plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
 
@@ -123,15 +123,9 @@ pub async fn create_comment(
   .await?;
 
   // You like your own comment by default
-  let like_form = CommentLikeForm {
-    comment_id: inserted_comment.id,
-    person_id: local_user_view.person.id,
-    score: 1,
-  };
+  let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);
 
-  CommentLike::like(&mut context.pool(), &like_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+  CommentActions::like(&mut context.pool(), &like_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),
@@ -142,7 +136,7 @@ pub async fn create_comment(
   update_read_comments(
     local_user_view.person.id,
     post_id,
-    post_view.counts.comments + 1,
+    post.comments + 1,
     &mut context.pool(),
   )
   .await?;

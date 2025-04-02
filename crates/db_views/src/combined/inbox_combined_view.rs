@@ -1,11 +1,13 @@
-use crate::structs::{
-  CommentReplyView,
-  InboxCombinedPaginationCursor,
-  InboxCombinedView,
-  InboxCombinedViewInternal,
-  PersonCommentMentionView,
-  PersonPostMentionView,
-  PrivateMessageView,
+use crate::{
+  structs::{
+    CommentReplyView,
+    InboxCombinedView,
+    InboxCombinedViewInternal,
+    PersonCommentMentionView,
+    PersonPostMentionView,
+    PrivateMessageView,
+  },
+  utils::home_instance_person_join,
 };
 use diesel::{
   dsl::not,
@@ -21,12 +23,10 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions, creator_local_user},
-  impls::{community::community_follower_select_subscribed_type, local_user::local_user_can_mod},
-  newtypes::PersonId,
+  newtypes::{PaginationCursor, PersonId},
   schema::{
     comment,
     comment_actions,
-    comment_aggregates,
     comment_reply,
     community,
     community_actions,
@@ -40,17 +40,14 @@ use lemmy_db_schema::{
     person_post_mention,
     post,
     post_actions,
-    post_aggregates,
-    post_tag,
     private_message,
-    tag,
   },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
-  traits::InternalToCombinedView,
-  utils::{functions::coalesce, get_conn, DbPool},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::{get_conn, DbPool},
   InboxDataType,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -58,14 +55,18 @@ impl InboxCombinedViewInternal {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let item_creator_join = comment::creator_id
-      .eq(item_creator)
-      .or(
-        inbox_combined::person_post_mention_id
-          .is_not_null()
-          .and(post::creator_id.eq(item_creator)),
+    let item_creator_join = person::table
+      .on(
+        comment::creator_id
+          .eq(item_creator)
+          .or(
+            inbox_combined::person_post_mention_id
+              .is_not_null()
+              .and(post::creator_id.eq(item_creator)),
+          )
+          .or(private_message::creator_id.eq(item_creator)),
       )
-      .or(private_message::creator_id.eq(item_creator));
+      .left_join(home_instance_person_join());
 
     let recipient_join = aliases::person1.on(
       comment_reply::recipient_id
@@ -75,27 +76,33 @@ impl InboxCombinedViewInternal {
         .or(private_message::recipient_id.eq(recipient_person)),
     );
 
-    let comment_join = comment_reply::comment_id
-      .eq(comment::id)
-      .or(person_comment_mention::comment_id.eq(comment::id))
-      // Filter out the deleted / removed
-      .and(not(comment::deleted))
-      .and(not(comment::removed));
+    let comment_join = comment::table.on(
+      comment_reply::comment_id
+        .eq(comment::id)
+        .or(person_comment_mention::comment_id.eq(comment::id))
+        // Filter out the deleted / removed
+        .and(not(comment::deleted))
+        .and(not(comment::removed)),
+    );
 
-    let post_join = person_post_mention::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id))
-      // Filter out the deleted / removed
-      .and(not(post::deleted))
-      .and(not(post::removed));
+    let post_join = post::table.on(
+      person_post_mention::post_id
+        .eq(post::id)
+        .or(comment::post_id.eq(post::id))
+        // Filter out the deleted / removed
+        .and(not(post::deleted))
+        .and(not(post::removed)),
+    );
 
     // This could be a simple join, but you need to check for deleted here
-    let private_message_join = inbox_combined::private_message_id
-      .eq(private_message::id.nullable())
-      .and(not(private_message::deleted))
-      .and(not(private_message::removed));
+    let private_message_join = private_message::table.on(
+      inbox_combined::private_message_id
+        .eq(private_message::id.nullable())
+        .and(not(private_message::deleted))
+        .and(not(private_message::removed)),
+    );
 
-    let community_join = post::community_id.eq(community::id);
+    let community_join = community::table.on(post::community_id.eq(community::id));
 
     let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
 
@@ -104,10 +111,6 @@ impl InboxCombinedViewInternal {
         .eq(creator_local_user.field(local_user::person_id))
         .and(creator_local_user.field(local_user::admin).eq(true)),
     );
-
-    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
-    let comment_aggregates_join =
-      comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id));
 
     let image_details_join =
       image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
@@ -157,15 +160,13 @@ impl InboxCombinedViewInternal {
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
-      .left_join(private_message::table.on(private_message_join))
-      .left_join(comment::table.on(comment_join))
-      .left_join(post::table.on(post_join))
-      .left_join(community::table.on(community_join))
-      .inner_join(person::table.on(item_creator_join))
+      .left_join(private_message_join)
+      .left_join(comment_join)
+      .left_join(post_join)
+      .left_join(community_join)
+      .inner_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join)
-      .left_join(post_aggregates_join)
-      .left_join(comment_aggregates_join)
       .left_join(creator_community_actions_join)
       .left_join(local_user_join)
       .left_join(creator_local_user_join)
@@ -218,48 +219,49 @@ impl InboxCombinedViewInternal {
   }
 }
 
-impl InboxCombinedPaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &InboxCombinedView) -> InboxCombinedPaginationCursor {
-    let (prefix, id) = match view {
+impl PaginationCursorBuilder for InboxCombinedView {
+  type CursorData = InboxCombined;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    let (prefix, id) = match &self {
       InboxCombinedView::CommentReply(v) => ('R', v.comment_reply.id.0),
       InboxCombinedView::CommentMention(v) => ('C', v.person_comment_mention.id.0),
       InboxCombinedView::PostMention(v) => ('P', v.person_post_mention.id.0),
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
-    // hex encoding to prevent ossification
-    InboxCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    PaginationCursor::new(prefix, id)
   }
 
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let mut query = inbox_combined::table
-      .select(InboxCombined::as_select())
-      .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
-    query = match prefix {
-      "R" => query.filter(inbox_combined::comment_reply_id.eq(id)),
-      "C" => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
-      "P" => query.filter(inbox_combined::person_post_mention_id.eq(id)),
-      "M" => query.filter(inbox_combined::private_message_id.eq(id)),
-      _ => return Err(err_msg()),
-    };
-    let token = query.first(&mut get_conn(pool).await?).await?;
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let conn = &mut get_conn(pool).await?;
+    let (prefix, id) = cursor.prefix_and_id()?;
 
-    Ok(PaginationCursorData(token))
+    let mut query = inbox_combined::table
+      .select(Self::CursorData::as_select())
+      .into_boxed();
+
+    query = match prefix {
+      'R' => query.filter(inbox_combined::comment_reply_id.eq(id)),
+      'C' => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
+      'P' => query.filter(inbox_combined::person_post_mention_id.eq(id)),
+      'M' => query.filter(inbox_combined::private_message_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
   }
 }
-
-#[derive(Clone)]
-pub struct PaginationCursorData(InboxCombined);
 
 #[derive(Default)]
 pub struct InboxCombinedQuery {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub page_after: Option<PaginationCursorData>,
+  pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
 }
 
@@ -274,60 +276,8 @@ impl InboxCombinedQuery {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let post_tags = post_tag::table
-      .inner_join(tag::table)
-      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-        "json_agg(tag.*)",
-      ))
-      .filter(post_tag::post_id.eq(post::id))
-      .filter(tag::deleted.eq(false))
-      .single_value();
-
     let mut query = InboxCombinedViewInternal::joins(my_person_id)
-      .select((
-        // Specific
-        comment_reply::all_columns.nullable(),
-        person_comment_mention::all_columns.nullable(),
-        person_post_mention::all_columns.nullable(),
-        post_aggregates::all_columns.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-          post_aggregates::comments,
-        )
-        .nullable(),
-        post_actions::saved.nullable(),
-        post_actions::read.nullable().is_not_null(),
-        post_actions::hidden.nullable().is_not_null(),
-        post_actions::like_score.nullable(),
-        image_details::all_columns.nullable(),
-        post_tags,
-        private_message::all_columns.nullable(),
-        // Shared
-        post::all_columns.nullable(),
-        community::all_columns.nullable(),
-        comment::all_columns.nullable(),
-        comment_aggregates::all_columns.nullable(),
-        comment_actions::saved.nullable(),
-        comment_actions::like_score.nullable(),
-        community_follower_select_subscribed_type(),
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-        creator_local_user
-          .field(local_user::admin)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        local_user_can_mod(),
-      ))
+      .select(InboxCombinedViewInternal::as_select())
       .into_boxed();
 
     // Filters
@@ -397,12 +347,10 @@ impl InboxCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = self.page_after.map(|c| c.0);
-
     if self.page_back.unwrap_or_default() {
-      query = query.before(page_after).limit_and_offset_from_end();
+      query = query.before(self.cursor_data).limit_and_offset_from_end();
     } else {
-      query = query.after(page_after);
+      query = query.after(self.cursor_data);
     }
 
     // Sorting by published
@@ -430,41 +378,31 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment_reply), Some(comment), Some(counts), Some(post), Some(community)) = (
+    if let (Some(comment_reply), Some(comment), Some(post), Some(community)) = (
       v.comment_reply,
       v.comment.clone(),
-      v.comment_counts.clone(),
       v.post.clone(),
       v.community.clone(),
     ) {
       Some(InboxCombinedView::CommentReply(CommentReplyView {
         comment_reply,
         comment,
-        counts,
         recipient: v.item_recipient,
         post,
         community,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
+        community_actions: v.community_actions,
+        comment_actions: v.comment_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
+        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
-        banned_from_community: v.banned_from_community,
         can_mod: v.can_mod,
       }))
-    } else if let (
-      Some(person_comment_mention),
-      Some(comment),
-      Some(counts),
-      Some(post),
-      Some(community),
-    ) = (
+    } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
       v.person_comment_mention,
       v.comment,
-      v.comment_counts,
       v.post.clone(),
       v.community.clone(),
     ) {
@@ -472,55 +410,37 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         PersonCommentMentionView {
           person_comment_mention,
           comment,
-          counts,
           recipient: v.item_recipient,
           post,
           community,
           creator: v.item_creator,
-          creator_banned_from_community: v.item_creator_banned_from_community,
-          creator_is_moderator: v.item_creator_is_moderator,
+          community_actions: v.community_actions,
+          comment_actions: v.comment_actions,
+          person_actions: v.person_actions,
+          instance_actions: v.instance_actions,
+          home_instance_actions: v.home_instance_actions,
+          creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
-          creator_blocked: v.item_creator_blocked,
-          subscribed: v.subscribed,
-          saved: v.comment_saved,
-          my_vote: v.my_comment_vote,
-          banned_from_community: v.banned_from_community,
           can_mod: v.can_mod,
         },
       ))
-    } else if let (
-      Some(person_post_mention),
-      Some(post),
-      Some(counts),
-      Some(unread_comments),
-      Some(community),
-    ) = (
-      v.person_post_mention,
-      v.post,
-      v.post_counts,
-      v.post_unread_comments,
-      v.community,
-    ) {
+    } else if let (Some(person_post_mention), Some(post), Some(community)) =
+      (v.person_post_mention, v.post, v.community)
+    {
       Some(InboxCombinedView::PostMention(PersonPostMentionView {
         person_post_mention,
-        counts,
         post,
         community,
-        recipient: v.item_recipient,
-        unread_comments,
         creator: v.item_creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.post_saved,
-        read: v.post_read,
-        hidden: v.post_hidden,
-        my_vote: v.my_post_vote,
+        recipient: v.item_recipient,
+        community_actions: v.community_actions,
+        person_actions: v.person_actions,
+        instance_actions: v.instance_actions,
+        home_instance_actions: v.home_instance_actions,
+        post_actions: v.post_actions,
         image_details: v.image_details,
-        post_tags: v.post_tags,
-        banned_from_community: v.banned_from_community,
+        creator_community_actions: v.creator_community_actions,
+        creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
       }))
     } else if let Some(private_message) = v.private_message {
@@ -548,10 +468,8 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
-      instance::Instance,
-      instance_block::{InstanceBlock, InstanceBlockForm},
-      person::{Person, PersonInsertForm, PersonUpdateForm},
-      person_block::{PersonBlock, PersonBlockForm},
+      instance::{Instance, InstanceActions, InstanceBlockForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
       person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
       post::{Post, PostInsertForm},
@@ -757,11 +675,8 @@ mod tests {
     }
 
     // Sara blocks timmy, and make sure these counts are now empty
-    let sara_blocks_timmy_form = PersonBlockForm {
-      person_id: data.sara.id,
-      target_id: data.timmy.id,
-    };
-    PersonBlock::block(pool, &sara_blocks_timmy_form).await?;
+    let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.id, data.timmy.id);
+    PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
     let sara_unread_mentions_after_block =
       InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
@@ -779,7 +694,7 @@ mod tests {
     ));
 
     // Unblock user so we can reuse the same person
-    PersonBlock::unblock(pool, &sara_blocks_timmy_form).await?;
+    PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
 
     // Test the type filter
     let sara_inbox_post_mentions_only = InboxCombinedQuery {
@@ -913,19 +828,18 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure blocks are working
-    let timmy_blocks_sara_form = PersonBlockForm {
-      person_id: data.timmy.id,
-      target_id: data.sara.id,
-    };
+    let timmy_blocks_sara_form = PersonBlockForm::new(data.timmy.id, data.sara.id);
 
-    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
+    let inserted_block = PersonActions::block(pool, &timmy_blocks_sara_form).await?;
 
-    let expected_block = PersonBlock {
-      person_id: data.timmy.id,
-      target_id: data.sara.id,
-      published: inserted_block.published,
-    };
-    assert_eq!(expected_block, inserted_block);
+    assert_eq!(
+      (data.timmy.id, data.sara.id, true),
+      (
+        inserted_block.person_id,
+        inserted_block.target_id,
+        inserted_block.blocked.is_some()
+      )
+    );
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery {
@@ -956,19 +870,18 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure instance_blocks are working
-    let timmy_blocks_instance_form = InstanceBlockForm {
-      person_id: data.timmy.id,
-      instance_id: data.sara.instance_id,
-    };
+    let timmy_blocks_instance_form = InstanceBlockForm::new(data.timmy.id, data.sara.instance_id);
 
-    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form).await?;
+    let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
 
-    let expected_instance_block = InstanceBlock {
-      person_id: data.timmy.id,
-      instance_id: data.sara.instance_id,
-      published: inserted_instance_block.published,
-    };
-    assert_eq!(expected_instance_block, inserted_instance_block);
+    assert_eq!(
+      (data.timmy.id, data.sara.instance_id, true),
+      (
+        inserted_instance_block.person_id,
+        inserted_instance_block.instance_id,
+        inserted_instance_block.blocked.is_some()
+      )
+    );
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery {

@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    PaginationCursor,
     PersonId,
     PostId,
     RegistrationApplicationId,
@@ -36,19 +37,18 @@ use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunityView,
   LocalUserView,
-  ModlogCombinedPaginationCursor,
   ModlogCombinedView,
   PersonView,
   PostView,
   RegistrationApplicationView,
-  SearchCombinedPaginationCursor,
   SearchCombinedView,
   SiteView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {extism::FromBytes, extism_convert::encoding, extism_convert::Json, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -83,7 +83,7 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -94,6 +94,9 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -151,7 +154,7 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -162,6 +165,9 @@ pub struct GetModlog {
 /// The modlog fetch response.
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -253,7 +259,7 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub disable_donation_dialog: Option<bool>,
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -384,10 +390,9 @@ pub struct EditSite {
   /// What kind of comment downvotes your site allows.
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
-  /// If this is true, users will never see the dialog asking to support Lemmy development with
-  /// donations.
+  /// Block NSFW content being created
   #[cfg_attr(feature = "full", ts(optional))]
-  pub disable_donation_dialog: Option<bool>,
+  pub disallow_nsfw_content: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -417,14 +422,13 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
+  pub oauth_providers: Vec<PublicOAuthProvider>,
+  pub admin_oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.
   pub image_upload_disabled: bool,
+  pub active_plugins: Vec<PluginMetadata>,
 }
 
 #[skip_serializing_none]
@@ -633,4 +637,14 @@ pub struct AdminAllowInstanceParams {
   pub allow: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "full", derive(TS, FromBytes))]
+#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", encoding(Json))]
+pub struct PluginMetadata {
+  name: String,
+  url: Url,
+  description: String,
 }
