@@ -87,10 +87,10 @@ impl ActivityHandler for ResolveReport {
     let reporter = self.object.actor.dereference(context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      PostOrComment::Left(post) => {
         PostReport::resolve_apub(&mut context.pool(), post.id, reporter.id, actor.id).await?;
       }
-      PostOrComment::Comment(comment) => {
+      PostOrComment::Right(comment) => {
         CommentReport::resolve_apub(&mut context.pool(), comment.id, reporter.id, actor.id).await?;
       }
     };

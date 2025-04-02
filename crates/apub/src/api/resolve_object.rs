@@ -1,7 +1,7 @@
 use crate::fetcher::{
-  post_or_comment::PostOrComment,
   search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
-  user_or_community::UserOrCommunity,
+  PostOrComment,
+  UserOrCommunity,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
@@ -56,17 +56,17 @@ async fn convert_response(
   let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
 
   match object {
-    SearchableObjects::PostOrComment(pc) => match *pc {
-      PostOrComment::Post(p) => {
+    SearchableObjects::Left(pc) => match pc {
+      PostOrComment::Left(p) => {
         res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), is_admin).await?)
       }
-      PostOrComment::Comment(c) => {
+      PostOrComment::Right(c) => {
         res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
       }
     },
-    SearchableObjects::PersonOrCommunity(pc) => match *pc {
-      UserOrCommunity::User(u) => res.person = Some(PersonView::read(pool, u.id, is_admin).await?),
-      UserOrCommunity::Community(c) => {
+    SearchableObjects::Right(pc) => match pc {
+      UserOrCommunity::Left(u) => res.person = Some(PersonView::read(pool, u.id, is_admin).await?),
+      UserOrCommunity::Right(c) => {
         res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
       }
     },

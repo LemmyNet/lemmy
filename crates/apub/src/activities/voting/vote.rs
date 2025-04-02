@@ -72,8 +72,8 @@ impl ActivityHandler for Vote {
       .unwrap_or_default();
 
     let (downvote_setting, upvote_setting) = match object {
-      PostOrComment::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-      PostOrComment::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+      PostOrComment::Left(_) => (local_site.post_downvotes, local_site.post_upvotes),
+      PostOrComment::Right(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
     };
 
     // Don't allow dislikes for either disabled, or local only votes
@@ -83,14 +83,14 @@ impl ActivityHandler for Vote {
     if downvote_fail || upvote_fail {
       // If this is a rejection, undo the vote
       match object {
-        PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
-        PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
+        PostOrComment::Left(p) => undo_vote_post(actor, &p, context).await,
+        PostOrComment::Right(c) => undo_vote_comment(actor, &c, context).await,
       }
     } else {
       // Otherwise apply the vote normally
       match object {
-        PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
-        PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
+        PostOrComment::Left(p) => vote_post(&self.kind, actor, &p, context).await,
+        PostOrComment::Right(c) => vote_comment(&self.kind, actor, &c, context).await,
       }
     }
   }

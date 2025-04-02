@@ -1,10 +1,15 @@
 use crate::{
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
 use strum::Display;
@@ -49,12 +54,18 @@ impl From<&VoteType> for i16 {
 
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community = self
-      .object
-      .dereference(context)
-      .await?
-      .community(context)
-      .await?;
-    Ok(community)
+    let community_id = match self.object.dereference(context).await? {
+      Either::Left(p) => p.community_id,
+      Either::Right(c) => {
+        Post::read(&mut context.pool(), c.post_id)
+          .await?
+          .community_id
+      }
+    };
+    Ok(
+      Community::read(&mut context.pool(), community_id)
+        .await?
+        .into(),
+    )
   }
 }

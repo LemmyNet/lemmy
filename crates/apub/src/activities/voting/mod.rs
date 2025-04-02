@@ -1,7 +1,7 @@
 use crate::{
   activities::community::send_activity_in_community,
   activity_lists::AnnouncableActivities,
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::PostOrComment,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::voting::{
     undo_vote::UndoVote,

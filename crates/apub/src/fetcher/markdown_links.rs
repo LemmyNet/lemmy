@@ -1,5 +1,5 @@
-use super::{search::SearchableObjects, user_or_community::UserOrCommunity};
-use crate::fetcher::post_or_comment::PostOrComment;
+use super::{search::SearchableObjects, UserOrCommunity};
+use crate::fetcher::PostOrComment;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
@@ -57,17 +57,17 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   }
   let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
-    SearchableObjects::PostOrComment(pc) => match *pc {
-      PostOrComment::Post(post) => post.local_url(context.settings()),
-      PostOrComment::Comment(comment) => comment.local_url(context.settings()),
+    SearchableObjects::Left(pc) => match pc {
+      PostOrComment::Left(post) => post.local_url(context.settings()),
+      PostOrComment::Right(comment) => comment.local_url(context.settings()),
     }
     .ok()
     .map(Into::into),
-    SearchableObjects::PersonOrCommunity(pc) => match *pc {
-      UserOrCommunity::User(user) => {
+    SearchableObjects::Right(pc) => match pc {
+      UserOrCommunity::Left(user) => {
         format_actor_url(&user.name, "u", user.instance_id, context).await
       }
-      UserOrCommunity::Community(community) => {
+      UserOrCommunity::Right(community) => {
         format_actor_url(&community.name, "c", community.instance_id, context).await
       }
     }
