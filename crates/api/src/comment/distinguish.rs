@@ -1,7 +1,9 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   comment::{CommentResponse, DistinguishComment},
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_community_user_action},
 };
 use lemmy_db_schema::{
@@ -51,9 +53,11 @@ pub async fn distinguish_comment(
     distinguished: Some(data.distinguished),
     ..Default::default()
   };
-  Comment::update(&mut context.pool(), data.comment_id, &form)
+  let comment = Comment::update(&mut context.pool(), data.comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+
+  ActivityChannel::submit_activity(SendActivityData::UpdateComment(comment), &context).await?;
 
   let comment_view = CommentView::read(
     &mut context.pool(),

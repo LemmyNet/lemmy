@@ -39,7 +39,12 @@ import {
   delay,
   saveUserSettings,
 } from "./shared";
-import { CommentView, CommunityView, SaveUserSettings } from "lemmy-js-client";
+import {
+  CommentView,
+  CommunityView,
+  DistinguishComment,
+  SaveUserSettings,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -858,7 +863,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
 /// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
 /// fetched recursively. Ensure that it works properly.
-test.skip("Fetch a deeply nested comment", async () => {
+test("Fetch a deeply nested comment", async () => {
   let lastComment;
   for (let i = 0; i < 50; i++) {
     let commentRes = await createComment(
@@ -877,4 +882,25 @@ test.skip("Fetch a deeply nested comment", async () => {
 
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
+});
+
+test("Distinguish comment", async () => {
+  const community = (await resolveBetaCommunity(beta)).community;
+  let post = await createPost(beta, community!.community.id);
+  let commentRes = await createComment(beta, post.post_view.post.id);
+  const form: DistinguishComment = {
+    comment_id: commentRes.comment_view.comment.id,
+    distinguished: true,
+  };
+  await beta.distinguishComment(form);
+
+  let alphaPost = (await resolvePost(alpha, post.post_view.post)).post;
+
+  // Find the comment on alpha (home of community)
+  let alphaComments = await waitUntil(
+    () => getComments(alpha, alphaPost?.post.id),
+    c => c.comments.length > 0 && c.comments[0].comment.distinguished,
+  );
+
+  assertCommentFederation(alphaComments.comments[0], commentRes.comment_view);
 });
