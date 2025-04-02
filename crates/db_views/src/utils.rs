@@ -90,6 +90,22 @@ pub(crate) fn post_creator_is_admin() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+/// Checks to see if a user is site banned from any of these places:
+/// - Their own instance
+/// - The local instance
+pub(crate) fn creator_banned() -> _ {
+  let local_ban = creator_local_instance_actions
+    .field(instance_actions::received_ban)
+    .nullable()
+    .is_not_null();
+  let home_ban = creator_home_instance_actions
+    .field(instance_actions::received_ban)
+    .nullable()
+    .is_not_null();
+  local_ban.or(home_ban)
+}
+
+#[diesel::dsl::auto_type]
 pub(crate) fn creator_local_user_admin_join() -> _ {
   creator_local_user.on(
     person::id
@@ -97,6 +113,7 @@ pub(crate) fn creator_local_user_admin_join() -> _ {
       .and(creator_local_user.field(local_user::admin).eq(true)),
   )
 }
+
 /// Checks to see if you can mod an item.
 ///
 /// Caveat: Since admin status isn't federated or ordered, it can't know whether

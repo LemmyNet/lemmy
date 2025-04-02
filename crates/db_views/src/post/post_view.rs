@@ -564,7 +564,7 @@ mod tests {
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      instance::{Instance, InstanceActions, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -1909,6 +1909,60 @@ mod tests {
 
     assert!(post_view.community_actions.is_none());
 
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_banned(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jill");
+
+    let banned_person = Person::create(pool, &banned_person_form).await?;
+
+    let post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        "banned person post".to_string(),
+        banned_person.id,
+        data.community.id,
+      )
+    };
+    let banned_post = Post::create(pool, &post_form).await?;
+
+    InstanceActions::ban(
+      pool,
+      &InstanceBanForm::new(banned_person.id, data.instance.id, None),
+    )
+    .await?;
+
+    // Let john read their post
+    let post_view = PostView::read(
+      pool,
+      banned_post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert!(post_view
+      .creator_local_instance_actions
+      .is_some_and(|x| x.received_ban.is_some()));
+
+    assert!(post_view
+      .creator_home_instance_actions
+      .is_some_and(|x| x.received_ban.is_some()));
+
+    // This should be none, since john wasn't banned, only the creator.
+    assert!(post_view.instance_actions.is_none());
+
+    assert!(post_view.creator_banned);
+
+    Person::delete(pool, banned_person.id).await?;
     Ok(())
   }
 

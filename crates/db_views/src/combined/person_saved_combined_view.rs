@@ -212,6 +212,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else {
       Some(PersonSavedCombinedView::Post(PostView {
@@ -228,6 +229,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     }
   }

@@ -367,6 +367,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
       v.person_comment_mention,
@@ -391,6 +392,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
           can_mod: v.can_mod,
+          creator_banned: v.creator_banned,
         },
       ))
     } else if let (Some(person_post_mention), Some(post), Some(community)) =
@@ -412,6 +414,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let Some(private_message) = v.private_message {
       Some(InboxCombinedView::PrivateMessage(PrivateMessageView {

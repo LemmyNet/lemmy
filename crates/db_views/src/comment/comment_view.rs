@@ -114,6 +114,7 @@ impl CommentView {
       creator_local_instance_actions: self.creator_local_instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
+      creator_banned: self.creator_banned,
     }
   }
 }

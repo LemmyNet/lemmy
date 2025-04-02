@@ -359,6 +359,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -377,6 +378,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person_actions: v.person_actions,
         post_actions: v.post_actions,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
@@ -391,6 +393,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         is_admin: v.item_creator_is_admin,
         home_instance_actions: v.creator_home_instance_actions,
         local_instance_actions: v.creator_local_instance_actions,
+        creator_banned: v.creator_banned,
       }))
     } else {
       None
