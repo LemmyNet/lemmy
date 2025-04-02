@@ -42,6 +42,7 @@ use lemmy_db_schema::{
   },
   source::{
     community::CommunityFollowerState,
+    keyword_block::LocalUserKeywordBlock,
     local_user::LocalUser,
     post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,
@@ -63,7 +64,6 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use tracing::debug;
-use lemmy_db_schema::source::keyword_block::LocalUserKeywordBlock;
 use PostSortType::*;
 
 impl PostView {
@@ -498,8 +498,8 @@ impl<'a> PostQuery<'a> {
 
       query = query.filter(filter_blocked());
       if let Some(local_user_id) = my_local_user_id {
-        let blocked_keywords: Vec<String> = LocalUserKeywordBlock::read(pool, local_user_id)
-          .await?;
+        let blocked_keywords: Vec<String> =
+          LocalUserKeywordBlock::read(pool, local_user_id).await?;
         if !blocked_keywords.is_empty() {
           for keyword in blocked_keywords {
             let pattern = format!("%{}%", keyword);

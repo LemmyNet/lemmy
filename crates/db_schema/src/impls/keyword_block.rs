@@ -5,8 +5,7 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, QueryDsl};
-use diesel_async::{AsyncConnection, RunQueryDsl};
-use diesel_async::scoped_futures::ScopedFutureExt;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 
 impl LocalUserKeywordBlock {
   pub async fn read(
@@ -38,7 +37,8 @@ impl LocalUserKeywordBlock {
           delete(local_user_keyword_block::table)
             .filter(local_user_keyword_block::local_user_id.eq(for_local_user_id))
             .filter(local_user_keyword_block::keyword.ne_all(&blocking_keywords))
-            .execute(conn).await?;
+            .execute(conn)
+            .await?;
           let forms = blocking_keywords
             .into_iter()
             .map(|k| LocalUserKeywordBlockForm {
@@ -49,9 +49,10 @@ impl LocalUserKeywordBlock {
           insert_into(local_user_keyword_block::table)
             .values(forms)
             .on_conflict_do_nothing()
-            .execute(conn).await
+            .execute(conn)
+            .await
         }
-            .scope_boxed()
+        .scope_boxed()
       })
       .await
   }

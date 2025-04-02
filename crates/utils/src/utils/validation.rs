@@ -308,8 +308,16 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
 
 pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> LemmyResult<()> {
   for keyword in blocking_keywords {
-    min_length_check(keyword,MIN_LENGTH_BLOCKING_KEYWORD,LemmyErrorType::BlockKeywordTooShort)?;
-    max_length_check(keyword,MAX_LENGTH_BLOCKING_KEYWORD,LemmyErrorType::BlockKeywordTooLong)?;
+    min_length_check(
+      keyword,
+      MIN_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooShort,
+    )?;
+    max_length_check(
+      keyword,
+      MAX_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooLong,
+    )?;
   }
   if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
     Err(LemmyErrorType::TooManyItems)?
