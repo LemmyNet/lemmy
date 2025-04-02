@@ -90,7 +90,7 @@ lemmy_routes = { version = "=1.0.0-alpha.4", path = "./crates/routes" }
 lemmy_db_views = { version = "=1.0.0-alpha.4", path = "./crates/db_views" }
 lemmy_federate = { version = "=1.0.0-alpha.4", path = "./crates/federate" }
 lemmy_email = { version = "=1.0.0-alpha.4", path = "./crates/email" }
-activitypub_federation = { version = "0.6.3", default-features = false, features = [
+activitypub_federation = { version = "0.6.4", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.2.7"
@@ -158,6 +158,7 @@ clap = { version = "4.5.29", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
 tuplex = "0.1.2"
+either = "1.15.0"
 
 [dependencies]
 lemmy_api = { workspace = true }
