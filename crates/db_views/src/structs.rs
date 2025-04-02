@@ -395,7 +395,7 @@ pub struct PostView {
       select_expression = post_tags_fragment()
     )
   )]
-  pub post_tags: TagsView,
+  pub tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()

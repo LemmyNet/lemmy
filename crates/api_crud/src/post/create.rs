@@ -118,7 +118,7 @@ pub async fn create_post(
     alt_text: data.alt_text.clone(),
     nsfw,
     language_id: Some(language_id),
-    federation_pending: Some(community_use_pending(&community, &context).await),
+    federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time,
     ..PostInsertForm::new(
       data.name.trim().to_string(),

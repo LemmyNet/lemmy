@@ -580,7 +580,7 @@ impl<'a> PostQuery<'a> {
 mod tests {
   use crate::{
     post::post_view::{PaginationCursorData, PostQuery, PostView},
-    structs::{LocalUserView, TagsView},
+    structs::LocalUserView,
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
@@ -2201,20 +2201,14 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(2, post_view.post_tags.0.len());
-    assert_eq!(
-      data.tag_1.display_name,
-      post_view.post_tags.0[0].display_name
-    );
-    assert_eq!(
-      data.tag_2.display_name,
-      post_view.post_tags.0[1].display_name
-    );
+    assert_eq!(2, post_view.tags.0.len());
+    assert_eq!(data.tag_1.display_name, post_view.tags.0[0].display_name);
+    assert_eq!(data.tag_2.display_name, post_view.tags.0[1].display_name);
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(2, all_posts[0].post_tags.0.len()); // post with tags
-    assert_eq!(0, all_posts[1].post_tags.0.len()); // bot post
-    assert_eq!(0, all_posts[2].post_tags.0.len()); // normal post
+    assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
+    assert_eq!(0, all_posts[1].tags.0.len()); // bot post
+    assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
     Ok(())
   }

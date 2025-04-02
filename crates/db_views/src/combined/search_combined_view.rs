@@ -406,7 +406,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
-        post_tags: v.post_tags,
+        tags: v.post_tags,
         can_mod: v.can_mod,
       }))
     } else if let Some(community) = v.community {
