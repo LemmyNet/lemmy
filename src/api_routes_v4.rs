@@ -157,6 +157,7 @@ use lemmy_routes::images::{
     delete_community_banner,
     delete_community_icon,
     delete_image,
+    delete_image_admin,
     delete_site_banner,
     delete_site_icon,
     delete_user_avatar,
@@ -330,7 +331,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
-          .route("/list_media", get().to(list_media))
+          .service(
+            scope("/media")
+              .route("/list", get().to(list_media))
+              .route("", delete().to(delete_image)),
+          )
           .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
           .service(
@@ -393,7 +398,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             "/registration_application",
             get().to(get_registration_application),
           )
-          .route("/list_all_media", get().to(list_all_media))
           .service(
             scope("/purge")
               .route("/person", post().to(purge_person))
@@ -441,11 +445,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             resource("")
               .wrap(rate_limit.image())
               .route(post().to(upload_image))
-              .route(delete().to(delete_image)),
+              .route(delete().to(delete_image_admin)),
           )
           .route("/proxy", get().to(image_proxy))
           .route("/health", get().to(pictrs_health))
-          .route("/{filename}", get().to(get_image)),
+          .route("/{filename}", get().to(get_image))
+          .route("/list_all", get().to(list_all_media)),
       ),
   );
 }
