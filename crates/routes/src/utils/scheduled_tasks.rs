@@ -42,7 +42,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
-use lemmy_db_views::{structs::SiteView, utils::local_instance_person_join};
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -426,23 +426,28 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
   let local_instance_id = SiteView::read_local(pool).await?.instance.id;
   let mut conn = get_conn(pool).await?;
 
-  let not_banned_action = community_actions::table
+  let not_community_banned_action = community_actions::table
     .find((person::id, community::id))
     .filter(community_actions::received_ban.is_not_null());
 
+  let not_local_banned_action = instance_actions::table
+    .find((person::id, local_instance_id))
+    .filter(instance_actions::received_ban.is_not_null());
+
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
-    .inner_join(person::table.left_join(local_instance_person_join(local_instance_id)))
+    .inner_join(person::table)
     // find all posts which have scheduled_publish_time that is in the  past
     .filter(post::scheduled_publish_time.is_not_null())
     .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
     // make sure the post, person and community are still around
     .filter(not(post::deleted.or(post::removed)))
     .filter(not(person::deleted))
-    .filter(instance_actions::received_ban.is_null())
     .filter(not(community::removed.or(community::deleted)))
     // ensure that user isnt banned from community
-    .filter(not(exists(not_banned_action)))
+    .filter(not(exists(not_community_banned_action)))
+    // ensure that user isnt banned from local
+    .filter(not(exists(not_local_banned_action)))
     .select((post::all_columns, community::all_columns))
     .get_results::<(Post, Community)>(&mut conn)
     .await?;

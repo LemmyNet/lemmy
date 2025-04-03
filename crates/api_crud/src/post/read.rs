@@ -22,9 +22,11 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let local_instance_id = site_view.site.instance_id;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
@@ -57,6 +59,7 @@ pub async fn get_post(
     &mut context.pool(),
     post_id,
     local_user.as_ref(),
+    local_instance_id,
     is_mod_or_admin,
   )
   .await?;
@@ -92,7 +95,7 @@ pub async fn get_post(
       local_user: local_user.as_ref(),
       ..Default::default()
     }
-    .list(&local_site.site, &mut context.pool())
+    .list(&site_view.site, &mut context.pool())
     .await?;
 
     // Don't return this post as one of the cross_posts

@@ -30,7 +30,7 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not},
+  dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
   result::Error,
   BoolExpressionMethods,
@@ -153,26 +153,25 @@ impl Post {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut update = diesel::update(post::table).into_boxed();
-    update = update.filter(post::creator_id.eq(for_creator_id));
+    // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let community_join = community::table.on(post::community_id.eq(community::id));
+    let mut posts_query = post::table
+      .inner_join(community_join)
+      .filter(post::creator_id.eq(for_creator_id))
+      .into_boxed();
 
     if let Some(for_community_id) = for_community_id {
-      update = update.filter(post::community_id.eq(for_community_id));
+      posts_query = posts_query.filter(post::community_id.eq(for_community_id));
     }
 
     if let Some(for_instance_id) = for_instance_id {
-      // Diesel can't update from join unfortunately, so you'll need to loop over these
-      let post_ids = post::table
-        .inner_join(community::table)
-        .filter(post::creator_id.eq(for_creator_id))
-        .filter(community::instance_id.eq(for_instance_id))
-        .select(post::id)
-        .load::<PostId>(conn)
-        .await?;
-      update = update.filter(post::id.eq_any(post_ids));
+      posts_query = posts_query.filter(community::instance_id.eq(for_instance_id));
     }
 
-    update
+    let post_ids = posts_query.select(post::id).load::<PostId>(conn).await?;
+
+    update(post::table)
+      .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await

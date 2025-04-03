@@ -25,10 +25,12 @@ pub async fn save_post(
 
   let post_id = data.post_id;
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
     false,
   )
   .await?;
