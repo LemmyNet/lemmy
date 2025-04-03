@@ -450,7 +450,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/proxy", get().to(image_proxy))
           .route("/health", get().to(pictrs_health))
           .route("/{filename}", get().to(get_image))
-          .route("/list_all", get().to(list_all_media)),
+          .route("/list", get().to(list_all_media)),
       ),
   );
 }
