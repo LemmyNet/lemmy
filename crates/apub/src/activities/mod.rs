@@ -43,7 +43,7 @@ use lemmy_db_schema::{
   traits::Crud,
   CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, SiteView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -99,8 +99,17 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site_view.site.instance_id;
+
   let mod_ = mod_id.dereference(context).await?;
-  CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
+  CommunityView::check_is_mod_or_admin(
+    &mut context.pool(),
+    mod_.id,
+    community.id,
+    local_instance_id,
+  )
+  .await
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {

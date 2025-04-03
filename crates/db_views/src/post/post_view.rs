@@ -1,10 +1,18 @@
 use crate::{
   structs::{PostPaginationCursor, PostView},
   utils::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
     filter_blocked,
     filter_is_subscribed,
     filter_not_unlisted_or_is_subscribed,
-    home_instance_person_join,
+    image_details_join,
+    my_community_actions_join,
+    my_instance_actions_community_join,
+    my_local_user_join,
+    my_person_actions_join,
+    my_post_actions_join,
   },
 };
 use diesel::{
@@ -25,21 +33,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId, PostId},
-  schema::{
-    community,
-    community_actions,
-    image_details,
-    instance_actions,
-    local_user,
-    local_user_language,
-    person,
-    person_actions,
-    post,
-    post_actions,
-  },
+  newtypes::{CommunityId, InstanceId, PersonId, PostId},
+  schema::{community, community_actions, local_user_language, person, post, post_actions},
   source::{
     community::CommunityFollowerState,
     local_user::LocalUser,
@@ -66,76 +62,43 @@ use tracing::debug;
 use PostSortType::*;
 
 impl PostView {
-  // TODO while we can abstract the joins into a function, the selects are currently impossible to
-  // do, because they rely on a few types that aren't yet publicly exported in diesel:
-  // https://github.com/diesel-rs/diesel/issues/4462
-
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>) -> _ {
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(post::community_id)
-        .and(community_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(post::creator_id)
-        .and(person_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(community::instance_id)
-        .and(instance_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let post_creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(post::community_id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(post::creator_id),
-        ),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let person_join = person::table.left_join(home_instance_person_join());
+  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(my_person_id);
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_community_join: my_instance_actions_community_join =
+      my_instance_actions_community_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     post::table
-      .inner_join(person_join)
+      .inner_join(person::table)
       .inner_join(community::table)
-      .left_join(image_details_join)
-      .left_join(community_actions_join)
-      .left_join(person_actions_join)
-      .left_join(post_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(post_creator_community_actions_join)
-      .left_join(local_user_join)
+      .left_join(image_details_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_instance_actions_community_join)
+      .left_join(my_local_user_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(creator_community_actions_join())
   }
 
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
     my_local_user: Option<&'_ LocalUser>,
+    local_instance_id: InstanceId,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = my_local_user.person_id();
 
-    let mut query = Self::joins(my_person_id)
+    let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(post::id.eq(post_id))
       .select(Self::as_select())
       .into_boxed();
@@ -344,7 +307,7 @@ impl<'a> PostQuery<'a> {
     let my_person_id = o.local_user.person_id();
     let my_local_user_id = o.local_user.local_user_id();
 
-    let mut query = PostView::joins(my_person_id)
+    let mut query = PostView::joins(my_person_id, site.instance_id)
       .select(PostView::as_select())
       .into_boxed();
 
@@ -601,7 +564,7 @@ mod tests {
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      instance::{Instance, InstanceActions, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -896,6 +859,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       false,
     )
     .await?;
@@ -948,7 +912,7 @@ mod tests {
     .await?;
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.post.id, None, false).await?;
+      PostView::read(pool, data.post.id, None, data.instance.id, false).await?;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
@@ -1071,6 +1035,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       false,
     )
     .await?;
@@ -1867,13 +1832,15 @@ mod tests {
     .await?;
     assert_eq!(3, authenticated_query.len());
 
-    let unauthenticated_post = PostView::read(pool, data.post.id, None, false).await;
+    let unauthenticated_post =
+      PostView::read(pool, data.post.id, None, data.instance.id, false).await;
     assert!(unauthenticated_post.is_err());
 
     let authenticated_post = PostView::read(
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       false,
     )
     .await;
@@ -1911,6 +1878,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&inserted_banned_from_comm_local_user),
+      data.instance.id,
       false,
     )
     .await?;
@@ -1934,12 +1902,67 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       false,
     )
     .await?;
 
     assert!(post_view.community_actions.is_none());
 
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_banned(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jill");
+
+    let banned_person = Person::create(pool, &banned_person_form).await?;
+
+    let post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        "banned person post".to_string(),
+        banned_person.id,
+        data.community.id,
+      )
+    };
+    let banned_post = Post::create(pool, &post_form).await?;
+
+    InstanceActions::ban(
+      pool,
+      &InstanceBanForm::new(banned_person.id, data.instance.id, None),
+    )
+    .await?;
+
+    // Let john read their post
+    let post_view = PostView::read(
+      pool,
+      banned_post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert!(post_view
+      .creator_local_instance_actions
+      .is_some_and(|x| x.received_ban.is_some()));
+
+    assert!(post_view
+      .creator_home_instance_actions
+      .is_some_and(|x| x.received_ban.is_some()));
+
+    // This should be none, since john wasn't banned, only the creator.
+    assert!(post_view.instance_actions.is_none());
+
+    assert!(post_view.creator_banned);
+
+    Person::delete(pool, banned_person.id).await?;
     Ok(())
   }
 
@@ -2058,7 +2081,7 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     assert_eq!(0, read_post_listing.len());
-    let post_view = PostView::read(pool, data.post.id, None, false).await;
+    let post_view = PostView::read(pool, data.post.id, None, data.instance.id, false).await;
     assert!(post_view.is_err());
 
     // No posts returned for non-follower who is not admin
@@ -2075,6 +2098,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       false,
     )
     .await;
@@ -2094,6 +2118,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       true,
     )
     .await;
@@ -2120,6 +2145,7 @@ mod tests {
       pool,
       data.post.id,
       Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
       true,
     )
     .await;

@@ -13,11 +13,20 @@ pub async fn get_comment(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let local_instance_id = site_view.site.instance_id;
 
   check_private_instance(&local_user_view, &local_site)?;
 
   Ok(Json(
-    build_comment_response(&context, data.id, local_user_view, vec![]).await?,
+    build_comment_response(
+      &context,
+      data.id,
+      local_user_view,
+      vec![],
+      local_instance_id,
+    )
+    .await?,
   ))
 }
