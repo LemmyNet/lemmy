@@ -8,7 +8,21 @@ use crate::{
     SearchCombinedView,
     SearchCombinedViewInternal,
   },
-  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed, home_instance_person_join},
+  utils::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    filter_is_subscribed,
+    filter_not_unlisted_or_is_subscribed,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_actions_person_join,
+    my_local_user_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
 };
 use diesel::{
   dsl::not,
@@ -23,8 +37,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user},
-  newtypes::{CommunityId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
@@ -38,11 +51,7 @@ use lemmy_db_schema_file::{
     comment_actions,
     community,
     community_actions,
-    image_details,
-    instance_actions,
-    local_user,
     person,
-    person_actions,
     post,
     post_actions,
     search_combined,
@@ -53,26 +62,24 @@ use SearchSortType::*;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>) -> _ {
+  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
 
-    let item_creator_join = person::table
-      .on(
-        search_combined::person_id
-          .eq(item_creator.nullable())
-          .or(
-            search_combined::comment_id
-              .is_not_null()
-              .and(comment::creator_id.eq(item_creator)),
-          )
-          .or(
-            search_combined::post_id
-              .is_not_null()
-              .and(post::creator_id.eq(item_creator)),
-          )
-          .and(not(person::deleted)),
-      )
-      .left_join(home_instance_person_join());
+    let item_creator_join = person::table.on(
+      search_combined::person_id
+        .eq(item_creator.nullable())
+        .or(
+          search_combined::comment_id
+            .is_not_null()
+            .and(comment::creator_id.eq(item_creator)),
+        )
+        .or(
+          search_combined::post_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
+        .and(not(person::deleted)),
+    );
 
     let comment_join = comment::table.on(
       search_combined::comment_id
@@ -98,72 +105,33 @@ impl SearchCombinedViewInternal {
         .and(not(community::deleted)),
     );
 
-    let creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(community::id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(item_creator),
-        ),
-    );
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let creator_local_user_join = creator_local_user.on(
-      item_creator
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    );
-
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(community::id)
-        .and(community_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(person::instance_id)
-        .and(instance_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(item_creator)
-        .and(person_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.nullable().eq(my_person_id)),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(my_person_id);
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
+    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_instance_actions_person_join: my_instance_actions_person_join =
+      my_instance_actions_person_join(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     search_combined::table
       .left_join(comment_join)
       .left_join(post_join)
       .left_join(item_creator_join)
       .left_join(community_join)
-      .left_join(creator_community_actions_join)
-      .left_join(local_user_join)
-      .left_join(creator_local_user_join)
-      .left_join(community_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(post_actions_join)
-      .left_join(person_actions_join)
-      .left_join(comment_actions_join)
-      .left_join(image_details_join)
+      .left_join(creator_community_actions_join())
+      .left_join(my_local_user_join)
+      .left_join(creator_local_user_admin_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_instance_actions_person_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_comment_actions_join)
+      .left_join(image_details_join())
   }
 }
 
@@ -226,13 +194,14 @@ impl SearchCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &Option<LocalUserView>,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<SearchCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = SearchCombinedViewInternal::joins(my_person_id)
+    let mut query = SearchCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(SearchCombinedViewInternal::as_select())
       .into_boxed();
 
@@ -385,12 +354,14 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator,
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -403,11 +374,13 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         image_details: v.image_details,
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
@@ -420,8 +393,9 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Person(PersonView {
         person,
         is_admin: v.item_creator_is_admin,
-        instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        home_instance_actions: v.creator_home_instance_actions,
+        local_instance_actions: v.creator_local_instance_actions,
+        creator_banned: v.creator_banned,
       }))
     } else {
       None
@@ -580,7 +554,9 @@ mod tests {
     let data = init_data(pool).await?;
 
     // search
-    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    let search = SearchCombinedQuery::default()
+      .list(pool, &None, data.instance.id)
+      .await?;
     assert_length!(10, search);
 
     // Make sure the types are correct
@@ -658,7 +634,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(5, search_by_community);
 
@@ -667,7 +643,7 @@ mod tests {
       creator_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(4, search_by_creator);
 
@@ -676,7 +652,7 @@ mod tests {
       search_term: Some("gold".into()),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(2, search_by_name);
@@ -686,7 +662,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(2, search_liked_only);
@@ -695,7 +671,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, search_disliked_only);
@@ -706,7 +682,7 @@ mod tests {
       sort: Some(SearchSortType::Old),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
     if let SearchCombinedView::Person(v) = &search_old_sort[0] {
       assert_eq!(data.sara.id, v.person.id);
@@ -737,7 +713,9 @@ mod tests {
     .await?;
 
     // 2 things got removed, but the post also has another comment which got removed
-    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    let search = SearchCombinedQuery::default()
+      .list(pool, &None, data.instance.id)
+      .await?;
     assert_length!(7, search);
 
     cleanup(data, pool).await?;
@@ -757,7 +735,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, community_search);
 
@@ -780,7 +758,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(1, community_search_by_id);
 
@@ -790,7 +768,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, community_search_by_name);
@@ -809,7 +787,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert!(community_search_title_only.is_empty());
@@ -831,7 +809,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, person_search);
 
@@ -854,7 +832,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(1, person_search_by_id);
     if let SearchCombinedView::Person(v) = &person_search_by_id[0] {
@@ -869,7 +847,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, person_search_by_name);
@@ -885,7 +863,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, person_search_sort_top);
 
@@ -913,7 +891,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, post_search);
 
@@ -945,7 +923,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, post_search_by_community);
 
@@ -955,7 +933,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, post_search_by_name);
@@ -968,7 +946,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert!(post_search_title_only.is_empty());
@@ -981,7 +959,7 @@ mod tests {
       post_url_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(1, post_search_url_only);
@@ -992,7 +970,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     // Should only be 1 not 2, because liked only ignores your own content
@@ -1003,7 +981,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     // Should be zero because you disliked your own post
@@ -1015,7 +993,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, post_search_sort_top);
 
@@ -1044,7 +1022,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, comment_search);
 
@@ -1079,7 +1057,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(2, comment_search_by_community);
 
@@ -1089,7 +1067,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
 
     assert_length!(2, comment_search_by_name);
@@ -1100,7 +1078,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, comment_search_liked_only);
@@ -1110,7 +1088,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()))
+    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
     .await?;
 
     assert_length!(1, comment_search_disliked_only);
@@ -1121,7 +1099,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None)
+    .list(pool, &None, data.instance.id)
     .await?;
     assert_length!(3, comment_search_sort_top);
 

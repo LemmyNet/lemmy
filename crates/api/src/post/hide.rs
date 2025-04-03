@@ -16,6 +16,7 @@ pub async fn hide_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
 
   let hide_form = PostHideForm::new(post_id, person_id);
@@ -31,6 +32,7 @@ pub async fn hide_post(
     &mut context.pool(),
     post_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
     false,
   )
   .await?;

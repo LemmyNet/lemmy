@@ -23,6 +23,7 @@ pub async fn like_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
 
   check_local_vote_mode(
@@ -36,7 +37,7 @@ pub async fn like_post(
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let post = PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
   check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
 

@@ -14,7 +14,8 @@ pub mod aliases {
   use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
-    instance_actions as home_instance_actions: HomeInstanceActions,
+    instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
+    instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
@@ -214,11 +215,21 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
 );
 
 #[cfg(feature = "full")]
-/// A helper tuple for creator community actions
-pub type HomeInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::HomeInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::HomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::HomeInstanceActions, instance_actions::blocked>,
-  AliasedField<aliases::HomeInstanceActions, instance_actions::received_ban>,
-  AliasedField<aliases::HomeInstanceActions, instance_actions::ban_expires>,
+/// A helper tuple for creator home instance actions.
+pub type CreatorHomeInstanceActionsAllColumnsTuple = (
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for creator local instance actions.
+pub type CreatorLocalInstanceActionsAllColumnsTuple = (
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires>,
 );

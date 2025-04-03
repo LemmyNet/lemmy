@@ -77,9 +77,10 @@ impl Comment {
   ) -> Result<Vec<CommentId>, Error> {
     let conn = &mut get_conn(pool).await?;
     // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let community_join = community::table.on(post::community_id.eq(community::id));
     let comment_ids = comment::table
       .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(community_join)
       .filter(comment::creator_id.eq(creator_id))
       .filter(community::instance_id.eq(instance_id))
       .select(comment::id)
