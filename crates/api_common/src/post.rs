@@ -325,10 +325,3 @@ pub struct ListPostLikes {
 pub struct ListPostLikesResponse {
   pub post_likes: Vec<VoteView>,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct BlockKeywordForPost {
-  pub keywords_to_block: Vec<String>,
-}
