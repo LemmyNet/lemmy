@@ -1,7 +1,6 @@
-#[cfg(feature = "full")]
-use crate::schema::local_site;
-use crate::{
-  newtypes::{LocalSiteId, SiteId},
+use crate::newtypes::{LocalSiteId, SiteId};
+use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::{
   CommentSortType,
   FederationMode,
   ListingType,
@@ -9,7 +8,8 @@ use crate::{
   PostSortType,
   RegistrationMode,
 };
-use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::local_site;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

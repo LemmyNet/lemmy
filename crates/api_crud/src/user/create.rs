@@ -31,8 +31,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::get_conn,
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_email::{
   account::send_verification_email_if_required,

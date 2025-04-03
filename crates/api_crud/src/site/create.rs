@@ -183,12 +183,8 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_schema::{
-    source::local_site::LocalSite,
-    ListingType,
-    PostSortType,
-    RegistrationMode,
-  };
+  use lemmy_db_schema::source::local_site::LocalSite;
+  use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]

@@ -11,8 +11,15 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
-  schema::{comment, comment_actions, community_actions, person, post, post_actions},
   utils::{get_conn, limit_and_offset, DbPool},
+};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  community_actions,
+  person,
+  post,
+  post_actions,
 };
 
 impl VoteView {

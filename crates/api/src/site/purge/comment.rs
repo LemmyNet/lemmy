@@ -27,12 +27,14 @@ pub async fn purge_comment(
   is_admin(&local_user_view)?;
 
   let comment_id = data.comment_id;
+  let local_instance_id = local_user_view.person.instance_id;
 
   // Read the comment to get the post_id and community
   let comment_view = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 

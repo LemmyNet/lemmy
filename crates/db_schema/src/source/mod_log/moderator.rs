@@ -1,5 +1,25 @@
+use crate::newtypes::{
+  CommentId,
+  CommunityId,
+  InstanceId,
+  ModAddCommunityId,
+  ModAddId,
+  ModBanFromCommunityId,
+  ModBanId,
+  ModChangeCommunityVisibilityId,
+  ModFeaturePostId,
+  ModLockPostId,
+  ModRemoveCommentId,
+  ModRemoveCommunityId,
+  ModRemovePostId,
+  ModTransferCommunityId,
+  PersonId,
+  PostId,
+};
+use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::CommunityVisibility;
 #[cfg(feature = "full")]
-use crate::schema::{
+use lemmy_db_schema_file::schema::{
   mod_add,
   mod_add_community,
   mod_ban,
@@ -12,28 +32,6 @@ use crate::schema::{
   mod_remove_post,
   mod_transfer_community,
 };
-use crate::{
-  newtypes::{
-    CommentId,
-    CommunityId,
-    InstanceId,
-    ModAddCommunityId,
-    ModAddId,
-    ModBanFromCommunityId,
-    ModBanId,
-    ModChangeCommunityVisibilityId,
-    ModFeaturePostId,
-    ModLockPostId,
-    ModRemoveCommentId,
-    ModRemoveCommunityId,
-    ModRemovePostId,
-    ModTransferCommunityId,
-    PersonId,
-    PostId,
-  },
-  CommunityVisibility,
-};
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

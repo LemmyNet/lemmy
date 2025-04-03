@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::{
-  schema::post,
   source::{
     community::{Community, CommunityInsertForm},
     instance::Instance,
@@ -20,8 +19,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{build_db_pool, get_conn, now},
-  PostSortType,
 };
+use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_db_views::{post::post_view::PostQuery, structs::PostPaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;

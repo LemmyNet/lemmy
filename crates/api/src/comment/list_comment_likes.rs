@@ -13,10 +13,13 @@ pub async fn list_comment_likes(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListCommentLikesResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   let comment_view = CommentView::read(
     &mut context.pool(),
     data.comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 

@@ -14,13 +14,12 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_actions, person},
-  source::{
-    community::{Community, CommunityFollowerState},
-    person::Person,
-  },
+  source::{community::Community, person::Person},
   utils::{get_conn, limit_and_offset, DbPool},
-  CommunityVisibility,
+};
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility},
+  schema::{community, community_actions, person},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
