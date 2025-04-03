@@ -47,11 +47,14 @@ pub async fn create_comment(
   // Check for a community ban
   let post_id = data.post_id;
 
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Read the full post view in order to get the comments count.
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
     true,
   )
   .await?;
@@ -119,6 +122,7 @@ pub async fn create_comment(
     true,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
@@ -181,6 +185,7 @@ pub async fn create_comment(
       inserted_comment.id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

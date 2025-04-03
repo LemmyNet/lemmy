@@ -6,7 +6,20 @@ use crate::{
     PersonSavedCombinedViewInternal,
     PostView,
   },
-  utils::home_instance_person_join,
+  utils::{
+    community_join,
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_actions_person_join,
+    my_local_user_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
 };
 use diesel::{
   BoolExpressionMethods,
@@ -19,22 +32,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{creator_community_actions, creator_local_user},
-  newtypes::{PaginationCursor, PersonId},
-  schema::{
-    comment,
-    comment_actions,
-    community,
-    community_actions,
-    image_details,
-    instance_actions,
-    local_user,
-    person,
-    person_actions,
-    person_saved_combined,
-    post,
-    post_actions,
-  },
+  newtypes::{InstanceId, PaginationCursor, PersonId},
+  schema::{comment, person, person_saved_combined, post},
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
@@ -84,7 +83,7 @@ impl PaginationCursorBuilder for PersonSavedCombinedView {
 
 impl PersonSavedCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  pub(crate) fn joins(my_person_id: PersonId) -> _ {
+  pub(crate) fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
 
     let comment_join =
@@ -96,88 +95,46 @@ impl PersonSavedCombinedViewInternal {
         .or(comment::post_id.eq(post::id)),
     );
 
-    let item_creator_join = person::table
-      .on(
-        comment::creator_id
-          .eq(item_creator)
-          // Need to filter out the post rows where the post_id given is null
-          // Otherwise you'll get duped post rows
-          .or(
-            post::creator_id
-              .eq(item_creator)
-              .and(person_saved_combined::post_id.is_not_null()),
-          ),
-      )
-      .left_join(home_instance_person_join());
-
-    let community_join = community::table.on(post::community_id.eq(community::id));
-
-    let creator_community_actions_join = creator_community_actions.on(
-      creator_community_actions
-        .field(community_actions::community_id)
-        .eq(post::community_id)
-        .and(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(item_creator),
+    let item_creator_join = person::table.on(
+      comment::creator_id
+        .eq(item_creator)
+        // Need to filter out the post rows where the post_id given is null
+        // Otherwise you'll get duped post rows
+        .or(
+          post::creator_id
+            .eq(item_creator)
+            .and(person_saved_combined::post_id.is_not_null()),
         ),
     );
 
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(my_person_id));
-
-    let creator_local_user_join = creator_local_user.on(
-      item_creator
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    );
-
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(post::community_id)
-        .and(community_actions::person_id.eq(my_person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(person::instance_id)
-        .and(instance_actions::person_id.eq(my_person_id)),
-    );
-
-    let post_actions_join = post_actions::table.on(
-      post_actions::post_id
-        .eq(post::id)
-        .and(post_actions::person_id.eq(my_person_id)),
-    );
-
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(item_creator)
-        .and(person_actions::person_id.eq(my_person_id)),
-    );
-
-    let comment_actions_join = comment_actions::table.on(
-      comment_actions::comment_id
-        .eq(comment::id)
-        .and(comment_actions::person_id.eq(my_person_id)),
-    );
-
-    let image_details_join =
-      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(Some(my_person_id));
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person_id));
+    let my_comment_actions_join: my_comment_actions_join =
+      my_comment_actions_join(Some(my_person_id));
+    let my_local_user_join: my_local_user_join = my_local_user_join(Some(my_person_id));
+    let my_instance_actions_person_join: my_instance_actions_person_join =
+      my_instance_actions_person_join(Some(my_person_id));
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     person_saved_combined::table
       .left_join(comment_join)
       .inner_join(post_join)
       .inner_join(item_creator_join)
-      .inner_join(community_join)
-      .left_join(creator_community_actions_join)
-      .left_join(local_user_join)
-      .left_join(creator_local_user_join)
-      .left_join(community_actions_join)
-      .left_join(instance_actions_join)
-      .left_join(post_actions_join)
-      .left_join(person_actions_join)
-      .left_join(comment_actions_join)
-      .left_join(image_details_join)
+      .inner_join(community_join())
+      .left_join(creator_community_actions_join())
+      .left_join(my_local_user_join)
+      .left_join(creator_local_user_admin_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_instance_actions_person_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_comment_actions_join)
+      .left_join(image_details_join())
   }
 }
 
@@ -188,10 +145,11 @@ impl PersonSavedCombinedQuery {
     user: &LocalUserView,
   ) -> LemmyResult<Vec<PersonSavedCombinedView>> {
     let my_person_id = user.local_user.person_id;
+    let local_instance_id = user.person.instance_id;
 
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = PersonSavedCombinedViewInternal::joins(my_person_id)
+    let mut query = PersonSavedCombinedViewInternal::joins(my_person_id, local_instance_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select(PersonSavedCombinedViewInternal::as_select())
       .into_boxed();
@@ -249,10 +207,12 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     } else {
       Some(PersonSavedCombinedView::Post(PostView {
@@ -264,10 +224,12 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        home_instance_actions: v.home_instance_actions,
+        creator_home_instance_actions: v.creator_home_instance_actions,
+        creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         can_mod: v.can_mod,
+        creator_banned: v.creator_banned,
       }))
     }
   }

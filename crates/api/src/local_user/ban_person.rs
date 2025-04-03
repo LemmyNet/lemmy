@@ -26,6 +26,8 @@ pub async fn ban_from_site(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BanPersonResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -85,7 +87,13 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id, false).await?;
+  let person_view = PersonView::read(
+    &mut context.pool(),
+    data.person_id,
+    local_instance_id,
+    false,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {

@@ -16,6 +16,7 @@ pub async fn list_inbox(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListInboxResponse>> {
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
     Some(InboxCombinedView::from_cursor(cursor, &mut context.pool()).await?)
@@ -30,7 +31,7 @@ pub async fn list_inbox(
     cursor_data,
     page_back: data.page_back,
   }
-  .list(&mut context.pool(), person_id)
+  .list(&mut context.pool(), person_id, local_instance_id)
   .await?;
 
   let next_page = inbox.last().map(PaginationCursorBuilder::to_cursor);
