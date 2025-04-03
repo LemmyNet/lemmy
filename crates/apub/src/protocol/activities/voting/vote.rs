@@ -6,10 +6,8 @@ use crate::{
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_db_views::structs::PostView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
 use strum::Display;
@@ -54,18 +52,14 @@ impl From<&VoteType> for i16 {
 
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community_id = match self.object.dereference(context).await? {
-      Either::Left(p) => p.community_id,
+    let community = match self.object.dereference(context).await? {
+      Either::Left(p) => Community::read(&mut context.pool(), p.community_id).await?,
       Either::Right(c) => {
-        Post::read(&mut context.pool(), c.post_id)
+        PostView::read(&mut context.pool(), c.post_id, None, false)
           .await?
-          .community_id
+          .community
       }
     };
-    Ok(
-      Community::read(&mut context.pool(), community_id)
-        .await?
-        .into(),
-    )
+    Ok(community.into())
   }
 }
