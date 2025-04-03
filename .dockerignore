@@ -1,17 +1,1 @@
-# build folders and similar which are not needed for the docker build
-# don't include git-tracked paths here, as they will result in a dirty git version being embedded
-target
-ansible
-tests
-*.sh
-pictrs
-
-# docker build files
-docker/lemmy_mine.hjson
-docker/dev/env_deploy.sh
-
-# API tests
-api_tests/node_modules
-api_tests/.yalc
-api_tests/yalc.lock
-api_tests/pict-rs
+.gitignore
