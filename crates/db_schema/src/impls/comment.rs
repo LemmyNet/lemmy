@@ -1,7 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, DbUrl, InstanceId, PersonId},
-  schema::{comment, comment_actions, community, post},
   source::comment::{
     Comment,
     CommentActions,
@@ -31,6 +30,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

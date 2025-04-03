@@ -14,11 +14,11 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::creator_local_instance_actions,
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  schema::{instance_actions, local_user, person},
   source::person::{person_keys as key, Person},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, now, DbPool},
 };
+use lemmy_db_schema_file::schema::{instance_actions, local_user, person};
 use lemmy_utils::error::LemmyResult;
 
 impl PaginationCursorBuilder for PersonView {

@@ -22,7 +22,8 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{source::community::Community, traits::ApubActor, CommunityVisibility};
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
@@ -173,7 +174,6 @@ pub(crate) mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
-    CommunityVisibility,
   };
   use serde::de::DeserializeOwned;
   use serial_test::serial;

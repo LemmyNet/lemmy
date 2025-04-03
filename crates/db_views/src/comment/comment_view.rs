@@ -27,6 +27,11 @@ use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
+  source::{local_user::LocalUser, site::Site},
+  utils::{get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+};
+use lemmy_db_schema_file::{
+  enums::{CommentSortType, CommunityFollowerState, CommunityVisibility, ListingType},
   schema::{
     comment,
     comment_actions,
@@ -36,11 +41,6 @@ use lemmy_db_schema::{
     person,
     post,
   },
-  source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
-  utils::{get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
-  CommentSortType,
-  CommunityVisibility,
-  ListingType,
 };
 
 impl CommentView {
@@ -300,6 +300,7 @@ impl CommentQuery<'_> {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
+  use super::*;
   use crate::{
     comment::comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
     structs::LocalUserView,
@@ -315,7 +316,6 @@ mod tests {
         Community,
         CommunityActions,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityPersonBanForm,
@@ -330,7 +330,6 @@ mod tests {
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::build_db_pool_for_tests,
-    CommunityVisibility,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

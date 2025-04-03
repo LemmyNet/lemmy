@@ -20,19 +20,6 @@ use lemmy_api_common::{
   utils::send_webmention,
 };
 use lemmy_db_schema::{
-  schema::{
-    captcha_answer,
-    comment,
-    community,
-    community_actions,
-    federation_blocklist,
-    instance,
-    instance_actions,
-    person,
-    post,
-    received_activity,
-    sent_activity,
-  },
   source::{
     community::Community,
     instance::{Instance, InstanceForm},
@@ -41,6 +28,19 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+};
+use lemmy_db_schema_file::schema::{
+  captcha_answer,
+  comment,
+  community,
+  community_actions,
+  federation_blocklist,
+  instance,
+  instance_actions,
+  person,
+  post,
+  received_activity,
+  sent_activity,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

@@ -35,7 +35,7 @@ use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   comment_reply::CommentReply,
   comment_report::CommentReport,
-  community::{Community, CommunityActions, CommunityFollowerState},
+  community::{Community, CommunityActions},
   community_report::CommunityReport,
   custom_emoji::CustomEmoji,
   custom_emoji_keyword::CustomEmojiKeyword,
@@ -80,7 +80,6 @@ use lemmy_db_schema::source::{
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
-  schema::local_user,
   utils::functions::coalesce,
   CreatorCommunityActionsAllColumnsTuple,
   CreatorHomeInstanceActionsAllColumnsTuple,
@@ -88,6 +87,9 @@ use lemmy_db_schema::{
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

@@ -2,7 +2,6 @@ use crate::structs::SiteView;
 use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  schema::{instance, local_site, local_site_rate_limit, site},
   source::{
     instance::Instance,
     local_site::{LocalSite, LocalSiteInsertForm},
@@ -12,6 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::schema::{instance, local_site, local_site_rate_limit, site};
 use lemmy_utils::{
   build_cache,
   error::{LemmyError, LemmyErrorType, LemmyResult},

@@ -1,0 +1,47 @@
+[package]
+name = "lemmy_db_schema_file"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_db_schema_file"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+  "diesel",
+  "diesel_ltree",
+  "diesel-derive-enum",
+  "ts-rs",
+  "lemmy_utils",
+  "anyhow",
+  "chrono",
+  "tracing",
+  "diesel_migrations",
+]
+
+[dependencies]
+serde = { workspace = true }
+strum = { workspace = true }
+diesel = { workspace = true, optional = true }
+diesel_ltree = { workspace = true, optional = true }
+ts-rs = { workspace = true, optional = true }
+diesel-derive-enum = { workspace = true, optional = true }
+lemmy_utils = { workspace = true, features = ["full"], optional = true }
+anyhow = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+diesel_migrations = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+diffutils = "0.4.2"

@@ -1,12 +1,12 @@
 use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::LocalUserId,
-  schema::login_token::{dsl::login_token, user_id},
   source::login_token::{LoginToken, LoginTokenCreateForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, dsl::exists, insert_into, result::Error, select};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::login_token::{dsl::login_token, user_id};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl LoginToken {

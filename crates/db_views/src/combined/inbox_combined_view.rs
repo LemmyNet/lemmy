@@ -37,22 +37,22 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self},
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  schema::{
-    comment,
-    comment_reply,
-    inbox_combined,
-    instance_actions,
-    person,
-    person_actions,
-    person_comment_mention,
-    person_post_mention,
-    post,
-    private_message,
-  },
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   InboxDataType,
+};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_reply,
+  inbox_combined,
+  instance_actions,
+  person,
+  person_actions,
+  person_comment_mention,
+  person_post_mention,
+  post,
+  private_message,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

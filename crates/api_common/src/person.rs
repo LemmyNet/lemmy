@@ -10,13 +10,10 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
-  CommentSortType,
   InboxDataType,
-  ListingType,
   PersonContentType,
-  PostListingMode,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
 use lemmy_db_views::structs::{
   CommunityModeratorView,
   InboxCombinedView,

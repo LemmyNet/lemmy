@@ -3119,6 +3119,7 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_api_crud",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_email",
  "lemmy_utils",
@@ -3149,6 +3150,7 @@ dependencies = [
  "infer",
  "jsonwebtoken",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_email",
  "lemmy_utils",
@@ -3187,6 +3189,7 @@ dependencies = [
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_email",
  "lemmy_utils",
@@ -3216,6 +3219,7 @@ dependencies = [
  "itertools 0.14.0",
  "lemmy_api_common",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_utils",
  "moka",
@@ -3243,6 +3247,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_utils",
  "tokio",
@@ -3254,20 +3259,17 @@ name = "lemmy_db_schema"
 version = "1.0.0-alpha.4"
 dependencies = [
  "activitypub_federation",
- "anyhow",
  "bcrypt",
  "chrono",
  "deadpool",
  "derive-new",
  "diesel",
  "diesel-async",
- "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
- "diesel_migrations",
- "diffutils",
  "futures-util",
  "i-love-jesus",
+ "lemmy_db_schema_file",
  "lemmy_utils",
  "pretty_assertions",
  "regex",
@@ -3288,6 +3290,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_schema_file"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "diesel",
+ "diesel-derive-enum",
+ "diesel_ltree",
+ "diesel_migrations",
+ "diffutils",
+ "lemmy_utils",
+ "serde",
+ "serial_test",
+ "strum",
+ "tracing",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3299,6 +3320,7 @@ dependencies = [
  "diesel_ltree",
  "i-love-jesus",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -3318,6 +3340,7 @@ version = "1.0.0-alpha.4"
 dependencies = [
  "html2text",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_utils",
  "lettre",
@@ -3341,6 +3364,7 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_utils",
  "mockall",
@@ -3375,6 +3399,7 @@ dependencies = [
  "http 1.2.0",
  "lemmy_api_common",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
@@ -3401,6 +3426,7 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_apub",
  "lemmy_db_schema",
+ "lemmy_db_schema_file",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",

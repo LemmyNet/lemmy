@@ -1,7 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_actions, instance, post},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -9,7 +8,6 @@ use crate::{
       CommunityActions,
       CommunityBlockForm,
       CommunityFollowerForm,
-      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModeratorForm,
       CommunityPersonBanForm,
@@ -24,8 +22,6 @@ use crate::{
     uplete,
     DbPool,
   },
-  CommunityVisibility,
-  ListingType,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -40,6 +36,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
+  schema::{community, community_actions, instance, post},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -585,6 +585,7 @@ impl ApubActor for Community {
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -592,7 +593,6 @@ mod tests {
         Community,
         CommunityActions,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityPersonBanForm,
@@ -605,7 +605,6 @@ mod tests {
     },
     traits::{Bannable, Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
-    CommunityVisibility,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

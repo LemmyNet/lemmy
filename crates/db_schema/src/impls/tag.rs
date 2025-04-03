@@ -1,12 +1,12 @@
 use crate::{
   newtypes::TagId,
-  schema::{post_tag, tag},
   source::tag::{PostTagInsertForm, Tag, TagInsertForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::LemmyResult;
 
 impl Crud for Tag {

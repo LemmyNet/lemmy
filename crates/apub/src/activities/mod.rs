@@ -36,13 +36,13 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
   },
   traits::Crud,
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, SiteView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
