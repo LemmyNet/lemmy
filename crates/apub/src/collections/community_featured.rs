@@ -74,13 +74,9 @@ impl Collection for ApubCommunityFeatured {
 
     // process items in parallel, to avoid long delay from fetch_site_metadata() and other
     // processing
-    let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| {
-      async {
-        // use separate request counter for each item, otherwise there will be problems with
-        // parallel processing
-        ApubPost::verify(&page, &apub.id, context).await?;
-        ApubPost::from_json(page, context).await
-      }
+    let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| async move {
+      // Dont verify/receive the `page` directly because it throws error for local post
+      page.id.dereference(context).await
     }))
     .await
     // ignore any failed or unparseable items
