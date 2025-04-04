@@ -1,7 +1,6 @@
 use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
-  schema::{community_language, local_site, local_user_language, site, site_language},
   source::{
     actor_language::{
       CommunityLanguage,
@@ -30,6 +29,13 @@ use diesel_async::{
   AsyncConnection,
   AsyncPgConnection,
   RunQueryDsl,
+};
+use lemmy_db_schema_file::schema::{
+  community_language,
+  local_site,
+  local_user_language,
+  site,
+  site_language,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
@@ -186,7 +192,7 @@ impl CommunityLanguage {
     for_language_id: LanguageId,
     for_community_id: CommunityId,
   ) -> LemmyResult<()> {
-    use crate::schema::community_language::dsl::community_language;
+    use lemmy_db_schema_file::schema::community_language::dsl::community_language;
     let conn = &mut get_conn(pool).await?;
 
     let is_allowed = select(exists(
@@ -210,7 +216,7 @@ impl CommunityLanguage {
     conn: &mut AsyncPgConnection,
     for_instance_id: InstanceId,
   ) -> Result<(), Error> {
-    use crate::schema::{
+    use lemmy_db_schema_file::schema::{
       community::dsl as c,
       community_language::dsl as cl,
       site_language::dsl as sl,
@@ -236,7 +242,11 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
+    use lemmy_db_schema_file::schema::community_language::dsl::{
+      community_id,
+      community_language,
+      language_id,
+    };
     let conn = &mut get_conn(pool).await?;
     let langs = community_language
       .filter(community_id.eq(for_community_id))
@@ -305,7 +315,10 @@ pub async fn validate_post_language(
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> LemmyResult<LanguageId> {
-  use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
+  use lemmy_db_schema_file::schema::{
+    community_language::dsl as cl,
+    local_user_language::dsl as ul,
+  };
   let conn = &mut get_conn(pool).await?;
   let language_id = match language_id {
     None | Some(LanguageId(0)) => {
@@ -360,7 +373,7 @@ async fn convert_read_languages(
   static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
   let count = ALL_LANGUAGES_COUNT
     .get_or_init(|| async {
-      use crate::schema::language::dsl::{id, language};
+      use lemmy_db_schema_file::schema::language::dsl::{id, language};
       let count: i64 = language
         .select(count(id))
         .first(conn)
@@ -446,7 +459,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_read_languages() -> Result<(), Error> {
-    use crate::schema::language::dsl::{id, language};
+    use lemmy_db_schema_file::schema::language::dsl::{id, language};
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 

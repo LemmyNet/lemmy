@@ -51,6 +51,7 @@ pub async fn update_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let local_instance_id = local_user_view.person.instance_id;
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
@@ -92,7 +93,8 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
@@ -152,6 +154,7 @@ pub async fn update_post(
     false,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 

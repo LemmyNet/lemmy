@@ -1,11 +1,11 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::{oauth_account, oauth_account::dsl::local_user_id},
   source::oauth_account::{OAuthAccount, OAuthAccountInsertForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{oauth_account, oauth_account::dsl::local_user_id};
 
 impl OAuthAccount {
   pub async fn create(pool: &mut DbPool<'_>, form: &OAuthAccountInsertForm) -> Result<Self, Error> {

@@ -55,17 +55,24 @@ async fn convert_response(
   let local_user = local_user_view.map(|l| l.local_user);
   let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
 
+  let site_view = SiteView::read_local(pool).await?;
+  let local_instance_id = site_view.site.instance_id;
+
   match object {
     SearchableObjects::Left(pc) => match pc {
       PostOrComment::Left(p) => {
-        res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), is_admin).await?)
+        res.post =
+          Some(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
       }
       PostOrComment::Right(c) => {
-        res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
+        res.comment =
+          Some(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
       }
     },
     SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(u) => res.person = Some(PersonView::read(pool, u.id, is_admin).await?),
+      UserOrCommunity::Left(u) => {
+        res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
+      }
       UserOrCommunity::Right(c) => {
         res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
       }

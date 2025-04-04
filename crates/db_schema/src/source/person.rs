@@ -1,5 +1,3 @@
-#[cfg(feature = "full")]
-use crate::schema::{person, person_actions};
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -8,6 +6,8 @@ use crate::{
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::{person, person_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

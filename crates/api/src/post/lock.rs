@@ -23,7 +23,10 @@ pub async fn lock_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let local_instance_id = local_user_view.person.instance_id;
+
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
   check_community_mod_action(
     &local_user_view,

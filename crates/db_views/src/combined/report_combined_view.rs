@@ -23,27 +23,27 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
-  schema::{
-    comment,
-    comment_actions,
-    comment_report,
-    community,
-    community_actions,
-    community_report,
-    local_user,
-    person,
-    person_actions,
-    post,
-    post_actions,
-    post_report,
-    private_message,
-    private_message_report,
-    report_combined,
-  },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool, ReverseTimestampKey},
   ReportType,
+};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  comment_report,
+  community,
+  community_actions,
+  community_report,
+  local_user,
+  person,
+  person_actions,
+  post,
+  post_actions,
+  post_report,
+  private_message,
+  private_message_report,
+  report_combined,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -468,7 +468,6 @@ mod tests {
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
     assert_length,
-    schema::report_combined,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -486,6 +485,7 @@ mod tests {
     utils::{build_db_pool_for_tests, get_conn, DbPool},
     ReportType,
   };
+  use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

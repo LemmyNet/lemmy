@@ -20,13 +20,13 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityActions, CommunityFollowerForm, CommunityFollowerState},
+    community::{CommunityActions, CommunityFollowerForm},
     instance::Instance,
     person::{PersonActions, PersonFollowerForm},
   },
   traits::Followable,
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 

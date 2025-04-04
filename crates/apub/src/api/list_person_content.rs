@@ -18,9 +18,11 @@ pub async fn list_person_content(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListPersonContentResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let local_instance_id = site_view.site.instance_id;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let person_details_id = resolve_person_id_from_id_or_username(
     &data.person_id,
@@ -42,7 +44,7 @@ pub async fn list_person_content(
     cursor_data,
     page_back: data.page_back,
   }
-  .list(&mut context.pool(), &local_user_view)
+  .list(&mut context.pool(), &local_user_view, local_instance_id)
   .await?;
 
   let next_page = content.last().map(PaginationCursorBuilder::to_cursor);

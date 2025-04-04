@@ -1,9 +1,8 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
   source::site::Site,
-  CommunityVisibility,
-  ListingType,
 };
+use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
 use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunitySortType,

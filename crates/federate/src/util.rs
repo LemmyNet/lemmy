@@ -8,7 +8,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
-    activity::{ActorType, SentActivity},
+    activity::SentActivity,
     community::Community,
     federation_queue_state::FederationQueueState,
     person::Person,
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::enums::ActorType;
 use moka::future::Cache;
 use reqwest::Url;
 use serde_json::Value;
@@ -208,7 +209,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
   CACHE
     .try_get_with((), async {
       use diesel::dsl::max;
-      use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
+      use lemmy_db_schema_file::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       let latest_id = seq.unwrap_or(ActivityId(0));

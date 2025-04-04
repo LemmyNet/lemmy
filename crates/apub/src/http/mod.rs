@@ -16,8 +16,8 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};

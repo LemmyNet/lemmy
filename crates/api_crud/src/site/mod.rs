@@ -1,4 +1,4 @@
-use lemmy_db_schema::{ListingType, RegistrationMode};
+use lemmy_db_schema_file::enums::{ListingType, RegistrationMode};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub mod create;
@@ -51,7 +51,7 @@ fn not_zero(val: Option<i32>) -> Option<i32> {
 mod tests {
 
   use crate::site::{application_question_check, not_zero, site_default_post_listing_type_check};
-  use lemmy_db_schema::{ListingType, RegistrationMode};
+  use lemmy_db_schema_file::enums::{ListingType, RegistrationMode};
 
   #[test]
   fn test_site_default_post_listing_type_check() {
