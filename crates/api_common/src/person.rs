@@ -10,13 +10,10 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
-  CommentSortType,
   InboxDataType,
-  ListingType,
   PersonContentType,
-  PostListingMode,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
 use lemmy_db_views::structs::{
   CommunityModeratorView,
   InboxCombinedView,
@@ -566,13 +563,4 @@ pub struct ListLoginsResponse {
 /// Make a request to resend your verification email.
 pub struct ResendVerificationEmail {
   pub email: SensitiveString,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Make a request to resend your verification email.
-pub struct DonationDialogShown {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub hide_permanently: Option<bool>,
 }

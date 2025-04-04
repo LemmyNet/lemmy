@@ -1,9 +1,9 @@
 use crate::newtypes::{CommentId, PersonId, PersonSavedCombinedId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::person_saved_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::person_saved_combined;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

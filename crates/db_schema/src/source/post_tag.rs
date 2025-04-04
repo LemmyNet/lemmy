@@ -1,7 +1,7 @@
 use crate::newtypes::{PostId, TagId};
-#[cfg(feature = "full")]
-use crate::schema::post_tag;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::post_tag;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

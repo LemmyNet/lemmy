@@ -1,8 +1,7 @@
 use crate::{
-  fetcher::user_or_community::PersonOrGroupType,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
-    objects::{AttributedTo, LanguageTag},
+    objects::{AttributedTo, LanguageTag, PersonOrGroupType},
     ImageObject,
     InCommunity,
     Source,

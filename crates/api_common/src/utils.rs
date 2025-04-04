@@ -37,9 +37,8 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
-  FederationMode,
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
   structs::{
@@ -82,7 +81,13 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
-  CommunityView::check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+  CommunityView::check_is_mod_or_admin(
+    pool,
+    local_user_view.person.id,
+    community_id,
+    local_user_view.person.instance_id,
+  )
+  .await
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -111,7 +116,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_valid(local_user_view)?;
-  CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
+  CommunityView::check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {

@@ -1,10 +1,10 @@
 use crate::{
-  schema::local_site,
   source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::local_site;
 
 impl LocalSite {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> Result<Self, Error> {

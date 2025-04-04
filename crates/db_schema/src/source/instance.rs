@@ -1,7 +1,7 @@
 use crate::newtypes::{InstanceId, PersonId};
-#[cfg(feature = "full")]
-use crate::schema::{instance, instance_actions};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::{instance, instance_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;

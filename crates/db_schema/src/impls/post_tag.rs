@@ -1,7 +1,6 @@
 use crate::{
   diesel::SelectableHelper,
   newtypes::{PostId, TagId},
-  schema::post_tag,
   source::{
     post_tag::{PostTag, PostTagForm},
     tag::PostTagInsertForm,
@@ -11,6 +10,7 @@ use crate::{
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::post_tag;
 
 impl PostTag {
   pub async fn set(

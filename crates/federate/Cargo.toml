@@ -20,6 +20,7 @@ lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views.workspace = true
 lemmy_utils.workspace = true
+lemmy_db_schema_file = { workspace = true }
 
 activitypub_federation.workspace = true
 anyhow.workspace = true

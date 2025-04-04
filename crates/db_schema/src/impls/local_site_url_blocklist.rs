@@ -1,5 +1,4 @@
 use crate::{
-  schema::local_site_url_blocklist,
   source::local_site_url_blocklist::{LocalSiteUrlBlocklist, LocalSiteUrlBlocklistForm},
   utils::{get_conn, DbPool},
 };
@@ -10,6 +9,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
+use lemmy_db_schema_file::schema::local_site_url_blocklist;
 
 impl LocalSiteUrlBlocklist {
   pub async fn replace(pool: &mut DbPool<'_>, url_blocklist: Vec<String>) -> Result<usize, Error> {

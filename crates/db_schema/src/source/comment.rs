@@ -1,11 +1,11 @@
 #[cfg(feature = "full")]
 use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::{comment, comment_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

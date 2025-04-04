@@ -9,11 +9,11 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    community::{Community, CommunityActions, CommunityFollowerForm, CommunityFollowerState},
+    community::{Community, CommunityActions, CommunityFollowerForm},
   },
   traits::{Crud, Followable},
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 

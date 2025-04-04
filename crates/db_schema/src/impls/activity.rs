@@ -14,7 +14,7 @@ use diesel_async::RunQueryDsl;
 
 impl SentActivity {
   pub async fn create(pool: &mut DbPool<'_>, form: SentActivityForm) -> Result<Self, Error> {
-    use crate::schema::sent_activity::dsl::sent_activity;
+    use lemmy_db_schema_file::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
     insert_into(sent_activity)
       .values(form)
@@ -23,12 +23,12 @@ impl SentActivity {
   }
 
   pub async fn read_from_apub_id(pool: &mut DbPool<'_>, object_id: &DbUrl) -> Result<Self, Error> {
-    use crate::schema::sent_activity::dsl::{ap_id, sent_activity};
+    use lemmy_db_schema_file::schema::sent_activity::dsl::{ap_id, sent_activity};
     let conn = &mut get_conn(pool).await?;
     sent_activity.filter(ap_id.eq(object_id)).first(conn).await
   }
   pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Self, Error> {
-    use crate::schema::sent_activity::dsl::sent_activity;
+    use lemmy_db_schema_file::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
     sent_activity.find(object_id).first(conn).await
   }
@@ -36,7 +36,7 @@ impl SentActivity {
 
 impl ReceivedActivity {
   pub async fn create(pool: &mut DbPool<'_>, ap_id_: &DbUrl) -> Result<(), Error> {
-    use crate::schema::received_activity::dsl::{ap_id, received_activity};
+    use lemmy_db_schema_file::schema::received_activity::dsl::{ap_id, received_activity};
     let conn = &mut get_conn(pool).await?;
     let rows_affected = insert_into(received_activity)
       .values(ap_id.eq(ap_id_))
@@ -61,7 +61,8 @@ impl ReceivedActivity {
 mod tests {
 
   use super::*;
-  use crate::{source::activity::ActorType, utils::build_db_pool_for_tests};
+  use crate::utils::build_db_pool_for_tests;
+  use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serde_json::json;

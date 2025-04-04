@@ -1,13 +1,10 @@
 use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
   activities::GetActorType,
-  fetcher::{
-    markdown_links::markdown_rewrite_remote_links_opt,
-    user_or_community::PersonOrGroupType,
-  },
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, AttributedTo, LanguageTag},
+    objects::{group::Group, AttributedTo, LanguageTag, PersonOrGroupType},
     ImageObject,
     Source,
   },
@@ -36,13 +33,12 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
-    activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
   },
   traits::{ApubActor, Crud},
-  CommunityVisibility,
 };
+use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},

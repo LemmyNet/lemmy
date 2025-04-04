@@ -1,11 +1,5 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::email_verification::dsl::{
-    email_verification,
-    local_user_id,
-    published,
-    verification_token,
-  },
   source::email_verification::{EmailVerification, EmailVerificationForm},
   utils::{get_conn, DbPool},
 };
@@ -19,6 +13,12 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::email_verification::dsl::{
+  email_verification,
+  local_user_id,
+  published,
+  verification_token,
+};
 
 impl EmailVerification {
   pub async fn create(pool: &mut DbPool<'_>, form: &EmailVerificationForm) -> Result<Self, Error> {
