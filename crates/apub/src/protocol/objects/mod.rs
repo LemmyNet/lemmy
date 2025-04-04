@@ -21,6 +21,7 @@ pub(crate) mod note;
 pub(crate) mod page;
 pub(crate) mod person;
 pub(crate) mod private_message;
+pub(crate) mod tags;
 pub(crate) mod tombstone;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]

@@ -39,7 +39,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{CommunityView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -98,6 +98,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
+    let community_view = CommunityView::read(&mut data.pool(), community_id, None, false).await?;
 
     let group = Group {
       kind: GroupType::Group,
@@ -126,6 +127,12 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
+      post_tags: community_view
+        .post_tags
+        .0
+        .iter()
+        .map(|tag| tag.clone().into())
+        .collect(),
     };
     Ok(group)
   }

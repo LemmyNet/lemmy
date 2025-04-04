@@ -1,3 +1,4 @@
+use super::tags::LemmyCommunityPostTag;
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
@@ -68,7 +69,7 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<Hashtag>,
+  pub(crate) tag: Vec<HashtagOrLemmyTag>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -161,6 +162,14 @@ pub struct Hashtag {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum HashtagType {
   Hashtag,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum HashtagOrLemmyTag {
+  Hashtag(Hashtag),
+  LemmyCommunityPostTag(LemmyCommunityPostTag),
+  // more options can be added here in the future - as long es they have a unique type: property
 }
 
 impl Page {

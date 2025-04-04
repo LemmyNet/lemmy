@@ -1,6 +1,6 @@
 use crate::{
   diesel::SelectableHelper,
-  newtypes::{PostId, TagId},
+  newtypes::{CommunityId, PostId, TagId},
   source::{
     post_tag::{PostTag, PostTagForm},
     tag::PostTagInsertForm,
@@ -10,7 +10,8 @@ use crate::{
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::post_tag;
+use lemmy_db_schema_file::schema::{post_tag, tag};
+use url::Url;
 
 impl PostTag {
   pub async fn set(
@@ -20,6 +21,29 @@ impl PostTag {
   ) -> Result<Vec<Self>, diesel::result::Error> {
     PostTag::delete_for_post(pool, post_id).await?;
     PostTag::create_many(pool, tags).await
+  }
+  pub async fn set_from_apub(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    tag_ap_ids: Vec<Url>,
+    community_id: CommunityId,
+  ) -> Result<Vec<Self>, diesel::result::Error> {
+    // find tags in table. this also filters out tags we don't know about or that don't belong to
+    // the right community
+    let looked_up_ids = {
+      let conn = &mut get_conn(pool).await?;
+      tag::table
+        .filter(tag::community_id.eq(community_id))
+        .filter(tag::ap_id.eq_any(tag_ap_ids.iter().map(|ap_id| ap_id.as_str())))
+        .select(tag::id)
+        .get_results::<TagId>(conn)
+        .await?
+    };
+    let tags = looked_up_ids
+      .into_iter()
+      .map(|tag_id| PostTagInsertForm { post_id, tag_id })
+      .collect();
+    PostTag::set(pool, post_id, tags).await
   }
   async fn delete_for_post(
     pool: &mut DbPool<'_>,

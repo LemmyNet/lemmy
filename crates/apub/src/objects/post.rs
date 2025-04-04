@@ -5,7 +5,7 @@ use crate::{
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
-      page::{Attachment, Hashtag, HashtagType, Page, PageType},
+      page::{Attachment, Hashtag, HashtagOrLemmyTag, HashtagType, Page, PageType},
       AttributedTo,
       LanguageTag,
     },
@@ -33,13 +33,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::Community,
-    person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
+    post_tag::PostTag,
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, SiteView};
+use lemmy_db_views::structs::{CommunityModeratorView, PostView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -106,10 +105,20 @@ impl Object for ApubPost {
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
 
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
-    let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
-    let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id).await?;
+    // not sure why we need the local instance id here...
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    // feels like we should define ApubPost as ApubPost(PostView) tbh since it needs lots of
+    // surrounding info anyways that is missing in Post
+    let post_view = PostView::read(
+      &mut context.pool(),
+      self.id,
+      None,
+      site_view.site.instance_id,
+      false,
+    )
+    .await?;
+    let community = post_view.community;
+    let creator = post_view.creator;
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
 
     let attachment = self
@@ -130,6 +139,14 @@ impl Object for ApubPost {
       kind: HashtagType::Hashtag,
     };
 
+    let mut tags: Vec<HashtagOrLemmyTag> = post_view
+      .tags
+      .0
+      .iter()
+      .map(|tag| HashtagOrLemmyTag::LemmyCommunityPostTag(tag.clone().into()))
+      .collect();
+    tags.push(HashtagOrLemmyTag::Hashtag(hashtag));
+
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
@@ -147,7 +164,7 @@ impl Object for ApubPost {
       published: Some(self.published),
       updated: self.updated,
       in_reply_to: None,
-      tag: vec![hashtag],
+      tag: tags,
     };
     Ok(page)
   }
@@ -286,6 +303,26 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
+
+    let post_tags_to_lookup: Vec<Url> = page
+      .tag
+      .iter()
+      .filter_map(|tag| {
+        if let HashtagOrLemmyTag::LemmyCommunityPostTag(tag) = tag {
+          Some(tag.id.clone())
+        } else {
+          None
+        }
+      })
+      .collect();
+    PostTag::set_from_apub(
+      &mut context.pool(),
+      post.id,
+      post_tags_to_lookup,
+      community.id,
+    )
+    .await?;
+
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
@@ -309,7 +346,7 @@ mod tests {
     },
     protocol::tests::file_to_json_object,
   };
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{community::Community, person::Person, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
