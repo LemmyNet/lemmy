@@ -5,7 +5,7 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
-  fetcher::user_or_community::UserOrCommunity,
+  fetcher::UserOrCommunity,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
@@ -79,7 +79,7 @@ impl ActivityHandler for Follow {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_person(&self.actor, context).await?;
     let object = self.object.dereference(context).await?;
-    if let UserOrCommunity::Community(c) = object {
+    if let UserOrCommunity::Right(c) = object {
       verify_person_in_community(&self.actor, &c, context).await?;
     }
     if let Some(to) = &self.to {
@@ -94,12 +94,12 @@ impl ActivityHandler for Follow {
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {
-      UserOrCommunity::User(u) => {
+      UserOrCommunity::Left(u) => {
         let form = PersonFollowerForm::new(u.id, actor.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
         AcceptFollow::send(self, context).await?;
       }
-      UserOrCommunity::Community(c) => {
+      UserOrCommunity::Right(c) => {
         if c.visibility == CommunityVisibility::Private {
           let instance = Instance::read(&mut context.pool(), actor.instance_id).await?;
           if [Some("kbin"), Some("mbin")].contains(&instance.software.as_deref()) {

@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
-  fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
+  fetcher::{SiteOrCommunityOrUser, UserOrCommunity},
 };
 use lemmy_db_schema::{
   newtypes::ActivityId,
@@ -144,19 +144,19 @@ pub(crate) async fn get_actor_cached(
     .try_get_with(actor_apub_id.clone(), async {
       let url = actor_apub_id.clone().into();
       let person = match actor_type {
-        ActorType::Site => SiteOrCommunityOrUser::Site(
+        ActorType::Site => SiteOrCommunityOrUser::Left(
           Site::read_from_apub_id(pool, &url)
             .await?
             .context("apub site not found")?
             .into(),
         ),
-        ActorType::Community => SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::Community(
+        ActorType::Community => SiteOrCommunityOrUser::Right(UserOrCommunity::Right(
           Community::read_from_apub_id(pool, &url)
             .await?
             .context("apub community not found")?
             .into(),
         )),
-        ActorType::Person => SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::User(
+        ActorType::Person => SiteOrCommunityOrUser::Right(UserOrCommunity::Left(
           Person::read_from_apub_id(pool, &url)
             .await?
             .context("apub person not found")?

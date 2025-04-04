@@ -1,5 +1,6 @@
+use super::send_activity_from_user_or_community;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity},
+  activities::generate_activity_id,
   insert_received_activity,
   protocol::activities::following::{follow::Follow, reject::RejectFollow},
 };
@@ -32,7 +33,7 @@ impl RejectFollow {
       )?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_lemmy_activity(context, reject, &user_or_community, inbox, true).await
+    send_activity_from_user_or_community(context, reject, user_or_community, inbox).await
   }
 }
 

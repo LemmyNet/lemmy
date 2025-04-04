@@ -1,6 +1,6 @@
 use crate::{
   activity_lists::SharedInboxActivities,
-  fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
+  fetcher::{get_instance_id, SiteOrCommunityOrUser, UserOrCommunity},
   protocol::objects::tombstone::Tombstone,
   FEDERATION_CONTEXT,
 };
@@ -144,7 +144,7 @@ async fn check_community_content_fetchable(
         Ok(
           CommunityFollowerView::check_has_followers_from_instance(
             community.id,
-            signing_actor.instance_id(),
+            get_instance_id(&signing_actor),
             &mut context.pool(),
           )
           .await?,
