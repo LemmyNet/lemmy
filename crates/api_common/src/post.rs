@@ -19,13 +19,13 @@ pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub url: Option<String>,
+  pub urls: Option<Vec<CreatePostUrl>>,
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   /// An optional alt_text, usable for image posts.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub alt_text: Option<String>,
+  // #[cfg_attr(feature = "full", ts(optional))]
+  // pub alt_text: Option<String>,
   /// A honeypot to catch bots. Should be None.
   #[cfg_attr(feature = "full", ts(optional))]
   pub honeypot: Option<String>,
@@ -48,6 +48,18 @@ pub struct CreatePost {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PostResponse {
   pub post_view: PostView,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreatePostUrl {
+  pub url: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub alt_text: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -162,13 +174,13 @@ pub struct EditPost {
   #[cfg_attr(feature = "full", ts(optional))]
   pub name: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub url: Option<String>,
+  pub url: Option<Vec<EditPostUrl>>,
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   /// An optional alt_text, usable for image posts.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub alt_text: Option<String>,
+  // #[cfg_attr(feature = "full", ts(optional))]
+  // pub alt_text: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -181,6 +193,18 @@ pub struct EditPost {
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct EditPostUrl {
+  pub url: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub alt_text: Option<String>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

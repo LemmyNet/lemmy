@@ -10,6 +10,7 @@ use crate::utils::{
   person1_select,
   person2_select,
   post_creator_is_admin,
+  post_get_urls
 };
 #[cfg(feature = "full")]
 use diesel::{
@@ -28,20 +29,7 @@ use lemmy_db_schema::source::{
     person_saved::PersonSavedCombined,
     report::ReportCombined,
     search::SearchCombined,
-  },
-  comment::{Comment, CommentActions},
-  comment_reply::CommentReply,
-  comment_report::CommentReport,
-  community::{Community, CommunityActions, CommunityFollowerState},
-  community_report::CommunityReport,
-  custom_emoji::CustomEmoji,
-  custom_emoji_keyword::CustomEmojiKeyword,
-  images::{ImageDetails, LocalImage},
-  instance::{Instance, InstanceActions},
-  local_site::LocalSite,
-  local_site_rate_limit::LocalSiteRateLimit,
-  local_user::LocalUser,
-  mod_log::{
+  }, comment::{Comment, CommentActions}, comment_reply::CommentReply, comment_report::CommentReport, community::{Community, CommunityActions, CommunityFollowerState}, community_report::CommunityReport, custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword, images::{ImageDetails, LocalImage}, instance::{Instance, InstanceActions}, local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, local_user::LocalUser, mod_log::{
     admin::{
       AdminAllowInstance,
       AdminBlockInstance,
@@ -63,17 +51,7 @@ use lemmy_db_schema::source::{
       ModRemovePost,
       ModTransferCommunity,
     },
-  },
-  person::{Person, PersonActions},
-  person_comment_mention::PersonCommentMention,
-  person_post_mention::PersonPostMention,
-  post::{Post, PostActions},
-  post_report::PostReport,
-  private_message::PrivateMessage,
-  private_message_report::PrivateMessageReport,
-  registration_application::RegistrationApplication,
-  site::Site,
-  tag::Tag,
+  }, person::{Person, PersonActions}, person_comment_mention::PersonCommentMention, person_post_mention::PersonPostMention, post::{Post, PostActions}, post_report::PostReport, post_url::PostUrl, private_message::PrivateMessage, private_message_report::PrivateMessageReport, registration_application::RegistrationApplication, site::Site, tag::Tag
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
@@ -329,6 +307,13 @@ pub struct PostPaginationCursor(pub String);
 pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_urls()
+    )
+  )]
+  pub urls: PostUrlView,
+  // pub urls: Vec<PostUrl>
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1330,3 +1315,8 @@ pub enum SearchCombinedView {
 pub struct PostTags {
   pub tags: Vec<Tag>,
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+pub struct PostUrlView(pub Vec<PostUrl>);

@@ -5,7 +5,7 @@ use diesel::{
   ExpressionMethods,
   NullableExpressionMethods,
   PgExpressionMethods,
-  QueryDsl,
+  QueryDsl, RunQueryDsl,
 };
 use lemmy_db_schema::{
   aliases::{creator_community_actions, creator_local_user, person1, person2},
@@ -18,6 +18,7 @@ use lemmy_db_schema::{
     person,
     person_actions,
     post,
+    post_url,
   },
   source::community::CommunityFollowerState,
   CommunityVisibility,
@@ -73,6 +74,13 @@ pub(crate) fn post_creator_is_admin() -> _ {
         .and(creator_local_user.field(local_user::admin).eq(true)),
     ),
   )
+}
+
+#[diesel::dsl::auto_type]
+pub(crate) fn post_get_urls() -> _ {
+  post_url::table
+    .filter(post_url::post_id.eq(post::id))
+    .single_value()
 }
 
 /// Checks to see if you can mod an item.

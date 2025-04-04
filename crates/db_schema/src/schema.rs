@@ -1,45 +1,45 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "actor_type_enum"))]
-  pub struct ActorTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "actor_type_enum"))]
+    pub struct ActorTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "comment_sort_type_enum"))]
-  pub struct CommentSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+    pub struct CommentSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_follower_state"))]
-  pub struct CommunityFollowerState;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_follower_state"))]
+    pub struct CommunityFollowerState;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_visibility"))]
-  pub struct CommunityVisibility;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_visibility"))]
+    pub struct CommunityVisibility;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "federation_mode_enum"))]
+    pub struct FederationModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "listing_type_enum"))]
-  pub struct ListingTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "listing_type_enum"))]
+    pub struct ListingTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "ltree"))]
-  pub struct Ltree;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "ltree"))]
+    pub struct Ltree;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_listing_mode_enum"))]
-  pub struct PostListingModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+    pub struct PostListingModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_sort_type_enum"))]
-  pub struct PostSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_sort_type_enum"))]
+    pub struct PostSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "registration_mode_enum"))]
-  pub struct RegistrationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "registration_mode_enum"))]
+    pub struct RegistrationModeEnum;
 }
 
 diesel::table! {
@@ -138,6 +138,7 @@ diesel::table! {
         controversy_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -372,6 +373,8 @@ diesel::table! {
         person_id -> Int4,
         instance_id -> Int4,
         blocked -> Nullable<Timestamptz>,
+        received_ban -> Nullable<Timestamptz>,
+        ban_expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -433,7 +436,6 @@ diesel::table! {
         post_downvotes -> FederationModeEnum,
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
-        disable_donation_dialog -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         disallow_nsfw_content -> Bool,
         users -> Int8,
@@ -572,6 +574,7 @@ diesel::table! {
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
         published -> Timestamptz,
+        instance_id -> Int4,
     }
 }
 
@@ -738,7 +741,6 @@ diesel::table! {
         #[max_length = 255]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
-        banned -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         #[max_length = 255]
@@ -754,7 +756,6 @@ diesel::table! {
         inbox_url -> Varchar,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
-        ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
         post_count -> Int8,
         post_score -> Int8,
@@ -824,8 +825,6 @@ diesel::table! {
         id -> Int4,
         #[max_length = 200]
         name -> Varchar,
-        #[max_length = 2000]
-        url -> Nullable<Varchar>,
         body -> Nullable<Text>,
         creator_id -> Int4,
         community_id -> Int4,
@@ -835,18 +834,13 @@ diesel::table! {
         updated -> Nullable<Timestamptz>,
         deleted -> Bool,
         nsfw -> Bool,
-        embed_title -> Nullable<Text>,
-        embed_description -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,
         #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
-        embed_video_url -> Nullable<Text>,
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
-        url_content_type -> Nullable<Text>,
-        alt_text -> Nullable<Text>,
         scheduled_publish_time -> Nullable<Timestamptz>,
         comments -> Int8,
         score -> Int8,
@@ -857,10 +851,10 @@ diesel::table! {
         hot_rank -> Float8,
         hot_rank_active -> Float8,
         controversy_rank -> Float8,
-        instance_id -> Int4,
         scaled_rank -> Float8,
         report_count -> Int2,
         unresolved_report_count -> Int2,
+        federation_pending -> Bool,
     }
 }
 
@@ -901,6 +895,23 @@ diesel::table! {
         post_id -> Int4,
         tag_id -> Int4,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    post_url (id) {
+        id -> Int4,
+        post_id -> Int4,
+        #[max_length = 2000]
+        url -> Varchar,
+        page -> Int4,
+        alt_text -> Nullable<Text>,
+        url_content_type -> Nullable<Text>,
+        embed_title -> Nullable<Text>,
+        embed_description -> Nullable<Text>,
+        embed_video_url -> Nullable<Text>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
@@ -1109,6 +1120,7 @@ diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
+diesel::joinable!(mod_ban -> instance (instance_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
@@ -1155,7 +1167,6 @@ diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
-diesel::joinable!(post -> instance (instance_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
@@ -1163,6 +1174,7 @@ diesel::joinable!(post_actions -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
+diesel::joinable!(post_url -> post (post_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
@@ -1239,6 +1251,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_actions,
     post_report,
     post_tag,
+    post_url,
     previously_run_sql,
     private_message,
     private_message_report,
