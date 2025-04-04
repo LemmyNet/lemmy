@@ -122,7 +122,11 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
 
 /// Returns an error if object visibility doesnt match community visibility
 /// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -> LemmyResult<()> {
+pub(crate) fn verify_visibility(
+  to: &[Url],
+  cc: &[Url],
+  community: &ApubCommunity,
+) -> LemmyResult<()> {
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
@@ -195,9 +199,8 @@ async fn send_lemmy_activity<Activity, ActorT>(
   sensitive: bool,
 ) -> LemmyResult<()>
 where
-  Activity: ActivityHandler + Serialize + Send + Sync + Clone,
+  Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
   ActorT: Actor + GetActorType,
-  Activity: ActivityHandler<Error = LemmyError>,
 {
   info!("Saving outgoing activity to queue {}", activity.id());
 

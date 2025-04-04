@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::PostOrComment,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
@@ -77,8 +77,8 @@ impl Note {
     }
     let parent = self.in_reply_to.dereference(context).await?;
     match parent {
-      PostOrComment::Post(p) => Ok((p.clone(), None)),
-      PostOrComment::Comment(c) => {
+      PostOrComment::Left(p) => Ok((p.clone(), None)),
+      PostOrComment::Right(c) => {
         let post_id = c.post_id;
         let post = Post::read(&mut context.pool(), post_id).await?;
         Ok((post.into(), Some(c.clone())))

@@ -1,13 +1,10 @@
 use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
   activities::GetActorType,
-  fetcher::{
-    markdown_links::markdown_rewrite_remote_links_opt,
-    user_or_community::PersonOrGroupType,
-  },
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, AttributedTo, LanguageTag},
+    objects::{group::Group, AttributedTo, LanguageTag, PersonOrGroupType},
     ImageObject,
     Source,
   },
