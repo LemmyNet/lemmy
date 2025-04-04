@@ -367,6 +367,7 @@ impl PictrsFileDetails {
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
+  aliases: Vec<String>,
 }
 
 /// Purges an image from pictrs
@@ -390,11 +391,6 @@ pub async fn purge_image_from_pictrs_url(
 }
 
 pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
-
   let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -411,6 +407,14 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
     .error_for_status()?;
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
+
+  // Pictrs purges return all other aliases.
+  let aliases = response.aliases;
+
+  // Delete db rows of aliases.
+  LocalImage::delete_by_aliases(&mut context.pool(), &aliases)
+    .await
+    .ok();
 
   match response.msg.as_str() {
     "ok" => Ok(()),

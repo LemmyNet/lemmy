@@ -148,8 +148,6 @@ pub async fn delete_image_admin(
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_admin(&local_user_view)?;
 
-  LocalImage::delete_by_alias(&mut context.pool(), &data.filename).await?;
-
   // Use purge, since it should remove any other aliases.
   purge_image_from_pictrs(&data.filename, &context).await?;
 
