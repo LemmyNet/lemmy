@@ -209,6 +209,7 @@ mod tests {
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
+  use std::collections::HashSet;
   use url::Url;
 
   struct Data {
@@ -470,20 +471,19 @@ mod tests {
 
     let mod_query = CommunityQuery {
       local_user: Some(&data.local_user),
-      sort: Some(CommunitySortType::New),
       ..Default::default()
     }
     .list(&data.site, pool)
     .await?
     .into_iter()
     .map(|c| (c.community.name, c.can_mod))
-    .collect::<Vec<_>>();
+    .collect::<HashSet<_>>();
 
-    let expected_communities = vec![
+    let expected_communities = HashSet::from([
       ("test_community_3".to_owned(), false),
       ("test_community_2".to_owned(), true),
       ("test_community_1".to_owned(), true),
-    ];
+    ]);
     assert_eq!(expected_communities, mod_query);
 
     cleanup(data, pool).await
