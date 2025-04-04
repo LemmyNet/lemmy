@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
@@ -13,9 +14,10 @@ use lemmy_db_schema::{
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
+  utils::get_conn,
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
@@ -26,7 +28,7 @@ pub async fn add_mod_to_community(
   // Verify that only mods or admins can add mod
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
-  // If its a mod removal, also check that you're a higher mod.
+  // If it's a mod removal, also check that you're a higher mod.
   if !data.added {
     LocalUser::is_higher_mod_or_admin_check(
       &mut context.pool(),
@@ -49,23 +51,36 @@ pub async fn add_mod_to_community(
     .await?;
   }
 
-  // Update in local database
-  let community_moderator_form = CommunityModeratorForm::new(data.community_id, data.person_id);
-  if data.added {
-    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
-  } else {
-    CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
-  }
+  let pool = &mut context.pool();
+  let conn = &mut get_conn(pool).await?;
+  let tx_data = data.clone();
+  conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        // Update in local database
+        let community_moderator_form =
+          CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
+        if tx_data.added {
+          CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
+        } else {
+          CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
+        }
 
-  // Mod tables
-  let form = ModAddCommunityForm {
-    mod_person_id: local_user_view.person.id,
-    other_person_id: data.person_id,
-    community_id: data.community_id,
-    removed: Some(!data.added),
-  };
+        // Mod tables
+        let form = ModAddCommunityForm {
+          mod_person_id: local_user_view.person.id,
+          other_person_id: tx_data.person_id,
+          community_id: tx_data.community_id,
+          removed: Some(!tx_data.added),
+        };
 
-  ModAddCommunity::create(&mut context.pool(), &form).await?;
+        ModAddCommunity::create(&mut conn.into(), &form).await?;
+
+        Ok(())
+      }
+      .scope_boxed()
+    })
+    .await?;
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
