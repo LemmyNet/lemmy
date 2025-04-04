@@ -66,8 +66,8 @@ impl ActivityHandler for UndoVote {
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
     match object {
-      PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
-      PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
+      PostOrComment::Left(p) => undo_vote_post(actor, &p, context).await,
+      PostOrComment::Right(c) => undo_vote_comment(actor, &c, context).await,
     }
   }
 }

@@ -21,8 +21,6 @@ full = [
   "lemmy_utils/full",
   "diesel",
   "diesel-derive-newtype",
-  "diesel-derive-enum",
-  "diesel_migrations",
   "bcrypt",
   "lemmy_utils",
   "activitypub_federation",
@@ -38,6 +36,7 @@ full = [
   "rustls",
   "i-love-jesus",
   "tuplex",
+  "lemmy_db_schema_file/full",
 ]
 
 [dependencies]
@@ -49,17 +48,10 @@ strum = { workspace = true }
 serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
+lemmy_db_schema_file = { workspace = true }
 bcrypt = { workspace = true, optional = true }
-diesel = { workspace = true, features = [
-  "chrono",
-  "postgres",
-  "serde_json",
-  "uuid",
-  "64-column-tables",
-], optional = true }
+diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
-diesel-derive-enum = { workspace = true, optional = true }
-diesel_migrations = { workspace = true, optional = true }
 diesel-async = { workspace = true, features = [
   "deadpool",
   "postgres",
@@ -76,11 +68,9 @@ tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
-anyhow = { workspace = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
-diffutils = "0.4.2"

@@ -28,16 +28,11 @@ pub async fn ban_from_community(
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
   let expires = check_expire_time(data.expires)?;
+  let local_instance_id = local_user_view.person.instance_id;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify that only mods or admins can ban
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
@@ -93,7 +88,13 @@ pub async fn ban_from_community(
 
   ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id, false).await?;
+  let person_view = PersonView::read(
+    &mut context.pool(),
+    data.person_id,
+    local_instance_id,
+    false,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromCommunity {

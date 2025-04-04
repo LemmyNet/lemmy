@@ -1,13 +1,13 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommentId, CommentReplyId, PersonId},
-  schema::comment_reply,
   source::comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::comment_reply;
 
 impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;

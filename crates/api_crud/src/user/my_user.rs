@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_user_valid};
+use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
@@ -16,7 +16,7 @@ pub async fn get_my_user(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<MyUserInfo>> {
-  check_user_valid(&local_user_view.person)?;
+  check_local_user_valid(&local_user_view)?;
 
   // Build the local user with parallel queries and add it to site response
   let person_id = local_user_view.person.id;

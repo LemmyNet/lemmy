@@ -1,9 +1,8 @@
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
-  ListingType,
   PostFeatureType,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views::structs::{CommunityView, PostPaginationCursor, PostView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

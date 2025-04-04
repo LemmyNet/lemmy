@@ -1,7 +1,7 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::PostOrComment,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
@@ -96,8 +96,8 @@ async fn report_inboxes(
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
-      PostOrComment::Post(p) => p.creator_id,
-      PostOrComment::Comment(c) => c.creator_id,
+      PostOrComment::Left(p) => p.creator_id,
+      PostOrComment::Right(c) => c.creator_id,
     };
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
     let object_creator_site: Option<ApubSite> =

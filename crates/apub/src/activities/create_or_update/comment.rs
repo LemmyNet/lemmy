@@ -25,7 +25,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   build_response::send_local_notifs,
   context::LemmyContext,
-  utils::{check_post_deleted_or_removed, is_mod_or_admin},
+  utils::check_post_deleted_or_removed,
 };
 use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},
@@ -38,6 +38,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::{CommunityView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -134,6 +135,9 @@ impl ActivityHandler for CreateOrUpdateNote {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let local_instance_id = site_view.site.instance_id;
+
     insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
@@ -144,7 +148,13 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(&mut context.pool(), &creator, post.community_id).await?;
+        CommunityView::check_is_mod_or_admin(
+          &mut context.pool(),
+          creator.id,
+          post.community_id,
+          local_instance_id,
+        )
+        .await?;
       }
     }
 
@@ -176,6 +186,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       do_send_email,
       context,
       None,
+      local_instance_id,
     )
     .await?;
     Ok(())

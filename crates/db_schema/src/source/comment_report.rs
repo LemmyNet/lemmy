@@ -1,7 +1,7 @@
 use crate::newtypes::{CommentId, CommentReportId, PersonId};
-#[cfg(feature = "full")]
-use crate::schema::comment_report;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::comment_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

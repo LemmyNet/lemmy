@@ -1,20 +1,11 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   newtypes::{InstanceId, PersonId},
-  schema::{
-    federation_allowlist,
-    federation_blocklist,
-    federation_queue_state,
-    instance,
-    instance_actions,
-    local_site,
-    site,
-  },
   source::{
     federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceActions, InstanceBlockForm, InstanceForm},
+    instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm, InstanceForm},
   },
-  traits::Blockable,
+  traits::{Bannable, Blockable},
   utils::{
     functions::{coalesce, lower},
     get_conn,
@@ -34,13 +25,22 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  federation_allowlist,
+  federation_blocklist,
+  federation_queue_state,
+  instance,
+  instance_actions,
+  local_site,
+  site,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
   pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> Result<Self, Error> {
-    use crate::schema::instance::domain;
+    use lemmy_db_schema_file::schema::instance::domain;
     let conn = &mut get_conn(pool).await?;
 
     // First try to read the instance row and return directly if found
@@ -247,5 +247,55 @@ impl Blockable for InstanceActions {
       .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
+  }
+}
+
+impl InstanceActions {
+  pub async fn check_ban(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    instance_id: InstanceId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let ban_exists = select(exists(
+      instance_actions::table
+        .filter(instance_actions::person_id.eq(person_id))
+        .filter(instance_actions::instance_id.eq(instance_id))
+        .filter(instance_actions::received_ban.is_not_null()),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+
+    if ban_exists {
+      return Err(LemmyErrorType::SiteBan.into());
+    }
+    Ok(())
+  }
+}
+
+impl Bannable for InstanceActions {
+  type Form = InstanceBanForm;
+  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      insert_into(instance_actions::table)
+        .values(form)
+        .on_conflict((instance_actions::person_id, instance_actions::instance_id))
+        .do_update()
+        .set(form)
+        .returning(Self::as_select())
+        .get_result::<Self>(conn)
+        .await?,
+    )
+  }
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+        .set_null(instance_actions::received_ban)
+        .set_null(instance_actions::ban_expires)
+        .get_result(conn)
+        .await?,
+    )
   }
 }

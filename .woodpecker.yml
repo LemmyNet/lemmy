@@ -60,8 +60,10 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter
+    image: debian:bookworm
     commands:
+      - apt-get update
+      - apt-get --yes --no-install-recommends --no-install-suggests install pgformatter
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
@@ -205,11 +207,11 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
     commands:
-      - cp crates/db_schema/src/schema.rs tmp.schema
+      - cp crates/db_schema_file/src/schema.rs tmp.schema
       - target/lemmy_server migration --all run
       - <<: *install_diesel_cli
       - diesel print-schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
+      - diff tmp.schema crates/db_schema_file/src/schema.rs
     when: *slow_check_paths
 
   check_db_perf_tool:

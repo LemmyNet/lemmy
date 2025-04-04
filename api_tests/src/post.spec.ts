@@ -40,6 +40,7 @@ import {
   getMyUser,
   listInbox,
   getModlog,
+  getCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -461,7 +462,7 @@ test("Search for a post", async () => {
   expect(betaPost?.post.name).toBeDefined();
 });
 
-test("Enforce site ban federation for local user", async () => {
+test.only("Enforce site ban federation for local user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -499,9 +500,11 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res.person?.person.banned ?? false,
+    res => res.person?.home_instance_actions?.received_ban != null,
   );
-  expect(alphaUserOnBeta1.person?.person.banned).toBe(true);
+  expect(
+    alphaUserOnBeta1.person?.home_instance_actions?.received_ban,
+  ).toBeDefined();
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(
@@ -557,7 +560,9 @@ test("Enforce site ban federation for federated user", async () => {
   await followBeta(alphaUserHttp);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
-  expect(alphaUserOnBeta2.person?.person.banned).toBe(false);
+  expect(
+    alphaUserOnBeta2.person?.instance_actions?.received_ban,
+  ).toBeUndefined();
 
   if (!alphaUserOnBeta2.person) {
     throw "Missing alpha person";
@@ -577,28 +582,34 @@ test("Enforce site ban federation for federated user", async () => {
   );
   expect(banAlphaOnBeta.banned).toBe(true);
 
-  // The beta site ban should NOT be federated to alpha
-  let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view.person;
-  expect(alphaPerson2.banned).toBe(false);
-
   // existing alpha post should be removed on beta
-  let betaBanRes = await waitUntil(
-    () => getPost(beta, searchBeta1.post.id),
-    s => s.post_view.post.removed,
-  );
-  expect(betaBanRes.post_view.post.removed).toBe(true);
+  let betaRemovedPost = await getPost(beta, searchBeta1.post.id);
+  expect(betaRemovedPost.post_view.post.removed).toBe(true);
 
-  // existing alpha's post to the beta community should be removed on alpha
-  let alphaPostAfterRemoveOnBeta = await waitUntil(
+  // post should also be removed on alpha
+  let alphaRemovedPost = await waitUntil(
     () => getPost(alpha, postRes1.post_view.post.id),
     s => s.post_view.post.removed,
   );
-  expect(betaBanRes.post_view.post.removed).toBe(true);
-  expect(alphaPostAfterRemoveOnBeta.post_view.post.removed).toBe(true);
+  expect(alphaRemovedPost.post_view.post.removed).toBe(true);
+
+  // User should not be shown to be banned from alpha
+  let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view;
+  expect(alphaPerson2.instance_actions?.received_ban).toBeUndefined();
+
+  // but the ban should be indicated by beta community on alpha
+  let communityWithBan = await getCommunity(
+    alphaUserHttp,
+    betaCommunity.community.id,
+  );
   expect(
-    alphaPostAfterRemoveOnBeta.post_view.creator_community_actions
-      ?.received_ban,
+    communityWithBan.community_view.instance_actions?.received_ban,
   ).toBeDefined();
+
+  // post to beta community is rejected
+  await expect(
+    createPost(alphaUserHttp, betaCommunity.community.id),
+  ).rejects.toStrictEqual(Error("site_ban"));
 
   await unfollowRemotes(alpha);
 });
@@ -975,6 +986,28 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await expect(gamma.editPost(form2)).rejects.toStrictEqual(
     Error("nsfw_not_allowed"),
   );
+});
+
+test("Plugin test", async () => {
+  let community = await createCommunity(epsilon);
+  let postRes1 = await createPost(
+    epsilon,
+    community.community_view.community.id,
+    "https://example.com/",
+    randomString(10),
+    "Rust",
+  );
+  expect(postRes1.post_view.post.name).toBe("Go");
+
+  await expect(
+    createPost(
+      epsilon,
+      community.community_view.community.id,
+      "https://example.com/",
+      randomString(10),
+      "Java",
+    ),
+  ).rejects.toStrictEqual(Error("plugin_error"));
 });
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {

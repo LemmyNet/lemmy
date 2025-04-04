@@ -1,11 +1,11 @@
 #[cfg(feature = "full")]
 use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::{comment, comment_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -60,10 +60,16 @@ pub struct Comment {
   pub controversy_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
+  /// If a local user comments in a remote community, the comment is hidden until it is confirmed
+  /// accepted by the community (by receiving it back via federation).
+  pub federation_pending: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
   pub creator_id: PersonId,
@@ -85,10 +91,12 @@ pub struct CommentInsertForm {
   pub distinguished: Option<bool>,
   #[new(default)]
   pub language_id: Option<LanguageId>,
+  #[new(default)]
+  pub federation_pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentUpdateForm {
   pub content: Option<String>,
@@ -100,13 +108,14 @@ pub struct CommentUpdateForm {
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub federation_pending: Option<bool>,
 }
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(Identifiable, Queryable, Selectable, Associations, TS,)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
@@ -128,7 +137,10 @@ pub struct CommentActions {
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,

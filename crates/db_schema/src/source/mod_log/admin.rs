@@ -10,8 +10,9 @@ use crate::newtypes::{
   PersonId,
   PostId,
 };
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use crate::schema::{
+use lemmy_db_schema_file::schema::{
   admin_allow_instance,
   admin_block_instance,
   admin_purge_comment,
@@ -19,7 +20,6 @@ use crate::schema::{
   admin_purge_person,
   admin_purge_post,
 };
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

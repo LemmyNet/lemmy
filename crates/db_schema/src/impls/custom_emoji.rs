@@ -1,9 +1,5 @@
 use crate::{
   newtypes::CustomEmojiId,
-  schema::{
-    custom_emoji::dsl::custom_emoji,
-    custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
-  },
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
@@ -13,6 +9,10 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  custom_emoji::dsl::custom_emoji,
+  custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
+};
 
 impl Crud for CustomEmoji {
   type InsertForm = CustomEmojiInsertForm;

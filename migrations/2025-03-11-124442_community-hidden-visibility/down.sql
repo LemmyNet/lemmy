@@ -2,7 +2,7 @@
 ALTER TABLE community
     ADD COLUMN hidden bool DEFAULT FALSE NOT NULL,
     ADD COLUMN posting_restricted_to_mods_new bool NOT NULL DEFAULT FALSE,
-    ADD COLUMN instance_id_new int NOT NULL,
+    ADD COLUMN instance_id_new int,
     ADD COLUMN moderators_url_new varchar(255),
     ADD COLUMN featured_url_new varchar(255),
     ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public',
@@ -62,7 +62,12 @@ SET
         unresolved_report_count,
         interactions_month);
 
+SET CONSTRAINTS community_instance_id_fkey IMMEDIATE;
+
+SET CONSTRAINTS community_instance_id_fkey DEFERRED;
+
 ALTER TABLE community
+    ALTER COLUMN instance_id_new SET NOT NULL,
     DROP COLUMN posting_restricted_to_mods,
     DROP COLUMN instance_id,
     DROP COLUMN moderators_url,

@@ -1,6 +1,6 @@
 use crate::newtypes::{CommunityId, LanguageId, LocalUserId, SiteId};
 #[cfg(feature = "full")]
-use crate::schema::local_user_language;
+use lemmy_db_schema_file::schema::local_user_language;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ pub struct LocalUserLanguageForm {
 }
 
 #[cfg(feature = "full")]
-use crate::schema::community_language;
+use lemmy_db_schema_file::schema::community_language;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
@@ -43,7 +43,7 @@ pub struct CommunityLanguageForm {
 }
 
 #[cfg(feature = "full")]
-use crate::schema::site_language;
+use lemmy_db_schema_file::schema::site_language;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]

@@ -221,8 +221,9 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
-    source::activity::{ActorType, SentActivity},
+    source::activity::SentActivity,
   };
+  use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use mockall::{mock, predicate::*};
   use serde_json::json;

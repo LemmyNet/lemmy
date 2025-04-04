@@ -21,5 +21,6 @@ diesel-async = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
+lemmy_db_schema_file = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }

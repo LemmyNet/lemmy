@@ -22,13 +22,13 @@ use lemmy_db_schema::{
       Community,
       CommunityActions,
       CommunityFollowerForm,
-      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModeratorForm,
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},

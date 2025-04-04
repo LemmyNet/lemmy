@@ -12,19 +12,6 @@ use crate::{
     ModRemovePostId,
     ModTransferCommunityId,
   },
-  schema::{
-    mod_add,
-    mod_add_community,
-    mod_ban,
-    mod_ban_from_community,
-    mod_change_community_visibility,
-    mod_feature_post,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_community,
-    mod_remove_post,
-    mod_transfer_community,
-  },
   source::mod_log::moderator::{
     ModAdd,
     ModAddCommunity,
@@ -54,6 +41,19 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  mod_add,
+  mod_add_community,
+  mod_ban,
+  mod_ban_from_community,
+  mod_change_community_visibility,
+  mod_feature_post,
+  mod_lock_post,
+  mod_remove_comment,
+  mod_remove_community,
+  mod_remove_post,
+  mod_transfer_community,
+};
 
 impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;
@@ -554,6 +554,7 @@ mod tests {
       reason: None,
       banned: None,
       expires: None,
+      instance_id: inserted_instance.id,
     };
     let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await?;
     let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await?;
@@ -565,6 +566,7 @@ mod tests {
       banned: true,
       expires: None,
       published: inserted_mod_ban.published,
+      instance_id: inserted_instance.id,
     };
 
     // mod add community

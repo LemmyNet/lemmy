@@ -12,10 +12,10 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
-  schema::{local_user, person, registration_application},
   source::registration_application::RegistrationApplication,
   utils::{get_conn, limit_and_offset, DbPool},
 };
+use lemmy_db_schema_file::schema::{local_user, person, registration_application};
 
 impl RegistrationApplicationView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -233,8 +233,6 @@ mod tests {
         avatar: None,
         ap_id: sara_person.ap_id.clone(),
         local: true,
-        banned: false,
-        ban_expires: None,
         deleted: false,
         bot_account: false,
         bio: None,
@@ -306,8 +304,6 @@ mod tests {
       avatar: None,
       ap_id: timmy_person.ap_id.clone(),
       local: true,
-      banned: false,
-      ban_expires: None,
       deleted: false,
       bot_account: false,
       bio: None,
