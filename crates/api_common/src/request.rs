@@ -374,7 +374,10 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_image_from_pictrs_url(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -383,6 +386,10 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
+  purge_image_from_pictrs(alias, context).await
+}
+
+pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
   LocalImage::delete_by_alias(&mut context.pool(), alias)
     .await
@@ -411,6 +418,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
   }
 }
 
+/// Deletes an alias for an image. If its not the last / only alias, the image might remain.
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
   LocalImage::delete_by_alias(&mut context.pool(), alias)

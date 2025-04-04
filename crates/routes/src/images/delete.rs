@@ -3,7 +3,7 @@ use actix_web::web::*;
 use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, DeleteImageParams},
-  request::delete_image_from_pictrs,
+  request::{delete_image_from_pictrs, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
@@ -150,7 +150,8 @@ pub async fn delete_image_admin(
 
   LocalImage::delete_by_alias(&mut context.pool(), &data.filename).await?;
 
-  delete_image_from_pictrs(&data.filename, &context).await?;
+  // Use purge, since it should remove any other aliases.
+  purge_image_from_pictrs(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

@@ -333,8 +333,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(get_my_user))
           .service(
             scope("/media")
-              .route("/list", get().to(list_media))
-              .route("", delete().to(delete_image)),
+              .route("", delete().to(delete_image))
+              .route("/list", get().to(list_media)),
           )
           .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
@@ -449,8 +449,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/proxy", get().to(image_proxy))
           .route("/health", get().to(pictrs_health))
-          .route("/{filename}", get().to(get_image))
-          .route("/list", get().to(list_all_media)),
+          .route("/list", get().to(list_all_media))
+          .route("/{filename}", get().to(get_image)),
       ),
   );
 }
