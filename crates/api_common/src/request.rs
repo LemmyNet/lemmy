@@ -408,7 +408,7 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
-  // Pictrs purges return all other aliases.
+  // Pictrs purges return all aliases.
   let aliases = response.aliases;
 
   // Delete db rows of aliases.
