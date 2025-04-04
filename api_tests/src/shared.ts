@@ -927,8 +927,8 @@ export function randomString(length: number): string {
   return result;
 }
 
-export async function deleteAllImages(api: LemmyHttp) {
-  const imagesRes = await api.listAllMedia({
+export async function deleteAllMedia(api: LemmyHttp) {
+  const imagesRes = await api.listMediaAdmin({
     limit: imageFetchLimit,
   });
   Promise.all(
@@ -939,7 +939,7 @@ export async function deleteAllImages(api: LemmyHttp) {
         };
         return form;
       })
-      .map(form => api.deleteImage(form)),
+      .map(form => api.deleteMediaAdmin(form)),
   );
 }
 

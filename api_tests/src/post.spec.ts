@@ -561,7 +561,7 @@ test("Enforce site ban federation for federated user", async () => {
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
   expect(
-    alphaUserOnBeta2.person?.instance_actions?.received_ban,
+    alphaUserOnBeta2.person?.local_instance_actions?.received_ban,
   ).toBeUndefined();
 
   if (!alphaUserOnBeta2.person) {

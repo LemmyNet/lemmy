@@ -4,7 +4,7 @@ use crate::{
   request::{
     delete_image_from_pictrs,
     fetch_pictrs_proxied_image_details,
-    purge_image_from_pictrs,
+    purge_image_from_pictrs_url,
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
@@ -504,10 +504,12 @@ pub async fn purge_post_images(
   context: &LemmyContext,
 ) {
   if let Some(url) = url {
-    purge_image_from_pictrs(&url, context).await.ok();
+    purge_image_from_pictrs_url(&url, context).await.ok();
   }
   if let Some(thumbnail_url) = thumbnail_url {
-    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+    purge_image_from_pictrs_url(&thumbnail_url, context)
+      .await
+      .ok();
   }
 }
 
