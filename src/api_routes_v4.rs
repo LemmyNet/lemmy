@@ -17,6 +17,7 @@ use lemmy_api::{
       list::get_pending_follows_list,
     },
     random::get_random_community,
+    tag::{create_community_tag, delete_community_tag, update_community_tag},
     transfer::transfer_community,
   },
   local_user::{
@@ -228,6 +229,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/icon", delete().to(delete_community_icon))
           .route("/banner", post().to(upload_community_banner))
           .route("/banner", delete().to(delete_community_banner))
+          .route("/tag", post().to(create_community_tag))
+          .route("/tag", put().to(update_community_tag))
+          .route("/tag", delete().to(delete_community_tag))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))

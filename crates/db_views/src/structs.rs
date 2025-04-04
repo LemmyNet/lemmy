@@ -2,6 +2,7 @@
 use crate::utils::{
   comment_creator_is_admin,
   comment_select_remove_deletes,
+  community_post_tags_fragment,
   creator_banned,
   creator_community_actions_select,
   creator_home_instance_actions_select,
@@ -13,6 +14,7 @@ use crate::utils::{
   person1_select,
   person2_select,
   post_creator_is_admin,
+  post_tags_fragment,
 };
 #[cfg(feature = "full")]
 use diesel::{
@@ -210,6 +212,12 @@ pub struct CommentView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
@@ -405,6 +413,12 @@ pub struct PostView {
     )
   )]
   pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -647,6 +661,12 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
@@ -717,6 +737,12 @@ pub(crate) struct PersonSavedCombinedViewInternal {
     )
   )]
   pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -796,6 +822,12 @@ pub struct CommunityView {
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
 }
 
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
@@ -879,6 +911,7 @@ pub struct PersonPostMentionView {
   pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
+  pub post_tags: TagsView,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,
@@ -913,6 +946,7 @@ pub struct CommentReplyView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
+  pub post_tags: TagsView,
   pub can_mod: bool,
   pub creator_banned: bool,
 }
@@ -1044,6 +1078,12 @@ pub struct InboxCombinedViewInternal {
     )
   )]
   pub item_creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -1437,6 +1477,20 @@ pub(crate) struct SearchCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  /// tags of this post
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_post_tags_fragment()
+    )
+  )]
+  /// available tags in this community
+  pub community_post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
@@ -1462,10 +1516,8 @@ pub enum SearchCombinedView {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
-#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 /// we wrap this in a struct so we can implement FromSqlRow<Json> for it
-pub struct PostTags {
-  pub tags: Vec<Tag>,
-}
+pub struct TagsView(pub Vec<Tag>);
