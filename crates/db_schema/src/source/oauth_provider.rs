@@ -1,10 +1,10 @@
-#[cfg(feature = "full")]
-use crate::schema::oauth_provider;
 use crate::{
   newtypes::{DbUrl, OAuthProviderId},
   sensitive::SensitiveString,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::oauth_provider;
 use serde::{
   ser::{SerializeStruct, Serializer},
   Deserialize,

@@ -34,12 +34,12 @@ use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   self,
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  schema::{comment, person, person_content_combined, post},
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   PersonContentType,
 };
+use lemmy_db_schema_file::schema::{comment, person, person_content_combined, post};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl PersonContentCombinedViewInternal {

@@ -21,15 +21,17 @@ use lemmy_db_schema::{
     person::Person,
     tagline::Tagline,
   },
+  ModlogActionType,
+  SearchSortType,
+  SearchType,
+};
+use lemmy_db_schema_file::enums::{
   CommentSortType,
   FederationMode,
   ListingType,
-  ModlogActionType,
   PostListingMode,
   PostSortType,
   RegistrationMode,
-  SearchSortType,
-  SearchType,
 };
 use lemmy_db_views::structs::{
   CommentView,

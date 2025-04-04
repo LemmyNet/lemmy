@@ -11,9 +11,9 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageId,
-  schema::{instance_actions, person, person_actions, private_message},
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
 
 impl PrivateMessageView {
   #[diesel::dsl::auto_type(no_type_alias)]

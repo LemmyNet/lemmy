@@ -9,7 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::ActorType;
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;

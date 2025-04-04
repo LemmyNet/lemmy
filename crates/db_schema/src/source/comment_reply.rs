@@ -1,7 +1,7 @@
 use crate::newtypes::{CommentId, CommentReplyId, PersonId};
-#[cfg(feature = "full")]
-use crate::schema::comment_reply;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::comment_reply;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;

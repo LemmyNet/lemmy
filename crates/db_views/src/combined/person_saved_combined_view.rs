@@ -33,12 +33,12 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  schema::{comment, person, person_saved_combined, post},
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, DbPool},
   PersonContentType,
 };
+use lemmy_db_schema_file::schema::{comment, person, person_saved_combined, post};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]

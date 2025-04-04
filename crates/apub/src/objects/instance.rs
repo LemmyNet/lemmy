@@ -28,13 +28,13 @@ use lemmy_db_schema::{
   newtypes::InstanceId,
   sensitive::SensitiveString,
   source::{
-    activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::{

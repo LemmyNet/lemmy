@@ -12,10 +12,10 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_actions, person},
   source::local_user::LocalUser,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::schema::{community, community_actions, person};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {

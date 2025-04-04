@@ -4,7 +4,6 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelpe
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
-  schema::{local_user, oauth_account, person},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -17,6 +16,7 @@ use lemmy_db_schema::{
     DbPool,
   },
 };
+use lemmy_db_schema_file::schema::{local_user, oauth_account, person};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 

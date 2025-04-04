@@ -1,6 +1,6 @@
-#[cfg(feature = "full")]
-use crate::schema::secret;
 use crate::sensitive::SensitiveString;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::secret;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]

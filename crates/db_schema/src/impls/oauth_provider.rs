@@ -1,6 +1,5 @@
 use crate::{
   newtypes::OAuthProviderId,
-  schema::oauth_provider,
   source::oauth_provider::{
     OAuthProvider,
     OAuthProviderInsertForm,
@@ -12,6 +11,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::oauth_provider;
 
 impl Crud for OAuthProvider {
   type InsertForm = OAuthProviderInsertForm;

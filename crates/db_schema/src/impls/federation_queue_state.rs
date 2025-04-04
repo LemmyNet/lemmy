@@ -12,7 +12,10 @@ impl FederationQueueState {
     pool: &mut DbPool<'_>,
     instance_id_: InstanceId,
   ) -> Result<FederationQueueState, Error> {
-    use crate::schema::federation_queue_state::dsl::{federation_queue_state, instance_id};
+    use lemmy_db_schema_file::schema::federation_queue_state::dsl::{
+      federation_queue_state,
+      instance_id,
+    };
     let conn = &mut get_conn(pool).await?;
     Ok(
       federation_queue_state
@@ -31,7 +34,10 @@ impl FederationQueueState {
     )
   }
   pub async fn upsert(pool: &mut DbPool<'_>, state: &FederationQueueState) -> Result<(), Error> {
-    use crate::schema::federation_queue_state::dsl::{federation_queue_state, instance_id};
+    use lemmy_db_schema_file::schema::federation_queue_state::dsl::{
+      federation_queue_state,
+      instance_id,
+    };
     let conn = &mut get_conn(pool).await?;
 
     state

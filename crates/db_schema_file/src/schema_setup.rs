@@ -1,5 +1,5 @@
-mod diff_check;
-
+#[cfg(test)]
+use crate::diff_check;
 use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;

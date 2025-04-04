@@ -1,7 +1,7 @@
 use crate::newtypes::LocalUserId;
-#[cfg(feature = "full")]
-use crate::schema::email_verification;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::email_verification;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]

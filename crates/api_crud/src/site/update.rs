@@ -25,8 +25,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{diesel_opt_number_update, diesel_string_update},
-  RegistrationMode,
 };
+use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -229,12 +229,8 @@ mod tests {
 
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
-  use lemmy_db_schema::{
-    source::local_site::LocalSite,
-    ListingType,
-    PostSortType,
-    RegistrationMode,
-  };
+  use lemmy_db_schema::source::local_site::LocalSite;
+  use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
