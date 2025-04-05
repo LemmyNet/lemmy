@@ -19,6 +19,7 @@ pub mod federation_blocklist;
 pub mod federation_queue_state;
 pub mod images;
 pub mod instance;
+pub mod keyword_block;
 pub mod language;
 pub mod local_site;
 pub mod local_site_rate_limit;

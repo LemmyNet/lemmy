@@ -1,4 +1,4 @@
-use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
@@ -26,6 +26,8 @@ const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
+const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const TAG_NAME_MIN_LENGTH: usize = 3;
 const TAG_NAME_MAX_LENGTH: usize = 100;
 //Invisible unicode characters, taken from https://invisible-characters.com/
@@ -317,6 +319,25 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
 
   let unique_urls = parsed_urls.into_iter().unique().collect();
   Ok(unique_urls)
+}
+
+pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> LemmyResult<()> {
+  for keyword in blocking_keywords {
+    min_length_check(
+      keyword,
+      MIN_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooShort,
+    )?;
+    max_length_check(
+      keyword,
+      MAX_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooLong,
+    )?;
+  }
+  if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
 }
 
 pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
