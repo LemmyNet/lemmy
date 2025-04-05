@@ -1,6 +1,6 @@
 use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
-use crate::schema::local_user_keyword_block;
+use lemmy_db_schema_file::schema::local_user_keyword_block;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PersonId, PostId},
   source::{
-      keyword_block::LocalUserKeywordBlock,
+    keyword_block::LocalUserKeywordBlock,
     local_user::LocalUser,
     post::{post_actions_keys, post_keys as key, Post, PostActionsCursor},
     site::Site,

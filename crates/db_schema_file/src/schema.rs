@@ -1221,7 +1221,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_site_url_blocklist,
   local_user,
   local_user_language,
-    local_user_keyword_block,
+  local_user_keyword_block,
   login_token,
   mod_add,
   mod_add_community,
