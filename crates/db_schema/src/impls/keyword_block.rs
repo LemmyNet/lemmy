@@ -1,11 +1,11 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::local_user_keyword_block,
   source::keyword_block::{LocalUserKeywordBlock, LocalUserKeywordBlockForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, QueryDsl};
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
+use lemmy_db_schema_file::schema::local_user_keyword_block;
 
 impl LocalUserKeywordBlock {
   pub async fn read(
