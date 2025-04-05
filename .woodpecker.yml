@@ -266,6 +266,44 @@ steps:
     when:
       - event: tag
 
+  # lemmy container doesnt run as root so we need to change permissions to let it copy the binary
+  chmod_for_native_binary:
+    image: alpine:3
+    commands:
+      - chmod 777 .
+    when:
+      - event: tag
+
+  # extract lemmy binary from newly built docker image into workspace folder
+  extract_native_binary:
+    image: dessalines/lemmy:${CI_COMMIT_TAG=default}
+    commands:
+      - cp /usr/local/bin/lemmy_server .
+    when:
+      - event: tag
+
+  prepare_native_binary:
+    image: alpine:3
+    commands:
+      - sha256sum lemmy_server > sha256sum.txt
+      - gzip lemmy_server
+    when:
+      - event: tag
+
+  # https://woodpecker-ci.org/plugins/Release
+  publish_native_binary:
+    image: woodpeckerci/plugin-release
+    settings:
+      files:
+        - lemmy_server.gz
+        - sha256sum.txt
+      title: ${CI_COMMIT_TAG}
+      prerelease: true
+      api-key:
+        from_secret: github_token
+    when:
+      - event: tag
+
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
     settings:
