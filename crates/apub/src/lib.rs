@@ -1,4 +1,4 @@
-use crate::fetcher::post_or_comment::PostOrComment;
+use crate::fetcher::PostOrComment;
 use activitypub_federation::{
   config::{Data, UrlVerifier},
   error::Error as ActivityPubError,

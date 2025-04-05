@@ -1,20 +1,31 @@
+use crate::objects::{
+  comment::ApubComment,
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
+  post::ApubPost,
+};
 use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
   traits::{Actor, Object},
 };
 use diesel::NotFound;
+use either::Either;
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_schema::traits::ApubActor;
+use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub(crate) mod markdown_links;
-pub mod post_or_comment;
 pub mod search;
-pub mod site_or_community_or_user;
-pub mod user_or_community;
+
+pub(crate) type PostOrComment = Either<ApubPost, ApubComment>;
+
+pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
+
+pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 
 /// Resolve actor identifier like `!news@example.com` to user or community object.
 ///
@@ -65,5 +76,13 @@ where
         .ok_or(NotFound)?
         .into(),
     )
+  }
+}
+
+pub(crate) fn get_instance_id(s: &SiteOrCommunityOrUser) -> InstanceId {
+  match s {
+    SiteOrCommunityOrUser::Left(s) => s.instance_id,
+    SiteOrCommunityOrUser::Right(UserOrCommunity::Left(u)) => u.instance_id,
+    SiteOrCommunityOrUser::Right(UserOrCommunity::Right(c)) => c.instance_id,
   }
 }

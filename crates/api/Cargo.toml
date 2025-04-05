@@ -25,12 +25,12 @@ lemmy_api_common = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }
+tracing = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
 base64 = { workspace = true }
 captcha = { workspace = true }
 anyhow = { workspace = true }
-tracing = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
 regex = { workspace = true }
