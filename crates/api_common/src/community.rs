@@ -1,6 +1,6 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId, TagId},
-  source::site::Site,
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PersonId, TagId},
+  source::{multi_community::MultiCommunity, site::Site},
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
 use lemmy_db_views::structs::{
@@ -349,4 +349,33 @@ pub struct ApproveCommunityPendingFollower {
   pub community_id: CommunityId,
   pub follower_id: PersonId,
   pub approve: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreateMultiCommunity {
+  pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdateMultiCommunity {
+  pub id: MultiCommunityId,
+  pub communities: Vec<CommunityId>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMultiCommunities {
+  pub owner_id: Option<PersonId>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMultiCommunitiesResponse {
+  pub multi_communities: Vec<MultiCommunity>,
 }

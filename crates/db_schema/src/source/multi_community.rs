@@ -1,6 +1,6 @@
-use crate::newtypes::{CommunityId, MultiCommunityId, PersonId};
+use crate::newtypes::{MultiCommunityId, PersonId};
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
+use lemmy_db_schema_file::schema::multi_community;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -20,15 +20,6 @@ pub struct MultiCommunity {
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 pub struct MultiCommunityInsertForm {
-  pub id: MultiCommunityId,
   pub owner_id: PersonId,
   pub name: String,
-}
-
-#[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable))]
-#[cfg_attr(feature = "full", diesel(table_name = multi_community_entry))]
-pub struct MultiCommunityEntryForm {
-  pub multi_community_id: MultiCommunityId,
-  pub community_id: CommunityId,
 }

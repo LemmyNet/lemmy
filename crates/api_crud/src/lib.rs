@@ -4,6 +4,7 @@ use lemmy_db_schema::source::community::{Community, CommunityActions};
 pub mod comment;
 pub mod community;
 pub mod custom_emoji;
+pub mod multi_community;
 pub mod oauth_provider;
 pub mod post;
 pub mod private_message;

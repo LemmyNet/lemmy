@@ -1,7 +1,6 @@
 use crate::{
-  newtypes::MultiCommunityId,
-  source::multi_community::{MultiCommunity, MultiCommunityEntryForm, MultiCommunityInsertForm},
-  traits::Crud,
+  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -10,63 +9,67 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
-use lemmy_utils::error::LemmyResult;
 
-impl Crud for MultiCommunity {
-  type InsertForm = MultiCommunityInsertForm;
-  type UpdateForm = ();
-  type IdType = MultiCommunityId;
-
-  async fn read(pool: &mut DbPool<'_>, id: MultiCommunityId) -> Result<Self, Error> {
+impl MultiCommunity {
+  pub async fn read(pool: &mut DbPool<'_>, id: MultiCommunityId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     multi_community::table.find(id).first(conn).await
   }
 
-  async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> Result<Self, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let mut query = multi_community::table.into_boxed();
+    if let Some(owner_id) = owner_id {
+      query = query.filter(multi_community::owner_id.eq(owner_id));
+    }
+    query.get_results(conn).await
+  }
+
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &MultiCommunityInsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(multi_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
-  async fn update(
-    _pool: &mut DbPool<'_>,
-    _id: MultiCommunityId,
-    _form: &(),
-  ) -> Result<Self, Error> {
-    // TODO: mark as deleted/removed?
-    unimplemented!()
-  }
-}
 
-impl MultiCommunity {
-  pub async fn add_community(
+  pub async fn update(
     pool: &mut DbPool<'_>,
-    form: MultiCommunityEntryForm,
-  ) -> LemmyResult<()> {
+    id: MultiCommunityId,
+    new_communities: Vec<CommunityId>,
+  ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(multi_community_entry::table)
-      .values(form)
-      .on_conflict_do_nothing()
-      .execute(conn)
+    conn
+      .transaction::<_, Error, _>(|conn| {
+        async move {
+          delete(multi_community_entry::table)
+            .filter(multi_community_entry::multi_community_id.eq(id))
+            .filter(multi_community_entry::community_id.ne_all(&new_communities))
+            .execute(conn)
+            .await?;
+          let forms = new_communities
+            .into_iter()
+            .map(|k| {
+              (
+                multi_community_entry::multi_community_id.eq(id),
+                multi_community_entry::community_id.eq(k),
+              )
+            })
+            .collect::<Vec<_>>();
+          insert_into(multi_community_entry::table)
+            .values(forms)
+            .on_conflict_do_nothing()
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
+      })
       .await?;
-    Ok(())
-  }
-
-  pub async fn remove_community(
-    pool: &mut DbPool<'_>,
-    form: MultiCommunityEntryForm,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-    delete(
-      multi_community_entry::table
-        .filter(multi_community_entry::multi_community_id.eq(form.multi_community_id))
-        .filter(multi_community_entry::community_id.eq(form.community_id)),
-    )
-    .execute(conn)
-    .await?;
     Ok(())
   }
 }
