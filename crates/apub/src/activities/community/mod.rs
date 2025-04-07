@@ -96,8 +96,8 @@ async fn report_inboxes(
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
-      ReportableObjects::PostOrComment(PostOrComment::Left(p)) => p.creator_id,
-      ReportableObjects::PostOrComment(PostOrComment::Right(c)) => c.creator_id,
+      ReportableObjects::Left(PostOrComment::Left(p)) => p.creator_id,
+      ReportableObjects::Left(PostOrComment::Right(c)) => c.creator_id,
       _ => return Ok(inboxes),
     };
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;

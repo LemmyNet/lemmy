@@ -103,7 +103,7 @@ impl ActivityHandler for Report {
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
-      ReportableObjects::PostOrComment(PostOrComment::Left(post)) => {
+      ReportableObjects::Left(PostOrComment::Left(post)) => {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -117,7 +117,7 @@ impl ActivityHandler for Report {
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
-      ReportableObjects::PostOrComment(PostOrComment::Right(comment)) => {
+      ReportableObjects::Left(PostOrComment::Right(comment)) => {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {
@@ -129,7 +129,7 @@ impl ActivityHandler for Report {
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
-      ReportableObjects::Community(community) => {
+      ReportableObjects::Right(community) => {
         check_community_deleted_removed(&community)?;
         let report_form = CommunityReportForm {
           creator_id: actor.id,
