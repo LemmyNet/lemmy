@@ -5,17 +5,14 @@ use crate::{
 };
 use activitypub_federation::{config::Data, traits::Object};
 use chrono::{DateTime, Utc};
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use reqwest::Url;
 use serde::Deserialize;
 
 /// The types of ActivityPub objects that reports can be created for.
-#[derive(Debug)]
-pub(crate) enum ReportableObjects {
-  PostOrComment(PostOrComment),
-  Community(ApubCommunity),
-}
+pub(crate) type ReportableObjects = Either<PostOrComment, ApubCommunity>;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
