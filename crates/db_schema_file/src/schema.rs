@@ -446,6 +446,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
+        disable_email_notifications -> Bool
     }
 }
 

@@ -160,6 +160,7 @@ pub enum LemmyErrorType {
   },
   CouldntParsePaginationToken,
   PluginError(String),
+  EmailNotificationsDisabled,
 }
 
 /// Federation related errors, these dont need to be translated.
