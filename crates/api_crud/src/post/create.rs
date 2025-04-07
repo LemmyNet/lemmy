@@ -9,6 +9,7 @@ use lemmy_api_common::{
   post::{CreatePost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
@@ -22,14 +23,11 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
-  source::{
-    community::Community,
-    post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
-  },
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -81,8 +79,15 @@ pub async fn create_post(
     is_valid_body_field(body, true)?;
   }
 
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    data.community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?;
+  let community = &community_view.community;
+  check_community_user_action(&local_user_view, community, &mut context.pool()).await?;
 
   // If its an NSFW community, then use that as a default
   let nsfw = data.nsfw.or(Some(community.nsfw));
@@ -113,7 +118,7 @@ pub async fn create_post(
     alt_text: data.alt_text.clone(),
     nsfw,
     language_id: Some(language_id),
-    federation_pending: Some(community_use_pending(&community, &context).await),
+    federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
@@ -127,7 +132,19 @@ pub async fn create_post(
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+
   plugin_hook_after("after_create_local_post", &inserted_post)?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(
+      &context,
+      &inserted_post,
+      &community_view,
+      tags,
+      &local_user_view,
+    )
+    .await?;
+  }
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

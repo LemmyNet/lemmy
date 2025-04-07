@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId},
+  newtypes::{CommunityId, LanguageId, PersonId, TagId},
   source::site::Site,
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
@@ -14,6 +14,35 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Create a tag for a community.
+pub struct CreateCommunityTag {
+  pub community_id: CommunityId,
+  pub display_name: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Update a community tag.
+pub struct UpdateCommunityTag {
+  pub tag_id: TagId,
+  pub display_name: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Delete a community tag.
+pub struct DeleteCommunityTag {
+  pub tag_id: TagId,
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

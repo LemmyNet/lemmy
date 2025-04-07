@@ -1051,7 +1051,7 @@ diesel::table! {
     tag (id) {
         id -> Int4,
         ap_id -> Text,
-        name -> Text,
+        display_name -> Text,
         community_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,

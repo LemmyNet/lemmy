@@ -463,7 +463,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     // send out post via federation and webmention
     let send_activity = SendActivityData::CreatePost(post.clone());
     ActivityChannel::submit_activity(send_activity, context)?;
-    send_webmention(post, community);
+    send_webmention(post, &community);
   }
   Ok(())
 }

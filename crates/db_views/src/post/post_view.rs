@@ -609,8 +609,8 @@ mod tests {
     post: Post,
     bot_post: Post,
     post_with_tags: Post,
-    _tag_1: Tag,
-    _tag_2: Tag,
+    tag_1: Tag,
+    tag_2: Tag,
     site: Site,
   }
 
@@ -692,11 +692,8 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
-          name: "Test Tag 1".into(),
+          display_name: "Test Tag 1".into(),
           community_id: community.id,
-          published: None,
-          updated: None,
-          deleted: false,
         },
       )
       .await?;
@@ -704,11 +701,8 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
-          name: "Test Tag 2".into(),
+          display_name: "Test Tag 2".into(),
           community_id: community.id,
-          published: None,
-          updated: None,
-          deleted: false,
         },
       )
       .await?;
@@ -796,8 +790,8 @@ mod tests {
         post,
         bot_post,
         post_with_tags,
-        _tag_1: tag_1,
-        _tag_2: tag_2,
+        tag_1,
+        tag_2,
         site,
       })
     }
@@ -2215,32 +2209,31 @@ mod tests {
 
     Ok(())
   }
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
 
-  // TODO add these back in later
-  // #[test_context(Data)]
-  // #[tokio::test]
-  // #[serial]
-  // async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
-  //   let pool = &data.pool();
-  //   let pool = &mut pool.into();
+    let post_view = PostView::read(
+      pool,
+      data.post_with_tags.id,
+      Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
 
-  //   let post_view = PostView::read(
-  //     pool,
-  //     data.post_with_tags.id,
-  //     Some(&data.tegan_local_user_view.local_user),
-  //     false,
-  //   )
-  //   .await?;
+    assert_eq!(2, post_view.tags.0.len());
+    assert_eq!(data.tag_1.display_name, post_view.tags.0[0].display_name);
+    assert_eq!(data.tag_2.display_name, post_view.tags.0[1].display_name);
 
-  //   assert_eq!(2, post_view.tags.tags.len());
-  //   assert_eq!(data.tag_1.name, post_view.tags.tags[0].name);
-  //   assert_eq!(data.tag_2.name, post_view.tags.tags[1].name);
+    let all_posts = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
+    assert_eq!(0, all_posts[1].tags.0.len()); // bot post
+    assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
-  //   let all_posts = data.default_post_query().list(&data.site, pool).await?;
-  //   assert_eq!(2, all_posts[0].tags.tags.len()); // post with tags
-  //   assert_eq!(0, all_posts[1].tags.tags.len()); // bot post
-  //   assert_eq!(0, all_posts[2].tags.tags.len()); // normal post
-
-  //   Ok(())
-  // }
+    Ok(())
+  }
 }

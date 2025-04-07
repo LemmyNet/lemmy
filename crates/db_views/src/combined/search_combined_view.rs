@@ -360,6 +360,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
+        post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
       }))
@@ -379,6 +380,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
+        tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
       }))
@@ -388,6 +390,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community_actions: v.community_actions,
         instance_actions: v.instance_actions,
         can_mod: v.can_mod,
+        post_tags: v.community_post_tags,
       }))
     } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {
