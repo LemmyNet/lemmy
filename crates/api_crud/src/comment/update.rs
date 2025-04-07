@@ -67,6 +67,7 @@ pub async fn update_comment(
   let mut form = CommentUpdateForm {
     content,
     language_id: Some(language_id),
+    disable_reply_notifications: data.disable_reply_notifications,
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };

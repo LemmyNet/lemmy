@@ -228,7 +228,10 @@ pub async fn send_local_notifs(
       .is_err();
 
       // Don't send a notif to yourself
-      if parent_comment.creator_id != person.id && !check_blocks {
+      if parent_comment.creator_id != person.id
+        && !check_blocks
+        && !parent_comment.disable_reply_notifications
+      {
         let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
         if let Ok(parent_user_view) = user_view {
           // Don't duplicate notif if already mentioned by checking recipient ids

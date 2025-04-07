@@ -94,7 +94,7 @@ pub struct Post {
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
-  /// True if the post creator gets notified about new top-level comments
+  /// If false the post creator doesnt get notified about new top-level comments
   pub disable_reply_notifications: bool,
 }
 

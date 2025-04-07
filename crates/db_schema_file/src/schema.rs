@@ -139,6 +139,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        disable_reply_notifications -> Bool
     }
 }
 

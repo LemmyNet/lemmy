@@ -1,1 +1,5 @@
-alter table post drop column disable_reply_notifications;
+ALTER TABLE post
+    DROP COLUMN disable_reply_notifications;
+
+ALTER TABLE comment
+    DROP COLUMN disable_reply_notifications
