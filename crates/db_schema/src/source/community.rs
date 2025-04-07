@@ -1,15 +1,14 @@
-#[cfg(feature = "full")]
-use crate::schema::{community, community_actions};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
-  CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::{community, community_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -234,20 +233,6 @@ pub struct CommunityPersonBanForm {
   pub ban_expires: Option<Option<DateTime<Utc>>>,
   #[new(value = "Utc::now()")]
   pub received_ban: DateTime<Utc>,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
-#[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
-)]
-#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
-pub enum CommunityFollowerState {
-  Accepted,
-  Pending,
-  ApprovalRequired,
 }
 
 #[derive(Clone, derive_new::new)]

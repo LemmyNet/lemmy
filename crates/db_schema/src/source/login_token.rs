@@ -1,7 +1,7 @@
-#[cfg(feature = "full")]
-use crate::schema::login_token;
 use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::login_token;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

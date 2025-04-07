@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  fetcher::user_or_community::UserOrCommunity,
+  fetcher::UserOrCommunity,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
@@ -74,10 +74,10 @@ impl ActivityHandler for UndoFollow {
     let object = self.object.object.dereference(context).await?;
 
     match object {
-      UserOrCommunity::User(u) => {
+      UserOrCommunity::Left(u) => {
         PersonActions::unfollow(&mut context.pool(), person.id, u.id).await?;
       }
-      UserOrCommunity::Community(c) => {
+      UserOrCommunity::Right(c) => {
         CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
       }
     }

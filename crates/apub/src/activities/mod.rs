@@ -38,15 +38,15 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
     site::Site,
   },
   traits::Crud,
-  CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
+use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView, SiteView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -141,8 +141,17 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site_view.site.instance_id;
+
   let mod_ = mod_id.dereference(context).await?;
-  CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
+  CommunityView::check_is_mod_or_admin(
+    &mut context.pool(),
+    mod_.id,
+    community.id,
+    local_instance_id,
+  )
+  .await
 }
 
 /// Verify that admin action was performed by an admin.
@@ -187,7 +196,11 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
 
 /// Returns an error if object visibility doesnt match community visibility
 /// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -> LemmyResult<()> {
+pub(crate) fn verify_visibility(
+  to: &[Url],
+  cc: &[Url],
+  community: &ApubCommunity,
+) -> LemmyResult<()> {
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
@@ -260,9 +273,8 @@ async fn send_lemmy_activity<Activity, ActorT>(
   sensitive: bool,
 ) -> LemmyResult<()>
 where
-  Activity: ActivityHandler + Serialize + Send + Sync + Clone,
+  Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
   ActorT: Actor + GetActorType,
-  Activity: ActivityHandler<Error = LemmyError>,
 {
   info!("Saving outgoing activity to queue {}", activity.id());
 

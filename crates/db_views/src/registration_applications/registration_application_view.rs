@@ -12,10 +12,10 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
-  schema::{local_user, person, registration_application},
   source::registration_application::RegistrationApplication,
   utils::{get_conn, limit_and_offset, DbPool},
 };
+use lemmy_db_schema_file::schema::{local_user, person, registration_application};
 
 impl RegistrationApplicationView {
   #[diesel::dsl::auto_type(no_type_alias)]

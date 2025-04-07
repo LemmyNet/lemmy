@@ -1,6 +1,6 @@
 use crate::{
   collections::community_moderators::ApubCommunityModerators,
-  fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
+  fetcher::UserOrCommunity,
   objects::person::ApubPerson,
 };
 use activitypub_federation::fetch::{collection_id::CollectionId, object_id::ObjectId};
@@ -138,6 +138,12 @@ impl PersonOrGroupModerators {
 pub(crate) enum AttributedTo {
   Lemmy(PersonOrGroupModerators),
   Peertube(Vec<AttributedToPeertube>),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) enum PersonOrGroupType {
+  Person,
+  Group,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]

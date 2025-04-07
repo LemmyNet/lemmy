@@ -26,11 +26,13 @@ pub async fn create_comment_report(
   check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
   let comment_view = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 

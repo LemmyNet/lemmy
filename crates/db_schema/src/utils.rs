@@ -1,6 +1,6 @@
 pub mod uplete;
 
-use crate::{newtypes::DbUrl, schema_setup};
+use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
@@ -30,6 +30,7 @@ use diesel_async::{
 };
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
+use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,

@@ -7,7 +7,7 @@ use crate::{
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LocalUserId, PostId, PostOrCommentId},
+  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PostId, PostOrCommentId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
@@ -33,10 +33,16 @@ pub async fn build_comment_response(
   comment_id: CommentId,
   local_user_view: Option<LocalUserView>,
   recipient_ids: Vec<LocalUserId>,
+  local_instance_id: InstanceId,
 ) -> LemmyResult<CommentResponse> {
   let local_user = local_user_view.map(|l| l.local_user);
-  let comment_view =
-    CommentView::read(&mut context.pool(), comment_id, local_user.as_ref()).await?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    local_user.as_ref(),
+    local_instance_id,
+  )
+  .await?;
   Ok(CommentResponse {
     comment_view,
     recipient_ids,
@@ -81,6 +87,7 @@ pub async fn build_post_response(
     &mut context.pool(),
     post_id,
     Some(&local_user),
+    local_user_view.person.instance_id,
     is_mod_or_admin,
   )
   .await?;
@@ -88,7 +95,6 @@ pub async fn build_post_response(
 }
 
 // TODO: this function is a mess and should be split up to handle email separately
-
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   post_or_comment_id: PostOrCommentId,
@@ -96,6 +102,7 @@ pub async fn send_local_notifs(
   do_send_email: bool,
   context: &LemmyContext,
   local_user_view: Option<&LocalUserView>,
+  local_instance_id: InstanceId,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
 
@@ -105,6 +112,7 @@ pub async fn send_local_notifs(
         &mut context.pool(),
         post_id,
         local_user_view.map(|view| &view.local_user),
+        local_instance_id,
         false,
       )
       .await?;
@@ -121,6 +129,7 @@ pub async fn send_local_notifs(
           &mut context.pool(),
           comment_id,
           Some(&local_user_view.local_user),
+          local_instance_id,
         )
         .await?;
         (

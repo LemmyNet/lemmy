@@ -26,10 +26,12 @@ pub async fn remove_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
+  let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
@@ -87,6 +89,7 @@ pub async fn remove_comment(
     false,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
   let updated_comment_id = updated_comment.id;
@@ -107,6 +110,7 @@ pub async fn remove_comment(
       updated_comment_id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

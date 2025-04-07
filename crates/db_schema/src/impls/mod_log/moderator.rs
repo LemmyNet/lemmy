@@ -12,19 +12,6 @@ use crate::{
     ModRemovePostId,
     ModTransferCommunityId,
   },
-  schema::{
-    mod_add,
-    mod_add_community,
-    mod_ban,
-    mod_ban_from_community,
-    mod_change_community_visibility,
-    mod_feature_post,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_community,
-    mod_remove_post,
-    mod_transfer_community,
-  },
   source::mod_log::moderator::{
     ModAdd,
     ModAddCommunity,
@@ -54,6 +41,19 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  mod_add,
+  mod_add_community,
+  mod_ban,
+  mod_ban_from_community,
+  mod_change_community_visibility,
+  mod_feature_post,
+  mod_lock_post,
+  mod_remove_comment,
+  mod_remove_community,
+  mod_remove_post,
+  mod_transfer_community,
+};
 
 impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;

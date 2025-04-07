@@ -2,15 +2,19 @@
 use crate::utils::{
   comment_creator_is_admin,
   comment_select_remove_deletes,
+  community_post_tags_fragment,
+  creator_banned,
   creator_community_actions_select,
+  creator_home_instance_actions_select,
   creator_is_admin,
-  home_instance_actions_select,
+  creator_local_instance_actions_select,
   local_user_can_mod,
   local_user_community_can_mod,
   local_user_is_admin,
   person1_select,
   person2_select,
   post_creator_is_admin,
+  post_tags_fragment,
 };
 #[cfg(feature = "full")]
 use diesel::{
@@ -33,7 +37,7 @@ use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   comment_reply::CommentReply,
   comment_report::CommentReport,
-  community::{Community, CommunityActions, CommunityFollowerState},
+  community::{Community, CommunityActions},
   community_report::CommunityReport,
   custom_emoji::CustomEmoji,
   custom_emoji_keyword::CustomEmojiKeyword,
@@ -78,13 +82,16 @@ use lemmy_db_schema::source::{
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
-  schema::local_user,
   utils::functions::coalesce,
   CreatorCommunityActionsAllColumnsTuple,
-  HomeInstanceActionsAllColumnsTuple,
+  CreatorHomeInstanceActionsAllColumnsTuple,
+  CreatorLocalInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -180,10 +187,15 @@ pub struct CommentView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
@@ -200,10 +212,22 @@ pub struct CommentView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -223,13 +247,13 @@ pub struct CommentSlimView {
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -265,7 +289,9 @@ pub struct LocalUserView {
   pub local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
 }
@@ -364,10 +390,15 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
@@ -384,10 +415,22 @@ pub struct PostView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -595,9 +638,13 @@ pub(crate) struct PersonContentCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -614,10 +661,22 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -657,9 +716,13 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -676,10 +739,22 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -747,6 +822,12 @@ pub struct CommunityView {
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
 }
 
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
@@ -791,15 +872,15 @@ pub struct PersonCommentMentionView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -824,15 +905,16 @@ pub struct PersonPostMentionView {
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
+  pub post_tags: TagsView,
   pub creator_is_admin: bool,
   pub can_mod: bool,
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -854,17 +936,19 @@ pub struct CommentReplyView {
   pub comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
-  pub home_instance_actions: Option<InstanceActions>,
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
+  pub post_tags: TagsView,
   pub can_mod: bool,
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -882,14 +966,22 @@ pub struct PersonView {
     )
   )]
   pub is_admin: bool,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
   #[cfg_attr(feature = "full", ts(optional))]
   pub home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub local_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -967,9 +1059,13 @@ pub struct InboxCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -984,10 +1080,22 @@ pub struct InboxCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -1346,9 +1454,13 @@ pub(crate) struct SearchCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<HomeInstanceActionsAllColumnsTuple>,
-      select_expression = home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
+      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
+      select_expression = creator_home_instance_actions_select()))]
+  pub creator_home_instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
+      select_expression = creator_local_instance_actions_select()))]
+  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1365,10 +1477,30 @@ pub(crate) struct SearchCombinedViewInternal {
   pub item_creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
+      select_expression = post_tags_fragment()
+    )
+  )]
+  /// tags of this post
+  pub post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = community_post_tags_fragment()
+    )
+  )]
+  /// available tags in this community
+  pub community_post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
       select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned()
+    )
+  )]
+  pub creator_banned: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -1384,10 +1516,8 @@ pub enum SearchCombinedView {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
-#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 /// we wrap this in a struct so we can implement FromSqlRow<Json> for it
-pub struct PostTags {
-  pub tags: Vec<Tag>,
-}
+pub struct TagsView(pub Vec<Tag>);
