@@ -367,6 +367,7 @@ impl PictrsFileDetails {
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
+  aliases: Vec<String>,
 }
 
 /// Purges an image from pictrs
@@ -374,7 +375,10 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_image_from_pictrs_url(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -383,11 +387,10 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
+  purge_image_from_pictrs(alias, context).await
+}
 
+pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -405,12 +408,21 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
+  // Pictrs purges return all aliases.
+  let aliases = response.aliases;
+
+  // Delete db rows of aliases.
+  LocalImage::delete_by_aliases(&mut context.pool(), &aliases)
+    .await
+    .ok();
+
   match response.msg.as_str() {
     "ok" => Ok(()),
     _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
   }
 }
 
+/// Deletes an alias for an image. If its not the last / only alias, the image might remain.
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
   LocalImage::delete_by_alias(&mut context.pool(), alias)

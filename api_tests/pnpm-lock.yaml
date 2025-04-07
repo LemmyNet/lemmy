@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.13.1)
       lemmy-js-client:
-        specifier: npm:@phiresky/lemmy-js-client@1.0.0-post-tags.7
-        version: '@phiresky/lemmy-js-client@1.0.0-post-tags.7'
+        specifier: 1.0.0-media-fixes.1
+        version: 1.0.0-media-fixes.1
       prettier:
         specifier: ^3.5.0
         version: 3.5.0
@@ -484,9 +484,6 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
-
-  '@phiresky/lemmy-js-client@1.0.0-post-tags.7':
-    resolution: {integrity: sha512-zuGyIx54ykPW1nI/0T7RG99D+MP1Ix8lYwbWydLNYY4nhcr37baXq0e+LJjsiCJIv2KptfJI/6pndUkUQjr8JQ==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -1512,6 +1509,9 @@ packages:
   kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
+
+  lemmy-js-client@1.0.0-media-fixes.1:
+    resolution: {integrity: sha512-tD3KrXY6bEEIu4ibUe0ZqY+TnPmbABRLSAliFU4hB0RpE7Q/LMpkTbbffKnAqpmaK4MuNRLSyrHomstM/728bg==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -2792,12 +2792,6 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.0
-
-  '@phiresky/lemmy-js-client@1.0.0-post-tags.7':
-    dependencies:
-      '@tsoa/runtime': 6.6.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -4132,6 +4126,12 @@ snapshots:
       json-buffer: 3.0.1
 
   kleur@3.0.3: {}
+
+  lemmy-js-client@1.0.0-media-fixes.1:
+    dependencies:
+      '@tsoa/runtime': 6.6.0
+    transitivePeerDependencies:
+      - supports-color
 
   leven@3.1.0: {}
 
