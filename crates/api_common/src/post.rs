@@ -40,6 +40,9 @@ pub struct CreatePost {
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
+  /// True if the post creator gets notified about new top-level comments
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -180,6 +183,9 @@ pub struct EditPost {
   pub scheduled_publish_time: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub tags: Option<Vec<TagId>>,
+  /// True if the post creator gets notified about new top-level comments
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

@@ -274,7 +274,7 @@ pub async fn send_local_notifs(
       .await
       .is_err();
 
-      if post.creator_id != person.id && !check_blocks {
+      if post.creator_id != person.id && !check_blocks && !post.disable_reply_notifications {
         let creator_id = post.creator_id;
         let parent_user = LocalUserView::read_person(&mut context.pool(), creator_id).await;
         if let Ok(parent_user_view) = parent_user {

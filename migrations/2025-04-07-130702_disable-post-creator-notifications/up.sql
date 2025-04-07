@@ -1,0 +1,1 @@
+alter table post add column disable_reply_notifications bool not null default false;

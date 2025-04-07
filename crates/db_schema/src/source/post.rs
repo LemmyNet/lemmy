@@ -94,6 +94,8 @@ pub struct Post {
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  /// True if the post creator gets notified about new top-level comments
+  pub disable_reply_notifications: bool,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -149,6 +151,8 @@ pub struct PostInsertForm {
   pub scheduled_publish_time: Option<DateTime<Utc>>,
   #[new(default)]
   pub federation_pending: Option<bool>,
+  #[new(default)]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -177,6 +181,7 @@ pub struct PostUpdateForm {
   pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
   pub federation_pending: Option<bool>,
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]

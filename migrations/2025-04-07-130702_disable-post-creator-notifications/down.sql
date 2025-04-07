@@ -1,0 +1,1 @@
+alter table post drop column disable_reply_notifications;
