@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView, SiteView};
+use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
 use lemmy_email::notifications::{
   send_comment_reply_email,
   send_mention_email,
@@ -99,18 +99,11 @@ pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   post_or_comment_id: PostOrCommentId,
   person: &Person,
-  mut do_send_email: bool,
+  do_send_email: bool,
   context: &LemmyContext,
   local_user_view: Option<&LocalUserView>,
   local_instance_id: InstanceId,
 ) -> LemmyResult<Vec<LocalUserId>> {
-  // Check here if email notifications are disabled by instance, because context is not available
-  // in email crate (so it would require a separate param to pass db pool).
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  if site_view.local_site.disable_email_notifications {
-    do_send_email = false;
-  }
-
   let mut recipient_ids = Vec::new();
 
   let (comment_opt, post, community) = match post_or_comment_id {
