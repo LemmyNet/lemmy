@@ -1,11 +1,6 @@
 use super::{local_community, report_inboxes};
 use crate::{
-  activities::{
-    block::SiteOrCommunity,
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_person_in_site_or_community,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_site_or_community},
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
   insert_received_activity,

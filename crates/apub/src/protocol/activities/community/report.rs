@@ -1,5 +1,4 @@
 use crate::{
-  activities::block::SiteOrCommunity,
   fetcher::report::ReportableObjects,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
 };

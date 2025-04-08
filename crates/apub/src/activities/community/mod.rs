@@ -1,5 +1,5 @@
 use crate::{
-  activities::{block::SiteOrCommunity, send_lemmy_activity},
+  activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
   fetcher::{report::ReportableObjects, PostOrComment},
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},

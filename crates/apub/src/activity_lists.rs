@@ -1,5 +1,4 @@
 use crate::{
-  activities::block::SiteOrCommunity,
   objects::community::ApubCommunity,
   protocol::{
     activities::{

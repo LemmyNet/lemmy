@@ -1,8 +1,5 @@
 use super::report::Report;
-use crate::{
-  activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-};
+use crate::objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,

@@ -1,7 +1,6 @@
 use super::{local_community, report_inboxes};
 use crate::{
   activities::{
-    block::SiteOrCommunity,
     generate_activity_id,
     send_lemmy_activity,
     verify_mod_or_admin_action,

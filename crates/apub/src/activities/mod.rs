@@ -29,7 +29,6 @@ use activitypub_federation::{
   kinds::{activity::AnnounceType, public},
   traits::{ActivityHandler, Actor},
 };
-use block::SiteOrCommunity;
 use either::Either;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
