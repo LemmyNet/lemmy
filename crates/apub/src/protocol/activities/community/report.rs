@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::report::ReportableObjects,
+  fetcher::ReportableObjects,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
 };
 use activitypub_federation::{

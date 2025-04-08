@@ -1,7 +1,7 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::{report::ReportableObjects, PostOrComment},
+  fetcher::{PostOrComment, ReportableObjects},
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };

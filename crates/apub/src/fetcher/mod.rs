@@ -19,10 +19,11 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub(crate) mod markdown_links;
-pub(crate) mod report;
 pub mod search;
 
 pub(crate) type PostOrComment = Either<ApubPost, ApubComment>;
+
+pub(crate) type ReportableObjects = Either<PostOrComment, ApubCommunity>;
 
 pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
 

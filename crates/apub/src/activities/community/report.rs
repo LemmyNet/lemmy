@@ -2,7 +2,7 @@ use super::{local_community, report_inboxes};
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_site_or_community},
   activity_lists::AnnouncableActivities,
-  fetcher::report::ReportableObjects,
+  fetcher::ReportableObjects,
   insert_received_activity,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::{
