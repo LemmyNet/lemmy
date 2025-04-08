@@ -1,8 +1,9 @@
-use crate::{
+use lemmy_db_schema::sensitive::SensitiveString;
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
-use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},
   transport::smtp::extension::ClientId,
@@ -15,13 +16,20 @@ use std::{str::FromStr, sync::OnceLock};
 use translations::Lang;
 use uuid::Uuid;
 
-pub mod translations {
+pub mod account;
+pub mod admin;
+pub mod notifications;
+mod translations {
   rosetta_i18n::include_translations!();
 }
 
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 
-pub async fn send_email(
+fn inbox_link(settings: &Settings) -> String {
+  format!("{}/inbox", settings.get_protocol_and_hostname())
+}
+
+async fn send_email(
   subject: &str,
   to_email: &str,
   to_username: &str,
@@ -74,10 +82,18 @@ pub async fn send_email(
 }
 
 #[allow(clippy::expect_used)]
-pub fn lang_str_to_lang(lang: &str) -> Lang {
-  let lang_id = LanguageId::new(lang);
+fn user_language(local_user_view: &LocalUserView) -> Lang {
+  let lang_id = LanguageId::new(&local_user_view.local_user.interface_language);
   Lang::from_language_id(&lang_id).unwrap_or_else(|| {
     let en = LanguageId::new("en");
     Lang::from_language_id(&en).expect("default language")
   })
+}
+
+fn user_email(local_user_view: &LocalUserView) -> LemmyResult<SensitiveString> {
+  local_user_view
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired.into())
 }

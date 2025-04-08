@@ -5,7 +5,8 @@ use crate::{
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
+      page::{Attachment, Hashtag, HashtagType, Page, PageType},
+      AttributedTo,
       LanguageTag,
     },
     ImageObject,
@@ -26,25 +27,19 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
-  utils::{
-    check_nsfw_allowed,
-    get_url_blocklist,
-    process_markdown_opt,
-    purge_post_images,
-    slur_regex,
-  },
+  utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views::structs::{CommunityModeratorView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -183,7 +178,10 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -237,9 +235,9 @@ impl Object for ApubPost {
     // posts that get updated to be NSFW
     let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
     if let Err(e) = block_for_nsfw {
-      let url = url.clone().map(std::convert::Into::into);
-      let thumbnail_url = page.image.map(|i| i.url.into());
-      purge_post_images(url, thumbnail_url, context).await;
+      // TODO: Remove locally generated thumbnail if one exists, depends on
+      //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
+      //       safely do this.
       Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
       Err(e)?
     }
@@ -249,7 +247,11 @@ impl Object for ApubPost {
     let url = if let Some(url) = url {
       is_url_blocked(&url, &url_blocklist)?;
       is_valid_url(&url)?;
-      to_local_url(url.as_str(), context).await.or(Some(url))
+      if page.kind != PageType::Video {
+        to_local_url(url.as_str(), context).await.or(Some(url))
+      } else {
+        Some(url)
+      }
     } else {
       None
     };
@@ -266,7 +268,7 @@ impl Object for ApubPost {
         .await?,
     );
 
-    let form = PostInsertForm {
+    let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
       alt_text,
@@ -279,9 +281,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
+    form = plugin_hook_before("before_receive_federated_post", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    plugin_hook_after("after_receive_federated_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
@@ -327,7 +331,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context.request_count(), 0);
 
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;

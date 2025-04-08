@@ -37,6 +37,16 @@ use lemmy_db_schema::{
   aliases,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+  source::{
+    combined::modlog::{modlog_combined_keys as key, ModlogCombined},
+    local_user::LocalUser,
+  },
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::{get_conn, DbPool},
+  ModlogActionType,
+};
+use lemmy_db_schema_file::{
+  enums::ListingType,
   schema::{
     admin_allow_instance,
     admin_block_instance,
@@ -663,9 +673,9 @@ mod tests {
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
-    CommunityVisibility,
     ModlogActionType,
   };
+  use lemmy_db_schema_file::enums::CommunityVisibility;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -999,6 +1009,7 @@ mod tests {
       banned: Some(true),
       reason: None,
       expires: None,
+      instance_id: data.instance.id,
     };
     ModBan::create(pool, &form).await?;
 

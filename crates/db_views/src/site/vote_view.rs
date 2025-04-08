@@ -10,12 +10,19 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
   source::{comment::CommentActions, post::PostActions},
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  community_actions,
+  person,
+  post,
+  post_actions,
+};
 
 impl VoteView {
   pub fn to_post_actions_cursor(&self) -> PaginationCursor {

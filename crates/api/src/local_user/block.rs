@@ -17,6 +17,7 @@ pub async fn user_block_person(
 ) -> LemmyResult<Json<BlockPersonResponse>> {
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
 
   // Don't let a person block themselves
   if target_id == person_id {
@@ -39,7 +40,8 @@ pub async fn user_block_person(
     PersonActions::unblock(&mut context.pool(), &person_block_form).await?;
   }
 
-  let person_view = PersonView::read(&mut context.pool(), target_id, false).await?;
+  let person_view =
+    PersonView::read(&mut context.pool(), target_id, local_instance_id, false).await?;
   Ok(Json(BlockPersonResponse {
     person_view,
     blocked: data.block,

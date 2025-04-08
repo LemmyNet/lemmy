@@ -1,7 +1,6 @@
 use crate::{
-  newtypes::{PaginationCursor, TaglineId},
-  schema::tagline,
-  source::tagline::{tagline_keys as key, Tagline, TaglineInsertForm, TaglineUpdateForm},
+  newtypes::TaglineId,
+  source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   traits::Crud,
   utils::{functions::random, get_conn, limit_fetch, paginate, DbPool},
 };

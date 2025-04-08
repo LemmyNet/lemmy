@@ -1,11 +1,11 @@
 use crate::{
-  schema::captcha_answer::dsl::{answer, captcha_answer},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
   utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{delete, dsl::exists, insert_into, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::captcha_answer::dsl::{answer, captcha_answer};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CaptchaAnswer {
   pub async fn insert(pool: &mut DbPool<'_>, captcha: &CaptchaAnswerForm) -> LemmyResult<Self> {

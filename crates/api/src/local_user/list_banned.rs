@@ -32,7 +32,7 @@ pub async fn list_banned_users(
     page_back: data.page_back,
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
 
   let next_page = banned.last().map(PaginationCursorBuilder::to_cursor);

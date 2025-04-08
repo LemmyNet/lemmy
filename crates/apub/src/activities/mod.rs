@@ -36,13 +36,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
+    instance::InstanceActions,
   },
   traits::Crud,
-  CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, SiteView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -63,11 +64,8 @@ async fn verify_person(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(person.ap_id.to_string()).into())
-  } else {
-    Ok(())
-  }
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  Ok(())
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -78,11 +76,7 @@ pub(crate) async fn verify_person_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  }
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
@@ -105,8 +99,17 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site_view.site.instance_id;
+
   let mod_ = mod_id.dereference(context).await?;
-  CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
+  CommunityView::check_is_mod_or_admin(
+    &mut context.pool(),
+    mod_.id,
+    community.id,
+    local_instance_id,
+  )
+  .await
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
@@ -119,7 +122,11 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
 
 /// Returns an error if object visibility doesnt match community visibility
 /// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -> LemmyResult<()> {
+pub(crate) fn verify_visibility(
+  to: &[Url],
+  cc: &[Url],
+  community: &ApubCommunity,
+) -> LemmyResult<()> {
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
@@ -192,9 +199,8 @@ async fn send_lemmy_activity<Activity, ActorT>(
   sensitive: bool,
 ) -> LemmyResult<()>
 where
-  Activity: ActivityHandler + Serialize + Send + Sync + Clone,
+  Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
   ActorT: Actor + GetActorType,
-  Activity: ActivityHandler<Error = LemmyError>,
 {
   info!("Saving outgoing activity to queue {}", activity.id());
 

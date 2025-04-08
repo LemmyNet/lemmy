@@ -1,7 +1,6 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
     PersonActions,
@@ -17,12 +16,14 @@ use chrono::Utc;
 use diesel::{
   dsl::{exists, insert_into, not, select},
   expression::SelectableHelper,
+  result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{instance, local_user, person, person_actions};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -109,7 +110,7 @@ impl Person {
   }
 
   /// Lists local community ids for all posts and comments for a given creator.
-  pub async fn list_local_community_ids(
+  pub(crate) async fn list_local_community_ids(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
   ) -> LemmyResult<Vec<CommunityId>> {
@@ -370,7 +371,6 @@ mod tests {
       display_name: None,
       avatar: None,
       banner: None,
-      banned: false,
       deleted: false,
       published: inserted_person.published,
       updated: None,
@@ -383,7 +383,6 @@ mod tests {
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       matrix_user_id: None,
-      ban_expires: None,
       instance_id: inserted_instance.id,
       post_count: 0,
       post_score: 0,

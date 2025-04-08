@@ -4,10 +4,8 @@ use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{local_site::LocalSite, local_user::LocalUser, person::Person},
-  CommentSortType,
-  ListingType,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

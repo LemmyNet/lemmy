@@ -4,15 +4,17 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageId,
-  schema::{instance_actions, person, person_actions, private_message},
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
 
 impl PrivateMessageView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     let recipient_id = aliases::person1.field(person::id);
+
+    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
+    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
 
     let person_actions_join = person_actions::table.on(
       person_actions::target_id
@@ -25,10 +27,6 @@ impl PrivateMessageView {
         .eq(person::instance_id)
         .and(instance_actions::person_id.eq(recipient_id)),
     );
-
-    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
-
-    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
 
     private_message::table
       .inner_join(creator_join)

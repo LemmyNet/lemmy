@@ -1,7 +1,7 @@
-#[cfg(feature = "full")]
-use crate::schema::password_reset_request;
 use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::password_reset_request;
 
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]

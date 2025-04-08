@@ -1,7 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_actions, instance, post},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -9,7 +8,6 @@ use crate::{
       CommunityActions,
       CommunityBlockForm,
       CommunityFollowerForm,
-      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModeratorForm,
       CommunityPersonBanForm,
@@ -24,8 +22,6 @@ use crate::{
     uplete,
     DbPool,
   },
-  CommunityVisibility,
-  ListingType,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -39,10 +35,16 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
+  schema::{community, community_actions, instance, post},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use regex::Regex;
+use std::sync::LazyLock;
 use url::Url;
 
 impl Crud for Community {
@@ -257,6 +259,20 @@ impl Community {
     community::removed
       .eq(false)
       .and(community::deleted.eq(false))
+  }
+
+  pub fn build_tag_ap_id(&self, tag_name: &str) -> LemmyResult<DbUrl> {
+    #[allow(clippy::expect_used)]
+    // convert a readable name to an id slug that is appended to the community URL to get a unique
+    // tag url (ap_id).
+    static VALID_ID_SLUG: LazyLock<Regex> =
+      LazyLock::new(|| Regex::new(r"[^a-z0-9_-]+").expect("compile regex"));
+    let tag_name_lower = tag_name.to_lowercase();
+    let id_slug = VALID_ID_SLUG.replace_all(&tag_name_lower, "-");
+    if id_slug.is_empty() {
+      Err(LemmyErrorType::InvalidUrl)?
+    }
+    Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
   }
 
   pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
@@ -610,6 +626,7 @@ impl ApubActor for Community {
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -617,7 +634,6 @@ mod tests {
         Community,
         CommunityActions,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityPersonBanForm,
@@ -630,7 +646,6 @@ mod tests {
     },
     traits::{Bannable, Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
-    CommunityVisibility,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

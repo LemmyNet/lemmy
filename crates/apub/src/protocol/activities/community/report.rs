@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::post_or_comment::PostOrComment,
+  fetcher::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };

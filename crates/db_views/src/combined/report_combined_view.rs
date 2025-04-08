@@ -22,29 +22,29 @@ use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
-  schema::{
-    comment,
-    comment_actions,
-    comment_report,
-    community,
-    community_actions,
-    community_report,
-    local_user,
-    person,
-    person_actions,
-    post,
-    post_actions,
-    post_report,
-    private_message,
-    private_message_report,
-    report_combined,
-  },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, paginate, DbPool},
   ReportType,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  comment_report,
+  community,
+  community_actions,
+  community_report,
+  local_user,
+  person,
+  person_actions,
+  post,
+  post_actions,
+  post_report,
+  private_message,
+  private_message_report,
+  report_combined,
+};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -477,7 +477,6 @@ mod tests {
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
     assert_length,
-    schema::report_combined,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -495,6 +494,7 @@ mod tests {
     utils::{build_db_pool_for_tests, get_conn, DbPool},
     ReportType,
   };
+  use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -522,6 +522,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: inserted_timmy.clone(),
+      instance_actions: None,
     };
 
     // Make an admin, to be able to see private message reports.
@@ -532,6 +533,7 @@ mod tests {
     let admin_view = LocalUserView {
       local_user: admin_local_user,
       person: inserted_admin.clone(),
+      instance_actions: None,
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");

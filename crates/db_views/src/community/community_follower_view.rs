@@ -13,20 +13,13 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  source::{community::Community, person::Person},
+  utils::{get_conn, limit_and_offset, DbPool},
+};
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility},
   schema::{community, community_actions, person},
-  source::{
-    community::{
-      community_actions_keys as key,
-      Community,
-      CommunityActions,
-      CommunityFollowerState,
-    },
-    person::Person,
-  },
-  traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, paginate, DbPool},
-  CommunityVisibility,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

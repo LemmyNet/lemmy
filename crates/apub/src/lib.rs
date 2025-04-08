@@ -1,4 +1,4 @@
-use crate::fetcher::post_or_comment::PostOrComment;
+use crate::fetcher::PostOrComment;
 use activitypub_federation::{
   config::{Data, UrlVerifier},
   error::Error as ActivityPubError,
@@ -9,6 +9,7 @@ use lemmy_db_schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   CacheLock,
@@ -149,19 +150,15 @@ pub(crate) async fn local_site_data_cached(
   Ok(
     CACHE
       .try_get_with((), async {
-        // TODO try_join broken
-        let local_site = LocalSite::read(pool).await.ok();
-        let allowed_instances = Instance::allowlist(pool).await.unwrap_or_default();
-        let blocked_instances = Instance::blocklist(pool).await.unwrap_or_default();
-        // let (local_site, allowed_instances, blocked_instances) =
-        //   lemmy_db_schema::try_join_with_pool!(pool => (
-        //     // LocalSite may be missing
-        //     |pool| async {
-        //       Ok(LocalSite::read(pool).await.ok())
-        //     },
-        //     Instance::allowlist,
-        //     Instance::blocklist
-        //   ))?;
+        let (local_site, allowed_instances, blocked_instances) =
+          lemmy_db_schema::try_join_with_pool!(pool => (
+            // LocalSite may be missing
+            |pool| async {
+              Ok(SiteView::read_local(pool).await.ok().map(|s| s.local_site))
+            },
+            Instance::allowlist,
+            Instance::blocklist
+          ))?;
 
         Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
           local_site,

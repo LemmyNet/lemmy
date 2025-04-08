@@ -1,7 +1,7 @@
 use crate::newtypes::{DbUrl, PersonId, PostId, PostReportId};
-#[cfg(feature = "full")]
-use crate::schema::post_report;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::post_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

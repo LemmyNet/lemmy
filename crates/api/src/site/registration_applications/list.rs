@@ -18,7 +18,7 @@ pub async fn list_registration_applications(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListRegistrationApplicationsResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin
   is_admin(&local_user_view)?;

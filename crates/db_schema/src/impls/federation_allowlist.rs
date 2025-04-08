@@ -1,12 +1,11 @@
 use crate::{
   newtypes::InstanceId,
-  schema::federation_allowlist,
   source::federation_allowlist::{FederationAllowList, FederationAllowListForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::federation_allowlist;
 
 impl FederationAllowList {
   pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> LemmyResult<Self> {

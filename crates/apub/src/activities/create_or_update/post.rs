@@ -31,6 +31,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -112,6 +113,9 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let local_instance_id = site_view.site.instance_id;
+
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
@@ -134,6 +138,7 @@ impl ActivityHandler for CreateOrUpdatePage {
       do_send_email,
       context,
       None,
+      local_instance_id,
     )
     .await?;
 

@@ -1,9 +1,8 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PaginationCursor, PostId, TagId},
-  ListingType,
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
   PostFeatureType,
-  PostSortType,
 };
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views::structs::{CommunityView, PostView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -171,11 +170,11 @@ pub struct EditPost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub tags: Option<Vec<TagId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

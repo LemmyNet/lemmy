@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{get_url_blocklist, process_markdown_opt, send_verification_email, slur_regex},
+  utils::{get_url_blocklist, process_markdown_opt, slur_regex},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -16,6 +16,7 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
@@ -49,8 +50,7 @@ pub async fn save_user_settings(
       LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &site_view.local_site,
-        &local_user_view.local_user,
-        &local_user_view.person,
+        &local_user_view,
         email,
         &mut context.pool(),
         context.settings(),

@@ -7,14 +7,6 @@ use crate::{
     AdminPurgePersonId,
     AdminPurgePostId,
   },
-  schema::{
-    admin_allow_instance,
-    admin_block_instance,
-    admin_purge_comment,
-    admin_purge_community,
-    admin_purge_person,
-    admin_purge_post,
-  },
   source::mod_log::admin::{
     AdminAllowInstance,
     AdminAllowInstanceForm,
@@ -34,7 +26,14 @@ use crate::{
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{
+  admin_allow_instance,
+  admin_block_instance,
+  admin_purge_comment,
+  admin_purge_community,
+  admin_purge_person,
+  admin_purge_post,
+};
 
 impl Crud for AdminPurgePerson {
   type InsertForm = AdminPurgePersonForm;

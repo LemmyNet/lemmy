@@ -27,12 +27,10 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   sensitive::SensitiveString,
-  source::{
-    activity::ActorType,
-    person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
-  },
+  source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
 };
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{
@@ -152,8 +150,6 @@ impl Object for ApubPerson {
     let person_form = PersonInsertForm {
       name: person.preferred_username,
       display_name,
-      banned: None,
-      ban_expires: None,
       deleted: Some(false),
       avatar,
       banner,

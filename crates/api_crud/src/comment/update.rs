@@ -5,6 +5,7 @@ use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };
@@ -26,15 +27,17 @@ pub async fn update_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
+  let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     &mut context.pool(),
   )
@@ -61,13 +64,17 @@ pub async fn update_comment(
   }
 
   let comment_id = data.comment_id;
-  let form = CommentUpdateForm {
+  let mut form = CommentUpdateForm {
     content,
     language_id: Some(language_id),
     updated: Some(Some(Utc::now())),
     ..Default::default()
   };
-  let updated_comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
+  form = plugin_hook_before("before_update_local_comment", form).await?;
+  let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
+    .await?;
+   
+  plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
   let updated_comment_content = updated_comment.content.clone();
@@ -79,6 +86,7 @@ pub async fn update_comment(
     false,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
@@ -93,6 +101,7 @@ pub async fn update_comment(
       updated_comment.id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

@@ -1,52 +1,39 @@
 use crate::{
   structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView},
-  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+  utils::{
+    filter_is_subscribed,
+    filter_not_unlisted_or_is_subscribed,
+    my_community_actions_join,
+    my_instance_actions_community_join,
+    my_local_user_join,
+  },
 };
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{result::Error, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PaginationCursor, PersonId},
-  schema::{community, community_actions, instance_actions, local_user},
-  source::{
-    community::{community_keys as key, Community},
-    local_user::LocalUser,
-    site::Site,
-  },
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool, LowerKey},
-  ListingType,
+  newtypes::{CommunityId, InstanceId, PersonId},
+  source::{community::Community, local_user::LocalUser, site::Site},
+  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::{
+  enums::ListingType,
+  schema::{community, community_actions, instance_actions},
+};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(community::id)
-        .and(community_actions::person_id.nullable().eq(person_id)),
-    );
-
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(community::instance_id)
-        .and(instance_actions::person_id.nullable().eq(person_id)),
-    );
-
-    let local_user_join = local_user::table.on(local_user::person_id.nullable().eq(person_id));
+    let community_actions_join: my_community_actions_join = my_community_actions_join(person_id);
+    let instance_actions_community_join: my_instance_actions_community_join =
+      my_instance_actions_community_join(person_id);
+    let local_user_join: my_local_user_join = my_local_user_join(person_id);
 
     community::table
       .left_join(community_actions_join)
-      .left_join(instance_actions_join)
+      .left_join(instance_actions_community_join)
       .left_join(local_user_join)
   }
 
@@ -81,11 +68,12 @@ impl CommunityView {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let is_mod =
       CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
     if is_mod.is_ok()
-      || PersonView::read(pool, person_id, false)
+      || PersonView::read(pool, person_id, local_instance_id, false)
         .await
         .is_ok_and(|t| t.is_admin)
     {
@@ -99,11 +87,12 @@ impl CommunityView {
   pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
+    local_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let is_mod_of_any =
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
     if is_mod_of_any.is_ok()
-      || PersonView::read(pool, person_id, false)
+      || PersonView::read(pool, person_id, local_instance_id, false)
         .await
         .is_ok_and(|t| t.is_admin)
     {
@@ -235,7 +224,6 @@ mod tests {
         Community,
         CommunityActions,
         CommunityFollowerForm,
-        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModeratorForm,
         CommunityUpdateForm,
@@ -247,10 +235,11 @@ mod tests {
     },
     traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
-    CommunityVisibility,
   };
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
+  use std::collections::HashSet;
   use url::Url;
 
   struct Data {
@@ -426,6 +415,7 @@ mod tests {
     .await?;
 
     let unauthenticated_query = CommunityQuery {
+      sort: Some(CommunitySortType::New),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -434,6 +424,7 @@ mod tests {
 
     let authenticated_query = CommunityQuery {
       local_user: Some(&data.local_user),
+      sort: Some(CommunitySortType::New),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -491,6 +482,7 @@ mod tests {
     // Make sure can_mod is false for all of them.
     CommunityQuery {
       local_user: Some(&data.local_user),
+      sort: Some(CommunitySortType::New),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -515,13 +507,13 @@ mod tests {
     .await?
     .into_iter()
     .map(|c| (c.community.name, c.can_mod))
-    .collect::<Vec<_>>();
+    .collect::<HashSet<_>>();
 
-    let expected_communities = vec![
-      ("test_community_1".to_owned(), true),
-      ("test_community_2".to_owned(), true),
+    let expected_communities = HashSet::from([
       ("test_community_3".to_owned(), false),
-    ];
+      ("test_community_2".to_owned(), true),
+      ("test_community_1".to_owned(), true),
+    ]);
     assert_eq!(expected_communities, mod_query);
 
     cleanup(data, pool).await

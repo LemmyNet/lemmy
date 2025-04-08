@@ -6,7 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetcher::site_or_community_or_user::SiteOrCommunityOrUser,
+  fetcher::{get_instance_id, SiteOrCommunityOrUser},
   http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
   objects::community::ApubCommunity,
 };
@@ -22,7 +22,8 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{source::community::Community, traits::ApubActor, CommunityVisibility};
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
@@ -89,12 +90,12 @@ async fn check_is_follower(
   let signing_actor = signing_actor::<SiteOrCommunityOrUser>(&request, None, &context).await?;
   CommunityFollowerView::check_has_followers_from_instance(
     community.id,
-    signing_actor.instance_id(),
+    get_instance_id(&signing_actor),
     &mut context.pool(),
   )
   .await?;
 
-  let instance_id = is_follower.dereference(&context).await?.instance_id();
+  let instance_id = get_instance_id(&is_follower.dereference(&context).await?);
   let has_followers = CommunityFollowerView::check_has_followers_from_instance(
     community.id,
     instance_id,
@@ -173,7 +174,6 @@ pub(crate) mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
-    CommunityVisibility,
   };
   use serde::de::DeserializeOwned;
   use serial_test::serial;

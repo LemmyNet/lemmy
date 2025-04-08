@@ -12,6 +12,7 @@ use lemmy_db_schema::{
   PersonContentType,
   PostSortType,
 };
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views::{
   combined::{
     inbox_combined_view::InboxCombinedQuery,
@@ -321,6 +322,7 @@ async fn get_feed_front(
 
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site_view.site.instance_id;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let my_person_id = local_user.person.id;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
@@ -331,7 +333,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
     show_bot_accounts,
     ..Default::default()
   }
-  .list(&mut context.pool(), my_person_id)
+  .list(&mut context.pool(), my_person_id, local_instance_id)
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();

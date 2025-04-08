@@ -1,6 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, person, post, post_actions},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -28,7 +27,7 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not},
+  dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
@@ -37,9 +36,9 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
-  TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{community, person, post, post_actions};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -161,15 +160,25 @@ impl Post {
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut posts = diesel::update(post::table)
-      .filter(post::creator_id.eq(creator_id))
+    // Diesel can't update from join unfortunately, so you'll need to loop over these
+    let community_join = community::table.on(post::community_id.eq(community::id));
+    let mut posts_query = post::table
+      .inner_join(community_join)
+      .filter(post::creator_id.eq(for_creator_id))
       .into_boxed();
 
-    if let Some(community_id) = community_id {
-      posts = posts.filter(post::community_id.eq(community_id));
+    if let Some(for_community_id) = for_community_id {
+      posts_query = posts_query.filter(post::community_id.eq(for_community_id));
     }
 
-    posts
+    if let Some(for_instance_id) = for_instance_id {
+      posts_query = posts_query.filter(community::instance_id.eq(for_instance_id));
+    }
+
+    let post_ids = posts_query.select(post::id).load::<PostId>(conn).await?;
+
+    update(post::table)
+      .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
@@ -207,79 +216,6 @@ impl Post {
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
-  }
-
-  pub async fn fetch_pictrs_posts_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    post::table
-      .filter(post::creator_id.eq(for_creator_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::creator_id.eq(for_creator_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
-  }
-
-  pub async fn fetch_pictrs_posts_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-    post::table
-      .filter(post::community_id.eq(for_community_id))
-      .filter(post::url.like(pictrs_search))
-      .load::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  /// Sets the url and thumbnails fields to None
-  pub async fn remove_pictrs_post_images_and_thumbnails_for_community(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let pictrs_search = "%pictrs/image%";
-
-    diesel::update(
-      post::table
-        .filter(post::community_id.eq(for_community_id))
-        .filter(post::url.like(pictrs_search)),
-    )
-    .set((
-      post::url.eq::<Option<String>>(None),
-      post::thumbnail_url.eq::<Option<String>>(None),
-    ))
-    .get_results::<Self>(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
 
   pub async fn user_scheduled_post_count(
@@ -633,7 +569,6 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      instance_id: inserted_instance.id,
       newest_comment_time: inserted_post.published,
       newest_comment_time_necro: inserted_post.published,
       report_count: 0,

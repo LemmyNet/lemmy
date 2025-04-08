@@ -4,10 +4,9 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageReportId,
-  schema::{person, private_message, private_message_report},
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{person, private_message, private_message_report};
 
 impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id

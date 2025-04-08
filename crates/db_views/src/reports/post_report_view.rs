@@ -11,19 +11,18 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::{PersonId, PostReportId},
-  schema::{
-    community,
-    community_actions,
-    local_user,
-    person,
-    person_actions,
-    post,
-    post_actions,
-    post_report,
-  },
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{
+  community,
+  community_actions,
+  local_user,
+  person,
+  person_actions,
+  post,
+  post_actions,
+  post_report,
+};
 
 impl PostReportView {
   #[diesel::dsl::auto_type(no_type_alias)]

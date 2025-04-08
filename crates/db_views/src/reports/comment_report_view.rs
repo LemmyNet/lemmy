@@ -11,20 +11,19 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::{CommentReportId, PersonId},
-  schema::{
-    comment,
-    comment_actions,
-    comment_report,
-    community,
-    community_actions,
-    local_user,
-    person,
-    person_actions,
-    post,
-  },
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  comment_report,
+  community,
+  community_actions,
+  local_user,
+  person,
+  person_actions,
+  post,
+};
 
 impl CommentReportView {
   #[diesel::dsl::auto_type(no_type_alias)]

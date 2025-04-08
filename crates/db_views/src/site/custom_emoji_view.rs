@@ -3,11 +3,10 @@ use diesel::{dsl::Nullable, ExpressionMethods, JoinOnDsl, NullableExpressionMeth
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::CustomEmojiId,
-  schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword};
 use std::collections::HashMap;
 
 type SelectionType = (

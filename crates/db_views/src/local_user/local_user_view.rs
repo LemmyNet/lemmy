@@ -1,10 +1,9 @@
-use crate::structs::LocalUserView;
+use crate::{structs::LocalUserView, utils::creator_home_instance_actions_join};
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
-  schema::{local_user, oauth_account, person},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -17,13 +16,16 @@ use lemmy_db_schema::{
     DbPool,
   },
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::schema::{local_user, oauth_account, person};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    local_user::table.inner_join(person::table)
+    local_user::table
+      .inner_join(person::table)
+      .left_join(creator_home_instance_actions_join())
   }
 
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> LemmyResult<Self> {
@@ -133,6 +135,13 @@ impl LocalUserView {
     let local_user = LocalUser::create(pool, &user_form, vec![]).await?;
 
     LocalUserView::read(pool, local_user.id).await
+  }
+
+  pub fn banned(&self) -> bool {
+    self
+      .instance_actions
+      .as_ref()
+      .is_some_and(|i| i.received_ban.is_some())
   }
 }
 
