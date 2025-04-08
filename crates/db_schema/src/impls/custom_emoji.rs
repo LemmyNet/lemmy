@@ -13,6 +13,7 @@ use lemmy_db_schema_file::schema::{
   custom_emoji::dsl::custom_emoji,
   custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for CustomEmoji {
   type InsertForm = CustomEmojiInsertForm;

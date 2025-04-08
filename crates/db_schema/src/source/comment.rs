@@ -1,17 +1,13 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel_ltree::Ltree;
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{comment, comment_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,
-  crate::schema::{comment, comment_actions},
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{comment, comment_actions},
   ts_rs::TS,
 };
 

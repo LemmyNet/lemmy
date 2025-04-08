@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PrivateMessageView {
   #[diesel::dsl::auto_type(no_type_alias)]

@@ -16,7 +16,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PostId,
-  source::{community::Community, post::PostActions},
+  source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::{PaginationCursorBuilder, Readable},
 };
 use lemmy_db_views::{
@@ -72,6 +72,11 @@ pub async fn list_posts(
     local_user,
     &site_view.local_site,
   );
+  let keyword_blocks = if let Some(local_user) = local_user {
+    Some(LocalUserKeywordBlock::read(&mut context.pool(), local_user.id).await?)
+  } else {
+    None
+  };
 
   let (cursor_data, cursor_before_data) = if let Some(cursor) = &data.page_cursor {
     (
@@ -103,6 +108,7 @@ pub async fn list_posts(
     show_nsfw,
     hide_media,
     no_comments_only,
+    keyword_blocks,
     cursor_data,
     cursor_before_data,
     page_back,

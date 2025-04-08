@@ -4,6 +4,7 @@ use crate::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::secret::dsl::secret;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Secret {
   /// Initialize the Secrets from the DB.

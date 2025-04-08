@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_fetch, now, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, person};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
   type CursorData = Person;

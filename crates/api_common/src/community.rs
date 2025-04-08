@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
   source::site::Site,
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};

@@ -24,6 +24,7 @@ use lemmy_db_schema_file::schema::{
   person_actions,
   post,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommentReportView {
   #[diesel::dsl::auto_type(no_type_alias)]

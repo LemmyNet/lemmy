@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId},
   source::comment::{
     Comment,
     CommentActions,
@@ -22,7 +22,6 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::insert_into,
   expression::SelectableHelper,
-  result::Error,
   update,
   ExpressionMethods,
   JoinOnDsl,
@@ -93,13 +92,11 @@ impl Comment {
       ..Default::default()
     };
 
-
-update(comment::table)
+    update(comment::table)
       .filter(comment::id.eq_any(comment_ids.clone()))
       .set(form)
       .execute(conn)
       .await?;
-
 
     Ok(comment_ids)
   }

@@ -1,11 +1,11 @@
 use crate::{
   newtypes::InstanceId,
-  schema::federation_queue_state,
   source::federation_queue_state::FederationQueueState,
   utils::{get_conn, DbPool},
 };
 use diesel::{ExpressionMethods, Insertable, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::federation_queue_state;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl FederationQueueState {

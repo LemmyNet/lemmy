@@ -11,12 +11,32 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{PersonId, RegistrationApplicationId},
+  newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
   source::registration_application::RegistrationApplication,
   traits::{Crud, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{local_user, person, registration_application};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+
+impl PaginationCursorBuilder for RegistrationApplicationView {
+  type CursorData = RegistrationApplication;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('R', self.registration_application.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    RegistrationApplication::read(pool, RegistrationApplicationId(*id)).await
+  }
+}
 
 impl RegistrationApplicationView {
   #[diesel::dsl::auto_type(no_type_alias)]

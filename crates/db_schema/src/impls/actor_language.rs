@@ -37,7 +37,7 @@ use lemmy_db_schema_file::schema::{
   site,
   site_language,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
@@ -249,7 +249,11 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
   ) -> LemmyResult<Vec<LanguageId>> {
-    use lemmy_db_schema_file::schema::community_language::dsl::{community_id, community_language, language_id};
+    use lemmy_db_schema_file::schema::community_language::dsl::{
+      community_id,
+      community_language,
+      language_id,
+    };
     let conn = &mut get_conn(pool).await?;
     let langs = community_language
       .filter(community_id.eq(for_community_id))

@@ -15,6 +15,7 @@ use diesel::{
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{image_details, local_image, remote_image};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl LocalImage {

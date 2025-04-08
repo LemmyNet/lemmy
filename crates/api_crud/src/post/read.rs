@@ -95,7 +95,7 @@ pub async fn get_post(
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(&mut context.pool(), &local_user_view)
+    .list(&mut context.pool(), &local_user_view, local_instance_id)
     .await?
     .iter()
     // Filter map to collect posts

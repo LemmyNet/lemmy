@@ -3,11 +3,13 @@ use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
-  schema::{local_image, local_user, person},
-  utils::{get_conn, limit_and_offset, DbPool},
+  newtypes::{LocalUserId, PaginationCursor},
+  source::images::LocalImage,
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{local_image, local_user, person};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]

@@ -26,7 +26,22 @@ use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
+  source::{
+    comment::{comment_keys as key, Comment},
+    local_user::LocalUser,
+    site::Site,
+  },
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
+};
+use lemmy_db_schema_file::{
+  enums::{
+    CommentSortType::{self, *},
+    CommunityFollowerState,
+    CommunityVisibility,
+    ListingType,
+  },
   schema::{
     comment,
     comment_actions,
@@ -36,20 +51,8 @@ use lemmy_db_schema::{
     person,
     post,
   },
-  source::{
-    comment::{comment_keys as key, Comment},
-    community::CommunityFollowerState,
-    local_user::LocalUser,
-    site::Site,
-  },
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
-  CommentSortType,
-  CommunityVisibility,
-  ListingType,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use CommentSortType::*;
 
 impl PaginationCursorBuilder for CommentView {
   type CursorData = Comment;
@@ -103,9 +106,8 @@ impl CommentView {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'_ LocalUser>,
-==== BASE ====
-  ) -> Result<Self, Error> {
-==== BASE ====
+    local_instance_id: InstanceId,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = Self::joins(my_local_user.person_id(), local_instance_id)
@@ -333,7 +335,7 @@ mod tests {
 
   use super::*;
   use crate::{
-    comment::comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
+    comment::comment_view::{CommentQuery, CommentView, DbPool},
     structs::LocalUserView,
   };
   use lemmy_db_schema::{

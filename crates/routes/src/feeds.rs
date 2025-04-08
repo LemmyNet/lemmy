@@ -8,9 +8,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  ListingType,
   PersonContentType,
-  PostSortType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views::{
@@ -218,7 +216,7 @@ async fn get_feed_user(
     page_back: None,
     limit: (Some(*limit)),
   }
-  .list(&mut context.pool(), &None)
+  .list(&mut context.pool(), &None, site_view.site.instance_id)
   .await?;
 
   let posts = content

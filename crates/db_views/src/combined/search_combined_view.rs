@@ -40,8 +40,8 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, now, seconds_to_pg_interval, DbPool, ReverseTimestampKey},
-  SearchSortType,
+  utils::{fuzzy_search, get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
+  SearchSortType::{self, *},
   SearchType,
 };
 use lemmy_db_schema_file::{
@@ -56,15 +56,8 @@ use lemmy_db_schema_file::{
     post_actions,
     search_combined,
   },
-  source::combined::search::{search_combined_keys as key, SearchCombined},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
-  ListingType,
-  SearchSortType,
-  SearchType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
-use SearchSortType::*;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]

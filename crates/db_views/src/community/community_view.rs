@@ -8,20 +8,25 @@ use crate::{
     my_local_user_join,
   },
 };
-use diesel::{result::Error, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PersonId},
-  source::{community::Community, local_user::LocalUser, site::Site},
-  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  source::{
+    community::{community_keys as key, Community},
+    local_user::LocalUser,
+    site::Site,
+  },
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool, LowerKey},
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
   schema::{community, community_actions, instance_actions},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]

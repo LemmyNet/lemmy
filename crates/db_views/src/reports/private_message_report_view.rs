@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{person, private_message, private_message_report};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id

@@ -44,13 +44,9 @@ pub async fn ban_from_site(
 
   let form = InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, expires);
   if data.ban {
-    InstanceActions::ban(&mut context.pool(), &form)
-      .await?
-  
+    InstanceActions::ban(&mut context.pool(), &form).await?;
   } else {
-    InstanceActions::unban(&mut context.pool(), &form)
-      .await?
-     
+    InstanceActions::unban(&mut context.pool(), &form).await?;
   }
 
   // if its a local user, invalidate logins

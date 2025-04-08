@@ -13,9 +13,13 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  source::{community::Community, person::Person},
-  utils::{get_conn, limit_and_offset, DbPool},
+  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
+  source::{
+    community::{community_actions_keys as key, Community, CommunityActions},
+    person::Person,
+  },
+  traits::PaginationCursorBuilder,
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
@@ -260,6 +264,7 @@ impl CommunityFollowerView {
 
 impl PaginationCursorBuilder for CommunityFollowerView {
   type CursorData = CommunityActions;
+
   fn to_cursor(&self) -> PaginationCursor {
     // This needs a person and community
     let prefixes_and_ids = [('P', self.follower.id.0), ('C', self.community.id.0)];

@@ -10,6 +10,7 @@ use diesel_async::{
   RunQueryDsl,
 };
 use lemmy_db_schema_file::schema::local_site_url_blocklist;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalSiteUrlBlocklist {
   pub async fn replace(pool: &mut DbPool<'_>, url_blocklist: Vec<String>) -> LemmyResult<usize> {

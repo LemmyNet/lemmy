@@ -156,6 +156,7 @@ impl Post {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: Option<CommunityId>,
+    instance_id: Option<InstanceId>,
     removed: bool,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
@@ -164,15 +165,15 @@ impl Post {
     let community_join = community::table.on(post::community_id.eq(community::id));
     let mut posts_query = post::table
       .inner_join(community_join)
-      .filter(post::creator_id.eq(for_creator_id))
+      .filter(post::creator_id.eq(creator_id))
       .into_boxed();
 
-    if let Some(for_community_id) = for_community_id {
-      posts_query = posts_query.filter(post::community_id.eq(for_community_id));
+    if let Some(community_id) = community_id {
+      posts_query = posts_query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(for_instance_id) = for_instance_id {
-      posts_query = posts_query.filter(community::instance_id.eq(for_instance_id));
+    if let Some(instance_id) = instance_id {
+      posts_query = posts_query.filter(community::instance_id.eq(instance_id));
     }
 
     let post_ids = posts_query.select(post::id).load::<PostId>(conn).await?;

@@ -6,6 +6,7 @@ use crate::{
 use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{oauth_account, oauth_account::dsl::local_user_id};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl OAuthAccount {
   pub async fn create(pool: &mut DbPool<'_>, form: &OAuthAccountInsertForm) -> LemmyResult<Self> {

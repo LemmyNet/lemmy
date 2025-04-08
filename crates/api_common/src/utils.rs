@@ -39,18 +39,15 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views::{
-  comment::comment_view::CommentQuery,
-  structs::{
-    CommunityFollowerView,
-    CommunityModeratorView,
-    CommunityPersonBanView,
-    CommunityView,
-    LocalImageView,
-    LocalUserView,
-    PersonView,
-    SiteView,
-  },
+use lemmy_db_views::structs::{
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityPersonBanView,
+  CommunityView,
+  LocalImageView,
+  LocalUserView,
+  PersonView,
+  SiteView,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -170,9 +167,10 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
     Ok(())
   }
 }
+
 pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
   // Check for a site ban
-  if person_view.banned() {
+  if person_view.creator_banned {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion

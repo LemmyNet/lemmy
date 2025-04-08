@@ -1,13 +1,14 @@
 use crate::{
   newtypes::{CommunityId, TagId},
-  source::tag::{PostTagInsertForm, Tag, TagInsertForm, TagUpdateForm},
+  source::tag::{Tag, TagInsertForm, TagUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{insert_into, QueryDsl};
+use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{post_tag, tag};
-use lemmy_utils::error::LemmyResult;
+use lemmy_db_schema_file::schema::tag;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+
 impl Tag {
   pub async fn get_by_community(
     pool: &mut DbPool<'_>,
@@ -19,14 +20,13 @@ impl Tag {
       .filter(tag::deleted.eq(false))
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
 impl Crud for Tag {
   type InsertForm = TagInsertForm;
-
   type UpdateForm = TagUpdateForm;
-
   type IdType = TagId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
@@ -45,19 +45,5 @@ impl Crud for Tag {
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
-  }
-}
-
-impl PostTagInsertForm {
-  pub async fn insert_tag_associations(
-    pool: &mut DbPool<'_>,
-    tags: &[PostTagInsertForm],
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(post_tag::table)
-      .values(tags)
-      .execute(conn)
-      .await?;
-    Ok(())
   }
 }

@@ -8,6 +8,7 @@ use crate::{
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::language;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Language {
   pub async fn read_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {

@@ -29,7 +29,7 @@ use diesel_async::{
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
-use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
+use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -146,7 +146,7 @@ macro_rules! try_join_with_pool {
 
     match $pool {
       // Run concurrently with `try_join`
-      $crate::utils::DbPool::Pool(__pool) => ::futures::try_join!(
+      $crate::utils::DbPool::Pool(__pool) => ::futures_util::try_join!(
         $(async {
           let mut __dbpool = $crate::utils::DbPool::Pool(__pool);
           ($func)(&mut __dbpool).await

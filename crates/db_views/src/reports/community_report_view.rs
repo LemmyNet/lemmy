@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{community, community_actions, community_report, person};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityReportView {
   /// returns the CommunityReportView for the provided report_id

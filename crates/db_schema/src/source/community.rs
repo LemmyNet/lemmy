@@ -5,12 +5,14 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{community, community_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{community, community_actions},
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]

@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::schema::{local_user, oauth_account, person};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 
 impl LocalUserView {

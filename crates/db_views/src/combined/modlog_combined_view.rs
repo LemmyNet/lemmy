@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   ModlogActionType,
 };
 use lemmy_db_schema_file::{
@@ -73,14 +73,6 @@ use lemmy_db_schema_file::{
     person,
     post,
   },
-  source::{
-    combined::modlog::{modlog_combined_keys as key, ModlogCombined},
-    local_user::LocalUser,
-  },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
-  ListingType,
-  ModlogActionType,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

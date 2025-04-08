@@ -1,11 +1,9 @@
 use crate::newtypes::TaglineId;
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::tagline;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use {crate::schema::tagline, i_love_jesus::CursorKeysModule, ts_rs::TS};
+use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::tagline, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]

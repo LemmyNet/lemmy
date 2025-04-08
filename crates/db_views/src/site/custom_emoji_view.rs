@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
 
 type SelectionType = (

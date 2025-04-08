@@ -5,6 +5,7 @@ use crate::{
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::local_site;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalSite {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> LemmyResult<Self> {
@@ -18,10 +19,14 @@ impl LocalSite {
 
   /// Only used for tests
   #[cfg(test)]
-  async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    local_site::table.first(conn).await
+    local_site::table
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
   pub async fn update(pool: &mut DbPool<'_>, form: &LocalSiteUpdateForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_site::table)
@@ -42,7 +47,7 @@ impl LocalSite {
 #[cfg(test)]
 mod tests {
 
-  use super::*;lemmy_db_schema_filelemmy_db_schema_filelemmy_db_schema_file
+  use super::*;
   use crate::{
     source::{
       comment::{Comment, CommentInsertForm},

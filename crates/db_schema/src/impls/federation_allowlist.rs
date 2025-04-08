@@ -6,6 +6,7 @@ use crate::{
 use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::federation_allowlist;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl FederationAllowList {
   pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> LemmyResult<Self> {

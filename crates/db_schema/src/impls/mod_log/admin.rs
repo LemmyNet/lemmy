@@ -34,6 +34,7 @@ use lemmy_db_schema_file::schema::{
   admin_purge_person,
   admin_purge_post,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for AdminPurgePerson {
   type InsertForm = AdminPurgePersonForm;

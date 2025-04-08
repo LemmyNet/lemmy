@@ -12,6 +12,7 @@ use crate::{
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::oauth_provider;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for OAuthProvider {
   type InsertForm = OAuthProviderInsertForm;

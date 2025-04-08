@@ -12,6 +12,7 @@ use crate::{
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::person_comment_mention;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for PersonCommentMention {
   type InsertForm = PersonCommentMentionInsertForm;

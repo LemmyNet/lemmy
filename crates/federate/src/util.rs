@@ -18,6 +18,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
 use serde_json::Value;

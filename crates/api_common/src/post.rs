@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PaginationCursor, PostId, TagId},
   PostFeatureType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};

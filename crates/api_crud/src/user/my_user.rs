@@ -40,8 +40,7 @@ pub async fn get_my_user(
     |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
     |pool| LocalUserKeywordBlock::read(pool, local_user_id),
     |pool| LocalUserLanguage::read(pool, local_user_id)
-  ))
-  .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
+  ))?;
 
   Ok(Json(MyUserInfo {
     local_user_view: local_user_view.clone(),

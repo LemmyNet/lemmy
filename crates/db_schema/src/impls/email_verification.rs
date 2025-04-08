@@ -18,6 +18,7 @@ use lemmy_db_schema_file::schema::email_verification::dsl::{
   published,
   verification_token,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl EmailVerification {
   pub async fn create(pool: &mut DbPool<'_>, form: &EmailVerificationForm) -> LemmyResult<Self> {

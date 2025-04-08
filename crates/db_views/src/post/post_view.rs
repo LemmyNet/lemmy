@@ -1,5 +1,5 @@
 use crate::{
-  structs::{PostPaginationCursor, PostView},
+  structs::PostView,
   utils::{
     creator_community_actions_join,
     creator_home_instance_actions_join,
@@ -22,6 +22,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
+  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
   TextExpressionMethods,
@@ -30,31 +31,25 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PersonId, PostId},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
-    keyword_block::LocalUserKeywordBlock,
     local_user::LocalUser,
     post::{post_keys as key, Post},
     site::Site,
   },
-  traits::Crud,
-  utils::{
-    fuzzy_search,
-    get_conn,
-    limit_and_offset,
-    now,
-    paginate,
-    seconds_to_pg_interval,
-    Commented,
-    DbPool,
-    ReverseTimestampKey,
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, Commented, DbPool},
+};
+use lemmy_db_schema_file::{
+  enums::{
+    CommunityFollowerState,
+    CommunityVisibility,
+    ListingType,
+    PostSortType::{self, *},
   },
-  CommunityVisibility,
-  ListingType,
-  PostSortType,
+  schema::{community, community_actions, local_user_language, person, post, post_actions},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use PostSortType::*;
 
 impl PaginationCursorBuilder for PostView {
   type CursorData = Post;
@@ -80,7 +75,6 @@ impl PostView {
   // do, because they rely on a few types that aren't yet publicly exported in diesel:
   // https://github.com/diesel-rs/diesel/issues/4462
 
-==== BASE ====
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let my_community_actions_join: my_community_actions_join =
@@ -239,6 +233,7 @@ pub struct PostQuery<'a> {
   pub show_nsfw: Option<bool>,
   pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
+  pub keyword_blocks: Option<Vec<String>>,
   pub cursor_data: Option<Post>,
   pub cursor_before_data: Option<Post>,
   pub page_back: Option<bool>,
@@ -377,20 +372,17 @@ impl<'a> PostQuery<'a> {
       }
 
       query = query.filter(filter_blocked());
-      if let Some(local_user_id) = my_local_user_id {
-        let blocked_keywords: Vec<String> =
-          LocalUserKeywordBlock::read(pool, local_user_id).await?;
-        if !blocked_keywords.is_empty() {
-          for keyword in blocked_keywords {
-            let pattern = format!("%{}%", keyword);
-            query = query.filter(post::name.not_ilike(pattern.clone()));
-            query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
-            query = query.filter(
-              post::body
-                .is_null()
-                .or(post::body.not_ilike(pattern.clone())),
-            );
-          }
+
+      if let Some(keyword_blocks) = o.keyword_blocks {
+        for keyword in keyword_blocks {
+          let pattern = format!("%{}%", keyword);
+          query = query.filter(post::name.not_ilike(pattern.clone()));
+          query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
+          query = query.filter(
+            post::body
+              .is_null()
+              .or(post::body.not_ilike(pattern.clone())),
+          );
         }
       }
     }
@@ -461,7 +453,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post::post_view::{PostQuery, PostView},
+    post::post_view::{PostQuery, PostSortType, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;
@@ -496,8 +488,9 @@ mod tests {
         PostReadForm,
         PostUpdateForm,
       },
+      post_tag::{PostTag, PostTagForm},
       site::Site,
-      tag::{PostTagInsertForm, Tag, TagInsertForm},
+      tag::{Tag, TagInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
@@ -662,16 +655,16 @@ mod tests {
 
       let post_with_tags = Post::create(pool, &new_post).await?;
       let inserted_tags = vec![
-        PostTagInsertForm {
+        PostTagForm {
           post_id: post_with_tags.id,
           tag_id: tag_1.id,
         },
-        PostTagInsertForm {
+        PostTagForm {
           post_id: post_with_tags.id,
           tag_id: tag_2.id,
         },
       ];
-      PostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
+      PostTag::set(pool, &inserted_tags).await?;
 
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,

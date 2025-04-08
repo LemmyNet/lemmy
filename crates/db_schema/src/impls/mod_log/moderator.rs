@@ -54,6 +54,7 @@ use lemmy_db_schema_file::schema::{
   mod_remove_post,
   mod_transfer_community,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;

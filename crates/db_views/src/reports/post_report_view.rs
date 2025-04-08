@@ -23,6 +23,7 @@ use lemmy_db_schema_file::schema::{
   post_actions,
   post_report,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PostReportView {
   #[diesel::dsl::auto_type(no_type_alias)]

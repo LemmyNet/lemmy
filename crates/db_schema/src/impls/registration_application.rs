@@ -11,6 +11,7 @@ use crate::{
 use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::registration_application;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for RegistrationApplication {
   type InsertForm = RegistrationApplicationInsertForm;

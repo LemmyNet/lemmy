@@ -10,6 +10,7 @@ use crate::{
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::local_site_rate_limit;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalSiteRateLimit {
   pub async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Option<Self>> {

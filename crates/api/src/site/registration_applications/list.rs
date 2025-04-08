@@ -5,10 +5,10 @@ use lemmy_api_common::{
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::{source::local_site::LocalSite, traits::PaginationCursorBuilder};
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
   registration_applications::registration_application_view::RegistrationApplicationQuery,
-  structs::{LocalUserView, RegistrationApplicationView},
+  structs::{LocalUserView, RegistrationApplicationView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
