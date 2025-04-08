@@ -5,6 +5,7 @@ use lemmy_db_schema::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
     instance::InstanceActions,
+    keyword_block::LocalUserKeywordBlock,
     person::PersonActions,
   },
   traits::Blockable,
@@ -23,24 +24,24 @@ pub async fn get_my_user(
   let local_user_id = local_user_view.local_user.id;
   let pool = &mut context.pool();
 
-  // TODO this try join isn't working with LemmyError, just read them
-  // let (follows, community_blocks, instance_blocks, person_blocks, moderates,
-  // discussion_languages) =   lemmy_db_schema::try_join_with_pool!(pool => (
-  //     |pool| CommunityFollowerView::for_person(pool, person_id),
-  //     |pool| CommunityActions::read_blocks_for_person(pool, person_id),
-  //     |pool| InstanceActions::read_blocks_for_person(pool, person_id),
-  //     |pool| PersonActions::read_blocks_for_person(pool, person_id),
-  //     |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
-  //     |pool| LocalUserLanguage::read(pool, local_user_id)
-  //   ))
-  //   .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-  let follows = CommunityFollowerView::for_person(pool, person_id).await?;
-  let community_blocks = CommunityActions::read_blocks_for_person(pool, person_id).await?;
-  let instance_blocks = InstanceActions::read_blocks_for_person(pool, person_id).await?;
-  let person_blocks = PersonActions::read_blocks_for_person(pool, person_id).await?;
-  let moderates =
-    CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)).await?;
-  let discussion_languages = LocalUserLanguage::read(pool, local_user_id).await?;
+  let (
+    follows,
+    community_blocks,
+    instance_blocks,
+    person_blocks,
+    moderates,
+    keyword_blocks,
+    discussion_languages,
+  ) = lemmy_db_schema::try_join_with_pool!(pool => (
+    |pool| CommunityFollowerView::for_person(pool, person_id),
+    |pool| CommunityActions::read_blocks_for_person(pool, person_id),
+    |pool| InstanceActions::read_blocks_for_person(pool, person_id),
+    |pool| PersonActions::read_blocks_for_person(pool, person_id),
+    |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
+    |pool| LocalUserKeywordBlock::read(pool, local_user_id),
+    |pool| LocalUserLanguage::read(pool, local_user_id)
+  ))
+  .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
   Ok(Json(MyUserInfo {
     local_user_view: local_user_view.clone(),
@@ -49,6 +50,7 @@ pub async fn get_my_user(
     community_blocks,
     instance_blocks,
     person_blocks,
+    keyword_blocks,
     discussion_languages,
   }))
 }

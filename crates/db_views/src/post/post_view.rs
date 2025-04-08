@@ -32,6 +32,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PersonId, PostId},
   source::{
+    keyword_block::LocalUserKeywordBlock,
     local_user::LocalUser,
     post::{post_keys as key, Post},
     site::Site,
@@ -376,6 +377,22 @@ impl<'a> PostQuery<'a> {
       }
 
       query = query.filter(filter_blocked());
+      if let Some(local_user_id) = my_local_user_id {
+        let blocked_keywords: Vec<String> =
+          LocalUserKeywordBlock::read(pool, local_user_id).await?;
+        if !blocked_keywords.is_empty() {
+          for keyword in blocked_keywords {
+            let pattern = format!("%{}%", keyword);
+            query = query.filter(post::name.not_ilike(pattern.clone()));
+            query = query.filter(post::url.is_null().or(post::url.not_ilike(pattern.clone())));
+            query = query.filter(
+              post::body
+                .is_null()
+                .or(post::body.not_ilike(pattern.clone())),
+            );
+          }
+        }
+      }
     }
 
     // Filter by the time range
@@ -466,6 +483,7 @@ mod tests {
         CommunityUpdateForm,
       },
       instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
+      keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -496,6 +514,7 @@ mod tests {
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
   const POST_WITH_TAGS: &str = "post with tags";
+  const POST_KEYWORD_BLOCKED: &str = "blocked_keyword";
 
   fn names(post_views: &[PostView]) -> Vec<&str> {
     post_views.iter().map(|i| i.post.name.as_str()).collect()
@@ -588,6 +607,13 @@ mod tests {
       // block that person
       let person_block = PersonBlockForm::new(inserted_tegan_person.id, inserted_john_person.id);
       PersonActions::block(pool, &person_block).await?;
+
+      LocalUserKeywordBlock::update(
+        pool,
+        vec![POST_KEYWORD_BLOCKED.to_string()],
+        inserted_tegan_local_user.id,
+      )
+      .await?;
 
       // Two community post tags
       let tag_1 = Tag::create(
@@ -2044,6 +2070,77 @@ mod tests {
     .await?;
     assert_eq!(3, hide_media_listing.len());
 
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let name_blocked = format!("post_{POST_KEYWORD_BLOCKED}");
+    let name_blocked2 = format!("post2_{POST_KEYWORD_BLOCKED}2");
+    let url = Some(Url::parse(&format!("https://google.com/{POST_KEYWORD_BLOCKED}"))?.into());
+    let body = format!("post body with {POST_KEYWORD_BLOCKED}");
+    let name_not_blocked = "post_with_name_not_blocked".to_string();
+    let name_not_blocked2 = "post_with_name_not_blocked2".to_string();
+
+    let post_name_blocked = PostInsertForm::new(
+      name_blocked.clone(),
+      data.tegan_local_user_view.person.id,
+      data.community.id,
+    );
+
+    let post_body_blocked = PostInsertForm {
+      body: Some(body),
+      ..PostInsertForm::new(
+        name_not_blocked.clone(),
+        data.tegan_local_user_view.person.id,
+        data.community.id,
+      )
+    };
+
+    let post_url_blocked = PostInsertForm {
+      url,
+      ..PostInsertForm::new(
+        name_not_blocked2.clone(),
+        data.tegan_local_user_view.person.id,
+        data.community.id,
+      )
+    };
+
+    let post_name_blocked_but_not_body_and_url = PostInsertForm {
+      body: Some("Some body".to_string()),
+      url: Some(Url::parse("https://google.com")?.into()),
+      ..PostInsertForm::new(
+        name_blocked2.clone(),
+        data.tegan_local_user_view.person.id,
+        data.community.id,
+      )
+    };
+    Post::create(pool, &post_name_blocked).await?;
+    Post::create(pool, &post_body_blocked).await?;
+    Post::create(pool, &post_url_blocked).await?;
+    Post::create(pool, &post_name_blocked_but_not_body_and_url).await?;
+
+    let post_listings = PostQuery {
+      local_user: Some(&data.tegan_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    // Should not have any of the posts
+    assert!(!names(&post_listings).contains(&name_blocked.as_str()));
+    assert!(!names(&post_listings).contains(&name_blocked2.as_str()));
+    assert!(!names(&post_listings).contains(&name_not_blocked.as_str()));
+    assert!(!names(&post_listings).contains(&name_not_blocked2.as_str()));
+
+    // Should contain not blocked posts
+    assert!(names(&post_listings).contains(&POST_BY_BOT));
+    assert!(names(&post_listings).contains(&POST));
     Ok(())
   }
   #[test_context(Data)]

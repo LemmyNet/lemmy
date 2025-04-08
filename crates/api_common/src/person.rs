@@ -155,6 +155,9 @@ pub struct SaveUserSettings {
   /// A list of languages you are able to see discussion in.
   #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
+  // A list of keywords used for blocking posts having them in title,url or body.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub blocking_keywords: Option<Vec<String>>,
   /// Open links in a new tab
   #[cfg_attr(feature = "full", ts(optional))]
   pub open_links_in_new_tab: Option<bool>,
