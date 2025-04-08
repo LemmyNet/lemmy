@@ -10,6 +10,7 @@ use crate::{
     PostReadCommentsForm,
     PostReadForm,
     PostSavedForm,
+    PostSubscribeForm,
     PostUpdateForm,
   },
   traits::{Crud, Hideable, Likeable, ReadComments, Readable, Saveable},
@@ -438,6 +439,36 @@ impl PostActions {
       .iter()
       .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>()
+  }
+
+  pub async fn subscribe(pool: &mut DbPool<'_>, form: &PostSubscribeForm) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(post_actions::table)
+      .values(form)
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSubscribePost)?;
+    Ok(())
+  }
+
+  pub async fn unsubscribe(
+    pool: &mut DbPool<'_>,
+    form: &PostSubscribeForm,
+  ) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+
+    uplete::new(
+      post_actions::table
+        .filter(post_actions::post_id.eq(form.post_id))
+        .filter(post_actions::person_id.eq(form.person_id)),
+    )
+    .set_null(post_actions::subscribed)
+    .get_result(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntSubscribePost)
   }
 }
 

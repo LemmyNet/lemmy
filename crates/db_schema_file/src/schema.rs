@@ -884,6 +884,7 @@ diesel::table! {
         liked -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden -> Nullable<Timestamptz>,
+        subscribed -> Nullable<Bool>
     }
 }
 

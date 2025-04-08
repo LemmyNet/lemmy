@@ -324,3 +324,12 @@ pub struct ListPostLikes {
 pub struct ListPostLikesResponse {
   pub post_likes: Vec<VoteView>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Save / bookmark a post.
+pub struct SubscribePost {
+  pub post_id: PostId,
+  pub subscribe: bool,
+}

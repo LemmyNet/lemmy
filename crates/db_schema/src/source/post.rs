@@ -214,6 +214,8 @@ pub struct PostActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was hidden.
   pub hidden: Option<DateTime<Utc>>,
+  // TODO: use select_expression with coalesce to change this to bool (cant get it to compile)
+  pub subscribed: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -269,6 +271,14 @@ pub struct PostHideForm {
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
   pub hidden: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+pub struct PostSubscribeForm {
+  pub post_id: PostId,
+  pub person_id: PersonId,
 }
 
 #[derive(PartialEq, Debug, Clone, Default)]

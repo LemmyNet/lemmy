@@ -62,6 +62,7 @@ use lemmy_api::{
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
     save::save_post,
+    subscribe::subscribe_post,
   },
   private_message::mark_read::mark_pm_as_read,
   reports::{
@@ -270,7 +271,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_post_likes))
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
-          .route("/report/resolve", put().to(resolve_post_report)),
+          .route("/report/resolve", put().to(resolve_post_report))
+          .route("/subscribe", post().to(subscribe_post)),
       )
       // Comment
       .service(

@@ -162,6 +162,7 @@ pub enum LemmyErrorType {
   },
   CouldntParsePaginationToken,
   PluginError(String),
+  CouldntSubscribePost,
 }
 
 /// Federation related errors, these dont need to be translated.
