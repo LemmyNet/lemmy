@@ -455,6 +455,7 @@ pub struct MyUserInfo {
   pub community_blocks: Vec<Community>,
   pub instance_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
+  pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
 }
 

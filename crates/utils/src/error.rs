@@ -10,6 +10,8 @@ use strum::{Display, EnumIter};
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
 pub enum LemmyErrorType {
+  BlockKeywordTooShort,
+  BlockKeywordTooLong,
   ReportReasonRequired,
   ReportTooLong,
   NotAModerator,
