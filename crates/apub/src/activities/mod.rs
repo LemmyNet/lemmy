@@ -16,7 +16,7 @@ use crate::{
     },
     voting::send_like_activity,
   },
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use block::SiteOrCommunity;
+use either::Either;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -89,34 +90,12 @@ pub(crate) async fn verify_person_in_community(
 /// from local site or community.
 pub(crate) async fn verify_person_in_site_or_community(
   person_id: &ObjectId<ApubPerson>,
-  site_or_community: &SiteOrCommunity,
+  site_or_community: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  }
-  let person_id = person.id;
-  let community_id = community.id;
-  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
-}
-
-/// Fetches the person and community or site to verify their type, then checks if person is banned
-/// from local site or community.
-pub(crate) async fn verify_person_in_site_or_community(
-  person_id: &ObjectId<ApubPerson>,
-  site_or_community: &SiteOrCommunity,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let person = person_id.dereference(context).await?;
-  if person.banned {
-    Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
-    ))?
-  }
-  if let SiteOrCommunity::Community(community) = site_or_community {
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  if let Either::Right(community) = site_or_community {
     let person_id = person.id;
     let community_id = community.id;
     CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
@@ -177,12 +156,12 @@ pub(crate) async fn verify_admin_action(
 
 pub(crate) async fn verify_mod_or_admin_action(
   person_id: &ObjectId<ApubPerson>,
-  site_or_community: &SiteOrCommunity,
+  site_or_community: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   match site_or_community {
-    SiteOrCommunity::Site(site) => verify_admin_action(person_id, site, context).await,
-    SiteOrCommunity::Community(community) => verify_mod_action(person_id, community, context).await,
+    Either::Left(site) => verify_admin_action(person_id, site, context).await,
+    Either::Right(community) => verify_mod_action(person_id, community, context).await,
   }
 }
 
@@ -459,7 +438,7 @@ pub async fn match_outgoing_activities(
         Report::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &SiteOrCommunity::Community(community.into()),
+          &Either::Right(community.into()),
           reason,
           context,
         )
@@ -475,7 +454,7 @@ pub async fn match_outgoing_activities(
           ObjectId::from(object_id),
           &actor.into(),
           &report_creator.into(),
-          &SiteOrCommunity::Community(community.into()),
+          &Either::Right(community.into()),
           context,
         )
         .await
@@ -489,7 +468,7 @@ pub async fn match_outgoing_activities(
         Report::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &SiteOrCommunity::Site(site.into()),
+          &Either::Left(site.into()),
           reason,
           context,
         )
@@ -505,7 +484,7 @@ pub async fn match_outgoing_activities(
           ObjectId::from(object_id),
           &actor.into(),
           &report_creator.into(),
-          &SiteOrCommunity::Site(site.into()),
+          &Either::Left(site.into()),
           context,
         )
         .await

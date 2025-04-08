@@ -1,7 +1,7 @@
 use crate::{
   activities::block::SiteOrCommunity,
   fetcher::report::ReportableObjects,
-  objects::person::ApubPerson,
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
 };
 use activitypub_federation::{
   config::Data,
@@ -9,6 +9,7 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   protocol::helpers::deserialize_one,
 };
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ use url::Url;
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<SiteOrCommunity>; 1],
+  pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: ReportObject,
   /// Report reason as sent by Lemmy
   pub(crate) summary: Option<String>,
@@ -42,7 +43,7 @@ impl Report {
   pub(crate) async fn receiver(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<SiteOrCommunity> {
+  ) -> LemmyResult<Either<ApubSite, ApubCommunity>> {
     let receiver = self.to[0].dereference(context).await?;
     Ok(receiver)
   }

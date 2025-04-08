@@ -1,4 +1,4 @@
-use super::report_inboxes;
+use super::{local_community, report_inboxes};
 use crate::{
   activities::{
     block::SiteOrCommunity,
@@ -9,7 +9,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   fetcher::report::ReportableObjects,
   insert_received_activity,
-  objects::person::ApubPerson,
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
@@ -22,6 +22,7 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{
@@ -45,7 +46,7 @@ impl Report {
   pub(crate) fn new(
     object_id: &ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    receiver: &SiteOrCommunity,
+    receiver: &Either<ApubSite, ApubCommunity>,
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
@@ -68,7 +69,7 @@ impl Report {
   pub(crate) async fn send(
     object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    receiver: &SiteOrCommunity,
+    receiver: &Either<ApubSite, ApubCommunity>,
     reason: String,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
@@ -147,7 +148,7 @@ impl ActivityHandler for Report {
     };
 
     let receiver = self.receiver(context).await?;
-    if let Some(community) = receiver.local_community() {
+    if let Some(community) = local_community(&receiver) {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);

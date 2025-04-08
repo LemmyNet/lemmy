@@ -1,13 +1,14 @@
 use super::report::Report;
 use crate::{
   activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one,
 };
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -24,7 +25,7 @@ pub enum ResolveType {
 pub struct ResolveReport {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
+  pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: Report,
   #[serde(rename = "type")]
   pub(crate) kind: ResolveType,
@@ -35,7 +36,7 @@ impl ResolveReport {
   pub(crate) async fn receiver(
     &self,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<SiteOrCommunity> {
+  ) -> LemmyResult<Either<ApubSite, ApubCommunity>> {
     self.object.receiver(context).await
   }
 }

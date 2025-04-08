@@ -28,6 +28,7 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
@@ -94,12 +95,12 @@ impl InCommunity for AnnouncableActivities {
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
       Report(a) => match a.receiver(context).await? {
-        SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
-        SiteOrCommunity::Community(c) => Ok(c),
+        Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
+        Either::Right(c) => Ok(c),
       },
       ResolveReport(a) => match a.receiver(context).await? {
-        SiteOrCommunity::Site(_) => Err(LemmyErrorType::NotFound.into()),
-        SiteOrCommunity::Community(c) => Ok(c),
+        Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
+        Either::Right(c) => Ok(c),
       },
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }

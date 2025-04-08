@@ -114,13 +114,6 @@ impl SiteOrCommunity {
       SiteOrCommunity::Community(c) => ObjectId::from(c.ap_id.clone()),
     }
   }
-
-  pub(crate) fn local_community(&self) -> Option<&ApubCommunity> {
-    match self {
-      SiteOrCommunity::Community(c) if c.local => Some(c),
-      _ => None,
-    }
-  }
 }
 
 async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyResult<Vec<Url>> {
