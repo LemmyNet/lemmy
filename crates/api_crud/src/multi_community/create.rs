@@ -1,0 +1,20 @@
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
+use lemmy_api_common::{community::CreateMultiCommunity, context::LemmyContext};
+use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityInsertForm};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::error::LemmyResult;
+
+pub async fn create_multi_community(
+  data: Json<CreateMultiCommunity>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<MultiCommunity>> {
+  // TODO: length check
+  let form = MultiCommunityInsertForm {
+    owner_id: local_user_view.person.id,
+    name: data.name.clone(),
+  };
+  let res = MultiCommunity::create(&mut context.pool(), &form).await?;
+  Ok(Json(res))
+}

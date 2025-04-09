@@ -312,6 +312,11 @@ pub struct ModTransferCommunityId(pub i32);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ModAddId(pub i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct MultiCommunityId(pub i32);
+
 impl DbUrl {
   pub fn inner(&self) -> &Url {
     &self.0
