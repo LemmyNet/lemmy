@@ -2118,8 +2118,12 @@ mod tests {
     Post::create(pool, &post_url_blocked).await?;
     Post::create(pool, &post_name_blocked_but_not_body_and_url).await?;
 
+    let keyword_blocks =
+      Some(LocalUserKeywordBlock::read(pool, data.tegan_local_user_view.local_user.id).await?);
+
     let post_listings = PostQuery {
       local_user: Some(&data.tegan_local_user_view.local_user),
+      keyword_blocks,
       ..Default::default()
     }
     .list(&data.site, pool)
