@@ -167,7 +167,8 @@ impl ActivityHandler for CreateOrUpdateNote {
     // Calculate initial hot_rank
     Comment::update_hot_rank(&mut context.pool(), comment.id).await?;
 
-    let do_send_email = self.kind == CreateOrUpdateType::Create;
+    let do_send_email =
+      self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
     // Note:

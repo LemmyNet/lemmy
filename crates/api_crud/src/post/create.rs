@@ -171,11 +171,12 @@ pub async fn create_post(
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+  let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
     mentions,
     PostOrCommentId::Post(inserted_post.id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
     local_instance_id,
