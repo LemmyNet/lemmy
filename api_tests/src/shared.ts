@@ -872,7 +872,6 @@ export function listCommunityPendingFollows(
   let form: ListCommunityPendingFollows = {
     pending_only: true,
     all_communities: false,
-    page: 1,
     limit: 50,
   };
   return api.listCommunityPendingFollows(form);
