@@ -113,6 +113,7 @@ pub async fn update_site(
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
     disallow_nsfw_content: data.disallow_nsfw_content,
+    disable_email_notifications: data.disable_email_notifications,
     ..Default::default()
   };
 

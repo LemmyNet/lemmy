@@ -262,6 +262,8 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_email_notifications: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -395,6 +397,9 @@ pub struct EditSite {
   /// Block NSFW content being created
   #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
+  /// Dont send email notifications to users for new replies, mentions etc
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_email_notifications: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

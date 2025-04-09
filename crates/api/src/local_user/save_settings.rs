@@ -88,6 +88,12 @@ pub async fn save_user_settings(
     is_valid_matrix_id(matrix_user_id)?;
   }
 
+  if let Some(send_notifications_to_email) = data.send_notifications_to_email {
+    if site_view.local_site.disable_email_notifications && send_notifications_to_email {
+      return Err(LemmyErrorType::EmailNotificationsDisabled.into());
+    }
+  }
+
   let local_user_id = local_user_view.local_user.id;
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
