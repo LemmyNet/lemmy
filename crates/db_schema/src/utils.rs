@@ -189,17 +189,15 @@ where
 
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output
 /// Necessary to be able to use cursors with the subpath SQL function
-pub struct Subpath<K>(pub K, i32, i32);
+pub struct Subpath<K>(pub K);
 
-impl<K, C, Offset, Len> CursorKey<C> for Subpath<K>
+impl<K, C> CursorKey<C> for Subpath<K>
 where
   K: CursorKey<C, SqlType = diesel_ltree::sql_types::Ltree>,
-  Offset: diesel::Expression<SqlType = diesel::sql_types::Integer>,
-  Len: diesel::Expression<SqlType = diesel::sql_types::Integer>,
 {
-  type SqlType = sql_types::Text;
-  type CursorValue = diesel_ltree::subpath<K::CursorValue, Offset, Len>;
-  type SqlValue = diesel_ltree::subpath<K::SqlValue, Offset, Len>;
+  type SqlType = diesel_ltree::sql_types::Ltree;
+  type CursorValue = diesel_ltree::subpath<K::CursorValue, i32, i32>;
+  type SqlValue = diesel_ltree::subpath<K::SqlValue, i32, i32>;
 
   fn get_cursor_value(cursor: &C) -> Self::CursorValue {
     diesel_ltree::subpath(K::get_cursor_value(cursor), 0, -1)
