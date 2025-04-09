@@ -43,8 +43,8 @@ pub async fn update_private_message(
     ..Default::default()
   };
   form = plugin_hook_before("before_update_local_private_message", form).await?;
-  let private_message = PrivateMessage::update(&mut context.pool(), private_message_id, &form)
-    .await?;
+  let private_message =
+    PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
   plugin_hook_after("after_update_local_private_message", &private_message)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;

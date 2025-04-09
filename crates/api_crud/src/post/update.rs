@@ -155,8 +155,7 @@ pub async fn update_post(
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
-  let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
-    .await?;
+  let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 
   // Scan the post body for user mentions, add those rows

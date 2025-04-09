@@ -12,7 +12,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PostTag {
   pub async fn set(pool: &mut DbPool<'_>, tags: &[PostTagForm]) -> LemmyResult<Vec<Self>> {
-    let post_id = tags.first().map( | t | t.post_id).unwrap_or_default();
+    let post_id = tags.first().map(|t| t.post_id).unwrap_or_default();
     PostTag::delete_for_post(pool, post_id).await?;
     PostTag::create_many(pool, tags).await
   }
