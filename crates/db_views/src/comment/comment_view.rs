@@ -22,7 +22,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
+use diesel_ltree::{nlevel, Ltree, LtreeExtensions};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
@@ -33,7 +33,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool, Subpath},
 };
 use lemmy_db_schema_file::{
   enums::{
@@ -305,8 +305,7 @@ impl CommentQuery<'_> {
     // + !post_id isn't used anyways (afaik)
     if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
       // Always order by the parent path first
-      // TODO not sure if this initial then_order_by will work correctly
-      // pq = pq.then_order_by(subpath(key::path, 0, -1));
+      pq = pq.then_order_by(Subpath(key::path));
     }
 
     // Distinguished comments should go first when viewing post
