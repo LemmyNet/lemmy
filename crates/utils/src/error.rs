@@ -113,7 +113,6 @@ pub enum LemmyErrorType {
   CouldntCreatePost,
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivateMessage,
-  SystemErrLogin,
   BlockedUrl,
   InvalidUrl,
   EmailSendFailed,
