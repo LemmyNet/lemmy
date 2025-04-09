@@ -147,11 +147,11 @@ impl VoteView {
     );
 
     let query = comment_actions::table
-      .filter(comment_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
       .left_join(creator_community_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
+      .filter(comment_actions::like_score.is_not_null())
       .select((
         person::all_columns,
         comment::id,

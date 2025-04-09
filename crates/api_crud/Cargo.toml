@@ -24,7 +24,6 @@ bcrypt = { workspace = true }
 actix-web = { workspace = true }
 url = { workspace = true }
 futures = { workspace = true }
-futures-util = { workspace = true }
 uuid = { workspace = true }
 anyhow.workspace = true
 chrono.workspace = true
