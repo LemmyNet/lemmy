@@ -191,6 +191,7 @@ pub enum LemmyErrorType {
   CouldntCreateLoginToken,
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
+  EmailNotificationsDisabled,
 }
 
 /// Federation related errors, these dont need to be translated.
