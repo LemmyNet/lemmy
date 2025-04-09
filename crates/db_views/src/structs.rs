@@ -975,7 +975,6 @@ pub struct PersonView {
   pub creator_banned: bool,
 }
 
-// TODO get rid of this, and just use CommunityFollowerView
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

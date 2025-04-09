@@ -54,14 +54,12 @@ impl LocalImage {
   }
 
   /// Delete many aliases. Should be used with a pictrs purge.
-  pub async fn delete_by_aliases(
-    pool: &mut DbPool<'_>,
-    aliases: &[String],
-  ) -> Result<usize, Error> {
+  pub async fn delete_by_aliases(pool: &mut DbPool<'_>, aliases: &[String]) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq_any(aliases)))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 
   pub async fn delete_by_alias_and_user(

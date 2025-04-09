@@ -178,7 +178,6 @@ impl SiteLanguage {
             .execute(conn)
             .await?;
 
-          // TODO grep for the rest of _Result< in db_schema
           CommunityLanguage::limit_languages(conn, instance_id)
             .await
             .map_err(|_e| diesel::result::Error::NotFound)?;

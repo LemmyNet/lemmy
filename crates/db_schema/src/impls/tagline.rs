@@ -45,7 +45,6 @@ impl Tagline {
     page_back: Option<bool>,
     limit: Option<i64>,
   ) -> LemmyResult<Vec<Self>> {
-    // TODO create tagline index( published desc, id desc)
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
     let query = tagline::table.limit(limit).into_boxed();

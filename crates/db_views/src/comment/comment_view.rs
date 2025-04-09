@@ -305,12 +305,11 @@ impl CommentQuery<'_> {
     // + !post_id isn't used anyways (afaik)
     if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
       // Always order by the parent path first
-      pq = pq.then_order_by(Subpath(key::path));
+      pq = pq.then_order_by(Subpath(key::path, 0, -1));
     }
 
     // Distinguished comments should go first when viewing post
     // Don't do for new / old sorts
-    // TODO check indexes
     if sort != New && sort != Old && (o.post_id.is_some() || o.parent_path.is_some()) {
       pq = pq.then_order_by(key::distinguished);
     }

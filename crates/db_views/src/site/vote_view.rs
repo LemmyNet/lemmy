@@ -72,11 +72,11 @@ impl VoteView {
     );
 
     let query = post_actions::table
-      .filter(post_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(post::table)
       .left_join(creator_community_actions_join)
       .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::like_score.is_not_null())
       .select((
         person::all_columns,
         post::id,
@@ -164,7 +164,6 @@ impl VoteView {
       .limit(limit)
       .into_boxed();
 
-    // TODO create indexes for (like_score asc, person_id asc) for post_actions and comment_actions
     // Sorting by like score
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::like_score)
