@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -467,6 +467,18 @@ impl PostActions {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, person_id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, post_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
   }
 }
 
