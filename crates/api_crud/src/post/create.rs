@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -129,9 +129,7 @@ pub async fn create_post(
 
   post_form = plugin_hook_before("before_create_local_post", post_form).await?;
 
-  let inserted_post = Post::create(&mut context.pool(), &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 

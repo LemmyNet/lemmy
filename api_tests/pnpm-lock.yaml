@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.13.1)
       lemmy-js-client:
-        specifier: 1.0.0-media-fixes.1
-        version: 1.0.0-media-fixes.1
+        specifier: 1.0.0-remove-page-limit.1
+        version: 1.0.0-remove-page-limit.1
       prettier:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1510,8 +1510,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@1.0.0-media-fixes.1:
-    resolution: {integrity: sha512-tD3KrXY6bEEIu4ibUe0ZqY+TnPmbABRLSAliFU4hB0RpE7Q/LMpkTbbffKnAqpmaK4MuNRLSyrHomstM/728bg==}
+  lemmy-js-client@1.0.0-remove-page-limit.1:
+    resolution: {integrity: sha512-709IESOyQeQ17KfucqO6cf7c3IobEbgwKUdtvcpHhGXKpG3kHYNsMUZR5e7CgbXgSNJ+2OwY8GyhUnNW+TbkZg==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4127,7 +4127,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@1.0.0-media-fixes.1:
+  lemmy-js-client@1.0.0-remove-page-limit.1:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

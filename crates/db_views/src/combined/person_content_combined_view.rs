@@ -30,13 +30,13 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_content_combined, post};
@@ -106,7 +106,7 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -114,7 +114,11 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = person_content_combined::table
       .select(Self::CursorData::as_select())
@@ -131,6 +135,17 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
   }
 }
 
+impl PersonContentCombinedView {
+  /// Useful in combination with filter_map
+  pub fn to_post_view(&self) -> Option<&PostView> {
+    if let Self::Post(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
+}
+
 #[derive(derive_new::new)]
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
@@ -140,6 +155,8 @@ pub struct PersonContentCombinedQuery {
   pub cursor_data: Option<PersonContentCombined>,
   #[new(default)]
   pub page_back: Option<bool>,
+  #[new(default)]
+  pub limit: Option<i64>,
 }
 
 impl PersonContentCombinedQuery {
@@ -153,6 +170,7 @@ impl PersonContentCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -163,6 +181,7 @@ impl PersonContentCombinedQuery {
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
       .select(PersonContentCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
 
     if let Some(type_) = self.type_ {
@@ -175,21 +194,19 @@ impl PersonContentCombinedQuery {
       }
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
-
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
     // Sorting by published
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    let res = query
+    let res = paginated_query
       .load::<PersonContentCombinedViewInternal>(conn)
       .await?;
 

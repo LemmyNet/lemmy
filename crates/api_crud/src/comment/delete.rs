@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_comment(
   data: Json<DeleteComment>,
@@ -57,8 +57,7 @@ pub async fn delete_comment(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .await?;
 
   let recipient_ids = send_local_notifs(
     vec![],

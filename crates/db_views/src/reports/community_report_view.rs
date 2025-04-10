@@ -1,6 +1,5 @@
 use crate::structs::CommunityReportView;
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -15,6 +14,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{community, community_actions, community_report, person};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityReportView {
   /// returns the CommunityReportView for the provided report_id
@@ -24,7 +24,7 @@ impl CommunityReportView {
     pool: &mut DbPool<'_>,
     report_id: CommunityReportId,
     my_person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     let resolver_id = aliases::person2.field(person::id);
@@ -48,5 +48,6 @@ impl CommunityReportView {
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

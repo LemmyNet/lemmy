@@ -16,14 +16,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PostId,
-  source::{community::Community, post::PostActions},
-  traits::Readable,
+  source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
+  traits::{PaginationCursorBuilder, Readable},
 };
 use lemmy_db_views::{
   post::post_view::PostQuery,
-  structs::{LocalUserView, PostPaginationCursor, SiteView},
+  structs::{LocalUserView, PostView, SiteView},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn list_posts(
   data: Query<GetPosts>,
@@ -34,7 +34,6 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let page = data.page;
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
     Some(
@@ -45,7 +44,6 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let read_only = data.read_only;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
@@ -74,13 +72,27 @@ pub async fn list_posts(
     local_user,
     &site_view.local_site,
   );
-
-  // parse pagination token
-  let page_after = if let Some(pa) = &data.page_cursor {
-    Some(pa.read(&mut context.pool(), local_user).await?)
+  let keyword_blocks = if let Some(local_user) = local_user {
+    Some(LocalUserKeywordBlock::read(&mut context.pool(), local_user.id).await?)
   } else {
     None
   };
+
+  let (cursor_data, cursor_before_data) = if let Some(cursor) = &data.page_cursor {
+    (
+      Some(PostView::from_cursor(cursor, &mut context.pool()).await?),
+      PostView::prefetch_cursor_before_data(
+        &mut context.pool(),
+        local_user,
+        data.page_back,
+        data.limit,
+      )
+      .await?,
+    )
+  } else {
+    (None, None)
+  };
+  let page_back = data.page_back;
 
   let posts = PostQuery {
     local_user,
@@ -88,22 +100,21 @@ pub async fn list_posts(
     sort,
     time_range_seconds,
     community_id,
-    read_only,
     liked_only,
     disliked_only,
-    page,
-    page_after,
     limit,
     show_hidden,
     show_read,
     show_nsfw,
     hide_media,
     no_comments_only,
-    ..Default::default()
+    keyword_blocks,
+    cursor_data,
+    cursor_before_data,
+    page_back,
   }
   .list(&site_view.site, &mut context.pool())
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  .await?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
   if let Some(local_user) = local_user {
@@ -118,6 +129,12 @@ pub async fn list_posts(
   }
 
   // if this page wasn't empty, then there is a next page after the last post on this page
-  let next_page = posts.last().map(PostPaginationCursor::after_post);
-  Ok(Json(GetPostsResponse { posts, next_page }))
+  let next_page = posts.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = posts.first().map(PaginationCursorBuilder::to_cursor);
+
+  Ok(Json(GetPostsResponse {
+    posts,
+    next_page,
+    prev_page,
+  }))
 }

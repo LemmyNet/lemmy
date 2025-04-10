@@ -30,6 +30,8 @@ pub struct ListReports {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
   /// Only for admins: also show reports with `violates_instance_rules=false`
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_community_rule_violations: Option<bool>,
@@ -47,4 +49,6 @@ pub struct ListReportsResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

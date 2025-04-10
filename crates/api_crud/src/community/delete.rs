@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_community(
   data: Json<DeleteCommunity>,
@@ -40,8 +40,7 @@ pub async fn delete_community(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::DeleteCommunity(local_user_view.person.clone(), community, data.deleted),

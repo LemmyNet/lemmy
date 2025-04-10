@@ -16,8 +16,7 @@ export LEMMY_CONFIG_LOCATION=../../config/config.hjson
 export RUST_BACKTRACE=1
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
-if [ -n "$PACKAGE" ];
-then
+if [ -n "$PACKAGE" ]; then
   cargo test -p $PACKAGE --all-features --no-fail-fast $TEST
 else
   cargo test --workspace --all-features --no-fail-fast
