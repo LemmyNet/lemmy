@@ -1,4 +1,3 @@
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -22,6 +21,7 @@ use {
     sql_types::Text,
   },
   diesel_ltree::Ltree,
+  lemmy_utils::error::{LemmyErrorType, LemmyResult},
   ts_rs::TS,
 };
 
