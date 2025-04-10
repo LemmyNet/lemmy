@@ -40,7 +40,7 @@ pub async fn purge_person(
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {
       moderator: local_user_view.person.clone(),
-      banned_user: person.clone(),
+      banned_user: person,
       reason: data.reason.clone(),
       remove_or_restore_data: Some(true),
       ban: true,
@@ -65,18 +65,6 @@ pub async fn purge_person(
     reason: data.reason.clone(),
   };
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
-
-  ActivityChannel::submit_activity(
-    SendActivityData::BanFromSite {
-      moderator: local_user_view.person,
-      banned_user: person,
-      reason: data.reason.clone(),
-      remove_or_restore_data: Some(true),
-      ban: true,
-      expires: None,
-    },
-    &context,
-  )?;
 
   Ok(Json(SuccessResponse::default()))
 }
