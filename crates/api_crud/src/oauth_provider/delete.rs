@@ -8,7 +8,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::oauth_provider::OAuthProvider, traits::Crud};
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::LemmyError;
 
 pub async fn delete_oauth_provider(
   data: Json<DeleteOAuthProvider>,
@@ -17,8 +17,8 @@ pub async fn delete_oauth_provider(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
-  OAuthProvider::delete(&mut context.pool(), data.id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntDeleteOauthProvider)?;
+
+  OAuthProvider::delete(&mut context.pool(), data.id).await?;
+
   Ok(Json(SuccessResponse::default()))
 }

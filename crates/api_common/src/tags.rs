@@ -1,7 +1,10 @@
 use crate::{context::LemmyContext, utils::check_community_mod_action};
 use lemmy_db_schema::{
   newtypes::TagId,
-  source::{post::Post, post_tag::PostTag, tag::PostTagInsertForm},
+  source::{
+    post::Post,
+    post_tag::{PostTag, PostTagForm},
+  },
 };
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -31,13 +34,15 @@ pub async fn update_post_tags(
   if !valid_tags.is_superset(&tags.iter().copied().collect()) {
     return Err(LemmyErrorType::TagNotInCommunity.into());
   }
+
   let insert_tags = tags
     .iter()
-    .map(|tag_id| PostTagInsertForm {
+    .map(|tag_id| PostTagForm {
       post_id: post.id,
       tag_id: *tag_id,
     })
-    .collect();
-  PostTag::set(&mut context.pool(), post.id, insert_tags).await?;
+    .collect::<Vec<PostTagForm>>();
+
+  PostTag::set(&mut context.pool(), &insert_tags).await?;
   Ok(())
 }

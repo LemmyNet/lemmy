@@ -16,10 +16,7 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud},
 };
 use lemmy_db_views::structs::{LocalUserView, PersonView};
-use lemmy_utils::{
-  error::{LemmyErrorExt2, LemmyErrorType, LemmyResult},
-  utils::validation::is_valid_body_field,
-};
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_site(
   data: Json<BanPerson>,
@@ -47,13 +44,9 @@ pub async fn ban_from_site(
 
   let form = InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, expires);
   if data.ban {
-    InstanceActions::ban(&mut context.pool(), &form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+    InstanceActions::ban(&mut context.pool(), &form).await?;
   } else {
-    InstanceActions::unban(&mut context.pool(), &form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+    InstanceActions::unban(&mut context.pool(), &form).await?;
   }
 
   // if its a local user, invalidate logins

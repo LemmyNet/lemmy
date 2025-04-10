@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId, TagId},
+  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
   source::site::Site,
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
@@ -131,7 +131,9 @@ pub struct ListCommunities {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -142,6 +144,11 @@ pub struct ListCommunities {
 /// The response for listing communities.
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -316,7 +323,9 @@ pub struct ListCommunityPendingFollows {
   #[cfg_attr(feature = "full", ts(optional))]
   pub all_communities: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -340,6 +349,11 @@ pub struct GetCommunityPendingFollowsCountResponse {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommunityPendingFollowsResponse {
   pub items: Vec<PendingFollow>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

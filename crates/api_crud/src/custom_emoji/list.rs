@@ -10,14 +10,7 @@ pub async fn list_custom_emojis(
   data: Query<ListCustomEmojis>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCustomEmojisResponse>, LemmyError> {
-  let custom_emojis = CustomEmojiView::list(
-    &mut context.pool(),
-    &data.category,
-    data.page,
-    data.limit,
-    data.ignore_page_limits.unwrap_or(false),
-  )
-  .await?;
+  let custom_emojis = CustomEmojiView::list(&mut context.pool(), &data.category).await?;
 
   Ok(Json(ListCustomEmojisResponse { custom_emojis }))
 }

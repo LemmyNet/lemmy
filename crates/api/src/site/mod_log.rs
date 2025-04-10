@@ -53,11 +53,17 @@ pub async fn get_mod_log(
     hide_modlog_names: Some(hide_modlog_names),
     cursor_data,
     page_back: data.page_back,
+    limit: data.limit,
   }
   .list(&mut context.pool())
   .await?;
 
   let next_page = modlog.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = modlog.first().map(PaginationCursorBuilder::to_cursor);
 
-  Ok(Json(GetModlogResponse { modlog, next_page }))
+  Ok(Json(GetModlogResponse {
+    modlog,
+    next_page,
+    prev_page,
+  }))
 }
