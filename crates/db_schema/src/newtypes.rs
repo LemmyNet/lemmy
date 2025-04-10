@@ -1,3 +1,4 @@
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -460,5 +461,16 @@ impl PaginationCursor {
         }
       })
       .collect()
+  }
+
+  pub fn first_id(&self) -> LemmyResult<i32> {
+    Ok(
+      self
+        .prefixes_and_ids()
+        .as_slice()
+        .first()
+        .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
+        .1,
+    )
   }
 }

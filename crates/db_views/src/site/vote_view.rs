@@ -32,6 +32,7 @@ impl VoteView {
     PaginationCursor::new(&prefixes_and_ids)
   }
 
+  // TODO move this to the postactions impl soon.
   pub async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,

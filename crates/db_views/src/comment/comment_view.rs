@@ -64,12 +64,8 @@ impl PaginationCursorBuilder for CommentView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Comment::read(pool, CommentId(*id)).await
+    let id = cursor.first_id()?;
+    Comment::read(pool, CommentId(id)).await
   }
 }
 

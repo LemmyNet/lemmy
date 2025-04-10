@@ -61,12 +61,8 @@ impl PaginationCursorBuilder for PostView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Post::read(pool, PostId(*id)).await
+    let id = cursor.first_id()?;
+    Post::read(pool, PostId(id)).await
   }
 }
 
