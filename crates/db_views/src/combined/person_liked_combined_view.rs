@@ -383,10 +383,7 @@ mod tests {
     if let PersonLikedCombinedView::Post(v) = &timmy_liked_all[0] {
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(
-        Some(1),
-        v.post_actions.as_ref().map(|l| l.like_score).flatten()
-      );
+      assert_eq!(Some(1), v.post_actions.as_ref().and_then(|l| l.like_score));
     } else {
       panic!("wrong type");
     }
@@ -395,7 +392,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(-1),
-        v.comment_actions.as_ref().map(|l| l.like_score).flatten()
+        v.comment_actions.as_ref().and_then(|l| l.like_score)
       );
     } else {
       panic!("wrong type");
@@ -405,7 +402,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(1),
-        v.comment_actions.as_ref().map(|l| l.like_score).flatten()
+        v.comment_actions.as_ref().and_then(|l| l.like_score)
       );
     } else {
       panic!("wrong type");
@@ -424,7 +421,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(-1),
-        v.comment_actions.as_ref().map(|l| l.like_score).flatten()
+        v.comment_actions.as_ref().and_then(|l| l.like_score)
       );
     } else {
       panic!("wrong type");
