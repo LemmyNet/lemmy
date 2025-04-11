@@ -30,8 +30,11 @@ use lemmy_api::{
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
+    list_hidden::list_person_hidden,
+    list_liked::list_person_liked,
     list_logins::list_logins,
     list_media::list_media,
+    list_read::list_person_read,
     list_saved::list_person_saved,
     login::login,
     logout::logout,
@@ -367,6 +370,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/instance", post().to(user_block_instance)),
           )
           .route("/saved", get().to(list_person_saved))
+          .route("/read", get().to(list_person_read))
+          .route("/hidden", get().to(list_person_hidden))
+          .route("/liked", get().to(list_person_liked))
           .route("/settings/save", put().to(save_user_settings))
           // Account settings import / export have a strict rate limit
           .service(

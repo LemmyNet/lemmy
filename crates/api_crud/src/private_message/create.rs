@@ -16,10 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_email::notifications::send_private_message_email;
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::is_valid_body_field,
-};
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn create_private_message(
   data: Json<CreatePrivateMessage>,
@@ -55,9 +52,7 @@ pub async fn create_private_message(
   );
 
   form = plugin_hook_before("before_create_local_private_message", form).await?;
-  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
+  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &form).await?;
   plugin_hook_after(
     "after_create_local_private_message",
     &inserted_private_message,

@@ -9,46 +9,48 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, QueryDsl};
+use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::oauth_provider;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for OAuthProvider {
   type InsertForm = OAuthProviderInsertForm;
   type UpdateForm = OAuthProviderUpdateForm;
   type IdType = OAuthProviderId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(oauth_provider::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreateOauthProvider)
   }
 
   async fn update(
     pool: &mut DbPool<'_>,
     oauth_provider_id: OAuthProviderId,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(oauth_provider::table.find(oauth_provider_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateOauthProvider)
   }
 }
 
 impl OAuthProvider {
-  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn get_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let oauth_providers = oauth_provider::table
+    oauth_provider::table
       .order(oauth_provider::id)
       .select(oauth_provider::all_columns)
-      .load::<OAuthProvider>(conn)
-      .await?;
-
-    Ok(oauth_providers)
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub fn convert_providers_to_public(
@@ -61,8 +63,9 @@ impl OAuthProvider {
       .collect()
   }
 
-  pub async fn get_all_public(pool: &mut DbPool<'_>) -> Result<Vec<PublicOAuthProvider>, Error> {
-    let oauth_providers = OAuthProvider::get_all(pool).await?;
-    Ok(Self::convert_providers_to_public(oauth_providers))
+  pub async fn get_all_public(pool: &mut DbPool<'_>) -> LemmyResult<Vec<PublicOAuthProvider>> {
+    OAuthProvider::get_all(pool)
+      .await
+      .map(Self::convert_providers_to_public)
   }
 }

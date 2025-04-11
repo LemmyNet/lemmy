@@ -7,7 +7,6 @@ use diesel::{
   dsl,
   query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
-  result::Error,
   Table,
 };
 use diesel_async::{
@@ -15,7 +14,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::Future;
 
 /// Returned by `diesel::delete`
@@ -44,19 +43,19 @@ where
   fn create(
     pool: &mut DbPool<'_>,
     form: &Self::InsertForm,
-  ) -> impl Future<Output = Result<Self, Error>> + Send;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
 
-  fn read(
-    pool: &mut DbPool<'_>,
-    id: Self::IdType,
-  ) -> impl Future<Output = Result<Self, Error>> + Send
+  fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> impl Future<Output = LemmyResult<Self>> + Send
   where
     Self: Send,
   {
     async {
       let query: Find<Self> = Self::table().find(id);
       let conn = &mut *get_conn(pool).await?;
-      query.first(conn).await
+      query
+        .first(conn)
+        .await
+        .with_lemmy_type(LemmyErrorType::NotFound)
     }
   }
 
@@ -66,16 +65,19 @@ where
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> impl Future<Output = Result<Self, Error>> + Send;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
 
   fn delete(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-  ) -> impl Future<Output = Result<usize, Error>> + Send {
+  ) -> impl Future<Output = LemmyResult<usize>> + Send {
     async {
       let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
       let conn = &mut *get_conn(pool).await?;
-      query.execute(conn).await
+      query
+        .execute(conn)
+        .await
+        .with_lemmy_type(LemmyErrorType::Deleted)
     }
   }
 }
@@ -255,7 +257,7 @@ pub trait Blockable {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     // Note: cant use lemmyresult because of try_pool
-  ) -> impl Future<Output = Result<Vec<Self::ObjectType>, diesel::result::Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Vec<Self::ObjectType>>> + Send
   where
     Self: Sized;
 }
@@ -305,7 +307,7 @@ pub trait ApubActor {
   fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
   where
     Self: Sized;
   /// - actor_name is the name of the community or user to read.
@@ -314,14 +316,14 @@ pub trait ApubActor {
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
   where
     Self: Sized;
   fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> impl Future<Output = Result<Option<Self>, Error>> + Send
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
   where
     Self: Sized;
 }
