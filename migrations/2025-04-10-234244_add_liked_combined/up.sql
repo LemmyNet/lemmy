@@ -1,11 +1,11 @@
 -- Creates combined tables for
 -- person_liked: (comment, post)
--- 
+--
 -- This one is special, because you use the liked date, not the ordinary published
 CREATE TABLE person_liked_combined (
     id serial PRIMARY KEY,
     liked timestamptz NOT NULL,
-    like_score smallint NOT NULL, 
+    like_score smallint NOT NULL,
     person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
