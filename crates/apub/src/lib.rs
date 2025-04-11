@@ -166,7 +166,7 @@ pub(crate) async fn local_site_data_cached(
           blocked_instances,
         }))
       })
-      .await.map_err(|_e| LemmyErrorType::NotFound)?,
+      .await.map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))?
   )
 }
 
