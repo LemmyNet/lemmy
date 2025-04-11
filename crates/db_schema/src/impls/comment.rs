@@ -347,6 +347,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,
+      disable_reply_notifications: false,
     };
 
     let child_comment_form = CommentInsertForm::new(
