@@ -24,7 +24,6 @@ use crate::{
 };
 use diesel::{
   dsl::not,
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -33,13 +32,13 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::{self},
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   InboxDataType,
 };
 use lemmy_db_schema_file::schema::{
@@ -54,7 +53,7 @@ use lemmy_db_schema_file::schema::{
   post,
   private_message,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl InboxCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -148,7 +147,7 @@ impl InboxCombinedViewInternal {
     my_person_id: PersonId,
     local_instance_id: InstanceId,
     show_bot_accounts: bool,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
@@ -181,7 +180,10 @@ impl InboxCombinedViewInternal {
       query = query.filter(not(person::bot_account));
     }
 
-    query.first::<i64>(conn).await
+    query
+      .first::<i64>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -195,7 +197,7 @@ impl PaginationCursorBuilder for InboxCombinedView {
       InboxCombinedView::PostMention(v) => ('P', v.person_post_mention.id.0),
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -203,7 +205,11 @@ impl PaginationCursorBuilder for InboxCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = inbox_combined::table
       .select(Self::CursorData::as_select())
@@ -229,6 +235,7 @@ pub struct InboxCombinedQuery {
   pub show_bot_accounts: Option<bool>,
   pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl InboxCombinedQuery {
@@ -239,12 +246,14 @@ impl InboxCombinedQuery {
     local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<InboxCombinedView>> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
 
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
     let mut query = InboxCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(InboxCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
 
     // Filters
@@ -312,21 +321,21 @@ impl InboxCombinedQuery {
       }
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
-
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
     // Sorting by published
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    let res = query.load::<InboxCombinedViewInternal>(conn).await?;
+    let res = paginated_query
+      .load::<InboxCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res

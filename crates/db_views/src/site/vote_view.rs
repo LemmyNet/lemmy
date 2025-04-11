@@ -1,6 +1,5 @@
 use crate::structs::VoteView;
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -8,10 +7,12 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, PostId},
-  utils::{get_conn, limit_and_offset, DbPool},
+  newtypes::{CommentId, PaginationCursor, PersonId, PostId},
+  source::{comment::CommentActions, post::PostActions},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{
   comment,
@@ -21,16 +22,44 @@ use lemmy_db_schema_file::schema::{
   post,
   post_actions,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl VoteView {
+  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and post
+    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.item_id)];
+
+    PaginationCursor::new(&prefixes_and_ids)
+  }
+
+  // TODO move this to the postactions impl soon.
+  pub async fn from_post_actions_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActions> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, person_id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, post_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+
+    PostActions::read(pool, PostId(*post_id), PersonId(*person_id)).await
+  }
+
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    page: Option<i64>,
+    cursor_data: Option<PostActions>,
+    page_back: Option<bool>,
     limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
+    use lemmy_db_schema::source::post::post_actions_keys as key;
+
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let limit = limit_fetch(limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -43,35 +72,69 @@ impl VoteView {
         ),
     );
 
-    post_actions::table
-      .filter(post_actions::like_score.is_not_null())
+    let query = post_actions::table
       .inner_join(person::table)
       .inner_join(post::table)
       .left_join(creator_community_actions_join)
       .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::like_score.is_not_null())
       .select((
         person::all_columns,
+        post::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
         post_actions::like_score.assume_not_null(),
       ))
-      .order_by(post_actions::like_score)
       .limit(limit)
-      .offset(offset)
+      .into_boxed();
+
+    // Sorting by like score
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::like_score)
+      // Tie breaker
+      .then_order_by(key::person_id);
+
+    paginated_query
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub fn to_comment_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and comment
+    let prefixes_and_ids = [('P', self.creator.id.0), ('C', self.item_id)];
+
+    PaginationCursor::new(&prefixes_and_ids)
+  }
+
+  pub async fn from_comment_actions_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<CommentActions> {
+    let pids = cursor.prefixes_and_ids();
+    let (_, person_id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let (_, comment_id) = pids
+      .get(1)
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+
+    CommentActions::read(pool, CommentId(*comment_id), PersonId(*person_id)).await
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    page: Option<i64>,
+    cursor_data: Option<CommentActions>,
+    page_back: Option<bool>,
     limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
+    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let limit = limit_fetch(limit)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -84,25 +147,34 @@ impl VoteView {
         ),
     );
 
-    comment_actions::table
-      .filter(comment_actions::like_score.is_not_null())
+    let query = comment_actions::table
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
       .left_join(creator_community_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
+      .filter(comment_actions::like_score.is_not_null())
       .select((
         person::all_columns,
+        comment::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
         comment_actions::like_score.assume_not_null(),
       ))
-      .order_by(comment_actions::like_score)
       .limit(limit)
-      .offset(offset)
+      .into_boxed();
+
+    // Sorting by like score
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::like_score)
+      // Tie breaker
+      .then_order_by(key::person_id);
+
+    paginated_query
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -173,11 +245,13 @@ mod tests {
     let mut expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
+        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_timmy.clone(),
+        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: 1,
       },
@@ -185,7 +259,8 @@ mod tests {
     expected_post_vote_views[1].creator.post_count = 1;
     expected_post_vote_views[1].creator.comment_count = 1;
 
-    let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
+    let read_post_vote_views =
+      VoteView::list_for_post(pool, inserted_post.id, None, None, None).await?;
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
@@ -199,11 +274,13 @@ mod tests {
     let mut expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
+        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_sara.clone(),
+        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: 1,
       },
@@ -212,7 +289,7 @@ mod tests {
     expected_comment_vote_views[0].creator.comment_count = 1;
 
     let read_comment_vote_views =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None).await?;
     assert_eq!(read_comment_vote_views, expected_comment_vote_views);
 
     // Ban timmy from that community
@@ -221,14 +298,14 @@ mod tests {
 
     // Make sure creator_banned_from_community is true
     let read_comment_vote_views_after_ban =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None).await?;
 
     assert!(read_comment_vote_views_after_ban
       .first()
       .is_some_and(|c| c.creator_banned_from_community));
 
     let read_post_vote_views_after_ban =
-      VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
+      VoteView::list_for_post(pool, inserted_post.id, None, None, None).await?;
 
     assert!(read_post_vote_views_after_ban
       .get(1)

@@ -1,11 +1,9 @@
-use crate::newtypes::{CommunityId, DbUrl, PostId, TagId};
+use crate::newtypes::{CommunityId, DbUrl, TagId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{post_tag, tag};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {lemmy_db_schema_file::schema::tag, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -56,12 +54,4 @@ pub struct TagUpdateForm {
   pub published: Option<DateTime<Utc>>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
-}
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_tag))]
-pub struct PostTagInsertForm {
-  pub post_id: PostId,
-  pub tag_id: TagId,
 }

@@ -3,23 +3,26 @@ use crate::{
   source::federation_allowlist::{FederationAllowList, FederationAllowListForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{delete, dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::federation_allowlist;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl FederationAllowList {
-  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> Result<Self, Error> {
+  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(federation_allowlist::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntAllowInstance)
   }
-  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<usize, Error> {
+  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     delete(federation_allowlist::table.filter(federation_allowlist::instance_id.eq(instance_id_)))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 
@@ -33,7 +36,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
+  async fn test_allowlist_insert_and_clear() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let instances = vec![
