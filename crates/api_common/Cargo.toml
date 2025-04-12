@@ -19,9 +19,6 @@ workspace = true
 [features]
 full = [
   "tracing",
-  "lemmy_db_views/full",
-  "lemmy_utils/full",
-  "lemmy_email",
   "activitypub_federation",
   "encoding_rs",
   "reqwest-middleware",
@@ -41,10 +38,33 @@ full = [
   "once_cell",
   "serde_json",
   "lemmy_db_schema_file/full",
+  "lemmy_utils/full",
+  "lemmy_email",
+  "lemmy_db_views_comment/full",
+  "lemmy_db_views_community/full",
+  "lemmy_db_views_community_moderator/full",
+  "lemmy_db_views_community_follower/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_vote/full",
+  "lemmy_db_views_local_user/full",
+  "lemmy_db_views_person/full",
+  "lemmy_db_views_custom_emoji/full",
+  "lemmy_db_views_reports/full",
+  "lemmy_db_views_private_message/full",
 ]
 
 [dependencies]
-lemmy_db_views = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
+lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_vote = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+lemmy_db_views_person = { workspace = true }
+lemmy_db_views_custom_emoji = { workspace = true }
+lemmy_db_views_reports = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

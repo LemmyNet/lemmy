@@ -39,16 +39,6 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
-  LocalImageView,
-  LocalUserView,
-  PersonView,
-  SiteView,
-};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
@@ -71,6 +61,43 @@ use urlencoding::encode;
 use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
+
+pub async fn check_is_mod_or_admin(
+  pool: &mut DbPool<'_>,
+  person_id: PersonId,
+  community_id: CommunityId,
+  local_instance_id: InstanceId,
+) -> LemmyResult<()> {
+  let is_mod =
+    CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+  if is_mod.is_ok()
+    || PersonView::read(pool, person_id, local_instance_id, false)
+      .await
+      .is_ok_and(|t| t.is_admin)
+  {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
+/// Checks if a person is an admin, or moderator of any community.
+pub async fn check_is_mod_of_any_or_admin(
+  pool: &mut DbPool<'_>,
+  person_id: PersonId,
+  local_instance_id: InstanceId,
+) -> LemmyResult<()> {
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+  if is_mod_of_any.is_ok()
+    || PersonView::read(pool, person_id, local_instance_id, false)
+      .await
+      .is_ok_and(|t| t.is_admin)
+  {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
 
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
@@ -959,10 +986,6 @@ mod tests {
       post::PostInsertForm,
     },
     ModlogActionType,
-  };
-  use lemmy_db_views::{
-    combined::modlog_combined_view::ModlogCombinedQuery,
-    structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
