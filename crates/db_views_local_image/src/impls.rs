@@ -1,4 +1,4 @@
-use crate::structs::LocalImageView;
+use crate::LocalImageView;
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;

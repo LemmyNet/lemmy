@@ -1,28 +1,11 @@
 use crate::{
-  structs::{
-    CommentView,
-    CommunityView,
-    LocalUserView,
-    PersonView,
-    PostView,
-    SearchCombinedView,
-    SearchCombinedViewInternal,
-  },
-  utils::{
-    creator_community_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    filter_is_subscribed,
-    filter_not_unlisted_or_is_subscribed,
-    image_details_join,
-    my_comment_actions_join,
-    my_community_actions_join,
-    my_instance_actions_person_join,
-    my_local_user_join,
-    my_person_actions_join,
-    my_post_actions_join,
-  },
+  CommentView,
+  CommunityView,
+  LocalUserView,
+  PersonView,
+  PostView,
+  SearchCombinedView,
+  SearchCombinedViewInternal,
 };
 use diesel::{
   dsl::not,
@@ -40,7 +23,30 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::combined::search::{search_combined_keys as key, SearchCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool},
+  utils::{
+    fuzzy_search,
+    get_conn,
+    limit_fetch,
+    now,
+    paginate,
+    queries::{
+      creator_community_actions_join,
+      creator_home_instance_actions_join,
+      creator_local_instance_actions_join,
+      creator_local_user_admin_join,
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      image_details_join,
+      my_comment_actions_join,
+      my_community_actions_join,
+      my_instance_actions_person_join,
+      my_local_user_join,
+      my_person_actions_join,
+      my_post_actions_join,
+    },
+    seconds_to_pg_interval,
+    DbPool,
+  },
   SearchSortType::{self, *},
   SearchType,
 };
@@ -430,11 +436,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use super::*;
-  use crate::{
-    combined::search_combined_view::SearchCombinedQuery,
-    structs::{LocalUserView, SearchCombinedView},
-  };
+  use crate::{search_combined_view::SearchCombinedQuery, LocalUserView, SearchCombinedView};
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -447,6 +449,7 @@ mod tests {
     },
     traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
+    SearchSortType,
     SearchType,
   };
   use lemmy_utils::error::LemmyResult;

@@ -3120,7 +3120,22 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_combined",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_local_image",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_db_views_registration_applications",
+ "lemmy_db_views_reports",
+ "lemmy_db_views_site",
+ "lemmy_db_views_vote",
  "lemmy_email",
  "lemmy_utils",
  "pretty_assertions",
@@ -3151,16 +3166,21 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_combined",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
  "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_registration_applications",
  "lemmy_db_views_reports",
+ "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_email",
  "lemmy_utils",
@@ -3201,7 +3221,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
  "lemmy_email",
  "lemmy_utils",
  "regex",
@@ -3233,7 +3252,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
@@ -3321,7 +3339,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views"
+name = "lemmy_db_views_combined"
 version = "1.0.0-alpha.4"
 dependencies = [
  "actix-web",
@@ -3333,7 +3351,13 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_post",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_reports",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -3424,6 +3448,31 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_moderator"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "derive-new",
+ "diesel",
+ "diesel-async",
+ "diesel_ltree",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serial_test",
+ "test-context",
+ "tokio",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
+name = "lemmy_db_views_community_person_ban"
 version = "1.0.0-alpha.4"
 dependencies = [
  "actix-web",
@@ -3599,7 +3648,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_registration_applications"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "derive-new",
+ "diesel",
+ "diesel-async",
+ "diesel_ltree",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serial_test",
+ "test-context",
+ "tokio",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
 name = "lemmy_db_views_reports"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "derive-new",
+ "diesel",
+ "diesel-async",
+ "diesel_ltree",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serial_test",
+ "test-context",
+ "tokio",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
+name = "lemmy_db_views_site"
 version = "1.0.0-alpha.4"
 dependencies = [
  "actix-web",
@@ -3679,7 +3778,6 @@ dependencies = [
  "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
  "lemmy_utils",
  "mockall",
  "moka",
@@ -3714,7 +3812,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
  "prometheus",

@@ -1,3 +1,94 @@
+use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
+use lemmy_db_schema::{
+  source::{
+    combined::{
+      inbox::InboxCombined,
+      person_content::PersonContentCombined,
+      person_saved::PersonSavedCombined,
+      report::ReportCombined,
+      search::SearchCombined,
+    },
+    comment::{Comment, CommentActions},
+    comment_reply::CommentReply,
+    comment_report::CommentReport,
+    community::{Community, CommunityActions},
+    community_report::CommunityReport,
+    images::ImageDetails,
+    instance::{Instance, InstanceActions},
+    mod_log::{
+      admin::{
+        AdminAllowInstance,
+        AdminBlockInstance,
+        AdminPurgeComment,
+        AdminPurgeCommunity,
+        AdminPurgePerson,
+        AdminPurgePost,
+      },
+      moderator::{
+        ModAdd,
+        ModAddCommunity,
+        ModBan,
+        ModBanFromCommunity,
+        ModChangeCommunityVisibility,
+        ModFeaturePost,
+        ModLockPost,
+        ModRemoveComment,
+        ModRemoveCommunity,
+        ModRemovePost,
+        ModTransferCommunity,
+      },
+    },
+    person::{Person, PersonActions},
+    person_comment_mention::PersonCommentMention,
+    person_post_mention::PersonPostMention,
+    post::{Post, PostActions},
+    post_report::PostReport,
+    private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
+    tag::TagsView,
+  },
+  utils::queries::{
+    community_post_tags_fragment,
+    creator_banned,
+    creator_community_actions_select,
+    creator_home_instance_actions_select,
+    creator_is_admin,
+    creator_local_instance_actions_select,
+    local_user_can_mod,
+    local_user_is_admin,
+    person1_select,
+    person2_select,
+    post_tags_fragment,
+  },
+  CreatorCommunityActionsAllColumnsTuple,
+  CreatorHomeInstanceActionsAllColumnsTuple,
+  CreatorLocalInstanceActionsAllColumnsTuple,
+  Person1AliasAllColumnsTuple,
+  Person2AliasAllColumnsTuple,
+};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_reports::{
+  CommentReportView,
+  CommunityReportView,
+  PostReportView,
+  PrivateMessageReportView,
+};
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+use ts_rs::TS;
+
+pub mod inbox_combined_view;
+pub mod modlog_combined_view;
+pub mod person_content_combined_view;
+pub mod person_saved_combined_view;
+pub mod report_combined_view;
+pub mod search_combined_view;
+
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

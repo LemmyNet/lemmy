@@ -1,4 +1,4 @@
-use crate::structs::RegistrationApplicationView;
+use crate::RegistrationApplicationView;
 use diesel::{
   dsl::count,
   ExpressionMethods,
@@ -138,10 +138,7 @@ impl RegistrationApplicationQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::registration_applications::registration_application_view::{
-    RegistrationApplicationQuery,
-    RegistrationApplicationView,
-  };
+  use crate::{impls::RegistrationApplicationQuery, RegistrationApplicationView};
   use lemmy_db_schema::{
     source::{
       instance::Instance,

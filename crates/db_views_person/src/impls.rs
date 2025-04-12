@@ -143,7 +143,6 @@ impl PersonQuery {
 mod tests {
 
   use super::*;
-  use crate::site::site_view::create_test_instance;
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -166,7 +165,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = create_test_instance(pool).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let alice_form = PersonInsertForm {
       local: Some(true),

@@ -36,7 +36,7 @@ impl CommunityModeratorView {
     .ok_or(LemmyErrorType::NotAModerator.into())
   }
 
-  pub(crate) async fn is_community_moderator_of_any(
+  pub async fn is_community_moderator_of_any(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
   ) -> LemmyResult<()> {

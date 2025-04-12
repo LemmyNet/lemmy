@@ -18,7 +18,6 @@ workspace = true
 lemmy_api_common.workspace = true
 lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_db_views.workspace = true
 lemmy_utils.workspace = true
 lemmy_db_schema_file = { workspace = true }
 

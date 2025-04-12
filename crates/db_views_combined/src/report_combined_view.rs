@@ -1,4 +1,4 @@
-use crate::structs::{
+use crate::{
   CommentReportView,
   CommunityReportView,
   LocalUserView,
@@ -462,15 +462,13 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-    combined::report_combined_view::ReportCombinedQuery,
-    structs::{
-      CommentReportView,
-      CommunityReportView,
-      LocalUserView,
-      PostReportView,
-      ReportCombinedView,
-      ReportCombinedViewInternal,
-    },
+    report_combined_view::ReportCombinedQuery,
+    CommentReportView,
+    CommunityReportView,
+    LocalUserView,
+    PostReportView,
+    ReportCombinedView,
+    ReportCombinedViewInternal,
   };
   use chrono::{Days, Utc};
   use diesel::{update, ExpressionMethods, QueryDsl};

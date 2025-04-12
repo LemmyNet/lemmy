@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor, PersonId},
   source::{
     community::{community_keys as key, Community},
     local_user::LocalUser,
@@ -75,7 +75,6 @@ impl CommunityView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-
 }
 
 impl PaginationCursorBuilder for CommunityView {
@@ -185,10 +184,7 @@ impl CommunityQuery<'_> {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    community::community_view::CommunityQuery,
-    structs::{CommunitySortType, CommunityView},
-  };
+  use crate::{impls::CommunityQuery, CommunityView};
   use lemmy_db_schema::{
     source::{
       community::{
@@ -206,6 +202,7 @@ mod tests {
     },
     traits::{Crud, Followable, Joinable},
     utils::{build_db_pool_for_tests, DbPool},
+    CommunitySortType,
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};

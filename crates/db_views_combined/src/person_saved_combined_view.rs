@@ -1,25 +1,9 @@
 use crate::{
-  structs::{
-    CommentView,
-    LocalUserView,
-    PersonSavedCombinedView,
-    PersonSavedCombinedViewInternal,
-    PostView,
-  },
-  utils::{
-    community_join,
-    creator_community_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    image_details_join,
-    my_comment_actions_join,
-    my_community_actions_join,
-    my_instance_actions_person_join,
-    my_local_user_join,
-    my_person_actions_join,
-    my_post_actions_join,
-  },
+  CommentView,
+  LocalUserView,
+  PersonSavedCombinedView,
+  PersonSavedCombinedViewInternal,
+  PostView,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -35,7 +19,26 @@ use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{
+    get_conn,
+    limit_fetch,
+    paginate,
+    queries::{
+      community_join,
+      creator_community_actions_join,
+      creator_home_instance_actions_join,
+      creator_local_instance_actions_join,
+      creator_local_user_admin_join,
+      image_details_join,
+      my_comment_actions_join,
+      my_community_actions_join,
+      my_instance_actions_person_join,
+      my_local_user_join,
+      my_person_actions_join,
+      my_post_actions_join,
+    },
+    DbPool,
+  },
   PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_saved_combined, post};
@@ -249,8 +252,9 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
 mod tests {
 
   use crate::{
-    combined::person_saved_combined_view::PersonSavedCombinedQuery,
-    structs::{LocalUserView, PersonSavedCombinedView},
+    person_saved_combined_view::PersonSavedCombinedQuery,
+    LocalUserView,
+    PersonSavedCombinedView,
   };
   use lemmy_db_schema::{
     source::{

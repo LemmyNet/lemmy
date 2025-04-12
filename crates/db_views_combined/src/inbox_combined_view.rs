@@ -1,4 +1,4 @@
-use crate::structs::{
+use crate::{
   CommentReplyView,
   InboxCombinedView,
   InboxCombinedViewInternal,
@@ -446,8 +446,9 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    combined::inbox_combined_view::InboxCombinedQuery,
-    structs::{InboxCombinedView, InboxCombinedViewInternal},
+    inbox_combined_view::InboxCombinedQuery,
+    InboxCombinedView,
+    InboxCombinedViewInternal,
   };
   use lemmy_db_schema::{
     assert_length,

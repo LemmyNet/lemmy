@@ -1,4 +1,4 @@
-use crate::structs::SiteView;
+use crate::SiteView;
 use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

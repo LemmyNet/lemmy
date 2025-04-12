@@ -1,4 +1,4 @@
-use crate::structs::CommunityPersonBanView;
+use crate::CommunityPersonBanView;
 use diesel::{
   dsl::{exists, not},
   select,

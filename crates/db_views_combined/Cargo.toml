@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_private_message"
+name = "lemmy_db_views_combined"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -31,6 +31,13 @@ full = [
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
+lemmy_db_views_reports = { workspace = true }
+lemmy_db_views_person = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }

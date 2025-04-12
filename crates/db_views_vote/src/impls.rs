@@ -1,4 +1,4 @@
-use crate::structs::VoteView;
+use crate::VoteView;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -180,7 +180,7 @@ impl VoteView {
 
 #[cfg(test)]
 mod tests {
-  use crate::structs::VoteView;
+  use crate::VoteView;
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},

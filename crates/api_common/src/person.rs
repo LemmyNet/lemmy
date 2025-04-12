@@ -14,6 +14,13 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
+use lemmy_db_views_combined::{
+  InboxCombinedView,
+  PersonContentCombinedView,
+  PersonSavedCombinedView,
+};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

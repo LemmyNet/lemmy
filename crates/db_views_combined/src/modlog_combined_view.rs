@@ -1,26 +1,23 @@
 use crate::{
-  structs::{
-    AdminAllowInstanceView,
-    AdminBlockInstanceView,
-    AdminPurgeCommentView,
-    AdminPurgeCommunityView,
-    AdminPurgePersonView,
-    AdminPurgePostView,
-    ModAddCommunityView,
-    ModAddView,
-    ModBanFromCommunityView,
-    ModBanView,
-    ModChangeCommunityVisibilityView,
-    ModFeaturePostView,
-    ModLockPostView,
-    ModRemoveCommentView,
-    ModRemoveCommunityView,
-    ModRemovePostView,
-    ModTransferCommunityView,
-    ModlogCombinedView,
-    ModlogCombinedViewInternal,
-  },
-  utils::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+  AdminAllowInstanceView,
+  AdminBlockInstanceView,
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModChangeCommunityVisibilityView,
+  ModFeaturePostView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModTransferCommunityView,
+  ModlogCombinedView,
+  ModlogCombinedViewInternal,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -42,7 +39,13 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{
+    get_conn,
+    limit_fetch,
+    paginate,
+    queries::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+    DbPool,
+  },
   ModlogActionType,
 };
 use lemmy_db_schema_file::{
@@ -613,7 +616,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{combined::modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
+  use crate::{modlog_combined_view::ModlogCombinedQuery, ModlogCombinedView};
   use lemmy_db_schema::{
     newtypes::PersonId,
     source::{

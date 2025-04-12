@@ -2,6 +2,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PaginationCursor, PostId},
   ReportType,
 };
+use lemmy_db_views_combined::ReportCombinedView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

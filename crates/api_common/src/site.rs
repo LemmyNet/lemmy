@@ -33,19 +33,16 @@ use lemmy_db_schema_file::enums::{
   PostSortType,
   RegistrationMode,
 };
-use lemmy_db_views::structs::{
-  CommentView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  LocalUserView,
-  ModlogCombinedView,
-  PersonView,
-  PostView,
-  RegistrationApplicationView,
-  SearchCombinedView,
-  SiteView,
-};
+use lemmy_db_views_combined::{ModlogCombinedView, SearchCombinedView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_db_views_site::SiteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

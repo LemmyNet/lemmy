@@ -1,4 +1,4 @@
-use crate::structs::{CommunityFollowerView, PendingFollow};
+use crate::{CommunityFollowerView, PendingFollow};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
