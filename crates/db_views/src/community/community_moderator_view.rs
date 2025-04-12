@@ -1,13 +1,5 @@
 use crate::structs::CommunityModeratorView;
-use diesel::{
-  dsl::exists,
-  result::Error,
-  select,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{dsl::exists, select, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
@@ -16,7 +8,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{community, community_actions, person};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -61,7 +53,7 @@ impl CommunityModeratorView {
   pub async fn for_community(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
@@ -69,13 +61,14 @@ impl CommunityModeratorView {
       .order_by(community_actions::became_moderator)
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     local_user: Option<&LocalUser>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins()
       .filter(community_actions::person_id.eq(person_id))
@@ -96,12 +89,15 @@ impl CommunityModeratorView {
         .filter(community::local_removed.eq(false));
     }
 
-    query.load::<Self>(conn).await
+    query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
-  pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .select(Self::as_select())
@@ -114,5 +110,6 @@ impl CommunityModeratorView {
       ))
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

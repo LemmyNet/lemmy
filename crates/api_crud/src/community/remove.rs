@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_community(
   data: Json<RemoveCommunity>,
@@ -40,8 +40,7 @@ pub async fn remove_community(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  .await?;
 
   CommunityReport::resolve_all_for_object(
     &mut context.pool(),

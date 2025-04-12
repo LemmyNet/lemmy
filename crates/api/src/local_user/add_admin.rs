@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{person::person_view::PersonQuery, structs::LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn add_admin(
   data: Json<AddAdmin>,
@@ -33,9 +33,7 @@ pub async fn add_admin(
   }
 
   // Make sure that the person_id added is local
-  let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::ObjectNotLocal)?;
+  let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id).await?;
 
   LocalUser::update(
     &mut context.pool(),
@@ -45,8 +43,7 @@ pub async fn add_admin(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  .await?;
 
   // Mod tables
   let form = ModAddForm {

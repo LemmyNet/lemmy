@@ -31,7 +31,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
@@ -108,9 +108,7 @@ pub async fn create_community(
     )
   };
 
-  let inserted_community = Community::create(&mut context.pool(), &community_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
+  let inserted_community = Community::create(&mut context.pool(), &community_form).await?;
   let community_id = inserted_community.id;
 
   // The community creator becomes a moderator
