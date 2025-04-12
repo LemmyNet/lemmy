@@ -32,4 +32,3 @@ diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
 ts-rs = { workspace = true, optional = true }
-
