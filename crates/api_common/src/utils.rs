@@ -69,7 +69,7 @@ use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
-pub(crate) async fn check_is_mod_or_admin(
+pub async fn check_is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person_id: PersonId,
   community_id: CommunityId,
