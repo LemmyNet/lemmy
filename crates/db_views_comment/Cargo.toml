@@ -21,7 +21,6 @@ full = [
   "diesel-async",
   "diesel_ltree",
   "ts-rs",
-  "actix-web",
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
@@ -36,17 +35,11 @@ diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
-serde_json = { workspace = true }
 ts-rs = { workspace = true, optional = true }
-actix-web = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
-chrono = { workspace = true }
-derive-new = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
-url = { workspace = true }
-test-context = "0.4.1"
