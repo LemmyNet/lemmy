@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{ListInbox, ListInboxResponse},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_combined::{inbox_combined_view::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

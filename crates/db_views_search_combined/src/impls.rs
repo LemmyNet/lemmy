@@ -436,7 +436,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{search_combined_view::SearchCombinedQuery, LocalUserView, SearchCombinedView};
+  use crate::{impls::SearchCombinedQuery, LocalUserView, SearchCombinedView};
   use lemmy_db_schema::{
     assert_length,
     source::{

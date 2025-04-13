@@ -6,11 +6,11 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_combined::{
-  person_saved_combined_view::PersonSavedCombinedQuery,
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person_saved_combined::{
+  impls::PersonSavedCombinedQuery,
   PersonSavedCombinedView,
 };
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 

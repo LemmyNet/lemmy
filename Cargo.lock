@@ -3120,17 +3120,20 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_combined",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_modlog_combined",
  "lemmy_db_views_person",
+ "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_registration_applications",
+ "lemmy_db_views_report_combined",
  "lemmy_db_views_reports",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
@@ -3164,20 +3167,25 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_combined",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_modlog_combined",
  "lemmy_db_views_person",
+ "lemmy_db_views_person_content_combined",
+ "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
+ "lemmy_db_views_report_combined",
  "lemmy_db_views_reports",
+ "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_email",
@@ -3219,7 +3227,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_combined",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3229,6 +3236,7 @@ dependencies = [
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_email",
  "lemmy_utils",
@@ -3261,7 +3269,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_combined",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3269,8 +3276,10 @@ dependencies = [
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
+ "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_utils",
  "moka",
@@ -3356,34 +3365,6 @@ dependencies = [
  "strum",
  "tracing",
  "ts-rs",
-]
-
-[[package]]
-name = "lemmy_db_views_combined"
-version = "1.0.0-alpha.4"
-dependencies = [
- "chrono",
- "derive-new",
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_comment",
- "lemmy_db_views_community",
- "lemmy_db_views_local_user",
- "lemmy_db_views_person",
- "lemmy_db_views_post",
- "lemmy_db_views_private_message",
- "lemmy_db_views_reports",
- "lemmy_utils",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
- "url",
 ]
 
 [[package]]
@@ -3479,6 +3460,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_inbox_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_private_message",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_local_image"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3508,6 +3508,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_modlog_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_person"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3516,6 +3534,47 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person_content_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "derive-new",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person_saved_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_post",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -3578,6 +3637,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_report_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_reports",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_reports"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3589,6 +3668,29 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_search_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+ "url",
 ]
 
 [[package]]
@@ -3688,8 +3790,9 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_combined",
+ "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_site",
  "lemmy_utils",

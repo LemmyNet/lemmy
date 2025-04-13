@@ -11,11 +11,8 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views_combined::{
-  inbox_combined_view::InboxCombinedQuery,
-  person_content_combined_view::PersonContentCombinedQuery,
-  InboxCombinedView,
-};
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{

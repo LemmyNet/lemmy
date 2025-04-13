@@ -445,11 +445,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{
-    inbox_combined_view::InboxCombinedQuery,
-    InboxCombinedView,
-    InboxCombinedViewInternal,
-  };
+  use crate::{impls::InboxCombinedQuery, InboxCombinedView, InboxCombinedViewInternal};
   use lemmy_db_schema::{
     assert_length,
     source::{

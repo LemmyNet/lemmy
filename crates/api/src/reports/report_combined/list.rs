@@ -5,8 +5,8 @@ use lemmy_api_common::{
   utils::check_community_mod_of_any_or_admin_action,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_combined::{report_combined_view::ReportCombinedQuery, ReportCombinedView};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_report_combined::{impls::ReportCombinedQuery, ReportCombinedView};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists reports for a community if an id is supplied

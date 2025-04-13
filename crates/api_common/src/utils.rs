@@ -993,8 +993,8 @@ mod tests {
     },
     ModlogActionType,
   };
-  use lemmy_db_views_combined::{
-    modlog_combined_view::ModlogCombinedQuery,
+  use lemmy_db_views_modlog_combined::{
+    impls::ModlogCombinedQuery,
     ModRemoveCommentView,
     ModRemovePostView,
     ModlogCombinedView,
