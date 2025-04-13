@@ -3,11 +3,14 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, Queryable, Selectable},
-  lemmy_db_schema::utils::queries::creator_home_instance_actions_select,
-  lemmy_db_schema::CreatorHomeInstanceActionsAllColumnsTuple,
+  lemmy_db_schema::{
+    utils::queries::creator_home_instance_actions_select,
+    CreatorHomeInstanceActionsAllColumnsTuple,
+  },
   ts_rs::TS,
 };
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

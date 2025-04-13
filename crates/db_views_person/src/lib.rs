@@ -1,21 +1,25 @@
-use diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{instance::InstanceActions, person::Person},
-  utils::{
-    functions::coalesce,
-    queries::{
-      creator_banned,
-      creator_home_instance_actions_select,
-      creator_local_instance_actions_select,
-    },
-  },
-  CreatorHomeInstanceActionsAllColumnsTuple,
-  CreatorLocalInstanceActionsAllColumnsTuple,
-};
-use lemmy_db_schema_file::schema::local_user;
+use lemmy_db_schema::source::{instance::InstanceActions, person::Person};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{
+    utils::{
+      functions::coalesce,
+      queries::{
+        creator_banned,
+        creator_home_instance_actions_select,
+        creator_local_instance_actions_select,
+      },
+    },
+    CreatorHomeInstanceActionsAllColumnsTuple,
+    CreatorLocalInstanceActionsAllColumnsTuple,
+  },
+  lemmy_db_schema_file::schema::local_user,
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

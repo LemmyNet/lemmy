@@ -1,17 +1,18 @@
-use diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    local_user::LocalUser,
-    person::Person,
-    registration_application::RegistrationApplication,
-  },
-  utils::queries::person1_select,
-  Person1AliasAllColumnsTuple,
+use lemmy_db_schema::source::{
+  local_user::LocalUser,
+  person::Person,
+  registration_application::RegistrationApplication,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{utils::queries::person1_select, Person1AliasAllColumnsTuple},
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[skip_serializing_none]

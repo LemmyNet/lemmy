@@ -1,34 +1,38 @@
-use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    combined::person_saved::PersonSavedCombined,
-    comment::{Comment, CommentActions},
-    community::{Community, CommunityActions},
-    images::ImageDetails,
-    instance::InstanceActions,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    tag::TagsView,
-  },
-  utils::queries::{
-    creator_banned,
-    creator_community_actions_select,
-    creator_home_instance_actions_select,
-    creator_is_admin,
-    creator_local_instance_actions_select,
-    local_user_can_mod,
-    post_tags_fragment,
-  },
-  CreatorCommunityActionsAllColumnsTuple,
-  CreatorHomeInstanceActionsAllColumnsTuple,
-  CreatorLocalInstanceActionsAllColumnsTuple,
+use lemmy_db_schema::source::{
+  combined::person_saved::PersonSavedCombined,
+  comment::{Comment, CommentActions},
+  community::{Community, CommunityActions},
+  images::ImageDetails,
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  tag::TagsView,
 };
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{
+    utils::queries::{
+      creator_banned,
+      creator_community_actions_select,
+      creator_home_instance_actions_select,
+      creator_is_admin,
+      creator_local_instance_actions_select,
+      local_user_can_mod,
+      post_tags_fragment,
+    },
+    CreatorCommunityActionsAllColumnsTuple,
+    CreatorHomeInstanceActionsAllColumnsTuple,
+    CreatorLocalInstanceActionsAllColumnsTuple,
+  },
+  lemmy_db_views_local_user::LocalUserView,
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

@@ -1,9 +1,13 @@
-use diesel::{Queryable, Selectable};
 use lemmy_db_schema::source::{images::LocalImage, person::Person};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{Queryable, Selectable},
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[skip_serializing_none]

@@ -1,39 +1,43 @@
-use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    combined::inbox::InboxCombined,
-    comment::{Comment, CommentActions},
-    comment_reply::CommentReply,
-    community::{Community, CommunityActions},
-    images::ImageDetails,
-    instance::InstanceActions,
-    person::{Person, PersonActions},
-    person_comment_mention::PersonCommentMention,
-    person_post_mention::PersonPostMention,
-    post::{Post, PostActions},
-    private_message::PrivateMessage,
-    tag::TagsView,
-  },
-  utils::queries::{
-    creator_banned,
-    creator_community_actions_select,
-    creator_home_instance_actions_select,
-    creator_is_admin,
-    creator_local_instance_actions_select,
-    local_user_can_mod,
-    person1_select,
-    post_tags_fragment,
-  },
-  CreatorCommunityActionsAllColumnsTuple,
-  CreatorHomeInstanceActionsAllColumnsTuple,
-  CreatorLocalInstanceActionsAllColumnsTuple,
-  Person1AliasAllColumnsTuple,
+use lemmy_db_schema::source::{
+  combined::inbox::InboxCombined,
+  comment::{Comment, CommentActions},
+  comment_reply::CommentReply,
+  community::{Community, CommunityActions},
+  images::ImageDetails,
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+  person_comment_mention::PersonCommentMention,
+  person_post_mention::PersonPostMention,
+  post::{Post, PostActions},
+  private_message::PrivateMessage,
+  tag::TagsView,
 };
 use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{
+    utils::queries::{
+      creator_banned,
+      creator_community_actions_select,
+      creator_home_instance_actions_select,
+      creator_is_admin,
+      creator_local_instance_actions_select,
+      local_user_can_mod,
+      person1_select,
+      post_tags_fragment,
+    },
+    CreatorCommunityActionsAllColumnsTuple,
+    CreatorHomeInstanceActionsAllColumnsTuple,
+    CreatorLocalInstanceActionsAllColumnsTuple,
+    Person1AliasAllColumnsTuple,
+  },
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

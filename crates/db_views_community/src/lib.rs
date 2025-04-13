@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::{community_post_tags_fragment, local_user_community_can_mod},
-
   ts_rs::TS,
 };
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

@@ -10,19 +10,18 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::helper_types::Nullable,
-  diesel::{NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{
-    comment_creator_is_admin,
-    comment_select_remove_deletes,
-    creator_banned,
-    creator_community_actions_select,
-    creator_home_instance_actions_select,
-    creator_local_instance_actions_select,
-    local_user_can_mod,
-    post_tags_fragment,
-  },
+  diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::{
+    utils::queries::{
+      comment_creator_is_admin,
+      comment_select_remove_deletes,
+      creator_banned,
+      creator_community_actions_select,
+      creator_home_instance_actions_select,
+      creator_local_instance_actions_select,
+      local_user_can_mod,
+      post_tags_fragment,
+    },
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
@@ -30,6 +29,7 @@ use {
   ts_rs::TS,
 };
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[skip_serializing_none]

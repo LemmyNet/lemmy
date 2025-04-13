@@ -1,9 +1,13 @@
-use diesel::{Queryable, Selectable};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{Queryable, Selectable},
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

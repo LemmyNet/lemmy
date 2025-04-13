@@ -1,7 +1,9 @@
+#[cfg(feature = "full")]
 use diesel::{Queryable, Selectable};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

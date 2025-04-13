@@ -1,4 +1,3 @@
-use diesel::{Queryable, Selectable};
 use lemmy_db_schema::source::{
   instance::Instance,
   local_site::LocalSite,
@@ -6,8 +5,13 @@ use lemmy_db_schema::source::{
   site::Site,
 };
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{Queryable, Selectable},
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

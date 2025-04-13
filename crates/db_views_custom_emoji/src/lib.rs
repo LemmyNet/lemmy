@@ -1,11 +1,12 @@
-use diesel::Queryable;
 use lemmy_db_schema::source::{
   custom_emoji::CustomEmoji,
   custom_emoji_keyword::CustomEmojiKeyword,
 };
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {diesel::Queryable, ts_rs::TS};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

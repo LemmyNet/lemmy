@@ -1,28 +1,15 @@
-use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    combined::report::ReportCombined,
-    comment::{Comment, CommentActions},
-    comment_report::CommentReport,
-    community::{Community, CommunityActions},
-    community_report::CommunityReport,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    post_report::PostReport,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-  },
-  utils::queries::{
-    creator_community_actions_select,
-    local_user_is_admin,
-    person1_select,
-    person2_select,
-  },
-  CreatorCommunityActionsAllColumnsTuple,
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
+use lemmy_db_schema::source::{
+  combined::report::ReportCombined,
+  comment::{Comment, CommentActions},
+  comment_report::CommentReport,
+  community::{Community, CommunityActions},
+  community_report::CommunityReport,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  post_report::PostReport,
+  private_message::PrivateMessage,
+  private_message_report::PrivateMessageReport,
 };
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::{
   CommentReportView,
   CommunityReportView,
@@ -30,8 +17,25 @@ use lemmy_db_views_reports::{
   PrivateMessageReportView,
 };
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{
+    utils::queries::{
+      creator_community_actions_select,
+      local_user_is_admin,
+      person1_select,
+      person2_select,
+    },
+    CreatorCommunityActionsAllColumnsTuple,
+    Person1AliasAllColumnsTuple,
+    Person2AliasAllColumnsTuple,
+  },
+  lemmy_db_views_local_user::LocalUserView,
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

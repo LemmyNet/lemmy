@@ -1,9 +1,10 @@
-use diesel::prelude::Queryable;
 use lemmy_db_schema::source::person::Person;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {diesel::Queryable, ts_rs::TS};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[skip_serializing_none]

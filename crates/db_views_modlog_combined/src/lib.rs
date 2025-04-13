@@ -1,42 +1,43 @@
-use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    comment::Comment,
-    community::Community,
-    instance::Instance,
-    mod_log::{
-      admin::{
-        AdminAllowInstance,
-        AdminBlockInstance,
-        AdminPurgeComment,
-        AdminPurgeCommunity,
-        AdminPurgePerson,
-        AdminPurgePost,
-      },
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModBan,
-        ModBanFromCommunity,
-        ModChangeCommunityVisibility,
-        ModFeaturePost,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemoveCommunity,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  instance::Instance,
+  mod_log::{
+    admin::{
+      AdminAllowInstance,
+      AdminBlockInstance,
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
     },
-    person::Person,
-    post::Post,
+    moderator::{
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModChangeCommunityVisibility,
+      ModFeaturePost,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModTransferCommunity,
+    },
   },
-  utils::queries::person1_select,
-  Person1AliasAllColumnsTuple,
+  person::Person,
+  post::Post,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{utils::queries::person1_select, Person1AliasAllColumnsTuple},
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod impls;
 
 #[skip_serializing_none]

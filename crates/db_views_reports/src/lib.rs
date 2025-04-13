@@ -1,34 +1,44 @@
-use diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable};
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentActions},
-    comment_report::CommentReport,
-    community::{Community, CommunityActions},
-    community_report::CommunityReport,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    post_report::PostReport,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-  },
-  utils::queries::{
-    comment_creator_is_admin,
-    creator_community_actions_select,
-    person1_select,
-    person2_select,
-    post_creator_is_admin,
-  },
-  CreatorCommunityActionsAllColumnsTuple,
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentActions},
+  comment_report::CommentReport,
+  community::{Community, CommunityActions},
+  community_report::CommunityReport,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  post_report::PostReport,
+  private_message::PrivateMessage,
+  private_message_report::PrivateMessageReport,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
+#[cfg(feature = "full")]
+use {
+  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  lemmy_db_schema::{
+    utils::queries::{
+      comment_creator_is_admin,
+      creator_community_actions_select,
+      person1_select,
+      person2_select,
+      post_creator_is_admin,
+    },
+    CreatorCommunityActionsAllColumnsTuple,
+    Person1AliasAllColumnsTuple,
+    Person2AliasAllColumnsTuple,
+  },
+  ts_rs::TS,
+};
 
+#[cfg(feature = "full")]
 pub mod comment_report_view;
+
+#[cfg(feature = "full")]
 pub mod community_report_view;
+
+#[cfg(feature = "full")]
 pub mod post_report_view;
+
+#[cfg(feature = "full")]
 pub mod private_message_report_view;
 
 #[skip_serializing_none]
