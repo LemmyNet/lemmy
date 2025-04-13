@@ -37,38 +37,35 @@ full = [
   "extism-convert",
   "once_cell",
   "serde_json",
+  "lemmy_email",
 ]
 
 [dependencies]
-lemmy_db_views_comment = { workspace = true, features = ["full"] }
-lemmy_db_views_community = { workspace = true, features = ["full"] }
-lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
-lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
-lemmy_db_views_post = { workspace = true, features = ["full"] }
-lemmy_db_views_vote = { workspace = true, features = ["full"] }
-lemmy_db_views_local_user = { workspace = true, features = ["full"] }
-lemmy_db_views_person = { workspace = true, features = ["full"] }
-lemmy_db_views_custom_emoji = { workspace = true, features = ["full"] }
-lemmy_db_views_reports = { workspace = true, features = ["full"] }
-lemmy_db_views_private_message = { workspace = true, features = ["full"] }
-lemmy_db_views_local_image = { workspace = true, features = ["full"] }
-lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_person_content_combined = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_site = { workspace = true, features = ["full"] }
-lemmy_db_views_registration_applications = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_utils = { workspace = true, features = ["full"] }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
+lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_community_person_ban = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_vote = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+lemmy_db_views_person = { workspace = true }
+lemmy_db_views_custom_emoji = { workspace = true }
+lemmy_db_views_reports = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
+lemmy_db_views_local_image = { workspace = true }
+lemmy_db_views_inbox_combined = { workspace = true }
+lemmy_db_views_modlog_combined = { workspace = true }
+lemmy_db_views_person_content_combined = { workspace = true }
+lemmy_db_views_person_saved_combined = { workspace = true }
+lemmy_db_views_report_combined = { workspace = true }
+lemmy_db_views_search_combined = { workspace = true }
+lemmy_db_views_site = { workspace = true }
+lemmy_db_views_registration_applications = { workspace = true}
+lemmy_db_schema = { workspace = true }
+lemmy_utils = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_email = { workspace = true }
+lemmy_email = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
