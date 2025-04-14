@@ -45,7 +45,7 @@ opentelemetry = [
   "dep:opentelemetry",
   "opentelemetry-otlp",
   "tracing-opentelemetry",
-  "reqwest-tracing/opentelemetry_0_16",
+  "reqwest-tracing/opentelemetry_0_19",
 ]
 default = []
 
