@@ -1,11 +1,9 @@
 #[cfg(feature = "console")]
 use console_subscriber::ConsoleLayer;
 use lemmy_utils::{error::LemmyResult, VERSION};
-use opentelemetry::{
-  sdk::{propagation::TraceContextPropagator, Resource},
-  KeyValue,
-};
+use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, registry::LookupSpan, Layer};
 
@@ -28,7 +26,7 @@ where
   let tracer = opentelemetry_otlp::new_pipeline()
     .tracing()
     .with_trace_config(
-      opentelemetry::sdk::trace::config().with_resource(Resource::new(vec![
+      opentelemetry_sdk::trace::config().with_resource(Resource::new(vec![
         KeyValue::new("service.name", "lemmy"),
         KeyValue::new("service.version", VERSION),
       ])),
@@ -38,7 +36,7 @@ where
         .tonic()
         .with_endpoint(opentelemetry_url),
     )
-    .install_batch(opentelemetry::runtime::Tokio)?;
+    .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
   let otel_layer = tracing_opentelemetry::layer()
     .with_tracer(tracer)
