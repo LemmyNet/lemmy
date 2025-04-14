@@ -40,9 +40,9 @@ debug = 0
 embed-pictrs = ["pict-rs"]
 # This feature requires building with `tokio_unstable` flag, see documentation:
 # https://docs.rs/tokio/latest/tokio/#unstable-features
-console = [
-  "console-subscriber",
-  "opentelemetry",
+console = ["console-subscriber", "opentelemetry"]
+opentelemetry = [
+  "dep:opentelemetry",
   "opentelemetry-otlp",
   "tracing-opentelemetry",
   "reqwest-tracing/opentelemetry_0_16",
@@ -200,7 +200,9 @@ serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 console-subscriber = { version = "0.4.1", optional = true }
-opentelemetry-otlp = { version = "0.12.0", optional = true }
+opentelemetry-otlp = { version = "0.12.0", optional = true, features = [
+  "trace",
+] }
 pict-rs = { version = "0.5.16", optional = true }
 rustls = { workspace = true }
 tokio.workspace = true
