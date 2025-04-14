@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PaginationCursor},
-  source::images::LocalImage,
+  source::images::{local_image_keys as key, LocalImage},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
@@ -35,7 +35,8 @@ impl LocalImageView {
       .limit(limit)
       .into_boxed();
 
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back);
+    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+      .then_order_by(key::pictrs_alias);
 
     paginated_query
       .load::<Self>(conn)
