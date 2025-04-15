@@ -57,3 +57,5 @@ DROP INDEX idx_post_published_asc;
 
 CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC, id DESC);
 
+CREATE INDEX idx_post_community_published ON post USING btree (community_id, published DESC, id DESC);
+
