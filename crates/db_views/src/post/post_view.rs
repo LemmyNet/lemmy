@@ -401,7 +401,9 @@ impl<'a> PostQuery<'a> {
       query,
       sort_direction,
       o.cursor_data,
-      o.cursor_before_data,
+      // TODO fix this later
+      // o.cursor_before_data,
+      None,
       o.page_back,
     );
 
