@@ -48,3 +48,12 @@ CREATE INDEX idx_community_comments ON community USING btree (comments DESC, id 
 
 CREATE INDEX idx_community_posts ON community USING btree (posts DESC, id DESC);
 
+-- Fix the post reverse_timestamp key sorts.
+DROP INDEX idx_post_featured_community_published_asc;
+
+DROP INDEX idx_post_featured_local_published_asc;
+
+DROP INDEX idx_post_published_asc;
+
+CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC, id DESC);
+
