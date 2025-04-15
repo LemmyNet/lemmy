@@ -73,11 +73,7 @@ impl Tagline {
   }
 
   pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Self::read(pool, TaglineId(*id)).await
+    let id = cursor.first_id()?;
+    Self::read(pool, TaglineId(id)).await
   }
 }

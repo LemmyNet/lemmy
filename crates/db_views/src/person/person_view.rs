@@ -32,12 +32,8 @@ impl PaginationCursorBuilder for PersonView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Person::read(pool, PersonId(*id)).await
+    let id = cursor.first_id()?;
+    Person::read(pool, PersonId(id)).await
   }
 }
 
