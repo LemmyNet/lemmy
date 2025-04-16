@@ -9,6 +9,8 @@ use crate::utils::{
   creator_is_admin,
   creator_local_instance_actions_select,
   local_user_can_mod,
+  local_user_can_mod_comment,
+  local_user_can_mod_post,
   local_user_community_can_mod,
   local_user_is_admin,
   person1_select,
@@ -218,7 +220,7 @@ pub struct CommentView {
   pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod()
+      select_expression = local_user_can_mod_comment()
     )
   )]
   pub can_mod: bool,
@@ -411,7 +413,7 @@ pub struct PostView {
   pub tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod()
+      select_expression = local_user_can_mod_post()
     )
   )]
   pub can_mod: bool,
