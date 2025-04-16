@@ -23,7 +23,7 @@ DROP INDEX idx_community_title;
 
 DROP INDEX idx_community_users_active_month;
 
-CREATE INDEX idx_community_lower_name ON community USING btree (lower((name)::text), id DESC);
+CREATE INDEX idx_community_lower_name ON community USING btree (lower((name)::text) DESC, id DESC);
 
 CREATE INDEX idx_community_hot ON community USING btree (hot_rank DESC, id DESC);
 
@@ -31,7 +31,7 @@ CREATE INDEX idx_community_published ON community USING btree (published DESC, i
 
 CREATE INDEX idx_community_subscribers ON community USING btree (subscribers DESC, id DESC);
 
-CREATE INDEX idx_community_title ON community USING btree (title, id DESC);
+CREATE INDEX idx_community_title ON community USING btree (title DESC, id DESC);
 
 CREATE INDEX idx_community_users_active_month ON community USING btree (users_active_month DESC, id DESC);
 
@@ -56,4 +56,6 @@ DROP INDEX idx_post_featured_local_published_asc;
 DROP INDEX idx_post_published_asc;
 
 CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC, id DESC);
+
+CREATE INDEX idx_post_community_published ON post USING btree (community_id, published DESC, id DESC);
 
