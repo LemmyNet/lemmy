@@ -1,6 +1,5 @@
 use crate::structs::PostReportView;
 use diesel::{
-  result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -24,6 +23,7 @@ use lemmy_db_schema_file::schema::{
   post_actions,
   post_report,
 };
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PostReportView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -94,7 +94,7 @@ impl PostReportView {
     pool: &mut DbPool<'_>,
     report_id: PostReportId,
     my_person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     Self::joins(my_person_id)
@@ -102,5 +102,6 @@ impl PostReportView {
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

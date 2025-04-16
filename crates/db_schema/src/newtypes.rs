@@ -1,31 +1,29 @@
-#[cfg(feature = "full")]
-use activitypub_federation::{
-  fetch::collection_id::CollectionId,
-  fetch::object_id::ObjectId,
-  traits::Collection,
-  traits::Object,
-};
-#[cfg(feature = "full")]
-use diesel::{
-  backend::Backend,
-  deserialize::FromSql,
-  pg::Pg,
-  serialize::{Output, ToSql},
-  sql_types::Text,
-};
-#[cfg(feature = "full")]
-use diesel_ltree::Ltree;
-#[cfg(feature = "full")]
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
   fmt::{Display, Formatter},
   ops::Deref,
 };
-#[cfg(feature = "full")]
-use ts_rs::TS;
 use url::Url;
+#[cfg(feature = "full")]
+use {
+  activitypub_federation::{
+    fetch::collection_id::CollectionId,
+    fetch::object_id::ObjectId,
+    traits::Collection,
+    traits::Object,
+  },
+  diesel::{
+    backend::Backend,
+    deserialize::FromSql,
+    pg::Pg,
+    serialize::{Output, ToSql},
+    sql_types::Text,
+  },
+  diesel_ltree::Ltree,
+  lemmy_utils::error::{LemmyErrorType, LemmyResult},
+  ts_rs::TS,
+};
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -171,13 +169,13 @@ pub struct CustomEmojiId(i32);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The tagline id.
-pub struct TaglineId(i32);
+pub struct TaglineId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The registration application id.
-pub struct RegistrationApplicationId(i32);
+pub struct RegistrationApplicationId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -431,22 +429,53 @@ pub struct PaginationCursor(pub String);
 
 #[cfg(feature = "full")]
 impl PaginationCursor {
-  pub fn new(prefix: char, id: i32) -> Self {
-    // hex encoding to prevent ossification
-    Self(format!("{prefix}{id:x}"))
+  /// Used for tables that have a single primary key.
+  /// IE the post table cursor looks like `P123`
+  pub fn new_single(prefix: char, id: i32) -> Self {
+    Self::new(&[(prefix, id)])
   }
 
-  pub fn prefix_and_id(&self) -> LemmyResult<(char, i32)> {
-    let (prefix_str, id_str) = self
-      .0
-      .split_at_checked(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let prefix = prefix_str
-      .chars()
-      .next()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let id = i32::from_str_radix(id_str, 16)?;
+  /// Some tables (like community_actions for example) have compound primary keys.
+  /// This creates a cursor that can use both, like `C123-P123`
+  pub fn new(prefixes_and_ids: &[(char, i32)]) -> Self {
+    Self(
+      prefixes_and_ids
+        .iter()
+        .map(|(prefix, id)|
+          // hex encoding to prevent ossification
+          format!("{prefix}{id:x}"))
+        .collect::<Vec<String>>()
+        .join("-"),
+    )
+  }
 
-    Ok((prefix, id))
+  pub fn prefixes_and_ids(&self) -> Vec<(char, i32)> {
+    let default_prefix = 'Z';
+    let default_id = 0;
+    self
+      .0
+      .split("-")
+      .map(|i| {
+        let opt = i.split_at_checked(1);
+        if let Some((prefix_str, id_str)) = opt {
+          let prefix = prefix_str.chars().next().unwrap_or(default_prefix);
+          let id = i32::from_str_radix(id_str, 16).unwrap_or(default_id);
+          (prefix, id)
+        } else {
+          (default_prefix, default_id)
+        }
+      })
+      .collect()
+  }
+
+  pub fn first_id(&self) -> LemmyResult<i32> {
+    Ok(
+      self
+        .prefixes_and_ids()
+        .as_slice()
+        .first()
+        .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
+        .1,
+    )
   }
 }

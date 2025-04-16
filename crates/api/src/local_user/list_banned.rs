@@ -29,12 +29,18 @@ pub async fn list_banned_users(
     banned_only: Some(true),
     cursor_data,
     limit: data.limit,
+    page_back: data.page_back,
     ..Default::default()
   }
   .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
 
   let next_page = banned.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = banned.first().map(PaginationCursorBuilder::to_cursor);
 
-  Ok(Json(BannedPersonsResponse { banned, next_page }))
+  Ok(Json(BannedPersonsResponse {
+    banned,
+    next_page,
+    prev_page,
+  }))
 }

@@ -351,16 +351,6 @@ pub struct PostReportView {
   pub creator_is_admin: bool,
 }
 
-/// currently this is just a wrapper around post id, but should be seen as opaque from the client's
-/// perspective. stringified since we might want to use arbitrary info later, with a P prepended to
-/// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
-/// numbers as numbers) about apis that aren't part of the spec
-// TODO this is a mess, get rid of it and prefer the one in db_schema
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct PostPaginationCursor(pub String);
-
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
@@ -520,6 +510,7 @@ pub struct CustomEmojiView {
 /// A vote view for checking a post or comments votes.
 pub struct VoteView {
   pub creator: Person,
+  pub item_id: i32,
   pub creator_banned_from_community: bool,
   pub score: i16,
 }

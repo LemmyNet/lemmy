@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PostView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
   MAX_COMMENT_DEPTH_LIMIT,
 };
@@ -107,9 +107,8 @@ pub async fn create_comment(
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
-  let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+  let inserted_comment =
+    Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
@@ -162,8 +161,7 @@ pub async fn create_comment(
         reply.id,
         &CommentReplyUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
+      .await?;
     }
 
     // If the parent has PersonCommentMentions mark them as read too
@@ -176,8 +174,7 @@ pub async fn create_comment(
         mention.id,
         &PersonCommentMentionUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonCommentMentions)?;
+      .await?;
     }
   }
 

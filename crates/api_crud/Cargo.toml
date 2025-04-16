@@ -23,7 +23,8 @@ activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
 url = { workspace = true }
-futures.workspace = true
+futures = { workspace = true }
+futures-util = { workspace = true }
 uuid = { workspace = true }
 anyhow.workspace = true
 chrono.workspace = true
@@ -35,4 +36,4 @@ serde_with = { workspace = true }
 diesel-async = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["futures"]
+ignored = ["futures", "futures-util"]

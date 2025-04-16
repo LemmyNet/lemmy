@@ -6,42 +6,40 @@ use crate::{
 use diesel::{
   delete,
   dsl::{insert_into, now, IntervalDsl},
-  result::Error,
   sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::password_reset_request::dsl::{
-  password_reset_request,
-  published,
-  token,
-};
+use lemmy_db_schema_file::schema::password_reset_request;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PasswordResetRequest {
   pub async fn create(
     pool: &mut DbPool<'_>,
-    from_local_user_id: LocalUserId,
+    local_user_id: LocalUserId,
     token_: String,
-  ) -> Result<PasswordResetRequest, Error> {
+  ) -> LemmyResult<PasswordResetRequest> {
     let form = PasswordResetRequestForm {
-      local_user_id: from_local_user_id,
+      local_user_id,
       token: token_.into(),
     };
     let conn = &mut get_conn(pool).await?;
-    insert_into(password_reset_request)
+    insert_into(password_reset_request::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePasswordResetRequest)
   }
 
-  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> Result<Self, Error> {
+  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    delete(password_reset_request)
-      .filter(token.eq(token_))
-      .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
+    delete(password_reset_request::table)
+      .filter(password_reset_request::token.eq(token_))
+      .filter(password_reset_request::published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .get_result(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 

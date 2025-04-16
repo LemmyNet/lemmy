@@ -160,13 +160,13 @@ pub(crate) async fn local_site_data_cached(
             Instance::blocklist
           ))?;
 
-        Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
+        Ok::<_, LemmyError>(Arc::new(LocalSiteData {
           local_site,
           allowed_instances,
           blocked_instances,
         }))
       })
-      .await?,
+      .await.map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))?
   )
 }
 

@@ -15,7 +15,7 @@ use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentActions, CommentUpdateForm},
+    comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
     instance::{Instance, InstanceActions},
@@ -39,18 +39,15 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views::{
-  comment::comment_view::CommentQuery,
-  structs::{
-    CommunityFollowerView,
-    CommunityModeratorView,
-    CommunityPersonBanView,
-    CommunityView,
-    LocalImageView,
-    LocalUserView,
-    PersonView,
-    SiteView,
-  },
+use lemmy_db_views::structs::{
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityPersonBanView,
+  CommunityView,
+  LocalImageView,
+  LocalUserView,
+  PersonView,
+  SiteView,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -170,9 +167,10 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
     Ok(())
   }
 }
+
 pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
   // Check for a site ban
-  if person_view.banned() {
+  if person_view.creator_banned {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
@@ -692,33 +690,14 @@ pub async fn remove_or_restore_user_data_in_community(
   .await?;
 
   // Comments
-  // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-  let site = Site::read_local(pool).await?;
-  let comments = CommentQuery {
-    creator_id: Some(banned_person_id),
-    community_id: Some(community_id),
-    ..Default::default()
-  }
-  .list(&site, pool)
-  .await?;
-
-  for comment_view in &comments {
-    let comment_id = comment_view.comment.id;
-    Comment::update(
-      pool,
-      comment_id,
-      &CommentUpdateForm {
-        removed: Some(remove),
-        ..Default::default()
-      },
-    )
-    .await?;
-  }
+  let removed_comment_ids =
+    Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
+      .await?;
 
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    comments.iter().map(|r| r.comment.id).collect(),
+    removed_comment_ids,
     remove,
     reason,
   )

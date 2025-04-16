@@ -1,19 +1,13 @@
 use crate::structs::CustomEmojiView;
-use diesel::{
-  dsl::Nullable,
-  result::Error,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::Nullable, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::CustomEmojiId,
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
 
 type SelectionType = (
@@ -38,7 +32,7 @@ impl CustomEmojiView {
     )
   }
 
-  pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+  pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let emojis = Self::joins()
       .filter(custom_emoji::id.eq(emoji_id))
@@ -51,25 +45,14 @@ impl CustomEmojiView {
     {
       Ok(emoji)
     } else {
-      Err(diesel::result::Error::NotFound)
+      Err(LemmyErrorType::NotFound.into())
     }
   }
 
-  pub async fn list(
-    pool: &mut DbPool<'_>,
-    category: &Option<String>,
-    page: Option<i64>,
-    limit: Option<i64>,
-    ignore_page_limits: bool,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, category: &Option<String>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = Self::joins().into_boxed();
-
-    if !ignore_page_limits {
-      let (limit, offset) = limit_and_offset(page, limit)?;
-      query = query.limit(limit).offset(offset);
-    }
 
     if let Some(category) = category {
       query = query.filter(custom_emoji::category.eq(category))

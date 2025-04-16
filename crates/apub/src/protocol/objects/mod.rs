@@ -88,7 +88,7 @@ impl LanguageTag {
     lang: Self,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<LanguageId> {
-    Ok(Language::read_id_from_code(pool, &lang.identifier).await?)
+    Language::read_id_from_code(pool, &lang.identifier).await
   }
 
   pub(crate) async fn to_language_id_multiple(

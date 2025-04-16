@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -161,9 +161,7 @@ pub async fn update_site(
     .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
     .unwrap_or(false);
   if !old_require_application && new_require_application {
-    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
+    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool()).await?;
   }
 
   let new_require_email_verification = update_local_site
@@ -171,9 +169,7 @@ pub async fn update_site(
     .map(|ols| ols.require_email_verification)
     .unwrap_or(false);
   if !local_site.require_email_verification && new_require_email_verification {
-    LocalUser::set_all_users_email_verified(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
+    LocalUser::set_all_users_email_verified(&mut context.pool()).await?;
   }
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
