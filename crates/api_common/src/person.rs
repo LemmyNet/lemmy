@@ -470,6 +470,7 @@ pub struct MarkCommentReplyAsRead {
 /// Delete your account.
 pub struct DeleteAccount {
   /// Required if the user isn't logged in, or banned.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub username_or_email: Option<SensitiveString>,
   /// A password is always required.
   pub password: SensitiveString,
