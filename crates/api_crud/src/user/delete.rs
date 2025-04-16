@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_totp_2fa_valid, purge_user_account},
+  utils::{check_totp_2fa_valid, local_user_view_from_jwt, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -19,13 +19,30 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,
+  local_user_view_opt: Option<LocalUserView>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  // Verify the password
-  // Fetch that username / email
-  let username_or_email = data.username_or_email.clone();
-  let local_user_view =
-    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
+  // If a local_user_view exists, that means they're logged in.
+  let local_user_view = if let Some(local_user_view) = local_user_view_opt {
+    local_user_view
+  } else if let Some(username_or_email) = &data.username_or_email {
+    // Otherwise, they're likely banned, meaning we need to validate their login.
+    let local_user_view =
+      LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
 
+    // Only check TOTP if they're not logged in.
+    if local_user_view.local_user.totp_2fa_enabled {
+      check_totp_2fa_valid(
+        &local_user_view,
+        &data.totp_2fa_token,
+        &context.settings().hostname,
+      )?;
+    }
+    local_user_view
+  } else {
+    Err(LemmyErrorType::IncorrectLogin)?
+  };
+
+  // Verify the password
   let valid: bool = local_user_view
     .local_user
     .password_encrypted
@@ -34,15 +51,6 @@ pub async fn delete_account(
     .unwrap_or(false);
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
-  }
-
-  // Check the totp if enabled
-  if local_user_view.local_user.totp_2fa_enabled {
-    check_totp_2fa_valid(
-      &local_user_view,
-      &data.totp_2fa_token,
-      &context.settings().hostname,
-    )?;
   }
 
   if data.delete_content {

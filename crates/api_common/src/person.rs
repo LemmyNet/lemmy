@@ -469,9 +469,11 @@ pub struct MarkCommentReplyAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Delete your account.
 pub struct DeleteAccount {
-  pub username_or_email: SensitiveString,
+  /// Required if the user isn't logged in, or banned.
+  pub username_or_email: Option<SensitiveString>,
+  /// A password is always required.
   pub password: SensitiveString,
-  /// May be required, if totp is enabled for their account.
+  /// Required if the user isn't logged in, and if totp is enabled for their account.
   #[cfg_attr(feature = "full", ts(optional))]
   pub totp_2fa_token: Option<String>,
   pub delete_content: bool,
