@@ -469,6 +469,7 @@ pub struct MarkCommentReplyAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Delete your account.
 pub struct DeleteAccount {
+  pub username_or_email: SensitiveString,
   pub password: SensitiveString,
   pub delete_content: bool,
 }

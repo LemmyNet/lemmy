@@ -19,9 +19,13 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Verify the password
+  // Fetch that username / email
+  let username_or_email = data.username_or_email.clone();
+  let local_user_view =
+    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
+
   let valid: bool = local_user_view
     .local_user
     .password_encrypted
