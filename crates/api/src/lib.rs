@@ -67,4 +67,3 @@ pub(crate) fn check_report_reason(reason: &str, slur_regex: &Regex) -> LemmyResu
     Ok(())
   }
 }
-
