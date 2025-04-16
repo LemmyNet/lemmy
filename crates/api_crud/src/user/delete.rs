@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::purge_user_account,
+  utils::{check_totp_2fa_valid, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -34,6 +34,15 @@ pub async fn delete_account(
     .unwrap_or(false);
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
+  }
+
+  // Check the totp if enabled
+  if local_user_view.local_user.totp_2fa_enabled {
+    check_totp_2fa_valid(
+      &local_user_view,
+      &data.totp_2fa_token,
+      &context.settings().hostname,
+    )?;
   }
 
   if data.delete_content {

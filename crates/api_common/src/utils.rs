@@ -65,6 +65,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use std::sync::LazyLock;
+use totp_rs::{Secret, TOTP};
 use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -947,6 +948,53 @@ pub fn send_webmention(post: Post, community: &Community) {
   };
 }
 
+pub fn check_totp_2fa_valid(
+  local_user_view: &LocalUserView,
+  totp_token: &Option<String>,
+  site_name: &str,
+) -> LemmyResult<()> {
+  // Throw an error if their token is missing
+  let token = totp_token
+    .as_deref()
+    .ok_or(LemmyErrorType::MissingTotpToken)?;
+  let secret = local_user_view
+    .local_user
+    .totp_2fa_secret
+    .as_deref()
+    .ok_or(LemmyErrorType::MissingTotpSecret)?;
+
+  let totp = build_totp_2fa(site_name, &local_user_view.person.name, secret)?;
+
+  let check_passed = totp.check_current(token)?;
+  if !check_passed {
+    return Err(LemmyErrorType::IncorrectTotpToken.into());
+  }
+
+  Ok(())
+}
+
+pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<TOTP> {
+  let sec = Secret::Raw(secret.as_bytes().to_vec());
+  let sec_bytes = sec
+    .to_bytes()
+    .with_lemmy_type(LemmyErrorType::CouldntParseTotpSecret)?;
+
+  TOTP::new(
+    totp_rs::Algorithm::SHA1,
+    6,
+    1,
+    30,
+    sec_bytes,
+    Some(hostname.to_string()),
+    username.to_string(),
+  )
+  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
+}
+
+pub fn generate_totp_2fa_secret() -> String {
+  Secret::generate_secret().to_string()
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -999,6 +1047,13 @@ mod tests {
     assert_eq!(limit_expire_time(Utc::now() + Days::new(365 * 11))?, None);
 
     Ok(())
+  }
+
+  #[test]
+  fn test_build_totp() {
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
+    assert!(totp.is_ok());
   }
 
   #[tokio::test]
