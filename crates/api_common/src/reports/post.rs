@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::{PostId, PostReportId};
-use lemmy_db_views::structs::PostReportView;
+use lemmy_db_views_reports::PostReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;

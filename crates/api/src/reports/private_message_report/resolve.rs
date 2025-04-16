@@ -5,7 +5,8 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::PrivateMessageReportView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_pm_report(

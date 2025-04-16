@@ -42,7 +42,7 @@ use lemmy_db_schema_file::schema::{
   received_activity,
   sent_activity,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -562,7 +562,7 @@ mod tests {
 
   use super::*;
   use lemmy_api_common::request::client_builder;
-  use lemmy_db_views::site::site_view::create_test_instance;
+  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,

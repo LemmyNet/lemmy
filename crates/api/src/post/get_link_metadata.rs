@@ -4,7 +4,7 @@ use lemmy_api_common::{
   post::{GetSiteMetadata, GetSiteMetadataResponse},
   request::fetch_link_metadata,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 

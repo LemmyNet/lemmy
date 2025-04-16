@@ -19,10 +19,9 @@ use lemmy_db_schema::{
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::{PaginationCursorBuilder, Readable},
 };
-use lemmy_db_views::{
-  post::post_view::PostQuery,
-  structs::{LocalUserView, PostView, SiteView},
-};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::{impls::PostQuery, PostView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_posts(

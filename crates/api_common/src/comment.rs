@@ -7,7 +7,8 @@ use lemmy_db_schema::newtypes::{
   PostId,
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
-use lemmy_db_views::structs::{CommentSlimView, CommentView, VoteView};
+use lemmy_db_views_comment::{CommentSlimView, CommentView};
+use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

@@ -7,10 +7,12 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  combined::person_content_combined_view::PersonContentCombinedQuery,
-  structs::{LocalUserView, PersonContentCombinedView, SiteView},
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person_content_combined::{
+  impls::PersonContentCombinedQuery,
+  PersonContentCombinedView,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_content(

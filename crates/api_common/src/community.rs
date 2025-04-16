@@ -1,15 +1,13 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
   source::site::Site,
+  CommunitySortType,
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
-use lemmy_db_views::structs::{
-  CommunityModeratorView,
-  CommunitySortType,
-  CommunityView,
-  PendingFollow,
-  PersonView,
-};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_follower::PendingFollow;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

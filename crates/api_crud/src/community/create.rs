@@ -29,7 +29,8 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

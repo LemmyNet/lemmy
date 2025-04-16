@@ -13,7 +13,9 @@ use lemmy_db_schema::{
   source::post::{PostActions, PostLikeForm, PostReadForm},
   traits::{Likeable, Readable},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 

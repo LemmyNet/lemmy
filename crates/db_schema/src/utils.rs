@@ -1,3 +1,4 @@
+pub mod queries;
 pub mod uplete;
 
 use crate::newtypes::DbUrl;

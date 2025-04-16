@@ -39,6 +39,7 @@ debug = 0
 default = []
 
 [workspace]
+resolver = "2"
 members = [
   "crates/api",
   "crates/api_crud",
@@ -48,7 +49,27 @@ members = [
   "crates/db_perf",
   "crates/db_schema",
   "crates/db_schema_file",
-  "crates/db_views",
+  "crates/db_views_private_message",
+  "crates/db_views_local_user",
+  "crates/db_views_local_image",
+  "crates/db_views_person",
+  "crates/db_views_post",
+  "crates/db_views_vote",
+  "crates/db_views_reports",
+  "crates/db_views_local_image",
+  "crates/db_views_comment",
+  "crates/db_views_community",
+  "crates/db_views_community_moderator",
+  "crates/db_views_community_follower",
+  "crates/db_views_community_person_ban",
+  "crates/db_views_custom_emoji",
+  "crates/db_views_inbox_combined",
+  "crates/db_views_modlog_combined",
+  "crates/db_views_person_content_combined",
+  "crates/db_views_person_saved_combined",
+  "crates/db_views_report_combined",
+  "crates/db_views_search_combined",
+  "crates/db_views_site",
   "crates/routes",
   "crates/federate",
   "crates/email",
@@ -89,9 +110,29 @@ lemmy_db_schema = { version = "=1.0.0-alpha.4", path = "./crates/db_schema" }
 lemmy_db_schema_file = { version = "=1.0.0-alpha.4", path = "./crates/db_schema_file" }
 lemmy_api_common = { version = "=1.0.0-alpha.4", path = "./crates/api_common" }
 lemmy_routes = { version = "=1.0.0-alpha.4", path = "./crates/routes" }
-lemmy_db_views = { version = "=1.0.0-alpha.4", path = "./crates/db_views" }
 lemmy_federate = { version = "=1.0.0-alpha.4", path = "./crates/federate" }
 lemmy_email = { version = "=1.0.0-alpha.4", path = "./crates/email" }
+lemmy_db_views_private_message = { version = "=1.0.0-alpha.4", path = "./crates/db_views_private_message" }
+lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.4", path = "./crates/db_views_registration_applications" }
+lemmy_db_views_comment = { version = "=1.0.0-alpha.4", path = "./crates/db_views_comment" }
+lemmy_db_views_local_user = { version = "=1.0.0-alpha.4", path = "./crates/db_views_local_user" }
+lemmy_db_views_person = { version = "=1.0.0-alpha.4", path = "./crates/db_views_person" }
+lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views_custom_emoji" }
+lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views_post" }
+lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views_vote" }
+lemmy_db_views_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views_community" }
+lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.4", path = "./crates/db_views_community_moderator" }
+lemmy_db_views_community_follower = { version = "=1.0.0-alpha.4", path = "./crates/db_views_community_follower" }
+lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.4", path = "./crates/db_views_community_person_ban" }
+lemmy_db_views_reports = { version = "=1.0.0-alpha.4", path = "./crates/db_views_reports" }
+lemmy_db_views_local_image = { version = "=1.0.0-alpha.4", path = "./crates/db_views_local_image" }
+lemmy_db_views_inbox_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_inbox_combined" }
+lemmy_db_views_modlog_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_modlog_combined" }
+lemmy_db_views_person_content_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_person_content_combined" }
+lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_person_saved_combined" }
+lemmy_db_views_report_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_report_combined" }
+lemmy_db_views_search_combined = { version = "=1.0.0-alpha.4", path = "./crates/db_views_search_combined" }
+lemmy_db_views_site = { version = "=1.0.0-alpha.4", path = "./crates/db_views_site" }
 activitypub_federation = { version = "0.6.3", default-features = false, features = [
   "actix-web",
 ] }
@@ -177,6 +218,7 @@ lemmy_db_schema_file = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_federate = { workspace = true }
+lemmy_db_views_site = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }

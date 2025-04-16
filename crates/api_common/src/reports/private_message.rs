@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::{PrivateMessageId, PrivateMessageReportId};
-use lemmy_db_views::structs::PrivateMessageReportView;
+use lemmy_db_views_reports::PrivateMessageReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;

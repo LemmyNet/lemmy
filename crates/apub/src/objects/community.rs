@@ -39,7 +39,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,

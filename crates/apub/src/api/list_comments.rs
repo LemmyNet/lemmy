@@ -16,10 +16,9 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
   traits::{Crud, PaginationCursorBuilder},
 };
-use lemmy_db_views::{
-  comment::comment_view::CommentQuery,
-  structs::{CommentView, LocalUserView, SiteView},
-};
+use lemmy_db_views_comment::{impls::CommentQuery, CommentView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 struct CommentsCommonOutput {

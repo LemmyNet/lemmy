@@ -9,7 +9,8 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_private_message(

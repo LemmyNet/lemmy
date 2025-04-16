@@ -4,7 +4,7 @@ use lemmy_api_common::{
   site::GetFederatedInstancesResponse,
   utils::build_federated_instances,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_federated_instances(

@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_followers_url};
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views::structs::CommunityFollowerView;
+use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

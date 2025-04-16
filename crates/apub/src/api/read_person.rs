@@ -6,7 +6,10 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, PersonView, SiteView};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn read_person(

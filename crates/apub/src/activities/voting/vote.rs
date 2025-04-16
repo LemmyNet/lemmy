@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
 use lemmy_db_schema_file::enums::FederationMode;
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

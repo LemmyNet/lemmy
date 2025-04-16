@@ -105,7 +105,8 @@ mod tests {
     },
     traits::Crud,
   };
-  use lemmy_db_views::{site::site_view::create_test_instance, structs::LocalUserView};
+  use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_db_views_site::impls::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

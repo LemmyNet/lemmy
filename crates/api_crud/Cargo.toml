@@ -13,9 +13,19 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_community = { workspace = true, features = ["full"] }
+lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
+lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
+lemmy_db_views_person = { workspace = true, features = ["full"] }
+lemmy_db_views_custom_emoji = { workspace = true, features = ["full"] }
+lemmy_db_views_private_message = { workspace = true, features = ["full"] }
+lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 lemmy_email = { workspace = true }

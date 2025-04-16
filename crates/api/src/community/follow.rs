@@ -14,7 +14,9 @@ use lemmy_db_schema::{
   traits::{Crud, Followable},
 };
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_community(

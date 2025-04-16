@@ -14,7 +14,6 @@ use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
-  lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::local_site_rate_limit_to_rate_limit_config,
@@ -27,6 +26,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
+use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,

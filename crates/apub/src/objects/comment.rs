@@ -23,7 +23,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{get_url_blocklist, process_markdown, slur_regex},
+  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,7 +34,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommunityView, SiteView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -165,7 +165,7 @@ impl Object for ApubComment {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_instance_id = site_view.site.instance_id;
 
-    let is_mod_or_admin = CommunityView::check_is_mod_or_admin(
+    let is_mod_or_admin = check_is_mod_or_admin(
       &mut context.pool(),
       creator.id,
       community.id,
@@ -243,7 +243,7 @@ pub(crate) mod tests {
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
   use lemmy_db_schema::source::{instance::Instance, local_site::LocalSite, site::Site};
-  use lemmy_db_views::site::site_view::create_test_instance;
+  use lemmy_db_views_site::impls::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

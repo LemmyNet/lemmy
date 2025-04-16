@@ -20,7 +20,8 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
-use lemmy_db_views::structs::{LocalUserView, PersonView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::validation::is_valid_body_field,

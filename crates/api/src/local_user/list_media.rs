@@ -4,7 +4,8 @@ use lemmy_api_common::{
   person::{ListMedia, ListMediaResponse},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::structs::{LocalImageView, LocalUserView};
+use lemmy_db_views_local_image::LocalImageView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_media(

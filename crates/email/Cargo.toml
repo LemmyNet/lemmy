@@ -20,7 +20,7 @@ workspace = true
 [dependencies]
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }

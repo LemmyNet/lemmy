@@ -7,7 +7,8 @@ use lemmy_db_schema::{
   source::comment::{CommentActions, CommentSavedForm},
   traits::Saveable,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_comment(

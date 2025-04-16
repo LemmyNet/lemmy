@@ -3,7 +3,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use {lemmy_db_schema_file::schema::tag, ts_rs::TS};
+use {
+  diesel::{AsExpression, FromSqlRow},
+  lemmy_db_schema_file::schema::tag,
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -55,3 +59,10 @@ pub struct TagUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
 }
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct TagsView(pub Vec<Tag>);

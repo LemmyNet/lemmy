@@ -27,7 +27,8 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{

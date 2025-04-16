@@ -27,7 +27,6 @@ pub mod tags;
 pub mod utils;
 
 pub extern crate lemmy_db_schema;
-pub extern crate lemmy_db_views;
 pub extern crate lemmy_utils;
 
 pub use lemmy_utils::error::LemmyErrorType;

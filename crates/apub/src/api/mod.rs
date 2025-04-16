@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{local_site::LocalSite, local_user::LocalUser, person::Person},
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod list_comments;

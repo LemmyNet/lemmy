@@ -1,0 +1,34 @@
+[package]
+name = "lemmy_db_views_custom_emoji"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+  "lemmy_utils",
+  "diesel",
+  "diesel-async",
+  "ts-rs",
+  "lemmy_db_schema/full",
+  "lemmy_db_schema_file/full",
+]
+
+[dependencies]
+lemmy_db_schema = { workspace = true }
+lemmy_utils = { workspace = true, optional = true }
+lemmy_db_schema_file = { workspace = true }
+diesel = { workspace = true, optional = true }
+diesel-async = { workspace = true, optional = true }
+serde = { workspace = true }
+ts-rs = { workspace = true, optional = true }

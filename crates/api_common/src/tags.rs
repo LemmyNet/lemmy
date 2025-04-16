@@ -6,7 +6,8 @@ use lemmy_db_schema::{
     post_tag::{PostTag, PostTagForm},
   },
 };
-use lemmy_db_views::structs::{CommunityView, LocalUserView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 

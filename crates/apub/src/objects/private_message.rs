@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -179,7 +179,7 @@ mod tests {
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_db_views::site::site_view::create_test_instance;
+  use lemmy_db_views_site::impls::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

@@ -7,7 +7,8 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
-use lemmy_db_views::structs::{LocalUserView, PostReportView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::PostReportView;
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community

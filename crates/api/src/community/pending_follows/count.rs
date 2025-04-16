@@ -4,7 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
-use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
+use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_pending_follows_count(
