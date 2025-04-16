@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_totp_2fa_valid, local_user_view_from_jwt, purge_user_account},
+  utils::{check_totp_2fa_valid, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -27,7 +27,7 @@ pub async fn delete_account(
   } else if let Some(username_or_email) = &data.username_or_email {
     // Otherwise, they're likely banned, meaning we need to validate their login.
     let local_user_view =
-      LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
+      LocalUserView::find_by_email_or_name(&mut context.pool(), username_or_email).await?;
 
     // Only check TOTP if they're not logged in.
     if local_user_view.local_user.totp_2fa_enabled {
