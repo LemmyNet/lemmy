@@ -36,6 +36,7 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }

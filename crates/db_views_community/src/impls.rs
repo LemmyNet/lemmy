@@ -175,6 +175,9 @@ impl CommunityQuery<'_> {
       NameDesc => pq.then_order_by(LowerKey(key::name)),
     };
 
+    // finally use unique id as tie breaker
+    pq = pq.then_order_by(key::id);
+
     pq.load::<CommunityView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)

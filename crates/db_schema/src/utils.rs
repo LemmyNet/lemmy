@@ -188,7 +188,6 @@ where
   }
 }
 
-/// Includes an SQL comment before `T`, which can be used to label auto_explain output
 /// Necessary to be able to use cursors with the subpath SQL function
 pub struct Subpath<K>(pub K);
 
@@ -209,6 +208,7 @@ where
   }
 }
 
+/// Includes an SQL comment before `T`, which can be used to label auto_explain output
 #[derive(QueryId)]
 pub struct Commented<T> {
   comment: String,

@@ -1,7 +1,10 @@
 use crate::PostView;
 use diesel::{
   self,
+  debug_query,
   dsl::{exists, not},
+  pg::Pg,
+  query_builder::AsQuery,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -57,6 +60,7 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, local_user_language, person, post, post_actions},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use tracing::debug;
 
 impl PaginationCursorBuilder for PostView {
   type CursorData = Post;
@@ -180,6 +184,7 @@ impl PostView {
     // the results are correct no matter which community we fetch these for, since it basically
     // covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more
+    // efficient.
     let self_person_id = my_local_user
       .person_id()
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
@@ -403,16 +408,21 @@ impl<'a> PostQuery<'a> {
       query,
       sort_direction,
       o.cursor_data,
-      o.cursor_before_data,
+      // TODO fix this later
+      // o.cursor_before_data,
+      None,
       o.page_back,
     );
 
     // featured posts first
-    pq = if o.community_id.is_none() {
-      pq.then_order_by(key::featured_local)
-    } else {
-      pq.then_order_by(key::featured_community)
-    };
+    // Don't do for new / old sorts
+    if sort != New && sort != Old {
+      pq = if o.community_id.is_none() {
+        pq.then_order_by(key::featured_local)
+      } else {
+        pq.then_order_by(key::featured_community)
+      };
+    }
 
     // then use the main sort
     pq = match sort {
@@ -437,15 +447,13 @@ impl<'a> PostQuery<'a> {
     // finally use unique post id as tie breaker
     pq = pq.then_order_by(key::id);
 
-    // TODO can't figure out how to use commented.
-    // debug!("Post View Query: {:?}", debug_query::<Pg, _>(&pq));
-    // Commented::new(pq)
-    //   .text("PostQuery::list")
-    //   .load::<PostView>(conn)
-    // .await
-    // .with_lemmy_type(LemmyErrorType::NotFound)
+    // Convert to as_query to be able to use in commented.
+    let query = pq.as_query();
 
-    pq.load::<PostView>(conn)
+    debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+    Commented::new(query)
+      .text("PostQuery::list")
+      .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }

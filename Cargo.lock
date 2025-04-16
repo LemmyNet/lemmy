@@ -3601,6 +3601,7 @@ dependencies = [
  "serial_test",
  "test-context",
  "tokio",
+ "tracing",
  "ts-rs",
  "url",
 ]
