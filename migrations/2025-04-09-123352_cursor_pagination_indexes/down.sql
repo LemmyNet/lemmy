@@ -45,6 +45,8 @@ DROP INDEX idx_community_posts;
 -- Fix the post reverse_timestamp key sorts.
 DROP INDEX idx_post_community_published;
 
+DROP INDEX idx_post_featured_community_published;
+
 CREATE INDEX idx_post_featured_community_published_asc ON post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC, id DESC);
 
 CREATE INDEX idx_post_featured_local_published_asc ON post USING btree (featured_local DESC, reverse_timestamp_sort (published) DESC, id DESC);
