@@ -62,13 +62,13 @@ pub(crate) fn creator_is_admin() -> _ {
   creator_local_user
     .field(local_user::admin)
     .nullable()
-    .is_not_null()
+    .is_not_distinct_from(true)
 }
 
 /// Checks that the local_user is an admin.
 #[diesel::dsl::auto_type]
 pub(crate) fn local_user_is_admin() -> _ {
-  local_user::admin.nullable().is_not_null()
+  local_user::admin.nullable().is_not_distinct_from(true)
 }
 
 /// Checks to see if the comment creator is an admin.
@@ -368,7 +368,7 @@ pub(crate) fn my_person_actions_join(my_person_id: Option<PersonId>) -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub(crate) fn my_local_user_join(my_person_id: Option<PersonId>) -> _ {
+pub(crate) fn my_local_user_admin_join(my_person_id: Option<PersonId>) -> _ {
   local_user::table.on(
     local_user::person_id
       .nullable()

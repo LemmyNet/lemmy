@@ -5,7 +5,7 @@ use crate::{
     filter_not_unlisted_or_is_subscribed,
     my_community_actions_join,
     my_instance_actions_community_join,
-    my_local_user_join,
+    my_local_user_admin_join,
   },
 };
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
@@ -34,12 +34,12 @@ impl CommunityView {
     let community_actions_join: my_community_actions_join = my_community_actions_join(person_id);
     let instance_actions_community_join: my_instance_actions_community_join =
       my_instance_actions_community_join(person_id);
-    let local_user_join: my_local_user_join = my_local_user_join(person_id);
+    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(person_id);
 
     community::table
       .left_join(community_actions_join)
       .left_join(instance_actions_community_join)
-      .left_join(local_user_join)
+      .left_join(my_local_user_admin_join)
   }
 
   pub async fn read(

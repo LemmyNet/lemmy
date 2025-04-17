@@ -10,7 +10,7 @@ use crate::{
     image_details_join,
     my_community_actions_join,
     my_instance_actions_community_join,
-    my_local_user_join,
+    my_local_user_admin_join,
     my_person_actions_join,
     my_post_actions_join,
   },
@@ -80,7 +80,7 @@ impl PostView {
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
-    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
     let my_instance_actions_community_join: my_instance_actions_community_join =
       my_instance_actions_community_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
@@ -95,7 +95,7 @@ impl PostView {
       .left_join(my_person_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_instance_actions_community_join)
-      .left_join(my_local_user_join)
+      .left_join(my_local_user_admin_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
