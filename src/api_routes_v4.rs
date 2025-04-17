@@ -341,7 +341,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", get().to(list_media)),
           )
           .route("/inbox", get().to(list_inbox))
-          .route("/delete", post().to(delete_account))
+          // Use register rate limit for delete account
+          .service(
+            resource("/delete")
+              .wrap(rate_limit.register())
+              .route(post().to(delete_account)),
+          )
           .service(
             scope("/mention")
               .route(

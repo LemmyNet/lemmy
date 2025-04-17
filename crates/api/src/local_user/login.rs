@@ -1,4 +1,3 @@
-use crate::check_totp_2fa_valid;
 use actix_web::{
   web::{Data, Json},
   HttpRequest,
@@ -8,7 +7,12 @@ use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils::{check_email_verified, check_local_user_valid, check_registration_application},
+  utils::{
+    check_email_verified,
+    check_local_user_valid,
+    check_registration_application,
+    check_totp_2fa_valid,
+  },
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

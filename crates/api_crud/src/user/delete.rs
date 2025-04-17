@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::purge_user_account,
+  utils::{check_totp_2fa_valid, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -19,18 +19,30 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
+  local_user_view_opt: Option<LocalUserView>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  // Verify the password
-  let valid: bool = local_user_view
-    .local_user
-    .password_encrypted
-    .as_ref()
-    .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
-    .unwrap_or(false);
-  if !valid {
+  // If a local_user_view exists, that means they're logged in.
+  let local_user_view = if let Some(local_user_view) = local_user_view_opt {
+    validate_password(&local_user_view, &data.password)?;
+    local_user_view
+  } else if let Some(username_or_email) = &data.username_or_email {
+    // Otherwise, they're likely banned, meaning we need to validate their login.
+    let local_user_view =
+      LocalUserView::find_by_email_or_name(&mut context.pool(), username_or_email).await?;
+    validate_password(&local_user_view, &data.password)?;
+
+    // Only check TOTP if they're not logged in.
+    if local_user_view.local_user.totp_2fa_enabled {
+      check_totp_2fa_valid(
+        &local_user_view,
+        &data.totp_2fa_token,
+        &context.settings().hostname,
+      )?;
+    }
+    local_user_view
+  } else {
     Err(LemmyErrorType::IncorrectLogin)?
-  }
+  };
 
   if data.delete_content {
     purge_user_account(local_user_view.person.id, &context).await?;
@@ -47,4 +59,19 @@ pub async fn delete_account(
   )?;
 
   Ok(Json(SuccessResponse::default()))
+}
+
+fn validate_password(local_user_view: &LocalUserView, password: &str) -> LemmyResult<()> {
+  // Verify the password
+  let valid: bool = local_user_view
+    .local_user
+    .password_encrypted
+    .as_ref()
+    .and_then(|password_encrypted| verify(password, password_encrypted).ok())
+    .unwrap_or(false);
+  if !valid {
+    Err(LemmyErrorType::IncorrectLogin)?
+  } else {
+    Ok(())
+  }
 }
