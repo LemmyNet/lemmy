@@ -23,11 +23,13 @@ pub async fn delete_account(
 ) -> LemmyResult<Json<SuccessResponse>> {
   // If a local_user_view exists, that means they're logged in.
   let local_user_view = if let Some(local_user_view) = local_user_view_opt {
+    validate_password(&local_user_view, &data.password)?;
     local_user_view
   } else if let Some(username_or_email) = &data.username_or_email {
     // Otherwise, they're likely banned, meaning we need to validate their login.
     let local_user_view =
       LocalUserView::find_by_email_or_name(&mut context.pool(), username_or_email).await?;
+    validate_password(&local_user_view, &data.password)?;
 
     // Only check TOTP if they're not logged in.
     if local_user_view.local_user.totp_2fa_enabled {
@@ -41,17 +43,6 @@ pub async fn delete_account(
   } else {
     Err(LemmyErrorType::IncorrectLogin)?
   };
-
-  // Verify the password
-  let valid: bool = local_user_view
-    .local_user
-    .password_encrypted
-    .as_ref()
-    .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
-    .unwrap_or(false);
-  if !valid {
-    Err(LemmyErrorType::IncorrectLogin)?
-  }
 
   if data.delete_content {
     purge_user_account(local_user_view.person.id, &context).await?;
@@ -68,4 +59,19 @@ pub async fn delete_account(
   )?;
 
   Ok(Json(SuccessResponse::default()))
+}
+
+fn validate_password(local_user_view: &LocalUserView, password: &str) -> LemmyResult<()> {
+  // Verify the password
+  let valid: bool = local_user_view
+    .local_user
+    .password_encrypted
+    .as_ref()
+    .and_then(|password_encrypted| verify(password, password_encrypted).ok())
+    .unwrap_or(false);
+  if !valid {
+    Err(LemmyErrorType::IncorrectLogin)?
+  } else {
+    Ok(())
+  }
 }
