@@ -150,6 +150,7 @@ pub async fn update_post(
     language_id: Some(language_id),
     updated: Some(Some(Utc::now())),
     scheduled_publish_time,
+    disable_reply_notifications: data.disable_reply_notifications,
     ..Default::default()
   };
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
