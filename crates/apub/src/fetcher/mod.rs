@@ -23,6 +23,8 @@ pub mod search;
 
 pub(crate) type PostOrComment = Either<ApubPost, ApubComment>;
 
+pub(crate) type ReportableObjects = Either<PostOrComment, ApubCommunity>;
+
 pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
 
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;

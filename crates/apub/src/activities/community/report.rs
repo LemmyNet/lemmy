@@ -1,15 +1,13 @@
-use super::report_inboxes;
+use super::{local_community, report_inboxes};
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_site_or_community},
   activity_lists::AnnouncableActivities,
+  fetcher::ReportableObjects,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      report::{Report, ReportObject},
-    },
-    InCommunity,
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::{Report, ReportObject},
   },
   PostOrComment,
 };
@@ -19,13 +17,19 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_deleted_removed,
+    check_post_deleted_or_removed,
+  },
 };
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
+    community_report::{CommunityReport, CommunityReportForm},
     post_report::{PostReport, PostReportForm},
   },
   traits::Reportable,
@@ -35,9 +39,9 @@ use url::Url;
 
 impl Report {
   pub(crate) fn new(
-    object_id: &ObjectId<PostOrComment>,
+    object_id: &ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    receiver: &Either<ApubSite, ApubCommunity>,
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
@@ -48,7 +52,7 @@ impl Report {
     )?;
     Ok(Report {
       actor: actor.id().into(),
-      to: [community.id().into()],
+      to: [receiver.id().into()],
       object: ReportObject::Lemmy(object_id.clone()),
       summary: reason,
       content: None,
@@ -58,14 +62,14 @@ impl Report {
   }
 
   pub(crate) async fn send(
-    object_id: ObjectId<PostOrComment>,
+    object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    receiver: &Either<ApubSite, ApubCommunity>,
     reason: String,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let report = Self::new(&object_id, actor, community, Some(reason), &context)?;
-    let inboxes = report_inboxes(object_id, community, &context).await?;
+    let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
+    let inboxes = report_inboxes(object_id, receiver, &context).await?;
 
     send_lemmy_activity(&context, report, actor, inboxes, false).await
   }
@@ -85,8 +89,8 @@ impl ActivityHandler for Report {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+    let receiver = self.receiver(context).await?;
+    verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     Ok(())
   }
 
@@ -95,7 +99,7 @@ impl ActivityHandler for Report {
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
-      PostOrComment::Left(post) => {
+      ReportableObjects::Left(PostOrComment::Left(post)) => {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -109,7 +113,7 @@ impl ActivityHandler for Report {
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
-      PostOrComment::Right(comment) => {
+      ReportableObjects::Left(PostOrComment::Right(comment)) => {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {
@@ -121,16 +125,31 @@ impl ActivityHandler for Report {
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
+      ReportableObjects::Right(community) => {
+        check_community_deleted_removed(&community)?;
+        let report_form = CommunityReportForm {
+          creator_id: actor.id,
+          community_id: community.id,
+          reason,
+          original_community_name: community.name.clone(),
+          original_community_title: community.title.clone(),
+          original_community_banner: community.banner.clone(),
+          original_community_icon: community.icon.clone(),
+          original_community_description: community.description.clone(),
+          original_community_sidebar: community.sidebar.clone(),
+        };
+        CommunityReport::report(&mut context.pool(), &report_form).await?;
+      }
     };
 
-    let community = self.community(context).await?;
-    if community.local {
+    let receiver = self.receiver(context).await?;
+    if let Some(community) = local_community(&receiver) {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
-      let inboxes = report_inboxes(object_id, &community, context).await?;
-      send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let inboxes = report_inboxes(object_id, &receiver, context).await?;
+      send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 
     Ok(())
