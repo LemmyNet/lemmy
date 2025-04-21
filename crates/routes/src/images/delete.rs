@@ -3,7 +3,7 @@ use actix_web::web::*;
 use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, DeleteImageParams},
-  request::delete_image_from_pictrs,
+  request::{delete_image_from_pictrs, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
@@ -122,6 +122,7 @@ pub async fn delete_user_banner(
   Ok(Json(SuccessResponse::default()))
 }
 
+/// Deletes an image for a specific user.
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,
@@ -135,6 +136,20 @@ pub async fn delete_image(
   .await?;
 
   delete_image_from_pictrs(&data.filename, &context).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+/// Deletes any image, only for admins.
+pub async fn delete_image_admin(
+  data: Json<DeleteImageParams>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<SuccessResponse>> {
+  is_admin(&local_user_view)?;
+
+  // Use purge, since it should remove any other aliases.
+  purge_image_from_pictrs(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

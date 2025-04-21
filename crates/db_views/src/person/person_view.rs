@@ -10,38 +10,30 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_local_instance_actions,
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::person::{person_keys as key, Person},
-  traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, now, DbPool},
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, person};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
   type CursorData = Person;
 
   fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new('P', self.person.id.0)
+    PaginationCursor::new_single('P', self.person.id.0)
   }
 
   async fn from_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let conn = &mut get_conn(pool).await?;
-    let id = cursor.prefix_and_id()?.1;
-
-    let token = person::table
-      .select(Self::CursorData::as_select())
-      .filter(person::id.eq(id))
-      .first(conn)
-      .await?;
-
-    Ok(token)
+    let id = cursor.first_id()?;
+    Person::read(pool, PersonId(id)).await
   }
 }
 
@@ -73,14 +65,10 @@ impl PersonView {
       query = query.filter(person::deleted.eq(false))
     }
 
-    Ok(query.first(conn).await?)
-  }
-
-  pub fn banned(&self) -> bool {
-    self
-      .local_instance_actions
-      .as_ref()
-      .is_some_and(|i| i.received_ban.is_some())
+    query
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -130,21 +118,18 @@ impl PersonQuery {
       query = query.limit(limit);
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
-    // Sorting by published
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
-
-    let res = query.load::<PersonView>(conn).await?;
+    let res = paginated_query.load::<PersonView>(conn).await?;
     Ok(res)
   }
 }

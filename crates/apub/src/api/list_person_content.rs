@@ -43,11 +43,17 @@ pub async fn list_person_content(
     type_: data.type_,
     cursor_data,
     page_back: data.page_back,
+    limit: data.limit,
   }
   .list(&mut context.pool(), &local_user_view, local_instance_id)
   .await?;
 
   let next_page = content.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = content.first().map(PaginationCursorBuilder::to_cursor);
 
-  Ok(Json(ListPersonContentResponse { content, next_page }))
+  Ok(Json(ListPersonContentResponse {
+    content,
+    next_page,
+    prev_page,
+  }))
 }

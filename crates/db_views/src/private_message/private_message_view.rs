@@ -1,12 +1,5 @@
 use crate::structs::PrivateMessageView;
-use diesel::{
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
@@ -14,6 +7,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PrivateMessageView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -45,12 +39,13 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(private_message::id.eq(private_message_id))
       .select(Self::as_select())
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

@@ -1,20 +1,23 @@
+use crate::newtypes::TaglineId;
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::tagline;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::tagline, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = tagline_keys))]
 /// A tagline, shown at the top of your site.
 pub struct Tagline {
-  pub id: i32,
+  pub id: TaglineId,
   pub content: String,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]

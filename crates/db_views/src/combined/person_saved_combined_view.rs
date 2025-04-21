@@ -30,12 +30,12 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_saved_combined, post};
@@ -46,6 +46,7 @@ pub struct PersonSavedCombinedQuery {
   pub type_: Option<PersonContentType>,
   pub cursor_data: Option<PersonSavedCombined>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl PaginationCursorBuilder for PersonSavedCombinedView {
@@ -56,7 +57,7 @@ impl PaginationCursorBuilder for PersonSavedCombinedView {
       PersonSavedCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonSavedCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -64,7 +65,11 @@ impl PaginationCursorBuilder for PersonSavedCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = person_saved_combined::table
       .select(Self::CursorData::as_select())
@@ -148,10 +153,12 @@ impl PersonSavedCombinedQuery {
     let local_instance_id = user.person.instance_id;
 
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
 
     let mut query = PersonSavedCombinedViewInternal::joins(my_person_id, local_instance_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select(PersonSavedCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
 
     if let Some(type_) = self.type_ {
@@ -164,21 +171,21 @@ impl PersonSavedCombinedQuery {
       }
     }
 
-    let mut query = PaginatedQueryBuilder::new(query);
-
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
     // Sorting by saved desc
-    query = query
-      .then_desc(key::saved)
-      // Tie breaker
-      .then_desc(key::id);
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::saved)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    let res = query.load::<PersonSavedCombinedViewInternal>(conn).await?;
+    let res = paginated_query
+      .load::<PersonSavedCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res

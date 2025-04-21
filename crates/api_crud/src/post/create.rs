@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -129,9 +129,7 @@ pub async fn create_post(
 
   post_form = plugin_hook_before("before_create_local_post", post_form).await?;
 
-  let inserted_post = Post::create(&mut context.pool(), &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
@@ -171,11 +169,12 @@ pub async fn create_post(
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+  let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
     mentions,
     PostOrCommentId::Post(inserted_post.id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
     local_instance_id,

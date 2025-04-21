@@ -20,7 +20,6 @@ full = [
   "diesel",
   "diesel-async",
   "diesel_ltree",
-  "tracing",
   "ts-rs",
   "actix-web",
   "i-love-jesus",
@@ -38,12 +37,12 @@ diesel_ltree = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 serde_json = { workspace = true }
-tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 derive-new = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

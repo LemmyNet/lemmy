@@ -8,19 +8,25 @@ use crate::{
     my_local_user_join,
   },
 };
-use diesel::{result::Error, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PersonId},
-  source::{community::Community, local_user::LocalUser, site::Site},
-  utils::{functions::lower, get_conn, limit_and_offset, now, seconds_to_pg_interval, DbPool},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  source::{
+    community::{community_keys as key, Community},
+    local_user::LocalUser,
+    site::Site,
+  },
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{get_conn, limit_fetch, now, paginate, seconds_to_pg_interval, DbPool, LowerKey},
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
   schema::{community, community_actions, instance_actions},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -41,7 +47,7 @@ impl CommunityView {
     community_id: CommunityId,
     my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins(my_local_user.person_id())
       .filter(community::id.eq(community_id))
@@ -50,12 +56,17 @@ impl CommunityView {
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
-      query = query.filter(Community::hide_removed_and_deleted());
+      query = query
+        .filter(Community::hide_removed_and_deleted())
+        .filter(filter_not_unlisted_or_is_subscribed());
     }
 
     query = my_local_user.visible_communities_only(query);
 
-    query.first(conn).await
+    query
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn check_is_mod_or_admin(
@@ -97,31 +108,48 @@ impl CommunityView {
   }
 }
 
+impl PaginationCursorBuilder for CommunityView {
+  type CursorData = Community;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('C', self.community.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let id = cursor.first_id()?;
+    Community::read(pool, CommunityId(id)).await
+  }
+}
+
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommunitySortType>,
   pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
-  pub title_only: Option<bool>,
-  pub is_mod_or_admin: bool,
-  pub show_nsfw: bool,
-  pub page: Option<i64>,
+  pub show_nsfw: Option<bool>,
+  pub cursor_data: Option<Community>,
+  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 
 impl CommunityQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommunityView>> {
     use CommunitySortType::*;
     let conn = &mut get_conn(pool).await?;
     let o = self;
+    let limit = limit_fetch(o.limit)?;
 
     let mut query = CommunityView::joins(o.local_user.person_id())
       .select(CommunityView::as_select())
+      .limit(limit)
       .into_boxed();
 
-    // Hide deleted and removed for non-admins or mods
-    if !o.is_mod_or_admin {
+    // Hide deleted and removed for non-admins
+    let is_admin = o.local_user.map(|l| l.admin).unwrap_or_default();
+    if !is_admin {
       query = query
         .filter(Community::hide_removed_and_deleted())
         .filter(filter_not_unlisted_or_is_subscribed());
@@ -144,40 +172,46 @@ impl CommunityQuery<'_> {
     // also hidden (based on profile setting)
     query = query.filter(instance_actions::blocked.is_null());
     query = query.filter(community_actions::blocked.is_null());
-    if !(o.local_user.show_nsfw(site) || o.show_nsfw) {
+    if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));
     }
 
     query = o.local_user.visible_communities_only(query);
 
-    match o.sort.unwrap_or_default() {
-      Hot => query = query.order_by(community::hot_rank.desc()),
-      Comments => query = query.order_by(community::comments.desc()),
-      Posts => query = query.order_by(community::posts.desc()),
-      New => query = query.order_by(community::published.desc()),
-      Old => query = query.order_by(community::published.asc()),
-      Subscribers => query = query.order_by(community::subscribers.desc()),
-      SubscribersLocal => query = query.order_by(community::subscribers_local.desc()),
-      ActiveSixMonths => query = query.order_by(community::users_active_half_year.desc()),
-      ActiveMonthly => query = query.order_by(community::users_active_month.desc()),
-      ActiveWeekly => query = query.order_by(community::users_active_week.desc()),
-      ActiveDaily => query = query.order_by(community::users_active_day.desc()),
-      NameAsc => query = query.order_by(lower(community::name).asc()),
-      NameDesc => query = query.order_by(lower(community::name).desc()),
-    };
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
       query =
         query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
+    // Only sort by ascending for Old or NameAsc sorts.
+    let sort = o.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<CommunityView>(conn)
+    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+
+    pq = match sort {
+      Hot => pq.then_order_by(key::hot_rank),
+      Comments => pq.then_order_by(key::comments),
+      Posts => pq.then_order_by(key::posts),
+      New => pq.then_order_by(key::published),
+      Old => pq.then_order_by(key::published),
+      Subscribers => pq.then_order_by(key::subscribers),
+      SubscribersLocal => pq.then_order_by(key::subscribers_local),
+      ActiveSixMonths => pq.then_order_by(key::users_active_half_year),
+      ActiveMonthly => pq.then_order_by(key::users_active_month),
+      ActiveWeekly => pq.then_order_by(key::users_active_week),
+      ActiveDaily => pq.then_order_by(key::users_active_day),
+      NameAsc => pq.then_order_by(LowerKey(key::name)),
+      NameDesc => pq.then_order_by(LowerKey(key::name)),
+    };
+
+    // finally use unique id as tie breaker
+    pq = pq.then_order_by(key::id);
+
+    pq.load::<CommunityView>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

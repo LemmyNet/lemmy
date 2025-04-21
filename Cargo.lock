@@ -2673,9 +2673,9 @@ dependencies = [
 
 [[package]]
 name = "i-love-jesus"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39fa60e3281e1529cc56d96cca925215f51f9b39a96bc677982fbfdf2663cc84"
+checksum = "2b5e51efc960620644b96980488cc2e487046cbd9440e334c189a4b604076312"
 dependencies = [
  "diesel",
  "i-love-jesus-macros",
@@ -3187,6 +3187,7 @@ dependencies = [
  "chrono",
  "diesel-async",
  "futures",
+ "futures-util",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
@@ -3215,6 +3216,7 @@ dependencies = [
  "either",
  "enum_delegate",
  "futures",
+ "futures-util",
  "html2md",
  "html2text",
  "itertools 0.14.0",

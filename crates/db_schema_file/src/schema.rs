@@ -446,6 +446,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
+        disable_email_notifications -> Bool
     }
 }
 
@@ -524,6 +525,14 @@ diesel::table! {
         show_upvotes -> Bool,
         show_downvotes -> Bool,
         show_upvote_percentage -> Bool,
+    }
+}
+
+diesel::table! {
+    local_user_keyword_block (local_user_id, keyword) {
+        local_user_id -> Int4,
+        #[max_length = 50]
+        keyword -> Varchar,
     }
 }
 
@@ -1106,6 +1115,7 @@ diesel::joinable!(local_image -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
+diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
@@ -1212,6 +1222,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_site_url_blocklist,
   local_user,
   local_user_language,
+  local_user_keyword_block,
   login_token,
   mod_add,
   mod_add_community,
