@@ -97,7 +97,7 @@ impl InCommunity for AnnouncableActivities {
         Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
         Either::Right(c) => Ok(c),
       },
-      ResolveReport(a) => match a.receiver(context).await? {
+      ResolveReport(a) => match a.object.receiver(context).await? {
         Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
         Either::Right(c) => Ok(c),
       },
