@@ -23,7 +23,7 @@ use crate::{
       create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
       CreateOrUpdateType,
     },
-    objects::{group::Group, tags::LemmyCommunityPostTag},
+    objects::tags::LemmyCommunityPostTag,
   },
 };
 use activitypub_federation::{

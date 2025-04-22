@@ -35,7 +35,6 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
-    tag::{Tag, TagInsertForm},
   },
   traits::{ApubActor, Crud},
 };

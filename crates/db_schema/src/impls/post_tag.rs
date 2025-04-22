@@ -29,7 +29,7 @@ impl PostTag {
       let conn = &mut get_conn(pool).await?;
       tag::table
         .filter(tag::community_id.eq(community_id))
-        .filter(tag::ap_id.eq_any(tag_ap_ids.iter().map(|ap_id| ap_id.as_str())))
+        .filter(tag::ap_id.eq_any(tag_ap_ids.iter().map(url::Url::as_str)))
         .select(tag::id)
         .get_results::<TagId>(conn)
         .await?
