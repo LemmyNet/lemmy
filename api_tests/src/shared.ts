@@ -80,6 +80,8 @@ import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportRespons
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
+import { CommunityReportResponse } from "lemmy-js-client/dist/types/CommunityReportResponse";
+import { CreateCommunityReport } from "lemmy-js-client/dist/types/CreateCommunityReport";
 import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
@@ -795,6 +797,18 @@ export async function reportPost(
     reason,
   };
   return api.createPostReport(form);
+}
+
+export async function reportCommunity(
+  api: LemmyHttp,
+  community_id: number,
+  reason: string,
+): Promise<CommunityReportResponse> {
+  let form: CreateCommunityReport = {
+    community_id,
+    reason,
+  };
+  return api.createCommunityReport(form);
 }
 
 export async function listReports(
