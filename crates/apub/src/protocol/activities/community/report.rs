@@ -1,6 +1,7 @@
 use crate::{
   fetcher::ReportableObjects,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  protocol::InCommunity,
 };
 use activitypub_federation::{
   config::Data,
@@ -21,7 +22,7 @@ pub struct Report {
   #[serde(deserialize_with = "deserialize_one")]
   pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: ReportObject,
-  /// Report reason as sent by Lemmy
+  /// Report reason as sent by Lemmy{
   pub(crate) summary: Option<String>,
   /// Report reason as sent by Mastodon
   pub(crate) content: Option<String>,
@@ -95,6 +96,15 @@ impl ReportObject {
         }
         Err(LemmyErrorType::NotFound.into())
       }
+    }
+  }
+}
+
+impl InCommunity for Report {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    match self.receiver(context).await? {
+      Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
+      Either::Right(c) => Ok(c),
     }
   }
 }
