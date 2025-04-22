@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   reports::community::{CommunityReportResponse, ResolveCommunityReport},
@@ -37,11 +38,11 @@ pub async fn resolve_community_report(
   .await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::SendResolveReportToSite {
+    SendActivityData::SendResolveReport {
       object_id: community_report_view.community.ap_id.inner().clone(),
       actor: local_user_view.person,
       report_creator: community_report_view.creator.clone(),
-      site,
+      receiver: Either::Left(site),
     },
     &context,
   )?;

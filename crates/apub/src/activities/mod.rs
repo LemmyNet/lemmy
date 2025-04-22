@@ -431,13 +431,13 @@ pub async fn match_outgoing_activities(
       CreateReport {
         object_id,
         actor,
-        community,
+        receiver,
         reason,
       } => {
         Report::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &Either::Right(community.into()),
+          &receiver.map_either(Into::into, Into::into),
           reason,
           context,
         )
@@ -447,43 +447,13 @@ pub async fn match_outgoing_activities(
         object_id,
         actor,
         report_creator,
-        community,
+        receiver,
       } => {
         ResolveReport::send(
           ObjectId::from(object_id),
           &actor.into(),
           &report_creator.into(),
-          &Either::Right(community.into()),
-          context,
-        )
-        .await
-      }
-      CreateReportToSite {
-        object_id,
-        actor,
-        site,
-        reason,
-      } => {
-        Report::send(
-          ObjectId::from(object_id),
-          &actor.into(),
-          &Either::Left(site.into()),
-          reason,
-          context,
-        )
-        .await
-      }
-      SendResolveReportToSite {
-        object_id,
-        actor,
-        report_creator,
-        site,
-      } => {
-        ResolveReport::send(
-          ObjectId::from(object_id),
-          &actor.into(),
-          &report_creator.into(),
-          &Either::Left(site.into()),
+          &receiver.map_either(Into::into, Into::into),
           context,
         )
         .await
