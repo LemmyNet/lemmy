@@ -69,6 +69,10 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
+  /// This is a standard activitystreams property for any type of "association by reference"
+  /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
+  /// Lemmy (a) attaches the community (group) as a "hashtag" and (b) attaches
+  /// community-created post tags.
   pub(crate) tag: Vec<HashtagOrLemmyTag>,
 }
 

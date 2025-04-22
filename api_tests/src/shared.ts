@@ -29,6 +29,7 @@ import {
   InboxDataType,
   GetModlogResponse,
   GetModlog,
+  CommunityView,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -1007,4 +1008,32 @@ export async function waitUntil<T>(
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
+}
+
+export function assertCommunityFederation(
+  communityOne?: CommunityView,
+  communityTwo?: CommunityView,
+) {
+  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
+  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
+  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
+  expect(communityOne?.community.description).toBe(
+    communityTwo?.community.description,
+  );
+  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
+  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
+  expect(communityOne?.community.published).toBe(
+    communityTwo?.community.published,
+  );
+  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
+  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
+  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
+
+  expect(communityOne?.post_tags.length).toBe(communityTwo?.post_tags.length);
+  for (let i = 0; i < (communityOne?.post_tags.length ?? 0); i++) {
+    const tagOne = communityOne?.post_tags[i];
+    const tagTwo = communityTwo?.post_tags[i];
+    expect(tagOne?.ap_id).toBe(tagTwo?.ap_id);
+    expect(tagOne?.display_name).toBe(tagTwo?.display_name);
+  }
 }

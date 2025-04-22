@@ -107,7 +107,7 @@ impl Object for ApubPost {
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     // not sure why we need the local instance id here...
     let site_view = SiteView::read_local(&mut context.pool()).await?;
-    // feels like we should define ApubPost as ApubPost(PostView) tbh since it needs lots of
+    // feels like we should define ApubPost as ApubPost(PostView) since it needs lots of
     // surrounding info anyways that is missing in Post
     let post_view = PostView::read(
       &mut context.pool(),

@@ -98,6 +98,8 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
+    // it's a bit weird to fetch the view here - maybe ApubCommunity should just wrap CommunityView
+    // instead of Community?
     let community_view = CommunityView::read(&mut data.pool(), community_id, None, false).await?;
 
     let group = Group {
