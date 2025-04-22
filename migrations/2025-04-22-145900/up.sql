@@ -1,2 +1,2 @@
-CREATE INDEX ON tag(community_id);
+CREATE INDEX ON tag (community_id);
 
