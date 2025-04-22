@@ -32,7 +32,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases,
   impls::local_user::LocalUserOptionHelper,
@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_fetch, paginate, DbPool},
   ModlogActionType,
 };
 use lemmy_db_schema_file::{
@@ -255,7 +255,7 @@ impl PaginationCursorBuilder for ModlogCombinedView {
       ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
       ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
     };
-    PaginationCursor::new(prefix, id)
+    PaginationCursor::new_single(prefix, id)
   }
 
   async fn from_cursor(
@@ -263,7 +263,11 @@ impl PaginationCursorBuilder for ModlogCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.prefix_and_id()?;
+    let pids = cursor.prefixes_and_ids();
+    let (prefix, id) = pids
+      .as_slice()
+      .first()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
 
     let mut query = modlog_combined::table
       .select(Self::CursorData::as_select())
@@ -310,17 +314,21 @@ pub struct ModlogCombinedQuery<'a> {
   pub other_person_id: Option<PersonId>,
   pub cursor_data: Option<ModlogCombined>,
   pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 impl ModlogCombinedQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<ModlogCombinedView>> {
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(self.limit)?;
+
     let other_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();
 
     let mut query =
       ModlogCombinedViewInternal::joins(self.mod_person_id, self.hide_modlog_names, my_person_id)
         .select(ModlogCombinedViewInternal::as_select())
+        .limit(limit)
         .into_boxed();
 
     if let Some(mod_person_id) = self.mod_person_id {
@@ -384,20 +392,21 @@ impl ModlogCombinedQuery<'_> {
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 
-    let mut query = PaginatedQueryBuilder::new(query);
+    // Sorting by published
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(key::published)
+    // Tie breaker
+    .then_order_by(key::id);
 
-    if self.page_back.unwrap_or_default() {
-      query = query.before(self.cursor_data).limit_and_offset_from_end();
-    } else {
-      query = query.after(self.cursor_data);
-    }
-
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
-
-    let res = query.load::<ModlogCombinedViewInternal>(conn).await?;
+    let res = paginated_query
+      .load::<ModlogCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res

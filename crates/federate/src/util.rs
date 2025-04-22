@@ -18,6 +18,7 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
 use serde_json::Value;
@@ -163,7 +164,7 @@ pub(crate) async fn get_actor_cached(
             .into(),
         )),
       };
-      Result::<_, anyhow::Error>::Ok(Arc::new(person))
+      Result::<_, LemmyError>::Ok(Arc::new(person))
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
@@ -182,9 +183,7 @@ pub(crate) async fn get_activity_cached(
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = SentActivity::read(pool, activity_id)
-        .await
-        .context("could not read activity");
+      let row = SentActivity::read(pool, activity_id).await;
       let Ok(mut row) = row else {
         return anyhow::Result::<_, anyhow::Error>::Ok(None);
       };

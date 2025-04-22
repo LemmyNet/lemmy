@@ -1,4 +1,11 @@
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, LocalUserId, PostId};
+use lemmy_db_schema::newtypes::{
+  CommentId,
+  CommunityId,
+  LanguageId,
+  LocalUserId,
+  PaginationCursor,
+  PostId,
+};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
 use lemmy_db_views::structs::{CommentSlimView, CommentView, VoteView};
 use serde::{Deserialize, Serialize};
@@ -120,7 +127,9 @@ pub struct GetComments {
   #[cfg_attr(feature = "full", ts(optional))]
   pub max_depth: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -143,6 +152,10 @@ pub struct GetComments {
 /// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -151,17 +164,23 @@ pub struct GetCommentsResponse {
 /// A slimmer comment list response, without the post or community.
 pub struct GetCommentsSlimResponse {
   pub comments: Vec<CommentSlimView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -172,4 +191,9 @@ pub struct ListCommentLikes {
 /// The comment likes response
 pub struct ListCommentLikesResponse {
   pub comment_likes: Vec<VoteView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

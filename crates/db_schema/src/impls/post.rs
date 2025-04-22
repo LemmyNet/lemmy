@@ -3,7 +3,6 @@ use crate::{
   source::post::{
     Post,
     PostActions,
-    PostActionsCursor,
     PostHideForm,
     PostInsertForm,
     PostLikeForm,
@@ -18,7 +17,6 @@ use crate::{
     get_conn,
     now,
     uplete,
-    DbConn,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -31,7 +29,6 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
-  result::Error,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -52,37 +49,44 @@ impl Crud for Post {
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)
   }
 
   async fn update(
     pool: &mut DbPool<'_>,
     post_id: PostId,
     new_post: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post::table.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
 }
 
 impl Post {
-  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> Result<Self, Error> {
-    let conn = &mut *get_conn(pool).await?;
-    post::table.find(id).first(conn).await
+  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    post::table
+      .find(id)
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PostInsertForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
@@ -92,12 +96,13 @@ impl Post {
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)
   }
 
   pub async fn list_featured_for_community(
     pool: &mut DbPool<'_>,
     the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     post::table
       .filter(post::community_id.eq(the_community_id))
@@ -108,11 +113,12 @@ impl Post {
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn list_for_sitemap(
     pool: &mut DbPool<'_>,
-  ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
+  ) -> LemmyResult<Vec<(DbUrl, chrono::DateTime<Utc>)>> {
     let conn = &mut get_conn(pool).await?;
     post::table
       .select((post::ap_id, coalesce(post::updated, post::published)))
@@ -124,12 +130,13 @@ impl Post {
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn permadelete_for_creator(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(post::table.filter(post::creator_id.eq(for_creator_id)))
@@ -142,30 +149,31 @@ impl Post {
       ))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
 
   pub async fn update_removed_for_creator(
     pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-    for_community_id: Option<CommunityId>,
-    for_instance_id: Option<InstanceId>,
+    creator_id: PersonId,
+    community_id: Option<CommunityId>,
+    instance_id: Option<InstanceId>,
     removed: bool,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     // Diesel can't update from join unfortunately, so you'll need to loop over these
     let community_join = community::table.on(post::community_id.eq(community::id));
     let mut posts_query = post::table
       .inner_join(community_join)
-      .filter(post::creator_id.eq(for_creator_id))
+      .filter(post::creator_id.eq(creator_id))
       .into_boxed();
 
-    if let Some(for_community_id) = for_community_id {
-      posts_query = posts_query.filter(post::community_id.eq(for_community_id));
+    if let Some(community_id) = community_id {
+      posts_query = posts_query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(for_instance_id) = for_instance_id {
-      posts_query = posts_query.filter(community::instance_id.eq(for_instance_id));
+    if let Some(instance_id) = instance_id {
+      posts_query = posts_query.filter(community::instance_id.eq(instance_id));
     }
 
     let post_ids = posts_query.select(post::id).load::<PostId>(conn).await?;
@@ -175,6 +183,7 @@ impl Post {
       .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
 
   pub fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
@@ -184,7 +193,7 @@ impl Post {
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     post::table
@@ -193,12 +202,13 @@ impl Post {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn delete_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
 
@@ -206,12 +216,13 @@ impl Post {
       .set(post::deleted.eq(true))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
 
   pub async fn user_scheduled_post_count(
     person_id: PersonId,
     pool: &mut DbPool<'_>,
-  ) -> Result<i64, Error> {
+  ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
 
     post::table
@@ -228,9 +239,10 @@ impl Post {
       .select(count(post::id))
       .first::<i64>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
+  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     // Diesel can't update based on a join, which is necessary for the scaled_rank
@@ -256,6 +268,7 @@ impl Post {
       ))
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
@@ -441,33 +454,19 @@ impl PostActions {
   }
 }
 
-impl PostActionsCursor {
+impl PostActions {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
+    person_id: PersonId,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-
-    Self::read_conn(conn, post_id, person_id).await
-  }
-
-  pub async fn read_conn(
-    conn: &mut DbConn<'_>,
-    post_id: PostId,
-    person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
-    Ok(if let Some(person_id) = person_id {
-      post_actions::table
-        .find((person_id, post_id))
-        .select(Self::as_select())
-        .first(conn)
-        .await
-        .optional()?
-        .unwrap_or_default()
-    } else {
-      Default::default()
-    })
+    post_actions::table
+      .find((person_id, post_id))
+      .select(Self::as_select())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -493,7 +492,6 @@ mod tests {
     utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
   };
   use chrono::DateTime;
-  use diesel::result::Error;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -744,7 +742,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_aggregates_soft_delete() -> Result<(), Error> {
+  async fn test_aggregates_soft_delete() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 

@@ -100,6 +100,8 @@ pub struct LocalSite {
   pub users_active_month: i64,
   /// The number of users with any activity in the last half year.
   pub users_active_half_year: i64,
+  /// Dont send email notifications to users for new replies, mentions etc
+  pub disable_email_notifications: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -163,6 +165,8 @@ pub struct LocalSiteInsertForm {
   pub default_post_time_range_seconds: Option<Option<i32>>,
   #[new(default)]
   pub disallow_nsfw_content: bool,
+  #[new(default)]
+  pub disable_email_notifications: bool,
 }
 
 #[derive(Clone, Default)]
@@ -198,4 +202,5 @@ pub struct LocalSiteUpdateForm {
   pub comment_downvotes: Option<FederationMode>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub disallow_nsfw_content: Option<bool>,
+  pub disable_email_notifications: Option<bool>,
 }

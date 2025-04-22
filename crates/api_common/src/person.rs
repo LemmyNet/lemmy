@@ -155,6 +155,9 @@ pub struct SaveUserSettings {
   /// A list of languages you are able to see discussion in.
   #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
+  // A list of keywords used for blocking posts having them in title,url or body.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub blocking_keywords: Option<Vec<String>>,
   /// Open links in a new tab
   #[cfg_attr(feature = "full", ts(optional))]
   pub open_links_in_new_tab: Option<bool>,
@@ -263,6 +266,8 @@ pub struct ListPersonContent {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -275,6 +280,8 @@ pub struct ListPersonContentResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -289,6 +296,8 @@ pub struct ListPersonSaved {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -301,6 +310,8 @@ pub struct ListPersonSavedResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]
@@ -364,6 +375,8 @@ pub struct BannedPersonsResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -407,6 +420,8 @@ pub struct ListInbox {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -418,6 +433,8 @@ pub struct ListInboxResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -538,7 +555,9 @@ pub struct UpdateTotpResponse {
 /// Get your user's image / media uploads.
 pub struct ListMedia {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -548,6 +567,11 @@ pub struct ListMedia {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListMediaResponse {
   pub images: Vec<LocalImageView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
