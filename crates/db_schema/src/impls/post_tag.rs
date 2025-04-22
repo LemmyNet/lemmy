@@ -1,20 +1,44 @@
 use crate::{
   diesel::SelectableHelper,
-  newtypes::{PostId, TagId},
+  newtypes::{CommunityId, PostId, TagId},
   source::post_tag::{PostTag, PostTagForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::post_tag;
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use url::Url;
 
 impl PostTag {
   pub async fn set(pool: &mut DbPool<'_>, tags: &[PostTagForm]) -> LemmyResult<Vec<Self>> {
     let post_id = tags.first().map(|t| t.post_id).unwrap_or_default();
     PostTag::delete_for_post(pool, post_id).await?;
     PostTag::create_many(pool, tags).await
+  }
+  pub async fn set_from_apub(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    tag_ap_ids: Vec<Url>,
+    community_id: CommunityId,
+  ) -> LemmyResult<Vec<Self>> {
+    // find tags in table. this also filters out tags we don't know about or that don't belong to
+    // the right community
+    let looked_up_ids = {
+      let conn = &mut get_conn(pool).await?;
+      tag::table
+        .filter(tag::community_id.eq(community_id))
+        .filter(tag::ap_id.eq_any(tag_ap_ids.iter().map(url::Url::as_str)))
+        .select(tag::id)
+        .get_results::<TagId>(conn)
+        .await?
+    };
+    let tags: Vec<PostTagForm> = looked_up_ids
+      .into_iter()
+      .map(|tag_id| PostTagForm { post_id, tag_id })
+      .collect();
+    PostTag::set(pool, &tags).await
   }
 
   async fn delete_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<usize> {
