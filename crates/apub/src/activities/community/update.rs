@@ -3,6 +3,7 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     generate_to,
+    update_community_post_tags,
     verify_mod_action,
     verify_person_in_community,
     verify_visibility,
@@ -88,6 +89,7 @@ impl ActivityHandler for UpdateCommunity {
     insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
 
+    let ap_id = self.object.id.to_string();
     let community_update_form = CommunityUpdateForm {
       title: Some(self.object.name.unwrap_or(self.object.preferred_username)),
       description: Some(read_from_string_or_source_opt(
@@ -118,7 +120,10 @@ impl ActivityHandler for UpdateCommunity {
       ..Default::default()
     };
 
+    update_community_post_tags(context, community.id, ap_id, self.object.post_tags).await?;
+
     Community::update(&mut context.pool(), community.id, &community_update_form).await?;
+
     Ok(())
   }
 }

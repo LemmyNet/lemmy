@@ -1009,6 +1009,7 @@ export async function waitUntil<T>(
   );
 }
 
+// moved from community.spec.ts, added comparison of post_tags property
 export function assertCommunityFederation(
   communityOne?: CommunityView,
   communityTwo?: CommunityView,

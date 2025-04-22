@@ -1,6 +1,6 @@
 use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
-  activities::GetActorType,
+  activities::{update_community_post_tags, GetActorType},
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -35,6 +35,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    tag::{Tag, TagInsertForm},
   },
   traits::{ApubActor, Crud},
 };
@@ -175,6 +176,8 @@ impl Object for ApubCommunity {
       .err()
       .map(|_| true);
 
+    let group_url = group.id.to_string();
+
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -213,6 +216,12 @@ impl Object for ApubCommunity {
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
+    tracing::info!(
+      "todo community_override_all_from_apub, {:?}",
+      group.post_tags
+    );
+
+    update_community_post_tags(context, community.id, group_url, group.post_tags).await?;
 
     let community: ApubCommunity = community.into();
 

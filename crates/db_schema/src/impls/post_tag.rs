@@ -22,7 +22,7 @@ impl PostTag {
     post_id: PostId,
     tag_ap_ids: Vec<Url>,
     community_id: CommunityId,
-  ) -> Result<Vec<Self>, diesel::result::Error> {
+  ) -> LemmyResult<Vec<Self>> {
     // find tags in table. this also filters out tags we don't know about or that don't belong to
     // the right community
     let looked_up_ids = {
@@ -34,11 +34,11 @@ impl PostTag {
         .get_results::<TagId>(conn)
         .await?
     };
-    let tags = looked_up_ids
+    let tags: Vec<PostTagForm> = looked_up_ids
       .into_iter()
-      .map(|tag_id| PostTagInsertForm { post_id, tag_id })
+      .map(|tag_id| PostTagForm { post_id, tag_id })
       .collect();
-    PostTag::set(pool, post_id, tags).await
+    PostTag::set(pool, &tags).await
   }
 
   async fn delete_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<usize> {

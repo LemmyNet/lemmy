@@ -17,10 +17,13 @@ use crate::{
     voting::send_like_activity,
   },
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::{
-    community::{report::Report, resolve_report::ResolveReport},
-    create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
-    CreateOrUpdateType,
+  protocol::{
+    activities::{
+      community::{report::Report, resolve_report::ResolveReport},
+      create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+      CreateOrUpdateType,
+    },
+    objects::{group::Group, tags::LemmyCommunityPostTag},
   },
 };
 use activitypub_federation::{
@@ -35,10 +38,12 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
+    tag::{Tag, TagInsertForm},
   },
   traits::Crud,
 };
@@ -134,6 +139,31 @@ pub(crate) fn verify_visibility(
     Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
     _ => Ok(()),
   }
+}
+
+pub(crate) async fn update_community_post_tags(
+  context: &Data<LemmyContext>,
+  community_id: CommunityId,
+  group_url: String,
+  post_tags: Vec<LemmyCommunityPostTag>,
+) -> LemmyResult<()> {
+  Tag::community_override_all_from_apub(
+    &mut context.pool(),
+    community_id,
+    post_tags
+      .into_iter()
+      // Verify that this tag is actually in the given community.
+      // Needed to ensure that incoming AP updates of one community can not manipulate tags in a
+      // different community.
+      .filter(|tag| tag.id.as_str().starts_with(&group_url))
+      .map(|tag| TagInsertForm {
+        ap_id: tag.id.into(),
+        display_name: tag.display_name,
+        community_id,
+      })
+      .collect(),
+  )
+  .await
 }
 
 /// Marks object as public only if the community is public

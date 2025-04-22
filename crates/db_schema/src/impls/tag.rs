@@ -4,10 +4,12 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
+use chrono::Utc;
 use diesel::{insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::tag;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use std::collections::{HashMap, HashSet};
 
 impl Tag {
   pub async fn get_by_community(
@@ -21,6 +23,67 @@ impl Tag {
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn community_override_all_from_apub(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    ap_tags: Vec<TagInsertForm>,
+  ) -> LemmyResult<()> {
+    tracing::info!("community_override_all_from_apub, {community_id:?} {ap_tags:?}");
+    let known_tags = Tag::get_by_community(pool, community_id).await?;
+    let old_tags = known_tags
+      .iter()
+      .map(|tag| (tag.ap_id.clone(), tag))
+      .collect::<HashMap<_, _>>();
+    let new_tag_ids = ap_tags
+      .iter()
+      .map(|tag| tag.ap_id.clone())
+      .collect::<HashSet<_>>();
+
+    let to_delete = known_tags
+      .iter()
+      .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
+      .map(|tag| tag.id)
+      .collect::<Vec<_>>();
+    let to_insert = ap_tags
+      .iter()
+      .filter(|tag| !old_tags.contains_key(&tag.ap_id))
+      .collect::<Vec<_>>();
+    for tag in to_insert {
+      Tag::create(pool, tag).await?;
+    }
+    // if display name is different, we need to update it
+    for tag in ap_tags {
+      if let Some(old_tag) = old_tags.get(&tag.ap_id) {
+        if old_tag.display_name != tag.display_name {
+          Tag::update(
+            pool,
+            old_tag.id,
+            &TagUpdateForm {
+              display_name: Some(tag.display_name.clone()),
+              updated: Some(Some(Utc::now())),
+              ..Default::default()
+            },
+          )
+          .await?;
+        }
+      }
+    }
+    for tag in to_delete {
+      Tag::update(
+        pool,
+        tag,
+        &TagUpdateForm {
+          deleted: Some(true),
+          updated: Some(Some(Utc::now())),
+          ..Default::default()
+        },
+      )
+      .await?;
+    }
+
+    Ok(())
   }
 }
 

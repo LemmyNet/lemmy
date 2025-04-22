@@ -6,7 +6,6 @@ use url::Url;
 /// defines that any object can have a list of tags associated with it.
 /// Tags in AS can be of any type, so we define our own types. For now, only `CommunityPostTag`:
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(untagged)]
 enum LemmyCommunityPostTagType {
   #[serde(rename = "lemmy:CommunityPostTag")]
   LemmyCommunityPostTagType,
@@ -17,10 +16,10 @@ enum LemmyCommunityPostTagType {
 ///
 /// In the post, the tags are added to the standard "tag" property.
 ///
-/// Or in AP terms, this tag that is owned by a group, and added to a page that has the group as the
-/// audience.
+/// Or in AP terms, this is a tag that is owned by a group, and added to a page that has the group
+/// as the audience.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct LemmyCommunityPostTag {
+pub struct LemmyCommunityPostTag {
   #[serde(rename = "type")]
   kind: LemmyCommunityPostTagType,
   pub id: Url,
