@@ -30,7 +30,6 @@ impl Tag {
     community_id: CommunityId,
     ap_tags: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
-    tracing::info!("community_override_all_from_apub, {community_id:?} {ap_tags:?}");
     let known_tags = Tag::get_by_community(pool, community_id).await?;
     let old_tags = known_tags
       .iter()

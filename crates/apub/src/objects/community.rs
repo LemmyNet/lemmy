@@ -215,10 +215,6 @@ impl Object for ApubCommunity {
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
-    tracing::info!(
-      "todo community_override_all_from_apub, {:?}",
-      group.post_tags
-    );
 
     update_community_post_tags(context, community.id, group_url, group.post_tags).await?;
 
