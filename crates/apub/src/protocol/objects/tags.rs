@@ -40,7 +40,7 @@ impl From<Tag> for LemmyCommunityTag {
   }
 }
 impl LemmyCommunityTag {
-  pub fn to_tag_insert_form(self, community_id: CommunityId) -> TagInsertForm {
+  pub fn into_tag_insert_form(self, community_id: CommunityId) -> TagInsertForm {
     TagInsertForm {
       ap_id: self.id.into(),
       display_name: self.display_name,

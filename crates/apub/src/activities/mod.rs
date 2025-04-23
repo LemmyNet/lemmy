@@ -153,7 +153,7 @@ pub(crate) async fn update_community_tags(
     group_url,
     post_tags
       .into_iter()
-      .map(|t| t.to_tag_insert_form(community_id))
+      .map(|t| t.into_tag_insert_form(community_id))
       .collect(),
   )
   .await

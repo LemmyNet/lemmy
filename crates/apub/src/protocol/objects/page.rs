@@ -179,7 +179,7 @@ pub enum HashtagOrLemmyTag {
 impl HashtagOrLemmyTag {
   pub fn community_tag_url(&self) -> Option<Url> {
     match self {
-      HashtagOrLemmyTag::LemmyCommunityPostTag(t) => Some(t.id.clone().into()),
+      HashtagOrLemmyTag::LemmyCommunityPostTag(t) => Some(t.id.clone()),
       _ => None,
     }
   }
