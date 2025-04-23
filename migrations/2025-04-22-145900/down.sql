@@ -1,2 +1,2 @@
-DROP INDEX tag_community_id_idx;
+DROP INDEX idx_tag_community;
 

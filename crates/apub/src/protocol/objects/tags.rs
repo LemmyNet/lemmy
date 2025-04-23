@@ -11,7 +11,7 @@ enum LemmyCommunityPostTagType {
   LemmyCommunityPostTagType,
 }
 
-/// A tag that a community owns, that is added to a post.
+/// A tag that a community owns, that is (currently) added to a post.
 /// In the community (group), we attach the list of available tags as the "lemmy:postTags" property.
 ///
 /// In the post, the tags are added to the standard "tag" property.
@@ -19,7 +19,7 @@ enum LemmyCommunityPostTagType {
 /// Or in AP terms, this is a tag that is owned by a group, and added to a page that has the group
 /// as the audience.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct LemmyCommunityPostTag {
+pub struct LemmyCommunityTag {
   #[serde(rename = "type")]
   kind: LemmyCommunityPostTagType,
   pub id: Url,
@@ -27,9 +27,9 @@ pub struct LemmyCommunityPostTag {
   pub display_name: String,
 }
 
-impl From<Tag> for LemmyCommunityPostTag {
+impl From<Tag> for LemmyCommunityTag {
   fn from(tag: Tag) -> Self {
-    LemmyCommunityPostTag {
+    LemmyCommunityTag {
       kind: LemmyCommunityPostTagType::LemmyCommunityPostTagType,
       id: tag.ap_id.into(),
       display_name: tag.display_name,

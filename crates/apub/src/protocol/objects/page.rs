@@ -1,4 +1,4 @@
-use super::tags::LemmyCommunityPostTag;
+use super::tags::LemmyCommunityTag;
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
@@ -172,8 +172,17 @@ pub enum HashtagType {
 #[serde(untagged)]
 pub enum HashtagOrLemmyTag {
   Hashtag(Hashtag),
-  LemmyCommunityPostTag(LemmyCommunityPostTag),
+  LemmyCommunityPostTag(LemmyCommunityTag),
   // more options can be added here in the future - as long es they have a unique type: property
+}
+
+impl HashtagOrLemmyTag {
+  pub fn community_tag_url(&self) -> Option<Url> {
+    match self {
+      HashtagOrLemmyTag::LemmyCommunityPostTag(t) => Some(t.id.clone().into()),
+      _ => None,
+    }
+  }
 }
 
 impl Page {

@@ -23,7 +23,7 @@ use crate::{
       create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
       CreateOrUpdateType,
     },
-    objects::tags::LemmyCommunityPostTag,
+    objects::tags::LemmyCommunityTag,
   },
 };
 use activitypub_federation::{
@@ -145,7 +145,7 @@ pub(crate) async fn update_community_post_tags(
   context: &Data<LemmyContext>,
   community_id: CommunityId,
   group_url: String,
-  post_tags: Vec<LemmyCommunityPostTag>,
+  post_tags: Vec<LemmyCommunityTag>,
 ) -> LemmyResult<()> {
   Tag::community_override_all_from_apub(
     &mut context.pool(),

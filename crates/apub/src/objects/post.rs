@@ -307,13 +307,7 @@ impl Object for ApubPost {
     let post_tags_to_lookup: Vec<Url> = page
       .tag
       .iter()
-      .filter_map(|tag| {
-        if let HashtagOrLemmyTag::LemmyCommunityPostTag(tag) = tag {
-          Some(tag.id.clone())
-        } else {
-          None
-        }
-      })
+      .filter_map(HashtagOrLemmyTag::community_tag_url)
       .collect();
     PostTag::set_from_apub(
       &mut context.pool(),

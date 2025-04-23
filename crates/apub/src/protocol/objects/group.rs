@@ -1,4 +1,4 @@
-use super::tags::LemmyCommunityPostTag;
+use super::tags::LemmyCommunityTag;
 use crate::{
   check_apub_id_valid_with_strictness,
   collections::{
@@ -82,7 +82,7 @@ pub struct Group {
   /// We add available post tags as a custom field on the group. another option would be to use the
   /// standard "attachments" property, but it seems unlikely for there to be a benefit to that.
   #[serde(default, rename = "lemmy:postTags")]
-  pub(crate) post_tags: Vec<LemmyCommunityPostTag>,
+  pub(crate) post_tags: Vec<LemmyCommunityTag>,
 }
 
 impl Group {
