@@ -5,10 +5,9 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  community::community_view::CommunityQuery,
-  structs::{CommunityView, LocalUserView, SiteView},
-};
+use lemmy_db_views_community::{impls::CommunityQuery, CommunityView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_communities(

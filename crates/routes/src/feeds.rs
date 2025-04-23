@@ -11,14 +11,10 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views::{
-  combined::{
-    inbox_combined_view::InboxCombinedQuery,
-    person_content_combined_view::PersonContentCombinedQuery,
-  },
-  post::post_view::PostQuery,
-  structs::{InboxCombinedView, PostView, SiteView},
-};
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
+use lemmy_db_views_post::{impls::PostQuery, PostView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},

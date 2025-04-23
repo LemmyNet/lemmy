@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, post::MarkManyPostsAsRead, SuccessResponse};
 use lemmy_db_schema::{source::post::PostActions, traits::Readable};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 
 pub async fn mark_posts_as_read(

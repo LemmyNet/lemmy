@@ -5,10 +5,9 @@ use lemmy_api_common::{
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  combined::modlog_combined_view::ModlogCombinedQuery,
-  structs::{LocalUserView, ModlogCombinedView, SiteView},
-};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_mod_log(

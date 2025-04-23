@@ -3120,7 +3120,23 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_inbox_combined",
+ "lemmy_db_views_local_image",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_person",
+ "lemmy_db_views_person_saved_combined",
+ "lemmy_db_views_post",
+ "lemmy_db_views_registration_applications",
+ "lemmy_db_views_report_combined",
+ "lemmy_db_views_reports",
+ "lemmy_db_views_site",
+ "lemmy_db_views_vote",
  "lemmy_email",
  "lemmy_utils",
  "pretty_assertions",
@@ -3151,7 +3167,27 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_inbox_combined",
+ "lemmy_db_views_local_image",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_person",
+ "lemmy_db_views_person_content_combined",
+ "lemmy_db_views_person_saved_combined",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_db_views_registration_applications",
+ "lemmy_db_views_report_combined",
+ "lemmy_db_views_reports",
+ "lemmy_db_views_search_combined",
+ "lemmy_db_views_site",
+ "lemmy_db_views_vote",
  "lemmy_email",
  "lemmy_utils",
  "mime",
@@ -3191,7 +3227,17 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_db_views_search_combined",
+ "lemmy_db_views_site",
  "lemmy_email",
  "lemmy_utils",
  "regex",
@@ -3223,7 +3269,18 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_person_content_combined",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_db_views_search_combined",
+ "lemmy_db_views_site",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
@@ -3250,7 +3307,7 @@ dependencies = [
  "diesel-async",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_post",
  "lemmy_utils",
  "tokio",
  "url",
@@ -3311,22 +3368,235 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views"
+name = "lemmy_db_views_comment"
 version = "1.0.0-alpha.4"
 dependencies = [
- "actix-web",
- "chrono",
- "derive-new",
  "diesel",
  "diesel-async",
  "diesel_ltree",
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_local_user",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
- "serde_json",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_community"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
+name = "lemmy_db_views_community_follower"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_community_moderator"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_community_person_ban"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+]
+
+[[package]]
+name = "lemmy_db_views_custom_emoji"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_inbox_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_private_message",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_local_image"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_local_user"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "actix-web",
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_modlog_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person_content_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "derive-new",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person_saved_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_post"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_local_user",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
  "serde_with",
  "serial_test",
  "test-context",
@@ -3337,13 +3607,132 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_private_message"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_registration_applications"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_report_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_reports",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_reports"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_search_combined"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_community",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
+name = "lemmy_db_views_site"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_vote"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_email"
 version = "1.0.0-alpha.4"
 dependencies = [
  "html2text",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_local_user",
  "lemmy_utils",
  "lettre",
  "rosetta-build",
@@ -3367,7 +3756,7 @@ dependencies = [
  "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_community_follower",
  "lemmy_utils",
  "mockall",
  "moka",
@@ -3402,7 +3791,11 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views",
+ "lemmy_db_views_inbox_combined",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_person_content_combined",
+ "lemmy_db_views_post",
+ "lemmy_db_views_site",
  "lemmy_utils",
  "pretty_assertions",
  "prometheus",
@@ -3429,6 +3822,7 @@ dependencies = [
  "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",

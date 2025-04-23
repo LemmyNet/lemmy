@@ -5,7 +5,8 @@ use lemmy_api_common::{
   utils::is_mod_or_admin,
 };
 use lemmy_db_schema::{source::post::Post, traits::Crud};
-use lemmy_db_views::structs::{LocalUserView, VoteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_vote::VoteView;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a post
