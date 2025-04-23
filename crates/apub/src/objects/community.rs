@@ -1,6 +1,6 @@
 use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
-  activities::{update_community_post_tags, GetActorType},
+  activities::{update_community_tags, GetActorType},
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -35,11 +35,12 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    tag::Tag,
   },
   traits::{ApubActor, Crud},
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views::structs::{CommunityView, SiteView};
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -98,10 +99,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
-    // it's a bit weird to fetch the view here - maybe ApubCommunity should just wrap CommunityView
-    // instead of Community?
-    let community_view = CommunityView::read(&mut data.pool(), community_id, None, false).await?;
-
+    let post_tags = Tag::get_by_community(&mut data.pool(), community_id).await?;
     let group = Group {
       kind: GroupType::Group,
       id: self.id().into(),
@@ -129,12 +127,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
-      post_tags: community_view
-        .post_tags
-        .0
-        .iter()
-        .map(|tag| tag.clone().into())
-        .collect(),
+      post_tags: post_tags.into_iter().map(Into::into).collect(),
     };
     Ok(group)
   }
@@ -216,7 +209,7 @@ impl Object for ApubCommunity {
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
-    update_community_post_tags(context, community.id, group_url, group.post_tags).await?;
+    update_community_tags(context, community.id, group_url, group.post_tags).await?;
 
     let community: ApubCommunity = community.into();
 

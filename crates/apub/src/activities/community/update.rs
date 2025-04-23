@@ -3,7 +3,7 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     generate_to,
-    update_community_post_tags,
+    update_community_tags,
     verify_mod_action,
     verify_person_in_community,
     verify_visibility,
@@ -120,7 +120,7 @@ impl ActivityHandler for UpdateCommunity {
       ..Default::default()
     };
 
-    update_community_post_tags(context, community.id, ap_id, self.object.post_tags).await?;
+    update_community_tags(context, community.id, ap_id, self.object.post_tags).await?;
 
     Community::update(&mut context.pool(), community.id, &community_update_form).await?;
 

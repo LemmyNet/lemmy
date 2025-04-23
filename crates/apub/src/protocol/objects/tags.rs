@@ -1,4 +1,7 @@
-use lemmy_db_schema::source::tag::Tag;
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::tag::{Tag, TagInsertForm},
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -6,9 +9,9 @@ use url::Url;
 /// defines that any object can have a list of tags associated with it.
 /// Tags in AS can be of any type, so we define our own types. For now, only `CommunityPostTag`:
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-enum LemmyCommunityPostTagType {
-  #[serde(rename = "lemmy:CommunityPostTag")]
-  LemmyCommunityPostTagType,
+enum LemmyCommunityTagType {
+  #[serde(rename = "lemmy:CommunityTag")]
+  LemmyCommunityTagType,
 }
 
 /// A tag that a community owns, that is (currently) added to a post.
@@ -21,7 +24,7 @@ enum LemmyCommunityPostTagType {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct LemmyCommunityTag {
   #[serde(rename = "type")]
-  kind: LemmyCommunityPostTagType,
+  kind: LemmyCommunityTagType,
   pub id: Url,
   // the name of the tag can be updated by the moderators of the community. The ID is fixed.
   pub display_name: String,
@@ -30,9 +33,18 @@ pub struct LemmyCommunityTag {
 impl From<Tag> for LemmyCommunityTag {
   fn from(tag: Tag) -> Self {
     LemmyCommunityTag {
-      kind: LemmyCommunityPostTagType::LemmyCommunityPostTagType,
+      kind: LemmyCommunityTagType::LemmyCommunityTagType,
       id: tag.ap_id.into(),
       display_name: tag.display_name,
+    }
+  }
+}
+impl LemmyCommunityTag {
+  pub fn to_tag_insert_form(self, community_id: CommunityId) -> TagInsertForm {
+    TagInsertForm {
+      ap_id: self.id.into(),
+      display_name: self.display_name,
+      community_id,
     }
   }
 }

@@ -43,7 +43,7 @@ use lemmy_db_schema::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
-    tag::{Tag, TagInsertForm},
+    tag::Tag,
   },
   traits::Crud,
 };
@@ -141,7 +141,7 @@ pub(crate) fn verify_visibility(
   }
 }
 
-pub(crate) async fn update_community_post_tags(
+pub(crate) async fn update_community_tags(
   context: &Data<LemmyContext>,
   community_id: CommunityId,
   group_url: String,
@@ -150,17 +150,10 @@ pub(crate) async fn update_community_post_tags(
   Tag::community_override_all_from_apub(
     &mut context.pool(),
     community_id,
+    group_url,
     post_tags
       .into_iter()
-      // Verify that this tag is actually in the given community.
-      // Needed to ensure that incoming AP updates of one community can not manipulate tags in a
-      // different community.
-      .filter(|tag| tag.id.as_str().starts_with(&group_url))
-      .map(|tag| TagInsertForm {
-        ap_id: tag.id.into(),
-        display_name: tag.display_name,
-        community_id,
-      })
+      .map(|t| t.to_tag_insert_form(community_id))
       .collect(),
   )
   .await

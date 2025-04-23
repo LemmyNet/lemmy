@@ -28,8 +28,17 @@ impl Tag {
   pub async fn community_override_all_from_apub(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
+    community_ap_id: String,
     ap_tags: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
+    // Verify that each tag is actually in the given community.
+    // Needed to ensure that incoming AP updates of one community can not manipulate tags in a
+    // different community.
+    let ap_tags: Vec<TagInsertForm> = ap_tags
+      .into_iter()
+      .filter(|tag| tag.ap_id.as_str().starts_with(&community_ap_id))
+      .collect();
+
     let known_tags = Tag::get_by_community(pool, community_id).await?;
     let old_tags = known_tags
       .iter()
