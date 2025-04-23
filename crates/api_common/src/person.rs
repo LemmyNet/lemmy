@@ -361,7 +361,7 @@ pub struct ListPersonHidden {
 #[cfg_attr(feature = "full", ts(export))]
 /// You hidden posts response.
 pub struct ListPersonHiddenResponse {
-  pub read: Vec<PostView>,
+  pub hidden: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,

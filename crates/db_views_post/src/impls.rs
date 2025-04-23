@@ -199,8 +199,7 @@ impl PostView {
   /// List all the hidden posts for your person, ordered by the hide date.
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    local_instance_id: InstanceId,
+    my_person: &Person,
     cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
@@ -208,8 +207,8 @@ impl PostView {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
-    let query = PostView::joins(Some(my_person_id), local_instance_id)
-      .filter(post_actions::person_id.eq(my_person_id))
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
@@ -1682,15 +1681,8 @@ mod tests {
       .is_some_and(|p| p.post_actions.as_ref().is_some_and(|a| a.hidden.is_some())));
 
     // Make sure only that one comes back for list_hidden
-    let list_hidden = PostView::list_hidden(
-      pool,
-      data.tegan_local_user_view.person.id,
-      data.instance.id,
-      None,
-      None,
-      None,
-    )
-    .await?;
+    let list_hidden =
+      PostView::list_hidden(pool, &data.tegan_local_user_view.person, None, None, None).await?;
     assert_eq!(vec![POST_BY_BOT], names(&list_hidden));
 
     Ok(())
