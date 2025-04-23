@@ -22,6 +22,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
     local_user::LocalUser,
+    person::Person,
     post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
   },
@@ -167,8 +168,7 @@ impl PostView {
   /// List all the read posts for your person, ordered by the read date.
   pub async fn list_read(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    local_instance_id: InstanceId,
+    my_person: &Person,
     cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
@@ -176,8 +176,8 @@ impl PostView {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
-    let query = PostView::joins(Some(my_person_id), local_instance_id)
-      .filter(post_actions::person_id.eq(my_person_id))
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
@@ -1043,15 +1043,8 @@ mod tests {
       PostReadForm::new(data.post_with_tags.id, data.tegan_local_user_view.person.id);
     PostActions::mark_as_read(pool, &tag_post_read_form).await?;
 
-    let read_read_post_listing = PostView::list_read(
-      pool,
-      data.tegan_local_user_view.person.id,
-      data.instance.id,
-      None,
-      None,
-      None,
-    )
-    .await?;
+    let read_read_post_listing =
+      PostView::list_read(pool, &data.tegan_local_user_view.person, None, None, None).await?;
 
     // This should be ordered from most recently read
     assert_eq!(

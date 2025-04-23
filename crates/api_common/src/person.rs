@@ -20,6 +20,7 @@ use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_person_content_combined::PersonContentCombinedView;
 use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
+use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
