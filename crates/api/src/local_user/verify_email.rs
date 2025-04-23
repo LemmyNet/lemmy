@@ -4,7 +4,8 @@ use lemmy_db_schema::source::{
   email_verification::EmailVerification,
   local_user::{LocalUser, LocalUserUpdateForm},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_email_to_admins};
 use lemmy_utils::error::LemmyResult;
 

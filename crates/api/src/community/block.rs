@@ -11,7 +11,8 @@ use lemmy_db_schema::{
   traits::{Blockable, Followable},
   utils::get_conn,
 };
-use lemmy_db_views::structs::{CommunityView, LocalUserView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn user_block_community(

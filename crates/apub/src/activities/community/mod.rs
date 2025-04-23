@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod announce;

@@ -6,7 +6,7 @@ use lemmy_db_schema::source::{
   person_post_mention::PersonPostMention,
   private_message::PrivateMessage,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn mark_all_notifications_read(

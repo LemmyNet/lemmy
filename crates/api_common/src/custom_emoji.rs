@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::CustomEmojiId;
-use lemmy_db_views::structs::CustomEmojiView;
+use lemmy_db_views_custom_emoji::CustomEmojiView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

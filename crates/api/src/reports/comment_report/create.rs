@@ -11,7 +11,10 @@ use lemmy_db_schema::{
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView, SiteView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::CommentReportView;
+use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
