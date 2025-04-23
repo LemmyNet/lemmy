@@ -16,13 +16,14 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::asc_if;
+use i_love_jesus::{asc_if, SortDirection};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
     local_user::LocalUser,
-    post::{post_keys as key, Post},
+    person::Person,
+    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
@@ -162,6 +163,44 @@ impl PostView {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// List all the read posts for your person, ordered by the read date.
+  pub async fn list_read(
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+    cursor_data: Option<PostActions>,
+    page_back: Option<bool>,
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<PostView>> {
+    let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
+
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
+      .filter(post_actions::read.is_not_null())
+      .filter(filter_blocked())
+      .select(PostView::as_select())
+      .limit(limit)
+      .into_boxed();
+
+    // Sorting by the read date
+    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
+      .then_order_by(pa_key::read)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
+
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and post
+    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.post.id.0)];
+
+    PaginationCursor::new(&prefixes_and_ids)
   }
 
   // TODO this function needs to be checked
@@ -988,34 +1027,33 @@ mod tests {
     Ok(())
   }
 
-  // TODO these need to get moved to the post_read_list
-  // #[test_context(Data)]
-  // #[tokio::test]
-  // #[serial]
-  // async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
-  //   let pool = &data.pool();
-  //   let pool = &mut pool.into();
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
 
-  //   // Only mark the bot post as read
-  //   // The read_only should only show the bot post
-  //   let post_read_form = PostReadForm::new(data.bot_post.id,
-  // data.tegan_local_user_view.person.id);   PostActions::mark_as_read(pool,
-  // &post_read_form).await?;
+    // Mark the bot post, then the tags post as read
+    let bot_post_read_form =
+      PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
+    PostActions::mark_as_read(pool, &bot_post_read_form).await?;
 
-  //   // Only read the post marked as read
-  //   let read_read_post_listing = PostQuery {
-  //     community_id: Some(data.community.id),
-  //     read_only: Some(true),
-  //     ..data.default_post_query()
-  //   }
-  //   .list(&data.site, pool)
-  //   .await?;
+    let tag_post_read_form =
+      PostReadForm::new(data.post_with_tags.id, data.tegan_local_user_view.person.id);
+    PostActions::mark_as_read(pool, &tag_post_read_form).await?;
 
-  //   // This should only include the bot post, not the one you created
-  //   assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
+    let read_read_post_listing =
+      PostView::list_read(pool, &data.tegan_local_user_view.person, None, None, None).await?;
 
-  //   Ok(())
-  // }
+    // This should be ordered from most recently read
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT],
+      names(&read_read_post_listing)
+    );
+
+    Ok(())
+  }
 
   #[test_context(Data)]
   #[tokio::test]
