@@ -19,9 +19,6 @@ workspace = true
 [features]
 full = [
   "tracing",
-  "lemmy_db_views/full",
-  "lemmy_utils/full",
-  "lemmy_email",
   "activitypub_federation",
   "encoding_rs",
   "reqwest-middleware",
@@ -40,11 +37,55 @@ full = [
   "extism-convert",
   "once_cell",
   "serde_json",
+  "lemmy_email",
+  "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_utils/full",
+  "lemmy_db_views_comment/full",
+  "lemmy_db_views_community/full",
+  "lemmy_db_views_community_moderator/full",
+  "lemmy_db_views_community_follower/full",
+  "lemmy_db_views_community_person_ban/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_vote/full",
+  "lemmy_db_views_local_user/full",
+  "lemmy_db_views_person/full",
+  "lemmy_db_views_custom_emoji/full",
+  "lemmy_db_views_reports/full",
+  "lemmy_db_views_private_message/full",
+  "lemmy_db_views_local_image/full",
+  "lemmy_db_views_inbox_combined/full",
+  "lemmy_db_views_modlog_combined/full",
+  "lemmy_db_views_person_content_combined/full",
+  "lemmy_db_views_person_saved_combined/full",
+  "lemmy_db_views_report_combined/full",
+  "lemmy_db_views_search_combined/full",
+  "lemmy_db_views_site/full",
+  "lemmy_db_views_registration_applications/full",
 ]
 
 [dependencies]
-lemmy_db_views = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
+lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_community_person_ban = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_vote = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+lemmy_db_views_person = { workspace = true }
+lemmy_db_views_custom_emoji = { workspace = true }
+lemmy_db_views_reports = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
+lemmy_db_views_local_image = { workspace = true }
+lemmy_db_views_inbox_combined = { workspace = true }
+lemmy_db_views_modlog_combined = { workspace = true }
+lemmy_db_views_person_content_combined = { workspace = true }
+lemmy_db_views_person_saved_combined = { workspace = true }
+lemmy_db_views_report_combined = { workspace = true }
+lemmy_db_views_search_combined = { workspace = true }
+lemmy_db_views_site = { workspace = true }
+lemmy_db_views_registration_applications = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

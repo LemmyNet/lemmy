@@ -1,7 +1,7 @@
 use actix_web::{web, Error, HttpResponse, Result};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   cache_header::{cache_1hour, cache_3days},
   error::LemmyResult,

@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::{CommunityId, CommunityReportId};
-use lemmy_db_views::structs::CommunityReportView;
+use lemmy_db_views_reports::CommunityReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;

@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   CacheLock,
@@ -166,7 +166,7 @@ pub(crate) async fn local_site_data_cached(
           blocked_instances,
         }))
       })
-      .await.map_err(|_e| LemmyErrorType::NotFound)?,
+      .await.map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))?
   )
 }
 

@@ -7,8 +7,8 @@ use actix_web::{
   HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::lemmy_db_views::structs::LocalUserView;
 use lemmy_db_schema::newtypes::LocalUserId;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::rate_limit::rate_limiter::InstantSecs;
 use std::{
   collections::HashSet,

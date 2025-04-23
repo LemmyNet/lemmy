@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::community::{CommunityActions, CommunityModeratorForm},
   traits::Joinable,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
 use person::ApubPerson;
 
