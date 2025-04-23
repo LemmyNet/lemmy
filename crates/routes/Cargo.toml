@@ -16,8 +16,14 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
+lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person_content_combined = { workspace = true, features = [
+  "full",
+] }
+lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
-lemmy_db_views = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }

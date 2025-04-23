@@ -5,7 +5,8 @@ use lemmy_api_common::{
   utils::check_community_mod_of_any_or_admin_action,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView, PendingFollow};
+use lemmy_db_views_community_follower::{CommunityFollowerView, PendingFollow};
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_pending_follows_list(

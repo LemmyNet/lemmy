@@ -6,10 +6,12 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  registration_applications::registration_application_view::RegistrationApplicationQuery,
-  structs::{LocalUserView, RegistrationApplicationView, SiteView},
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::{
+  impls::RegistrationApplicationQuery,
+  RegistrationApplicationView,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.

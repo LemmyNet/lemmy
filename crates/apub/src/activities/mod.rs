@@ -33,6 +33,7 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::check_is_mod_or_admin,
 };
 use lemmy_db_schema::{
   source::{
@@ -43,7 +44,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, SiteView};
+use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -103,7 +105,7 @@ pub(crate) async fn verify_mod_action(
   let local_instance_id = site_view.site.instance_id;
 
   let mod_ = mod_id.dereference(context).await?;
-  CommunityView::check_is_mod_or_admin(
+  check_is_mod_or_admin(
     &mut context.pool(),
     mod_.id,
     community.id,

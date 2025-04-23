@@ -14,7 +14,8 @@ use lemmy_api_common::{
     check_totp_2fa_valid,
   },
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn login(
