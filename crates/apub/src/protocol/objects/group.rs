@@ -81,8 +81,8 @@ pub struct Group {
   pub(crate) discoverable: Option<bool>,
   /// We add available post tags as a custom field on the group. another option would be to use the
   /// standard "attachments" property, but it seems unlikely for there to be a benefit to that.
-  #[serde(default, rename = "lemmy:postTags")]
-  pub(crate) post_tags: Vec<LemmyCommunityTag>,
+  #[serde(default, rename = "lemmy:tagsForPosts")]
+  pub(crate) tags_for_posts: Vec<LemmyCommunityTag>,
 }
 
 impl Group {

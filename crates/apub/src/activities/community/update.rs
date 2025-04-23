@@ -120,7 +120,7 @@ impl ActivityHandler for UpdateCommunity {
       ..Default::default()
     };
 
-    update_community_tags(context, community.id, ap_id, self.object.post_tags).await?;
+    update_community_tags(context, community.id, ap_id, self.object.tags_for_posts).await?;
 
     Community::update(&mut context.pool(), community.id, &community_update_form).await?;
 

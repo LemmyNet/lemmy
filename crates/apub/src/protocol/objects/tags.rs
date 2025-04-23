@@ -15,7 +15,8 @@ enum LemmyCommunityTagType {
 }
 
 /// A tag that a community owns, that is (currently) added to a post.
-/// In the community (group), we attach the list of available tags as the "lemmy:postTags" property.
+/// In the community (group), we attach the list of available tags as the "lemmy:tagsForPosts"
+/// property.
 ///
 /// In the post, the tags are added to the standard "tag" property.
 ///
