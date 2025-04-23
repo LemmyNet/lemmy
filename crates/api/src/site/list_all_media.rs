@@ -5,7 +5,8 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::structs::{LocalImageView, LocalUserView};
+use lemmy_db_views_local_image::LocalImageView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_all_media(

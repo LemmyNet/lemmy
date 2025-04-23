@@ -15,7 +15,7 @@ use lemmy_api_common::{
   LemmyErrorType,
 };
 use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {

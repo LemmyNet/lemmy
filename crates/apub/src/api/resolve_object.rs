@@ -11,14 +11,12 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::utils::DbPool;
-use lemmy_db_views::structs::{
-  CommentView,
-  CommunityView,
-  LocalUserView,
-  PersonView,
-  PostView,
-  SiteView,
-};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 pub async fn resolve_object(
@@ -96,7 +94,8 @@ mod tests {
     },
     traits::Crud,
   };
-  use lemmy_db_views::{site::site_view::create_test_instance, structs::LocalUserView};
+  use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
 
