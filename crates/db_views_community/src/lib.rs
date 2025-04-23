@@ -4,6 +4,7 @@ use lemmy_db_schema::source::{
   tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
@@ -14,6 +15,7 @@ use {
 #[cfg(feature = "full")]
 pub mod impls;
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
