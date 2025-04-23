@@ -203,7 +203,7 @@ pub struct EditPostUrl {
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub alt_text: Option<String>
+  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

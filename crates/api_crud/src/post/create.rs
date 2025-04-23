@@ -6,7 +6,7 @@ use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  post::{CreatePost, PostResponse},
+  post::{CreatePost, CreatePostUrl, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
@@ -58,23 +58,30 @@ pub async fn create_post(
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
-  let url = diesel_url_create(data.url.as_deref())?;
+  let mut parsed_urls = vec![];
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   is_valid_post_title(&data.name)?;
 
-  if let Some(url) = &url {
-    is_url_blocked(url, &url_blocklist)?;
-    is_valid_url(url)?;
+  if let Some(urls) = data.urls {
+    for u in urls {
+      let parsed: DbUrl = Url::parse(u.url)
+        .map(|u| Some(clean_url(&u).into()))
+        .with_lemmy_type(LemmyErrorType::InvalidUrl)?;
+      is_url_blocked(&parsed, &url_blocklist)?;
+      is_valid_url(&parsed)?;
+      parsed_urls.push(parsed);
+
+      if let Some(alt_text) = u.alt_text {
+        is_valid_alt_text_field(&alt_text)?;
+      }
+    }
   }
+  let is_gallery = parsed_urls.len() > 1;
 
   if let Some(custom_thumbnail) = &custom_thumbnail {
     is_valid_url(custom_thumbnail)?;
-  }
-
-  if let Some(alt_text) = &data.alt_text {
-    is_valid_alt_text_field(alt_text)?;
   }
 
   if let Some(body) = &body {
@@ -105,68 +112,71 @@ pub async fn create_post(
   )
   .await?;
 
-  let scheduled_publish_time =
-    convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
-  let mut post_form = PostInsertForm {
-    url,
-    body,
-    alt_text: data.alt_text.clone(),
-    nsfw,
-    language_id: Some(language_id),
-    federation_pending: Some(community_use_pending(&community, &context).await),
-    scheduled_publish_time,
-    ..PostInsertForm::new(
-      data.name.trim().to_string(),
-      local_user_view.person.id,
-      data.community_id,
-    )
-  };
-
-  post_form = plugin_hook_before("before_create_local_post", post_form).await?;
-
-  let inserted_post = Post::create(&mut context.pool(), &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
-  plugin_hook_after("after_create_local_post", &inserted_post)?;
-
-  let community_id = community.id;
-  let federate_post = if scheduled_publish_time.is_none() {
-    send_webmention(inserted_post.clone(), community);
-    |post| Some(SendActivityData::CreatePost(post))
+  if is_gallery {
   } else {
-    |_| None
-  };
-  generate_post_link_metadata(
-    inserted_post.clone(),
-    custom_thumbnail.map(Into::into),
-    federate_post,
-    context.reset_request_count(),
-  )
-  .await?;
+    let scheduled_publish_time =
+      convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
+    let mut post_form = PostInsertForm {
+      // url,
+      body,
+      // alt_text: data.alt_text.clone(),
+      nsfw,
+      language_id: Some(language_id),
+      federation_pending: Some(community_use_pending(&community, &context).await),
+      scheduled_publish_time,
+      ..PostInsertForm::new(
+        data.name.trim().to_string(),
+        local_user_view.person.id,
+        data.community_id,
+      )
+    };
 
-  // They like their own post by default
-  let person_id = local_user_view.person.id;
-  let post_id = inserted_post.id;
-  let local_instance_id = local_user_view.person.instance_id;
-  let like_form = PostLikeForm::new(post_id, person_id, 1);
+    post_form = plugin_hook_before("before_create_local_post", post_form).await?;
 
-  PostActions::like(&mut context.pool(), &like_form).await?;
+    let inserted_post = Post::create(&mut context.pool(), &post_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+    plugin_hook_after("after_create_local_post", &inserted_post)?;
 
-  // Scan the post body for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
-  send_local_notifs(
-    mentions,
-    PostOrCommentId::Post(inserted_post.id),
-    &local_user_view.person,
-    true,
-    &context,
-    Some(&local_user_view),
-    local_instance_id,
-  )
-  .await?;
+    let community_id = community.id;
+    let federate_post = if scheduled_publish_time.is_none() {
+      send_webmention(inserted_post.clone(), community);
+      |post| Some(SendActivityData::CreatePost(post))
+    } else {
+      |_| None
+    };
+    generate_post_link_metadata(
+      inserted_post.clone(),
+      custom_thumbnail.map(Into::into),
+      federate_post,
+      context.reset_request_count(),
+    )
+    .await?;
 
-  let read_form = PostReadForm::new(post_id, person_id);
-  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+    // They like their own post by default
+    let person_id = local_user_view.person.id;
+    let post_id = inserted_post.id;
+    let local_instance_id = local_user_view.person.instance_id;
+    let like_form = PostLikeForm::new(post_id, person_id, 1);
 
-  build_post_response(&context, community_id, local_user_view, post_id).await
+    PostActions::like(&mut context.pool(), &like_form).await?;
+
+    // Scan the post body for user mentions, add those rows
+    let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+    send_local_notifs(
+      mentions,
+      PostOrCommentId::Post(inserted_post.id),
+      &local_user_view.person,
+      true,
+      &context,
+      Some(&local_user_view),
+      local_instance_id,
+    )
+    .await?;
+
+    let read_form = PostReadForm::new(post_id, person_id);
+    PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+
+    build_post_response(&context, community_id, local_user_view, post_id).await
+  }
 }

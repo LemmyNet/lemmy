@@ -230,6 +230,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
     } else {
       Some(PersonContentCombinedView::Post(PostView {
         post: v.post,
+	urls: v.urls,
         community: v.community,
         creator: v.item_creator,
         image_details: v.image_details,

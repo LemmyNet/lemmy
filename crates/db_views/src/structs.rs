@@ -13,7 +13,7 @@ use crate::utils::{
   person1_select,
   person2_select,
   post_creator_is_admin,
-  post_get_urls
+  post_get_urls,
 };
 #[cfg(feature = "full")]
 use diesel::{
@@ -67,7 +67,18 @@ use lemmy_db_schema::source::{
       ModRemovePost,
       ModTransferCommunity,
     },
-  }, person::{Person, PersonActions}, person_comment_mention::PersonCommentMention, person_post_mention::PersonPostMention, post::{Post, PostActions}, post_report::PostReport, post_url::PostUrl, private_message::PrivateMessage, private_message_report::PrivateMessageReport, registration_application::RegistrationApplication, site::Site, tag::Tag
+  },
+  person::{Person, PersonActions},
+  person_comment_mention::PersonCommentMention,
+  person_post_mention::PersonPostMention,
+  post::{Post, PostActions},
+  post_report::PostReport,
+  post_url::PostUrl,
+  private_message::PrivateMessage,
+  private_message_report::PrivateMessageReport,
+  registration_application::RegistrationApplication,
+  site::Site,
+  tag::Tag,
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema::{
@@ -359,7 +370,6 @@ pub struct PostView {
     )
   )]
   pub urls: PostUrlView,
-  // pub urls: Vec<PostUrl>
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -606,6 +616,12 @@ pub(crate) struct PersonContentCombinedViewInternal {
   pub comment: Option<Comment>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_urls()
+    )
+  )]
+  pub urls: PostUrlView,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -678,6 +694,12 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub comment: Option<Comment>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_urls()
+    )
+  )]
+  pub urls: PostUrlView,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1396,6 +1418,12 @@ pub(crate) struct SearchCombinedViewInternal {
   pub comment: Option<Comment>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Option<Post>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_urls()
+    )
+  )]
+  pub urls: PostUrlView,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub item_creator: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -1471,4 +1499,5 @@ pub struct PostTags {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 #[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 pub struct PostUrlView(pub Vec<PostUrl>);

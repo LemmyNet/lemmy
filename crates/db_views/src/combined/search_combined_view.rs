@@ -368,6 +368,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
     {
       Some(SearchCombinedView::Post(PostView {
         post,
+	urls: v.urls,
         community,
         creator,
         creator_is_admin: v.item_creator_is_admin,

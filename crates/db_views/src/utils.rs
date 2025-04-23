@@ -1,12 +1,5 @@
 use diesel::{
-  dsl::{case_when, exists, not, Nullable},
-  helper_types::{Eq, NotEq},
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgExpressionMethods,
-  QueryDsl, RunQueryDsl,
+  dsl::{case_when, exists, not, Nullable}, expression::SqlLiteral, helper_types::{Eq, NotEq}, sql_types::Json, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgExpressionMethods, QueryDsl, RunQueryDsl
 };
 use lemmy_db_schema::{
   aliases::{
@@ -37,6 +30,7 @@ use lemmy_db_schema_file::{
     person,
     person_actions,
     post,
+    post_actions,
     post_url,
   },
 };
@@ -92,11 +86,14 @@ pub(crate) fn post_creator_is_admin() -> _ {
 
 #[diesel::dsl::auto_type]
 pub(crate) fn post_get_urls() -> _ {
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(*)");
   post_url::table
+    .select(sel)
     .filter(post_url::post_id.eq(post::id))
     .single_value()
 }
 
+#[diesel::dsl::auto_type]
 /// Checks to see if a user is site banned from any of these places:
 /// - Their own instance
 /// - The local instance

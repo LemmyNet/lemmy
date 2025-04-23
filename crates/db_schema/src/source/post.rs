@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  crate::schema::{post, post_actions, post_url},
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{post, post_actions},
   ts_rs::TS,
@@ -25,8 +24,9 @@ pub struct Post {
   pub id: PostId,
   pub name: String,
   /// An optional link / url for the post.
-  // #[cfg_attr(feature = "full", ts(optional))]
-  // pub url: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  #[serde(skip)]
+  pub url: Option<DbUrl>,
   /// An optional post body, in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
@@ -44,11 +44,11 @@ pub struct Post {
   /// Whether the post is NSFW.
   pub nsfw: bool,
   /// A title for the link.
-  // #[cfg_attr(feature = "full", ts(optional))]
-  // pub embed_title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub embed_title: Option<String>,
   /// A description for the link.
-  // #[cfg_attr(feature = "full", ts(optional))]
-  // pub embed_description: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub embed_description: Option<String>,
   /// A thumbnail picture url.
   #[cfg_attr(feature = "full", ts(optional))]
   pub thumbnail_url: Option<DbUrl>,
@@ -57,18 +57,20 @@ pub struct Post {
   /// Whether the post is local.
   pub local: bool,
   /// A video url for the link.
-  // #[cfg_attr(feature = "full", ts(optional))]
-  // pub embed_video_url: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub embed_video_url: Option<DbUrl>,
   pub language_id: LanguageId,
   /// Whether the post is featured to its community.
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
-  // #[cfg_attr(feature = "full", ts(optional))]
-  // pub url_content_type: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  #[serde(skip)]
+  pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
   // #[cfg_attr(feature = "full", ts(optional))]
-  // pub alt_text: Option<String>,
+  #[serde(skip)]
+  pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
@@ -110,8 +112,8 @@ pub struct PostInsertForm {
   pub community_id: CommunityId,
   #[new(default)]
   pub nsfw: Option<bool>,
-  // #[new(default)]
-  // pub url: Option<DbUrl>,
+  #[new(default)]
+  pub url: Option<DbUrl>,
   #[new(default)]
   pub body: Option<String>,
   #[new(default)]
@@ -124,12 +126,12 @@ pub struct PostInsertForm {
   pub published: Option<DateTime<Utc>>,
   #[new(default)]
   pub deleted: Option<bool>,
-  // #[new(default)]
-  // pub embed_title: Option<String>,
-  // #[new(default)]
-  // pub embed_description: Option<String>,
-  // #[new(default)]
-  // pub embed_video_url: Option<DbUrl>,
+  #[new(default)]
+  pub embed_title: Option<String>,
+  #[new(default)]
+  pub embed_description: Option<String>,
+  #[new(default)]
+  pub embed_video_url: Option<DbUrl>,
   #[new(default)]
   pub thumbnail_url: Option<DbUrl>,
   #[new(default)]
@@ -140,12 +142,12 @@ pub struct PostInsertForm {
   pub language_id: Option<LanguageId>,
   #[new(default)]
   pub featured_community: Option<bool>,
-  // #[new(default)]
-  // pub featured_local: Option<bool>,
-  // #[new(default)]
-  // pub url_content_type: Option<String>,
-  // #[new(default)]
-  // pub alt_text: Option<String>,
+  #[new(default)]
+  pub featured_local: Option<bool>,
+  #[new(default)]
+  pub url_content_type: Option<String>,
+  #[new(default)]
+  pub alt_text: Option<String>,
   #[new(default)]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
   #[new(default)]
@@ -165,17 +167,17 @@ pub struct PostUpdateForm {
   pub published: Option<DateTime<Utc>>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
-  // pub embed_title: Option<Option<String>>,
-  // pub embed_description: Option<Option<String>>,
-  // pub embed_video_url: Option<Option<DbUrl>>,
+  pub embed_title: Option<Option<String>>,
+  pub embed_description: Option<Option<String>>,
+  pub embed_video_url: Option<Option<DbUrl>>,
   pub thumbnail_url: Option<Option<DbUrl>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
-  // pub url_content_type: Option<Option<String>>,
-  // pub alt_text: Option<Option<String>>,
+  pub url_content_type: Option<Option<String>>,
+  pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
   pub federation_pending: Option<bool>,
 }
