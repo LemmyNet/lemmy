@@ -5,7 +5,8 @@ use lemmy_api_common::{
   person::{ListPersonRead, ListPersonReadResponse},
 };
 use lemmy_db_schema::source::post::PostActions;
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_read(
@@ -21,8 +22,7 @@ pub async fn list_person_read(
 
   let read = PostView::list_read(
     &mut context.pool(),
-    local_user_view.person.id,
-    local_user_view.person.instance_id,
+    &local_user_view.person,
     cursor_data,
     data.page_back,
     data.limit,

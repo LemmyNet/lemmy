@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud, Followable, Saveable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
@@ -284,10 +284,9 @@ pub(crate) mod tests {
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::{
-    site::site_view::create_test_instance,
-    structs::{CommunityFollowerView, LocalUserView},
-  };
+  use lemmy_db_views_community_follower::CommunityFollowerView;
+  use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;

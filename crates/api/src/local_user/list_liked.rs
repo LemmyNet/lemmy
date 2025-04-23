@@ -5,9 +5,10 @@ use lemmy_api_common::{
   person::{ListPersonLiked, ListPersonLikedResponse},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  combined::person_liked_combined_view::PersonLikedCombinedQuery,
-  structs::{LocalUserView, PersonLikedCombinedView},
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person_liked_combined::{
+  impls::PersonLikedCombinedQuery,
+  PersonLikedCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 

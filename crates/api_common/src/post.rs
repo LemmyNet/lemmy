@@ -3,7 +3,9 @@ use lemmy_db_schema::{
   PostFeatureType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views::structs::{CommunityView, PostView, VoteView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

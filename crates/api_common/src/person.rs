@@ -15,16 +15,14 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
-use lemmy_db_views::structs::{
-  CommunityModeratorView,
-  InboxCombinedView,
-  LocalImageView,
-  PersonContentCombinedView,
-  PersonLikedCombinedView,
-  PersonSavedCombinedView,
-  PersonView,
-  PostView,
-};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_inbox_combined::InboxCombinedView;
+use lemmy_db_views_local_image::LocalImageView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person_content_combined::PersonContentCombinedView;
+use lemmy_db_views_person_liked_combined::PersonLikedCombinedView;
+use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
+use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -365,7 +363,7 @@ pub struct ListPersonHidden {
 #[cfg_attr(feature = "full", ts(export))]
 /// You hidden posts response.
 pub struct ListPersonHiddenResponse {
-  pub read: Vec<PostView>,
+  pub hidden: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,

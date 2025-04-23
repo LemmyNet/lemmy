@@ -4,7 +4,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_vote::VoteView;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment

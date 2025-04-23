@@ -21,6 +21,7 @@ use {
     sql_types::Text,
   },
   diesel_ltree::Ltree,
+  lemmy_utils::error::{LemmyErrorType, LemmyResult},
   ts_rs::TS,
 };
 
@@ -433,9 +434,14 @@ pub struct PaginationCursor(pub String);
 
 #[cfg(feature = "full")]
 impl PaginationCursor {
+  /// Used for tables that have a single primary key.
+  /// IE the post table cursor looks like `P123`
   pub fn new_single(prefix: char, id: i32) -> Self {
     Self::new(&[(prefix, id)])
   }
+
+  /// Some tables (like community_actions for example) have compound primary keys.
+  /// This creates a cursor that can use both, like `C123-P123`
   pub fn new(prefixes_and_ids: &[(char, i32)]) -> Self {
     Self(
       prefixes_and_ids
@@ -465,5 +471,16 @@ impl PaginationCursor {
         }
       })
       .collect()
+  }
+
+  pub fn first_id(&self) -> LemmyResult<i32> {
+    Ok(
+      self
+        .prefixes_and_ids()
+        .as_slice()
+        .first()
+        .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
+        .1,
+    )
   }
 }

@@ -15,7 +15,7 @@ use either::Either;
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub(crate) mod markdown_links;

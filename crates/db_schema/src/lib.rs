@@ -49,6 +49,27 @@ pub enum SearchSortType {
   Old,
 }
 
+/// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub enum CommunitySortType {
+  ActiveSixMonths,
+  #[default]
+  ActiveMonthly,
+  ActiveWeekly,
+  ActiveDaily,
+  Hot,
+  New,
+  Old,
+  NameAsc,
+  NameDesc,
+  Comments,
+  Posts,
+  Subscribers,
+  SubscribersLocal,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
