@@ -196,6 +196,37 @@ impl PostView {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
+  /// List all the hidden posts for your person, ordered by the hide date.
+  pub async fn list_hidden(
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+    cursor_data: Option<PostActions>,
+    page_back: Option<bool>,
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<PostView>> {
+    let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
+
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
+      .filter(post_actions::hidden.is_not_null())
+      .filter(filter_blocked())
+      .select(PostView::as_select())
+      .limit(limit)
+      .into_boxed();
+
+    // Sorting by the hidden date
+    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
+      .then_order_by(pa_key::hidden)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
+
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
   pub fn to_post_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and post
     let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.post.id.0)];
@@ -1648,6 +1679,11 @@ mod tests {
     assert!(&post_listings_show_hidden
       .get(1)
       .is_some_and(|p| p.post_actions.as_ref().is_some_and(|a| a.hidden.is_some())));
+
+    // Make sure only that one comes back for list_hidden
+    let list_hidden =
+      PostView::list_hidden(pool, &data.tegan_local_user_view.person, None, None, None).await?;
+    assert_eq!(vec![POST_BY_BOT], names(&list_hidden));
 
     Ok(())
   }
