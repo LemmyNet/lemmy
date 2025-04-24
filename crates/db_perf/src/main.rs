@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_conn, now},
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
-use lemmy_db_views::{post::post_view::PostQuery, structs::PostView};
+use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 use url::Url;

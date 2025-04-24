@@ -14,7 +14,8 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_email::notifications::send_private_message_email;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 

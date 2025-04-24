@@ -135,6 +135,7 @@
 Lemmy 是免费的开源软件，无广告，无营利，无风险投资。您的捐款直接支持我们全职开发这一项目。
 
 - [在 Liberapay 上支持](https://liberapay.com/Lemmy)。
+- [在 Ko-fi 上支持](https://ko-fi.com/lemmynet).
 - [在 Patreon 上支持](https://www.patreon.com/dessalines)。
 - [在 OpenCollective 上支持](https://opencollective.com/lemmy)。
 - [赞助者列表](https://join-lemmy.org/sponsors)。

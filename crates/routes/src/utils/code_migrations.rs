@@ -9,10 +9,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_api_common::{
-  lemmy_db_views::structs::SiteView,
-  utils::{generate_followers_url, generate_inbox_url},
-};
+use lemmy_api_common::utils::{generate_followers_url, generate_inbox_url};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -29,6 +26,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::instance::{InstanceActions, InstanceBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_instance(
