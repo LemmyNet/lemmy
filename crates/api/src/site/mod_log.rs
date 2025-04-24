@@ -1,12 +1,16 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  site::{GetModlog, GetModlogResponse},
+  site::GetModlog,
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
+use lemmy_db_views_modlog_combined::{
+  impls::ModlogCombinedQuery,
+  GetModlogResponse,
+  ModlogCombinedView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
