@@ -19,6 +19,7 @@ use lemmy_utils::{
   email::send_email,
   error::{LemmyError, LemmyResult},
   settings::structs::Settings,
+  utils::markdown::markdown_to_html,
   LemmyErrorType,
 };
 
@@ -110,7 +111,10 @@ async fn send_application_denied_email(
   let lang = get_interface_language_from_settings(user);
   let subject = lang.registration_denied_subject(&user.person.name);
   let body = match deny_reason {
-    Some(deny_reason) => lang.registration_denied_reason_body(deny_reason, &settings.hostname),
+    Some(deny_reason) => {
+      let markdown = markdown_to_html(&deny_reason);
+      lang.registration_denied_reason_body(markdown, &settings.hostname)
+    }
     None => lang.registration_denied_body(&settings.hostname),
   };
   send_email(&subject, email, &user.person.name, &body, settings).await
