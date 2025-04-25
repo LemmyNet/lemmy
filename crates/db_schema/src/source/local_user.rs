@@ -3,7 +3,13 @@ use crate::{
   sensitive::SensitiveString,
 };
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
+use lemmy_db_schema_file::enums::{
+  CommentSortType,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  VoteShow,
+};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
@@ -78,7 +84,7 @@ pub struct LocalUser {
   pub default_post_time_range_seconds: Option<i32>,
   pub show_score: bool,
   pub show_upvotes: bool,
-  pub show_downvotes: bool,
+  pub show_downvotes: VoteShow,
   pub show_upvote_percentage: bool,
 }
 
@@ -149,7 +155,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub show_upvotes: Option<bool>,
   #[new(default)]
-  pub show_downvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
   #[new(default)]
   pub show_upvote_percentage: Option<bool>,
 }
@@ -189,6 +195,6 @@ pub struct LocalUserUpdateForm {
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
-  pub show_downvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
 }

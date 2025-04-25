@@ -40,6 +40,10 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "registration_mode_enum"))]
   pub struct RegistrationModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "vote_show_enum"))]
+  pub struct VoteShowEnum;
 }
 
 diesel::table! {
@@ -446,7 +450,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        disable_email_notifications -> Bool
+        disable_email_notifications -> Bool,
     }
 }
 
@@ -487,6 +491,7 @@ diesel::table! {
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::CommentSortTypeEnum;
+    use super::sql_types::VoteShowEnum;
 
     local_user (id) {
         id -> Int4,
@@ -523,7 +528,7 @@ diesel::table! {
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
         show_upvotes -> Bool,
-        show_downvotes -> Bool,
+        show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
     }
 }
@@ -1120,6 +1125,7 @@ diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
+diesel::joinable!(mod_ban -> instance (instance_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
@@ -1221,8 +1227,8 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_site_rate_limit,
   local_site_url_blocklist,
   local_user,
-  local_user_language,
   local_user_keyword_block,
+  local_user_language,
   login_token,
   mod_add,
   mod_add_community,
