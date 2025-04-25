@@ -941,7 +941,6 @@ pub async fn local_user_view_from_jwt(
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_local_user_valid(&local_user_view)?;
 
   Ok(local_user_view)
 }
