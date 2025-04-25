@@ -19,7 +19,7 @@ use {
       creator_community_actions_select,
       creator_home_instance_actions_select,
       creator_local_instance_actions_select,
-      local_user_can_mod,
+      local_user_can_mod_comment,
       post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
@@ -95,7 +95,7 @@ pub struct CommentView {
   pub post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod()
+      select_expression = local_user_can_mod_comment()
     )
   )]
   pub can_mod: bool,

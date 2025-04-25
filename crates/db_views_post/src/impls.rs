@@ -16,13 +16,14 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::asc_if;
+use i_love_jesus::{asc_if, SortDirection};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
     local_user::LocalUser,
-    post::{post_keys as key, Post},
+    person::Person,
+    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
@@ -41,7 +42,7 @@ use lemmy_db_schema::{
       image_details_join,
       my_community_actions_join,
       my_instance_actions_community_join,
-      my_local_user_join,
+      my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
     },
@@ -87,7 +88,7 @@ impl PostView {
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
-    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
     let my_instance_actions_community_join: my_instance_actions_community_join =
       my_instance_actions_community_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
@@ -102,7 +103,7 @@ impl PostView {
       .left_join(my_person_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_instance_actions_community_join)
-      .left_join(my_local_user_join)
+      .left_join(my_local_user_admin_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
@@ -162,6 +163,75 @@ impl PostView {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// List all the read posts for your person, ordered by the read date.
+  pub async fn list_read(
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+    cursor_data: Option<PostActions>,
+    page_back: Option<bool>,
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<PostView>> {
+    let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
+
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
+      .filter(post_actions::read.is_not_null())
+      .filter(filter_blocked())
+      .select(PostView::as_select())
+      .limit(limit)
+      .into_boxed();
+
+    // Sorting by the read date
+    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
+      .then_order_by(pa_key::read)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
+
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// List all the hidden posts for your person, ordered by the hide date.
+  pub async fn list_hidden(
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+    cursor_data: Option<PostActions>,
+    page_back: Option<bool>,
+    limit: Option<i64>,
+  ) -> LemmyResult<Vec<PostView>> {
+    let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(limit)?;
+
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+      .filter(post_actions::person_id.eq(my_person.id))
+      .filter(post_actions::hidden.is_not_null())
+      .filter(filter_blocked())
+      .select(PostView::as_select())
+      .limit(limit)
+      .into_boxed();
+
+    // Sorting by the hidden date
+    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
+      .then_order_by(pa_key::hidden)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
+
+    paginated_query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
+    // This needs a person and post
+    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.post.id.0)];
+
+    PaginationCursor::new(&prefixes_and_ids)
   }
 
   // TODO this function needs to be checked
@@ -988,34 +1058,33 @@ mod tests {
     Ok(())
   }
 
-  // TODO these need to get moved to the post_read_list
-  // #[test_context(Data)]
-  // #[tokio::test]
-  // #[serial]
-  // async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
-  //   let pool = &data.pool();
-  //   let pool = &mut pool.into();
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
 
-  //   // Only mark the bot post as read
-  //   // The read_only should only show the bot post
-  //   let post_read_form = PostReadForm::new(data.bot_post.id,
-  // data.tegan_local_user_view.person.id);   PostActions::mark_as_read(pool,
-  // &post_read_form).await?;
+    // Mark the bot post, then the tags post as read
+    let bot_post_read_form =
+      PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
+    PostActions::mark_as_read(pool, &bot_post_read_form).await?;
 
-  //   // Only read the post marked as read
-  //   let read_read_post_listing = PostQuery {
-  //     community_id: Some(data.community.id),
-  //     read_only: Some(true),
-  //     ..data.default_post_query()
-  //   }
-  //   .list(&data.site, pool)
-  //   .await?;
+    let tag_post_read_form =
+      PostReadForm::new(data.post_with_tags.id, data.tegan_local_user_view.person.id);
+    PostActions::mark_as_read(pool, &tag_post_read_form).await?;
 
-  //   // This should only include the bot post, not the one you created
-  //   assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
+    let read_read_post_listing =
+      PostView::list_read(pool, &data.tegan_local_user_view.person, None, None, None).await?;
 
-  //   Ok(())
-  // }
+    // This should be ordered from most recently read
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT],
+      names(&read_read_post_listing)
+    );
+
+    Ok(())
+  }
 
   #[test_context(Data)]
   #[tokio::test]
@@ -1145,6 +1214,40 @@ mod tests {
       ("john".to_owned(), true, false),
     ];
     assert_eq!(expected_post_listing, bot_listings);
+
+    // Have tegan the administrator become a moderator
+    let tegan_mod_form =
+      CommunityModeratorForm::new(community_id, data.tegan_local_user_view.person.id);
+    CommunityActions::join(pool, &tegan_mod_form).await?;
+
+    let john_listings = PostQuery {
+      sort: Some(PostSortType::New),
+      local_user: Some(&data.john_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
+        p.can_mod,
+      )
+    })
+    .collect::<Vec<_>>();
+
+    // John is a mod, so he still can_mod the bots (and his own) posts. Tegan is a lower mod and
+    // admin, john can't mod their posts.
+    let expected_post_listing = vec![
+      ("tegan".to_owned(), true, false),
+      ("mybot".to_owned(), false, true),
+      ("tegan".to_owned(), true, false),
+      ("john".to_owned(), true, true),
+    ];
+    assert_eq!(expected_post_listing, john_listings);
 
     Ok(())
   }
@@ -1610,6 +1713,11 @@ mod tests {
     assert!(&post_listings_show_hidden
       .get(1)
       .is_some_and(|p| p.post_actions.as_ref().is_some_and(|a| a.hidden.is_some())));
+
+    // Make sure only that one comes back for list_hidden
+    let list_hidden =
+      PostView::list_hidden(pool, &data.tegan_local_user_view.person, None, None, None).await?;
+    assert_eq!(vec![POST_BY_BOT], names(&list_hidden));
 
     Ok(())
   }
