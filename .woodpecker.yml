@@ -84,7 +84,7 @@ steps:
     image: *rust_nightly_image
     commands:
       - *install_binstall
-      - cargo binstall -y cargo-shear@1.2.6
+      - cargo binstall -y cargo-shear
       - cargo shear
     when:
       - event: pull_request
