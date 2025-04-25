@@ -42,7 +42,7 @@ use lemmy_db_schema::{
       image_details_join,
       my_community_actions_join,
       my_instance_actions_community_join,
-      my_local_user_join,
+      my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
     },
@@ -88,7 +88,7 @@ impl PostView {
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
-    let my_local_user_join: my_local_user_join = my_local_user_join(my_person_id);
+    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
     let my_instance_actions_community_join: my_instance_actions_community_join =
       my_instance_actions_community_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
@@ -103,7 +103,7 @@ impl PostView {
       .left_join(my_person_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_instance_actions_community_join)
-      .left_join(my_local_user_join)
+      .left_join(my_local_user_admin_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
@@ -1214,6 +1214,40 @@ mod tests {
       ("john".to_owned(), true, false),
     ];
     assert_eq!(expected_post_listing, bot_listings);
+
+    // Have tegan the administrator become a moderator
+    let tegan_mod_form =
+      CommunityModeratorForm::new(community_id, data.tegan_local_user_view.person.id);
+    CommunityActions::join(pool, &tegan_mod_form).await?;
+
+    let john_listings = PostQuery {
+      sort: Some(PostSortType::New),
+      local_user: Some(&data.john_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| {
+      (
+        p.creator.name,
+        p.creator_community_actions
+          .map(|x| x.became_moderator.is_some())
+          .unwrap_or(false),
+        p.can_mod,
+      )
+    })
+    .collect::<Vec<_>>();
+
+    // John is a mod, so he still can_mod the bots (and his own) posts. Tegan is a lower mod and
+    // admin, john can't mod their posts.
+    let expected_post_listing = vec![
+      ("tegan".to_owned(), true, false),
+      ("mybot".to_owned(), false, true),
+      ("tegan".to_owned(), true, false),
+      ("john".to_owned(), true, true),
+    ];
+    assert_eq!(expected_post_listing, john_listings);
 
     Ok(())
   }

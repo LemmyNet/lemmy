@@ -62,13 +62,13 @@ pub fn creator_is_admin() -> _ {
   creator_local_user
     .field(local_user::admin)
     .nullable()
-    .is_not_null()
+    .is_not_distinct_from(true)
 }
 
 /// Checks that the local_user is an admin.
 #[diesel::dsl::auto_type]
 pub fn local_user_is_admin() -> _ {
-  local_user::admin.nullable().is_not_null()
+  local_user::admin.nullable().is_not_distinct_from(true)
 }
 
 /// Checks to see if the comment creator is an admin.
@@ -119,6 +119,21 @@ pub fn creator_local_user_admin_join() -> _ {
   )
 }
 
+#[diesel::dsl::auto_type]
+fn am_higher_mod() -> _ {
+  let i_became_moderator = community_actions::became_moderator.nullable();
+
+  let creator_became_moderator = creator_community_actions
+    .field(community_actions::became_moderator)
+    .nullable();
+
+  i_became_moderator.is_not_null().and(
+    creator_became_moderator
+      .ge(i_became_moderator)
+      .is_distinct_from(false),
+  )
+}
+
 /// Checks to see if you can mod an item.
 ///
 /// Caveat: Since admin status isn't federated or ordered, it can't know whether
@@ -127,16 +142,19 @@ pub fn creator_local_user_admin_join() -> _ {
 /// LocalUser::is_higher_mod_or_admin_check
 #[diesel::dsl::auto_type]
 pub fn local_user_can_mod() -> _ {
-  let am_admin = local_user::admin.nullable();
-  let i_became_moderator = community_actions::became_moderator.nullable();
+  local_user_is_admin().or(not(creator_is_admin()).and(am_higher_mod()))
+}
 
-  let creator_became_moderator = creator_community_actions
-    .field(community_actions::became_moderator)
-    .nullable();
+/// Checks to see if you can mod a post.
+#[diesel::dsl::auto_type]
+pub fn local_user_can_mod_post() -> _ {
+  local_user_is_admin().or(not(post_creator_is_admin()).and(am_higher_mod()))
+}
 
-  let am_higher_mod = i_became_moderator.le(creator_became_moderator);
-
-  am_admin.or(am_higher_mod).is_not_distinct_from(true)
+/// Checks to see if you can mod a comment.
+#[diesel::dsl::auto_type]
+pub fn local_user_can_mod_comment() -> _ {
+  local_user_is_admin().or(not(comment_creator_is_admin()).and(am_higher_mod()))
 }
 
 /// A special type of can_mod for communities, which dont have creators.
@@ -154,7 +172,7 @@ pub fn comment_select_remove_deletes() -> _ {
   let deleted_or_removed = comment::deleted.or(comment::removed);
 
   // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod());
+  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_comment());
   let content = case_when(can_view_content, comment::content).otherwise("");
 
   (
@@ -350,8 +368,13 @@ pub fn my_person_actions_join(my_person_id: Option<PersonId>) -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub fn my_local_user_join(my_person_id: Option<PersonId>) -> _ {
-  local_user::table.on(local_user::person_id.nullable().eq(my_person_id))
+pub fn my_local_user_admin_join(my_person_id: Option<PersonId>) -> _ {
+  local_user::table.on(
+    local_user::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(local_user::admin.eq(true)),
+  )
 }
 
 #[diesel::dsl::auto_type]
