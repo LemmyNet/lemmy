@@ -1,5 +1,5 @@
 use crate::{
-  diesel::{DecoratableTarget, OptionalExtension},
+  diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
     actor_language::CommunityLanguage,
@@ -418,6 +418,23 @@ impl CommunityActions {
       .execute(conn)
       .await?;
     Ok(())
+  }
+
+  pub async fn fetch_largest_subscribed_community(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> LemmyResult<Option<CommunityId>> {
+    let conn = &mut get_conn(pool).await?;
+    community_actions::table
+      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::person_id.eq(person_id))
+      .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+      .order_by(community::users_active_month.desc())
+      .select(community::id)
+      .first::<CommunityId>(conn)
+      .await
+      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
