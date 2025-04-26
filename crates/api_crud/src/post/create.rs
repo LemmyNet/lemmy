@@ -96,8 +96,12 @@ pub async fn create_post(
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
-  // If its an NSFW community, then use that as a default
-  let nsfw = data.nsfw.or(Some(community.nsfw));
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
 
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
