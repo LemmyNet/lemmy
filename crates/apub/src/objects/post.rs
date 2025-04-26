@@ -232,9 +232,16 @@ impl Object for ApubPost {
       None
     };
 
+    // Ensure that all posts in NSFW communities are marked as NSFW
+    let nsfw = if community.nsfw {
+      Some(true)
+    } else {
+      page.sensitive
+    };
+
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
-    let block_for_nsfw = check_nsfw_allowed(page.sensitive, local_site.as_ref());
+    let block_for_nsfw = check_nsfw_allowed(nsfw, local_site.as_ref());
     if let Err(e) = block_for_nsfw {
       // TODO: Remove locally generated thumbnail if one exists, depends on
       //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
@@ -276,7 +283,7 @@ impl Object for ApubPost {
       published: page.published,
       updated: page.updated,
       deleted: Some(false),
-      nsfw: page.sensitive,
+      nsfw,
       ap_id: Some(page.id.clone().into()),
       local: Some(false),
       language_id,
