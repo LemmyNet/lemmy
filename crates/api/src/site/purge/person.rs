@@ -24,6 +24,8 @@ pub async fn purge_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
@@ -50,12 +52,12 @@ pub async fn purge_person(
   )?;
 
   // Clear profile data.
-  purge_user_account(data.person_id, &context).await?;
+  purge_user_account(data.person_id, local_instance_id, &context).await?;
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   InstanceActions::ban(
     &mut context.pool(),
-    &InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, None),
+    &InstanceBanForm::new(data.person_id, local_instance_id, None),
   )
   .await?;
 
