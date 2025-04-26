@@ -25,8 +25,8 @@ lemmy_db_schema_file = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 rosetta-i18n = { workspace = true }
-html2text = "0.14.0"
-lettre = { version = "0.11.12", default-features = false, features = [
+html2text = { workspace = true }
+lettre = { version = "0.11.15", default-features = false, features = [
   "builder",
   "smtp-transport",
   "tokio1-rustls-tls",
