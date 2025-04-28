@@ -2,11 +2,11 @@ use super::{handle_community_moderators, person::ApubPerson};
 use crate::{
   activities::GetActorType,
   check_apub_id_valid,
-  local_site_data_cached,
   fetcher::user_or_community::PersonOrGroupType,
+  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, Endpoints, AttributedTo, LanguageTag},
+    objects::{group::Group, AttributedTo, Endpoints, LanguageTag},
     ImageObject,
     Source,
   },
@@ -128,7 +128,7 @@ impl Object for ApubCommunity {
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(AttributedTo::Lemmy(
         generate_moderators_url(&self.actor_id)?.into(),
-      ))
+      )),
     };
     Ok(group)
   }
