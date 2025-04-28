@@ -231,6 +231,13 @@ impl Object for ApubPost {
       None
     };
 
+    // Ensure that all posts in NSFW communities are marked as NSFW
+    let nsfw = if community.nsfw {
+      Some(true)
+    } else {
+      page.sensitive
+    };
+
     let url_blocklist = get_url_blocklist(context).await?;
 
     if let Some(url) = &url {
@@ -257,7 +264,7 @@ impl Object for ApubPost {
       .published(page.published.map(Into::into))
       .updated(page.updated.map(Into::into))
       .deleted(Some(false))
-      .nsfw(page.sensitive)
+      .nsfw(nsfw)
       .ap_id(Some(page.id.clone().into()))
       .local(Some(false))
       .language_id(language_id)
