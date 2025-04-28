@@ -40,11 +40,13 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, instance, post},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  build_cache,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
+  CacheLock,
 };
 use regex::Regex;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use url::Url;
 
 impl Crud for Community {
@@ -424,17 +426,23 @@ impl CommunityActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
   ) -> LemmyResult<Option<CommunityId>> {
-    let conn = &mut get_conn(pool).await?;
-    community_actions::table
-      .filter(community_actions::followed.is_not_null())
-      .filter(community_actions::person_id.eq(person_id))
-      .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
-      .order_by(community::users_active_month.desc())
-      .select(community::id)
-      .first::<CommunityId>(conn)
+    static CACHE: CacheLock<Option<CommunityId>> = LazyLock::new(build_cache);
+    CACHE
+      .try_get_with((), async move {
+        let conn = &mut get_conn(pool).await?;
+        community_actions::table
+          .filter(community_actions::followed.is_not_null())
+          .filter(community_actions::person_id.eq(person_id))
+          .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+          .order_by(community::users_active_month.desc())
+          .select(community::id)
+          .first::<CommunityId>(conn)
+          .await
+          .optional()
+          .with_lemmy_type(LemmyErrorType::NotFound)
+      })
       .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .map_err(|_e: Arc<LemmyError>| LemmyErrorType::NotFound.into())
   }
 }
 
