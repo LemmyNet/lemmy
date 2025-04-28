@@ -95,6 +95,14 @@ pub async fn create_post(
   let community = Community::read(&mut context.pool(), community_id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
+
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     let is_mod = CommunityModeratorView::is_community_moderator(
@@ -137,7 +145,7 @@ pub async fn create_post(
     .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
-    .nsfw(data.nsfw)
+    .nsfw(nsfw)
     .language_id(language_id)
     .build();
 
