@@ -151,7 +151,7 @@ pub async fn send_local_notifs(
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
+          &lang.old_notification_mentioned_by_body(&content, &inbox_link, &person.name),
           context.settings(),
         )
         .await
@@ -205,7 +205,7 @@ pub async fn send_local_notifs(
             send_email_to_user(
               &parent_user_view,
               &lang.notification_comment_reply_subject(&person.name),
-              &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
+              &lang.old_notification_comment_reply_body(&content, &inbox_link, &person.name),
               context.settings(),
             )
             .await
@@ -251,7 +251,7 @@ pub async fn send_local_notifs(
             send_email_to_user(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
-              &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
+              &lang.old_notification_post_reply_body(&content, &inbox_link, &person.name),
               context.settings(),
             )
             .await

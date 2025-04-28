@@ -113,7 +113,7 @@ async fn send_application_denied_email(
   let body = match deny_reason {
     Some(deny_reason) => {
       let markdown = markdown_to_html(&deny_reason);
-      lang.registration_denied_reason_body(markdown, &settings.hostname)
+      lang.registration_denied_reason_body(&settings.hostname, &markdown)
     }
     None => lang.registration_denied_body(&settings.hostname),
   };
