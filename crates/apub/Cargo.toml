@@ -50,15 +50,15 @@ futures = { workspace = true }
 futures-util = { workspace = true }
 itertools = { workspace = true }
 uuid = { workspace = true }
-async-trait = "0.1.86"
+async-trait = "0.1.88"
 anyhow = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
 html2md = "0.2.15"
-html2text = "0.14.0"
+html2text = { workspace = true }
 stringreader = "0.1.1"
 enum_delegate = "0.2.0"
-semver = "1.0.25"
+semver = "1.0.26"
 either = "1.15.0"
 
 [dev-dependencies]

@@ -8,7 +8,7 @@ use actix_web::{
   HttpResponse,
   HttpResponseBuilder,
 };
-use captcha::{gen, Difficulty};
+use captcha::{generate, Difficulty};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptchaResponse},
@@ -27,7 +27,7 @@ pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
     return Ok(res.json(Json(GetCaptchaResponse { ok: None })));
   }
 
-  let captcha = gen(match local_site.captcha_difficulty.as_str() {
+  let captcha = generate(match local_site.captcha_difficulty.as_str() {
     "easy" => Difficulty::Easy,
     "hard" => Difficulty::Hard,
     _ => Difficulty::Medium,
