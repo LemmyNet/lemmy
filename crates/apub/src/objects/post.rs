@@ -184,7 +184,7 @@ impl Object for ApubPost {
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
-    if community.posting_restricted_to_mods {
+    if community.local && community.posting_restricted_to_mods {
       let is_mod = CommunityModeratorView::is_community_moderator(
         &mut context.pool(),
         community.id,
