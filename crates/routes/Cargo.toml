@@ -44,9 +44,9 @@ diesel.workspace = true
 diesel-async.workspace = true
 clokwerk = "0.4.0"
 prometheus = { version = "0.13.4", features = ["process"] }
-rss = "2.0.11"
+rss = "2.0.12"
 actix-web-prom = "0.9.0"
-actix-cors = "0.7.0"
+actix-cors = "0.7.1"
 
 [dev-dependencies]
 pretty_assertions.workspace = true
