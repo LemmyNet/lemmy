@@ -54,7 +54,7 @@ url = { workspace = true }
 regex = { workspace = true }
 hound = "3.5.1"
 sitemap-rs = "0.2.2"
-totp-rs = { version = "5.6.0", features = ["gen_secret", "otpauth"] }
+totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 
 [dev-dependencies]

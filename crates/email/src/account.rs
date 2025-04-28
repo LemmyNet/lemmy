@@ -9,7 +9,11 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{
+  error::LemmyResult,
+  settings::structs::Settings,
+  utils::markdown::markdown_to_html,
+};
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
@@ -106,10 +110,13 @@ pub async fn send_application_denied_email(
   let lang = user_language(user);
   let subject = lang.registration_denied_subject(&user.person.name);
   let email = user_email(user)?;
-  let body = lang.new_registration_denied_body(
-    &settings.hostname,
-    deny_reason.unwrap_or("unknown".to_string()),
-  );
+  let body = match deny_reason {
+    Some(deny_reason) => {
+      let markdown = markdown_to_html(&deny_reason);
+      lang.registration_denied_reason_body(&settings.hostname, &markdown)
+    }
+    None => lang.registration_denied_body(&settings.hostname),
+  };
   send_email(&subject, &email, &user.person.name, &body, settings).await?;
   Ok(())
 }
