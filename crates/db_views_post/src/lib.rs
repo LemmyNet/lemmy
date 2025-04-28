@@ -17,7 +17,7 @@ use {
       creator_community_actions_select,
       creator_home_instance_actions_select,
       creator_local_instance_actions_select,
-      local_user_can_mod,
+      local_user_can_mod_post,
       post_creator_is_admin,
       post_tags_fragment,
     },
@@ -91,7 +91,7 @@ pub struct PostView {
   pub tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod()
+      select_expression = local_user_can_mod_post()
     )
   )]
   pub can_mod: bool,

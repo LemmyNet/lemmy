@@ -9,6 +9,7 @@ variables:
   - &rust_image "rust:1.81"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
+  - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
       - apt-get update && apt-get install -y postgresql-client
       # diesel_cli@2.2.8 is the last version that supports rust 1.81, which we are currently locked on due to perf regressions on rust 1.82+ :(
@@ -82,7 +83,8 @@ steps:
   cargo_shear:
     image: *rust_nightly_image
     commands:
-      - cargo install cargo-shear
+      - *install_binstall
+      - cargo binstall -y cargo-shear
       - cargo shear
     when:
       - event: pull_request
@@ -325,8 +327,9 @@ steps:
       CARGO_API_TOKEN:
         from_secret: cargo_api_token
     commands:
+      - *install_binstall
       # Install cargo-workspaces
-      - cargo install cargo-workspaces
+      - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     when:
