@@ -10,7 +10,6 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
-    login_token::LoginToken,
     mod_log::moderator::{ModBan, ModBanForm},
   },
   traits::{Bannable, Crud},
@@ -48,12 +47,6 @@ pub async fn ban_from_site(
     InstanceActions::ban(&mut context.pool(), &form).await?;
   } else {
     InstanceActions::unban(&mut context.pool(), &form).await?;
-  }
-
-  // if its a local user, invalidate logins
-  let local_user = LocalUserView::read_person(&mut context.pool(), data.person_id).await;
-  if let Ok(local_user) = local_user {
-    LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
 
   // Remove their data if that's desired

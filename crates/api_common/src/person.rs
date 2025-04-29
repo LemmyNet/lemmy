@@ -31,6 +31,9 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Logging into lemmy.
+///
+/// Note: Banned users can still log in, to be able to do certain things like delete
+/// their account.
 pub struct Login {
   pub username_or_email: SensitiveString,
   pub password: SensitiveString,
