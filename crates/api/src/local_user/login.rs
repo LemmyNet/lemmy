@@ -8,7 +8,7 @@ use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils::{check_email_verified, check_local_user_valid, check_registration_application},
+  utils::{check_email_verified, check_local_user_deleted, check_registration_application},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
@@ -36,7 +36,7 @@ pub async fn login(
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_deleted(&local_user_view)?;
   check_email_verified(&local_user_view, &site_view)?;
 
   check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
