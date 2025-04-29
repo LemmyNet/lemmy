@@ -27,10 +27,15 @@ pub async fn list_communities(
     None
   };
 
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
+
   let communities = CommunityQuery {
     listing_type: data.type_,
     show_nsfw: data.show_nsfw,
-    sort: data.sort,
+    sort: Some(show_nsfw),
     time_range_seconds: data.time_range_seconds,
     local_user: local_user.as_ref(),
     cursor_data,
