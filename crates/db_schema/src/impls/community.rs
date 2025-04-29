@@ -426,8 +426,12 @@ impl CommunityActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
   ) -> LemmyResult<Option<CommunityId>> {
-    static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> =
-      LazyLock::new(|| Cache::builder().max_capacity(1000).build());
+    static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> = LazyLock::new(|| {
+      Cache::builder()
+        .max_capacity(1000)
+        .time_to_live(CACHE_DURATION_API)
+        .build()
+    });
     CACHE
       .try_get_with(person_id, async move {
         let conn = &mut get_conn(pool).await?;
