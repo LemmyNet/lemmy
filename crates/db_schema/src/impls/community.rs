@@ -40,11 +40,11 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, instance, post},
 };
 use lemmy_utils::{
-  build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
-  CacheLock,
+  CACHE_DURATION_API,
 };
+use moka::future::Cache;
 use regex::Regex;
 use std::sync::{Arc, LazyLock};
 use url::Url;
@@ -426,9 +426,10 @@ impl CommunityActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
   ) -> LemmyResult<Option<CommunityId>> {
-    static CACHE: CacheLock<Option<CommunityId>> = LazyLock::new(build_cache);
+    static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> =
+      LazyLock::new(|| Cache::builder().max_capacity(1000).build());
     CACHE
-      .try_get_with((), async move {
+      .try_get_with(person_id, async move {
         let conn = &mut get_conn(pool).await?;
         community_actions::table
           .filter(community_actions::followed.is_not_null())

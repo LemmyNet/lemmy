@@ -70,6 +70,7 @@ uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
+moka = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
