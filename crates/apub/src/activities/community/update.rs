@@ -9,7 +9,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, read_from_string_or_source_opt},
-  protocol::{activities::community::update::UpdateCommunity, InCommunity},
+  protocol::{activities::community::update::UpdateCommunity, objects::AttributedTo, InCommunity},
 };
 use activitypub_federation::{
   config::Data,
@@ -108,7 +108,7 @@ impl ActivityHandler for UpdateCommunity {
       followers_url: self.object.followers.map(Into::into),
       inbox_url: Some(self.object.inbox.into()),
       shared_inbox_url: Some(self.object.endpoints.map(|e| e.shared_inbox.into())),
-      moderators_url: self.object.attributed_to.map(Into::into),
+      moderators_url: self.object.attributed_to.and_then(AttributedTo::url),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
       featured_url: self.object.featured.map(Into::into),
       ..Default::default()
