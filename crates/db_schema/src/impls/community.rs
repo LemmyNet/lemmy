@@ -42,7 +42,7 @@ use lemmy_db_schema_file::{
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
-  CACHE_DURATION_API,
+  CACHE_DURATION_LARGEST_COMMUNITY,
 };
 use moka::future::Cache;
 use regex::Regex;
@@ -429,7 +429,7 @@ impl CommunityActions {
     static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> = LazyLock::new(|| {
       Cache::builder()
         .max_capacity(1000)
-        .time_to_live(CACHE_DURATION_API)
+        .time_to_live(CACHE_DURATION_LARGEST_COMMUNITY)
         .build()
     });
     CACHE
