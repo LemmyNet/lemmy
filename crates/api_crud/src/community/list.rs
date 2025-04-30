@@ -26,7 +26,10 @@ pub async fn list_communities(
 
   let sort = data.sort;
   let listing_type = data.type_;
-  let show_nsfw = data.show_nsfw.unwrap_or_default();
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(local_site.site.content_warning.is_some());
   let page = data.page;
   let limit = data.limit;
   let local_user = local_user_view.map(|l| l.local_user);
