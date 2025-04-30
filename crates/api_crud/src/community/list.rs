@@ -34,8 +34,8 @@ pub async fn list_communities(
 
   let communities = CommunityQuery {
     listing_type: data.type_,
-    show_nsfw: data.show_nsfw,
-    sort: Some(show_nsfw),
+    show_nsfw: Some(show_nsfw),
+    sort: data.sort,
     time_range_seconds: data.time_range_seconds,
     local_user: local_user.as_ref(),
     cursor_data,
