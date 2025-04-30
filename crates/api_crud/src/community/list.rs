@@ -30,7 +30,7 @@ pub async fn list_communities(
   // Show nsfw content if param is true, or if content_warning exists
   let show_nsfw = data
     .show_nsfw
-    .unwrap_or(site_view.site.content_warning.is_some());
+    .unwrap_or(local_site.site.content_warning.is_some());
 
   let communities = CommunityQuery {
     listing_type: data.type_,
