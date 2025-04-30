@@ -7,9 +7,7 @@ use diesel::{
   query_builder::AsQuery,
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
-  OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
@@ -21,6 +19,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
+    community::CommunityActions,
     local_user::LocalUser,
     person::Person,
     post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
@@ -233,68 +232,6 @@ impl PostView {
 
     PaginationCursor::new(&prefixes_and_ids)
   }
-
-  // TODO this function needs to be checked
-  /// Prefetches an upper bound to build the cursor before data.
-  pub async fn prefetch_cursor_before_data(
-    pool: &mut DbPool<'_>,
-    my_local_user: Option<&'_ LocalUser>,
-    page_back: Option<bool>,
-    limit: Option<i64>,
-  ) -> LemmyResult<Option<Post>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
-    // first get one page for the most popular community to get an upper bound for the page end for
-    // the real query. the reason this is needed is that when fetching posts for a single
-    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
-    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
-    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
-    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-    //
-    // the results are correct no matter which community we fetch these for, since it basically
-    // covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more
-    // efficient.
-    let self_person_id = my_local_user
-      .person_id()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-
-    let largest_subscribed = community_actions::table
-      .filter(community_actions::followed.is_not_null())
-      .filter(community_actions::person_id.eq(self_person_id))
-      .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
-      .order_by(community::users_active_month.desc())
-      .select(community::id)
-      .limit(1)
-      .get_result::<CommunityId>(conn)
-      .await
-      .optional()?;
-
-    if let Some(largest_subscribed) = largest_subscribed {
-      // TODO Not sure this is correct
-      let posts = post::table
-        .filter(post::community_id.eq(largest_subscribed))
-        .limit(limit)
-        .select(Post::as_select())
-        .load::<Post>(conn)
-        .await?;
-
-      if (posts.len() as i64) < limit {
-        Ok(None)
-      } else {
-        let item = if page_back.unwrap_or_default() {
-          // for backward pagination, get first element instead
-          posts.into_iter().next()
-        } else {
-          posts.into_iter().next_back()
-        };
-        Ok(item)
-      }
-    } else {
-      // nothing subscribed to? no posts
-      Ok(None)
-    }
-  }
 }
 
 #[derive(Clone, Default)]
@@ -313,13 +250,71 @@ pub struct PostQuery<'a> {
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
   pub cursor_data: Option<Post>,
-  pub cursor_before_data: Option<Post>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 
 impl<'a> PostQuery<'a> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PostView>> {
+  async fn prefetch_cursor_before_data(
+    &self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Option<Post>> {
+    // first get one page for the most popular community to get an upper bound for the page end for
+    // the real query. the reason this is needed is that when fetching posts for a single
+    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
+    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
+    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
+    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+    //
+    // the results are correct no matter which community we fetch these for, since it basically
+    // covers the "worst case" of the whole page consisting of posts from one community
+    // but using the largest community decreases the pagination-frame so make the real query more
+    // efficient.
+
+    // If its a subscribed type, you need to prefetch both the largest community, and the upper
+    // bound post for the cursor.
+    Ok(if self.listing_type == Some(ListingType::Subscribed) {
+      if let Some(person_id) = self.local_user.person_id() {
+        let largest_subscribed =
+          CommunityActions::fetch_largest_subscribed_community(pool, person_id).await?;
+
+        let upper_bound_results = self
+          .clone()
+          .list_inner(site, None, largest_subscribed, pool)
+          .await?;
+
+        let limit = limit_fetch(self.limit)?;
+
+        // take last element of array. if this query returned less than LIMIT elements,
+        // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
+        // results (return original query)
+        if (upper_bound_results.len() as i64) < limit {
+          None
+        } else {
+          if self.page_back.unwrap_or_default() {
+            // for backward pagination, get first element instead
+            upper_bound_results.into_iter().next()
+          } else {
+            upper_bound_results.into_iter().last()
+          }
+          .map(|pv| pv.post)
+        }
+      } else {
+        None
+      }
+    } else {
+      None
+    })
+  }
+
+  async fn list_inner(
+    self,
+    site: &Site,
+    cursor_before_data: Option<Post>,
+    largest_subscribed_for_prefetch: Option<CommunityId>,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PostView>> {
     let o = self;
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(o.limit)?;
@@ -349,7 +344,7 @@ impl<'a> PostQuery<'a> {
         .filter(post::scheduled_publish_time.is_null());
     }
 
-    if let Some(community_id) = o.community_id {
+    if let Some(community_id) = o.community_id.or(largest_subscribed_for_prefetch) {
       query = query.filter(post::community_id.eq(community_id));
     }
 
@@ -478,16 +473,14 @@ impl<'a> PostQuery<'a> {
       query,
       sort_direction,
       o.cursor_data,
-      // TODO fix this later
-      // o.cursor_before_data,
-      None,
+      cursor_before_data,
       o.page_back,
     );
 
     // featured posts first
     // Don't do for new / old sorts
     if sort != New && sort != Old {
-      pq = if o.community_id.is_none() {
+      pq = if o.community_id.is_none() || largest_subscribed_for_prefetch.is_some() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)
@@ -526,6 +519,15 @@ impl<'a> PostQuery<'a> {
       .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn list(&self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PostView>> {
+    let cursor_before_data = self.prefetch_cursor_before_data(site, pool).await?;
+
+    self
+      .clone()
+      .list_inner(site, cursor_before_data, None, pool)
+      .await
   }
 }
 

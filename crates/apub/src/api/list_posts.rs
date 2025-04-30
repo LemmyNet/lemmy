@@ -45,7 +45,10 @@ pub async fn list_posts(
   };
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
-  let show_nsfw = data.show_nsfw;
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
   let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
 
@@ -77,19 +80,10 @@ pub async fn list_posts(
     None
   };
 
-  let (cursor_data, cursor_before_data) = if let Some(cursor) = &data.page_cursor {
-    (
-      Some(PostView::from_cursor(cursor, &mut context.pool()).await?),
-      PostView::prefetch_cursor_before_data(
-        &mut context.pool(),
-        local_user,
-        data.page_back,
-        data.limit,
-      )
-      .await?,
-    )
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(PostView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
-    (None, None)
+    None
   };
   let page_back = data.page_back;
 
@@ -104,12 +98,11 @@ pub async fn list_posts(
     limit,
     show_hidden,
     show_read,
-    show_nsfw,
+    show_nsfw: Some(show_nsfw),
     hide_media,
     no_comments_only,
     keyword_blocks,
     cursor_data,
-    cursor_before_data,
     page_back,
   }
   .list(&site_view.site, &mut context.pool())
