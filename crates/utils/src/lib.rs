@@ -34,6 +34,11 @@ pub const CACHE_DURATION_API: Duration = Duration::from_secs(0);
 #[cfg(not(debug_assertions))]
 pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 
+#[cfg(debug_assertions)]
+pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_secs(0);
+#[cfg(not(debug_assertions))]
+pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_days(1);
+
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 
 #[macro_export]

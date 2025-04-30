@@ -3329,6 +3329,7 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema_file",
  "lemmy_utils",
+ "moka",
  "pretty_assertions",
  "regex",
  "rustls 0.23.23",

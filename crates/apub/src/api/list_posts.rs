@@ -77,19 +77,10 @@ pub async fn list_posts(
     None
   };
 
-  let (cursor_data, cursor_before_data) = if let Some(cursor) = &data.page_cursor {
-    (
-      Some(PostView::from_cursor(cursor, &mut context.pool()).await?),
-      PostView::prefetch_cursor_before_data(
-        &mut context.pool(),
-        local_user,
-        data.page_back,
-        data.limit,
-      )
-      .await?,
-    )
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(PostView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
-    (None, None)
+    None
   };
   let page_back = data.page_back;
 
@@ -109,7 +100,6 @@ pub async fn list_posts(
     no_comments_only,
     keyword_blocks,
     cursor_data,
-    cursor_before_data,
     page_back,
   }
   .list(&site_view.site, &mut context.pool())
