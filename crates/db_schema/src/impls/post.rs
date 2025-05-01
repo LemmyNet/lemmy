@@ -606,15 +606,18 @@ mod tests {
     assert_eq!(Some(1), inserted_post_like.like_score);
 
     // Post Save
-    let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
+    let post_saved_form =
+      PostSavedForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
 
     let inserted_post_saved = PostActions::save(pool, &post_saved_form).await?;
     assert!(inserted_post_saved.saved.is_some());
 
     // Mark 2 posts as read
-    let post_read_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
+    let post_read_form_1 =
+      PostReadForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
     PostActions::mark_as_read(pool, &post_read_form_1).await?;
-    let post_read_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id, inserted_person.local);
+    let post_read_form_2 =
+      PostReadForm::new(inserted_post2.id, inserted_person.id, inserted_person.local);
     PostActions::mark_as_read(pool, &post_read_form_2).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
@@ -634,11 +637,13 @@ mod tests {
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
     assert_eq!(uplete::Count::only_updated(1), saved_removed);
 
-    let read_remove_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
+    let read_remove_form_1 =
+      PostReadForm::new(inserted_post.id, inserted_person.id, inserted_person.local);
     let read_removed_1 = PostActions::mark_as_unread(pool, &read_remove_form_1).await?;
     assert_eq!(uplete::Count::only_deleted(1), read_removed_1);
 
-    let read_remove_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id, inserted_person.local);
+    let read_remove_form_2 =
+      PostReadForm::new(inserted_post2.id, inserted_person.id, inserted_person.local);
     let read_removed_2 = PostActions::mark_as_unread(pool, &read_remove_form_2).await?;
     assert_eq!(uplete::Count::only_deleted(1), read_removed_2);
 
@@ -703,7 +708,12 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, inserted_person.local, 1);
+    let post_like = PostLikeForm::new(
+      inserted_post.id,
+      inserted_person.id,
+      inserted_person.local,
+      1,
+    );
 
     PostActions::like(pool, &post_like).await?;
 
@@ -715,7 +725,12 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, another_inserted_person.local, -1);
+    let post_dislike = PostLikeForm::new(
+      inserted_post.id,
+      another_inserted_person.id,
+      another_inserted_person.local,
+      -1,
+    );
 
     PostActions::like(pool, &post_dislike).await?;
 
