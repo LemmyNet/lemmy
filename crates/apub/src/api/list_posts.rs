@@ -103,13 +103,17 @@ pub async fn list_posts(
   .await?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
-  if let Some(local_user) = local_user {
+  if let Some(local_user_view) = local_user_view {
     if data
       .mark_as_read
-      .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
+      .unwrap_or(local_user_view.local_user.auto_mark_fetched_posts_as_read)
     {
       let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
-      let forms = PostActions::build_many_read_forms(&post_ids, local_user.person_id);
+      let forms = PostActions::build_many_read_forms(
+        &post_ids,
+        local_user_view.person.id,
+        local_user_view.person.local,
+      );
       PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;
     }
   }

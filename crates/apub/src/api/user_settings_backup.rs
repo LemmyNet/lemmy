@@ -150,6 +150,7 @@ pub async fn import_settings(
 
   spawn_try_task(async move {
     let person_id = local_user_view.person.id;
+    let person_local = local_user_view.person.local;
 
     info!(
       "Starting settings import for {}",
@@ -174,7 +175,7 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let post = saved.dereference(&context).await?;
-        let form = PostSavedForm::new(post.id, person_id);
+        let form = PostSavedForm::new(post.id, person_id, person_local);
         PostActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
@@ -186,7 +187,7 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let comment = saved.dereference(&context).await?;
-        let form = CommentSavedForm::new(person_id, comment.id);
+        let form = CommentSavedForm::new(person_id, person_local, comment.id);
         CommentActions::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },

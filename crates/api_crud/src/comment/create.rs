@@ -130,7 +130,12 @@ pub async fn create_comment(
   .await?;
 
   // You like your own comment by default
-  let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);
+  let like_form = CommentLikeForm::new(
+    local_user_view.person.id,
+    local_user_view.person.local,
+    inserted_comment.id,
+    1,
+  );
 
   CommentActions::like(&mut context.pool(), &like_form).await?;
 
@@ -142,6 +147,7 @@ pub async fn create_comment(
   // Update the read comments, so your own new comment doesn't appear as a +1 unread
   update_read_comments(
     local_user_view.person.id,
+    local_user_view.person.local,
     post_id,
     post.comments + 1,
     &mut context.pool(),

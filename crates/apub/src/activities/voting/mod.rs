@@ -62,7 +62,7 @@ async fn vote_comment(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let comment_id = comment.id;
-  let mut like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
+  let mut like_form = CommentLikeForm::new(actor.id, actor.local, comment_id, vote_type.into());
   let person_id = actor.id;
   comment.set_not_pending(&mut context.pool()).await?;
   CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
@@ -79,7 +79,7 @@ async fn vote_post(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let post_id = post.id;
-  let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
+  let mut like_form = PostLikeForm::new(post.id, actor.id, actor.local, vote_type.into());
   let person_id = actor.id;
   post.set_not_pending(&mut context.pool()).await?;
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
