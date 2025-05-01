@@ -6,7 +6,7 @@
   "repository": "https://github.com/LemmyNet/lemmy",
   "author": "Dessalines",
   "license": "AGPL-3.0",
-  "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92",
+  "packageManager": "pnpm@10.10.0+sha512.d615db246fe70f25dcfea6d8d73dee782ce23e2245e3c4f6f888249fb568149318637dca73c2c5c8ef2a4ca0d5657fb9567188bfab47f566d1ee6ce987815c39",
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
@@ -22,19 +22,19 @@
     "api-test-tags": "jest -i tags.spec.ts"
   },
   "devDependencies": {
-    "@eslint/js": "^9.21.0",
+    "@eslint/js": "^9.25.1",
     "@types/jest": "^29.5.12",
-    "@types/node": "^22.13.1",
-    "@typescript-eslint/eslint-plugin": "^8.24.0",
-    "@typescript-eslint/parser": "^8.24.0",
-    "eslint": "^9.20.0",
-    "eslint-plugin-prettier": "^5.2.3",
+    "@types/node": "^22.15.3",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "eslint": "^9.25.1",
+    "eslint-plugin-prettier": "^5.2.6",
     "jest": "^29.5.0",
     "lemmy-js-client": "1.0.0-remove-page-limit.1",
-    "prettier": "^3.5.0",
-    "ts-jest": "^29.1.0",
+    "prettier": "^3.5.3",
+    "ts-jest": "^29.3.2",
     "tsoa": "^6.6.0",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.24.0"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.0"
   }
 }

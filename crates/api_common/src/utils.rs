@@ -194,8 +194,12 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
   if local_user_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
-  // check for account deletion
-  else if local_user_view.person.deleted {
+  check_local_user_deleted(local_user_view)
+}
+
+/// Check for account deletion
+pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<()> {
+  if local_user_view.person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
@@ -941,7 +945,7 @@ pub async fn local_user_view_from_jwt(
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_deleted(&local_user_view)?;
 
   Ok(local_user_view)
 }
