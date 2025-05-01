@@ -1,8 +1,8 @@
 -- This changes the local_user.show_downvotes column to an enum,
--- which by default hides downvotes to your own content.
+-- which by default shows all downvotes.
 CREATE TYPE vote_show_enum AS ENUM (
-    'ShowForOthers',
     'Show',
+    'ShowForOthers',
     'Hide'
 );
 
@@ -16,10 +16,10 @@ ALTER TABLE local_user
         WHEN FALSE THEN
             'Hide'
         ELSE
-            'ShowForOthers'
+            'Show'
         END::vote_show_enum;
 
 -- Make ShowForOthers the default
 ALTER TABLE local_user
-    ALTER COLUMN show_downvotes SET DEFAULT 'ShowForOthers';
+    ALTER COLUMN show_downvotes SET DEFAULT 'Show';
 

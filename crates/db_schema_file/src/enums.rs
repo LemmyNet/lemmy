@@ -210,7 +210,7 @@ pub enum CommunityFollowerState {
 /// Lets you show votes for others only, show all votes, or hide all votes.
 pub enum VoteShow {
   #[default]
-  ShowForOthers,
   Show,
+  ShowForOthers,
   Hide,
 }
