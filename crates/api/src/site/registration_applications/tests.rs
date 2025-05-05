@@ -310,7 +310,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  approve_registration_application(
+  let denial = approve_registration_application(
     Json(ApproveRegistrationApplication {
       id: app_with_email_2.id,
       approve: false,
@@ -319,7 +319,9 @@ async fn test_application_approval() -> LemmyResult<()> {
     context.reset_request_count(),
     admin_local_user_view.clone(),
   )
-  .await?;
+  .await;
+  // Approval should be processed up until email sending is attempted
+  assert!(denial.is_err_and(|e| e.error_type == LemmyErrorType::NoEmailSetup));
 
   expected_unread_applications -= 1;
 

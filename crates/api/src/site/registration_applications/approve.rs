@@ -4,7 +4,7 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{get_interface_language_from_settings, is_admin, send_email_to_user},
+  utils::{get_interface_language_from_settings, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,6 +19,7 @@ use lemmy_utils::{
   email::send_email,
   error::{LemmyError, LemmyResult},
   settings::structs::Settings,
+  utils::markdown::markdown_to_html,
   LemmyErrorType,
 };
 
@@ -71,7 +72,12 @@ pub async fn approve_registration_application(
     if data.approve {
       send_application_approved_email(&approved_local_user_view, context.settings()).await?;
     } else {
-      send_application_denied_email(&approved_local_user_view, context.settings()).await?;
+      send_application_denied_email(
+        &approved_local_user_view,
+        context.settings(),
+        data.deny_reason.clone(),
+      )
+      .await?;
     }
   }
 
@@ -99,10 +105,17 @@ async fn send_application_approved_email(
 async fn send_application_denied_email(
   user: &LocalUserView,
   settings: &Settings,
+  deny_reason: Option<String>,
 ) -> LemmyResult<()> {
+  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language_from_settings(user);
   let subject = lang.registration_denied_subject(&user.person.name);
-  let body = lang.registration_denied_body(&settings.hostname);
-  send_email_to_user(user, &subject, &body, settings).await;
-  Ok(())
+  let body = match deny_reason {
+    Some(deny_reason) => {
+      let markdown = markdown_to_html(&deny_reason);
+      lang.registration_denied_reason_body(&settings.hostname, &markdown)
+    }
+    None => lang.registration_denied_body(&settings.hostname),
+  };
+  send_email(&subject, email, &user.person.name, &body, settings).await
 }
