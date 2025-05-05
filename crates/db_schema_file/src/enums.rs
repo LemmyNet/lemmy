@@ -196,3 +196,21 @@ pub enum CommunityFollowerState {
   Pending,
   ApprovalRequired,
 }
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
+#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::VoteShowEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+/// Lets you show votes for others only, show all votes, or hide all votes.
+pub enum VoteShow {
+  #[default]
+  Show,
+  ShowForOthers,
+  Hide,
+}

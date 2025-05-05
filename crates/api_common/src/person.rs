@@ -13,7 +13,13 @@ use lemmy_db_schema::{
   InboxDataType,
   PersonContentType,
 };
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
+use lemmy_db_schema_file::enums::{
+  CommentSortType,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  VoteShow,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_image::LocalImageView;
@@ -185,7 +191,7 @@ pub struct SaveUserSettings {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvotes: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub show_downvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvote_percentage: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
