@@ -744,7 +744,11 @@ pub async fn remove_or_restore_user_data_in_community(
   Ok(())
 }
 
-pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_user_account(
+  person_id: PersonId,
+  local_instance_id: InstanceId,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
   // Delete their local images, if they're a local user
@@ -769,7 +773,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
   }
 
-  Person::delete_account(pool, person_id).await?;
+  Person::delete_account(pool, person_id, local_instance_id).await?;
 
   Ok(())
 }

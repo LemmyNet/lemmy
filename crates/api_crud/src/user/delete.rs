@@ -21,6 +21,8 @@ pub async fn delete_account(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Verify the password
   let valid: bool = local_user_view
     .local_user
@@ -33,10 +35,15 @@ pub async fn delete_account(
   }
 
   if data.delete_content {
-    purge_user_account(local_user_view.person.id, &context).await?;
+    purge_user_account(local_user_view.person.id, local_instance_id, &context).await?;
   } else {
     OAuthAccount::delete_user_accounts(&mut context.pool(), local_user_view.local_user.id).await?;
-    Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
+    Person::delete_account(
+      &mut context.pool(),
+      local_user_view.person.id,
+      local_instance_id,
+    )
+    .await?;
   }
 
   LoginToken::invalidate_all(&mut context.pool(), local_user_view.local_user.id).await?;
