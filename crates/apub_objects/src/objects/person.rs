@@ -214,7 +214,7 @@ pub(crate) mod tests {
   use crate::{
     objects::instance::ApubSite,
     protocol::instance::Instance,
-    utils::test::{file_to_json_object, parse_lemmy_instance, parse_lemmy_person},
+    utils::test::{file_to_json_object, parse_lemmy_person},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;

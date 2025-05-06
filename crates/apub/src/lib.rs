@@ -5,19 +5,10 @@ use activitypub_federation::{
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
-use lemmy_db_schema::{
-  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
-  utils::{ActualDbPool, DbPool},
-};
-use lemmy_db_views_site::SiteView;
-use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
-  CacheLock,
-  CACHE_DURATION_FEDERATION,
-};
-use moka::future::Cache;
+use lemmy_db_schema::{source::activity::ReceivedActivity, utils::ActualDbPool};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use tracing::debug;
 use url::Url;
 

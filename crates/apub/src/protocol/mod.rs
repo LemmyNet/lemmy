@@ -1,15 +1,9 @@
-use activitypub_federation::{
-  config::Data,
-  fetch::fetch_object_http,
-  kinds::object::ImageType,
-  protocol::values::MediaTypeMarkdown,
-};
+use activitypub_federation::{config::Data, fetch::fetch_object_http};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::utils::protocol::Id;
-use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{collections::HashMap, future::Future};
+use std::collections::HashMap;
 use url::Url;
 
 pub mod activities;

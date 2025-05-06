@@ -1,16 +1,14 @@
-use super::person::ApubPerson;
 use crate::{
   objects::instance::fetch_instance_actor_for_object,
   protocol::group::Group,
   utils::{
-    functions::{handle_community_moderators, read_from_string_or_source_opt, GetActorType},
+    functions::{read_from_string_or_source_opt, GetActorType},
     markdown_links::markdown_rewrite_remote_links_opt,
-    protocol::{AttributedTo, ImageObject, LanguageTag, PersonOrGroupType, Source},
+    protocol::{AttributedTo, ImageObject, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
   config::Data,
-  fetch::object_id::ObjectId,
   kinds::actor::GroupType,
   protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
@@ -275,8 +273,7 @@ impl GetActorType for ApubCommunity {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_instance};
-  use activitypub_federation::fetch::collection_id::CollectionId;
+  use crate::utils::test::{parse_lemmy_community, parse_lemmy_instance};
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

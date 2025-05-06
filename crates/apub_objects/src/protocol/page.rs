@@ -75,7 +75,7 @@ pub struct Page {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Link {
+pub struct Link {
   href: Url,
   media_type: Option<String>,
   r#type: LinkType,
@@ -83,7 +83,7 @@ pub(crate) struct Link {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Image {
+pub struct Image {
   #[serde(rename = "type")]
   kind: ImageType,
   url: Url,
@@ -93,7 +93,7 @@ pub(crate) struct Image {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Document {
+pub struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
@@ -104,7 +104,7 @@ pub(crate) struct Document {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-pub(crate) enum Attachment {
+pub enum Attachment {
   Link(Link),
   Image(Image),
   Document(Document),

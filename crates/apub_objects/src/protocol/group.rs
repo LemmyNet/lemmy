@@ -7,7 +7,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  fetch::{collection_id::CollectionId, object_id::ObjectId},
+  fetch::object_id::ObjectId,
   kinds::actor::GroupType,
   protocol::{
     helpers::deserialize_skip_error,

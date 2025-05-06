@@ -25,7 +25,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::{activity::AnnounceType, public},
+  kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
 use following::send_accept_or_reject_follow;
@@ -43,8 +43,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;

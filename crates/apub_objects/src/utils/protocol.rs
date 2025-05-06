@@ -1,7 +1,7 @@
 use crate::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
 use activitypub_federation::{
   config::Data,
-  fetch::{collection_id::CollectionId, object_id::ObjectId},
+  fetch::object_id::ObjectId,
   kinds::object::ImageType,
   protocol::values::MediaTypeMarkdown,
 };
@@ -65,7 +65,7 @@ pub enum AttributedTo {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub(crate) enum PersonOrGroupType {
+pub enum PersonOrGroupType {
   Person,
   Group,
 }
@@ -88,7 +88,7 @@ impl AttributedTo {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub(crate) struct PersonOrGroupModerators(Url);
+pub struct PersonOrGroupModerators(Url);
 
 impl Deref for PersonOrGroupModerators {
   type Target = Url;

@@ -221,7 +221,7 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::utils::test::{file_to_json_object, parse_lemmy_instance};
+  use crate::utils::test::parse_lemmy_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
