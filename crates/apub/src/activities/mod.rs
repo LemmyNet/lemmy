@@ -16,7 +16,6 @@ use crate::{
     },
     voting::send_like_activity,
   },
-  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
@@ -35,6 +34,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,
 };
+use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},

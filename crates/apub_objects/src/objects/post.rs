@@ -61,7 +61,7 @@ use url::Url;
 const MAX_TITLE_LENGTH: usize = 200;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ApubPost(pub(crate) Post);
+pub struct ApubPost(pub Post);
 
 impl Deref for ApubPost {
   type Target = Post;
@@ -315,12 +315,8 @@ impl Object for ApubPost {
 mod tests {
   use super::*;
   use crate::{
-    objects::{
-      community::tests::parse_lemmy_community,
-      person::tests::parse_lemmy_person,
-      ApubPerson,
-    },
-    utils::test::file_to_json_object,
+    objects::ApubPerson,
+    utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;

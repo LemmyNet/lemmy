@@ -45,7 +45,7 @@ pub enum PageType {
 pub struct Page {
   #[serde(rename = "type")]
   pub(crate) kind: PageType,
-  pub(crate) id: ObjectId<ApubPost>,
+  pub id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
@@ -166,7 +166,7 @@ pub enum HashtagType {
 }
 
 impl Page {
-  pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
+  pub fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.creator()),
       AttributedTo::Peertube(p) => p

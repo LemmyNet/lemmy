@@ -1,11 +1,4 @@
-use super::generate_to;
-use crate::{
-  objects::{community::ApubCommunity, instance::ApubSite},
-  protocol::{
-    activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-    objects::{group::Group, instance::Instance},
-  },
-};
+use crate::protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -17,6 +10,11 @@ use lemmy_api_common::{
   community::BanFromCommunity,
   context::LemmyContext,
   utils::check_expire_time,
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, instance::ApubSite},
+  protocol::{group::Group, instance::Instance},
+  utils::functions::generate_to,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,

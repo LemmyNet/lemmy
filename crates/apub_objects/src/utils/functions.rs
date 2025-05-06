@@ -61,15 +61,13 @@ pub fn read_from_string_or_source_opt(
 }
 
 #[derive(Clone)]
-pub(crate) struct LocalSiteData {
+pub struct LocalSiteData {
   local_site: Option<LocalSite>,
   allowed_instances: Vec<Instance>,
   blocked_instances: Vec<Instance>,
 }
 
-pub(crate) async fn local_site_data_cached(
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<Arc<LocalSiteData>> {
+pub async fn local_site_data_cached(pool: &mut DbPool<'_>) -> LemmyResult<Arc<LocalSiteData>> {
   // All incoming and outgoing federation actions read the blocklist/allowlist and slur filters
   // multiple times. This causes a huge number of database reads if we hit the db directly. So we
   // cache these values for a short time, which will already make a huge difference and ensures that
@@ -103,7 +101,7 @@ pub(crate) async fn local_site_data_cached(
   )
 }
 
-pub(crate) async fn check_apub_id_valid_with_strictness(
+pub async fn check_apub_id_valid_with_strictness(
   apub_id: &Url,
   is_strict: bool,
   context: &LemmyContext,
@@ -150,7 +148,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 /// - the correct scheme (either http or https)
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
-fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
+pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
     .ok_or(FederationError::UrlWithoutDomain)?
@@ -186,11 +184,11 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyR
   Ok(())
 }
 
-pub(crate) trait GetActorType {
+pub trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
 
-pub(crate) async fn handle_community_moderators(
+pub async fn handle_community_moderators(
   new_mods: &Vec<ObjectId<ApubPerson>>,
   community: &ApubCommunity,
   context: &Data<LemmyContext>,
@@ -226,7 +224,7 @@ pub(crate) async fn handle_community_moderators(
 }
 
 /// Marks object as public only if the community is public
-pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
+pub fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
   let ap_id = community.ap_id.clone().into();
   if community.visibility == CommunityVisibility::Public {
     Ok(vec![ap_id, public()])
@@ -240,7 +238,7 @@ pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-pub(crate) async fn verify_person_in_community(
+pub async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
   context: &Data<LemmyContext>,
@@ -252,7 +250,7 @@ pub(crate) async fn verify_person_in_community(
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
 }
 
-pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
+pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
     Err(FederationError::ObjectIsNotPublic)?
   } else {
@@ -262,11 +260,7 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
 
 /// Returns an error if object visibility doesnt match community visibility
 /// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(
-  to: &[Url],
-  cc: &[Url],
-  community: &ApubCommunity,
-) -> LemmyResult<()> {
+pub fn verify_visibility(to: &[Url], cc: &[Url], community: &ApubCommunity) -> LemmyResult<()> {
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
@@ -276,7 +270,7 @@ pub(crate) fn verify_visibility(
   }
 }
 
-pub(crate) async fn append_attachments_to_comment(
+pub async fn append_attachments_to_comment(
   content: String,
   attachments: &[Attachment],
   context: &Data<LemmyContext>,

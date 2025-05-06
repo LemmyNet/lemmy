@@ -1,10 +1,10 @@
-use crate::fetcher::PostOrComment;
 use activitypub_federation::{
   config::{Data, UrlVerifier},
   error::Error as ActivityPubError,
 };
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
@@ -27,8 +27,6 @@ pub mod api;
 pub(crate) mod collections;
 pub mod fetcher;
 pub mod http;
-pub(crate) mod mentions;
-pub mod objects;
 pub mod protocol;
 
 /// Maximum number of outgoing HTTP requests to fetch a single object. Needs to be high enough

@@ -1,4 +1,3 @@
-use crate::objects::community::ApubCommunity;
 use activitypub_federation::{
   config::Data,
   fetch::fetch_object_http,
@@ -6,6 +5,7 @@ use activitypub_federation::{
   protocol::values::MediaTypeMarkdown,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::utils::protocol::Id;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -14,12 +14,10 @@ use url::Url;
 
 pub mod activities;
 pub(crate) mod collections;
-pub(crate) mod objects;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct Unparsed(HashMap<String, serde_json::Value>);
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]

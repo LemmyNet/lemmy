@@ -47,7 +47,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubComment(pub(crate) Comment);
+pub struct ApubComment(pub Comment);
 
 impl Deref for ApubComment {
   type Target = Comment;
@@ -236,13 +236,8 @@ impl Object for ApubComment {
 pub(crate) mod tests {
   use super::*;
   use crate::{
-    objects::{
-      community::{tests::parse_lemmy_community, ApubCommunity},
-      instance::ApubSite,
-      person::{tests::parse_lemmy_person, ApubPerson},
-      post::ApubPost,
-    },
-    utils::test::file_to_json_object,
+    objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson, post::ApubPost},
+    utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;

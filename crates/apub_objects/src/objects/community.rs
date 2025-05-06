@@ -275,30 +275,11 @@ impl GetActorType for ApubCommunity {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::{objects::instance::tests::parse_lemmy_instance, utils::test::file_to_json_object};
+  use crate::utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_instance};
   use activitypub_federation::fetch::collection_id::CollectionId;
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-
-  pub(crate) async fn parse_lemmy_community(
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<ApubCommunity> {
-    // use separate counter so this doesn't affect tests
-    let context2 = context.reset_request_count();
-    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
-    // change these links so they dont fetch over the network
-    json.attributed_to = None;
-    json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;
-    json.followers = Some(Url::parse(
-      "https://enterprise.lemmy.ml/c/tenforward/not_followers",
-    )?);
-
-    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
-    ApubCommunity::verify(&json, &url, &context2).await?;
-    let community = ApubCommunity::from_json(json, &context2).await?;
-    Ok(community)
-  }
 
   #[tokio::test]
   #[serial]

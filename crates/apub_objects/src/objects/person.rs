@@ -44,7 +44,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ApubPerson(pub(crate) DbPerson);
+pub struct ApubPerson(pub DbPerson);
 
 impl Deref for ApubPerson {
   type Target = DbPerson;
@@ -212,26 +212,14 @@ impl GetActorType for ApubPerson {
 pub(crate) mod tests {
   use super::*;
   use crate::{
-    objects::instance::{tests::parse_lemmy_instance, ApubSite},
+    objects::instance::ApubSite,
     protocol::instance::Instance,
-    utils::test::file_to_json_object,
+    utils::test::{file_to_json_object, parse_lemmy_instance, parse_lemmy_person},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-
-  pub(crate) async fn parse_lemmy_person(
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<(ApubPerson, ApubSite)> {
-    let site = parse_lemmy_instance(context).await?;
-    let json = file_to_json_object("assets/lemmy/objects/person.json")?;
-    let url = Url::parse("https://enterprise.lemmy.ml/u/picard")?;
-    ApubPerson::verify(&json, &url, context).await?;
-    let person = ApubPerson::from_json(json, context).await?;
-    assert_eq!(context.request_count(), 0);
-    Ok((person, site))
-  }
 
   #[tokio::test]
   #[serial]

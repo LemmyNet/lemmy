@@ -1,11 +1,10 @@
-use super::PostOrComment;
-use crate::fetcher::UserOrCommunity;
 use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
 };
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 

@@ -1,16 +1,8 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    generate_to,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, read_from_string_or_source_opt},
-  protocol::{activities::community::update::UpdateCommunity, objects::AttributedTo, InCommunity},
+  protocol::activities::community::update::UpdateCommunity,
 };
 use activitypub_federation::{
   config::Data,
@@ -19,6 +11,18 @@ use activitypub_federation::{
 };
 use chrono::Utc;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::{
+    functions::{
+      generate_to,
+      read_from_string_or_source_opt,
+      verify_person_in_community,
+      verify_visibility,
+    },
+    protocol::{AttributedTo, InCommunity},
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,

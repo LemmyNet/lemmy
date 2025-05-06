@@ -1,18 +1,10 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    generate_to,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    activities::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
-    InCommunity,
+  protocol::activities::community::{
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
   },
 };
 use activitypub_federation::{
@@ -24,6 +16,13 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,

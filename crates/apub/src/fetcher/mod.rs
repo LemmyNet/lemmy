@@ -1,26 +1,17 @@
-use crate::objects::{
-  comment::ApubComment,
-  community::ApubCommunity,
-  instance::ApubSite,
-  person::ApubPerson,
-  post::ApubPost,
-};
 use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
   traits::{Actor, Object},
 };
 use diesel::NotFound;
-use either::Either;
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub mod search;
-
-pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 
 /// Resolve actor identifier like `!news@example.com` to user or community object.
 ///

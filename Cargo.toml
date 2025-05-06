@@ -214,6 +214,7 @@ html2text = "0.14.0"
 lemmy_api = { workspace = true }
 lemmy_api_crud = { workspace = true }
 lemmy_apub = { workspace = true }
+lemmy_apub_objects = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

@@ -33,42 +33,42 @@ use url::Url;
 pub struct Group {
   #[serde(rename = "type")]
   pub(crate) kind: GroupType,
-  pub(crate) id: ObjectId<ApubCommunity>,
+  pub id: ObjectId<ApubCommunity>,
   /// username, set at account creation and usually fixed after that
-  pub(crate) preferred_username: String,
-  pub(crate) inbox: Url,
-  pub(crate) followers: Option<Url>,
-  pub(crate) public_key: PublicKey,
+  pub preferred_username: String,
+  pub inbox: Url,
+  pub followers: Option<Url>,
+  pub public_key: PublicKey,
 
   /// title
-  pub(crate) name: Option<String>,
+  pub name: Option<String>,
   // sidebar
   pub(crate) content: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) source: Option<Source>,
+  pub source: Option<Source>,
   pub(crate) media_type: Option<MediaTypeHtml>,
   // short instance description
-  pub(crate) summary: Option<String>,
+  pub summary: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) icon: Option<ImageObject>,
+  pub icon: Option<ImageObject>,
   /// banner
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) image: Option<ImageObject>,
+  pub image: Option<ImageObject>,
   // lemmy extension
-  pub(crate) sensitive: Option<bool>,
+  pub sensitive: Option<bool>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) attributed_to: Option<AttributedTo>,
+  pub attributed_to: Option<AttributedTo>,
   // lemmy extension
-  pub(crate) posting_restricted_to_mods: Option<bool>,
+  pub posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: Url,
-  pub(crate) endpoints: Option<Endpoints>,
-  pub(crate) featured: Option<Url>,
+  pub endpoints: Option<Endpoints>,
+  pub featured: Option<Url>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
   /// True if this is a private community
   pub(crate) manually_approves_followers: Option<bool>,
-  pub(crate) published: Option<DateTime<Utc>>,
-  pub(crate) updated: Option<DateTime<Utc>>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<DateTime<Utc>>,
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
 }

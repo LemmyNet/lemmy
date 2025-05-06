@@ -20,10 +20,10 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  objects::instance::ApubSite,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
+use lemmy_apub_objects::objects::instance::ApubSite;
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_db_views_site::SiteView;

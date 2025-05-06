@@ -45,7 +45,7 @@ pub trait InCommunity {
 pub struct ImageObject {
   #[serde(rename = "type")]
   kind: ImageType,
-  pub(crate) url: Url,
+  pub url: Url,
 }
 
 impl ImageObject {
@@ -59,7 +59,7 @@ impl ImageObject {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
-pub(crate) enum AttributedTo {
+pub enum AttributedTo {
   Lemmy(PersonOrGroupModerators),
   Peertube(Vec<AttributedToPeertube>),
 }
@@ -72,14 +72,14 @@ pub(crate) enum PersonOrGroupType {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct AttributedToPeertube {
+pub struct AttributedToPeertube {
   #[serde(rename = "type")]
   pub kind: PersonOrGroupType,
   pub id: ObjectId<UserOrCommunity>,
 }
 
 impl AttributedTo {
-  pub(crate) fn url(self) -> Option<DbUrl> {
+  pub fn url(self) -> Option<DbUrl> {
     match self {
       AttributedTo::Lemmy(l) => Some(l.moderators().into()),
       AttributedTo::Peertube(_) => None,
@@ -197,6 +197,6 @@ pub struct Endpoints {
   pub shared_inbox: Url,
 }
 
-pub(crate) trait Id {
+pub trait Id {
   fn object_id(&self) -> &Url;
 }

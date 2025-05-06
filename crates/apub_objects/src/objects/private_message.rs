@@ -38,7 +38,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubPrivateMessage(pub(crate) DbPrivateMessage);
+pub struct ApubPrivateMessage(pub DbPrivateMessage);
 
 impl Deref for ApubPrivateMessage {
   type Target = DbPrivateMessage;
@@ -170,11 +170,8 @@ impl Object for ApubPrivateMessage {
 mod tests {
   use super::*;
   use crate::{
-    objects::{
-      instance::{tests::parse_lemmy_instance, ApubSite},
-      person::ApubPerson,
-    },
-    utils::test::file_to_json_object,
+    objects::{instance::ApubSite, person::ApubPerson},
+    utils::test::{file_to_json_object, parse_lemmy_instance},
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;

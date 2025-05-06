@@ -221,18 +221,9 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::utils::test::file_to_json_object;
+  use crate::utils::test::{file_to_json_object, parse_lemmy_instance};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-
-  pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> LemmyResult<ApubSite> {
-    let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
-    let id = Url::parse("https://enterprise.lemmy.ml/")?;
-    ApubSite::verify(&json, &id, context).await?;
-    let site = ApubSite::from_json(json, context).await?;
-    assert_eq!(context.request_count(), 0);
-    Ok(site)
-  }
 
   #[tokio::test]
   #[serial]

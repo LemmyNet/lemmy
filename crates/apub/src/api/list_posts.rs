@@ -5,7 +5,6 @@ use crate::{
     post_time_range_seconds_with_default,
   },
   fetcher::resolve_ap_identifier,
-  objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
@@ -14,6 +13,7 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},

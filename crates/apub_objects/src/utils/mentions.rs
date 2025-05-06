@@ -1,3 +1,4 @@
+use crate::objects::{comment::ApubComment, person::ApubPerson};
 use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
@@ -17,8 +18,6 @@ use lemmy_utils::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
-
-use crate::objects::{comment::ApubComment, person::ApubPerson};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
