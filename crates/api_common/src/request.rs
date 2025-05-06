@@ -9,10 +9,13 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::source::{
-  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
-  post::{Post, PostUpdateForm},
-  site::Site,
+use lemmy_db_schema::{
+  newtypes::PersonId,
+  source::{
+    images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+    post::{Post, PostUpdateForm},
+    site::Site,
+  },
 };
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -233,7 +236,7 @@ pub async fn generate_post_link_metadata(
       .ok()
       .or(Some(url.into()))
   } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
-    generate_pictrs_thumbnail(&url, &context)
+    generate_pictrs_thumbnail(post.creator_id, &url, &context)
       .await
       .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
@@ -443,7 +446,11 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 }
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
-async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
+async fn generate_pictrs_thumbnail(
+  creator_id: PersonId,
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs()?;
 
   match pictrs_config.image_mode {
@@ -478,9 +485,8 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
   let form = LocalImageForm {
-    // This is none because its an internal request.
-    // IE, a local user shouldn't get to delete the thumbnails for their link posts
-    local_user_id: None,
+    // For thumbnails, the person_id is the post creator
+    person_id: creator_id,
     pictrs_alias: image.file.clone(),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
