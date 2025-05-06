@@ -118,9 +118,10 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
+    let actor = self.actor.dereference(context).await?;
 
     // author likes their own post by default
-    let like_form = PostLikeForm::new(post.id, post.creator_id, 1);
+    let like_form = PostLikeForm::new(post.id, post.creator_id, actor.local, 1);
     PostActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
@@ -128,7 +129,6 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     let do_send_email =
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
-    let actor = self.actor.dereference(context).await?;
 
     // Send the post body mentions
     let mentions = scrape_text_for_mentions(&post.body.clone().unwrap_or_default());

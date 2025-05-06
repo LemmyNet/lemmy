@@ -222,6 +222,8 @@ pub struct PostActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was hidden.
   pub hidden: Option<DateTime<Utc>>,
+  /// When the person is local.
+  pub person_local: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -233,6 +235,7 @@ pub struct PostActions {
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  pub person_local: bool,
   pub like_score: i16,
   #[new(value = "Utc::now()")]
   pub liked: DateTime<Utc>,
@@ -244,6 +247,7 @@ pub struct PostLikeForm {
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  pub person_local: bool,
   #[new(value = "Utc::now()")]
   pub saved: DateTime<Utc>,
 }
@@ -254,6 +258,7 @@ pub struct PostSavedForm {
 pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  pub person_local: bool,
   #[new(value = "Utc::now()")]
   pub read: DateTime<Utc>,
 }
@@ -264,6 +269,7 @@ pub struct PostReadForm {
 pub struct PostReadCommentsForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  pub person_local: bool,
   pub read_comments_amount: i64,
   #[new(value = "Utc::now()")]
   pub read_comments: DateTime<Utc>,
@@ -275,6 +281,7 @@ pub struct PostReadCommentsForm {
 pub struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  pub person_local: bool,
   #[new(value = "Utc::now()")]
   pub hidden: DateTime<Utc>,
 }

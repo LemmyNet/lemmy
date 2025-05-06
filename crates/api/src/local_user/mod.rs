@@ -8,6 +8,7 @@ pub mod generate_totp_secret;
 pub mod get_captcha;
 pub mod list_banned;
 pub mod list_hidden;
+pub mod list_liked;
 pub mod list_logins;
 pub mod list_media;
 pub mod list_read;

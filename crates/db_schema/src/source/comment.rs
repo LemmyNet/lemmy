@@ -150,6 +150,8 @@ pub struct CommentActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the comment was saved.
   pub saved: Option<DateTime<Utc>>,
+  /// When the person is local.
+  pub person_local: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -160,6 +162,7 @@ pub struct CommentActions {
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
+  pub person_local: bool,
   pub comment_id: CommentId,
   pub like_score: i16,
   #[new(value = "Utc::now()")]
@@ -171,6 +174,7 @@ pub struct CommentLikeForm {
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentSavedForm {
   pub person_id: PersonId,
+  pub person_local: bool,
   pub comment_id: CommentId,
   #[new(value = "Utc::now()")]
   pub saved: DateTime<Utc>,

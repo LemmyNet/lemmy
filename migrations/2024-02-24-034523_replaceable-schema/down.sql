@@ -33,7 +33,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN NEW.score = - 1 THEN
+            downvotes = CASE WHEN NEW.score = -1 THEN
                 downvotes + 1
             ELSE
                 downvotes
@@ -42,7 +42,7 @@ BEGIN
                     1
                 ELSE
                     0
-                END::numeric, ca.downvotes + CASE WHEN NEW.score = - 1 THEN
+                END::numeric, ca.downvotes + CASE WHEN NEW.score = -1 THEN
                     1
                 ELSE
                     0
@@ -60,7 +60,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN OLD.score = - 1 THEN
+            downvotes = CASE WHEN OLD.score = -1 THEN
                 downvotes - 1
             ELSE
                 downvotes
@@ -69,7 +69,7 @@ BEGIN
                     1
                 ELSE
                     0
-                END::numeric, ca.downvotes + CASE WHEN NEW.score = - 1 THEN
+                END::numeric, ca.downvotes + CASE WHEN NEW.score = -1 THEN
                     1
                 ELSE
                     0
@@ -551,7 +551,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN NEW.score = - 1 THEN
+            downvotes = CASE WHEN NEW.score = -1 THEN
                 downvotes + 1
             ELSE
                 downvotes
@@ -560,7 +560,7 @@ BEGIN
                     1
                 ELSE
                     0
-                END::numeric, pa.downvotes + CASE WHEN NEW.score = - 1 THEN
+                END::numeric, pa.downvotes + CASE WHEN NEW.score = -1 THEN
                     1
                 ELSE
                     0
@@ -578,7 +578,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN OLD.score = - 1 THEN
+            downvotes = CASE WHEN OLD.score = -1 THEN
                 downvotes - 1
             ELSE
                 downvotes
@@ -587,7 +587,7 @@ BEGIN
                     1
                 ELSE
                     0
-                END::numeric, pa.downvotes + CASE WHEN NEW.score = - 1 THEN
+                END::numeric, pa.downvotes + CASE WHEN NEW.score = -1 THEN
                     1
                 ELSE
                     0

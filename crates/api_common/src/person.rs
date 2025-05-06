@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
   InboxDataType,
+  LikeType,
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{
@@ -25,6 +26,7 @@ use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_person_content_combined::PersonContentCombinedView;
+use lemmy_db_views_person_liked_combined::PersonLikedCombinedView;
 use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
@@ -371,6 +373,38 @@ pub struct ListPersonHidden {
 /// You hidden posts response.
 pub struct ListPersonHiddenResponse {
   pub hidden: Vec<PostView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets your liked / disliked posts
+pub struct ListPersonLiked {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub like_type: Option<LikeType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Your liked posts response.
+pub struct ListPersonLikedResponse {
+  pub liked: Vec<PersonLikedCombinedView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,

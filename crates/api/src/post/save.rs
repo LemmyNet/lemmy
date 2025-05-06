@@ -16,7 +16,11 @@ pub async fn save_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_saved_form = PostSavedForm::new(data.post_id, local_user_view.person.id);
+  let post_saved_form = PostSavedForm::new(
+    data.post_id,
+    local_user_view.person.id,
+    local_user_view.person.local,
+  );
 
   if data.save {
     PostActions::save(&mut context.pool(), &post_saved_form).await?;
@@ -26,6 +30,7 @@ pub async fn save_post(
 
   let post_id = data.post_id;
   let person_id = local_user_view.person.id;
+  let person_local = local_user_view.person.local;
   let local_instance_id = local_user_view.person.instance_id;
   let post_view = PostView::read(
     &mut context.pool(),
@@ -36,7 +41,7 @@ pub async fn save_post(
   )
   .await?;
 
-  let read_form = PostReadForm::new(post_id, person_id);
+  let read_form = PostReadForm::new(post_id, person_id, person_local);
   PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   Ok(Json(PostResponse { post_view }))

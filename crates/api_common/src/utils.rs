@@ -179,11 +179,13 @@ pub fn is_top_mod(
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
 pub async fn update_read_comments(
   person_id: PersonId,
+  person_local: bool,
   post_id: PostId,
   read_comments: i64,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
+  let person_post_agg_form =
+    PostReadCommentsForm::new(post_id, person_id, person_local, read_comments);
   PostActions::update_read_comments(pool, &person_post_agg_form).await?;
 
   Ok(())
