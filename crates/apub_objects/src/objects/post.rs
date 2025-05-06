@@ -1,17 +1,21 @@
 use crate::{
-  activities::{generate_to, verify_person_in_community, verify_visibility},
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
-  objects::read_from_string_or_source_opt,
-  protocol::{
-    objects::{
-      page::{Attachment, Hashtag, HashtagType, Page, PageType},
-      AttributedTo,
-      LanguageTag,
+  protocol::page::{
+    Attachment,
+    Hashtag,
+    HashtagType::{self},
+    Page,
+    PageType,
+  },
+  utils::{
+    functions::{
+      check_apub_id_valid_with_strictness,
+      generate_to,
+      read_from_string_or_source_opt,
+      verify_person_in_community,
+      verify_visibility,
     },
-    ImageObject,
-    InCommunity,
-    Source,
+    markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
+    protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -313,9 +317,10 @@ mod tests {
   use crate::{
     objects::{
       community::tests::parse_lemmy_community,
-      person::{tests::parse_lemmy_person, ApubPerson},
+      person::tests::parse_lemmy_person,
+      ApubPerson,
     },
-    protocol::tests::file_to_json_object,
+    utils::test::file_to_json_object,
   };
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;

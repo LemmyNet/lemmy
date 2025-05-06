@@ -1,6 +1,6 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::Source,
+  utils::protocol::Source,
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,

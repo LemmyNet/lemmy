@@ -1,15 +1,8 @@
 use crate::{
-  check_apub_id_valid_with_strictness,
-  collections::{
-    community_featured::ApubCommunityFeatured,
-    community_follower::ApubCommunityFollower,
-    community_outbox::ApubCommunityOutbox,
-  },
   objects::community::ApubCommunity,
-  protocol::{
-    objects::{AttributedTo, Endpoints, LanguageTag},
-    ImageObject,
-    Source,
+  utils::{
+    functions::check_apub_id_valid_with_strictness,
+    protocol::{AttributedTo, Endpoints, ImageObject, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -44,7 +37,7 @@ pub struct Group {
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
   pub(crate) inbox: Url,
-  pub(crate) followers: Option<CollectionId<ApubCommunityFollower>>,
+  pub(crate) followers: Option<Url>,
   pub(crate) public_key: PublicKey,
 
   /// title
@@ -67,9 +60,9 @@ pub struct Group {
   pub(crate) attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
-  pub(crate) outbox: CollectionId<ApubCommunityOutbox>,
+  pub(crate) outbox: Url,
   pub(crate) endpoints: Option<Endpoints>,
-  pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
+  pub(crate) featured: Option<Url>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
   /// True if this is a private community

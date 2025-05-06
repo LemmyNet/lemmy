@@ -18,12 +18,7 @@ use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
-pub(crate) mod markdown_links;
 pub mod search;
-
-pub(crate) type PostOrComment = Either<ApubPost, ApubComment>;
-
-pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
 
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 

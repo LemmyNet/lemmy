@@ -1,9 +1,11 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    objects::{AttributedTo, LanguageTag, PersonOrGroupType},
+  utils::protocol::{
+    AttributedTo,
     ImageObject,
     InCommunity,
+    LanguageTag,
+    PersonOrGroupType,
     Source,
   },
 };
@@ -262,7 +264,7 @@ where
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
+  use crate::{protocol::page::Page, utils::test::test_parse_lemmy_item};
 
   #[test]
   fn test_not_parsing_note_as_page() {

@@ -1,12 +1,11 @@
-use super::{handle_community_moderators, person::ApubPerson};
+use super::person::ApubPerson;
 use crate::{
-  activities::GetActorType,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
-  protocol::{
-    objects::{group::Group, AttributedTo, LanguageTag, PersonOrGroupType},
-    ImageObject,
-    Source,
+  objects::instance::fetch_instance_actor_for_object,
+  protocol::group::Group,
+  utils::{
+    functions::{handle_community_moderators, read_from_string_or_source_opt, GetActorType},
+    markdown_links::markdown_rewrite_remote_links_opt,
+    protocol::{AttributedTo, ImageObject, LanguageTag, PersonOrGroupType, Source},
   },
 };
 use activitypub_federation::{
@@ -211,6 +210,8 @@ impl Object for ApubCommunity {
     let community_ = community.clone();
     let context_ = context.reset_request_count();
     spawn_try_task(async move {
+      todo!();
+      /*
       group.outbox.dereference(&community_, &context_).await.ok();
       if let Some(followers) = group.followers {
         followers.dereference(&community_, &context_).await.ok();
@@ -235,6 +236,7 @@ impl Object for ApubCommunity {
             .ok();
         }
       }
+      */
       Ok(())
     });
 
@@ -273,10 +275,7 @@ impl GetActorType for ApubCommunity {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::{
-    objects::instance::tests::parse_lemmy_instance,
-    protocol::tests::file_to_json_object,
-  };
+  use crate::{objects::instance::tests::parse_lemmy_instance, utils::test::file_to_json_object};
   use activitypub_federation::fetch::collection_id::CollectionId;
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
@@ -290,8 +289,8 @@ pub(crate) mod tests {
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
     // change these links so they dont fetch over the network
     json.attributed_to = None;
-    json.outbox = CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;
-    json.followers = Some(CollectionId::parse(
+    json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;
+    json.followers = Some(Url::parse(
       "https://enterprise.lemmy.ml/c/tenforward/not_followers",
     )?);
 

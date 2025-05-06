@@ -70,20 +70,6 @@ async fn verify_person(
   Ok(())
 }
 
-/// Fetches the person and community to verify their type, then checks if person is banned from site
-/// or community.
-pub(crate) async fn verify_person_in_community(
-  person_id: &ObjectId<ApubPerson>,
-  community: &ApubCommunity,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let person = person_id.dereference(context).await?;
-  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
-  let person_id = person.id;
-  let community_id = community.id;
-  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
-}
-
 /// Verify that mod action in community was performed by a moderator.
 ///
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
@@ -112,43 +98,6 @@ pub(crate) async fn verify_mod_action(
     local_instance_id,
   )
   .await
-}
-
-pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
-  if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(FederationError::ObjectIsNotPublic)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Returns an error if object visibility doesnt match community visibility
-/// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(
-  to: &[Url],
-  cc: &[Url],
-  community: &ApubCommunity,
-) -> LemmyResult<()> {
-  use CommunityVisibility::*;
-  let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
-  match community.visibility {
-    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
-    Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
-    _ => Ok(()),
-  }
-}
-
-/// Marks object as public only if the community is public
-pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
-  let ap_id = community.ap_id.clone().into();
-  if community.visibility == CommunityVisibility::Public {
-    Ok(vec![ap_id, public()])
-  } else {
-    Ok(vec![
-      ap_id.clone(),
-      Url::parse(&format!("{}/followers", ap_id))?,
-    ])
-  }
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
@@ -187,10 +136,6 @@ fn generate_announce_activity_id(
     Uuid::new_v4()
   );
   Url::parse(&id)
-}
-
-pub(crate) trait GetActorType {
-  fn actor_type(&self) -> ActorType;
 }
 
 async fn send_lemmy_activity<Activity, ActorT>(

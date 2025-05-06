@@ -1,10 +1,9 @@
 use crate::{
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links,
-  objects::read_from_string_or_source,
-  protocol::{
-    objects::private_message::{PrivateMessage, PrivateMessageType},
-    Source,
+  protocol::private_message::{PrivateMessage, PrivateMessageType},
+  utils::{
+    functions::{check_apub_id_valid_with_strictness, read_from_string_or_source},
+    markdown_links::markdown_rewrite_remote_links,
+    protocol::Source,
   },
 };
 use activitypub_federation::{
@@ -175,7 +174,7 @@ mod tests {
       instance::{tests::parse_lemmy_instance, ApubSite},
       person::ApubPerson,
     },
-    protocol::tests::file_to_json_object,
+    utils::test::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;

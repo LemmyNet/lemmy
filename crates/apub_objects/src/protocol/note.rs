@@ -1,11 +1,15 @@
 use crate::{
-  fetcher::PostOrComment,
-  mentions::MentionOrValue,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    objects::{page::Attachment, LanguageTag},
-    InCommunity,
-    Source,
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    PostOrComment,
+  },
+  protocol::page::Attachment,
+  utils::{
+    mentions::MentionOrValue,
+    protocol::{InCommunity, LanguageTag, Source},
   },
 };
 use activitypub_federation::{

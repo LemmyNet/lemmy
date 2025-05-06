@@ -43,5 +43,3 @@ pub(crate) async fn search_query_to_object_id_local(
   let url = Url::parse(query)?;
   ObjectId::from(url).dereference_local(context).await
 }
-
-pub(crate) type SearchableObjects = Either<PostOrComment, UserOrCommunity>;

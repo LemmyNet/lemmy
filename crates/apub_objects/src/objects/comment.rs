@@ -1,13 +1,17 @@
 use crate::{
-  activities::{generate_to, verify_person_in_community, verify_visibility},
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links,
-  mentions::collect_non_local_mentions,
-  objects::{append_attachments_to_comment, read_from_string_or_source},
-  protocol::{
-    objects::{note::Note, LanguageTag},
-    InCommunity,
-    Source,
+  protocol::note::Note,
+  utils::{
+    functions::{
+      append_attachments_to_comment,
+      check_apub_id_valid_with_strictness,
+      generate_to,
+      read_from_string_or_source,
+      verify_person_in_community,
+      verify_visibility,
+    },
+    markdown_links::markdown_rewrite_remote_links,
+    mentions::collect_non_local_mentions,
+    protocol::{InCommunity, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -238,7 +242,7 @@ pub(crate) mod tests {
       person::{tests::parse_lemmy_person, ApubPerson},
       post::ApubPost,
     },
-    protocol::tests::file_to_json_object,
+    utils::test::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;

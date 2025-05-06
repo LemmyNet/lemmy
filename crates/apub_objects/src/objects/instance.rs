@@ -1,12 +1,13 @@
 use crate::{
-  activities::GetActorType,
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  objects::read_from_string_or_source_opt,
-  protocol::{
-    objects::{instance::Instance, LanguageTag},
-    ImageObject,
-    Source,
+  protocol::instance::Instance,
+  utils::{
+    functions::{
+      check_apub_id_valid_with_strictness,
+      read_from_string_or_source_opt,
+      GetActorType,
+    },
+    markdown_links::markdown_rewrite_remote_links_opt,
+    protocol::{ImageObject, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -191,7 +192,7 @@ impl GetActorType for ApubSite {
 }
 
 /// Try to fetch the instance actor (to make things like instance rules available).
-pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
+pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
   object_id: &T,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<InstanceId> {
@@ -220,7 +221,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::protocol::tests::file_to_json_object;
+  use crate::utils::test::file_to_json_object;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

@@ -1,12 +1,14 @@
 use crate::{
-  activities::GetActorType,
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
-  protocol::{
-    objects::person::{Person, UserTypes},
-    ImageObject,
-    Source,
+  objects::instance::fetch_instance_actor_for_object,
+  protocol::person::{Person, UserTypes},
+  utils::{
+    functions::{
+      check_apub_id_valid_with_strictness,
+      read_from_string_or_source_opt,
+      GetActorType,
+    },
+    markdown_links::markdown_rewrite_remote_links_opt,
+    protocol::{ImageObject, Source},
   },
 };
 use activitypub_federation::{
@@ -211,7 +213,8 @@ pub(crate) mod tests {
   use super::*;
   use crate::{
     objects::instance::{tests::parse_lemmy_instance, ApubSite},
-    protocol::{objects::instance::Instance, tests::file_to_json_object},
+    protocol::instance::Instance,
+    utils::test::file_to_json_object,
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;
