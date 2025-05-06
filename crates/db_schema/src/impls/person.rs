@@ -21,6 +21,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use std::collections::HashMap;
 
 #[async_trait]
 impl Crud for Person {
@@ -95,6 +96,24 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
+  }
+
+  pub async fn read_many(
+    pool: &mut DbPool<'_>,
+    person_ids: &[PersonId],
+    is_admin: bool,
+  ) -> Result<HashMap<PersonId, Person>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let mut query = person::table
+      .filter(person::id.eq_any(person_ids))
+      .into_boxed();
+    if !is_admin {
+      query = query.filter(person::deleted.eq(false));
+    }
+    let persons: Vec<Person> = query.get_results(conn).await?;
+    Ok(HashMap::from_iter(
+      persons.iter().map(|p| (p.id, p.clone())),
+    ))
   }
 
   /// Lists local community ids for all posts and comments for a given creator.
