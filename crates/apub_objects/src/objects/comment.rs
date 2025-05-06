@@ -254,7 +254,7 @@ pub(crate) mod tests {
     let context2 = context.reset_request_count();
     let (person, site) = parse_lemmy_person(&context2).await?;
     let community = parse_lemmy_community(&context2).await?;
-    let post_json = file_to_json_object("assets/lemmy/objects/page.json")?;
+    let post_json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
     ApubPost::verify(&post_json, url, &context2).await?;
     let post = ApubPost::from_json(post_json, &context2).await?;
     Ok((person, community, post, site))
@@ -280,7 +280,7 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
-    let json: Note = file_to_json_object("assets/lemmy/objects/comment.json")?;
+    let json: Note = file_to_json_object("../apub/assets/lemmy/objects/comment.json")?;
     ApubComment::verify(&json, &url, &context).await?;
     let comment = ApubComment::from_json(json.clone(), &context).await?;
 
@@ -309,10 +309,10 @@ pub(crate) mod tests {
 
     let pleroma_url =
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")?;
-    let person_json = file_to_json_object("assets/pleroma/objects/person.json")?;
+    let person_json = file_to_json_object("../apub/assets/pleroma/objects/person.json")?;
     ApubPerson::verify(&person_json, &pleroma_url, &context).await?;
     ApubPerson::from_json(person_json, &context).await?;
-    let json = file_to_json_object("assets/pleroma/objects/note.json")?;
+    let json = file_to_json_object("../apub/assets/pleroma/objects/note.json")?;
     ApubComment::verify(&json, &pleroma_url, &context).await?;
     let comment = ApubComment::from_json(json, &context).await?;
 

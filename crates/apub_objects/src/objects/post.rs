@@ -329,7 +329,7 @@ mod tests {
     let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/lemmy/objects/page.json")?;
+    let json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143")?;
     ApubPost::verify(&json, &url, &context).await?;
     let post = ApubPost::from_json(json, &context).await?;
@@ -355,10 +355,10 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/mastodon/objects/person.json")?;
+    let json = file_to_json_object("../apub/assets/mastodon/objects/person.json")?;
     let person = ApubPerson::from_json(json, &context).await?;
 
-    let json = file_to_json_object("assets/mastodon/objects/page.json")?;
+    let json = file_to_json_object("../apub/assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");

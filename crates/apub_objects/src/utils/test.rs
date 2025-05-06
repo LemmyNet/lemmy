@@ -36,7 +36,7 @@ pub fn test_parse_lemmy_item<T: Serialize + DeserializeOwned + std::fmt::Debug>(
 }
 
 pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> LemmyResult<ApubSite> {
-  let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
+  let json: Instance = file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
   let id = Url::parse("https://enterprise.lemmy.ml/")?;
   ApubSite::verify(&json, &id, context).await?;
   let site = ApubSite::from_json(json, context).await?;
@@ -48,7 +48,7 @@ pub async fn parse_lemmy_person(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<(ApubPerson, ApubSite)> {
   let site = parse_lemmy_instance(context).await?;
-  let json = file_to_json_object("assets/lemmy/objects/person.json")?;
+  let json = file_to_json_object("../apub/assets/lemmy/objects/person.json")?;
   let url = Url::parse("https://enterprise.lemmy.ml/u/picard")?;
   ApubPerson::verify(&json, &url, context).await?;
   let person = ApubPerson::from_json(json, context).await?;
@@ -59,7 +59,7 @@ pub async fn parse_lemmy_person(
 pub async fn parse_lemmy_community(context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
   // use separate counter so this doesn't affect tests
   let context2 = context.reset_request_count();
-  let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
+  let mut json: Group = file_to_json_object("../apub/assets/lemmy/objects/group.json")?;
   // change these links so they dont fetch over the network
   json.attributed_to = None;
   json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;

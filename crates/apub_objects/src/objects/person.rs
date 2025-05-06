@@ -241,13 +241,13 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
-    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
+    let mut json: Instance = file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
     json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubSite::verify(&json, &url, &context).await?;
     let site = ApubSite::from_json(json, &context).await?;
 
-    let json = file_to_json_object("assets/pleroma/objects/person.json")?;
+    let json = file_to_json_object("../apub/assets/pleroma/objects/person.json")?;
     ApubPerson::verify(&json, &url, &context).await?;
     let person = ApubPerson::from_json(json, &context).await?;
 
