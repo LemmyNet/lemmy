@@ -1,7 +1,3 @@
-use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{objects::group::Group, InCommunity},
-};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -9,6 +5,11 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::group::Group,
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -136,7 +136,7 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
       LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release

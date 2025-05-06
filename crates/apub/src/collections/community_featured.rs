@@ -1,7 +1,4 @@
-use crate::{
-  objects::{community::ApubCommunity, post::ApubPost},
-  protocol::collections::group_featured::GroupFeatured,
-};
+use crate::protocol::collections::group_featured::GroupFeatured;
 use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
@@ -10,6 +7,7 @@ use activitypub_federation::{
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
+use lemmy_apub_objects::objects::{community::ApubCommunity, post::ApubPost};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   utils::FETCH_LIMIT_MAX,

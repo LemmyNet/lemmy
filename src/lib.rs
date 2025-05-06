@@ -20,10 +20,11 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  objects::instance::ApubSite,
+  collections::fetch_community_collections,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
+use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_db_views_site::SiteView;
@@ -234,6 +235,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .set(Box::new(move |d, c| {
       Box::pin(match_outgoing_activities(d, c))
     }))
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+  FETCH_COMMUNITY_COLLECTIONS
+    .set(fetch_community_collections)
     .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();

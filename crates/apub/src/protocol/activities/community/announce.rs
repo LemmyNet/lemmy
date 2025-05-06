@@ -1,9 +1,10 @@
-use crate::{objects::community::ApubCommunity, protocol::IdOrNestedObject};
+use crate::protocol::IdOrNestedObject;
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::AnnounceType,
   protocol::helpers::deserialize_one_or_many,
 };
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use url::Url;

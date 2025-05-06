@@ -3,10 +3,8 @@ pub mod undo_block_user;
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-    tests::test_parse_lemmy_item,
-  };
+  use crate::protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser};
+  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
 
   #[test]

@@ -1,9 +1,9 @@
-use crate::{fetcher::UserOrCommunity, objects::person::ApubPerson};
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
+use lemmy_apub_objects::objects::{person::ApubPerson, UserOrCommunity};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

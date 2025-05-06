@@ -1,25 +1,12 @@
-use super::{generate_to, verify_is_public};
 use crate::{
   activities::{
     community::send_activity_in_community,
     send_lemmy_activity,
     verify_mod_action,
     verify_person,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-    private_message::ApubPrivateMessage,
-  },
-  protocol::{
-    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
-    InCommunity,
-  },
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{
   config::Data,
@@ -29,6 +16,19 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_apub_objects::{
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    private_message::ApubPrivateMessage,
+  },
+  utils::{
+    functions::{generate_to, verify_is_public, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,

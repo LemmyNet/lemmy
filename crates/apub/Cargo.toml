@@ -22,7 +22,6 @@ lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
-lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
@@ -35,6 +34,7 @@ lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_apub_objects = { workspace = true }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 diesel = { workspace = true }
@@ -52,18 +52,12 @@ itertools = { workspace = true }
 uuid = { workspace = true }
 async-trait = "0.1.88"
 anyhow = { workspace = true }
-moka.workspace = true
 serde_with.workspace = true
-html2md = "0.2.15"
-html2text = { workspace = true }
-stringreader = "0.1.1"
 enum_delegate = "0.2.0"
-semver = "1.0.26"
 either = "1.15.0"
 
 [dev-dependencies]
 serial_test = { workspace = true }
-assert-json-diff = "2.0.2"
 pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-shear]
