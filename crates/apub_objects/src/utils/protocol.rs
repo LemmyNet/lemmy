@@ -109,7 +109,7 @@ impl PersonOrGroupModerators {
     self.deref().clone().into()
   }
 
-  pub(crate) fn moderators(&self) -> Url {
+  pub fn moderators(&self) -> Url {
     self.deref().clone()
   }
 }

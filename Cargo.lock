@@ -3314,6 +3314,7 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_utils",
  "moka",
+ "once_cell",
  "pretty_assertions",
  "semver",
  "serde",

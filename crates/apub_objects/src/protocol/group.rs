@@ -60,7 +60,7 @@ pub struct Group {
   pub attributed_to: Option<AttributedTo>,
   // lemmy extension
   pub posting_restricted_to_mods: Option<bool>,
-  pub(crate) outbox: Url,
+  pub outbox: Url,
   pub endpoints: Option<Endpoints>,
   pub featured: Option<Url>,
   #[serde(default)]

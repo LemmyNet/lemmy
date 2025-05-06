@@ -15,7 +15,7 @@ use url::Url;
 pub mod activities;
 pub mod activity_lists;
 pub mod api;
-pub(crate) mod collections;
+pub mod collections;
 pub mod fetcher;
 pub mod http;
 pub mod protocol;
