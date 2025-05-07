@@ -45,6 +45,7 @@ use once_cell::sync::OnceCell;
 use std::ops::Deref;
 use url::Url;
 
+#[allow(clippy::type_complexity)]
 pub static FETCH_COMMUNITY_COLLECTIONS: OnceCell<
   fn(ApubCommunity, Group, Data<LemmyContext>) -> (),
 > = OnceCell::new();
@@ -168,10 +169,10 @@ impl Object for ApubCommunity {
       .map(|_| true);
 
     let form = CommunityInsertForm {
-      published: group.published.clone(),
-      updated: group.updated.clone(),
+      published: group.published,
+      updated: group.updated,
       deleted: Some(false),
-      nsfw: Some(group.sensitive.clone().unwrap_or(false)),
+      nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
       local: Some(false),
       last_refreshed_at: Some(Utc::now()),
@@ -210,22 +211,20 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language.clone(), &mut context.pool()).await?;
 
-    let timestamp = group
-      .updated
-      .clone()
-      .or(group.published.clone())
-      .unwrap_or_else(Utc::now);
+    let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
-    FETCH_COMMUNITY_COLLECTIONS.get().unwrap()(
-      community.clone(),
-      group.clone(),
-      context.reset_request_count(),
-    );
+    if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {
+      fetch_fn(
+        community.clone(),
+        group.clone(),
+        context.reset_request_count(),
+      );
+    }
 
     Ok(community)
   }
