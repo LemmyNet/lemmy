@@ -12,15 +12,17 @@ cfg_if! {
 }
 
 pub mod error;
-use git_version::git_version;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
 
-pub const VERSION: &str = git_version!(
+#[cfg(not(debug_assertions))]
+pub const VERSION: &str = git_version::git_version!(
   args = ["--tags", "--dirty=-modified"],
   fallback = env!("CARGO_PKG_VERSION")
 );
+#[cfg(debug_assertions)]
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
