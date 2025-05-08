@@ -29,6 +29,8 @@ impl LocalImageView {
 
     let query = Self::joins()
       .filter(local_image::person_id.eq(person_id))
+      // For the API fetch, don't fetch thumbnails
+      .filter(local_image::thumbnail_and_post_id.is_null())
       .select(Self::as_select())
       .limit(limit)
       .into_boxed();
