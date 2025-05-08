@@ -33,6 +33,7 @@ pub struct LocalImage {
   pub pictrs_alias: String,
   pub published: DateTime<Utc>,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub thumbnail_and_post_id: Option<PostId>,
 }
 
