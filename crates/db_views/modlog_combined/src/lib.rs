@@ -1,38 +1,33 @@
-use lemmy_db_schema::{
-  newtypes::PaginationCursor,
-  source::{
-    comment::Comment,
-    community::Community,
-    instance::Instance,
-    mod_log::{
-      admin::{
-        AdminAllowInstance,
-        AdminBlockInstance,
-        AdminPurgeComment,
-        AdminPurgeCommunity,
-        AdminPurgePerson,
-        AdminPurgePost,
-      },
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModBan,
-        ModBanFromCommunity,
-        ModChangeCommunityVisibility,
-        ModFeaturePost,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemoveCommunity,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  instance::Instance,
+  mod_log::{
+    admin::{
+      AdminAllowInstance,
+      AdminBlockInstance,
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
     },
-    person::Person,
-    post::Post,
+    moderator::{
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModChangeCommunityVisibility,
+      ModFeaturePost,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModTransferCommunity,
+    },
   },
+  person::Person,
+  post::Post,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
@@ -207,7 +202,7 @@ pub struct AdminAllowInstanceView {
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined modlog view
-pub(crate) struct ModlogCombinedViewInternal {
+pub struct ModlogCombinedViewInternal {
   // Specific
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_allow_instance: Option<AdminAllowInstance>,
@@ -263,32 +258,4 @@ pub(crate) struct ModlogCombinedViewInternal {
   pub post: Option<Post>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
-}
-
-pub enum ModlogCombinedView {
-  AdminAllowInstance(AdminAllowInstanceView),
-  AdminBlockInstance(AdminBlockInstanceView),
-  AdminPurgeComment(AdminPurgeCommentView),
-  AdminPurgeCommunity(AdminPurgeCommunityView),
-  AdminPurgePerson(AdminPurgePersonView),
-  AdminPurgePost(AdminPurgePostView),
-  ModAdd(ModAddView),
-  ModAddCommunity(ModAddCommunityView),
-  ModBan(ModBanView),
-  ModBanFromCommunity(ModBanFromCommunityView),
-  ModFeaturePost(ModFeaturePostView),
-  ModChangeCommunityVisibility(ModChangeCommunityVisibilityView),
-  ModLockPost(ModLockPostView),
-  ModRemoveComment(ModRemoveCommentView),
-  ModRemoveCommunity(ModRemoveCommunityView),
-  ModRemovePost(ModRemovePostView),
-  ModTransferCommunity(ModTransferCommunityView),
-}
-
-/// The modlog fetch response.
-pub struct GetModlogResponse {
-  pub modlog: Vec<ModlogCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
