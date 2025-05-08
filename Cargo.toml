@@ -44,6 +44,7 @@ members = [
   "crates/api_crud",
   "crates/api_common",
   "crates/apub",
+  "crates/apub_objects",
   "crates/utils",
   "crates/db_perf",
   "crates/db_schema",
@@ -104,6 +105,7 @@ expect_used = "deny"
 lemmy_api = { version = "=1.0.0-alpha.4", path = "./crates/api" }
 lemmy_api_crud = { version = "=1.0.0-alpha.4", path = "./crates/api_crud" }
 lemmy_apub = { version = "=1.0.0-alpha.4", path = "./crates/apub" }
+lemmy_apub_objects = { version = "=1.0.0-alpha.4", path = "./crates/apub_objects" }
 lemmy_utils = { version = "=1.0.0-alpha.4", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.4", path = "./crates/db_schema" }
 lemmy_db_schema_file = { version = "=1.0.0-alpha.4", path = "./crates/db_schema_file" }
@@ -212,6 +214,7 @@ html2text = "0.14.0"
 lemmy_api = { workspace = true }
 lemmy_api_crud = { workspace = true }
 lemmy_apub = { workspace = true }
+lemmy_apub_objects = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

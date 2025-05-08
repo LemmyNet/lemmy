@@ -1,11 +1,10 @@
-use crate::{
-  fetcher::PostOrComment,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
-};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::protocol::InCommunity,
+};
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;

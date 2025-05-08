@@ -1,11 +1,9 @@
-use super::PostOrComment;
-use crate::fetcher::UserOrCommunity;
 use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
 };
-use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 
@@ -43,5 +41,3 @@ pub(crate) async fn search_query_to_object_id_local(
   let url = Url::parse(query)?;
   ObjectId::from(url).dereference_local(context).await
 }
-
-pub(crate) type SearchableObjects = Either<PostOrComment, UserOrCommunity>;

@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  objects::community::ApubCommunity,
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -18,6 +17,7 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX};
 use lemmy_db_schema_file::enums::PostSortType;
 use lemmy_db_views_post::impls::PostQuery;

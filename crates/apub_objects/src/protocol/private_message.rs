@@ -1,6 +1,6 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::Source,
+  utils::protocol::Source,
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,
@@ -19,10 +19,10 @@ use serde_with::skip_serializing_none;
 pub struct PrivateMessage {
   #[serde(rename = "type")]
   pub(crate) kind: PrivateMessageType,
-  pub(crate) id: ObjectId<ApubPrivateMessage>,
-  pub(crate) attributed_to: ObjectId<ApubPerson>,
+  pub id: ObjectId<ApubPrivateMessage>,
+  pub attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<ApubPerson>; 1],
+  pub to: [ObjectId<ApubPerson>; 1],
   pub(crate) content: String,
 
   pub(crate) media_type: Option<MediaTypeHtml>,

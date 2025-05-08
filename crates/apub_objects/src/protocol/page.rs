@@ -1,9 +1,11 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    objects::{AttributedTo, LanguageTag, PersonOrGroupType},
+  utils::protocol::{
+    AttributedTo,
     ImageObject,
     InCommunity,
+    LanguageTag,
+    PersonOrGroupType,
     Source,
   },
 };
@@ -43,7 +45,7 @@ pub enum PageType {
 pub struct Page {
   #[serde(rename = "type")]
   pub(crate) kind: PageType,
-  pub(crate) id: ObjectId<ApubPost>,
+  pub id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
@@ -73,7 +75,7 @@ pub struct Page {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Link {
+pub struct Link {
   href: Url,
   media_type: Option<String>,
   r#type: LinkType,
@@ -81,7 +83,7 @@ pub(crate) struct Link {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Image {
+pub struct Image {
   #[serde(rename = "type")]
   kind: ImageType,
   url: Url,
@@ -91,7 +93,7 @@ pub(crate) struct Image {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Document {
+pub struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
@@ -102,7 +104,7 @@ pub(crate) struct Document {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-pub(crate) enum Attachment {
+pub enum Attachment {
   Link(Link),
   Image(Image),
   Document(Document),
@@ -164,7 +166,7 @@ pub enum HashtagType {
 }
 
 impl Page {
-  pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
+  pub fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.creator()),
       AttributedTo::Peertube(p) => p
@@ -262,7 +264,7 @@ where
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
+  use crate::{protocol::page::Page, utils::test::test_parse_lemmy_item};
 
   #[test]
   fn test_not_parsing_note_as_page() {

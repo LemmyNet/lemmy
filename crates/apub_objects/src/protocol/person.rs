@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{objects::Endpoints, ImageObject, Source},
+  utils::protocol::{Endpoints, ImageObject, Source},
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,

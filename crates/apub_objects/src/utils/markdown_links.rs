@@ -1,5 +1,4 @@
-use super::{search::SearchableObjects, UserOrCommunity};
-use crate::fetcher::PostOrComment;
+use crate::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
