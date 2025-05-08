@@ -637,6 +637,7 @@ diesel::table! {
         post_id -> Int4,
         locked -> Bool,
         published -> Timestamptz,
+        reason -> Nullable<Text>,
     }
 }
 
