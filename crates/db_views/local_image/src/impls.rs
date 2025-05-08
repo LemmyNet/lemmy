@@ -8,13 +8,15 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
-use lemmy_db_schema_file::schema::{local_image, person};
+use lemmy_db_schema_file::schema::{local_image, person, post};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    local_image::table.inner_join(person::table)
+    local_image::table
+      .inner_join(person::table)
+      .left_join(post::table)
   }
 
   pub async fn get_all_paged_by_person_id(

@@ -236,7 +236,7 @@ pub async fn generate_post_link_metadata(
       .ok()
       .or(Some(url.into()))
   } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
-    generate_pictrs_thumbnail(post.creator_id, Some(post.id), &url, &context)
+    generate_pictrs_thumbnail(post.creator_id, post.id, &url, &context)
       .await
       .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
@@ -448,7 +448,7 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 async fn generate_pictrs_thumbnail(
   creator_id: PersonId,
-  post_id: Option<PostId>,
+  post_id: PostId,
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<Url> {
@@ -489,7 +489,7 @@ async fn generate_pictrs_thumbnail(
     pictrs_alias: image.file.clone(),
     // For thumbnails, the person_id is the post creator
     person_id: creator_id,
-    thumbnail_and_post_id: Some(post_id),
+    thumbnail_and_post_id: Some(Some(post_id)),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.image_url(&protocol_and_hostname)?;
