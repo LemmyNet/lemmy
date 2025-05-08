@@ -44,9 +44,6 @@ test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth();
   expect(health.success).toBeTruthy();
 
-  // Before running this test, you need to delete all previous images in the DB
-  await deleteAllMedia(alpha);
-
   // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
   // in testing mode.
   const upload_form: UploadImage = {
