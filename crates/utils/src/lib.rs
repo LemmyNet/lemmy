@@ -12,7 +12,6 @@ cfg_if! {
 }
 
 pub mod error;
-use git_version::git_version;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
