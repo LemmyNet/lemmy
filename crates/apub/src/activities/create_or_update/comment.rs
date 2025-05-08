@@ -3,18 +3,10 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  mentions::MentionOrValue,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
-    InCommunity,
-  },
+  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
 };
 use activitypub_federation::{
   config::Data,
@@ -26,6 +18,14 @@ use lemmy_api_common::{
   build_response::send_local_notifs,
   context::LemmyContext,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
+};
+use lemmy_apub_objects::{
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    mentions::MentionOrValue,
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},

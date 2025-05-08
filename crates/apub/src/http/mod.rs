@@ -1,9 +1,4 @@
-use crate::{
-  activity_lists::SharedInboxActivities,
-  fetcher::{get_instance_id, SiteOrCommunityOrUser, UserOrCommunity},
-  protocol::objects::tombstone::Tombstone,
-  FEDERATION_CONTEXT,
-};
+use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id, FEDERATION_CONTEXT};
 use activitypub_federation::{
   actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
@@ -13,6 +8,10 @@ use activitypub_federation::{
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{SiteOrCommunityOrUser, UserOrCommunity},
+  protocol::tombstone::Tombstone,
+};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},

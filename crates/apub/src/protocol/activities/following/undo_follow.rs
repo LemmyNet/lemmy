@@ -1,9 +1,10 @@
-use crate::{objects::person::ApubPerson, protocol::activities::following::follow::Follow};
+use crate::protocol::activities::following::follow::Follow;
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
   protocol::helpers::deserialize_skip_error,
 };
+use lemmy_apub_objects::objects::person::ApubPerson;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

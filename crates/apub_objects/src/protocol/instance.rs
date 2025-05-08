@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::ApubSite,
-  protocol::{objects::LanguageTag, ImageObject, Source},
+  utils::protocol::{ImageObject, LanguageTag, Source},
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,

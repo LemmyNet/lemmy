@@ -1,11 +1,15 @@
 use crate::{
-  fetcher::PostOrComment,
-  mentions::MentionOrValue,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    objects::{page::Attachment, LanguageTag},
-    InCommunity,
-    Source,
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    PostOrComment,
+  },
+  protocol::page::Attachment,
+  utils::{
+    mentions::MentionOrValue,
+    protocol::{InCommunity, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -36,12 +40,12 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Note {
   pub(crate) r#type: NoteType,
-  pub(crate) id: ObjectId<ApubComment>,
-  pub(crate) attributed_to: ObjectId<ApubPerson>,
+  pub id: ObjectId<ApubComment>,
+  pub attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
-  pub(crate) cc: Vec<Url>,
+  pub cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
 
@@ -51,16 +55,16 @@ pub struct Note {
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub(crate) tag: Vec<MentionOrValue>,
+  pub tag: Vec<MentionOrValue>,
   // lemmy extension
-  pub(crate) distinguished: Option<bool>,
+  pub distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
 }
 
 impl Note {
-  pub(crate) async fn get_parents(
+  pub async fn get_parents(
     &self,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {

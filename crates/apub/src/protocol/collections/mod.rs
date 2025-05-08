@@ -6,16 +6,14 @@ pub(crate) mod group_outbox;
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    collections::{
-      empty_outbox::EmptyOutbox,
-      group_featured::GroupFeatured,
-      group_followers::GroupFollowers,
-      group_moderators::GroupModerators,
-      group_outbox::GroupOutbox,
-    },
-    tests::{test_json, test_parse_lemmy_item},
+  use crate::protocol::collections::{
+    empty_outbox::EmptyOutbox,
+    group_featured::GroupFeatured,
+    group_followers::GroupFollowers,
+    group_moderators::GroupModerators,
+    group_outbox::GroupOutbox,
   };
+  use lemmy_apub_objects::utils::test::{test_json, test_parse_lemmy_item};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 

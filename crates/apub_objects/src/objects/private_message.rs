@@ -1,10 +1,9 @@
 use crate::{
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links,
-  objects::read_from_string_or_source,
-  protocol::{
-    objects::private_message::{PrivateMessage, PrivateMessageType},
-    Source,
+  protocol::private_message::{PrivateMessage, PrivateMessageType},
+  utils::{
+    functions::{check_apub_id_valid_with_strictness, read_from_string_or_source},
+    markdown_links::markdown_rewrite_remote_links,
+    protocol::Source,
   },
 };
 use activitypub_federation::{
@@ -39,7 +38,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubPrivateMessage(pub(crate) DbPrivateMessage);
+pub struct ApubPrivateMessage(pub DbPrivateMessage);
 
 impl Deref for ApubPrivateMessage {
   type Target = DbPrivateMessage;
@@ -171,11 +170,8 @@ impl Object for ApubPrivateMessage {
 mod tests {
   use super::*;
   use crate::{
-    objects::{
-      instance::{tests::parse_lemmy_instance, ApubSite},
-      person::ApubPerson,
-    },
-    protocol::tests::file_to_json_object,
+    objects::{instance::ApubSite, person::ApubPerson},
+    utils::test::{file_to_json_object, parse_lemmy_instance},
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
@@ -188,11 +184,11 @@ mod tests {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPerson, ApubPerson, ApubSite)> {
     let context2 = context.reset_request_count();
-    let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json")?;
+    let lemmy_person = file_to_json_object("../apub/assets/lemmy/objects/person.json")?;
     let site = parse_lemmy_instance(&context2).await?;
     ApubPerson::verify(&lemmy_person, url, &context2).await?;
     let person1 = ApubPerson::from_json(lemmy_person, &context2).await?;
-    let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json")?;
+    let pleroma_person = file_to_json_object("../apub/assets/pleroma/objects/person.json")?;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubPerson::verify(&pleroma_person, &pleroma_url, &context2).await?;
     let person2 = ApubPerson::from_json(pleroma_person, &context2).await?;
@@ -216,7 +212,8 @@ mod tests {
     let instance = create_test_instance(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
-    let json: PrivateMessage = file_to_json_object("assets/lemmy/objects/private_message.json")?;
+    let json: PrivateMessage =
+      file_to_json_object("../apub/assets/lemmy/objects/private_message.json")?;
     ApubPrivateMessage::verify(&json, &url, &context).await?;
     let pm = ApubPrivateMessage::from_json(json.clone(), &context).await?;
 
@@ -242,7 +239,7 @@ mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;
-    let json = file_to_json_object("assets/pleroma/objects/chat_message.json")?;
+    let json = file_to_json_object("../apub/assets/pleroma/objects/chat_message.json")?;
     ApubPrivateMessage::verify(&json, &pleroma_url, &context).await?;
     let pm = ApubPrivateMessage::from_json(json, &context).await?;
 

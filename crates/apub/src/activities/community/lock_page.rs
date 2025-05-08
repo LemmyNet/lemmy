@@ -3,18 +3,11 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
     verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::community::ApubCommunity,
-  protocol::{
-    activities::community::lock_page::{LockPage, LockType, UndoLockPage},
-    InCommunity,
-  },
+  protocol::activities::community::lock_page::{LockPage, LockType, UndoLockPage},
 };
 use activitypub_federation::{
   config::Data,
@@ -23,6 +16,13 @@ use activitypub_federation::{
   traits::ActivityHandler,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
