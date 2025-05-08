@@ -37,7 +37,7 @@ import {
 beforeAll(setupLogins);
 
 afterAll(async () => {
-  await Promise.all([unfollows(), deleteAllMedia(alpha)]);
+  await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
 test("Upload image and delete it", async () => {
