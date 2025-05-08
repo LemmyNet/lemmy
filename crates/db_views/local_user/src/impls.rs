@@ -2,17 +2,19 @@ use crate::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, OAuthProviderId, PersonId},
+  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor, PersonId},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
-    person::{Person, PersonInsertForm},
+    person::{person_keys, Person, PersonInsertForm},
   },
-  traits::Crud,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{
     functions::{coalesce, lower},
     get_conn,
+    paginate,
     queries::creator_home_instance_actions_join,
     DbPool,
   },
@@ -146,6 +148,38 @@ impl LocalUserView {
   }
 }
 
+#[derive(Default)]
+pub struct LocalUserQuery {
+  pub cursor_data: Option<Person>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
+}
+
+impl LocalUserQuery {
+  // TODO: add filters and sorts
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<LocalUserView>> {
+    let conn = &mut get_conn(pool).await?;
+    let query = LocalUserView::joins()
+      .filter(person::deleted.eq(false))
+      .select(LocalUserView::as_select())
+      .into_boxed();
+
+    let paginated_query = paginate(
+      query,
+      SortDirection::Desc,
+      self.cursor_data,
+      None,
+      self.page_back,
+    )
+    .then_order_by(person_keys::published)
+    // Tie breaker
+    .then_order_by(person_keys::id);
+
+    let res = paginated_query.load::<LocalUserView>(conn).await?;
+    Ok(res)
+  }
+}
+
 impl FromRequest for LocalUserView {
   type Error = LemmyError;
   type Future = Ready<Result<Self, Self::Error>>;
@@ -155,5 +189,21 @@ impl FromRequest for LocalUserView {
       Some(c) => Ok(c.clone()),
       None => Err(LemmyErrorType::IncorrectLogin.into()),
     })
+  }
+}
+
+impl PaginationCursorBuilder for LocalUserView {
+  type CursorData = Person;
+
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('L', self.person.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let id = cursor.first_id()?;
+    Person::read(pool, PersonId(id)).await
   }
 }
