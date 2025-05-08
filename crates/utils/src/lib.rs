@@ -16,6 +16,8 @@ use std::time::Duration;
 
 pub type ConnectionId = usize;
 
+/// git_version marks this crate as dirty and causes a rebuild if any file in the repo is changed.
+/// This slows down development a lot, so we only use git_version for release builds.
 #[cfg(not(debug_assertions))]
 pub const VERSION: &str = git_version::git_version!(
   args = ["--tags", "--dirty=-modified"],
