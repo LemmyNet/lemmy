@@ -1,10 +1,11 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
-  ListingType,
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PaginationCursor, PostId, TagId},
   PostFeatureType,
-  PostSortType,
 };
-use lemmy_db_views::structs::{CommunityView, PostPaginationCursor, PostView, VoteView};
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -90,19 +91,10 @@ pub struct GetPosts {
   /// IE 60 would give results for the past minute.
   /// Use Zero to override the local_site and local_user time_range.
   pub time_range_seconds: Option<i32>,
-  /// DEPRECATED, use page_cursor
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub read_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -125,9 +117,11 @@ pub struct GetPosts {
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PostPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -139,7 +133,9 @@ pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PostPaginationCursor>,
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -176,11 +172,11 @@ pub struct EditPost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub tags: Option<Vec<TagId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -306,14 +302,16 @@ pub struct OpenGraphData {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
   pub post_id: PostId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -324,4 +322,9 @@ pub struct ListPostLikes {
 /// The post likes response
 pub struct ListPostLikesResponse {
   pub post_likes: Vec<VoteView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

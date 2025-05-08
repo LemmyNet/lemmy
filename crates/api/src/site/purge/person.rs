@@ -1,4 +1,3 @@
-use crate::ban_nonlocal_user_from_local_communities;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -10,13 +9,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
     mod_log::admin::{AdminPurgePerson, AdminPurgePersonForm},
-    person::{Person, PersonUpdateForm},
+    person::Person,
   },
-  traits::Crud,
+  traits::{Bannable, Crud},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_person(
@@ -24,6 +24,8 @@ pub async fn purge_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
@@ -37,28 +39,25 @@ pub async fn purge_person(
 
   let person = Person::read(&mut context.pool(), data.person_id).await?;
 
-  ban_nonlocal_user_from_local_communities(
-    &local_user_view,
-    &person,
-    true,
-    &data.reason,
-    &Some(true),
-    &None,
+  ActivityChannel::submit_activity(
+    SendActivityData::BanFromSite {
+      moderator: local_user_view.person.clone(),
+      banned_user: person,
+      reason: data.reason.clone(),
+      remove_or_restore_data: Some(true),
+      ban: true,
+      expires: None,
+    },
     &context,
-  )
-  .await?;
+  )?;
 
   // Clear profile data.
-  purge_user_account(data.person_id, &context).await?;
+  purge_user_account(data.person_id, local_instance_id, &context).await?;
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
-  let person = Person::update(
+  InstanceActions::ban(
     &mut context.pool(),
-    data.person_id,
-    &PersonUpdateForm {
-      banned: Some(true),
-      ..Default::default()
-    },
+    &InstanceBanForm::new(data.person_id, local_instance_id, None),
   )
   .await?;
 
@@ -68,18 +67,6 @@ pub async fn purge_person(
     reason: data.reason.clone(),
   };
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
-
-  ActivityChannel::submit_activity(
-    SendActivityData::BanFromSite {
-      moderator: local_user_view.person,
-      banned_user: person,
-      reason: data.reason.clone(),
-      remove_or_restore_data: Some(true),
-      ban: true,
-      expires: None,
-    },
-    &context,
-  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

@@ -12,10 +12,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::{
-  person::person_view::PersonQuery,
-  structs::{LocalUserView, SiteView},
-};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   VERSION,
@@ -32,7 +31,7 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(local_user_view.person.instance_id, &mut context.pool())
   .await?;
   if admins.len() == 1 {
     Err(LemmyErrorType::CannotLeaveAdmin)?
@@ -67,7 +66,7 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(site_view.instance.id, &mut context.pool())
   .await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
@@ -88,5 +87,6 @@ pub async fn leave_admin(
     tagline,
     my_user: None,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
+    active_plugins: vec![],
   }))
 }

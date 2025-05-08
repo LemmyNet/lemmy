@@ -1,16 +1,10 @@
 use crate::{
   activities::{
     generate_activity_id,
-    verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
   },
   insert_received_activity,
-  objects::person::ApubPerson,
-  protocol::{
-    activities::voting::vote::{Vote, VoteType},
-    InCommunity,
-  },
-  PostOrComment,
+  protocol::activities::voting::vote::{Vote, VoteType},
 };
 use activitypub_federation::{
   config::Data,
@@ -18,7 +12,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
-use lemmy_db_schema::{source::local_site::LocalSite, FederationMode};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
+use lemmy_db_schema_file::enums::FederationMode;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -65,13 +64,14 @@ impl ActivityHandler for Vote {
     check_bot_account(&actor.0)?;
 
     // Check for enabled federation votes
-    let local_site = LocalSite::read(&mut context.pool())
+    let local_site = SiteView::read_local(&mut context.pool())
       .await
+      .map(|s| s.local_site)
       .unwrap_or_default();
 
     let (downvote_setting, upvote_setting) = match object {
-      PostOrComment::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-      PostOrComment::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+      PostOrComment::Left(_) => (local_site.post_downvotes, local_site.post_upvotes),
+      PostOrComment::Right(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
     };
 
     // Don't allow dislikes for either disabled, or local only votes
@@ -81,14 +81,14 @@ impl ActivityHandler for Vote {
     if downvote_fail || upvote_fail {
       // If this is a rejection, undo the vote
       match object {
-        PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
-        PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
+        PostOrComment::Left(p) => undo_vote_post(actor, &p, context).await,
+        PostOrComment::Right(c) => undo_vote_comment(actor, &c, context).await,
       }
     } else {
       // Otherwise apply the vote normally
       match object {
-        PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
-        PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
+        PostOrComment::Left(p) => vote_post(&self.kind, actor, &p, context).await,
+        PostOrComment::Right(c) => vote_comment(&self.kind, actor, &c, context).await,
       }
     }
   }

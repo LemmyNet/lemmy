@@ -3,17 +3,10 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
-    InCommunity,
-  },
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use activitypub_federation::{
   config::Data,
@@ -21,6 +14,13 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},
   source::{
@@ -31,6 +31,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -112,6 +113,9 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let local_instance_id = site_view.site.instance_id;
+
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
@@ -122,7 +126,8 @@ impl ActivityHandler for CreateOrUpdatePage {
     // Calculate initial hot_rank for post
     Post::update_ranks(&mut context.pool(), post.id).await?;
 
-    let do_send_email = self.kind == CreateOrUpdateType::Create;
+    let do_send_email =
+      self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
     // Send the post body mentions
@@ -134,6 +139,7 @@ impl ActivityHandler for CreateOrUpdatePage {
       do_send_email,
       context,
       None,
+      local_instance_id,
     )
     .await?;
 

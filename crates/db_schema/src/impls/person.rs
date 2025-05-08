@@ -1,7 +1,6 @@
 use crate::{
-  diesel::OptionalExtension,
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_actions, post},
+  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
+  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PersonId},
   source::person::{
     Person,
     PersonActions,
@@ -17,13 +16,18 @@ use chrono::Utc;
 use diesel::{
   dsl::{exists, insert_into, not, select},
   expression::SelectableHelper,
-  result::Error,
-  CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::{
+  instance,
+  instance_actions,
+  local_user,
+  person,
+  person_actions,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -36,32 +40,35 @@ impl Crud for Person {
   type IdType = PersonId;
 
   // Override this, so that you don't get back deleted
-  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
       .first(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePerson)
   }
   async fn update(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     form: &PersonUpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person::table.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
   }
 }
 
@@ -70,7 +77,7 @@ impl Person {
   ///
   /// This is necessary for federation, because Activitypub doesn't distinguish between these
   /// actions.
-  pub async fn upsert(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
+  pub async fn upsert(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
@@ -79,15 +86,38 @@ impl Person {
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
   }
-  pub async fn delete_account(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Person, Error> {
+
+  pub async fn delete_account(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    local_instance_id: InstanceId,
+  ) -> LemmyResult<Person> {
     let conn = &mut get_conn(pool).await?;
 
-    // Set the local user info to none
-    diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set(local_user::email.eq::<Option<String>>(None))
-      .execute(conn)
-      .await?;
+    // Set the local user email to none, only if they aren't banned locally.
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::person_id
+        .eq(person_id)
+        .and(instance_actions::instance_id.eq(local_instance_id)),
+    );
+
+    let not_banned_local_user_id = local_user::table
+      .left_join(instance_actions_join)
+      .filter(local_user::person_id.eq(person_id))
+      .filter(instance_actions::received_ban.nullable().is_null())
+      .select(local_user::id)
+      .first::<LocalUserId>(conn)
+      .await
+      .optional()?;
+
+    if let Some(local_user_id) = not_banned_local_user_id {
+      diesel::update(local_user::table.find(local_user_id))
+        .set(local_user::email.eq::<Option<String>>(None))
+        .execute(conn)
+        .await?;
+    };
 
     diesel::update(person::table.find(person_id))
       .set((
@@ -101,35 +131,10 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
-  }
-
-  /// Lists local community ids for all posts and comments for a given creator.
-  pub async fn list_local_community_ids(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment::table
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .filter(community::local.eq(true))
-      .filter(not(community::deleted))
-      .filter(not(community::removed))
-      .filter(comment::creator_id.eq(for_creator_id))
-      .select(community::id)
-      .union(
-        post::table
-          .inner_join(community::table)
-          .filter(community::local.eq(true))
-          .filter(post::creator_id.eq(for_creator_id))
-          .select(community::id),
-      )
-      .load::<CommunityId>(conn)
-      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
   }
 
   pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
-    use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(not(exists(
       person::table
@@ -158,7 +163,7 @@ impl ApubActor for Person {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
@@ -166,13 +171,14 @@ impl ApubActor for Person {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     from_name: &str,
     include_deleted: bool,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = person::table
       .into_boxed()
@@ -181,14 +187,17 @@ impl ApubActor for Person {
     if !include_deleted {
       q = q.filter(person::deleted.eq(false))
     }
-    q.first(conn).await.optional()
+    q.first(conn)
+      .await
+      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     person_name: &str,
     for_domain: &str,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     person::table
@@ -199,6 +208,7 @@ impl ApubActor for Person {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -286,7 +296,7 @@ impl Blockable for PersonActions {
   async fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> Result<Vec<Self::ObjectType>, Error> {
+  ) -> LemmyResult<Vec<Self::ObjectType>> {
     let conn = &mut get_conn(pool).await?;
     let target_person_alias = diesel::alias!(person as person1);
 
@@ -302,6 +312,7 @@ impl Blockable for PersonActions {
       .order_by(person_actions::blocked)
       .load::<Person>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -309,7 +320,7 @@ impl PersonActions {
   pub async fn list_followers(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<Vec<Person>, Error> {
+  ) -> LemmyResult<Vec<Person>> {
     let conn = &mut get_conn(pool).await?;
     person_actions::table
       .filter(person_actions::followed.is_not_null())
@@ -318,6 +329,7 @@ impl PersonActions {
       .select(person::all_columns)
       .load(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -357,7 +369,6 @@ mod tests {
       display_name: None,
       avatar: None,
       banner: None,
-      banned: false,
       deleted: false,
       published: inserted_person.published,
       updated: None,
@@ -370,7 +381,6 @@ mod tests {
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       matrix_user_id: None,
-      ban_expires: None,
       instance_id: inserted_instance.id,
       post_count: 0,
       post_score: 0,

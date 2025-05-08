@@ -3,17 +3,19 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{send_new_report_email_to_admins, slur_regex},
+  utils::slur_regex,
 };
 use lemmy_db_schema::{
   source::{
-    local_site::LocalSite,
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::PrivateMessageReportView;
+use lemmy_db_views_site::SiteView;
+use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(
@@ -47,7 +49,7 @@ pub async fn create_pm_report(
     PrivateMessageReportView::read(&mut context.pool(), report.id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &private_message_report_view.creator.name,

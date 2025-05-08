@@ -1,17 +1,12 @@
 use super::report_inboxes;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      report::{Report, ReportObject},
-    },
-    InCommunity,
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::{Report, ReportObject},
   },
-  PostOrComment,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,6 +17,10 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
 };
 use lemmy_db_schema::{
   source::{
@@ -95,7 +94,7 @@ impl ActivityHandler for Report {
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      PostOrComment::Left(post) => {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -109,7 +108,7 @@ impl ActivityHandler for Report {
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
-      PostOrComment::Comment(comment) => {
+      PostOrComment::Right(comment) => {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {

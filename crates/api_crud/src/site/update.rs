@@ -25,16 +25,16 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{diesel_opt_number_update, diesel_string_update},
-  RegistrationMode,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     slurs::check_slurs_opt,
     validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       check_urls_are_valid,
       is_valid_body_field,
       site_name_length_check,
@@ -113,8 +113,8 @@ pub async fn update_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
-    disable_donation_dialog: data.disable_donation_dialog,
     disallow_nsfw_content: data.disallow_nsfw_content,
+    disable_email_notifications: data.disable_email_notifications,
     ..Default::default()
   };
 
@@ -162,9 +162,7 @@ pub async fn update_site(
     .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
     .unwrap_or(false);
   if !old_require_application && new_require_application {
-    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
+    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool()).await?;
   }
 
   let new_require_email_verification = update_local_site
@@ -172,9 +170,7 @@ pub async fn update_site(
     .map(|ols| ols.require_email_verification)
     .unwrap_or(false);
   if !local_site.require_email_verification && new_require_email_verification {
-    LocalUser::set_all_users_email_verified(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
+    LocalUser::set_all_users_email_verified(&mut context.pool()).await?;
   }
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -212,13 +208,6 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
 
   site_default_post_listing_type_check(&edit_site.default_post_listing_type)?;
 
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &edit_site.private_instance,
-    &edit_site.federation_enabled,
-  )?;
-
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(body) = &edit_site.sidebar {
     is_valid_body_field(body, false)?;
@@ -238,12 +227,8 @@ mod tests {
 
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
-  use lemmy_db_schema::{
-    source::local_site::LocalSite,
-    ListingType,
-    PostSortType,
-    RegistrationMode,
-  };
+  use lemmy_db_schema::source::local_site::LocalSite;
+  use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -292,37 +277,6 @@ mod tests {
         &EditSite {
           name: Some(String::from("site_name")),
           default_post_listing_type: Some(ListingType::Subscribed),
-          ..Default::default()
-        },
-      ),
-      (
-        "EditSite is both private and federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          private_instance: true,
-          federation_enabled: false,
-          registration_mode: RegistrationMode::Open,
-          ..Default::default()
-        },
-        &EditSite {
-          name: Some(String::from("site_name")),
-          private_instance: Some(true),
-          federation_enabled: Some(true),
-          ..Default::default()
-        },
-      ),
-      (
-        "LocalSite is private, but EditSite also makes it federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          private_instance: true,
-          federation_enabled: false,
-          registration_mode: RegistrationMode::Open,
-          ..Default::default()
-        },
-        &EditSite {
-          name: Some(String::from("site_name")),
-          federation_enabled: Some(true),
           ..Default::default()
         },
       ),

@@ -1,23 +1,13 @@
 use super::report_inboxes;
 use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_mod_action,
-    verify_person_in_community,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_mod_action},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      report::Report,
-      resolve_report::{ResolveReport, ResolveType},
-    },
-    InCommunity,
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::Report,
+    resolve_report::{ResolveReport, ResolveType},
   },
-  PostOrComment,
 };
 use activitypub_federation::{
   config::Data,
@@ -26,6 +16,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_db_schema::{
   source::{comment_report::CommentReport, post_report::PostReport},
   traits::Reportable,
@@ -87,10 +81,10 @@ impl ActivityHandler for ResolveReport {
     let reporter = self.object.actor.dereference(context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      PostOrComment::Left(post) => {
         PostReport::resolve_apub(&mut context.pool(), post.id, reporter.id, actor.id).await?;
       }
-      PostOrComment::Comment(comment) => {
+      PostOrComment::Right(comment) => {
         CommentReport::resolve_apub(&mut context.pool(), comment.id, reporter.id, actor.id).await?;
       }
     };

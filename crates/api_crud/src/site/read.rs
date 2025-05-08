@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
+use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
@@ -7,10 +7,9 @@ use lemmy_db_schema::source::{
   oauth_provider::OAuthProvider,
   tagline::Tagline,
 };
-use lemmy_db_views::{
-  person::person_view::PersonQuery,
-  structs::{LocalUserView, SiteView},
-};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 
@@ -42,7 +41,7 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(site_view.instance.id, &mut context.pool())
   .await?;
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
@@ -63,5 +62,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     oauth_providers,
     admin_oauth_providers,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
+    active_plugins: plugin_metadata(),
   })
 }

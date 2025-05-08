@@ -1,7 +1,7 @@
 use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
-#[cfg(feature = "full")]
-use crate::schema::private_message;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::private_message;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -37,7 +37,10 @@ pub struct PrivateMessage {
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
 pub struct PrivateMessageInsertForm {
   pub creator_id: PersonId,
@@ -58,7 +61,7 @@ pub struct PrivateMessageInsertForm {
 }
 
 #[derive(Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
 pub struct PrivateMessageUpdateForm {
   pub content: Option<String>,

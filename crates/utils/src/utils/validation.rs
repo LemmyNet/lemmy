@@ -1,8 +1,9 @@
-use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
+use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
@@ -25,6 +26,10 @@ const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
+const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
+const TAG_NAME_MIN_LENGTH: usize = 3;
+const TAG_NAME_MAX_LENGTH: usize = 100;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',
@@ -196,6 +201,19 @@ pub fn site_or_community_description_length_check(description: &str) -> LemmyRes
   )
 }
 
+pub fn tag_name_length_check(tag_name: &str) -> LemmyResult<()> {
+  min_length_check(
+    tag_name,
+    TAG_NAME_MIN_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )?;
+  max_length_check(
+    tag_name,
+    TAG_NAME_MAX_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )
+}
+
 /// Check minimum and maximum length of input string. If the string is too short or too long, the
 /// corresponding error is returned.
 ///
@@ -270,22 +288,6 @@ pub fn clean_urls_in_text(text: &str) -> String {
   }
 }
 
-pub fn check_site_visibility_valid(
-  current_private_instance: bool,
-  current_federation_enabled: bool,
-  new_private_instance: &Option<bool>,
-  new_federation_enabled: &Option<bool>,
-) -> LemmyResult<()> {
-  let private_instance = new_private_instance.unwrap_or(current_private_instance);
-  let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
-
-  if private_instance && federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
-  } else {
-    Ok(())
-  }
-}
-
 pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
     Err(LemmyErrorType::InvalidUrlScheme)?
@@ -319,6 +321,25 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   Ok(unique_urls)
 }
 
+pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> LemmyResult<()> {
+  for keyword in blocking_keywords {
+    min_length_check(
+      keyword,
+      MIN_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooShort,
+    )?;
+    max_length_check(
+      keyword,
+      MAX_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooLong,
+    )?;
+  }
+  if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
+}
+
 pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   // Parse and check for errors
   let mut url = Url::parse(url_str).or_else(|e| {
@@ -348,6 +369,45 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   Ok(out)
 }
 
+// Shorten a string to n chars, being mindful of unicode grapheme
+// boundaries
+pub fn truncate_for_db(text: &str, len: usize) -> String {
+  if text.chars().count() <= len {
+    text.to_string()
+  } else {
+    let offset = text
+      .char_indices()
+      .nth(len)
+      .unwrap_or(text.char_indices().last().unwrap_or_default());
+    let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
+    let mut index = 0;
+    // Walk the string backwards and find the first char within our length
+    for idx in (0..graphemes.len()).rev() {
+      if let Some(grapheme) = graphemes.get(idx) {
+        if grapheme.0 < offset.0 {
+          index = idx;
+          break;
+        }
+      }
+    }
+    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let grapheme_count = grapheme.1.chars().count();
+    // `take` isn't inclusive, so if the last grapheme can fit we add its char
+    // length
+    let char_count = if grapheme_count + grapheme.0 <= len {
+      grapheme.0 + grapheme_count
+    } else {
+      grapheme.0
+    };
+
+    text.chars().take(char_count).collect::<String>()
+  }
+}
+
+pub fn truncate_description(text: &str) -> String {
+  truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -355,7 +415,6 @@ mod tests {
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       check_urls_are_valid,
       clean_url,
       clean_urls_in_text,
@@ -368,6 +427,7 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       site_or_community_description_length_check,
+      truncate_for_db,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -610,18 +670,6 @@ Line3",
   }
 
   #[test]
-  fn test_check_site_visibility_valid() {
-    assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
-    assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &Some(true)).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
-  }
-
-  #[test]
   fn test_check_url_valid() -> LemmyResult<()> {
     assert!(is_valid_url(&Url::parse("http://example.com")?).is_ok());
     assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
@@ -681,6 +729,16 @@ Line3",
     );
 
     assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
+    Ok(())
+  }
+
+  #[test]
+  fn test_truncate() -> LemmyResult<()> {
+    assert_eq!("Hell", truncate_for_db("Hello", 4));
+    assert_eq!("word", truncate_for_db("word", 10));
+    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
+    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+
     Ok(())
   }
 }

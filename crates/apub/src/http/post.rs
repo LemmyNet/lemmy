@@ -1,11 +1,9 @@
 use super::check_community_content_fetchable;
-use crate::{
-  http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object},
-  objects::post::ApubPost,
-};
+use crate::http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object};
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::post::ApubPost;
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, post::Post},

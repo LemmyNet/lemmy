@@ -10,6 +10,8 @@ pub mod custom_emoji;
 pub mod image;
 pub mod oauth_provider;
 pub mod person;
+#[cfg(feature = "full")]
+pub mod plugins;
 pub mod post;
 pub mod private_message;
 pub mod reports;
@@ -20,10 +22,11 @@ pub mod send_activity;
 pub mod site;
 pub mod tagline;
 #[cfg(feature = "full")]
+pub mod tags;
+#[cfg(feature = "full")]
 pub mod utils;
 
 pub extern crate lemmy_db_schema;
-pub extern crate lemmy_db_views;
 pub extern crate lemmy_utils;
 
 pub use lemmy_utils::error::LemmyErrorType;

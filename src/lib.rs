@@ -13,21 +13,20 @@ use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
-  lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
-  utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
-  },
+  utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  objects::instance::ApubSite,
+  collections::fetch_community_collections,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
-use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
+use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
+use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema_file::schema_setup;
+use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
@@ -192,7 +191,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
-  check_private_instance_and_federation_enabled(&site_view.local_site)?;
 
   println!(
     "Starting HTTP server at {}:{}",
@@ -236,6 +234,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .set(Box::new(move |d, c| {
       Box::pin(match_outgoing_activities(d, c))
     }))
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+  FETCH_COMMUNITY_COLLECTIONS
+    .set(fetch_community_collections)
     .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();

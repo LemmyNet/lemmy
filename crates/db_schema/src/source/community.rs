@@ -1,24 +1,29 @@
-#[cfg(feature = "full")]
-use crate::schema::{community, community_actions};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
-  CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{community, community_actions},
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
 /// A community.
 pub struct Community {
   pub id: CommunityId,
@@ -178,7 +183,14 @@ pub struct CommunityUpdateForm {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(
   feature = "full",
@@ -188,6 +200,7 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_actions_keys))]
 pub struct CommunityActions {
   pub community_id: CommunityId,
   pub person_id: PersonId,
@@ -234,20 +247,6 @@ pub struct CommunityPersonBanForm {
   pub ban_expires: Option<Option<DateTime<Utc>>>,
   #[new(value = "Utc::now()")]
   pub received_ban: DateTime<Utc>,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
-#[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
-)]
-#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
-pub enum CommunityFollowerState {
-  Accepted,
-  Pending,
-  ApprovalRequired,
 }
 
 #[derive(Clone, derive_new::new)]

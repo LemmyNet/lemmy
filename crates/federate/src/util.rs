@@ -1,14 +1,12 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_apub::{
-  activity_lists::SharedInboxActivities,
-  fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
-};
+use lemmy_apub::activity_lists::SharedInboxActivities;
+use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
-    activity::{ActorType, SentActivity},
+    activity::SentActivity,
     community::Community,
     federation_queue_state::FederationQueueState,
     person::Person,
@@ -17,6 +15,8 @@ use lemmy_db_schema::{
   traits::ApubActor,
   utils::{get_conn, DbPool},
 };
+use lemmy_db_schema_file::enums::ActorType;
+use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
 use serde_json::Value;
@@ -143,26 +143,26 @@ pub(crate) async fn get_actor_cached(
     .try_get_with(actor_apub_id.clone(), async {
       let url = actor_apub_id.clone().into();
       let person = match actor_type {
-        ActorType::Site => SiteOrCommunityOrUser::Site(
+        ActorType::Site => SiteOrCommunityOrUser::Left(
           Site::read_from_apub_id(pool, &url)
             .await?
             .context("apub site not found")?
             .into(),
         ),
-        ActorType::Community => SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::Community(
+        ActorType::Community => SiteOrCommunityOrUser::Right(UserOrCommunity::Right(
           Community::read_from_apub_id(pool, &url)
             .await?
             .context("apub community not found")?
             .into(),
         )),
-        ActorType::Person => SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::User(
+        ActorType::Person => SiteOrCommunityOrUser::Right(UserOrCommunity::Left(
           Person::read_from_apub_id(pool, &url)
             .await?
             .context("apub person not found")?
             .into(),
         )),
       };
-      Result::<_, anyhow::Error>::Ok(Arc::new(person))
+      Result::<_, LemmyError>::Ok(Arc::new(person))
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
@@ -181,9 +181,7 @@ pub(crate) async fn get_activity_cached(
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = SentActivity::read(pool, activity_id)
-        .await
-        .context("could not read activity");
+      let row = SentActivity::read(pool, activity_id).await;
       let Ok(mut row) = row else {
         return anyhow::Result::<_, anyhow::Error>::Ok(None);
       };
@@ -208,7 +206,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
   CACHE
     .try_get_with((), async {
       use diesel::dsl::max;
-      use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
+      use lemmy_db_schema_file::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       let latest_id = seq.unwrap_or(ActivityId(0));

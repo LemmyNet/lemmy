@@ -9,17 +9,15 @@ pub mod update;
 #[cfg(test)]
 mod tests {
   use super::resolve_report::ResolveReport;
-  use crate::protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      collection_add::CollectionAdd,
-      collection_remove::CollectionRemove,
-      lock_page::{LockPage, UndoLockPage},
-      report::Report,
-      update::UpdateCommunity,
-    },
-    tests::test_parse_lemmy_item,
+  use crate::protocol::activities::community::{
+    announce::AnnounceActivity,
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
+    lock_page::{LockPage, UndoLockPage},
+    report::Report,
+    update::UpdateCommunity,
   };
+  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
 
   #[test]

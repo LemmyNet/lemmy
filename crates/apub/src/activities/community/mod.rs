@@ -1,12 +1,16 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::post_or_comment::PostOrComment,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
+  PostOrComment,
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -15,7 +19,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod announce;
@@ -96,8 +100,8 @@ async fn report_inboxes(
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
-      PostOrComment::Post(p) => p.creator_id,
-      PostOrComment::Comment(c) => c.creator_id,
+      PostOrComment::Left(p) => p.creator_id,
+      PostOrComment::Right(c) => c.creator_id,
     };
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
     let object_creator_site: Option<ApubSite> =

@@ -156,12 +156,6 @@ export async function setupLogins() {
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
     registration_mode: "Open",
-    rate_limit_message: 999,
-    rate_limit_post: 999,
-    rate_limit_register: 999,
-    rate_limit_image: 999,
-    rate_limit_comment: 999,
-    rate_limit_search: 999,
   };
   await alpha.editSite(editSiteForm);
   await beta.editSite(editSiteForm);
@@ -878,7 +872,6 @@ export function listCommunityPendingFollows(
   let form: ListCommunityPendingFollows = {
     pending_only: true,
     all_communities: false,
-    page: 1,
     limit: 50,
   };
   return api.listCommunityPendingFollows(form);
@@ -933,8 +926,8 @@ export function randomString(length: number): string {
   return result;
 }
 
-export async function deleteAllImages(api: LemmyHttp) {
-  const imagesRes = await api.listAllMedia({
+export async function deleteAllMedia(api: LemmyHttp) {
+  const imagesRes = await api.listMediaAdmin({
     limit: imageFetchLimit,
   });
   Promise.all(
@@ -945,7 +938,7 @@ export async function deleteAllImages(api: LemmyHttp) {
         };
         return form;
       })
-      .map(form => api.deleteImage(form)),
+      .map(form => api.deleteMediaAdmin(form)),
   );
 }
 

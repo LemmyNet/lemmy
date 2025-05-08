@@ -92,6 +92,7 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
 
 echo "start epsilon"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
+  LEMMY_PLUGIN_PATH=api_tests/plugins \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
   target/lemmy_server >$LOG_DIR/lemmy_epsilon.out 2>&1 &
 

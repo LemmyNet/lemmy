@@ -7,7 +7,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_required_string_update, diesel_required_url_update},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_oauth_provider(

@@ -8,7 +8,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{source::community::CommunityActions, traits::Followable};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn post_pending_follows_approve(
@@ -16,12 +16,7 @@ pub async fn post_pending_follows_approve(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  is_mod_or_admin(
-    &mut context.pool(),
-    &local_user_view.person,
-    data.community_id,
-  )
-  .await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, data.community_id).await?;
 
   let activity_data = if data.approve {
     CommunityActions::approve_follower(

@@ -8,13 +8,11 @@ use lemmy_api_common::{
   person::{LoginResponse, Register},
   utils::{
     check_email_verified,
+    check_local_user_valid,
     check_registration_application,
-    check_user_valid,
     generate_inbox_url,
     honeypot_check,
     password_length_check,
-    send_new_applicant_email_to_admins,
-    send_verification_email_if_required,
     slur_regex,
   },
 };
@@ -33,9 +31,14 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::get_conn,
-  RegistrationMode,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
+use lemmy_email::{
+  account::send_verification_email_if_required,
+  admin::send_new_applicant_email_to_admins,
+};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -131,7 +134,7 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_local_site = local_site.clone();
   let tx_settings = context.settings();
-  let (person, local_user) = conn
+  let user = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
         // We have to create both a person, and local_user
@@ -167,7 +170,11 @@ pub async fn register(
           }
         }
 
-        Ok((person, local_user))
+        Ok(LocalUserView {
+          person,
+          local_user,
+          instance_actions: None,
+        })
       }
       .scope_boxed()
     })
@@ -189,11 +196,16 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    let jwt = Claims::generate(user.local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    login_response.verify_email_sent =
-      send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+    login_response.verify_email_sent = send_verification_email_if_required(
+      &local_site,
+      &user,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -281,7 +293,7 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    check_user_valid(&user_view.person)?;
+    check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
@@ -318,7 +330,7 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        check_user_valid(&user_view.person)?;
+        check_local_user_valid(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
 
@@ -326,9 +338,7 @@ pub async fn authenticate_with_oauth(
         let oauth_account_form =
           OAuthAccountInsertForm::new(user_view.local_user.id, oauth_provider.id, oauth_user_id);
 
-        OAuthAccount::create(pool, &oauth_account_form)
-          .await
-          .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+        OAuthAccount::create(pool, &oauth_account_form).await?;
 
         user_view.local_user.clone()
       } else {
@@ -348,7 +358,7 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_local_site = local_site.clone();
       let tx_settings = context.settings();
-      let (person, local_user) = conn
+      let user = conn
         .transaction::<_, LemmyError, _>(|conn| {
           async move {
             // make sure the username is provided
@@ -388,9 +398,7 @@ pub async fn authenticate_with_oauth(
             let oauth_account_form =
               OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
 
-            OAuthAccount::create(&mut conn.into(), &oauth_account_form)
-              .await
-              .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+            OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
 
             // prevent sign in until application is accepted
             if local_site.site_setup
@@ -412,16 +420,25 @@ pub async fn authenticate_with_oauth(
                 login_response.registration_created = true;
               }
             }
-            Ok((person, local_user))
+            Ok(LocalUserView {
+              person,
+              local_user,
+              instance_actions: None,
+            })
           }
           .scope_boxed()
         })
         .await?;
 
       // Check email is verified when required
-      login_response.verify_email_sent =
-        send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
-      local_user
+      login_response.verify_email_sent = send_verification_email_if_required(
+        &local_site,
+        &user,
+        &mut context.pool(),
+        context.settings(),
+      )
+      .await?;
+      user.local_user
     }
   };
 
@@ -453,9 +470,7 @@ async fn create_person(
   };
 
   // insert the person
-  let inserted_person = Person::create(&mut conn.into(), &person_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+  let inserted_person = Person::create(&mut conn.into(), &person_form).await?;
 
   Ok(inserted_person)
 }

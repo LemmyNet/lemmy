@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  objects::community::ApubCommunity,
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -18,8 +17,10 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
-use lemmy_db_views::post::post_view::PostQuery;
+use lemmy_apub_objects::objects::community::ApubCommunity;
+use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX};
+use lemmy_db_schema_file::enums::PostSortType;
+use lemmy_db_views_post::impls::PostQuery;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -67,7 +68,7 @@ impl Collection for ApubCommunityOutbox {
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_outbox_url(&owner.ap_id)?.into(),
-      total_items: ordered_items.len() as i32,
+      total_items: owner.posts as i32,
       ordered_items,
     })
   }

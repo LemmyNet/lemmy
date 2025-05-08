@@ -6,7 +6,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::source::login_token::LoginToken;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn logout(

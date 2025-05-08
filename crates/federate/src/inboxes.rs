@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_db_views::structs::CommunityFollowerView;
+use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
@@ -221,8 +221,9 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
-    source::activity::{ActorType, SentActivity},
+    source::activity::SentActivity,
   };
+  use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use mockall::{mock, predicate::*};
   use serde_json::json;

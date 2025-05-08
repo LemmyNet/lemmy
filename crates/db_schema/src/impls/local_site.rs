@@ -1,42 +1,46 @@
 use crate::{
-  schema::local_site,
   source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error};
+use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{build_cache, error::LemmyResult, CacheLock};
-use std::sync::LazyLock;
+use lemmy_db_schema_file::schema::local_site;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalSite {
-  pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> Result<Self, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(local_site::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreateSite)
   }
-  pub async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    static CACHE: CacheLock<LocalSite> = LazyLock::new(build_cache);
-    Ok(
-      CACHE
-        .try_get_with((), async {
-          let conn = &mut get_conn(pool).await?;
-          local_site::table.first(conn).await
-        })
-        .await?,
-    )
+
+  /// Only used for tests
+  #[cfg(test)]
+  async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    local_site::table
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
-  pub async fn update(pool: &mut DbPool<'_>, form: &LocalSiteUpdateForm) -> Result<Self, Error> {
+
+  pub async fn update(pool: &mut DbPool<'_>, form: &LocalSiteUpdateForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_site::table)
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
   }
-  pub async fn delete(pool: &mut DbPool<'_>) -> Result<usize, Error> {
+  pub async fn delete(pool: &mut DbPool<'_>) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(local_site::table).execute(conn).await
+    diesel::delete(local_site::table)
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 
@@ -56,6 +60,7 @@ mod tests {
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

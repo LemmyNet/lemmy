@@ -1,16 +1,13 @@
-use super::to;
+use super::{to, update_removed_for_instance};
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
-    verify_is_public,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::person::ApubPerson,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
@@ -23,12 +20,16 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
+use lemmy_apub_objects::{
+  objects::person::ApubPerson,
+  utils::functions::{verify_is_public, verify_visibility},
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
+    instance::{InstanceActions, InstanceBanForm},
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud},
 };
@@ -99,23 +100,21 @@ impl ActivityHandler for UndoBlockUser {
     let expires = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
+    let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
-      SiteOrCommunity::Site(_site) => {
+      SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(false),
-            ban_expires: Some(expires),
-            ..Default::default()
-          },
-        )
-        .await?;
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        InstanceActions::unban(pool, &form).await?;
 
         if self.restore_data.unwrap_or(false) {
-          remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
-            .await?;
+          if blocked_person.instance_id == site.instance_id {
+            // user unbanned from home instance, restore all content
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+              .await?;
+          } else {
+            update_removed_for_instance(&blocked_person, &site, false, pool).await?;
+          }
         }
 
         // write mod log
@@ -125,6 +124,7 @@ impl ActivityHandler for UndoBlockUser {
           reason: self.object.summary,
           banned: Some(false),
           expires,
+          instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }

@@ -4,7 +4,7 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, send_application_approved_email},
+  utils::is_admin,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,7 +14,9 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, get_conn},
 };
-use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn approve_registration_application(
@@ -58,14 +60,20 @@ pub async fn approve_registration_application(
     })
     .await?;
 
-  if data.approve {
-    let approved_local_user_view =
-      LocalUserView::read(&mut context.pool(), approved_user_id).await?;
-    if approved_local_user_view.local_user.email.is_some() {
-      // Email sending may fail, but this won't revert the application approval
+  let approved_local_user_view = LocalUserView::read(&mut context.pool(), approved_user_id).await?;
+  if approved_local_user_view.local_user.email.is_some() {
+    // Email sending may fail, but this won't revert the application approval
+    if data.approve {
       send_application_approved_email(&approved_local_user_view, context.settings()).await?;
+    } else {
+      send_application_denied_email(
+        &approved_local_user_view,
+        data.deny_reason.clone(),
+        context.settings(),
+      )
+      .await?;
     }
-  };
+  }
 
   // Read the view
   let registration_application =

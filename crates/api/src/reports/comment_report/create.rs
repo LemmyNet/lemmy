@@ -5,21 +5,17 @@ use lemmy_api_common::{
   context::LemmyContext,
   reports::comment::{CommentReportResponse, CreateCommentReport},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_comment_deleted_or_removed,
-    check_community_user_action,
-    send_new_report_email_to_admins,
-    slur_regex,
-  },
+  utils::{check_comment_deleted_or_removed, check_community_user_action, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    comment_report::{CommentReport, CommentReportForm},
-    local_site::LocalSite,
-  },
+  source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::CommentReportView;
+use lemmy_db_views_site::SiteView;
+use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community
@@ -33,16 +29,18 @@ pub async fn create_comment_report(
   check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
   let comment_view = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &comment_view.community,
     &mut context.pool(),
   )
@@ -65,7 +63,7 @@ pub async fn create_comment_report(
     CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &comment_report_view.creator.name,
