@@ -34,6 +34,7 @@ pub struct LocalImage {
   pub published: DateTime<Utc>,
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// This means the image is an auto-generated thumbnail, for a post.
   pub thumbnail_and_post_id: Option<PostId>,
 }
 
