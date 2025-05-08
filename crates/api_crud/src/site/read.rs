@@ -1,4 +1,3 @@
-use crate::user::my_user::get_my_user;
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
 use lemmy_db_schema::source::{
@@ -14,18 +13,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 
-pub async fn get_site_v3(
-  local_user_view: Option<LocalUserView>,
-  context: Data<LemmyContext>,
-) -> LemmyResult<Json<GetSiteResponse>> {
-  let mut site = get_site_v4(local_user_view.clone(), context.clone()).await?;
-  if let Some(local_user_view) = local_user_view {
-    site.my_user = Some(get_my_user(local_user_view, context).await?.0);
-  }
-  Ok(site)
-}
-
-pub async fn get_site_v4(
+pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponse>> {
