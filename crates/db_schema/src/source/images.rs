@@ -1,4 +1,4 @@
-use crate::newtypes::{DbUrl, PersonId};
+use crate::newtypes::{DbUrl, PersonId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -33,6 +33,7 @@ pub struct LocalImage {
   pub pictrs_alias: String,
   pub published: DateTime<Utc>,
   pub person_id: PersonId,
+  pub thumbnail_and_post_id: Option<PostId>,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,7 @@ pub struct LocalImage {
 pub struct LocalImageForm {
   pub pictrs_alias: String,
   pub person_id: PersonId,
+  pub thumbnail_and_post_id: Option<Option<PostId>>,
 }
 
 /// Stores all images which are hosted on remote domains. When attempting to proxy an image, it
