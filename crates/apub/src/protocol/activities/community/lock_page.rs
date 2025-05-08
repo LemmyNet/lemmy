@@ -32,7 +32,7 @@ pub struct LockPage {
   #[serde(rename = "type")]
   pub(crate) kind: LockType,
   pub(crate) id: Url,
-  /// Summary is the reason for removal
+  /// Summary is the reason for the lock.
   pub(crate) summary: Option<String>,
 }
 
@@ -48,7 +48,7 @@ pub struct UndoLockPage {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
-  /// Summary is the reason for removal
+  /// Summary is the reason for the lock.
   pub(crate) summary: Option<String>,
 }
 
