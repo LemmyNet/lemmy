@@ -38,7 +38,7 @@ use url::Url;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
-pub enum SharedInboxActivities {
+pub(crate) enum SharedInboxActivities {
   Follow(Follow),
   AcceptFollow(AcceptFollow),
   RejectFollow(RejectFollow),

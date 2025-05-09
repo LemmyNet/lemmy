@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_apub::activity_lists::SharedInboxActivities;
 use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::ActivityId,
@@ -19,7 +18,6 @@ use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
-use serde_json::Value;
 use std::{
   fmt::Debug,
   future::Future,
@@ -168,7 +166,7 @@ pub(crate) async fn get_actor_cached(
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
 }
 
-type CachedActivityInfo = Option<Arc<(SentActivity, SharedInboxActivities)>>;
+type CachedActivityInfo = Option<Arc<SentActivity>>;
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
 /// Holes in serials are expected behaviour in postgresql
@@ -181,19 +179,10 @@ pub(crate) async fn get_activity_cached(
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = SentActivity::read(pool, activity_id).await;
-      let Ok(mut row) = row else {
-        return anyhow::Result::<_, anyhow::Error>::Ok(None);
-      };
-      // swap to avoid cloning
-      let mut data = Value::Null;
-      std::mem::swap(&mut row.data, &mut data);
-      let activity_actual: SharedInboxActivities = serde_json::from_value(data)?;
-
-      Ok(Some(Arc::new((row, activity_actual))))
+      Ok(Some(Arc::new(SentActivity::read(pool, activity_id).await?)))
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))
+    .map_err(|e: Arc<LemmyError>| anyhow::anyhow!("err getting activity: {e:?}"))
 }
 
 /// return the most current activity id (with 1 second cache)

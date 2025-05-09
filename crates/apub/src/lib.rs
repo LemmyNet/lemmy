@@ -7,8 +7,6 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::{source::activity::ReceivedActivity, utils::ActualDbPool};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
-use serde_json::Value;
-use std::sync::LazyLock;
 use tracing::debug;
 use url::Url;
 
@@ -23,16 +21,6 @@ pub mod protocol;
 /// Maximum number of outgoing HTTP requests to fetch a single object. Needs to be high enough
 /// to fetch a new community with posts, moderators and featured posts.
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
-
-/// Only include a basic context to save space and bandwidth. The main context is hosted statically
-/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
-/// theoretically also be moved.
-pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
-  Value::Array(vec![
-    Value::String("https://join-lemmy.org/context.json".to_string()),
-    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
-  ])
-});
 
 #[derive(Clone)]
 pub struct VerifyUrlData(pub ActualDbPool);

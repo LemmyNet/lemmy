@@ -60,6 +60,17 @@ macro_rules! location_info {
 cfg_if! {
   if #[cfg(feature = "full")] {
 use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+use serde_json::Value;use std::{sync::LazyLock};
+
+/// Only include a basic context to save space and bandwidth. The main context is hosted statically
+/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
+/// theoretically also be moved.
+pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
+  Value::Array(vec![
+    Value::String("https://join-lemmy.org/context.json".to_string()),
+    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
+  ])
+});
 
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
