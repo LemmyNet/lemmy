@@ -475,6 +475,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
       locked: None,
+      reason: None,
     };
     let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form).await?;
     let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id).await?;
@@ -483,6 +484,7 @@ mod tests {
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
       locked: true,
+      reason: None,
       published: inserted_mod_lock_post.published,
     };
 

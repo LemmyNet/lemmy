@@ -1030,6 +1030,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       post_id: data.post.id,
       locked: Some(true),
+      reason: None,
     };
     ModLockPost::create(pool, &form).await?;
 
