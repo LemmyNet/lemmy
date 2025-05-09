@@ -53,6 +53,8 @@ services:
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt:Z
+    environment:
+      - PICTRS__SERVER__API_KEY=my-pictrs-key
 
   lemmy-alpha-ui:
     <<: *ui-default

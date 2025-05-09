@@ -54,7 +54,7 @@ let postOnAlphaRes: PostResponse;
 
 beforeAll(async () => {
   await setupLogins();
-  await Promise.all([followBeta(alpha), followBeta(gamma)]);
+  await Promise.allSettled([followBeta(alpha), followBeta(gamma)]);
   betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (betaCommunity) {
     postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
@@ -705,7 +705,7 @@ test("Check that activity from another instance is sent to third instance", asyn
     commentRes.comment_view,
   );
 
-  await Promise.all([unfollowRemotes(alpha), unfollowRemotes(gamma)]);
+  await Promise.allSettled([unfollowRemotes(alpha), unfollowRemotes(gamma)]);
 });
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {

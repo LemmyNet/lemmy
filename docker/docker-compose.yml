@@ -66,7 +66,7 @@ services:
     # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
-      - PICTRS__API_KEY=API_KEY
+      - PICTRS__SERVER__API_KEY=my-pictrs-key
       - PICTRS__MEDIA__VIDEO_CODEC=vp9
       - PICTRS__MEDIA__GIF__MAX_WIDTH=256
       - PICTRS__MEDIA__GIF__MAX_HEIGHT=256

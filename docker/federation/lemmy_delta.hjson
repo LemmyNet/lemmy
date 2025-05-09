@@ -10,4 +10,8 @@
   database: {
     connection: "postgres://lemmy:password@postgres_delta:5432/lemmy"
   }
+  pictrs: {
+    api_key: "my-pictrs-key"
+    image_mode: StoreLinkPreviews
+  }
 }
