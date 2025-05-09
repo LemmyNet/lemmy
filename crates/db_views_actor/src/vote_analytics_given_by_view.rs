@@ -141,18 +141,24 @@ impl VoteAnalyticsGivenByPersonView {
     // parameter used in the statements below without leaving any space. It could probably be
     // improved by implementing QueryFragments.
     let mut sql_dynamic_parameter_binding_index = 3u8;
-    let sql_since = start_time
+    let (sql_since_post, sql_since_comment) = start_time
       .map(|_| {
-        let s = format!("AND post_like.published >= ${sql_dynamic_parameter_binding_index}");
+        let (s_post, s_comment) = (
+          format!("AND post_like.published >= ${sql_dynamic_parameter_binding_index}"),
+          format!("AND comment_like.published >= ${sql_dynamic_parameter_binding_index}"),
+        );
         sql_dynamic_parameter_binding_index += 1;
-        s
+        (s_post, s_comment)
       })
       .unwrap_or_default();
-    let sql_until = end_time
+    let (sql_until_post, sql_until_comment) = end_time
       .map(|_| {
-        let s = format!("AND post_like.published <= ${sql_dynamic_parameter_binding_index}");
+        let (s_post, s_comment) = (
+          format!("AND post_like.published <= ${sql_dynamic_parameter_binding_index}"),
+          format!("AND comment_like.published <= ${sql_dynamic_parameter_binding_index}"),
+        );
         sql_dynamic_parameter_binding_index += 1;
-        s
+        (s_post, s_comment)
       })
       .unwrap_or_default();
 
@@ -214,8 +220,8 @@ UNION ALL
 SELECT * FROM post_likes_by_community
       "#,
             exclude_own = sql_exclude_own,
-            since = sql_since,
-            until = sql_until,
+            since = sql_since_post,
+            until = sql_until_post,
         )).into_boxed()
             .bind::<Integer, _>(&person_id.0)
             .bind::<BigInt, _>(limit);
@@ -288,8 +294,8 @@ UNION ALL
 SELECT * FROM comment_likes_by_community
       "#,
             exclude_own = sql_exclude_own,
-            since = sql_since,
-            until = sql_until,
+            since = sql_since_comment,
+            until = sql_until_comment,
         )).into_boxed()
             .bind::<Integer, _>(&person_id.0)
             .bind::<BigInt, _>(limit);
