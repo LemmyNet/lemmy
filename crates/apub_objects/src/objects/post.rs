@@ -1,17 +1,21 @@
 use crate::{
-  activities::{generate_to, verify_person_in_community, verify_visibility},
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
-  objects::read_from_string_or_source_opt,
-  protocol::{
-    objects::{
-      page::{Attachment, Hashtag, HashtagType, Page, PageType},
-      AttributedTo,
-      LanguageTag,
+  protocol::page::{
+    Attachment,
+    Hashtag,
+    HashtagType::{self},
+    Page,
+    PageType,
+  },
+  utils::{
+    functions::{
+      check_apub_id_valid_with_strictness,
+      generate_to,
+      read_from_string_or_source_opt,
+      verify_person_in_community,
+      verify_visibility,
     },
-    ImageObject,
-    InCommunity,
-    Source,
+    markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
+    protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, Source},
   },
 };
 use activitypub_federation::{
@@ -57,7 +61,7 @@ use url::Url;
 const MAX_TITLE_LENGTH: usize = 200;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ApubPost(pub(crate) Post);
+pub struct ApubPost(pub Post);
 
 impl Deref for ApubPost {
   type Target = Post;
@@ -311,11 +315,8 @@ impl Object for ApubPost {
 mod tests {
   use super::*;
   use crate::{
-    objects::{
-      community::tests::parse_lemmy_community,
-      person::{tests::parse_lemmy_person, ApubPerson},
-    },
-    protocol::tests::file_to_json_object,
+    objects::ApubPerson,
+    utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
@@ -328,7 +329,7 @@ mod tests {
     let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/lemmy/objects/page.json")?;
+    let json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143")?;
     ApubPost::verify(&json, &url, &context).await?;
     let post = ApubPost::from_json(json, &context).await?;
@@ -354,10 +355,10 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/mastodon/objects/person.json")?;
+    let json = file_to_json_object("../apub/assets/mastodon/objects/person.json")?;
     let person = ApubPerson::from_json(json, &context).await?;
 
-    let json = file_to_json_object("assets/mastodon/objects/page.json")?;
+    let json = file_to_json_object("../apub/assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");

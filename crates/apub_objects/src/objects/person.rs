@@ -1,12 +1,14 @@
 use crate::{
-  activities::GetActorType,
-  check_apub_id_valid_with_strictness,
-  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
-  protocol::{
-    objects::person::{Person, UserTypes},
-    ImageObject,
-    Source,
+  objects::instance::fetch_instance_actor_for_object,
+  protocol::person::{Person, UserTypes},
+  utils::{
+    functions::{
+      check_apub_id_valid_with_strictness,
+      read_from_string_or_source_opt,
+      GetActorType,
+    },
+    markdown_links::markdown_rewrite_remote_links_opt,
+    protocol::{ImageObject, Source},
   },
 };
 use activitypub_federation::{
@@ -42,7 +44,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ApubPerson(pub(crate) DbPerson);
+pub struct ApubPerson(pub DbPerson);
 
 impl Deref for ApubPerson {
   type Target = DbPerson;
@@ -210,25 +212,14 @@ impl GetActorType for ApubPerson {
 pub(crate) mod tests {
   use super::*;
   use crate::{
-    objects::instance::{tests::parse_lemmy_instance, ApubSite},
-    protocol::{objects::instance::Instance, tests::file_to_json_object},
+    objects::instance::ApubSite,
+    protocol::instance::Instance,
+    utils::test::{file_to_json_object, parse_lemmy_person},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-
-  pub(crate) async fn parse_lemmy_person(
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<(ApubPerson, ApubSite)> {
-    let site = parse_lemmy_instance(context).await?;
-    let json = file_to_json_object("assets/lemmy/objects/person.json")?;
-    let url = Url::parse("https://enterprise.lemmy.ml/u/picard")?;
-    ApubPerson::verify(&json, &url, context).await?;
-    let person = ApubPerson::from_json(json, context).await?;
-    assert_eq!(context.request_count(), 0);
-    Ok((person, site))
-  }
 
   #[tokio::test]
   #[serial]
@@ -250,13 +241,13 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
-    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
+    let mut json: Instance = file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
     json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubSite::verify(&json, &url, &context).await?;
     let site = ApubSite::from_json(json, &context).await?;
 
-    let json = file_to_json_object("assets/pleroma/objects/person.json")?;
+    let json = file_to_json_object("../apub/assets/pleroma/objects/person.json")?;
     ApubPerson::verify(&json, &url, &context).await?;
     let person = ApubPerson::from_json(json, &context).await?;
 

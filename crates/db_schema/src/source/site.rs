@@ -16,7 +16,8 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The site.
+/// Additional data for federated instances. This may be missing for other platforms which are not
+/// fully compatible. Basic data is guaranteed to be available via [[Instance]].
 pub struct Site {
   pub id: SiteId,
   pub name: String,

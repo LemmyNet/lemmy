@@ -1,8 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  fetcher::UserOrCommunity,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
 use activitypub_federation::{
@@ -12,6 +10,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions, person::PersonActions},
   traits::Followable,

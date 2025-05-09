@@ -1,14 +1,14 @@
-use crate::objects::{
-  comment::ApubComment,
-  community::ApubCommunity,
-  person::ApubPerson,
-  post::ApubPost,
-};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Object};
 use actix_web::web::Json;
 use futures::{future::try_join_all, StreamExt};
 use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, SuccessResponse};
+use lemmy_apub_objects::objects::{
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
+};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{

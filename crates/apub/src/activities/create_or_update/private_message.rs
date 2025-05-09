@@ -1,7 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   insert_received_activity,
-  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
@@ -13,6 +12,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
 use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyError, LemmyResult};

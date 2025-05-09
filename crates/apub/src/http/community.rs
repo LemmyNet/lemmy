@@ -6,9 +6,8 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetcher::{get_instance_id, SiteOrCommunityOrUser},
+  fetcher::get_instance_id,
   http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
-  objects::community::ApubCommunity,
 };
 use activitypub_federation::{
   actix_web::signing_actor,
@@ -22,6 +21,7 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{community::ApubCommunity, SiteOrCommunityOrUser};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -160,8 +160,8 @@ pub(crate) async fn get_apub_community_featured(
 pub(crate) mod tests {
 
   use super::*;
-  use crate::protocol::objects::{group::Group, tombstone::Tombstone};
   use actix_web::{body::to_bytes, test::TestRequest};
+  use lemmy_apub_objects::protocol::{group::Group, tombstone::Tombstone};
   use lemmy_db_schema::{
     newtypes::InstanceId,
     source::{
