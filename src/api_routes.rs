@@ -132,7 +132,7 @@ use lemmy_api_crud::{
     delete::delete_private_message,
     update::update_private_message,
   },
-  site::{create::create_site, read::get_site_v4, update::update_site},
+  site::{create::create_site, read::get_site, update::update_site},
   tagline::{
     create::create_tagline,
     delete::delete_tagline,
@@ -187,7 +187,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       // Site
       .service(
         scope("/site")
-          .route("", get().to(get_site_v4))
+          .route("", get().to(get_site))
           .route("", post().to(create_site))
           .route("", put().to(update_site))
           .route("/icon", post().to(upload_site_icon))

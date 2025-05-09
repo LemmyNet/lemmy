@@ -1,5 +1,4 @@
-pub mod api_routes_v3;
-pub mod api_routes_v4;
+pub mod api_routes;
 
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
@@ -369,8 +368,7 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes_v3::config(cfg, &rate_limit_cell))
-      .configure(|cfg| api_routes_v4::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
