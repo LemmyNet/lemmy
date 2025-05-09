@@ -3248,6 +3248,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_api_routes"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "actix-web",
+ "lemmy_api",
+ "lemmy_api_crud",
+ "lemmy_apub",
+ "lemmy_routes",
+ "lemmy_utils",
+]
+
+[[package]]
 name = "lemmy_apub"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3853,6 +3865,7 @@ dependencies = [
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
+ "lemmy_api_routes",
  "lemmy_apub",
  "lemmy_apub_objects",
  "lemmy_db_schema",

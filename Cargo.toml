@@ -43,6 +43,7 @@ members = [
   "crates/api",
   "crates/api_crud",
   "crates/api_common",
+  "crates/api_routes",
   "crates/apub",
   "crates/apub_objects",
   "crates/utils",
@@ -104,6 +105,7 @@ expect_used = "deny"
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-alpha.4", path = "./crates/api" }
 lemmy_api_crud = { version = "=1.0.0-alpha.4", path = "./crates/api_crud" }
+lemmy_api_routes = { version = "=1.0.0-alpha.4", path = "./crates/api_routes" }
 lemmy_apub = { version = "=1.0.0-alpha.4", path = "./crates/apub" }
 lemmy_apub_objects = { version = "=1.0.0-alpha.4", path = "./crates/apub_objects" }
 lemmy_utils = { version = "=1.0.0-alpha.4", path = "./crates/utils", default-features = false }
@@ -213,6 +215,7 @@ html2text = "0.14.0"
 [dependencies]
 lemmy_api = { workspace = true }
 lemmy_api_crud = { workspace = true }
+lemmy_api_routes = { workspace = true }
 lemmy_apub = { workspace = true }
 lemmy_apub_objects = { workspace = true }
 lemmy_utils = { workspace = true }

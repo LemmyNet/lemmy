@@ -1,5 +1,3 @@
-pub mod api_routes;
-
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
@@ -17,6 +15,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::local_site_rate_limit_to_rate_limit_config,
 };
+use lemmy_api_routes::api_routes;
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
   collections::fetch_community_collections,
