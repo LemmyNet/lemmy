@@ -24,6 +24,7 @@ pub async fn admin_list_users(
   };
 
   let users = LocalUserQuery {
+    banned_only: data.banned_only,
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,

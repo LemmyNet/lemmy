@@ -662,6 +662,8 @@ pub struct PluginMetadata {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct AdminListUsers {
   #[cfg_attr(feature = "full", ts(optional))]
+  pub banned_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,

@@ -29,7 +29,6 @@ use lemmy_api::{
     donation_dialog_shown::donation_dialog_shown,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
-    list_banned::list_banned_users,
     list_hidden::list_person_hidden,
     list_logins::list_logins,
     list_media::list_media,
@@ -422,7 +421,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", get().to(list_taglines)),
           )
           .route("/ban", post().to(ban_from_site))
-          .route("/banned", get().to(list_banned_users))
           .route("/users", get().to(admin_list_users))
           .route("/leave", post().to(leave_admin))
           .service(
