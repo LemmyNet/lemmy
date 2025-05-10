@@ -1,15 +1,12 @@
 use super::{local_community, report_inboxes};
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_site_or_community},
+  activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  fetcher::ReportableObjects,
   insert_received_activity,
-  objects::instance::ApubSite,
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
   },
-  PostOrComment,
 };
 use activitypub_federation::{
   config::Data,
@@ -20,11 +17,24 @@ use activitypub_federation::{
 use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_deleted_removed,
+    check_post_deleted_or_removed,
+  },
 };
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
-  utils::{functions::verify_person_in_community, protocol::InCommunity},
+  objects::{
+    community::ApubCommunity,
+    instance::ApubSite,
+    person::ApubPerson,
+    PostOrComment,
+    ReportableObjects,
+  },
+  utils::{
+    functions::{verify_person_in_community, verify_person_in_site_or_community},
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
   source::{

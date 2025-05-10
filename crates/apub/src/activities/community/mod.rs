@@ -1,8 +1,6 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::ReportableObjects,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
@@ -13,6 +11,7 @@ use lemmy_apub_objects::objects::{
   instance::ApubSite,
   person::ApubPerson,
   PostOrComment,
+  ReportableObjects,
 };
 use lemmy_db_schema::{
   source::{

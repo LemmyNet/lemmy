@@ -16,7 +16,6 @@ use crate::{
     },
     voting::send_like_activity,
   },
-  objects::instance::ApubSite,
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
@@ -36,7 +35,10 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_is_mod_or_admin, is_admin},
 };
-use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  utils::functions::{verify_admin_action, GetActorType},
+};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
@@ -100,6 +102,17 @@ pub(crate) async fn verify_mod_action(
     local_instance_id,
   )
   .await
+}
+
+pub(crate) async fn verify_mod_or_admin_action(
+  person_id: &ObjectId<ApubPerson>,
+  site_or_community: &Either<ApubSite, ApubCommunity>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  match site_or_community {
+    Either::Left(site) => verify_admin_action(person_id, site, context).await,
+    Either::Right(community) => verify_mod_action(person_id, community, context).await,
+  }
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {

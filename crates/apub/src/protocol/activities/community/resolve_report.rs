@@ -4,9 +4,10 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one,
 };
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   utils::protocol::InCommunity,
 };
 use lemmy_utils::error::LemmyResult;

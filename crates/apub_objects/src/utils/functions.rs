@@ -1,6 +1,6 @@
 use super::protocol::Source;
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::page::Attachment,
 };
 use activitypub_federation::{
@@ -9,13 +9,15 @@ use activitypub_federation::{
   kinds::public,
   protocol::values::MediaTypeMarkdownOrHtml,
 };
+use either::Either;
 use html2md::parse_html;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
+    site::Site,
   },
   traits::Joinable,
   utils::DbPool,
@@ -23,6 +25,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
@@ -252,7 +255,7 @@ pub async fn verify_person_in_community(
 
 /// Fetches the person and community or site to verify their type, then checks if person is banned
 /// from local site or community.
-pub(crate) async fn verify_person_in_site_or_community(
+pub async fn verify_person_in_site_or_community(
   person_id: &ObjectId<ApubPerson>,
   site_or_community: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
@@ -271,7 +274,7 @@ pub(crate) async fn verify_person_in_site_or_community(
 ///
 /// * `mod_id` - Activitypub ID of the admin who performed the action
 /// * `site` - The site that the person should be an admin of
-pub(crate) async fn verify_admin_action(
+pub async fn verify_admin_action(
   admin_id: &ObjectId<ApubPerson>,
   site: &Site,
   context: &Data<LemmyContext>,
@@ -286,17 +289,6 @@ pub(crate) async fn verify_admin_action(
   let admin = admin_id.dereference(context).await?;
   let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
   is_admin(&local_user_view)
-}
-
-pub(crate) async fn verify_mod_or_admin_action(
-  person_id: &ObjectId<ApubPerson>,
-  site_or_community: &Either<ApubSite, ApubCommunity>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  match site_or_community {
-    Either::Left(site) => verify_admin_action(person_id, site, context).await,
-    Either::Right(community) => verify_mod_action(person_id, community, context).await,
-  }
 }
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
