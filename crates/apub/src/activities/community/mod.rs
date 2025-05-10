@@ -4,12 +4,14 @@ use crate::{
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
+use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::objects::{
   community::ApubCommunity,
   instance::ApubSite,
   person::ApubPerson,
   PostOrComment,
+  ReportableObjects,
 };
 use lemmy_db_schema::{
   source::{
@@ -83,14 +85,14 @@ pub(crate) async fn send_activity_in_community(
 }
 
 async fn report_inboxes(
-  object_id: ObjectId<PostOrComment>,
-  community: &ApubCommunity,
+  object_id: ObjectId<ReportableObjects>,
+  receiver: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<ActivitySendTargets> {
   // send report to the community where object was posted
-  let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+  let mut inboxes = ActivitySendTargets::to_inbox(receiver.shared_inbox_or_inbox());
 
-  if community.local {
+  if let Some(community) = local_community(receiver) {
     // send to all moderators
     let moderators =
       CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
@@ -100,8 +102,9 @@ async fn report_inboxes(
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
-      PostOrComment::Left(p) => p.creator_id,
-      PostOrComment::Right(c) => c.creator_id,
+      ReportableObjects::Left(PostOrComment::Left(p)) => p.creator_id,
+      ReportableObjects::Left(PostOrComment::Right(c)) => c.creator_id,
+      _ => return Ok(inboxes),
     };
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
     let object_creator_site: Option<ApubSite> =
@@ -114,4 +117,11 @@ async fn report_inboxes(
     }
   }
   Ok(inboxes)
+}
+
+fn local_community(site_or_community: &Either<ApubSite, ApubCommunity>) -> Option<&ApubCommunity> {
+  match site_or_community {
+    Either::Right(c) if c.local => Some(c),
+    _ => None,
+  }
 }

@@ -1,6 +1,6 @@
 use super::protocol::Source;
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::page::Attachment,
 };
 use activitypub_federation::{
@@ -9,13 +9,15 @@ use activitypub_federation::{
   kinds::public,
   protocol::values::MediaTypeMarkdownOrHtml,
 };
+use either::Either;
 use html2md::parse_html;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
+    site::Site,
   },
   traits::Joinable,
   utils::DbPool,
@@ -23,6 +25,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
@@ -248,6 +251,44 @@ pub async fn verify_person_in_community(
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
+}
+
+/// Fetches the person and community or site to verify their type, then checks if person is banned
+/// from local site or community.
+pub async fn verify_person_in_site_or_community(
+  person_id: &ObjectId<ApubPerson>,
+  site_or_community: &Either<ApubSite, ApubCommunity>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let person = person_id.dereference(context).await?;
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  if let Either::Right(community) = site_or_community {
+    let person_id = person.id;
+    let community_id = community.id;
+    CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
+  }
+  Ok(())
+}
+
+/// Verify that admin action was performed by an admin.
+///
+/// * `mod_id` - Activitypub ID of the admin who performed the action
+/// * `site` - The site that the person should be an admin of
+pub async fn verify_admin_action(
+  admin_id: &ObjectId<ApubPerson>,
+  site: &Site,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  // admin action comes from the correct instance, so it was presumably done
+  // by an instance admin.
+  // TODO: federate instance admin status and check it here
+  if admin_id.inner().domain() == site.ap_id.domain() {
+    return Ok(());
+  }
+
+  let admin = admin_id.dereference(context).await?;
+  let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
+  is_admin(&local_user_view)
 }
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
