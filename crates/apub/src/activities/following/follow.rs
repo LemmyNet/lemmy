@@ -1,13 +1,6 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_person,
-    verify_person_in_community,
-  },
-  fetcher::UserOrCommunity,
+  activities::{generate_activity_id, send_lemmy_activity, verify_person},
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
 use activitypub_federation::{
@@ -17,6 +10,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity},
+  utils::functions::verify_person_in_community,
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,

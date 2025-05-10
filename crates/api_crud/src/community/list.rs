@@ -5,10 +5,9 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  community::community_view::CommunityQuery,
-  structs::{CommunityView, LocalUserView, SiteView},
-};
+use lemmy_db_views_community::{impls::CommunityQuery, CommunityView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_communities(
@@ -28,9 +27,14 @@ pub async fn list_communities(
     None
   };
 
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(local_site.site.content_warning.is_some());
+
   let communities = CommunityQuery {
     listing_type: data.type_,
-    show_nsfw: data.show_nsfw,
+    show_nsfw: Some(show_nsfw),
     sort: data.sort,
     time_range_seconds: data.time_range_seconds,
     local_user: local_user.as_ref(),

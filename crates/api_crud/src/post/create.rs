@@ -27,7 +27,10 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -89,8 +92,12 @@ pub async fn create_post(
   let community = &community_view.community;
   check_community_user_action(&local_user_view, community, &mut context.pool()).await?;
 
-  // If its an NSFW community, then use that as a default
-  let nsfw = data.nsfw.or(Some(community.nsfw));
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
 
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;

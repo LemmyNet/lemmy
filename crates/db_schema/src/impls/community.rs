@@ -1,5 +1,5 @@
 use crate::{
-  diesel::{DecoratableTarget, OptionalExtension},
+  diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
     actor_language::CommunityLanguage,
@@ -40,11 +40,13 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, instance, post},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
+  CACHE_DURATION_LARGEST_COMMUNITY,
 };
+use moka::future::Cache;
 use regex::Regex;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use url::Url;
 
 impl Crud for Community {
@@ -418,6 +420,34 @@ impl CommunityActions {
       .execute(conn)
       .await?;
     Ok(())
+  }
+
+  pub async fn fetch_largest_subscribed_community(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> LemmyResult<Option<CommunityId>> {
+    static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> = LazyLock::new(|| {
+      Cache::builder()
+        .max_capacity(1000)
+        .time_to_live(CACHE_DURATION_LARGEST_COMMUNITY)
+        .build()
+    });
+    CACHE
+      .try_get_with(person_id, async move {
+        let conn = &mut get_conn(pool).await?;
+        community_actions::table
+          .filter(community_actions::followed.is_not_null())
+          .filter(community_actions::person_id.eq(person_id))
+          .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
+          .order_by(community::users_active_month.desc())
+          .select(community::id)
+          .first::<CommunityId>(conn)
+          .await
+          .optional()
+          .with_lemmy_type(LemmyErrorType::NotFound)
+      })
+      .await
+      .map_err(|_e: Arc<LemmyError>| LemmyErrorType::NotFound.into())
   }
 }
 

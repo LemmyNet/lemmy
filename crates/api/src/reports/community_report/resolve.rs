@@ -11,7 +11,8 @@ use lemmy_db_schema::{
   source::{community_report::CommunityReport, site::Site},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{CommunityReportView, LocalUserView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::CommunityReportView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(

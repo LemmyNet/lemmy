@@ -75,6 +75,8 @@ pub struct ModLockPost {
   pub post_id: PostId,
   pub locked: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -83,6 +85,7 @@ pub struct ModLockPostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub locked: Option<bool>,
+  pub reason: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

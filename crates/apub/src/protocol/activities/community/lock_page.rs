@@ -1,7 +1,3 @@
-use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::InCommunity,
-};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -9,6 +5,10 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::protocol::InCommunity,
+};
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,8 @@ pub struct LockPage {
   #[serde(rename = "type")]
   pub(crate) kind: LockType,
   pub(crate) id: Url,
+  /// Summary is the reason for the lock.
+  pub(crate) summary: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -46,6 +48,8 @@ pub struct UndoLockPage {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
+  /// Summary is the reason for the lock.
+  pub(crate) summary: Option<String>,
 }
 
 impl InCommunity for LockPage {

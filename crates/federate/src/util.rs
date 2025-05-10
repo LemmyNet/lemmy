@@ -1,10 +1,8 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_apub::{
-  activity_lists::SharedInboxActivities,
-  fetcher::{SiteOrCommunityOrUser, UserOrCommunity},
-};
+use lemmy_apub::activity_lists::SharedInboxActivities;
+use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{

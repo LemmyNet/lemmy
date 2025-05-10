@@ -25,6 +25,10 @@ use activitypub_federation::{
 };
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_db_schema::{
   source::{
     comment_report::CommentReport,

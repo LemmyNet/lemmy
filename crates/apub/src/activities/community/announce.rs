@@ -1,20 +1,10 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    generate_announce_activity_id,
-    generate_to,
-    send_lemmy_activity,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{generate_activity_id, generate_announce_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
-    Id,
     IdOrNestedObject,
-    InCommunity,
   },
 };
 use activitypub_federation::{
@@ -23,6 +13,13 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::{Id, InCommunity},
+  },
+};
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;

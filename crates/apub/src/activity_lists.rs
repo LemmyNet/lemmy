@@ -1,33 +1,31 @@
-use crate::{
-  objects::community::ApubCommunity,
-  protocol::{
-    activities::{
-      block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-      community::{
-        announce::{AnnounceActivity, RawAnnouncableActivities},
-        collection_add::CollectionAdd,
-        collection_remove::CollectionRemove,
-        lock_page::{LockPage, UndoLockPage},
-        report::Report,
-        resolve_report::ResolveReport,
-        update::UpdateCommunity,
-      },
-      create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
-      deletion::{delete::Delete, undo_delete::UndoDelete},
-      following::{
-        accept::AcceptFollow,
-        follow::Follow,
-        reject::RejectFollow,
-        undo_follow::UndoFollow,
-      },
-      voting::{undo_vote::UndoVote, vote::Vote},
-    },
-    objects::page::Page,
-    InCommunity,
+use crate::protocol::activities::{
+  block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  community::{
+    announce::{AnnounceActivity, RawAnnouncableActivities},
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
+    lock_page::{LockPage, UndoLockPage},
+    report::Report,
+    resolve_report::ResolveReport,
+    update::UpdateCommunity,
   },
+  create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
+  deletion::{delete::Delete, undo_delete::UndoDelete},
+  following::{
+    accept::AcceptFollow,
+    follow::Follow,
+    reject::RejectFollow,
+    undo_follow::UndoFollow,
+  },
+  voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  protocol::page::Page,
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -102,10 +100,8 @@ impl InCommunity for AnnouncableActivities {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    activity_lists::SharedInboxActivities,
-    protocol::tests::{test_json, test_parse_lemmy_item},
-  };
+  use crate::activity_lists::SharedInboxActivities;
+  use lemmy_apub_objects::utils::test::{test_json, test_parse_lemmy_item};
   use lemmy_utils::error::LemmyResult;
 
   #[test]

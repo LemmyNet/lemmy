@@ -4,7 +4,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   fetcher::ReportableObjects,
   insert_received_activity,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::instance::ApubSite,
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
@@ -20,11 +20,11 @@ use activitypub_federation::{
 use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    check_comment_deleted_or_removed,
-    check_community_deleted_removed,
-    check_post_deleted_or_removed,
-  },
+  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
 };
 use lemmy_db_schema::{
   source::{

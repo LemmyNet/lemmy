@@ -13,15 +13,20 @@ use lemmy_db_schema::{
   InboxDataType,
   PersonContentType,
 };
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
-use lemmy_db_views::structs::{
-  CommunityModeratorView,
-  InboxCombinedView,
-  LocalImageView,
-  PersonContentCombinedView,
-  PersonSavedCombinedView,
-  PersonView,
+use lemmy_db_schema_file::enums::{
+  CommentSortType,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  VoteShow,
 };
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_inbox_combined::InboxCombinedView;
+use lemmy_db_views_local_image::LocalImageView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person_content_combined::PersonContentCombinedView;
+use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
+use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -32,6 +37,9 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Logging into lemmy.
+///
+/// Note: Banned users can still log in, to be able to do certain things like delete
+/// their account.
 pub struct Login {
   pub username_or_email: SensitiveString,
   pub password: SensitiveString,
@@ -183,7 +191,7 @@ pub struct SaveUserSettings {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvotes: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub show_downvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvote_percentage: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
@@ -307,6 +315,62 @@ pub struct ListPersonSaved {
 /// A person's saved content response.
 pub struct ListPersonSavedResponse {
   pub saved: Vec<PersonSavedCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets your read posts.
+pub struct ListPersonRead {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// You read posts response.
+pub struct ListPersonReadResponse {
+  pub read: Vec<PostView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets your hidden posts.
+pub struct ListPersonHidden {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// You hidden posts response.
+pub struct ListPersonHiddenResponse {
+  pub hidden: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,

@@ -137,6 +137,7 @@ _Nota: Las APIs WebSocket y HTTP actualmente son inestables_
 Lemmy es un software libre y de código abierto, lo que significa que no hay publicidad, monetización o capital de riesgo, nunca. Tus donaciones apoyan directamente el desarrollo a tiempo completo del proyecto.
 
 - [Apoya en Liberapay](https://liberapay.com/Lemmy).
+- [Apoya en Ko-fi](https://ko-fi.com/lemmynet).
 - [Apoya en Patreon](https://www.patreon.com/dessalines).
 - [Apoya en OpenCollective](https://opencollective.com/lemmy).
 - [Lista de patrocinadores](https://join-lemmy.org/sponsors).

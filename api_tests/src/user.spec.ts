@@ -23,6 +23,7 @@ import {
   unfollows,
   getMyUser,
   getPersonDetails,
+  banPersonFromSite,
 } from "./shared";
 import {
   EditSite,
@@ -50,9 +51,9 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 test("Create user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
-  let my_user = await getMyUser(user);
-  expect(my_user).toBeDefined();
-  apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let myUser = await getMyUser(user);
+  expect(myUser).toBeDefined();
+  apShortname = `${myUser.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
@@ -222,4 +223,42 @@ test("Set a new avatar, old avatar is deleted", async () => {
   expect(listMediaRes5.images.length).toBe(0);
   let my_user2 = await alpha.getMyUser();
   expect(my_user2.local_user_view.person.avatar).toBeUndefined();
+});
+
+test("Make sure banned user can delete their account", async () => {
+  let user = await registerUser(alpha, alphaUrl);
+  let myUser = await getMyUser(user);
+
+  // make a local post
+  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
+    .community;
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+  let localPost = (await createPost(user, alphaCommunity.community.id))
+    .post_view.post;
+  let postId = localPost.id;
+  expect(localPost).toBeDefined();
+
+  // Ban the user, keep data
+  let banUser = await banPersonFromSite(
+    alpha,
+    myUser.local_user_view.person.id,
+    true,
+    false,
+  );
+  expect(banUser.banned).toBe(true);
+
+  // Make sure post is there
+  let postAfterBan = await getPost(alpha, postId);
+  expect(postAfterBan.post_view.post.deleted).toBe(false);
+
+  // Delete account
+  let deleteAccount = await deleteUser(user);
+  expect(deleteAccount).toBeDefined();
+
+  // Make sure post is gone
+  let postAfterDelete = await getPost(alpha, postId);
+  expect(postAfterDelete.post_view.post.deleted).toBe(true);
+  expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
 });

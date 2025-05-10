@@ -1,13 +1,19 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::{PostOrComment, ReportableObjects},
+  fetcher::ReportableObjects,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
+  PostOrComment,
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -16,7 +22,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod announce;

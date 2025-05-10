@@ -1,11 +1,4 @@
-use super::generate_to;
-use crate::{
-  objects::{community::ApubCommunity, instance::ApubSite},
-  protocol::{
-    activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-    objects::{group::Group, instance::Instance},
-  },
-};
+use crate::protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -17,6 +10,11 @@ use lemmy_api_common::{
   community::BanFromCommunity,
   context::LemmyContext,
   utils::check_expire_time,
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, instance::ApubSite},
+  protocol::{group::Group, instance::Instance},
+  utils::functions::generate_to,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -39,8 +37,8 @@ pub enum SiteOrCommunity {
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum InstanceOrGroup {
-  Instance(Instance),
-  Group(Group),
+  Instance(Box<Instance>),
+  Group(Box<Group>),
 }
 
 #[async_trait::async_trait]
@@ -78,8 +76,8 @@ impl Object for SiteOrCommunity {
 
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     Ok(match self {
-      SiteOrCommunity::Site(i) => InstanceOrGroup::Instance(i.into_json(data).await?),
-      SiteOrCommunity::Community(c) => InstanceOrGroup::Group(c.into_json(data).await?),
+      SiteOrCommunity::Site(i) => InstanceOrGroup::Instance(Box::new(i.into_json(data).await?)),
+      SiteOrCommunity::Community(c) => InstanceOrGroup::Group(Box::new(c.into_json(data).await?)),
     })
   }
 
@@ -99,9 +97,9 @@ impl Object for SiteOrCommunity {
     Self: Sized,
   {
     Ok(match apub {
-      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_json(p, data).await?),
+      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_json(*p, data).await?),
       InstanceOrGroup::Group(n) => {
-        SiteOrCommunity::Community(ApubCommunity::from_json(n, data).await?)
+        SiteOrCommunity::Community(ApubCommunity::from_json(*n, data).await?)
       }
     })
   }

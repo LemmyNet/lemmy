@@ -1,8 +1,4 @@
-use crate::{
-  activities::deletion::DeletableObjects,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
-};
+use crate::{activities::deletion::DeletableObjects, protocol::IdOrNestedObject};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -11,6 +7,11 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::tombstone::Tombstone,
+  utils::protocol::InCommunity,
+};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
