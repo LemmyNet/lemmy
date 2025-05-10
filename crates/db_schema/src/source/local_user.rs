@@ -149,7 +149,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub hide_media: Option<bool>,
   #[new(default)]
-  pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
   pub show_score: Option<bool>,
   #[new(default)]
@@ -164,7 +164,7 @@ pub struct LocalUserInsertForm {
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserUpdateForm {
-  pub password_encrypted: Option<String>,
+  pub password_encrypted: Option<Option<String>>,
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,

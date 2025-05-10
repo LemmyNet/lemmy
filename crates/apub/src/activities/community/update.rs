@@ -116,9 +116,9 @@ impl ActivityHandler for UpdateCommunity {
           .unwrap_or(self.object.inbox)
           .into(),
       ),
-      moderators_url: self.object.attributed_to.and_then(AttributedTo::url),
+      moderators_url: Some(self.object.attributed_to.and_then(AttributedTo::url)),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
-      featured_url: self.object.featured.map(Into::into),
+      featured_url: Some(self.object.featured.map(Into::into)),
       ..Default::default()
     };
 

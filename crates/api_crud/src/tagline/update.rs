@@ -27,7 +27,7 @@ pub async fn update_tagline(
 
   let tagline_form = TaglineUpdateForm {
     content,
-    updated: Utc::now(),
+    updated: Some(Some(Utc::now())),
   };
 
   let tagline = Tagline::update(&mut context.pool(), data.id, &tagline_form).await?;
