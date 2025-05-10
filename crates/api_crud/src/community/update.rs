@@ -35,6 +35,15 @@ pub async fn update_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  // Verify its a mod (only mods can edit it)
+  check_community_mod_action(
+    &local_user_view.person,
+    data.community_id,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
+
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -56,21 +65,24 @@ pub async fn update_community(
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let icon = diesel_url_update(data.icon.as_deref())?;
-  replace_image(&icon, &old_community.icon, &context).await?;
+  replace_image(
+    &icon,
+    &old_community.icon,
+    &context,
+    &local_user_view.local_user,
+  )
+  .await?;
   let icon = proxy_image_link_opt_api(icon, &context).await?;
 
   let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &old_community.banner, &context).await?;
-  let banner = proxy_image_link_opt_api(banner, &context).await?;
-
-  // Verify its a mod (only mods can edit it)
-  check_community_mod_action(
-    &local_user_view.person,
-    data.community_id,
-    false,
-    &mut context.pool(),
+  replace_image(
+    &banner,
+    &old_community.banner,
+    &context,
+    &local_user_view.local_user,
   )
   .await?;
+  let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {

@@ -76,11 +76,11 @@ pub async fn update_site(
   );
 
   let icon = diesel_url_update(data.icon.as_deref())?;
-  replace_image(&icon, &site.icon, &context).await?;
+  replace_image(&icon, &site.icon, &context, &local_user_view.local_user).await?;
   let icon = proxy_image_link_opt_api(icon, &context).await?;
 
   let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &site.banner, &context).await?;
+  replace_image(&banner, &site.banner, &context, &local_user_view.local_user).await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let site_form = SiteUpdateForm {

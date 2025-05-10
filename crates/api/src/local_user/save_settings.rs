@@ -49,11 +49,23 @@ pub async fn save_user_settings(
   );
 
   let avatar = diesel_url_update(data.avatar.as_deref())?;
-  replace_image(&avatar, &local_user_view.person.avatar, &context).await?;
+  replace_image(
+    &avatar,
+    &local_user_view.person.avatar,
+    &context,
+    &local_user_view.local_user,
+  )
+  .await?;
   let avatar = proxy_image_link_opt_api(avatar, &context).await?;
 
   let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &local_user_view.person.banner, &context).await?;
+  replace_image(
+    &banner,
+    &local_user_view.person.banner,
+    &context,
+    &local_user_view.local_user,
+  )
+  .await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let display_name = diesel_string_update(data.display_name.as_deref());
