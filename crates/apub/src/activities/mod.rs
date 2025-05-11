@@ -33,7 +33,7 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_is_mod_or_admin, is_admin},
+  utils::check_is_mod_or_admin,
 };
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
@@ -44,11 +44,9 @@ use lemmy_db_schema::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
-    site::Site,
   },
   traits::Crud,
 };
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;

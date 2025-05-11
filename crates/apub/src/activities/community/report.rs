@@ -31,10 +31,7 @@ use lemmy_apub_objects::{
     PostOrComment,
     ReportableObjects,
   },
-  utils::{
-    functions::{verify_person_in_community, verify_person_in_site_or_community},
-    protocol::InCommunity,
-  },
+  utils::functions::verify_person_in_site_or_community,
 };
 use lemmy_db_schema::{
   source::{
