@@ -6,12 +6,9 @@ use crate::{
   protocol::{
     objects::{
       page::{Attachment, Hashtag, HashtagType, Page, PageType},
-      AttributedTo,
-      LanguageTag,
+      AttributedTo, LanguageTag,
     },
-    ImageObject,
-    InCommunity,
-    Source,
+    ImageObject, InCommunity, Source,
   },
 };
 use activitypub_federation::{
@@ -28,7 +25,7 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  request::generate_post_link_metadata,
+  request::{check_urls_are_images, generate_post_link_metadata},
   utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
@@ -36,6 +33,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
+    post_url::{PostUrl, PostUrlInsertForm},
   },
   traits::Crud,
 };
@@ -230,6 +228,20 @@ impl Object for ApubPost {
     } else {
       None
     };
+    let is_gallery = page
+      .attachment
+      .iter()
+      .filter(|a| {
+        let content_type = a.url_content_type();
+        content_type
+          .as_ref()
+          .is_some_and(|s| !s.starts_with("image"))
+          || content_type.is_none()
+      })
+      .collect::<Vec<_>>()
+      .len()
+      != 0
+      && page.attachment.len() > 1;
 
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
@@ -271,7 +283,6 @@ impl Object for ApubPost {
     let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
-      alt_text,
       published: page.published,
       updated: page.updated,
       deleted: Some(false),
@@ -286,14 +297,44 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
+
+    let post_id = post.id;
+    let gallery_forms = page
+      .attachment
+      .iter()
+      .enumerate()
+      .map(|a| {
+        let (index, att) = a;
+        PostUrlInsertForm {
+          url: att.clone().url().into(),
+          post_id: post_id,
+          url_content_type: att.url_content_type(),
+          alt_text: att.clone().alt_text(),
+          caption: None,
+          page: index as i32,
+        }
+      })
+      .collect::<Vec<_>>();
+
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
-    spawn_try_task(
-      async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
-    );
+    spawn_try_task(async move {
+      if is_gallery {
+        match check_urls_are_images(&gallery_forms, &context_).await {
+          // Treat posts multiple attachments that aren't images as single link posts
+          Err(_) => generate_post_link_metadata(post_, None, alt_text, |_| None, context_).await,
+          Ok(gallery_forms) => {
+            PostUrl::create_from_vec(&gallery_forms, &mut context_.pool()).await?;
+            Ok(())
+          }
+        }
+      } else {
+        generate_post_link_metadata(post_, None, alt_text, |_| None, context_).await
+      }
+    });
 
     Ok(post.into())
   }

@@ -87,6 +87,7 @@ pub(crate) struct Image {
   url: Url,
   /// Used for alt_text
   name: Option<String>,
+  media_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -125,6 +126,14 @@ impl Attachment {
       Attachment::Image(i) => i.name,
       Attachment::Document(d) => d.name,
       _ => None,
+    }
+  }
+
+  pub(crate) fn url_content_type(&self) -> Option<String> {
+    match self {
+      Attachment::Image(i) => i.media_type.clone(),
+      Attachment::Document(d) => d.media_type.clone(),
+      Attachment::Link(l) => l.media_type.clone()
     }
   }
 
@@ -184,6 +193,7 @@ impl Attachment {
       Attachment::Image(Image {
         kind: Default::default(),
         url,
+	media_type,
         name: alt_text,
       })
     } else {

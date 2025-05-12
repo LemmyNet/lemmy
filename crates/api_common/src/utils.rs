@@ -9,7 +9,7 @@ use crate::{
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::{http::header::Header, Either, HttpRequest};
+use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
@@ -496,7 +496,6 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
 
 async fn process_url(
   url: &str,
-  context: &LemmyContext,
   url_blocklist: &RegexSet,
 ) -> LemmyResult<DbUrl> {
   let url = diesel_url_create(Some(&url))?.ok_or(LemmyErrorType::InvalidUrl)?;
@@ -525,7 +524,7 @@ pub async fn process_gallery(
   });
   
   for (index, item) in gallery_items.iter().enumerate() {
-    let url = process_url(&item.url, context, url_blocklist).await?;
+    let url = process_url(&item.url, url_blocklist).await?;
     if let Some(alt_text) = &item.alt_text {
       is_valid_alt_text_field(alt_text)?;
     }
