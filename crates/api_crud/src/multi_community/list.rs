@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
 };
 use lemmy_db_schema::source::multi_community::MultiCommunity;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_multi_communities(

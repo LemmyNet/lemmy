@@ -1,25 +1,12 @@
-use super::{generate_to, verify_is_public};
 use crate::{
   activities::{
     community::send_activity_in_community,
     send_lemmy_activity,
     verify_mod_action,
     verify_person,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-    private_message::ApubPrivateMessage,
-  },
-  protocol::{
-    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
-    InCommunity,
-  },
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{
   config::Data,
@@ -29,6 +16,19 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_apub_objects::{
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    private_message::ApubPrivateMessage,
+  },
+  utils::{
+    functions::{generate_to, verify_is_public, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -40,6 +40,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 use url::Url;
@@ -259,10 +260,13 @@ async fn receive_delete_action(
       .await?;
     }
     DeletableObjects::Person(person) => {
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      let local_instance_id = site_view.site.instance_id;
+
       if do_purge_user_account.unwrap_or(false) {
-        purge_user_account(person.id, context).await?;
+        purge_user_account(person.id, local_instance_id, context).await?;
       } else {
-        Person::delete_account(&mut context.pool(), person.id).await?;
+        Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }
     }
     DeletableObjects::Post(post) => {

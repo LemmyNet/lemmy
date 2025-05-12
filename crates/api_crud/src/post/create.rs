@@ -27,9 +27,12 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView, SiteView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -89,8 +92,12 @@ pub async fn create_post(
   let community = &community_view.community;
   check_community_user_action(&local_user_view, community, &mut context.pool()).await?;
 
-  // If its an NSFW community, then use that as a default
-  let nsfw = data.nsfw.or(Some(community.nsfw));
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
 
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
@@ -129,9 +136,7 @@ pub async fn create_post(
 
   post_form = plugin_hook_before("before_create_local_post", post_form).await?;
 
-  let inserted_post = Post::create(&mut context.pool(), &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
@@ -171,11 +176,12 @@ pub async fn create_post(
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+  let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
     mentions,
     PostOrCommentId::Post(inserted_post.id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
     local_instance_id,

@@ -1,9 +1,4 @@
-use crate::{
-  activity_lists::SharedInboxActivities,
-  fetcher::{get_instance_id, SiteOrCommunityOrUser, UserOrCommunity},
-  protocol::objects::tombstone::Tombstone,
-  FEDERATION_CONTEXT,
-};
+use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
 use activitypub_federation::{
   actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
@@ -13,13 +8,20 @@ use activitypub_federation::{
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{SiteOrCommunityOrUser, UserOrCommunity},
+  protocol::tombstone::Tombstone,
+};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views::structs::CommunityFollowerView;
-use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_utils::{
+  error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  FEDERATION_CONTEXT,
+};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
@@ -107,9 +109,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotFound)?;
+  let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive;
   if sensitive {

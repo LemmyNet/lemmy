@@ -5,7 +5,9 @@ use lemmy_api_common::{
   site::GetUnreadRegistrationApplicationCountResponse,
   utils::is_admin,
 };
-use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_unread_registration_application_count(

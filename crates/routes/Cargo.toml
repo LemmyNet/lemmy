@@ -16,8 +16,14 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
+lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person_content_combined = { workspace = true, features = [
+  "full",
+] }
+lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
-lemmy_db_views = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
@@ -38,9 +44,9 @@ diesel.workspace = true
 diesel-async.workspace = true
 clokwerk = "0.4.0"
 prometheus = { version = "0.13.4", features = ["process"] }
-rss = "2.0.11"
+rss = "2.0.12"
 actix-web-prom = "0.9.0"
-actix-cors = "0.7.0"
+actix-cors = "0.7.1"
 
 [dev-dependencies]
 pretty_assertions.workspace = true

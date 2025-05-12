@@ -14,7 +14,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(
@@ -54,11 +55,17 @@ pub async fn lock_post(
     mod_person_id: local_user_view.person.id,
     post_id: data.post_id,
     locked: Some(locked),
+    reason: data.reason.clone(),
   };
   ModLockPost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::LockPost(post, local_user_view.person.clone(), data.locked),
+    SendActivityData::LockPost(
+      post,
+      local_user_view.person.clone(),
+      data.locked,
+      data.reason.clone(),
+    ),
     &context,
   )?;
 

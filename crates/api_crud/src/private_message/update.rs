@@ -12,9 +12,10 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
@@ -43,9 +44,8 @@ pub async fn update_private_message(
     ..Default::default()
   };
   form = plugin_hook_before("before_update_local_private_message", form).await?;
-  let private_message = PrivateMessage::update(&mut context.pool(), private_message_id, &form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  let private_message =
+    PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
   plugin_hook_after("after_update_local_private_message", &private_message)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;

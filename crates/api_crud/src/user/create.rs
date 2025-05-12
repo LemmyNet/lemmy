@@ -33,7 +33,8 @@ use lemmy_db_schema::{
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
@@ -337,9 +338,7 @@ pub async fn authenticate_with_oauth(
         let oauth_account_form =
           OAuthAccountInsertForm::new(user_view.local_user.id, oauth_provider.id, oauth_user_id);
 
-        OAuthAccount::create(pool, &oauth_account_form)
-          .await
-          .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+        OAuthAccount::create(pool, &oauth_account_form).await?;
 
         user_view.local_user.clone()
       } else {
@@ -399,9 +398,7 @@ pub async fn authenticate_with_oauth(
             let oauth_account_form =
               OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
 
-            OAuthAccount::create(&mut conn.into(), &oauth_account_form)
-              .await
-              .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+            OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
 
             // prevent sign in until application is accepted
             if local_site.site_setup
@@ -473,9 +470,7 @@ async fn create_person(
   };
 
   // insert the person
-  let inserted_person = Person::create(&mut conn.into(), &person_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+  let inserted_person = Person::create(&mut conn.into(), &person_form).await?;
 
   Ok(inserted_person)
 }

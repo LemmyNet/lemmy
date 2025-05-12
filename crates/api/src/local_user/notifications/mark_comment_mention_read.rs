@@ -8,8 +8,8 @@ use lemmy_db_schema::{
   source::person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn mark_comment_mention_as_read(
   data: Json<MarkPersonCommentMentionAsRead>,
@@ -31,8 +31,7 @@ pub async fn mark_comment_mention_as_read(
     person_comment_mention_id,
     &PersonCommentMentionUpdateForm { read },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

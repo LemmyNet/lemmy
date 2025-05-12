@@ -1,0 +1,56 @@
+[package]
+name = "lemmy_apub_objects"
+publish = false
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_apub_objects"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
+lemmy_db_views_site = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true, features = ["full"] }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_api_common = { workspace = true, features = ["full"] }
+activitypub_federation = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+itertools = { workspace = true }
+async-trait = "0.1.88"
+anyhow = { workspace = true }
+moka.workspace = true
+serde_with.workspace = true
+html2md = "0.2.15"
+html2text = { workspace = true }
+stringreader = "0.1.1"
+semver = "1.0.26"
+either = "1.15.0"
+assert-json-diff = "2.0.2"
+once_cell = { version = "1.21.3" }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+pretty_assertions = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["futures", "futures-util"]

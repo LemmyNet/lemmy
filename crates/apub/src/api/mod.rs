@@ -1,12 +1,13 @@
-use crate::{fetcher::resolve_ap_identifier, objects::person::ApubPerson};
+use crate::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{local_site::LocalSite, local_user::LocalUser, person::Person},
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod list_comments;

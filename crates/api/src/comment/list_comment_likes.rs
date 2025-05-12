@@ -4,7 +4,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_vote::VoteView;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment
@@ -30,8 +32,31 @@ pub async fn list_comment_likes(
   )
   .await?;
 
-  let comment_likes =
-    VoteView::list_for_comment(&mut context.pool(), data.comment_id, data.page, data.limit).await?;
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(VoteView::from_comment_actions_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
 
-  Ok(Json(ListCommentLikesResponse { comment_likes }))
+  let comment_likes = VoteView::list_for_comment(
+    &mut context.pool(),
+    data.comment_id,
+    cursor_data,
+    data.page_back,
+    data.limit,
+  )
+  .await?;
+
+  let next_page = comment_likes
+    .last()
+    .map(VoteView::to_comment_actions_cursor);
+  let prev_page = comment_likes
+    .first()
+    .map(VoteView::to_comment_actions_cursor);
+
+  Ok(Json(ListCommentLikesResponse {
+    comment_likes,
+    next_page,
+    prev_page,
+  }))
 }

@@ -23,9 +23,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
@@ -83,9 +84,7 @@ pub async fn update_community(
   };
 
   let community_id = data.community_id;
-  let community = Community::update(&mut context.pool(), community_id, &community_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),

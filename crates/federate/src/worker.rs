@@ -298,7 +298,9 @@ impl InstanceWorker {
         updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
-      Instance::update(&mut self.pool(), self.instance.id, form).await?;
+      Instance::update(&mut self.pool(), self.instance.id, form)
+        .await
+        .map_err(|e| anyhow::anyhow!(e))?;
     }
     Ok(())
   }
@@ -360,7 +362,7 @@ impl InstanceWorker {
         }))?;
       return Ok(());
     };
-    let activity = &ele.0;
+    let activity = &ele;
     let inbox_urls = self.inbox_collector.get_inbox_urls(activity).await?;
     if inbox_urls.is_empty() {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
@@ -388,8 +390,8 @@ impl InstanceWorker {
     let mut report = self.report_send_result.clone();
     tokio::spawn(async move {
       let res = SendRetryTask {
-        activity: &ele.0,
-        object: &ele.1,
+        activity: &ele,
+        object: &ele.data,
         inbox_urls,
         report: &mut report,
         initial_fail_count,
@@ -402,7 +404,7 @@ impl InstanceWorker {
       if let Err(e) = res {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
-          ele.0.ap_id,
+          ele.ap_id,
           e
         );
         // An error in this location means there is some deeper internal issue with the activity,
@@ -425,7 +427,9 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
-    FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
+    FederationQueueState::upsert(&mut self.pool(), &self.state)
+      .await
+      .map_err(|e| anyhow::anyhow!(e))?;
     self.stats_sender.send(FederationQueueStateWithDomain {
       state: self.state.clone(),
       domain: self.instance.domain.clone(),

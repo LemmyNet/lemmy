@@ -9,17 +9,24 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
+    keyword_block::LocalUserKeywordBlock,
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
   utils::{diesel_opt_number_update, diesel_string_update},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
+  utils::validation::{
+    check_blocking_keywords_are_valid,
+    is_valid_bio_field,
+    is_valid_display_name,
+    is_valid_matrix_id,
+  },
 };
 use std::ops::Deref;
 
@@ -82,6 +89,12 @@ pub async fn save_user_settings(
     is_valid_matrix_id(matrix_user_id)?;
   }
 
+  if let Some(send_notifications_to_email) = data.send_notifications_to_email {
+    if site_view.local_site.disable_email_notifications && send_notifications_to_email {
+      return Err(LemmyErrorType::EmailNotificationsDisabled.into());
+    }
+  }
+
   let local_user_id = local_user_view.local_user.id;
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
@@ -106,6 +119,20 @@ pub async fn save_user_settings(
 
   if let Some(discussion_languages) = data.discussion_languages.clone() {
     LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
+  }
+
+  if let Some(blocking_keywords) = data.blocking_keywords.clone() {
+    let trimmed_blocking_keywords = blocking_keywords
+      .iter()
+      .map(|blocking_keyword| blocking_keyword.trim().to_string())
+      .collect();
+    check_blocking_keywords_are_valid(&trimmed_blocking_keywords)?;
+    LocalUserKeywordBlock::update(
+      &mut context.pool(),
+      trimmed_blocking_keywords,
+      local_user_id,
+    )
+    .await?;
   }
 
   let local_user_form = LocalUserUpdateForm {

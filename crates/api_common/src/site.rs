@@ -33,19 +33,16 @@ use lemmy_db_schema_file::enums::{
   PostSortType,
   RegistrationMode,
 };
-use lemmy_db_views::structs::{
-  CommentView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  LocalUserView,
-  ModlogCombinedView,
-  PersonView,
-  PostView,
-  RegistrationApplicationView,
-  SearchCombinedView,
-  SiteView,
-};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_db_views_search_combined::SearchCombinedView;
+use lemmy_db_views_site::SiteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -88,6 +85,8 @@ pub struct Search {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -99,6 +98,8 @@ pub struct SearchResponse {
   /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -159,17 +160,8 @@ pub struct GetModlog {
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The modlog fetch response.
-pub struct GetModlogResponse {
-  pub modlog: Vec<ModlogCombinedView>,
-  /// the pagination cursor to use to fetch the next page
   #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -262,6 +254,8 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_email_notifications: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -395,6 +389,9 @@ pub struct EditSite {
   /// Block NSFW content being created
   #[cfg_attr(feature = "full", ts(optional))]
   pub disallow_nsfw_content: Option<bool>,
+  /// Dont send email notifications to users for new replies, mentions etc
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_email_notifications: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -455,6 +452,7 @@ pub struct MyUserInfo {
   pub community_blocks: Vec<Community>,
   pub instance_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
+  pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
 }
 
@@ -551,7 +549,7 @@ pub struct PurgeComment {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of registration applications.
@@ -560,7 +558,9 @@ pub struct ListRegistrationApplications {
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
@@ -571,6 +571,11 @@ pub struct ListRegistrationApplications {
 /// The list of registration applications.
 pub struct ListRegistrationApplicationsResponse {
   pub registration_applications: Vec<RegistrationApplicationView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]

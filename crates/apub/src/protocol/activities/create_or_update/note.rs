@@ -1,14 +1,15 @@
-use crate::{
-  mentions::MentionOrValue,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
-};
+use crate::protocol::activities::CreateOrUpdateType;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::note::Note,
+  utils::{mentions::MentionOrValue, protocol::InCommunity},
+};
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};

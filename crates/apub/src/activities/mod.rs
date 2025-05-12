@@ -16,7 +16,6 @@ use crate::{
     },
     voting::send_like_activity,
   },
-  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
@@ -26,14 +25,16 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::{activity::AnnounceType, public},
+  kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::check_is_mod_or_admin,
 };
+use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
@@ -42,8 +43,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, SiteView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -68,20 +68,6 @@ async fn verify_person(
   Ok(())
 }
 
-/// Fetches the person and community to verify their type, then checks if person is banned from site
-/// or community.
-pub(crate) async fn verify_person_in_community(
-  person_id: &ObjectId<ApubPerson>,
-  community: &ApubCommunity,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let person = person_id.dereference(context).await?;
-  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
-  let person_id = person.id;
-  let community_id = community.id;
-  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
-}
-
 /// Verify that mod action in community was performed by a moderator.
 ///
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
@@ -103,50 +89,13 @@ pub(crate) async fn verify_mod_action(
   let local_instance_id = site_view.site.instance_id;
 
   let mod_ = mod_id.dereference(context).await?;
-  CommunityView::check_is_mod_or_admin(
+  check_is_mod_or_admin(
     &mut context.pool(),
     mod_.id,
     community.id,
     local_instance_id,
   )
   .await
-}
-
-pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
-  if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(FederationError::ObjectIsNotPublic)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Returns an error if object visibility doesnt match community visibility
-/// (ie content in private community must also be private).
-pub(crate) fn verify_visibility(
-  to: &[Url],
-  cc: &[Url],
-  community: &ApubCommunity,
-) -> LemmyResult<()> {
-  use CommunityVisibility::*;
-  let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
-  match community.visibility {
-    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
-    Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
-    _ => Ok(()),
-  }
-}
-
-/// Marks object as public only if the community is public
-pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
-  let ap_id = community.ap_id.clone().into();
-  if community.visibility == CommunityVisibility::Public {
-    Ok(vec![ap_id, public()])
-  } else {
-    Ok(vec![
-      ap_id.clone(),
-      Url::parse(&format!("{}/followers", ap_id))?,
-    ])
-  }
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
@@ -185,10 +134,6 @@ fn generate_announce_activity_id(
     Uuid::new_v4()
   );
   Url::parse(&id)
-}
-
-pub(crate) trait GetActorType {
-  fn actor_type(&self) -> ActorType;
 }
 
 async fn send_lemmy_activity<Activity, ActorT>(
@@ -276,7 +221,9 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      LockPost(post, actor, locked, reason) => {
+        send_lock_post(post, actor, locked, reason, context).await
+      }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
         let creator_id = comment.creator_id;

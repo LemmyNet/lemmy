@@ -4,10 +4,8 @@ use lemmy_api_common::{
   person::{ListInbox, ListInboxResponse},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views::{
-  combined::inbox_combined_view::InboxCombinedQuery,
-  structs::{InboxCombinedView, LocalUserView},
-};
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_inbox(
@@ -30,11 +28,17 @@ pub async fn list_inbox(
     show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
     cursor_data,
     page_back: data.page_back,
+    limit: data.limit,
   }
   .list(&mut context.pool(), person_id, local_instance_id)
   .await?;
 
   let next_page = inbox.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = inbox.first().map(PaginationCursorBuilder::to_cursor);
 
-  Ok(Json(ListInboxResponse { inbox, next_page }))
+  Ok(Json(ListInboxResponse {
+    inbox,
+    next_page,
+    prev_page,
+  }))
 }
