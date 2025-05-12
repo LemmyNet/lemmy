@@ -1,16 +1,21 @@
-use lemmy_db_schema::source::{
-  combined::person_saved::PersonSavedCombined,
-  comment::{Comment, CommentActions},
-  community::{Community, CommunityActions},
-  images::ImageDetails,
-  instance::InstanceActions,
-  person::{Person, PersonActions},
-  post::{Post, PostActions},
-  tag::TagsView,
+use lemmy_db_schema::{
+  newtypes::PaginationCursor,
+  source::{
+    combined::person_saved::PersonSavedCombined,
+    comment::{Comment, CommentActions},
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::InstanceActions,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    tag::TagsView,
+  },
+  PersonContentType,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
@@ -111,4 +116,34 @@ pub(crate) struct PersonSavedCombinedViewInternal {
 pub enum PersonSavedCombinedView {
   Post(PostView),
   Comment(CommentView),
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets your saved posts and comments
+pub struct ListPersonSaved {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person's saved content response.
+pub struct ListPersonSavedResponse {
+  pub saved: Vec<PersonSavedCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

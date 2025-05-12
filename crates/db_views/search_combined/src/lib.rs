@@ -1,18 +1,25 @@
-use lemmy_db_schema::source::{
-  combined::search::SearchCombined,
-  comment::{Comment, CommentActions},
-  community::{Community, CommunityActions},
-  images::ImageDetails,
-  instance::InstanceActions,
-  person::{Person, PersonActions},
-  post::{Post, PostActions},
-  tag::TagsView,
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PaginationCursor, PersonId},
+  source::{
+    combined::search::SearchCombined,
+    comment::{Comment, CommentActions},
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::InstanceActions,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    tag::TagsView,
+  },
+  SearchSortType,
+  SearchType,
 };
+use lemmy_db_schema_file::enums::ListingType;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
@@ -124,4 +131,57 @@ pub enum SearchCombinedView {
   Comment(CommentView),
   Community(CommunityView),
   Person(PersonView),
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Searches the site, given a search term, and some optional filters.
+pub struct Search {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub search_term: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub community_id: Option<CommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub community_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<SearchType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub sort: Option<SearchSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub listing_type: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub title_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub post_url_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub liked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disliked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search response, containing lists of the return type possibilities
+pub struct SearchResponse {
+  pub results: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
