@@ -1,6 +1,7 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
+  post::{CreateGalleryItem, CreateGalleryOrUrl},
   request::{
     delete_image_from_pictrs,
     fetch_pictrs_proxied_image_details,
@@ -8,7 +9,7 @@ use crate::{
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::{http::header::Header, HttpRequest};
+use actix_web::{http::header::Header, Either, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
@@ -31,12 +32,13 @@ use lemmy_db_schema::{
     oauth_account::OAuthAccount,
     person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
+    post_url::PostUrlInsertForm,
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
   traits::{Blockable, Crud, Likeable, ReadComments},
-  utils::DbPool,
+  utils::{diesel_url_create, DbPool},
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views::{
@@ -60,7 +62,13 @@ use lemmy_utils::{
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::remove_slurs,
-    validation::{build_and_check_regex, clean_urls_in_text},
+    validation::{
+      build_and_check_regex,
+      clean_urls_in_text,
+      is_url_blocked,
+      is_valid_alt_text_field,
+      is_valid_url,
+    },
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
@@ -484,6 +492,73 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
   }
 
   Ok(())
+}
+
+async fn process_url(
+  url: &str,
+  context: &LemmyContext,
+  url_blocklist: &RegexSet,
+) -> LemmyResult<DbUrl> {
+  let url = diesel_url_create(Some(&url))?.ok_or(LemmyErrorType::InvalidUrl)?;
+  is_url_blocked(&url, &url_blocklist)?;
+  is_valid_url(&url)?;
+
+  Ok(url)
+}
+
+pub async fn process_gallery(
+  gallery_items: &Vec<CreateGalleryItem>,
+  context: &LemmyContext,
+  url_blocklist: &RegexSet,
+) -> LemmyResult<Vec<PostUrlInsertForm>> {
+  let mut gallery_forms = vec![];
+
+  // Sort the items. Anything with a number is put at the start and ordered by
+  // that number. Ones without are pushed to the end, in the order they were received.
+  let mut gallery_items = gallery_items.clone();
+  gallery_items.sort_by(|left, right| {
+    if let (Some(left), Some(right)) = (left.page, right.page) {
+      left.cmp(&right)
+    } else {
+      right.page.cmp(&left.page)
+    }
+  });
+  
+  for (index, item) in gallery_items.iter().enumerate() {
+    let url = process_url(&item.url, context, url_blocklist).await?;
+    if let Some(alt_text) = &item.alt_text {
+      is_valid_alt_text_field(alt_text)?;
+    }
+
+    gallery_forms.push(PostUrlInsertForm {
+      // We overwrite this later.
+      post_id: PostId(0),
+      page: index as i32,
+      url,
+      url_content_type: None,
+      caption: item.caption.clone(),
+      alt_text: item.alt_text.clone()
+    });
+  }
+  
+  Ok(gallery_forms)
+}
+
+pub async fn proccess_post_urls(
+  urls: &Option<CreateGalleryOrUrl>,
+  context: &LemmyContext,
+  url_blocklist: &RegexSet,
+) -> LemmyResult<Option<(Option<DbUrl>, Option<Vec<PostUrlInsertForm>>)>> {
+  if let Some(urls) = urls {
+    Ok(Some(match urls {
+      CreateGalleryOrUrl::Url(u) => (process_url(&u, context, url_blocklist).await?.into(), None),
+      CreateGalleryOrUrl::Gallery(g) => {
+        (None, Some(process_gallery(&g, context, url_blocklist).await?))
+      }
+    }))
+  } else {
+    Ok(None)
+  }
 }
 
 /// Read the site for an ap_id.

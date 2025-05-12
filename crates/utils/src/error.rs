@@ -32,6 +32,7 @@ pub enum LemmyErrorType {
   NotAnImageType,
   InvalidImageUpload,
   ImageUploadDisabled,
+  UrlNotImage(String),
   NotAModOrAdmin,
   NotTopMod,
   NotLoggedIn,

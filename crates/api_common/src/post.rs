@@ -18,7 +18,7 @@ pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub urls: Option<Vec<CreatePostUrl>>,
+  pub url: Option<CreateGalleryOrUrl>,
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
@@ -53,12 +53,27 @@ pub struct PostResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct CreatePostUrl {
+pub struct CreateGalleryItem {
   pub url: String,
+  /// Can be used to set the order of images in a gallery.
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i32>,
+  /// An optional alt_text.
   #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
+  /// Optional caption to be displayed with the image.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub caption: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+#[serde(untagged)]
+pub enum CreateGalleryOrUrl {
+  Gallery(Vec<CreateGalleryItem>),
+  Url(String)
 }
 
 #[skip_serializing_none]
@@ -173,7 +188,7 @@ pub struct EditPost {
   #[cfg_attr(feature = "full", ts(optional))]
   pub name: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub url: Option<Vec<EditPostUrl>>,
+  pub url: Option<CreateGalleryOrUrl>,
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
@@ -192,18 +207,6 @@ pub struct EditPost {
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct EditPostUrl {
-  pub url: String,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i32>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

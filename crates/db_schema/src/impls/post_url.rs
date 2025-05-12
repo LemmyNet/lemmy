@@ -4,7 +4,7 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{insert_into, result::Error, QueryDsl, ExpressionMethods};
+use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::post_url;
 
@@ -38,12 +38,37 @@ impl Crud for PostUrl {
 }
 
 impl PostUrl {
-  async fn list_from_post_id(post_id: PostId, pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn list_from_post_id(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     post_url::table
       .filter(post_url::post_id.eq(post_id))
       .order(post_url::page)
       .load::<Self>(conn)
+      .await
+  }
+
+  pub async fn create_from_vec(
+    forms: &Vec<PostUrlInsertForm>,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(post_url::table)
+      .values(forms)
+      .get_results::<Self>(conn)
+      .await
+  }
+
+  pub async fn delete_from_post_id(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(post_url::table)
+      .filter(post_url::post_id.eq(post_id))
+      .get_results::<Self>(conn)
       .await
   }
 }

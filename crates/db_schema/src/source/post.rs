@@ -160,7 +160,7 @@ pub struct PostInsertForm {
 pub struct PostUpdateForm {
   pub name: Option<String>,
   pub nsfw: Option<bool>,
-  // pub url: Option<Option<DbUrl>>,
+  pub url: Option<Option<DbUrl>>,
   pub body: Option<Option<String>>,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
