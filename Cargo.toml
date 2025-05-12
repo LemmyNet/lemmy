@@ -209,6 +209,7 @@ pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
 tuplex = "0.1.2"
 html2text = "0.14.0"
+async-trait = "0.1.88"
 
 [dependencies]
 lemmy_api = { workspace = true }

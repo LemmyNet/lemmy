@@ -17,7 +17,6 @@ workspace = true
 [dependencies]
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
 lemmy_api_common.workspace = true
-lemmy_apub.workspace = true
 lemmy_apub_objects.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_utils.workspace = true
@@ -25,6 +24,7 @@ lemmy_db_schema_file = { workspace = true }
 
 activitypub_federation.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
 futures.workspace = true
 chrono.workspace = true
 diesel = { workspace = true, features = ["chrono", "postgres", "serde_json"] }
@@ -32,6 +32,7 @@ diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 reqwest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
+serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.15"

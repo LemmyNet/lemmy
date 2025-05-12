@@ -1,4 +1,4 @@
-use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id, FEDERATION_CONTEXT};
+use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
 use activitypub_federation::{
   actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
@@ -18,7 +18,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
-use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  FEDERATION_CONTEXT,
+};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
