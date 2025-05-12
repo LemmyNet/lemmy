@@ -424,11 +424,6 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
 
 /// Deletes an alias for an image. If its not the last / only alias, the image might remain.
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
-
   let pictrs_config = context.settings().pictrs()?;
   let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
   context
@@ -439,6 +434,11 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
     .send()
     .await?
     .error_for_status()?;
+
+  // Delete db row if any (old Lemmy versions didn't generate this).
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
+    .await
+    .ok();
   Ok(())
 }
 
