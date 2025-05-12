@@ -253,7 +253,7 @@ test("Report a community", async () => {
         listReports(beta).then(p =>
           p.reports.find(r => {
             return (
-              checkCommunityReportName(r, alphaReport) && r.resolver !== null
+              checkCommunityReportName(r, alphaReport) && r.resolver != null
             );
           }),
         ),
