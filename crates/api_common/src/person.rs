@@ -447,7 +447,6 @@ pub struct ListMediaResponse {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetVoteAnalyticsByPerson {
   pub person_id: PersonId,
-  pub exclude_votes_on_self: Option<bool>,
   pub start_time: Option<i64>,
   pub end_time: Option<i64>,
   pub limit: Option<i64>,

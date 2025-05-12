@@ -115,7 +115,6 @@ impl VoteAnalyticsGivenByPersonView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    exclude_votes_on_self: bool,
     start_time: Option<DateTime<Utc>>,
     end_time: Option<DateTime<Utc>>,
     limit: Option<i64>,
@@ -131,11 +130,6 @@ impl VoteAnalyticsGivenByPersonView {
     }
 
     let limit = fetch_limit(limit)?;
-
-    let sql_exclude_own = match exclude_votes_on_self {
-      true => "AND creator.id != voter.id",
-      false => "",
-    };
 
     // This is a rather dangerous workaround; this number must be one above than the highest
     // parameter used in the statements below without leaving any space. It could probably be
@@ -175,7 +169,7 @@ WITH post_likes_by_voter AS (
         JOIN community ON community.id = post.community_id
     WHERE voter.id = $1
         AND post_like.score != 0
-        {exclude_own}
+        AND creator.id != voter.id
         {since}
         {until}
 ), post_likes_by_recipient AS (
@@ -219,7 +213,6 @@ SELECT * FROM post_likes_by_recipient
 UNION ALL
 SELECT * FROM post_likes_by_community
       "#,
-            exclude_own = sql_exclude_own,
             since = sql_since_post,
             until = sql_until_post,
         )).into_boxed()
@@ -249,7 +242,7 @@ WITH comment_likes_by_voter AS (
         JOIN community ON community.id = post.community_id
     WHERE voter.id = $1
         AND comment_like.score != 0
-        {exclude_own}
+        AND creator.id != voter.id
         {since}
         {until}
 ), comment_likes_by_recipient AS (
@@ -293,7 +286,6 @@ SELECT * FROM comment_likes_by_recipient
 UNION ALL
 SELECT * FROM comment_likes_by_community
       "#,
-            exclude_own = sql_exclude_own,
             since = sql_since_comment,
             until = sql_until_comment,
         )).into_boxed()
@@ -488,15 +480,14 @@ mod test {
     // Test for non-existing person
     let invalid_person_id = PersonId(-1);
     let view =
-      VoteAnalyticsGivenByPersonView::read(pool, invalid_person_id, false, None, None, None).await;
+      VoteAnalyticsGivenByPersonView::read(pool, invalid_person_id, None, None, None).await;
     assert!(
       view.is_err_and(|e| e == Error::NotFound),
       "query should not match a person",
     );
 
     // alice exists but hasn't voted on anything
-    let view =
-      VoteAnalyticsGivenByPersonView::read(pool, alice.id, false, None, None, None).await?;
+    let view = VoteAnalyticsGivenByPersonView::read(pool, alice.id, None, None, None).await?;
     assert_eq!(0, view.post_votes_total_votes);
     assert_eq!(0, view.post_votes_total_upvotes);
     assert_eq!(0, view.post_votes_total_downvotes);
@@ -504,7 +495,7 @@ mod test {
     assert_length!(0, view.post_votes_by_target_user);
     assert_length!(0, view.post_votes_by_target_community);
 
-    let view = VoteAnalyticsGivenByPersonView::read(pool, bob.id, true, None, None, None).await?;
+    let view = VoteAnalyticsGivenByPersonView::read(pool, bob.id, None, None, None).await?;
 
     assert_eq!(8, view.post_votes_total_votes);
     assert_eq!(3, view.post_votes_total_upvotes);

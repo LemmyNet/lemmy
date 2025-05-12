@@ -36,7 +36,6 @@ pub async fn get_vote_analytics_given_by_person(
   let view = VoteAnalyticsGivenByPersonView::read(
     &mut context.pool(),
     data.person_id,
-    data.exclude_votes_on_self.unwrap_or_default(),
     since,
     until,
     data.limit,
