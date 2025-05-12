@@ -84,6 +84,23 @@ pub(crate) async fn send_activity_in_community(
   Ok(())
 }
 
+async fn report_remote_inboxes(
+  object_id: ObjectId<ReportableObjects>,
+  receiver: &Either<ApubSite, ApubCommunity>,
+  report_creator: &ApubPerson,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<ActivitySendTargets> {
+  let mut inboxes = report_inboxes(object_id, receiver, context).await?;
+
+  // report is stored on the creator's instance, and sometimes listed there, so updates should be
+  // sent there
+  let report_creator_site =
+    Site::read_from_instance_id(&mut context.pool(), report_creator.0.instance_id).await?;
+  inboxes.add_inbox(report_creator_site.inbox_url.into());
+
+  Ok(inboxes)
+}
+
 async fn report_inboxes(
   object_id: ObjectId<ReportableObjects>,
   receiver: &Either<ApubSite, ApubCommunity>,
