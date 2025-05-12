@@ -16,7 +16,7 @@ use lemmy_utils::{
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -161,7 +161,7 @@ struct DummyActivity {
   id: Url,
   actor: Url,
   #[serde(flatten)]
-  other: HashMap<String, Value>,
+  other: Value,
 }
 
 #[async_trait::async_trait]
