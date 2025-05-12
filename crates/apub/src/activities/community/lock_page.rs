@@ -61,6 +61,7 @@ impl ActivityHandler for LockPage {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     insert_received_activity(&self.id, context).await?;
     let locked = Some(true);
+    let reason = self.summary;
     let form = PostUpdateForm {
       locked,
       ..Default::default()
@@ -72,6 +73,7 @@ impl ActivityHandler for LockPage {
       mod_person_id: self.actor.dereference(context).await?.id,
       post_id: post.id,
       locked,
+      reason,
     };
     ModLockPost::create(&mut context.pool(), &form).await?;
 
@@ -104,6 +106,7 @@ impl ActivityHandler for UndoLockPage {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     insert_received_activity(&self.id, context).await?;
     let locked = Some(false);
+    let reason = self.summary;
     let form = PostUpdateForm {
       locked,
       ..Default::default()
@@ -115,6 +118,7 @@ impl ActivityHandler for UndoLockPage {
       mod_person_id: self.actor.dereference(context).await?.id,
       post_id: post.id,
       locked,
+      reason,
     };
     ModLockPost::create(&mut context.pool(), &form).await?;
 
@@ -126,6 +130,7 @@ pub(crate) async fn send_lock_post(
   post: Post,
   actor: Person,
   locked: bool,
+  reason: Option<String>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
@@ -136,6 +141,7 @@ pub(crate) async fn send_lock_post(
     &context.settings().get_protocol_and_hostname(),
   )?;
   let community_id = community.ap_id.inner().clone();
+
   let lock = LockPage {
     actor: actor.ap_id.clone().into(),
     to: generate_to(&community)?,
@@ -143,6 +149,7 @@ pub(crate) async fn send_lock_post(
     cc: vec![community_id.clone()],
     kind: LockType::Lock,
     id,
+    summary: reason.clone(),
   };
   let activity = if locked {
     AnnouncableActivities::LockPost(lock)
@@ -158,6 +165,7 @@ pub(crate) async fn send_lock_post(
       kind: UndoType::Undo,
       id,
       object: lock,
+      summary: reason,
     };
     AnnouncableActivities::UndoLockPost(undo)
   };

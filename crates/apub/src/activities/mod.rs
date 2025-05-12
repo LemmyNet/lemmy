@@ -221,7 +221,9 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      LockPost(post, actor, locked, reason) => {
+        send_lock_post(post, actor, locked, reason, context).await
+      }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
         let creator_id = comment.creator_id;

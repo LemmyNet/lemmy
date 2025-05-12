@@ -32,6 +32,8 @@ pub struct LockPage {
   #[serde(rename = "type")]
   pub(crate) kind: LockType,
   pub(crate) id: Url,
+  /// Summary is the reason for the lock.
+  pub(crate) summary: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -46,6 +48,8 @@ pub struct UndoLockPage {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
+  /// Summary is the reason for the lock.
+  pub(crate) summary: Option<String>,
 }
 
 impl InCommunity for LockPage {
