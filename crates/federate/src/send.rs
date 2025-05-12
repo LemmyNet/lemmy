@@ -72,6 +72,8 @@ pub(crate) enum SendActivityResult {
 /// to send an activity to multiple inbox URLs, with built-in retry logic.
 pub(crate) struct SendRetryTask<'a> {
   pub activity: &'a SentActivity,
+  /// The activity data to be sent. Has type `SharedInboxActivities`, but uses `Value` to avoid
+  /// dependency.
   pub object: &'a Value,
   /// Must not be empty at this point
   pub inbox_urls: Vec<Url>,
