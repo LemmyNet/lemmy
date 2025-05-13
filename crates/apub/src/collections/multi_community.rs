@@ -16,7 +16,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubMultiCommunity(());
+pub struct ApubMultiCommunity(());
 
 /// TODO: This trait is awkward to use and needs to be rewritten in the library
 #[async_trait::async_trait]

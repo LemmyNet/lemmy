@@ -3824,6 +3824,7 @@ dependencies = [
  "futures-util",
  "http 1.2.0",
  "lemmy_api_common",
+ "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_inbox_combined",
