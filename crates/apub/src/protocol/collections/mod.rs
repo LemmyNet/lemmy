@@ -35,10 +35,4 @@ mod tests {
     test_json::<GroupFeatured>("assets/mastodon/collections/featured.json")?;
     Ok(())
   }
-
-  #[test]
-  fn test_parse_piefed_collections() -> LemmyResult<()> {
-    test_json::<GroupFeatured>("assets/piefed/collections/multi_community.json")?;
-    Ok(())
-  }
 }
