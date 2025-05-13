@@ -17,7 +17,7 @@ pub async fn update_multi_community(
 ) -> LemmyResult<Json<SuccessResponse>> {
   // check that owner is correct
   let read = MultiCommunity::read(&mut context.pool(), data.id).await?;
-  if read.owner_id != local_user_view.person.id {
+  if read.multi.owner_id != local_user_view.person.id {
     return Err(LemmyErrorType::NotFound.into());
   }
   // TODO: disallow removed/deleted communities
