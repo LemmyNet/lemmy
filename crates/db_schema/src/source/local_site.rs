@@ -162,7 +162,7 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub comment_downvotes: Option<FederationMode>,
   #[new(default)]
-  pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
   pub disallow_nsfw_content: bool,
   #[new(default)]
