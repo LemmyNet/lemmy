@@ -94,7 +94,7 @@ steps:
     commands:
       - apk add git
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
-      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n" && exit 1; fi
     when:
       - event: pull_request
 
@@ -104,7 +104,7 @@ steps:
       # Makes sure there are no files smaller than 2 bytes
       # Don't use completely empty, as some editors use newlines
       - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
-      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
+      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n" && exit 1; fi
     when:
       - event: pull_request
 
@@ -112,7 +112,7 @@ steps:
     image: alpine:3
     commands:
       - EMPTY_DIRS=$(find crates migrations api_tests/src -type d -empty)
-      - if [[ "$EMPTY_DIRS" ]]; then echo "Empty dirs present:\n$EMPTY_DIRS\n"; exit 1; fi
+      - if [[ "$EMPTY_DIRS" ]]; then echo "Empty dirs present:\n$EMPTY_DIRS\n" && exit 1; fi
     when:
       - event: pull_request
 
