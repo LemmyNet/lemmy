@@ -47,7 +47,7 @@ steps:
       - event: [pull_request, tag]
 
   ignored_files:
-    image: alpine:3
+    image: bash
     commands:
       - apk add git
       - ./scripts/ignored_files_check.sh
@@ -55,14 +55,14 @@ steps:
       - event: pull_request
 
   no_empty_files:
-    image: alpine:3
+    image: bash
     commands:
       - ./scripts/empty_files_check.sh
     when:
       - event: pull_request
 
   no_empty_dirs:
-    image: alpine:3
+    image: bash
     commands:
       - ./scripts/empty_dirs_check.sh
     when:
