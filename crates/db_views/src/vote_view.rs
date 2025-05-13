@@ -41,7 +41,7 @@ impl VoteView {
         community_person_ban::community_id.nullable().is_not_null(),
         post_like::score,
       ))
-      .order_by(post_like::score)
+      .order_by((post_like::score, post_like::published))
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
@@ -74,7 +74,7 @@ impl VoteView {
         community_person_ban::community_id.nullable().is_not_null(),
         comment_like::score,
       ))
-      .order_by(comment_like::score)
+      .order_by((comment_like::score, comment_like::published))
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
