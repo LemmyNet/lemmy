@@ -64,7 +64,6 @@ steps:
   no_empty_dirs:
     image: alpine:3
     commands:
-    commands:
       - ./scripts/empty_dirs_check.sh
     when:
       - event: pull_request
