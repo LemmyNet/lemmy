@@ -5,9 +5,9 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::{delete, insert_into},
+  dsl::{delete, insert_into, sql},
   result::Error,
-  sql_types::Array,
+  sql_types::{Array, Integer},
   ExpressionMethods,
   QueryDsl,
 };
@@ -20,9 +20,6 @@ impl MultiCommunity {
     id: MultiCommunityId,
   ) -> Result<MultiCommunityView, Error> {
     let conn = &mut get_conn(pool).await?;
-    // select multi_community, array_agg(multi_community_entry.community_id) from
-    // multi_community_entry left join multi_community on multi_community.id =
-    // multi_community_entry.multi_community_id group by multi_community.id;
     let (multi, entries) = multi_community_entry::table
       .left_join(multi_community::table)
       .filter(multi_community::id.is_not_null())
@@ -30,9 +27,7 @@ impl MultiCommunity {
       .group_by(multi_community::id)
       .select((
         multi_community::all_columns.assume_not_null(),
-        diesel::dsl::sql::<Array<diesel::sql_types::Integer>>(
-          "array_agg(multi_community_entry.community_id) community_ids",
-        ),
+        sql::<Array<Integer>>("array_agg(multi_community_entry.community_id)"),
       ))
       .first(conn)
       .await?;
