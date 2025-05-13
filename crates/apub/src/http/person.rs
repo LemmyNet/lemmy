@@ -1,12 +1,17 @@
 use crate::{
+  collections::multi_community::ApubMultiCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
-  protocol::collections::empty_outbox::EmptyOutbox,
+  protocol::collections::{empty_outbox::EmptyOutbox, multi_community::MultiCommunityCollection},
 };
-use activitypub_federation::{config::Data, traits::Object};
+use activitypub_federation::{
+  config::Data,
+  traits::{Collection, Object},
+};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
+  impls::multi_community::ReadParams,
   source::{multi_community::MultiCommunity, person::Person},
   traits::ApubActor,
 };
@@ -21,7 +26,7 @@ pub struct PersonQuery {
 #[derive(Deserialize)]
 pub struct MultiCommunityQuery {
   user_name: String,
-  name: String,
+  multi_name: String,
 }
 
 /// Return the ActivityPub json representation of a local person over HTTP.
@@ -62,6 +67,15 @@ pub(crate) async fn get_apub_person_multi_community(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   // TODO: read by name
-  MultiCommunity::read().await?;
-  todo!()
+  let query = query.into_inner();
+  let multi = MultiCommunity::read(
+    &mut context.pool(),
+    ReadParams::Name {
+      user_name: query.user_name,
+      multi_name: query.multi_name,
+    },
+  )
+  .await?;
+  let multi = ApubMultiCommunity::read_local(1, &context).await?;
+  create_apub_response(&multi)
 }

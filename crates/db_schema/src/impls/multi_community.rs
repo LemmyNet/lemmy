@@ -1,12 +1,7 @@
 use crate::{
   diesel::NullableExpressionMethods,
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{
-    MultiCommunity,
-    MultiCommunityInsertForm,
-    MultiCommunityView,
-    MultiCommunityViewApub,
-  },
+  source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityView},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -17,25 +12,44 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
-use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
+use lemmy_db_schema_file::schema::{multi_community, multi_community_entry, person};
+
+pub enum ReadParams {
+  Name {
+    user_name: String,
+    multi_name: String,
+  },
+  Id(MultiCommunityId),
+}
 
 impl MultiCommunity {
   pub async fn read(
     pool: &mut DbPool<'_>,
-    id: MultiCommunityId,
+    params: ReadParams,
   ) -> Result<MultiCommunityView, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (multi, entries) = multi_community_entry::table
+    let query = multi_community_entry::table
       .left_join(multi_community::table)
+      .left_join(person::table)
       .filter(multi_community::id.is_not_null())
-      .filter(multi_community_entry::multi_community_id.eq(id))
       .group_by(multi_community::id)
       .select((
         multi_community::all_columns.assume_not_null(),
         sql::<Array<Integer>>("array_agg(multi_community_entry.community_id)"),
       ))
-      .first(conn)
-      .await?;
+      .into_boxed();
+
+    let (multi, entries) = match params {
+      ReadParams::Name {
+        user_name,
+        multi_name,
+      } => query
+        .filter(person::name.eq(user_name))
+        .filter(multi_community::name.eq(multi_name)),
+      ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
+    }
+    .first(conn)
+    .await?;
     Ok(MultiCommunityView { multi, entries })
   }
 

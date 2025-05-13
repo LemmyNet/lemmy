@@ -4,7 +4,6 @@ use lemmy_db_schema_file::schema::multi_community;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use url::Url;
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]

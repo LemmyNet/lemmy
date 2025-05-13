@@ -6,7 +6,10 @@ use lemmy_api_common::{
   LemmyErrorType,
   SuccessResponse,
 };
-use lemmy_db_schema::source::multi_community::MultiCommunity;
+use lemmy_db_schema::{
+  impls::multi_community::ReadParams,
+  source::multi_community::MultiCommunity,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
@@ -16,7 +19,7 @@ pub async fn update_multi_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // check that owner is correct
-  let read = MultiCommunity::read(&mut context.pool(), data.id).await?;
+  let read = MultiCommunity::read(&mut context.pool(), ReadParams::Id(data.id)).await?;
   if read.multi.owner_id != local_user_view.person.id {
     return Err(LemmyErrorType::NotFound.into());
   }

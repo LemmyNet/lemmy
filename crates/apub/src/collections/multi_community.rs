@@ -9,6 +9,7 @@ use futures::future::join_all;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
+  impls::multi_community::ReadParams,
   newtypes::{CommunityId, MultiCommunityId},
   source::multi_community::MultiCommunity,
 };
@@ -33,7 +34,7 @@ impl Collection for ApubMultiCommunity {
     owner: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Self::Kind> {
-    let multi = MultiCommunity::read(&mut context.pool(), owner.1).await?;
+    let multi = MultiCommunity::read(&mut context.pool(), ReadParams::Id(owner.1)).await?;
     Ok(MultiCommunityCollection {
       r#type: CollectionType::Collection,
       id: Url::parse(&format!("{}/m/{}", owner.0.ap_id, multi.multi.name))?,

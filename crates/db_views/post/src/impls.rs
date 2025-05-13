@@ -16,7 +16,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::{asc_if, SortDirection};
 use lemmy_db_schema::{
-  impls::local_user::LocalUserOptionHelper,
+  impls::{local_user::LocalUserOptionHelper, multi_community::ReadParams},
   newtypes::{CommunityId, InstanceId, MultiCommunityId, PaginationCursor, PersonId, PostId},
   source::{
     community::CommunityActions,
@@ -367,7 +367,7 @@ impl<'a> PostQuery<'a> {
         query = query.filter(post::community_id.eq(id));
       }
       Some(CommunityOrMulti::MultiCommunityId(id)) => {
-        let multi = MultiCommunity::read(pool, id).await?;
+        let multi = MultiCommunity::read(pool, ReadParams::Id(id)).await?;
         query = query.filter(post::community_id.eq_any(multi.entries));
       }
       None => {
