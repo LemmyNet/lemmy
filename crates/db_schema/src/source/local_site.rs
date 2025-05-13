@@ -102,6 +102,7 @@ pub struct LocalSite {
   pub users_active_half_year: i64,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub featured_communities: Option<MultiCommunityId>,
 }
 
