@@ -1,7 +1,10 @@
 use crate::{
   newtypes::DbUrl,
   schema::{image_details, local_image, remote_image},
-  source::images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
+  source::{
+    images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
+    local_user::LocalUser,
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -40,16 +43,29 @@ impl LocalImage {
       .await
   }
 
-  pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<Self, Error> {
+  /// Deletes the matching row if either the upload is associated with the correct person or the
+  /// user is an admin.
+  pub async fn delete_by_alias_and_user(
+    pool: &mut DbPool<'_>,
+    local_user: &LocalUser,
+    alias: &str,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
-      .get_result(conn)
-      .await
+    let mut query =
+      diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias))).into_boxed();
+    if !local_user.admin {
+      query = query.filter(local_image::local_user_id.eq(local_user.id))
+    };
+    query.get_result(conn).await
   }
 
-  pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {
+  pub async fn delete_by_url_and_user(
+    pool: &mut DbPool<'_>,
+    local_user: &LocalUser,
+    url: &DbUrl,
+  ) -> Result<Self, Error> {
     let alias = url.as_str().split('/').last().ok_or(NotFound)?;
-    Self::delete_by_alias(pool, alias).await
+    Self::delete_by_alias_and_user(pool, local_user, alias).await
   }
 }
 

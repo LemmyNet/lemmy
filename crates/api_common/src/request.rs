@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
     local_site::LocalSite,
+    local_user::LocalUser,
     post::{Post, PostUpdateForm},
   },
 };
@@ -529,23 +530,37 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   }
 }
 
+// Ignores errors because images may have been stored externally.
+async fn delete_old_image(
+  context: &Data<LemmyContext>,
+  local_user: &LocalUser,
+  image_url: &DbUrl,
+) -> LemmyResult<()> {
+  let image = LocalImage::delete_by_url_and_user(&mut context.pool(), local_user, image_url)
+    .await
+    .ok();
+  if let Some(image) = image {
+    delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?
+  }
+  Ok(())
+}
+
 /// When adding a new avatar, banner or similar image, delete the old one.
 pub async fn replace_image(
   new_image: &Option<Option<DbUrl>>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
+  local_user: &LocalUser,
 ) -> LemmyResult<()> {
-  if let (Some(Some(new_image)), Some(old_image)) = (new_image, old_image) {
-    // Note: Oftentimes front ends will include the current image in the form.
-    // In this case, deleting `old_image` would also be deletion of `new_image`,
-    // so the deletion must be skipped for the image to be kept.
-    if new_image != old_image {
-      // Ignore errors because image may be stored externally.
-      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
-        .await
-        .ok();
-      if let Some(image) = image {
-        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
+  if let Some(old_image) = old_image {
+    if *new_image == Some(None) {
+      delete_old_image(context, local_user, old_image).await?;
+    } else if let Some(Some(new_image)) = new_image {
+      // Note: Oftentimes front ends will include the current image in the form.
+      // In this case, deleting `old_image` would also be deletion of `new_image`,
+      // so the deletion must be skipped for the image to be kept.
+      if new_image != old_image {
+        delete_old_image(context, local_user, old_image).await?;
       }
     }
   }
