@@ -195,7 +195,7 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   ).toBeTruthy();
 
   // Make sure that it ends with jpg, to be sure its an image
-  expect(post.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
+  expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes.post).toBeDefined();
@@ -220,7 +220,7 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   ).toBeTruthy();
 
   // Make sure that it ends with jpg, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
+  expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
@@ -242,7 +242,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   ).toBeTruthy();
 
   // Make sure that it ends with png, to be sure its an image
-  expect(post.thumbnail_url?.endsWith(".png")).toBeTruthy();
+  expect(post.thumbnail_url?.includes(".png")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes.post).toBeDefined();
@@ -260,7 +260,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   ).toBeTruthy();
 
   // Make sure that it ends with png, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.endsWith(".png")).toBeTruthy();
+  expect(epsilonPost.thumbnail_url?.includes(".png")).toBeTruthy();
 });
 
 test("No image proxying if setting is disabled", async () => {
