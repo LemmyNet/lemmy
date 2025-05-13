@@ -1,6 +1,6 @@
 use crate::{
   diesel::NullableExpressionMethods,
-  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
   source::multi_community::{
     MultiCommunity,
     MultiCommunityInsertForm,
@@ -25,6 +25,7 @@ pub enum ReadParams {
     multi_name: String,
   },
   Id(MultiCommunityId),
+  ApId(DbUrl),
 }
 
 impl MultiCommunity {
@@ -51,6 +52,7 @@ impl MultiCommunity {
         .filter(person::name.eq(user_name))
         .filter(multi_community::name.eq(multi_name)),
       ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
+      ReadParams::ApId(ap_id) => query.filter(multi_community::ap_id.eq(ap_id)),
     }
     .first(conn)
     .await?;
@@ -58,10 +60,10 @@ impl MultiCommunity {
   }
   pub async fn read_apub(
     pool: &mut DbPool<'_>,
-    params: ReadParams,
+    id: MultiCommunityId,
   ) -> Result<MultiCommunityViewApub, Error> {
     let conn = &mut get_conn(pool).await?;
-    let query = multi_community_entry::table
+    let (multi, entries) = multi_community_entry::table
       .inner_join(community::table)
       .left_join(multi_community::table.left_join(person::table))
       .filter(multi_community::id.is_not_null())
@@ -70,19 +72,9 @@ impl MultiCommunity {
         multi_community::all_columns.assume_not_null(),
         sql::<Array<Text>>("array_agg(community.ap_id)"),
       ))
-      .into_boxed();
-
-    let (multi, entries) = match params {
-      ReadParams::Name {
-        user_name,
-        multi_name,
-      } => query
-        .filter(person::name.eq(user_name))
-        .filter(multi_community::name.eq(multi_name)),
-      ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
-    }
-    .first(conn)
-    .await?;
+      .filter(multi_community::id.eq(id))
+      .first(conn)
+      .await?;
     Ok(MultiCommunityViewApub { multi, entries })
   }
 
