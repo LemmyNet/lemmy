@@ -46,6 +46,33 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  ignored_files:
+    image: bash
+    commands:
+      - apk add git
+      - IGNORED=$(git ls-files --cached -i --exclude-standard)
+      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n" && exit 1; fi
+    when:
+      - event: pull_request
+
+  no_empty_files:
+    image: bash
+    commands:
+      # Makes sure there are no files smaller than 2 bytes
+      # Don't use completely empty, as some editors use newlines
+      - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
+      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n" && exit 1; fi
+    when:
+      - event: pull_request
+
+  no_empty_dirs:
+    image: bash
+    commands:
+      - EMPTY_DIRS=$(find crates migrations api_tests/src -type d -empty)
+      - if [[ "$EMPTY_DIRS" ]]; then echo "Empty dirs present:\n$EMPTY_DIRS\n" && exit 1; fi
+    when:
+      - event: pull_request
+
   prettier_check:
     image: tmknom/prettier:3.4.2
     commands:
@@ -86,33 +113,6 @@ steps:
       - *install_binstall
       - cargo binstall -y cargo-shear
       - cargo shear
-    when:
-      - event: pull_request
-
-  ignored_files:
-    image: alpine:3
-    commands:
-      - apk add git
-      - IGNORED=$(git ls-files --cached -i --exclude-standard)
-      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n" && exit 1; fi
-    when:
-      - event: pull_request
-
-  no_empty_files:
-    image: alpine:3
-    commands:
-      # Makes sure there are no files smaller than 2 bytes
-      # Don't use completely empty, as some editors use newlines
-      - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
-      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n" && exit 1; fi
-    when:
-      - event: pull_request
-
-  no_empty_dirs:
-    image: alpine:3
-    commands:
-      - EMPTY_DIRS=$(find crates migrations api_tests/src -type d -empty)
-      - if [[ "$EMPTY_DIRS" ]]; then echo "Empty dirs present:\n$EMPTY_DIRS\n" && exit 1; fi
     when:
       - event: pull_request
 
