@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, MultiCommunityId, PersonId};
+use crate::newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::multi_community;
 use serde::{Deserialize, Serialize};
@@ -14,6 +14,7 @@ pub struct MultiCommunity {
   pub id: MultiCommunityId,
   pub owner_id: PersonId,
   pub name: String,
+  pub ap_id: DbUrl,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -22,6 +23,7 @@ pub struct MultiCommunity {
 pub struct MultiCommunityInsertForm {
   pub owner_id: PersonId,
   pub name: String,
+  pub ap_id: DbUrl,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

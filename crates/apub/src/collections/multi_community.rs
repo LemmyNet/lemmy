@@ -7,7 +7,6 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   impls::multi_community::ReadParams,
   newtypes::{CommunityId, MultiCommunityId},
@@ -19,13 +18,10 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubMultiCommunity(());
 
-// TODO
-const MULTI_ID: MultiCommunityId = MultiCommunityId(0);
-
 /// TODO: This trait is awkward to use and needs to be rewritten in the library
 #[async_trait::async_trait]
 impl Collection for ApubMultiCommunity {
-  type Owner = (ApubPerson, MultiCommunityId);
+  type Owner = MultiCommunityId;
   type DataType = LemmyContext;
   type Kind = MultiCommunityCollection;
   type Error = LemmyError;
@@ -34,10 +30,10 @@ impl Collection for ApubMultiCommunity {
     owner: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Self::Kind> {
-    let multi = MultiCommunity::read(&mut context.pool(), ReadParams::Id(owner.1)).await?;
+    let multi = MultiCommunity::read(&mut context.pool(), ReadParams::Id(*owner)).await?;
     Ok(MultiCommunityCollection {
       r#type: CollectionType::Collection,
-      id: Url::parse(&format!("{}/m/{}", owner.0.ap_id, multi.multi.name))?,
+      id: multi.multi.ap_id.into(),
       total_items: multi.entries.len() as i32,
       items: multi.entries,
     })
@@ -68,7 +64,7 @@ impl Collection for ApubMultiCommunity {
     .flat_map(|c: LemmyResult<CommunityId>| c.ok())
     .collect();
 
-    MultiCommunity::update(&mut context.pool(), owner.1, communities).await?;
+    MultiCommunity::update(&mut context.pool(), *owner, communities).await?;
 
     // This return value is unused, so just set an empty vec
     Ok(ApubMultiCommunity(()))

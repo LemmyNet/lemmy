@@ -1,7 +1,7 @@
 use crate::{
   collections::multi_community::ApubMultiCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
-  protocol::collections::{empty_outbox::EmptyOutbox, multi_community::MultiCommunityCollection},
+  protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{
   config::Data,
@@ -66,7 +66,6 @@ pub(crate) async fn get_apub_person_multi_community(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  // TODO: read by name
   let query = query.into_inner();
   let multi = MultiCommunity::read(
     &mut context.pool(),
@@ -76,6 +75,7 @@ pub(crate) async fn get_apub_person_multi_community(
     },
   )
   .await?;
-  let multi = ApubMultiCommunity::read_local(1, &context).await?;
+  // TODO: dont read same thing multiple times
+  let multi = ApubMultiCommunity::read_local(&multi.multi.id, &context).await?;
   create_apub_response(&multi)
 }

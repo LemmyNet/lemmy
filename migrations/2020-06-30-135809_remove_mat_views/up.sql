@@ -198,7 +198,7 @@ FROM
             post_id,
             sum(score) AS score,
             sum(score) FILTER (WHERE score = 1) AS upvotes,
-            - sum(score) FILTER (WHERE score = - 1) AS downvotes
+            - sum(score) FILTER (WHERE score = -1) AS downvotes
         FROM
             post_like
         GROUP BY
@@ -658,7 +658,7 @@ FROM
                     NULL
                 END) AS up,
             count(
-                CASE WHEN l.score = - 1 THEN
+                CASE WHEN l.score = -1 THEN
                     1
                 ELSE
                     NULL
@@ -1062,7 +1062,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN (OLD.score = - 1) THEN
+            downvotes = CASE WHEN (OLD.score = -1) THEN
                 downvotes - 1
             ELSE
                 downvotes
@@ -1083,7 +1083,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN (NEW.score = - 1) THEN
+            downvotes = CASE WHEN (NEW.score = -1) THEN
                 downvotes + 1
             ELSE
                 downvotes
@@ -1130,7 +1130,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN (OLD.score = - 1) THEN
+            downvotes = CASE WHEN (OLD.score = -1) THEN
                 downvotes - 1
             ELSE
                 downvotes
@@ -1151,7 +1151,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN (NEW.score = - 1) THEN
+            downvotes = CASE WHEN (NEW.score = -1) THEN
                 downvotes + 1
             ELSE
                 downvotes

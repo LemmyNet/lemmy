@@ -714,6 +714,7 @@ diesel::table! {
         id -> Int4,
         owner_id -> Int4,
         name -> Text,
+        ap_id -> Text,
     }
 }
 

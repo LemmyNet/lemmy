@@ -2302,7 +2302,11 @@ mod tests {
     let form = PostInsertForm::new(POST.to_string(), data.tegan.person.id, community_2.id);
     let post_2 = Post::create(pool, &form).await?;
 
-    let form = MultiCommunityInsertForm::new(data.tegan.person.id, "test multi".to_string());
+    let form = MultiCommunityInsertForm::new(
+      data.tegan.person.id,
+      "test multi".to_string(),
+      Url::parse("http://example.com")?.into(),
+    );
     let multi = MultiCommunity::create(pool, &form).await?;
     MultiCommunity::update(pool, multi.id, vec![community_1.id, community_2.id]).await?;
 
