@@ -1,16 +1,21 @@
-use lemmy_db_schema::source::{
-  combined::person_content::PersonContentCombined,
-  comment::{Comment, CommentActions},
-  community::{Community, CommunityActions},
-  images::ImageDetails,
-  instance::InstanceActions,
-  person::{Person, PersonActions},
-  post::{Post, PostActions},
-  tag::TagsView,
+use lemmy_db_schema::{
+  newtypes::{PaginationCursor, PersonId},
+  source::{
+    combined::person_content::PersonContentCombined,
+    comment::{Comment, CommentActions},
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::InstanceActions,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    tag::TagsView,
+  },
+  PersonContentType,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
@@ -111,4 +116,41 @@ pub(crate) struct PersonContentCombinedViewInternal {
 pub enum PersonContentCombinedView {
   Post(PostView),
   Comment(CommentView),
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a person's content (posts and comments)
+///
+/// Either person_id, or username are required.
+pub struct ListPersonContent {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_id: Option<PersonId>,
+  /// Example: dessalines , or dessalines@xyz.tld
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub username: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person's content response.
+pub struct ListPersonContentResponse {
+  pub content: Vec<PersonContentCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
