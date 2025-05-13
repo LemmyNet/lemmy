@@ -108,6 +108,14 @@ steps:
     when:
       - event: pull_request
 
+  no_empty_dirs:
+    image: alpine:3
+    commands:
+      - EMPTY_DIRS=$(find crates migrations api_tests/src -type d -empty)
+      - if [[ "$EMPTY_DIRS" ]]; then echo "Empty dirs present:\n$EMPTY_DIRS\n"; exit 1; fi
+    when:
+      - event: pull_request
+
   cargo_clippy:
     image: *rust_image
     environment:
