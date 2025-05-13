@@ -36,5 +36,5 @@ pub struct TaglineInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineUpdateForm {
   pub content: String,
-  pub updated: DateTime<Utc>,
+  pub updated: Option<Option<DateTime<Utc>>>,
 }
