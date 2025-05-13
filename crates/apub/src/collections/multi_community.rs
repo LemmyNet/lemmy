@@ -30,12 +30,12 @@ impl Collection for ApubMultiCommunity {
     owner: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Self::Kind> {
-    let multi = MultiCommunity::read(&mut context.pool(), ReadParams::Id(*owner)).await?;
+    let multi = MultiCommunity::read_apub(&mut context.pool(), ReadParams::Id(*owner)).await?;
     Ok(MultiCommunityCollection {
       r#type: CollectionType::Collection,
       id: multi.multi.ap_id.into(),
       total_items: multi.entries.len() as i32,
-      items: multi.entries,
+      items: multi.entries.into_iter().map(Into::into).collect(),
     })
   }
 

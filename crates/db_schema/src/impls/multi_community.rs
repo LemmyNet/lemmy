@@ -1,18 +1,23 @@
 use crate::{
   diesel::NullableExpressionMethods,
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityView},
+  source::multi_community::{
+    MultiCommunity,
+    MultiCommunityInsertForm,
+    MultiCommunityView,
+    MultiCommunityViewApub,
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{
   dsl::{delete, insert_into, sql},
   result::Error,
-  sql_types::{Array, Integer},
+  sql_types::{Array, Integer, Text},
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
-use lemmy_db_schema_file::schema::{multi_community, multi_community_entry, person};
+use lemmy_db_schema_file::schema::{community, multi_community, multi_community_entry, person};
 
 pub enum ReadParams {
   Name {
@@ -29,8 +34,7 @@ impl MultiCommunity {
   ) -> Result<MultiCommunityView, Error> {
     let conn = &mut get_conn(pool).await?;
     let query = multi_community_entry::table
-      .left_join(multi_community::table)
-      .left_join(person::table)
+      .left_join(multi_community::table.left_join(person::table))
       .filter(multi_community::id.is_not_null())
       .group_by(multi_community::id)
       .select((
@@ -51,6 +55,35 @@ impl MultiCommunity {
     .first(conn)
     .await?;
     Ok(MultiCommunityView { multi, entries })
+  }
+  pub async fn read_apub(
+    pool: &mut DbPool<'_>,
+    params: ReadParams,
+  ) -> Result<MultiCommunityViewApub, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let query = multi_community_entry::table
+      .inner_join(community::table)
+      .left_join(multi_community::table.left_join(person::table))
+      .filter(multi_community::id.is_not_null())
+      .group_by(multi_community::id)
+      .select((
+        multi_community::all_columns.assume_not_null(),
+        sql::<Array<Text>>("array_agg(community.ap_id)"),
+      ))
+      .into_boxed();
+
+    let (multi, entries) = match params {
+      ReadParams::Name {
+        user_name,
+        multi_name,
+      } => query
+        .filter(person::name.eq(user_name))
+        .filter(multi_community::name.eq(multi_name)),
+      ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
+    }
+    .first(conn)
+    .await?;
+    Ok(MultiCommunityViewApub { multi, entries })
   }
 
   pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> Result<Vec<Self>, Error> {
