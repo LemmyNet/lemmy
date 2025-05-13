@@ -1,10 +1,12 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{ListInbox, ListInboxResponse},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_inbox_combined::{
+  impls::InboxCombinedQuery,
+  InboxCombinedView,
+  ListInbox,
+  ListInboxResponse,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
