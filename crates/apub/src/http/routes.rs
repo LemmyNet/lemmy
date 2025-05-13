@@ -48,6 +48,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       "/u/{user_name}/outbox",
       web::get().to(get_apub_person_outbox),
     )
+    .route(
+      "/u/{user_name}/multi/{name}",
+      web::get().to(get_apub_person_outbox),
+    )
     .route("/post/{post_id}", web::get().to(get_apub_post))
     .route("/comment/{comment_id}", web::get().to(get_apub_comment))
     .route("/activities/{type_}/{id}", web::get().to(get_activity));

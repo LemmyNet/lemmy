@@ -1,7 +1,12 @@
 use crate::{
   diesel::NullableExpressionMethods,
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityView},
+  source::multi_community::{
+    MultiCommunity,
+    MultiCommunityInsertForm,
+    MultiCommunityView,
+    MultiCommunityViewApub,
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{

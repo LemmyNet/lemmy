@@ -3,6 +3,7 @@ pub(crate) mod group_featured;
 pub(crate) mod group_followers;
 pub(crate) mod group_moderators;
 pub(crate) mod group_outbox;
+pub(crate) mod multi_community;
 
 #[cfg(test)]
 mod tests {
@@ -32,6 +33,12 @@ mod tests {
   #[test]
   fn test_parse_mastodon_collections() -> LemmyResult<()> {
     test_json::<GroupFeatured>("assets/mastodon/collections/featured.json")?;
+    Ok(())
+  }
+
+  #[test]
+  fn test_parse_piefed_collections() -> LemmyResult<()> {
+    test_json::<GroupFeatured>("assets/piefed/collections/multi_community.json")?;
     Ok(())
   }
 }
