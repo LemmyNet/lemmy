@@ -3533,10 +3533,14 @@ dependencies = [
  "actix-web",
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
+ "serial_test",
+ "tokio",
  "ts-rs",
 ]
 
