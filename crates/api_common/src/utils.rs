@@ -1,11 +1,7 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  request::{
-    delete_image_alias,
-    fetch_pictrs_proxied_image_details,
-    purge_image_from_pictrs_url,
-  },
+  request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use actix_web::{http::header::Header, HttpRequest};
