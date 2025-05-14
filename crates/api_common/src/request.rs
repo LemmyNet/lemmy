@@ -422,10 +422,21 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
   }
 }
 
-/// Deletes an alias for an image. If its not the last / only alias, the image might remain.
-pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
+/// Deletes an alias for an image from the local db and pictrs. If it's not the last / only alias, the image might remain.
+/// 
+/// # Security Warning
+/// This is a low-level function that doesn't check if the user is allowed to delete the image alias.
+/// Callers MUST check if the user has permission to delete the alias
+/// before calling this function (the user is an admin or the image belongs to the user).
+pub async fn delete_image_alias(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
+  // First, validate if the image exists in the local db.
+  // If it doesn't, we don't need to send a request to pictrs.
+  LocalImage::validate_by_alias(&mut context.pool(), alias).await?;
+
   let pictrs_config = context.settings().pictrs()?;
   let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
+
+  // Send the delete request to pictrs.
   context
     .pictrs_client()
     .post(&url)
