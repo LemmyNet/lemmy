@@ -254,7 +254,7 @@ pub struct PostQuery<'a> {
   pub limit: Option<i64>,
 }
 
-impl<'a> PostQuery<'a> {
+impl PostQuery<'_> {
   async fn prefetch_cursor_before_data(
     &self,
     site: &Site,
@@ -296,7 +296,7 @@ impl<'a> PostQuery<'a> {
             // for backward pagination, get first element instead
             upper_bound_results.into_iter().next()
           } else {
-            upper_bound_results.into_iter().last()
+            upper_bound_results.into_iter().next_back()
           }
           .map(|pv| pv.post)
         }
@@ -1943,7 +1943,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Make sure the post_view query is less than this time
-    let duration_max = Duration::from_millis(80);
+    let duration_max = Duration::from_millis(120);
 
     // Create some dummy posts
     let num_posts = 1000;

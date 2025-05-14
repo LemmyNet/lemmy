@@ -1,28 +1,20 @@
 use crate::PersonView;
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::creator_local_instance_actions,
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::person::{person_keys as key, Person},
   traits::{Crud, PaginationCursorBuilder},
   utils::{
     get_conn,
     limit_fetch,
-    now,
     paginate,
     queries::{creator_home_instance_actions_join, creator_local_instance_actions_join},
     DbPool,
   },
 };
-use lemmy_db_schema_file::schema::{instance_actions, local_user, person};
+use lemmy_db_schema_file::schema::{local_user, person};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
@@ -79,7 +71,6 @@ impl PersonView {
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
-  pub banned_only: Option<bool>,
   pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -98,21 +89,6 @@ impl PersonQuery {
       .into_boxed();
 
     // Filters
-    if self.banned_only.unwrap_or_default() {
-      let actions = creator_local_instance_actions;
-
-      query = query.filter(
-        person::local
-          .and(actions.field(instance_actions::received_ban).is_not_null())
-          .and(
-            actions.field(instance_actions::ban_expires).is_null().or(
-              actions
-                .field(instance_actions::ban_expires)
-                .gt(now().nullable()),
-            ),
-          ),
-      );
-    }
 
     if self.admins_only.unwrap_or_default() {
       query = query.filter(local_user::admin);
@@ -146,11 +122,11 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     source::{
-      instance::{Instance, InstanceActions, InstanceBanForm},
+      instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm, PersonUpdateForm},
     },
-    traits::{Bannable, Crud},
+    traits::Crud,
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
@@ -224,31 +200,6 @@ mod tests {
     // only admin can view deleted users
     let read = PersonView::read(pool, data.alice.id, data.alice.instance_id, true).await;
     assert!(read.is_ok());
-
-    cleanup(data, pool).await
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn list_banned() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    InstanceActions::ban(
-      pool,
-      &InstanceBanForm::new(data.alice.id, data.alice.instance_id, None),
-    )
-    .await?;
-
-    let list = PersonQuery {
-      banned_only: Some(true),
-      ..Default::default()
-    }
-    .list(data.alice.instance_id, pool)
-    .await?;
-    assert_length!(1, list);
-    assert_eq!(list[0].person.id, data.alice.id);
 
     cleanup(data, pool).await
   }
