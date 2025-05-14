@@ -1,4 +1,4 @@
-CREATE TABLE post_url (
+CREATE TABLE post_gallery (
     id serial NOT NULL PRIMARY KEY,
     post_id integer REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     url character varying(2000) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE post_url (
     updated timestamp with time zone
 );
 
-INSERT INTO post_url (post_id, url, alt_text, url_content_type)
+INSERT INTO post_gallery (post_id, url, alt_text, url_content_type)
 SELECT
     id,
     url,

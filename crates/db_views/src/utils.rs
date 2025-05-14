@@ -1,5 +1,5 @@
 use diesel::{
-  dsl::{case_when, exists, not, Nullable}, expression::SqlLiteral, helper_types::{Eq, NotEq}, sql_types::Json, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgExpressionMethods, QueryDsl, RunQueryDsl
+  dsl::{case_when, exists, not, Nullable}, expression::SqlLiteral, helper_types::{Eq, NotEq}, sql_types::Json, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgExpressionMethods, QueryDsl
 };
 use lemmy_db_schema::{
   aliases::{
@@ -31,7 +31,7 @@ use lemmy_db_schema_file::{
     person_actions,
     post,
     post_actions,
-    post_url,
+    post_gallery,
   },
 };
 
@@ -87,9 +87,9 @@ pub(crate) fn post_creator_is_admin() -> _ {
 #[diesel::dsl::auto_type]
 pub(crate) fn post_get_urls() -> _ {
   let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(*)");
-  post_url::table
+  post_gallery::table
     .select(sel)
-    .filter(post_url::post_id.eq(post::id))
+    .filter(post_gallery::post_id.eq(post::id))
     .single_value()
 }
 

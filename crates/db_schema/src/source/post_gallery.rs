@@ -1,11 +1,11 @@
-use crate::newtypes::{DbUrl, PostId, PostUrlId};
+use crate::newtypes::{DbUrl, PostId, PostGalleryId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[cfg(feature = "full")]
 use {
-  lemmy_db_schema_file::schema::post_url,
+  lemmy_db_schema_file::schema::post_gallery,
   ts_rs::TS,
 };
 
@@ -13,11 +13,11 @@ use {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, TS, Identifiable))]
 #[cfg_attr(feature = "full", ts(export))]
-#[cfg_attr(feature = "full", diesel(table_name = post_url))]
+#[cfg_attr(feature = "full", diesel(table_name = post_gallery))]
 #[cfg_attr(feature = "full", diesel(belongs_to(post)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct PostUrl {
-  pub id: PostUrlId,
+pub struct PostGallery {
+  pub id: PostGalleryId,
   #[serde(skip)]
   pub post_id: PostId,
   pub url: DbUrl,
@@ -37,8 +37,8 @@ pub struct PostUrl {
 
 #[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_url))]
-pub struct PostUrlInsertForm {
+#[cfg_attr(feature = "full", diesel(table_name = post_gallery))]
+pub struct PostGalleryInsertForm {
   pub post_id: PostId,
   pub page: i32,
   pub url: DbUrl,

@@ -1,13 +1,13 @@
 UPDATE
     post
 SET
-    url = post_url.url,
-    alt_text = post_url.alt_text,
-    url_content_type = post_url.url_content_type
+    url = post_gallery.url,
+    alt_text = post_gallery.alt_text,
+    url_content_type = post_gallery.url_content_type
 FROM
-    post_url
+    post_gallery
 WHERE
-    post_url.post_id = post.id and post_url.page = 0;
+    post_gallery.post_id = post.id and post_gallery.page = 0;
 
-DROP TABLE post_url;
+DROP TABLE post_gallery;
 

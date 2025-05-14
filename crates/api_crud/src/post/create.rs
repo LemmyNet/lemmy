@@ -12,7 +12,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action, check_nsfw_allowed, get_url_blocklist, honeypot_check,
-    proccess_post_urls, process_markdown_opt, send_webmention, slur_regex,
+    process_post_urls, process_markdown_opt, send_webmention, slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
-    post_url::{PostUrl, PostUrlInsertForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
   },
   traits::{Crud, Likeable, Readable},
   utils::{diesel_url_create, get_conn},
@@ -49,9 +49,7 @@ pub async fn create_post(
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
-  let (url, gallery_forms) = proccess_post_urls(&data.url, &context, &url_blocklist)
-    .await?
-    .unwrap_or_default();
+  let (url, gallery_forms) = process_post_urls(&data.url, &url_blocklist)?.unwrap_or_default();
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
   let is_gallery = gallery_forms.as_deref().is_some_and(|v| v.len() > 1);
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
@@ -130,13 +128,14 @@ pub async fn create_post(
           let post_id = post.id;
           let gallert_forms = gallery_forms
             .iter()
-            .map(|f| PostUrlInsertForm {
+            .map(|f| PostGalleryInsertForm {
               post_id: post_id,
               ..f.clone()
             })
             .collect::<Vec<_>>();
 
-          PostUrl::create_from_vec(&gallert_forms, &mut conn.into()).await
+          PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
+            .await
             .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
           Ok(post)
@@ -148,7 +147,10 @@ pub async fn create_post(
     plugin_hook_after("after_create_local_post", &inserted_post)?;
 
     if scheduled_publish_time.is_none() {
-      ActivityChannel::submit_activity(SendActivityData::CreatePost(inserted_post.clone()), &context)?;
+      ActivityChannel::submit_activity(
+        SendActivityData::CreatePost(inserted_post.clone()),
+        &context,
+      )?;
     }
 
     inserted_post

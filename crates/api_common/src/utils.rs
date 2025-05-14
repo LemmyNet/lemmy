@@ -32,7 +32,7 @@ use lemmy_db_schema::{
     oauth_account::OAuthAccount,
     person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
-    post_url::PostUrlInsertForm,
+    post_gallery::PostGalleryInsertForm,
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -494,7 +494,7 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
   Ok(())
 }
 
-async fn process_url(
+fn process_url(
   url: &str,
   url_blocklist: &RegexSet,
 ) -> LemmyResult<DbUrl> {
@@ -505,11 +505,10 @@ async fn process_url(
   Ok(url)
 }
 
-pub async fn process_gallery(
+pub fn process_gallery(
   gallery_items: &Vec<CreateGalleryItem>,
-  context: &LemmyContext,
   url_blocklist: &RegexSet,
-) -> LemmyResult<Vec<PostUrlInsertForm>> {
+) -> LemmyResult<Vec<PostGalleryInsertForm>> {
   let mut gallery_forms = vec![];
 
   // Sort the items. Anything with a number is put at the start and ordered by
@@ -524,12 +523,12 @@ pub async fn process_gallery(
   });
   
   for (index, item) in gallery_items.iter().enumerate() {
-    let url = process_url(&item.url, url_blocklist).await?;
+    let url = process_url(&item.url, url_blocklist)?;
     if let Some(alt_text) = &item.alt_text {
       is_valid_alt_text_field(alt_text)?;
     }
 
-    gallery_forms.push(PostUrlInsertForm {
+    gallery_forms.push(PostGalleryInsertForm {
       // We overwrite this later.
       post_id: PostId(0),
       page: index as i32,
@@ -543,16 +542,15 @@ pub async fn process_gallery(
   Ok(gallery_forms)
 }
 
-pub async fn proccess_post_urls(
+pub fn process_post_urls(
   urls: &Option<CreateGalleryOrUrl>,
-  context: &LemmyContext,
   url_blocklist: &RegexSet,
-) -> LemmyResult<Option<(Option<DbUrl>, Option<Vec<PostUrlInsertForm>>)>> {
+) -> LemmyResult<Option<(Option<DbUrl>, Option<Vec<PostGalleryInsertForm>>)>> {
   if let Some(urls) = urls {
     Ok(Some(match urls {
-      CreateGalleryOrUrl::Url(u) => (process_url(&u, context, url_blocklist).await?.into(), None),
+      CreateGalleryOrUrl::Url(u) => (process_url(&u, url_blocklist)?.into(), None),
       CreateGalleryOrUrl::Gallery(g) => {
-        (None, Some(process_gallery(&g, context, url_blocklist).await?))
+        (None, Some(process_gallery(&g, url_blocklist)?))
       }
     }))
   } else {

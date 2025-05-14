@@ -33,7 +33,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
-    post_url::{PostUrl, PostUrlInsertForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
   },
   traits::Crud,
 };
@@ -305,7 +305,7 @@ impl Object for ApubPost {
       .enumerate()
       .map(|a| {
         let (index, att) = a;
-        PostUrlInsertForm {
+        PostGalleryInsertForm {
           url: att.clone().url().into(),
           post_id: post_id,
           url_content_type: att.url_content_type(),
@@ -324,10 +324,10 @@ impl Object for ApubPost {
     spawn_try_task(async move {
       if is_gallery {
         match check_urls_are_images(&gallery_forms, &context_).await {
-          // Treat posts multiple attachments that aren't images as single link posts
+          // Treat posts multiple attachments that aren't images as single link post
           Err(_) => generate_post_link_metadata(post_, None, alt_text, |_| None, context_).await,
           Ok(gallery_forms) => {
-            PostUrl::create_from_vec(&gallery_forms, &mut context_.pool()).await?;
+            PostGallery::create_from_vec(&gallery_forms, &mut context_.pool()).await?;
             Ok(())
           }
         }

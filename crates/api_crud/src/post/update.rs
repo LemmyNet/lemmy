@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
-    post_url::{PostUrl, PostUrlInsertForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update, get_conn},
@@ -52,7 +52,7 @@ pub async fn update_post(
     Some(CreateGalleryOrUrl::Url(u)) => (diesel_url_update(Some(&u))?, None),
     Some(CreateGalleryOrUrl::Gallery(g)) => (
       None,
-      Some(process_gallery(&g, &context, &url_blocklist).await?),
+      Some(process_gallery(&g, &url_blocklist)?),
     ),
     _ => (None, None),
   };
@@ -89,7 +89,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let orig_post =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
-  let orig_gallery = PostUrl::list_from_post_id(post_id, &mut context.pool()).await?;
+  let orig_gallery = PostGallery::list_from_post_id(post_id, &mut context.pool()).await?;
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
@@ -132,7 +132,7 @@ pub async fn update_post(
   };
 
   if let (true, Some(gallery_forms)) = (is_gallery, &gallery_forms) {
-    PostUrl::delete_from_post_id(post_id, &mut context.pool()).await?;
+    PostGallery::delete_from_post_id(post_id, &mut context.pool()).await?;
     let gallery_forms = check_urls_are_images(gallery_forms, &context).await?;
     let (url, url_content_type) = gallery_forms
       .get(0)
@@ -154,13 +154,13 @@ pub async fn update_post(
           let post_id = post.id;
           let gallert_forms = gallery_forms
             .iter()
-            .map(|f| PostUrlInsertForm {
+            .map(|f| PostGalleryInsertForm {
               post_id: post_id,
               ..f.clone()
             })
             .collect::<Vec<_>>();
 
-          PostUrl::create_from_vec(&gallert_forms, &mut conn.into())
+          PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
             .await
             .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
@@ -185,7 +185,7 @@ pub async fn update_post(
   } else {
     // Remove gallery if the post has one.
     if orig_gallery.len() > 1 {
-      PostUrl::delete_from_post_id(post_id, &mut context.pool()).await?;
+      PostGallery::delete_from_post_id(post_id, &mut context.pool()).await?;
     }
     let (url, alt_text) = if url.is_none() {
       gallery_forms

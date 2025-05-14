@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, DbUrl, InstanceId, LanguageId, PersonId, PostId, PostUrlId};
+use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

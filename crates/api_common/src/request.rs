@@ -12,7 +12,7 @@ use futures::StreamExt;
 use lemmy_db_schema::source::{
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
-  post_url::{PostUrl, PostUrlInsertForm},
+  post_gallery::{PostGallery, PostGalleryInsertForm},
   site::Site,
 };
 use lemmy_utils::{
@@ -253,7 +253,7 @@ pub async fn generate_post_link_metadata(
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
   if let (true, Some(Some(url))) = (is_image_post, url) {
-    let url_form = PostUrlInsertForm {
+    let url_form = PostGalleryInsertForm {
       post_id: post.id,
       url,
       url_content_type: metadata.content_type,
@@ -262,7 +262,7 @@ pub async fn generate_post_link_metadata(
       caption: None,
     };
 
-    PostUrl::create(&mut context.pool(), &url_form).await?;
+    PostGallery::create(&mut context.pool(), &url_form).await?;
   }
   if let Some(send_activity) = send_activity(updated_post) {
     ActivityChannel::submit_activity(send_activity, &context)?;
@@ -322,9 +322,9 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
 }
 
 pub async fn check_urls_are_images(
-  urls: &Vec<PostUrlInsertForm>,
+  urls: &Vec<PostGalleryInsertForm>,
   context: &LemmyContext,
-) -> Result<Vec<PostUrlInsertForm>, LemmyError> {
+) -> Result<Vec<PostGalleryInsertForm>, LemmyError> {
   let mut validated = vec![];
   for url in urls {
     let metadata = fetch_link_metadata(&url.url, context, false).await?;
@@ -337,7 +337,7 @@ pub async fn check_urls_are_images(
       Err(LemmyErrorType::UrlNotImage(url.url.to_string()))?
     } else {
       let proxied = proxy_image_link(url.url.clone().into(), context).await?;
-      validated.push(PostUrlInsertForm {
+      validated.push(PostGalleryInsertForm {
         url: proxied,
 	url_content_type: metadata.content_type,
         ..url.clone()

@@ -62,7 +62,6 @@ use lemmy_db_schema_file::{
     person,
     post,
     post_actions,
-    post_url,
   },
 };
 use tracing::debug;
@@ -80,10 +79,6 @@ impl PostView {
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
-
-    // let post_url_join = post_url::table
-    //   .on(post_url::post_id.eq(post::id))
-    //   .distinct_on(post_url::post_id);
 
     post::table
       .inner_join(person::table)
@@ -370,13 +365,7 @@ impl<'a> PostQuery<'a> {
 
     if let Some(search_term) = &o.search_term {
       if o.url_only.unwrap_or_default() {
-        query = query.filter(
-          post::id.eq_any(
-            post_url::table
-              .select(post_url::post_id)
-              .filter(post_url::url.eq(search_term)),
-          ),
-        );
+	query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());

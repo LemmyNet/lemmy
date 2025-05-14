@@ -73,7 +73,7 @@ use lemmy_db_schema::source::{
   person_post_mention::PersonPostMention,
   post::{Post, PostActions},
   post_report::PostReport,
-  post_url::PostUrl,
+  post_gallery::PostGallery,
   private_message::PrivateMessage,
   private_message_report::PrivateMessageReport,
   registration_application::RegistrationApplication,
@@ -1500,4 +1500,4 @@ pub struct PostTags {
 #[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
-pub struct PostUrlView(pub Vec<PostUrl>);
+pub struct PostUrlView(pub Vec<PostGallery>);
