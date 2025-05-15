@@ -1,16 +1,20 @@
-use lemmy_db_schema::source::{
-  combined::inbox::InboxCombined,
-  comment::{Comment, CommentActions},
-  comment_reply::CommentReply,
-  community::{Community, CommunityActions},
-  images::ImageDetails,
-  instance::InstanceActions,
-  person::{Person, PersonActions},
-  person_comment_mention::PersonCommentMention,
-  person_post_mention::PersonPostMention,
-  post::{Post, PostActions},
-  private_message::PrivateMessage,
-  tag::TagsView,
+use lemmy_db_schema::{
+  newtypes::PaginationCursor,
+  source::{
+    combined::inbox::InboxCombined,
+    comment::{Comment, CommentActions},
+    comment_reply::CommentReply,
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::InstanceActions,
+    person::{Person, PersonActions},
+    person_comment_mention::PersonCommentMention,
+    person_post_mention::PersonPostMention,
+    post::{Post, PostActions},
+    private_message::PrivateMessage,
+    tag::TagsView,
+  },
+  InboxDataType,
 };
 use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
@@ -232,4 +236,35 @@ pub struct CommentReplyView {
   pub post_tags: TagsView,
   pub can_mod: bool,
   pub creator_banned: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInbox {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<InboxDataType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub unread_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInboxResponse {
+  pub inbox: Vec<InboxCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }
