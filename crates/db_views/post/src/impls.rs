@@ -289,7 +289,8 @@ impl PostQuery<'_> {
         // take last element of array. if this query returned less than LIMIT elements,
         // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
         // results (return original query)
-        if (upper_bound_results.len() as i64) < limit {
+        let len: i64 = upper_bound_results.len().try_into()?;
+        if len < limit {
           None
         } else {
           if self.page_back.unwrap_or_default() {
