@@ -986,7 +986,7 @@ fn build_proxied_image_url(
   context: &LemmyContext,
 ) -> LemmyResult<Url> {
   let mut url = format!(
-    "{}/api/v4/image/proxy?url={}",
+    "{}/api/v3/image_proxy?url={}",
     context.settings().get_protocol_and_hostname(),
     encode(link.as_str()),
   );
