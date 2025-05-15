@@ -131,7 +131,7 @@ pub async fn delete_image(
   LocalImage::delete_by_alias_and_user(
     &mut context.pool(),
     &data.filename,
-    local_user_view.local_user.id,
+    local_user_view.person.id,
   )
   .await?;
 

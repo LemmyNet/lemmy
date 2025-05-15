@@ -1,27 +1,27 @@
 use crate::LocalImageView;
-use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, PaginationCursor},
+  newtypes::{PaginationCursor, PersonId},
   source::images::{local_image_keys as key, LocalImage},
   traits::PaginationCursorBuilder,
   utils::{get_conn, limit_fetch, paginate, DbPool},
 };
-use lemmy_db_schema_file::schema::{local_image, local_user, person};
+use lemmy_db_schema_file::schema::{local_image, person, post};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalImageView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     local_image::table
-      .inner_join(local_user::table)
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+      .inner_join(person::table)
+      .left_join(post::table)
   }
 
-  pub async fn get_all_paged_by_local_user_id(
+  pub async fn get_all_paged_by_person_id(
     pool: &mut DbPool<'_>,
-    user_id: LocalUserId,
+    person_id: PersonId,
     cursor_data: Option<LocalImage>,
     page_back: Option<bool>,
     limit: Option<i64>,
@@ -30,7 +30,7 @@ impl LocalImageView {
     let limit = limit_fetch(limit)?;
 
     let query = Self::joins()
-      .filter(local_image::local_user_id.eq(user_id))
+      .filter(local_image::person_id.eq(person_id))
       .select(Self::as_select())
       .limit(limit)
       .into_boxed();
@@ -44,13 +44,13 @@ impl LocalImageView {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn get_all_by_local_user_id(
+  pub async fn get_all_by_person_id(
     pool: &mut DbPool<'_>,
-    user_id: LocalUserId,
+    person_id: PersonId,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
-      .filter(local_image::local_user_id.eq(user_id))
+      .filter(local_image::person_id.eq(person_id))
       .select(Self::as_select())
       .load::<Self>(conn)
       .await
