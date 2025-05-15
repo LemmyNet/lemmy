@@ -6,7 +6,7 @@
 -- See https://github.com/LemmyNet/lemmy/issues/5564
 ALTER TABLE local_image
     ADD COLUMN person_id int NOT NULL DEFAULT 0 REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN thumbnail_and_post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN thumbnail_for_post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Update historical person_id columns
 -- Note: The local_user_id rows are null for thumbnails, so there's nothing you can do there.

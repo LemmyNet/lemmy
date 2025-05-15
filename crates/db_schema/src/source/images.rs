@@ -35,7 +35,7 @@ pub struct LocalImage {
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// This means the image is an auto-generated thumbnail, for a post.
-  pub thumbnail_and_post_id: Option<PostId>,
+  pub thumbnail_for_post_id: Option<PostId>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ pub struct LocalImage {
 pub struct LocalImageForm {
   pub pictrs_alias: String,
   pub person_id: PersonId,
-  pub thumbnail_and_post_id: Option<Option<PostId>>,
+  pub thumbnail_for_post_id: Option<Option<PostId>>,
 }
 
 /// Stores all images which are hosted on remote domains. When attempting to proxy an image, it

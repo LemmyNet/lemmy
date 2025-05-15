@@ -223,7 +223,7 @@ pub async fn do_upload_image(
     let form = LocalImageForm {
       pictrs_alias: image.file.to_string(),
       person_id: local_user_view.person.id,
-      thumbnail_and_post_id: None,
+      thumbnail_for_post_id: None,
     };
 
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

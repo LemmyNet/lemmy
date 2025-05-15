@@ -493,7 +493,7 @@ async fn generate_pictrs_thumbnail(
     pictrs_alias: image.file.clone(),
     // For thumbnails, the person_id is the post creator
     person_id: creator_id,
-    thumbnail_and_post_id: Some(Some(post_id)),
+    thumbnail_for_post_id: Some(Some(post_id)),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.image_url(&protocol_and_hostname)?;
