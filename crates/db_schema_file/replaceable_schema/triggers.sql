@@ -523,14 +523,13 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_person_content_combined_trigger ('post');
-
 CALL r.create_person_content_combined_trigger ('comment');
-
 -- person_saved (comment, post)
 -- This one is a little different, because it triggers using x_actions.saved,
 -- Rather than any row insert
+-- TODO a hack because local is not currently on the post_view table
+-- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
 CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -545,7 +544,13 @@ BEGIN
                     WHERE p.person_id = OLD.person_id
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.saved IS NOT NULL THEN
+                    IF NEW.saved IS NOT NULL AND (
+                        SELECT
+                            local
+                        FROM
+                            person
+                        WHERE
+                            id = NEW.person_id) = TRUE THEN
                         INSERT INTO person_saved_combined (saved, person_id, thing_id)
                             VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
                     END IF;
@@ -571,14 +576,13 @@ BEGIN
     table_name);
 END;
 $a$;
-
 CALL r.create_person_saved_combined_trigger ('post');
-
 CALL r.create_person_saved_combined_trigger ('comment');
-
 -- person_liked (comment, post)
 -- This one is a little different, because it triggers using x_actions.liked,
 -- Rather than any row insert
+-- TODO a hack because local is not currently on the post_view table
+-- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
 CREATE PROCEDURE r.create_person_liked_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -593,7 +597,13 @@ BEGIN
                     WHERE p.person_id = OLD.person_id
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.liked IS NOT NULL THEN
+                    IF NEW.liked IS NOT NULL AND (
+                        SELECT
+                            local
+                        FROM
+                            person
+                        WHERE
+                            id = NEW.person_id) = TRUE THEN
                         INSERT INTO person_liked_combined (liked, like_score, person_id, thing_id)
                             VALUES (NEW.liked, NEW.like_score, NEW.person_id, NEW.thing_id);
                     END IF;
