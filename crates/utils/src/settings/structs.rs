@@ -199,7 +199,7 @@ pub struct PrometheusConfig {
   // Port that the Prometheus metrics will be served on.
   #[default(10002)]
   #[doku(example = "10002")]
-  pub port: i32,
+  pub port: u16,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

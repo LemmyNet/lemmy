@@ -377,8 +377,8 @@ async fn convert_read_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
 ) -> LemmyResult<Vec<LanguageId>> {
-  static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
-  let count = ALL_LANGUAGES_COUNT
+  static ALL_LANGUAGES_COUNT: OnceCell<i64> = OnceCell::const_new();
+  let count: usize = (*ALL_LANGUAGES_COUNT
     .get_or_init(|| async {
       use lemmy_db_schema_file::schema::language::dsl::{id, language};
       let count: i64 = language
@@ -386,11 +386,12 @@ async fn convert_read_languages(
         .first(conn)
         .await
         .expect("read number of languages");
-      count as usize
+      count
     })
-    .await;
+    .await)
+    .try_into()?;
 
-  if &language_ids.len() == count {
+  if language_ids.len() == count {
     Ok(vec![])
   } else {
     Ok(language_ids)
