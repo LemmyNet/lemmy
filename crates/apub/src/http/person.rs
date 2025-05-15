@@ -1,17 +1,12 @@
 use crate::{
-  collections::multi_community::ApubMultiCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
-  protocol::collections::empty_outbox::EmptyOutbox,
+  protocol::collections::{empty_outbox::EmptyOutbox, multi_community::MultiCommunityCollection},
 };
-use activitypub_federation::{
-  config::Data,
-  traits::{Collection, Object},
-};
+use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
-  impls::multi_community::ReadParams,
   source::{multi_community::MultiCommunity, person::Person},
   traits::ApubActor,
 };
@@ -66,16 +61,14 @@ pub(crate) async fn get_apub_person_multi_community(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let query = query.into_inner();
-  let multi = MultiCommunity::read(
-    &mut context.pool(),
-    ReadParams::Name {
-      user_name: query.user_name,
-      multi_name: query.multi_name,
-    },
-  )
-  .await?;
-  // TODO: dont read same thing multiple times
-  let multi = ApubMultiCommunity::read_local(&multi.multi.id, &context).await?;
-  create_apub_response(&multi)
+  let multi =
+    MultiCommunity::read_apub(&mut context.pool(), &query.user_name, &query.multi_name).await?;
+
+  let collection = MultiCommunityCollection {
+    r#type: Default::default(),
+    id: multi.multi.ap_id.into(),
+    total_items: multi.entries.len().try_into()?,
+    items: multi.entries.into_iter().map(Into::into).collect(),
+  };
+  create_apub_response(&collection)
 }

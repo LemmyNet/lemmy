@@ -1,7 +1,6 @@
 use crate::protocol::collections::multi_community::MultiCommunityCollection;
 use activitypub_federation::{
   config::Data,
-  kinds::collection::CollectionType,
   protocol::verification::verify_domains_match,
   traits::{Collection, Object},
 };
@@ -29,16 +28,10 @@ impl Collection for ApubMultiCommunity {
   type Error = LemmyError;
 
   async fn read_local(
-    owner: &Self::Owner,
-    context: &Data<Self::DataType>,
+    _owner: &Self::Owner,
+    _context: &Data<Self::DataType>,
   ) -> LemmyResult<Self::Kind> {
-    let multi = MultiCommunity::read_apub(&mut context.pool(), *owner).await?;
-    Ok(MultiCommunityCollection {
-      r#type: CollectionType::Collection,
-      id: multi.multi.ap_id.into(),
-      total_items: multi.entries.len().try_into()?,
-      items: multi.entries.into_iter().map(Into::into).collect(),
-    })
+    Err(LemmyErrorType::NotFound.into())
   }
 
   async fn verify(
