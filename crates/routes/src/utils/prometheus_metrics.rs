@@ -95,6 +95,8 @@ fn create_db_pool_metrics() -> LemmyResult<DbPoolMetrics> {
   Ok(metrics)
 }
 
+/// try_from does not support conversion from usize to f64
+/// https://stackoverflow.com/q/35974890
 #[allow(clippy::as_conversions)]
 fn collect_db_pool_metrics(context: &PromContext) {
   let pool_status = context.lemmy.inner_pool().status();
