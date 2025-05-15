@@ -26,8 +26,6 @@ pub async fn like_post(
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
-  let person_id = local_user_view.person.id;
-  let person_local = local_user_view.person.local;
   let post_id = data.post_id;
 
   check_local_vote_mode(
@@ -45,9 +43,11 @@ pub async fn like_post(
 
   check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
 
-  let mut like_form = PostLikeForm::new(data.post_id, person_id, person_local, data.score);
+  let mut like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
   // Remove any likes first
+  let person_id = local_user_view.person.id;
+
   PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
 
   // Only add the like if the score isnt 0
@@ -60,7 +60,7 @@ pub async fn like_post(
   }
 
   // Mark Post Read
-  let read_form = PostReadForm::new(post_id, person_id, person_local);
+  let read_form = PostReadForm::new(post_id, person_id);
   PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   ActivityChannel::submit_activity(

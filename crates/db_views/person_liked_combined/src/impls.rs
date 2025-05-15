@@ -366,15 +366,13 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 =
-      CommentLikeForm::new(data.timmy.id, data.timmy.local, data.sara_comment_2.id, 1);
+    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, 1);
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment =
-      CommentLikeForm::new(data.timmy.id, data.timmy.local, data.sara_comment.id, -1);
+    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, -1);
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
-    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, data.timmy.local, 1);
+    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, 1);
     PostActions::like(pool, &post_like_form).await?;
 
     let timmy_liked_all = PersonLikedCombinedQuery::default()

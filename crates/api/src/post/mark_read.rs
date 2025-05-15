@@ -17,12 +17,11 @@ pub async fn mark_post_as_read(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let person_id = local_user_view.person.id;
-  let person_local = local_user_view.person.local;
   let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
 
   // Mark the post as read / unread
-  let form = PostReadForm::new(post_id, person_id, person_local);
+  let form = PostReadForm::new(post_id, person_id);
   if data.read {
     PostActions::mark_as_read(&mut context.pool(), &form).await?;
   } else {

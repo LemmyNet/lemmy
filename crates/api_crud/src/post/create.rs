@@ -168,10 +168,9 @@ pub async fn create_post(
 
   // They like their own post by default
   let person_id = local_user_view.person.id;
-  let person_local = local_user_view.person.local;
   let post_id = inserted_post.id;
   let local_instance_id = local_user_view.person.instance_id;
-  let like_form = PostLikeForm::new(post_id, person_id, person_local, 1);
+  let like_form = PostLikeForm::new(post_id, person_id, 1);
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
@@ -189,7 +188,7 @@ pub async fn create_post(
   )
   .await?;
 
-  let read_form = PostReadForm::new(post_id, person_id, person_local);
+  let read_form = PostReadForm::new(post_id, person_id);
   PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await

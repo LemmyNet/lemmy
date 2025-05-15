@@ -235,13 +235,11 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
-    let timmy_post_vote_form =
-      PostLikeForm::new(inserted_post.id, inserted_timmy.id, inserted_timmy.local, 1);
+    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, 1);
     PostActions::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
-    let sara_post_vote_form =
-      PostLikeForm::new(inserted_post.id, inserted_sara.id, inserted_sara.local, -1);
+    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, -1);
     PostActions::like(pool, &sara_post_vote_form).await?;
 
     let mut expected_post_vote_views = [
@@ -266,21 +264,11 @@ mod tests {
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
-    let timmy_comment_vote_form = CommentLikeForm::new(
-      inserted_timmy.id,
-      inserted_timmy.local,
-      inserted_comment.id,
-      -1,
-    );
+    let timmy_comment_vote_form = CommentLikeForm::new(inserted_timmy.id, inserted_comment.id, -1);
     CommentActions::like(pool, &timmy_comment_vote_form).await?;
 
     // Sara upvotes timmy's comment
-    let sara_comment_vote_form = CommentLikeForm::new(
-      inserted_sara.id,
-      inserted_sara.local,
-      inserted_comment.id,
-      1,
-    );
+    let sara_comment_vote_form = CommentLikeForm::new(inserted_sara.id, inserted_comment.id, 1);
     CommentActions::like(pool, &sara_comment_vote_form).await?;
 
     let mut expected_comment_vote_views = [

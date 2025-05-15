@@ -15,9 +15,8 @@ pub async fn mark_posts_as_read(
   }
 
   let person_id = local_user_view.person.id;
-  let person_local = local_user_view.person.local;
 
-  let forms = PostActions::build_many_read_forms(post_ids, person_id, person_local);
+  let forms = PostActions::build_many_read_forms(post_ids, person_id);
 
   // Mark the posts as read
   PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;

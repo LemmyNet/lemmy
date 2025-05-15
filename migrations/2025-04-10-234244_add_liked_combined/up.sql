@@ -19,33 +19,6 @@ CREATE INDEX idx_person_liked_combined_published ON person_liked_combined (liked
 
 CREATE INDEX idx_person_liked_combined ON person_liked_combined (person_id);
 
--- In order to not store liked combined for federated users, add a person_local to post_actions and comment actions.
--- Your triggers for both person_saved_combined, and person_liked_combined, only needs local users.
-ALTER TABLE post_actions
-    ADD COLUMN person_local boolean DEFAULT TRUE NOT NULL;
-
-ALTER TABLE comment_actions
-    ADD COLUMN person_local boolean DEFAULT TRUE NOT NULL;
-
--- Update historical data for those tables now
-UPDATE
-    post_actions pa
-SET
-    person_local = p.local
-FROM
-    person p
-WHERE
-    pa.person_id = p.id;
-
-UPDATE
-    comment_actions ca
-SET
-    person_local = p.local
-FROM
-    person p
-WHERE
-    ca.person_id = p.id;
-
 -- Updating the history
 INSERT INTO person_liked_combined (liked, like_score, person_id, post_id, comment_id)
 SELECT
@@ -58,7 +31,6 @@ FROM
     post_actions
 WHERE
     liked IS NOT NULL
-    AND person_local = TRUE
 UNION ALL
 SELECT
     liked,
@@ -69,6 +41,5 @@ SELECT
 FROM
     comment_actions
 WHERE
-    liked IS NOT NULL
-    AND person_local = TRUE;
+    liked IS NOT NULL;
 

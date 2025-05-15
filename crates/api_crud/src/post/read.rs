@@ -30,7 +30,7 @@ pub async fn get_post(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let person = local_user_view.as_ref().map(|u| u.person.clone());
+  let person_id = local_user_view.as_ref().map(|u| u.person.id);
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
 
   // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
@@ -66,13 +66,12 @@ pub async fn get_post(
   .await?;
 
   let post_id = post_view.post.id;
-  if let Some(person) = person {
-    let read_form = PostReadForm::new(post_id, person.id, person.local);
+  if let Some(person_id) = person_id {
+    let read_form = PostReadForm::new(post_id, person_id);
     PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
     update_read_comments(
-      person.id,
-      person.local,
+      person_id,
       post_id,
       post_view.post.comments,
       &mut context.pool(),

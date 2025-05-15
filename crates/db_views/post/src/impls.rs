@@ -939,12 +939,7 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let post_like_form = PostLikeForm::new(
-      data.post.id,
-      data.tegan_local_user_view.person.id,
-      data.tegan_local_user_view.person.local,
-      1,
-    );
+    let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
@@ -1016,18 +1011,12 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark the bot post, then the tags post as read
-    let bot_post_read_form = PostReadForm::new(
-      data.bot_post.id,
-      data.tegan_local_user_view.person.id,
-      data.tegan_local_user_view.person.local,
-    );
+    let bot_post_read_form =
+      PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
     PostActions::mark_as_read(pool, &bot_post_read_form).await?;
 
-    let tag_post_read_form = PostReadForm::new(
-      data.post_with_tags.id,
-      data.tegan_local_user_view.person.id,
-      data.tegan_local_user_view.person.local,
-    );
+    let tag_post_read_form =
+      PostReadForm::new(data.post_with_tags.id, data.tegan_local_user_view.person.id);
     PostActions::mark_as_read(pool, &tag_post_read_form).await?;
 
     let read_read_post_listing =
@@ -1600,11 +1589,7 @@ mod tests {
     data.tegan_local_user_view.local_user.show_read_posts = false;
 
     // Mark a post as read
-    let read_form = PostReadForm::new(
-      data.bot_post.id,
-      data.tegan_local_user_view.person.id,
-      data.tegan_local_user_view.person.local,
-    );
+    let read_form = PostReadForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
     PostActions::mark_as_read(pool, &read_form).await?;
 
     // Make sure you don't see the read post in the results
@@ -1645,11 +1630,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark a post as hidden
-    let hide_form = PostHideForm::new(
-      data.bot_post.id,
-      data.tegan_local_user_view.person.id,
-      data.tegan_local_user_view.person.local,
-    );
+    let hide_form = PostHideForm::new(data.bot_post.id, data.tegan_local_user_view.person.id);
     PostActions::hide(pool, &hide_form).await?;
 
     // Make sure you don't see the hidden post in the results

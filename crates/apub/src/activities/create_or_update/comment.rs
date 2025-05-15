@@ -142,8 +142,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
-    let creator = self.actor.dereference(context).await?;
-
     if let (Some(distinguished), Some(existing_comment)) =
       (self.object.distinguished, existing_comment)
     {
@@ -163,7 +161,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     let comment = ApubComment::from_json(self.object, context).await?;
 
     // author likes their own comment by default
-    let like_form = CommentLikeForm::new(comment.creator_id, creator.local, comment.id, 1);
+    let like_form = CommentLikeForm::new(comment.creator_id, comment.id, 1);
     CommentActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank
@@ -171,6 +169,7 @@ impl ActivityHandler for CreateOrUpdateNote {
 
     let do_send_email =
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
+    let actor = self.actor.dereference(context).await?;
 
     // Note:
     // Although mentions could be gotten from the post tags (they are included there), or the ccs,
@@ -184,7 +183,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     send_local_notifs(
       mentions,
       PostOrCommentId::Comment(comment.id),
-      &creator,
+      &actor,
       do_send_email,
       context,
       None,

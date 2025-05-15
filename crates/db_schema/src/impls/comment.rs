@@ -408,22 +408,13 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
-    let comment_like_form = CommentLikeForm::new(
-      inserted_person.id,
-      inserted_person.local,
-      inserted_comment.id,
-      1,
-    );
+    let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
 
     let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
     assert_eq!(Some(1), inserted_comment_like.like_score);
 
     // Comment Saved
-    let comment_saved_form = CommentSavedForm::new(
-      inserted_person.id,
-      inserted_person.local,
-      inserted_comment.id,
-    );
+    let comment_saved_form = CommentSavedForm::new(inserted_person.id, inserted_comment.id);
     let inserted_comment_saved = CommentActions::save(pool, &comment_saved_form).await?;
     assert!(inserted_comment_saved.saved.is_some());
 
@@ -504,12 +495,7 @@ mod tests {
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let comment_like = CommentLikeForm::new(
-      inserted_person.id,
-      inserted_person.local,
-      inserted_comment.id,
-      1,
-    );
+    let comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
 
     CommentActions::like(pool, &comment_like).await?;
 
@@ -520,12 +506,7 @@ mod tests {
     assert_eq!(0, comment_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let comment_dislike = CommentLikeForm::new(
-      another_inserted_person.id,
-      another_inserted_person.local,
-      inserted_comment.id,
-      -1,
-    );
+    let comment_dislike = CommentLikeForm::new(another_inserted_person.id, inserted_comment.id, -1);
 
     CommentActions::like(pool, &comment_dislike).await?;
 

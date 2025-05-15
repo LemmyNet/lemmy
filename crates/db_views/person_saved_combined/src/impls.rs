@@ -355,21 +355,14 @@ mod tests {
     assert_eq!(0, timmy_saved.len());
 
     // Save a few things
-    let save_sara_comment_2 = CommentSavedForm::new(
-      data.timmy_view.person.id,
-      data.timmy_view.person.local,
-      data.sara_comment_2.id,
-    );
+    let save_sara_comment_2 =
+      CommentSavedForm::new(data.timmy_view.person.id, data.sara_comment_2.id);
     CommentActions::save(pool, &save_sara_comment_2).await?;
 
-    let save_sara_comment = CommentSavedForm::new(
-      data.timmy_view.person.id,
-      data.timmy_view.person.local,
-      data.sara_comment.id,
-    );
+    let save_sara_comment = CommentSavedForm::new(data.timmy_view.person.id, data.sara_comment.id);
     CommentActions::save(pool, &save_sara_comment).await?;
 
-    let post_save_form = PostSavedForm::new(data.timmy_post.id, data.timmy.id, data.timmy.local);
+    let post_save_form = PostSavedForm::new(data.timmy_post.id, data.timmy.id);
     PostActions::save(pool, &post_save_form).await?;
 
     let timmy_saved = PersonSavedCombinedQuery::default()

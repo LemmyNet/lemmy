@@ -153,7 +153,6 @@ diesel::table! {
         like_score -> Nullable<Int2>,
         liked -> Nullable<Timestamptz>,
         saved -> Nullable<Timestamptz>,
-        person_local -> Bool,
     }
 }
 
@@ -903,7 +902,6 @@ diesel::table! {
         liked -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden -> Nullable<Timestamptz>,
-        person_local -> Bool,
     }
 }
 

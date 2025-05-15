@@ -447,12 +447,7 @@ mod tests {
       )
     );
 
-    let comment_like_form = CommentLikeForm::new(
-      inserted_timmy_person.id,
-      inserted_timmy_person.local,
-      comment_0.id,
-      1,
-    );
+    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, 1);
 
     CommentActions::like(pool, &comment_like_form).await?;
 

@@ -68,12 +68,7 @@ pub async fn like_comment(
     }
   }
 
-  let mut like_form = CommentLikeForm::new(
-    local_user_view.person.id,
-    local_user_view.person.local,
-    data.comment_id,
-    data.score,
-  );
+  let mut like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
