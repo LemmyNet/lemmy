@@ -94,7 +94,7 @@ impl VoteView {
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::like_score)
       // Tie breaker
-      .then_order_by(key::person_id);
+      .then_order_by(key::liked);
 
     paginated_query
       .load::<Self>(conn)
@@ -169,7 +169,7 @@ impl VoteView {
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::like_score)
       // Tie breaker
-      .then_order_by(key::person_id);
+      .then_order_by(key::liked);
 
     paginated_query
       .load::<Self>(conn)
