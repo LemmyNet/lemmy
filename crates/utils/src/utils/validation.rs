@@ -91,7 +91,7 @@ fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
@@ -100,6 +100,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   min_length_check(name, 3, LemmyErrorType::InvalidName)?;
   max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
   if VALID_ACTOR_NAME_REGEX.is_match(name) {
@@ -126,7 +127,8 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   let check = !name.starts_with('@')
     && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
     && name.chars().count() <= actor_name_max_length

@@ -871,8 +871,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied =
-          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let proxied = build_proxied_image_url(&link, false, context)?;
         let details_form = details.build_image_details_form(&proxied);
         ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
@@ -904,6 +903,7 @@ pub async fn process_markdown_opt(
 async fn proxy_image_link_internal(
   link: Url,
   image_mode: PictrsImageMode,
+  is_thumbnail: bool,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
@@ -912,7 +912,7 @@ async fn proxy_image_link_internal(
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
 
-    let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+    let proxied = build_proxied_image_url(&link, is_thumbnail, context)?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
@@ -929,8 +929,18 @@ async fn proxy_image_link_internal(
 
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
-pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(link, context.settings().pictrs()?.image_mode, context).await
+pub async fn proxy_image_link(
+  link: Url,
+  is_thumbnail: bool,
+  context: &LemmyContext,
+) -> LemmyResult<DbUrl> {
+  proxy_image_link_internal(
+    link,
+    context.settings().pictrs()?.image_mode,
+    is_thumbnail,
+    context,
+  )
+  .await
 }
 
 pub async fn proxy_image_link_opt_apub(
@@ -938,7 +948,7 @@ pub async fn proxy_image_link_opt_apub(
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l, context).await.map(Some)
+    proxy_image_link(l, false, context).await.map(Some)
   } else {
     Ok(None)
   }
@@ -946,13 +956,21 @@ pub async fn proxy_image_link_opt_apub(
 
 fn build_proxied_image_url(
   link: &Url,
-  protocol_and_hostname: &str,
-) -> Result<Url, url::ParseError> {
-  Url::parse(&format!(
+  is_thumbnail: bool,
+  context: &LemmyContext,
+) -> LemmyResult<Url> {
+  let mut url = format!(
     "{}/api/v4/image/proxy?url={}",
-    protocol_and_hostname,
-    encode(link.as_str())
-  ))
+    context.settings().get_protocol_and_hostname(),
+    encode(link.as_str()),
+  );
+  if is_thumbnail {
+    url = format!(
+      "{url}&max_size={}",
+      context.settings().pictrs()?.max_thumbnail_size
+    );
+  }
+  Ok(Url::parse(&url)?)
 }
 
 pub async fn local_user_view_from_jwt(
@@ -1050,9 +1068,13 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png")?;
-    let proxied =
-      proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
-        .await?;
+    let proxied = proxy_image_link_internal(
+      local_url.clone(),
+      PictrsImageMode::ProxyAllImages,
+      false,
+      &context,
+    )
+    .await?;
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
@@ -1060,6 +1082,7 @@ mod tests {
     let proxied = proxy_image_link_internal(
       remote_image.clone(),
       PictrsImageMode::ProxyAllImages,
+      false,
       &context,
     )
     .await?;
