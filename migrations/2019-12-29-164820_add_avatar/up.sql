@@ -132,7 +132,7 @@ with all_post AS (
                 NULL
             END) AS upvotes,
         count(
-            CASE WHEN pl.score = - 1 THEN
+            CASE WHEN pl.score = -1 THEN
                 1
             ELSE
                 NULL
@@ -327,7 +327,7 @@ with all_comment AS (
                                 NULL
                             END) AS upvotes,
                         count(
-                            CASE WHEN cl.score = - 1 THEN
+                            CASE WHEN cl.score = -1 THEN
                                 1
                             ELSE
                                 NULL
