@@ -285,10 +285,9 @@ impl Community {
   pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-    new_subscribers: i32,
+    new_subscribers: i64,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let new_subscribers: i64 = new_subscribers.into();
     diesel::update(community::table.find(for_community_id))
       .set(community::dsl::subscribers.eq(new_subscribers))
       .get_result(conn)

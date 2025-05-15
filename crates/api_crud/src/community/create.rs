@@ -73,7 +73,7 @@ pub async fn create_community(
     check_slurs(desc, &slur_regex)?;
   }
 
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
 
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;

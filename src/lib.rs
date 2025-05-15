@@ -1,5 +1,4 @@
-pub mod api_routes_v3;
-pub mod api_routes_v4;
+pub mod api_routes;
 
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
@@ -20,10 +19,11 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  objects::instance::ApubSite,
+  collections::fetch_community_collections,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
+use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_db_views_site::SiteView;
@@ -235,6 +235,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       Box::pin(match_outgoing_activities(d, c))
     }))
     .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+  FETCH_COMMUNITY_COLLECTIONS
+    .set(fetch_community_collections)
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(
@@ -365,8 +368,7 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes_v3::config(cfg, &rate_limit_cell))
-      .configure(|cfg| api_routes_v4::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);

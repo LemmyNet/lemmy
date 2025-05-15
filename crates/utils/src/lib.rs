@@ -3,6 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! {
   if #[cfg(feature = "full")] {
     pub mod cache_header;
+    #[allow(clippy::as_conversions)]
     pub mod rate_limit;
     pub mod request;
     pub mod response;
@@ -12,15 +13,19 @@ cfg_if! {
 }
 
 pub mod error;
-use git_version::git_version;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
 
-pub const VERSION: &str = git_version!(
+/// git_version marks this crate as dirty and causes a rebuild if any file in the repo is changed.
+/// This slows down development a lot, so we only use git_version for release builds.
+#[cfg(not(debug_assertions))]
+pub const VERSION: &str = git_version::git_version!(
   args = ["--tags", "--dirty=-modified"],
   fallback = env!("CARGO_PKG_VERSION")
 );
+#[cfg(debug_assertions)]
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -56,6 +61,17 @@ macro_rules! location_info {
 cfg_if! {
   if #[cfg(feature = "full")] {
 use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+use serde_json::Value;use std::{sync::LazyLock};
+
+/// Only include a basic context to save space and bandwidth. The main context is hosted statically
+/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
+/// theoretically also be moved.
+pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
+  Value::Array(vec![
+    Value::String("https://join-lemmy.org/context.json".to_string()),
+    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
+  ])
+});
 
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors

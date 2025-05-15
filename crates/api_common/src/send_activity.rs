@@ -41,7 +41,7 @@ pub enum SendActivityData {
     reason: Option<String>,
     removed: bool,
   },
-  LockPost(Post, Person, bool),
+  LockPost(Post, Person, bool, Option<String>),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),

@@ -40,6 +40,10 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "registration_mode_enum"))]
   pub struct RegistrationModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "vote_show_enum"))]
+  pub struct VoteShowEnum;
 }
 
 diesel::table! {
@@ -488,6 +492,7 @@ diesel::table! {
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::CommentSortTypeEnum;
+    use super::sql_types::VoteShowEnum;
 
     local_user (id) {
         id -> Int4,
@@ -524,7 +529,7 @@ diesel::table! {
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
         show_upvotes -> Bool,
-        show_downvotes -> Bool,
+        show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
     }
 }
@@ -633,6 +638,7 @@ diesel::table! {
         post_id -> Int4,
         locked -> Bool,
         published -> Timestamptz,
+        reason -> Nullable<Text>,
     }
 }
 

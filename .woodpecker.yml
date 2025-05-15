@@ -47,7 +47,7 @@ steps:
       - event: [pull_request, tag]
 
   prettier_check:
-    image: tmknom/prettier:3.2.5
+    image: tmknom/prettier:3.4.2
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
     when:
@@ -134,7 +134,7 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
       LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release

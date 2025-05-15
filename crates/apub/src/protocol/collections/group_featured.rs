@@ -1,5 +1,5 @@
-use crate::protocol::objects::page::Page;
 use activitypub_federation::kinds::collection::OrderedCollectionType;
+use lemmy_apub_objects::protocol::page::Page;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -8,6 +8,6 @@ use url::Url;
 pub struct GroupFeatured {
   pub(crate) r#type: OrderedCollectionType,
   pub(crate) id: Url,
-  pub(crate) total_items: i32,
+  pub(crate) total_items: i64,
   pub(crate) ordered_items: Vec<Page>,
 }

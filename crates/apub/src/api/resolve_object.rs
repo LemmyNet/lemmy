@@ -1,8 +1,4 @@
-use crate::fetcher::{
-  search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
-  PostOrComment,
-  UserOrCommunity,
-};
+use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -10,6 +6,7 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
+use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
 use lemmy_db_schema::utils::DbPool;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;

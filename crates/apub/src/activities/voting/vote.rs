@@ -1,16 +1,10 @@
 use crate::{
   activities::{
     generate_activity_id,
-    verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
   },
   insert_received_activity,
-  objects::person::ApubPerson,
-  protocol::{
-    activities::voting::vote::{Vote, VoteType},
-    InCommunity,
-  },
-  PostOrComment,
+  protocol::activities::voting::vote::{Vote, VoteType},
 };
 use activitypub_federation::{
   config::Data,
@@ -18,6 +12,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_db_schema_file::enums::FederationMode;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};

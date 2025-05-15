@@ -1,11 +1,8 @@
-use crate::{
-  http::create_apub_response,
-  objects::instance::ApubSite,
-  protocol::collections::empty_outbox::EmptyOutbox,
-};
+use crate::{http::create_apub_response, protocol::collections::empty_outbox::EmptyOutbox};
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::HttpResponse;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::objects::instance::ApubSite;
 use lemmy_db_schema::source::site::Site;
 use lemmy_utils::error::LemmyResult;
 use url::Url;

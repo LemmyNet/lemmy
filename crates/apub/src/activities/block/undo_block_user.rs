@@ -5,12 +5,9 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
-    verify_is_public,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::person::ApubPerson,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
@@ -22,6 +19,10 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
+};
+use lemmy_apub_objects::{
+  objects::person::ApubPerson,
+  utils::functions::{verify_is_public, verify_visibility},
 };
 use lemmy_db_schema::{
   source::{

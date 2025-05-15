@@ -3,10 +3,8 @@ pub mod vote;
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    activities::voting::{undo_vote::UndoVote, vote::Vote},
-    tests::test_parse_lemmy_item,
-  };
+  use crate::protocol::activities::voting::{undo_vote::UndoVote, vote::Vote};
+  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
 
   #[test]

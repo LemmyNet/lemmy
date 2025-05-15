@@ -10,18 +10,17 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
-  InboxDataType,
-  LikeType,
-  PersonContentType,
 };
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostListingMode, PostSortType};
+use lemmy_db_schema_file::enums::{
+  CommentSortType,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  VoteShow,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_person_content_combined::PersonContentCombinedView;
-use lemmy_db_views_person_liked_combined::PersonLikedCombinedView;
-use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -187,7 +186,7 @@ pub struct SaveUserSettings {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvotes: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub show_downvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvote_percentage: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
@@ -255,73 +254,6 @@ pub struct GetPersonDetailsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Gets a person's content (posts and comments)
-///
-/// Either person_id, or username are required.
-pub struct ListPersonContent {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub type_: Option<PersonContentType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub person_id: Option<PersonId>,
-  /// Example: dessalines , or dessalines@xyz.tld
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub username: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A person's content response.
-pub struct ListPersonContentResponse {
-  pub content: Vec<PersonContentCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Gets your saved posts and comments
-pub struct ListPersonSaved {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub type_: Option<PersonContentType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A person's saved content response.
-pub struct ListPersonSavedResponse {
-  pub saved: Vec<PersonSavedCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
 /// Gets your read posts.
 pub struct ListPersonRead {
   #[cfg_attr(feature = "full", ts(optional))]
@@ -374,38 +306,6 @@ pub struct ListPersonHiddenResponse {
   pub prev_page: Option<PaginationCursor>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Gets your liked / disliked posts
-pub struct ListPersonLiked {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub type_: Option<PersonContentType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub like_type: Option<LikeType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Your liked posts response.
-pub struct ListPersonLikedResponse {
-  pub liked: Vec<PersonLikedCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -444,33 +344,6 @@ pub struct BanPerson {
   pub expires: Option<i64>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List the banned persons.
-pub struct ListBannedPersons {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The list of banned persons.
-pub struct BannedPersonsResponse {
-  pub banned: Vec<PersonView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -496,37 +369,6 @@ pub struct BlockPerson {
 pub struct BlockPersonResponse {
   pub person_view: PersonView,
   pub blocked: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInbox {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub type_: Option<InboxDataType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unread_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInboxResponse {
-  pub inbox: Vec<InboxCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

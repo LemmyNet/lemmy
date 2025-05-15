@@ -1,13 +1,12 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{ListPersonLiked, ListPersonLikedResponse},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_liked_combined::{
   impls::PersonLikedCombinedQuery,
+  ListPersonLiked,
+  ListPersonLikedResponse,
   PersonLikedCombinedView,
 };
 use lemmy_utils::error::LemmyResult;

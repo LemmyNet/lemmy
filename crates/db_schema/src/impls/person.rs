@@ -1,6 +1,6 @@
 use crate::{
-  diesel::OptionalExtension,
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
+  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PersonId},
   source::person::{
     Person,
     PersonActions,
@@ -21,7 +21,13 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{instance, local_user, person, person_actions};
+use lemmy_db_schema_file::schema::{
+  instance,
+  instance_actions,
+  local_user,
+  person,
+  person_actions,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -83,14 +89,35 @@ impl Person {
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
   }
 
-  pub async fn delete_account(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Person> {
+  pub async fn delete_account(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    local_instance_id: InstanceId,
+  ) -> LemmyResult<Person> {
     let conn = &mut get_conn(pool).await?;
 
-    // Set the local user info to none
-    diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set(local_user::email.eq::<Option<String>>(None))
-      .execute(conn)
-      .await?;
+    // Set the local user email to none, only if they aren't banned locally.
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::person_id
+        .eq(person_id)
+        .and(instance_actions::instance_id.eq(local_instance_id)),
+    );
+
+    let not_banned_local_user_id = local_user::table
+      .left_join(instance_actions_join)
+      .filter(local_user::person_id.eq(person_id))
+      .filter(instance_actions::received_ban.nullable().is_null())
+      .select(local_user::id)
+      .first::<LocalUserId>(conn)
+      .await
+      .optional()?;
+
+    if let Some(local_user_id) = not_banned_local_user_id {
+      diesel::update(local_user::table.find(local_user_id))
+        .set(local_user::email.eq::<Option<String>>(None))
+        .execute(conn)
+        .await?;
+    };
 
     diesel::update(person::table.find(person_id))
       .set((
