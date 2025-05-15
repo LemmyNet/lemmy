@@ -1,4 +1,4 @@
-use crate::newtypes::{LocalSiteId, SiteId};
+use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{
   CommentSortType,
@@ -102,6 +102,8 @@ pub struct LocalSite {
   pub users_active_half_year: i64,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub featured_communities: Option<MultiCommunityId>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -167,6 +169,8 @@ pub struct LocalSiteInsertForm {
   pub disallow_nsfw_content: bool,
   #[new(default)]
   pub disable_email_notifications: bool,
+  #[new(default)]
+  pub featured_communities: Option<MultiCommunityId>,
 }
 
 #[derive(Clone, Default)]
@@ -203,4 +207,5 @@ pub struct LocalSiteUpdateForm {
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub disallow_nsfw_content: Option<bool>,
   pub disable_email_notifications: Option<bool>,
+  pub featured_communities: Option<MultiCommunityId>,
 }

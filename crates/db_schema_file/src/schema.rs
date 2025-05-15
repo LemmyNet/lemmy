@@ -451,6 +451,7 @@ diesel::table! {
         users_active_month -> Int8,
         users_active_half_year -> Int8,
         disable_email_notifications -> Bool,
+        featured_communities -> Nullable<Int4>,
     }
 }
 
@@ -705,6 +706,22 @@ diesel::table! {
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
+    multi_community (id) {
+        id -> Int4,
+        owner_id -> Int4,
+        name -> Text,
+        ap_id -> Text,
+    }
+}
+
+diesel::table! {
+    multi_community_entry (multi_community_id, community_id) {
+        multi_community_id -> Int4,
+        community_id -> Int4,
     }
 }
 
@@ -1118,6 +1135,7 @@ diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> local_user (local_user_id));
+diesel::joinable!(local_site -> multi_community (featured_communities));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -1158,6 +1176,9 @@ diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id))
 diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
 diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
+diesel::joinable!(multi_community -> person (owner_id));
+diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
+diesel::joinable!(multi_community_entry -> community (community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
@@ -1243,6 +1264,8 @@ diesel::allow_tables_to_appear_in_same_query!(
   mod_remove_post,
   mod_transfer_community,
   modlog_combined,
+  multi_community,
+  multi_community_entry,
   oauth_account,
   oauth_provider,
   password_reset_request,

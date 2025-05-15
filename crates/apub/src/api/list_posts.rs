@@ -92,7 +92,7 @@ pub async fn list_posts(
     listing_type,
     sort,
     time_range_seconds,
-    community_id,
+    community_id: community_id.map(Into::into),
     liked_only,
     disliked_only,
     limit,

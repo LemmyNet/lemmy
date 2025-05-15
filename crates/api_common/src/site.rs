@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    multi_community::MultiCommunityView,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     tagline::Tagline,
@@ -70,6 +71,8 @@ pub struct ResolveObjectResponse {
   pub community: Option<CommunityView>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub person: Option<PersonView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub multi_community: Option<MultiCommunityView>,
 }
 
 #[skip_serializing_none]

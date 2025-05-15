@@ -3,6 +3,7 @@ pub(crate) mod group_featured;
 pub(crate) mod group_followers;
 pub(crate) mod group_moderators;
 pub(crate) mod group_outbox;
+pub(crate) mod multi_community;
 
 #[cfg(test)]
 mod tests {

@@ -126,10 +126,10 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
   let check = !name.starts_with('@')
     && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
-    && name.chars().count() <= actor_name_max_length
+    && name.chars().count() as i32 <= actor_name_max_length
     && !has_newline(name)
     && has_3_permitted_display_chars(name);
   if !check {

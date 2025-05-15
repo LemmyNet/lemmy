@@ -1,5 +1,5 @@
 use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, fetch::collection_id::CollectionId};
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -14,16 +14,19 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use futures::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
+use lemmy_apub::collections::multi_community::ApubMultiCommunity;
 use lemmy_db_schema::{
   source::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    multi_community::MultiCommunity,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -37,6 +40,7 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
+  multi_community,
   person,
   post,
   received_activity,
@@ -112,13 +116,14 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     }
   });
 
-  let context_1 = context.clone();
+  let context_1 = context.reset_request_count();
   // Daily tasks:
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
+  // - Update multi-communities
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       overwrite_deleted_posts_and_comments(&mut context.pool())
@@ -132,6 +137,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_instance_software(&mut context.pool(), context.client())
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
+        .ok();
+      update_multi_communities(&context)
+        .await
+        .inspect_err(|e| warn!("Failed to update multi-communities: {e}"))
         .ok();
     }
   });
@@ -557,6 +566,38 @@ async fn build_update_instance_form(
   Some(instance_form)
 }
 
+/// Updates all multi-communities from remote users
+async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<()> {
+  info!("Updating multi-communities...");
+  let pool = &mut context.pool();
+  let mut conn = get_conn(pool).await?;
+
+  // Select all multi-communities from instances that were reachable in the last 3 days
+  let multi_communities: Vec<MultiCommunity> = multi_community::table
+    .left_join(person::table.left_join(instance::table))
+    .filter(instance::updated.gt((now() - IntervalDsl::days(3)).nullable()))
+    .filter(person::local.eq(false))
+    .select(multi_community::all_columns)
+    .get_results(&mut conn)
+    .await?;
+
+  join_all(
+    multi_communities
+      .into_iter()
+      .map(|m| (m.id, m.ap_id.into()))
+      .map(
+        |(id, ap_id): (_, CollectionId<ApubMultiCommunity>)| async move {
+          // Fetch data, if successful it is written to db in ApubMultiCommunity::from_json
+          ap_id.dereference(&id, context).await.ok()
+        },
+      ),
+  )
+  .await;
+
+  info!("Finished updating multi-communities...");
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -601,6 +642,7 @@ mod tests {
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
+    update_multi_communities(&context).await?;
     Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }

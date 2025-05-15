@@ -38,7 +38,7 @@ impl Collection for ApubCommunityOutbox {
     let site = Site::read_local(&mut data.pool()).await?;
 
     let post_views = PostQuery {
-      community_id: Some(owner.id),
+      community_id: Some(owner.id.into()),
       sort: Some(PostSortType::New),
       limit: Some(FETCH_LIMIT_MAX),
       ..Default::default()
