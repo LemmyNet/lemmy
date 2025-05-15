@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   source::multi_community::MultiCommunity,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
+use tracing::info;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -35,7 +36,7 @@ impl Collection for ApubMultiCommunity {
     Ok(MultiCommunityCollection {
       r#type: CollectionType::Collection,
       id: multi.multi.ap_id.into(),
-      total_items: multi.entries.len() as i32,
+      total_items: multi.entries.len().try_into()?,
       items: multi.entries.into_iter().map(Into::into).collect(),
     })
   }
@@ -62,7 +63,13 @@ impl Collection for ApubMultiCommunity {
     )
     .await
     .into_iter()
-    .flat_map(|c: LemmyResult<CommunityId>| c.ok())
+    .flat_map(|c: LemmyResult<CommunityId>| match c {
+      Ok(c) => Some(c),
+      Err(e) => {
+        info!("Failed to fetch multi-community item: {e}");
+        None
+      }
+    })
     .collect();
 
     MultiCommunity::update(&mut context.pool(), *owner, communities).await?;

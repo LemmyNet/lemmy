@@ -34,7 +34,7 @@ impl MultiCommunity {
     params: ReadParams,
   ) -> Result<MultiCommunityView, Error> {
     let conn = &mut get_conn(pool).await?;
-    let query = multi_community_entry::table
+    let mut query = multi_community_entry::table
       .left_join(multi_community::table.left_join(person::table))
       .filter(multi_community::id.is_not_null())
       .group_by(multi_community::id)
@@ -44,7 +44,7 @@ impl MultiCommunity {
       ))
       .into_boxed();
 
-    let (multi, entries) = match params {
+    query = match params {
       ReadParams::Name {
         user_name,
         multi_name,
@@ -53,9 +53,8 @@ impl MultiCommunity {
         .filter(multi_community::name.eq(multi_name)),
       ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
       ReadParams::ApId(ap_id) => query.filter(multi_community::ap_id.eq(ap_id)),
-    }
-    .first(conn)
-    .await?;
+    };
+    let (multi, entries) = query.first(conn).await?;
     Ok(MultiCommunityView { multi, entries })
   }
   pub async fn read_apub(
