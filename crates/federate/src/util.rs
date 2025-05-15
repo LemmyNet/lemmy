@@ -199,7 +199,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       let latest_id = seq.unwrap_or(ActivityId(0));
-      anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
+      anyhow::Result::<_, anyhow::Error>::Ok(latest_id)
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting id: {e:?}"))

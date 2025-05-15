@@ -76,7 +76,7 @@ impl Note {
     // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
     // or so.
     // A cleaner solution would be converting the recursion into a loop, but that is tricky.
-    if context.request_count() > MAX_COMMENT_DEPTH_LIMIT as u32 {
+    if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
     let parent = self.in_reply_to.dereference(context).await?;

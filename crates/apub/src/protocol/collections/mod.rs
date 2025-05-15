@@ -5,6 +5,7 @@ pub(crate) mod group_moderators;
 pub(crate) mod group_outbox;
 
 #[cfg(test)]
+#[allow(clippy::as_conversions)]
 mod tests {
   use crate::protocol::collections::{
     empty_outbox::EmptyOutbox,
@@ -22,7 +23,7 @@ mod tests {
     test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json")?;
     let outbox =
       test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json")?;
-    assert_eq!(outbox.ordered_items.len() as i32, outbox.total_items);
+    assert_eq!(outbox.ordered_items.len() as i64, outbox.total_items);
     test_parse_lemmy_item::<GroupFeatured>("assets/lemmy/collections/group_featured_posts.json")?;
     test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")?;
     test_parse_lemmy_item::<EmptyOutbox>("assets/lemmy/collections/person_outbox.json")?;

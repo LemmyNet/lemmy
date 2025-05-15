@@ -143,10 +143,11 @@ impl InstanceWorker {
       // send a new activity if there is one
       self.inbox_collector.update_communities().await?;
       let next_id_to_send = ActivityId(last_sent_id.0 + 1);
+      let successfuls_len: i64 = self.successfuls.len().try_into()?;
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
         let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
-          last_successful_id.0 + (self.successfuls.len() as i64) + i64::from(self.in_flight) + 1
+          last_successful_id.0 + successfuls_len + i64::from(self.in_flight) + 1
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {

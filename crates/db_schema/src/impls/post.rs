@@ -110,7 +110,7 @@ impl Post {
       .filter(post::removed.eq(false))
       .filter(post::featured_community.eq(true))
       .then_order_by(post::published.desc())
-      .limit(FETCH_LIMIT_MAX)
+      .limit(FETCH_LIMIT_MAX.try_into()?)
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
