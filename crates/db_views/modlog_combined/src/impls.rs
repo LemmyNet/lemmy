@@ -22,7 +22,6 @@ use crate::{
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
-  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
@@ -81,43 +80,32 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl ModlogCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(
-    mod_person_id: Option<PersonId>,
-    hide_modlog_names: Option<bool>,
-    my_person_id: Option<PersonId>,
-  ) -> _ {
+  fn joins(my_person_id: Option<PersonId>) -> _ {
     // The modded / other person
     let other_person = aliases::person1.field(person::id);
-
-    let show_mod_names: bool = !(hide_modlog_names.unwrap_or_default());
-    let show_mod_names_expr = show_mod_names.into_sql::<diesel::sql_types::Bool>();
 
     // The query for the admin / mod person
     // It needs an OR condition to every mod table
     // After this you can use person::id to refer to the moderator
-    let moderator_names_join = person::table.on(
-      show_mod_names_expr
-        .or(person::id.nullable().eq(mod_person_id))
-        .and(
-          admin_allow_instance::admin_person_id
-            .eq(person::id)
-            .or(admin_block_instance::admin_person_id.eq(person::id))
-            .or(admin_purge_comment::admin_person_id.eq(person::id))
-            .or(admin_purge_community::admin_person_id.eq(person::id))
-            .or(admin_purge_person::admin_person_id.eq(person::id))
-            .or(admin_purge_post::admin_person_id.eq(person::id))
-            .or(mod_add::mod_person_id.eq(person::id))
-            .or(mod_add_community::mod_person_id.eq(person::id))
-            .or(mod_ban::mod_person_id.eq(person::id))
-            .or(mod_ban_from_community::mod_person_id.eq(person::id))
-            .or(mod_feature_post::mod_person_id.eq(person::id))
-            .or(mod_change_community_visibility::mod_person_id.eq(person::id))
-            .or(mod_lock_post::mod_person_id.eq(person::id))
-            .or(mod_remove_comment::mod_person_id.eq(person::id))
-            .or(mod_remove_community::mod_person_id.eq(person::id))
-            .or(mod_remove_post::mod_person_id.eq(person::id))
-            .or(mod_transfer_community::mod_person_id.eq(person::id)),
-        ),
+    let moderator_join = person::table.on(
+      admin_allow_instance::admin_person_id
+        .eq(person::id)
+        .or(admin_block_instance::admin_person_id.eq(person::id))
+        .or(admin_purge_comment::admin_person_id.eq(person::id))
+        .or(admin_purge_community::admin_person_id.eq(person::id))
+        .or(admin_purge_person::admin_person_id.eq(person::id))
+        .or(admin_purge_post::admin_person_id.eq(person::id))
+        .or(mod_add::mod_person_id.eq(person::id))
+        .or(mod_add_community::mod_person_id.eq(person::id))
+        .or(mod_ban::mod_person_id.eq(person::id))
+        .or(mod_ban_from_community::mod_person_id.eq(person::id))
+        .or(mod_feature_post::mod_person_id.eq(person::id))
+        .or(mod_change_community_visibility::mod_person_id.eq(person::id))
+        .or(mod_lock_post::mod_person_id.eq(person::id))
+        .or(mod_remove_comment::mod_person_id.eq(person::id))
+        .or(mod_remove_community::mod_person_id.eq(person::id))
+        .or(mod_remove_post::mod_person_id.eq(person::id))
+        .or(mod_transfer_community::mod_person_id.eq(person::id)),
     );
 
     let other_person_join = aliases::person1.on(
@@ -225,7 +213,7 @@ impl ModlogCombinedViewInternal {
       .left_join(mod_remove_community::table)
       .left_join(mod_remove_post::table)
       .left_join(mod_transfer_community::table)
-      .left_join(moderator_names_join)
+      .left_join(moderator_join)
       .left_join(comment_join)
       .left_join(post_join)
       .left_join(community_join)
@@ -328,11 +316,10 @@ impl ModlogCombinedQuery<'_> {
     let other_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();
 
-    let mut query =
-      ModlogCombinedViewInternal::joins(self.mod_person_id, self.hide_modlog_names, my_person_id)
-        .select(ModlogCombinedViewInternal::as_select())
-        .limit(limit)
-        .into_boxed();
+    let mut query = ModlogCombinedViewInternal::joins(my_person_id)
+      .select(ModlogCombinedViewInternal::as_select())
+      .limit(limit)
+      .into_boxed();
 
     if let Some(mod_person_id) = self.mod_person_id {
       query = query.filter(person::id.eq(mod_person_id));
@@ -411,13 +398,30 @@ impl ModlogCombinedQuery<'_> {
       .load::<ModlogCombinedViewInternal>(conn)
       .await?;
 
+    let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+
     // Map the query results to the enum
     let out = res
       .into_iter()
+      .map(|u| u.hide_mod_name(hide_modlog_names))
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
     Ok(out)
+  }
+}
+
+impl ModlogCombinedViewInternal {
+  /// Hides modlog names by setting the moderator to None.
+  fn hide_mod_name(self, hide_modlog_names: bool) -> Self {
+    if hide_modlog_names {
+      Self {
+        moderator: None,
+        ..self
+      }
+    } else {
+      self
+    }
   }
 }
 

@@ -43,8 +43,6 @@ pub struct LocalSite {
   /// An optional legal disclaimer page.
   #[cfg_attr(feature = "full", ts(optional))]
   pub legal_information: Option<String>,
-  /// Whether to hide mod names on the modlog.
-  pub hide_modlog_mod_names: bool,
   /// Whether new applications email admins.
   pub application_email_admins: bool,
   /// An optional regex to filter words.
@@ -126,8 +124,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub legal_information: Option<String>,
   #[new(default)]
-  pub hide_modlog_mod_names: Option<bool>,
-  #[new(default)]
   pub application_email_admins: Option<bool>,
   #[new(default)]
   pub slur_filter_regex: Option<String>,
@@ -181,7 +177,6 @@ pub struct LocalSiteUpdateForm {
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<Option<String>>,
-  pub hide_modlog_mod_names: Option<bool>,
   pub application_email_admins: Option<bool>,
   pub slur_filter_regex: Option<Option<String>>,
   pub actor_name_max_length: Option<i32>,
