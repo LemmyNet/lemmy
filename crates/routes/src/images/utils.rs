@@ -6,10 +6,11 @@ use actix_web::{
   web::Data,
   HttpRequest,
 };
+use diesel::NotFound;
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
-use lemmy_api_common::{context::LemmyContext, request::delete_image_from_pictrs};
-use lemmy_db_schema::{newtypes::DbUrl, source::images::LocalImage};
+use lemmy_api_common::{context::LemmyContext, request::delete_image_alias};
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
 use reqwest_middleware::RequestBuilder;
 
@@ -100,12 +101,8 @@ pub(super) async fn delete_old_image(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   if let Some(old_image) = old_image {
-    let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
-      .await
-      .ok();
-    if let Some(image) = image {
-      delete_image_from_pictrs(&image.pictrs_alias, context).await?;
-    }
+    let alias = old_image.as_str().split('/').next_back().ok_or(NotFound)?;
+    delete_image_alias(alias, context).await?;
   }
   Ok(())
 }
