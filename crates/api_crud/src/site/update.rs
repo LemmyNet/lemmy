@@ -99,7 +99,6 @@ pub async fn update_site(
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
-    hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,

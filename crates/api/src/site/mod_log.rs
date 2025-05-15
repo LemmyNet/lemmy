@@ -24,22 +24,20 @@ pub async fn get_mod_log(
   check_private_instance(&local_user_view, &local_site)?;
 
   // Only show the modlog names if:
-  // !local_site.hide_modlog_mod_names or
   // You're an admin or
   // You're fetching the modlog for a single community, and you're a mod
-  // (Alternatively hide && !admin/mod)
-  let hide_modlog_names = local_site.hide_modlog_mod_names
-    && if let Some(community_id) = data.community_id {
-      is_mod_or_admin_opt(
-        &mut context.pool(),
-        local_user_view.as_ref(),
-        Some(community_id),
-      )
-      .await
-      .is_err()
-    } else {
-      is_admin_opt(local_user_view.as_ref()).is_err()
-    };
+  // (Alternatively !admin/mod)
+  let hide_modlog_names = if let Some(community_id) = data.community_id {
+    is_mod_or_admin_opt(
+      &mut context.pool(),
+      local_user_view.as_ref(),
+      Some(community_id),
+    )
+    .await
+    .is_err()
+  } else {
+    is_admin_opt(local_user_view.as_ref()).is_err()
+  };
 
   // Only allow mod person id filters if its not hidden
   let mod_person_id = if hide_modlog_names {
