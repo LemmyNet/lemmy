@@ -1745,6 +1745,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-derive-newtype",
+ "i-love-jesus",
+ "lemmy_db_schema_file",
+ "url",
+]
+
+[[package]]
 name = "downcast"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

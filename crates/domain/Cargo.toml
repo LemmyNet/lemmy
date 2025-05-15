@@ -1,0 +1,25 @@
+[package]
+name = "domain"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_domain"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+chrono.workspace = true
+diesel.workspace = true
+diesel-derive-newtype.workspace = true
+i-love-jesus.workspace = true
+lemmy_db_schema_file.workspace = true
+url.workspace = true

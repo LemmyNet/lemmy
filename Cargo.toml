@@ -73,6 +73,7 @@ members = [
   "crates/routes",
   "crates/federate",
   "crates/email",
+  "crates/domain",
 ]
 
 [workspace.lints.clippy]
