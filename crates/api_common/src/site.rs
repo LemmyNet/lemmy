@@ -22,8 +22,6 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   ModlogActionType,
-  SearchSortType,
-  SearchType,
 };
 use lemmy_db_schema_file::enums::{
   CommentSortType,
@@ -41,66 +39,12 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_registration_applications::RegistrationApplicationView;
-use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::SiteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 #[cfg(feature = "full")]
 use {extism::FromBytes, extism_convert::encoding, extism_convert::Json, ts_rs::TS};
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Searches the site, given a search term, and some optional filters.
-pub struct Search {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub search_term: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub creator_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub type_: Option<SearchType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<SearchSortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// Filter to within a given time range, in seconds.
-  /// IE 60 would give results for the past minute.
-  pub time_range_seconds: Option<i32>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub listing_type: Option<ListingType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub title_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub post_url_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub liked_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub disliked_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The search response, containing lists of the return type possibilities
-pub struct SearchResponse {
-  pub results: Vec<SearchCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -654,4 +598,31 @@ pub struct PluginMetadata {
   name: String,
   url: Url,
   description: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminListUsers {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub banned_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminListUsersResponse {
+  pub users: Vec<LocalUserView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

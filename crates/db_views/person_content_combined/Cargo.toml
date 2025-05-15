@@ -38,6 +38,7 @@ serde = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 derive-new = { workspace = true }
+serde_with = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

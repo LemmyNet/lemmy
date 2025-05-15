@@ -60,7 +60,7 @@ use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 20;
-pub const FETCH_LIMIT_MAX: i64 = 50;
+pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
@@ -281,7 +281,7 @@ pub fn fuzzy_search(q: &str) -> String {
 pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
   Ok(match limit {
     Some(limit) => {
-      if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
+      if !(1..=FETCH_LIMIT_MAX.try_into()?).contains(&limit) {
         return Err(LemmyErrorType::InvalidFetchLimit.into());
       }
       limit

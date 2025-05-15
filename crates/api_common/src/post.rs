@@ -229,13 +229,15 @@ pub struct HidePost {
   pub hide: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Lock a post (prevent new comments).
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

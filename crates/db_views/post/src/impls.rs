@@ -254,7 +254,7 @@ pub struct PostQuery<'a> {
   pub limit: Option<i64>,
 }
 
-impl<'a> PostQuery<'a> {
+impl PostQuery<'_> {
   async fn prefetch_cursor_before_data(
     &self,
     site: &Site,
@@ -289,14 +289,15 @@ impl<'a> PostQuery<'a> {
         // take last element of array. if this query returned less than LIMIT elements,
         // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
         // results (return original query)
-        if (upper_bound_results.len() as i64) < limit {
+        let len: i64 = upper_bound_results.len().try_into()?;
+        if len < limit {
           None
         } else {
           if self.page_back.unwrap_or_default() {
             // for backward pagination, get first element instead
             upper_bound_results.into_iter().next()
           } else {
-            upper_bound_results.into_iter().last()
+            upper_bound_results.into_iter().next_back()
           }
           .map(|pv| pv.post)
         }
