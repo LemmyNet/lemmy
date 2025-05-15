@@ -36,8 +36,6 @@ pub struct MultiCommunityView {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
 pub struct MultiCommunityViewApub {
   pub multi: MultiCommunity,
   pub entries: Vec<DbUrl>,
