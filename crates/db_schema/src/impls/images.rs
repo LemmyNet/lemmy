@@ -44,18 +44,6 @@ impl LocalImage {
       .with_lemmy_type(LemmyErrorType::CouldntCreateImage)
   }
 
-  pub async fn validate_by_alias(pool: &mut DbPool<'_>, alias: &str) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    select(exists(
-      local_image::table.filter(local_image::pictrs_alias.eq(alias)),
-    ))
-    .get_result::<bool>(conn)
-    .await?
-    .then_some(())
-    .ok_or(LemmyErrorType::NotFound.into())
-  }
-
   pub async fn validate_by_alias_and_user(
     pool: &mut DbPool<'_>,
     alias: &str,
