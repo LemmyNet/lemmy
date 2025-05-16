@@ -80,7 +80,7 @@ impl ActivityHandler for ResolveReport {
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     self.object.verify(context).await?;
-    let receiver = self.object.receiver(context).await?;
+    let receiver = self.object.to[0].dereference(context).await?;
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     verify_urls_match(self.to[0].inner(), self.object.to[0].inner())?;
     verify_mod_or_admin_action(&self.actor, &receiver, context).await?;
@@ -104,7 +104,7 @@ impl ActivityHandler for ResolveReport {
       }
     };
 
-    let receiver = self.object.receiver(context).await?;
+    let receiver = self.object.to[0].dereference(context).await?;
     if let Some(community) = local_community(&receiver) {
       // forward to remote mods
       let object_id = self.object.object.object_id(context).await?;

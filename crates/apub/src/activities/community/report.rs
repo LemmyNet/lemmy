@@ -96,7 +96,7 @@ impl ActivityHandler for Report {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let receiver = self.receiver(context).await?;
+    let receiver = self.to[0].dereference(context).await?;
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     Ok(())
   }
@@ -149,7 +149,7 @@ impl ActivityHandler for Report {
       }
     };
 
-    let receiver = self.receiver(context).await?;
+    let receiver = self.to[0].dereference(context).await?;
     if let Some(community) = local_community(&receiver) {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
