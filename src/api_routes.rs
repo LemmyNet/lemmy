@@ -115,6 +115,11 @@ use lemmy_api_crud::{
     list::list_custom_emojis,
     update::update_custom_emoji,
   },
+  multi_community::{
+    create::create_multi_community,
+    list::list_multi_communities,
+    update::update_multi_community,
+  },
   oauth_provider::{
     create::create_oauth_provider,
     delete::delete_oauth_provider,
@@ -241,6 +246,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
+      )
+      .service(
+        scope("/multi_community")
+          .route("", post().to(create_multi_community))
+          .route("", put().to(update_multi_community))
+          .route("/list", get().to(list_multi_communities)),
       )
       .route("/federated_instances", get().to(get_federated_instances))
       // Post

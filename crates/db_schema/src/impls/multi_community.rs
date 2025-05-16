@@ -25,6 +25,52 @@ pub enum ReadParams {
 }
 
 impl MultiCommunity {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &MultiCommunityInsertForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(multi_community::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    id: MultiCommunityId,
+    new_communities: &Vec<CommunityId>,
+  ) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    conn
+      .transaction::<_, Error, _>(|conn| {
+        async move {
+          delete(multi_community_entry::table)
+            .filter(multi_community_entry::multi_community_id.eq(id))
+            .filter(multi_community_entry::community_id.ne_all(new_communities))
+            .execute(conn)
+            .await?;
+          let forms = new_communities
+            .into_iter()
+            .map(|k| {
+              (
+                multi_community_entry::multi_community_id.eq(id),
+                multi_community_entry::community_id.eq(k),
+              )
+            })
+            .collect::<Vec<_>>();
+          insert_into(multi_community_entry::table)
+            .values(forms)
+            .on_conflict_do_nothing()
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
+      })
+      .await?;
+    Ok(())
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     params: ReadParams,
@@ -47,6 +93,7 @@ impl MultiCommunity {
     let (multi, entries) = query.first(conn).await?;
     Ok(MultiCommunityView { multi, entries })
   }
+
   pub async fn read_apub(
     pool: &mut DbPool<'_>,
     user_name: &str,
@@ -77,50 +124,68 @@ impl MultiCommunity {
     }
     query.get_results(conn).await
   }
+}
 
-  pub async fn create(
-    pool: &mut DbPool<'_>,
-    form: &MultiCommunityInsertForm,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(multi_community::table)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
 
-  pub async fn update(
-    pool: &mut DbPool<'_>,
-    id: MultiCommunityId,
-    new_communities: Vec<CommunityId>,
-  ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
-    conn
-      .transaction::<_, Error, _>(|conn| {
-        async move {
-          delete(multi_community_entry::table)
-            .filter(multi_community_entry::multi_community_id.eq(id))
-            .filter(multi_community_entry::community_id.ne_all(&new_communities))
-            .execute(conn)
-            .await?;
-          let forms = new_communities
-            .into_iter()
-            .map(|k| {
-              (
-                multi_community_entry::multi_community_id.eq(id),
-                multi_community_entry::community_id.eq(k),
-              )
-            })
-            .collect::<Vec<_>>();
-          insert_into(multi_community_entry::table)
-            .values(forms)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await
-        }
-        .scope_boxed()
-      })
-      .await?;
+  #[tokio::test]
+  #[serial]
+  async fn test_multi_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let form = PersonInsertForm::test_form(instance.id, "bobby");
+    let bobby = Person::create(pool, &form).await?;
+
+    let form = CommunityInsertForm::new(
+      instance.id,
+      "TIL".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &form).await?;
+
+    let form = MultiCommunityInsertForm {
+      owner_id: bobby.id,
+      name: "multi".to_string(),
+      ap_id: DbUrl(Box::new("http://example.com".parse()?)),
+    };
+    let multi_create = MultiCommunity::create(pool, &form).await?;
+    assert_eq!(form.owner_id, multi_create.owner_id);
+    assert_eq!(form.name, multi_create.name);
+    assert_eq!(form.ap_id, multi_create.ap_id);
+
+    let multi_read_empty = MultiCommunity::read(pool, ReadParams::Id(multi_create.id)).await?;
+    assert_eq!(multi_read_empty.multi.owner_id, multi_create.owner_id);
+    assert!(multi_read_empty.entries.is_empty());
+
+    let multi_entries = vec![community.id];
+    MultiCommunity::update(pool, multi_create.id, &multi_entries).await?;
+
+    let multi_read = MultiCommunity::read(pool, ReadParams::Id(multi_create.id)).await?;
+    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
+    assert_eq!(multi_entries, multi_read.entries);
+
+    let multi_read_apub = MultiCommunity::read_apub(pool, &bobby.name, &multi_create.name).await?;
+    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
+    assert_eq!(vec![community.ap_id], multi_read_apub.entries);
+
     Ok(())
   }
 }
