@@ -1,4 +1,4 @@
-use super::{local_community, report_inboxes, report_remote_inboxes};
+use super::{local_community, report_inboxes};
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
@@ -76,7 +76,7 @@ impl Report {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
-    let inboxes = report_remote_inboxes(object_id, receiver, actor, &context).await?;
+    let inboxes = report_inboxes(object_id, receiver, actor, &context).await?;
 
     send_lemmy_activity(&context, report, actor, inboxes, false).await
   }
@@ -155,7 +155,7 @@ impl ActivityHandler for Report {
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
-      let inboxes = report_inboxes(object_id, &receiver, context).await?;
+      let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 

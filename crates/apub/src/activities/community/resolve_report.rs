@@ -1,4 +1,4 @@
-use super::{local_community, report_inboxes, report_remote_inboxes};
+use super::{local_community, report_inboxes};
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_mod_or_admin_action},
   activity_lists::AnnouncableActivities,
@@ -59,7 +59,7 @@ impl ResolveReport {
       kind,
       id: id.clone(),
     };
-    let inboxes = report_remote_inboxes(object_id, receiver, report_creator, &context).await?;
+    let inboxes = report_inboxes(object_id, receiver, report_creator, &context).await?;
 
     send_lemmy_activity(&context, resolve, actor, inboxes, false).await
   }
@@ -110,7 +110,7 @@ impl ActivityHandler for ResolveReport {
       let object_id = self.object.object.object_id(context).await?;
       let announce = AnnouncableActivities::ResolveReport(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
-      let inboxes = report_inboxes(object_id, &receiver, context).await?;
+      let inboxes = report_inboxes(object_id, &receiver, &reporter, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
 
