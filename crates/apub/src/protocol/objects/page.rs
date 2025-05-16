@@ -133,7 +133,7 @@ impl Attachment {
     match self {
       Attachment::Image(i) => i.media_type.clone(),
       Attachment::Document(d) => d.media_type.clone(),
-      Attachment::Link(l) => l.media_type.clone()
+      Attachment::Link(l) => l.media_type.clone(),
     }
   }
 
@@ -193,7 +193,7 @@ impl Attachment {
       Attachment::Image(Image {
         kind: Default::default(),
         url,
-	media_type,
+        media_type,
         name: alt_text,
       })
     } else {

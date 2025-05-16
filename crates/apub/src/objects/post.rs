@@ -6,9 +6,12 @@ use crate::{
   protocol::{
     objects::{
       page::{Attachment, Hashtag, HashtagType, Page, PageType},
-      AttributedTo, LanguageTag,
+      AttributedTo,
+      LanguageTag,
     },
-    ImageObject, InCommunity, Source,
+    ImageObject,
+    InCommunity,
+    Source,
   },
 };
 use activitypub_federation::{

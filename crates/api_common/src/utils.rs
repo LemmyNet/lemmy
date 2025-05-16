@@ -3,7 +3,9 @@ use crate::{
   context::LemmyContext,
   post::CreateGalleryItem,
   request::{
-    delete_image_from_pictrs, fetch_pictrs_proxied_image_details, purge_image_from_pictrs,
+    delete_image_from_pictrs,
+    fetch_pictrs_proxied_image_details,
+    purge_image_from_pictrs,
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
@@ -22,7 +24,10 @@ use lemmy_db_schema::{
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     mod_log::moderator::{
-      ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm,
+      ModRemoveComment,
+      ModRemoveCommentForm,
+      ModRemovePost,
+      ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
     person::{Person, PersonActions, PersonUpdateForm},
@@ -39,8 +44,14 @@ use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
   structs::{
-    CommunityFollowerView, CommunityModeratorView, CommunityPersonBanView, CommunityView,
-    LocalImageView, LocalUserView, PersonView, SiteView,
+    CommunityFollowerView,
+    CommunityModeratorView,
+    CommunityPersonBanView,
+    CommunityView,
+    LocalImageView,
+    LocalUserView,
+    PersonView,
+    SiteView,
   },
 };
 use lemmy_utils::{
@@ -52,11 +63,15 @@ use lemmy_utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::remove_slurs,
     validation::{
-      build_and_check_regex, clean_urls_in_text, is_url_blocked, is_valid_alt_text_field,
+      build_and_check_regex,
+      clean_urls_in_text,
+      is_url_blocked,
+      is_valid_alt_text_field,
       is_valid_url,
     },
   },
-  CacheLock, CACHE_DURATION_FEDERATION,
+  CacheLock,
+  CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
@@ -1028,7 +1043,9 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      comment::CommentInsertForm, community::CommunityInsertForm, person::PersonInsertForm,
+      comment::CommentInsertForm,
+      community::CommunityInsertForm,
+      person::PersonInsertForm,
       post::PostInsertForm,
     },
     ModlogActionType,

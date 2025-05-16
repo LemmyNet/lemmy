@@ -1,5 +1,14 @@
 use diesel::{
-  dsl::{case_when, exists, not, Nullable}, expression::SqlLiteral, helper_types::{Eq, NotEq}, sql_types::Json, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgExpressionMethods, QueryDsl
+  dsl::{case_when, exists, not, Nullable},
+  expression::SqlLiteral,
+  helper_types::{Eq, NotEq},
+  sql_types::Json,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgExpressionMethods,
+  QueryDsl,
 };
 use lemmy_db_schema::{
   aliases::{

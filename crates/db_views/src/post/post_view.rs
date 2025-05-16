@@ -55,14 +55,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType},
-  schema::{
-    community,
-    community_actions,
-    local_user_language,
-    person,
-    post,
-    post_actions,
-  },
+  schema::{community, community_actions, local_user_language, person, post, post_actions},
 };
 use tracing::debug;
 use PostSortType::*;
@@ -365,7 +358,7 @@ impl<'a> PostQuery<'a> {
 
     if let Some(search_term) = &o.search_term {
       if o.url_only.unwrap_or_default() {
-	query = query.filter(post::url.eq(search_term));
+        query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());

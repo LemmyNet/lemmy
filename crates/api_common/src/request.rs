@@ -18,13 +18,16 @@ use lemmy_db_schema::source::{
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  REQWEST_TIMEOUT, VERSION,
+  REQWEST_TIMEOUT,
+  VERSION,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
-  Client, ClientBuilder, Response,
+  Client,
+  ClientBuilder,
+  Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -327,7 +330,7 @@ pub async fn check_urls_are_images(
       let proxied = proxy_image_link(url.url.clone().into(), context).await?;
       validated.push(PostGalleryInsertForm {
         url: proxied,
-	url_content_type: metadata.content_type,
+        url_content_type: metadata.content_type,
         ..url.clone()
       });
     }

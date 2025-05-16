@@ -1,13 +1,9 @@
-use crate::newtypes::{DbUrl, PostId, PostGalleryId};
+use crate::newtypes::{DbUrl, PostGalleryId, PostId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-
 #[cfg(feature = "full")]
-use {
-  lemmy_db_schema_file::schema::post_gallery,
-  ts_rs::TS,
-};
+use {lemmy_db_schema_file::schema::post_gallery, ts_rs::TS};
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -47,5 +43,5 @@ pub struct PostGalleryInsertForm {
   #[new(default)]
   pub caption: Option<String>,
   #[new(default)]
-  pub alt_text: Option<String>
+  pub alt_text: Option<String>,
 }

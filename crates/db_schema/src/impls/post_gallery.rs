@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PostId, PostGalleryId},
+  newtypes::{PostGalleryId, PostId},
   source::post_gallery::{PostGallery, PostGalleryInsertForm},
   traits::Crud,
   utils::{get_conn, DbPool},
