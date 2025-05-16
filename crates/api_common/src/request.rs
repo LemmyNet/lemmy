@@ -12,7 +12,7 @@ use futures::StreamExt;
 use lemmy_db_schema::source::{
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
-  post_gallery::{PostGallery, PostGalleryInsertForm},
+  post_gallery::PostGalleryInsertForm,
   site::Site,
 };
 use lemmy_utils::{
@@ -189,7 +189,6 @@ async fn collect_bytes_until_limit(
 pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
-  alt_text: Option<String>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -252,18 +251,7 @@ pub async fn generate_post_link_metadata(
     ..Default::default()
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
-  if let (true, Some(Some(url))) = (is_image_post, url) {
-    let url_form = PostGalleryInsertForm {
-      post_id: post.id,
-      url,
-      url_content_type: metadata.content_type,
-      alt_text,
-      page: 0,
-      caption: None,
-    };
 
-    PostGallery::create(&mut context.pool(), &url_form).await?;
-  }
   if let Some(send_activity) = send_activity(updated_post) {
     ActivityChannel::submit_activity(send_activity, &context)?;
   }

@@ -1,11 +1,9 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  post::{CreateGalleryItem, CreateGalleryOrUrl},
+  post::CreateGalleryItem,
   request::{
-    delete_image_from_pictrs,
-    fetch_pictrs_proxied_image_details,
-    purge_image_from_pictrs,
+    delete_image_from_pictrs, fetch_pictrs_proxied_image_details, purge_image_from_pictrs,
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
@@ -24,15 +22,12 @@ use lemmy_db_schema::{
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     mod_log::moderator::{
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemovePost,
-      ModRemovePostForm,
+      ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
     person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
-    post_gallery::PostGalleryInsertForm,
+    post_gallery::{PostGallery, PostGalleryInsertForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -44,14 +39,8 @@ use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
   structs::{
-    CommunityFollowerView,
-    CommunityModeratorView,
-    CommunityPersonBanView,
-    CommunityView,
-    LocalImageView,
-    LocalUserView,
-    PersonView,
-    SiteView,
+    CommunityFollowerView, CommunityModeratorView, CommunityPersonBanView, CommunityView,
+    LocalImageView, LocalUserView, PersonView, SiteView,
   },
 };
 use lemmy_utils::{
@@ -63,15 +52,11 @@ use lemmy_utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::remove_slurs,
     validation::{
-      build_and_check_regex,
-      clean_urls_in_text,
-      is_url_blocked,
-      is_valid_alt_text_field,
+      build_and_check_regex, clean_urls_in_text, is_url_blocked, is_valid_alt_text_field,
       is_valid_url,
     },
   },
-  CacheLock,
-  CACHE_DURATION_FEDERATION,
+  CacheLock, CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
@@ -494,67 +479,66 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
   Ok(())
 }
 
-fn process_url(
-  url: &str,
-  url_blocklist: &RegexSet,
-) -> LemmyResult<DbUrl> {
-  let url = diesel_url_create(Some(&url))?.ok_or(LemmyErrorType::InvalidUrl)?;
-  is_url_blocked(&url, &url_blocklist)?;
-  is_valid_url(&url)?;
-
-  Ok(url)
-}
-
 pub fn process_gallery(
-  gallery_items: &Vec<CreateGalleryItem>,
+  gallery_items: Option<&Vec<CreateGalleryItem>>,
   url_blocklist: &RegexSet,
-) -> LemmyResult<Vec<PostGalleryInsertForm>> {
-  let mut gallery_forms = vec![];
+) -> LemmyResult<Option<Vec<PostGalleryInsertForm>>> {
+  if let Some(gallery_items) = gallery_items {
+    let mut gallery_forms = vec![];
 
-  // Sort the items. Anything with a number is put at the start and ordered by
-  // that number. Ones without are pushed to the end, in the order they were received.
-  let mut gallery_items = gallery_items.clone();
-  gallery_items.sort_by(|left, right| {
-    if let (Some(left), Some(right)) = (left.page, right.page) {
-      left.cmp(&right)
-    } else {
-      right.page.cmp(&left.page)
-    }
-  });
-  
-  for (index, item) in gallery_items.iter().enumerate() {
-    let url = process_url(&item.url, url_blocklist)?;
-    if let Some(alt_text) = &item.alt_text {
-      is_valid_alt_text_field(alt_text)?;
-    }
-
-    gallery_forms.push(PostGalleryInsertForm {
-      // We overwrite this later.
-      post_id: PostId(0),
-      page: index as i32,
-      url,
-      url_content_type: None,
-      caption: item.caption.clone(),
-      alt_text: item.alt_text.clone()
-    });
-  }
-  
-  Ok(gallery_forms)
-}
-
-pub fn process_post_urls(
-  urls: &Option<CreateGalleryOrUrl>,
-  url_blocklist: &RegexSet,
-) -> LemmyResult<Option<(Option<DbUrl>, Option<Vec<PostGalleryInsertForm>>)>> {
-  if let Some(urls) = urls {
-    Ok(Some(match urls {
-      CreateGalleryOrUrl::Url(u) => (process_url(&u, url_blocklist)?.into(), None),
-      CreateGalleryOrUrl::Gallery(g) => {
-        (None, Some(process_gallery(&g, url_blocklist)?))
+    // Sort the items. Anything with a number is put at the start and ordered by
+    // that number. Ones without are pushed to the end, in the order they were received.
+    let mut gallery_items = gallery_items.clone();
+    gallery_items.sort_by(|left, right| {
+      if let (Some(left), Some(right)) = (left.page, right.page) {
+        left.cmp(&right)
+      } else {
+        right.page.cmp(&left.page)
       }
-    }))
+    });
+
+    for (index, item) in gallery_items.iter().enumerate() {
+      let url = diesel_url_create(Some(&item.url))?.ok_or(LemmyErrorType::InvalidUrl)?;
+      is_url_blocked(&url, url_blocklist)?;
+      is_valid_url(&url)?;
+      if let Some(alt_text) = &item.alt_text {
+        is_valid_alt_text_field(alt_text)?;
+      }
+
+      gallery_forms.push(PostGalleryInsertForm {
+        // We overwrite this later.
+        post_id: PostId(0),
+        page: index as i32,
+        url,
+        url_content_type: None,
+        caption: item.caption.clone(),
+        alt_text: item.alt_text.clone(),
+      });
+    }
+
+    Ok(Some(gallery_forms))
   } else {
     Ok(None)
+  }
+}
+
+pub fn gallery_has_new_urls(
+  original_gallery: Vec<PostGallery>,
+  new_gallery: Option<Vec<PostGalleryInsertForm>>,
+) -> bool {
+  if let Some(new) = new_gallery {
+    let mut ret = false;
+    let new_urls = new.iter().map(|i| i.url.clone()).collect::<Vec<_>>();
+    for orig_item in original_gallery {
+      if !new_urls.contains(&orig_item.url) {
+        ret = true;
+        break;
+      }
+    }
+
+    ret
+  } else {
+    true
   }
 }
 
@@ -1044,9 +1028,7 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      comment::CommentInsertForm,
-      community::CommunityInsertForm,
-      person::PersonInsertForm,
+      comment::CommentInsertForm, community::CommunityInsertForm, person::PersonInsertForm,
       post::PostInsertForm,
     },
     ModlogActionType,

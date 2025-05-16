@@ -68,8 +68,7 @@ pub struct Post {
   #[serde(skip)]
   pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
-  // #[cfg_attr(feature = "full", ts(optional))]
-  #[serde(skip)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]

@@ -109,19 +109,29 @@ impl Object for ApubPost {
     let community_id = self.community_id;
     let community = Community::read(&mut context.pool(), community_id).await?;
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
+    let gallery = PostGallery::list_from_post_id(self.id, &mut context.pool()).await?;
 
-    let attachment = self
-      .url
-      .clone()
-      .map(|url| {
-        Attachment::new(
-          url.into(),
-          self.url_content_type.clone(),
-          self.alt_text.clone(),
-        )
-      })
-      .into_iter()
-      .collect();
+    let url = self.url.clone().map(|url| {
+      Attachment::new(
+        url.into(),
+        self.url_content_type.clone(),
+        self.alt_text.clone(),
+      )
+    });
+    let attachment = if url.is_some() {
+      url.into_iter().collect()
+    } else {
+      gallery
+        .iter()
+        .map(|item| {
+          Attachment::new(
+            item.url.clone().into(),
+            item.url_content_type.clone(),
+            item.alt_text.clone(),
+          )
+        })
+        .collect()
+    };
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
       name: format!("#{}", &community.name),
@@ -219,15 +229,6 @@ impl Object for ApubPost {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
 
-    let first_attachment = page.attachment.first();
-    let url = if let Some(attachment) = first_attachment.cloned() {
-      Some(attachment.url())
-    } else if page.kind == PageType::Video {
-      // we cant display videos directly, so insert a link to external video page
-      Some(page.id.inner().clone())
-    } else {
-      None
-    };
     let is_gallery = page
       .attachment
       .iter()
@@ -238,10 +239,19 @@ impl Object for ApubPost {
           .is_some_and(|s| !s.starts_with("image"))
           || content_type.is_none()
       })
-      .collect::<Vec<_>>()
-      .len()
+      .count()
       != 0
       && page.attachment.len() > 1;
+
+    let first_attachment = page.attachment.first();
+    let url = if let (Some(attachment), false) = (first_attachment.cloned(), is_gallery) {
+      Some(attachment.url())
+    } else if page.kind == PageType::Video {
+      // we cant display videos directly, so insert a link to external video page
+      Some(page.id.inner().clone())
+    } else {
+      None
+    };
 
     // If NSFW is not allowed, reject NSFW posts and delete existing
     // posts that get updated to be NSFW
@@ -268,7 +278,11 @@ impl Object for ApubPost {
       None
     };
 
-    let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
+    let alt_text = if !is_gallery {
+      first_attachment.cloned().and_then(Attachment::alt_text)
+    } else {
+      None
+    };
 
     let slur_regex = slur_regex(context).await?;
 
@@ -283,6 +297,7 @@ impl Object for ApubPost {
     let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
+      alt_text,
       published: page.published,
       updated: page.updated,
       deleted: Some(false),
@@ -299,22 +314,28 @@ impl Object for ApubPost {
     plugin_hook_after("after_receive_federated_post", &post)?;
 
     let post_id = post.id;
-    let gallery_forms = page
-      .attachment
-      .iter()
-      .enumerate()
-      .map(|a| {
-        let (index, att) = a;
-        PostGalleryInsertForm {
-          url: att.clone().url().into(),
-          post_id: post_id,
-          url_content_type: att.url_content_type(),
-          alt_text: att.clone().alt_text(),
-          caption: None,
-          page: index as i32,
-        }
-      })
-      .collect::<Vec<_>>();
+    let gallery_forms = if is_gallery {
+      Some(
+        page
+          .attachment
+          .iter()
+          .enumerate()
+          .map(|a| {
+            let (index, att) = a;
+            PostGalleryInsertForm {
+              url: att.clone().url().into(),
+              post_id,
+              url_content_type: att.url_content_type(),
+              alt_text: att.clone().alt_text(),
+              caption: None,
+              page: index as i32,
+            }
+          })
+          .collect::<Vec<_>>(),
+      )
+    } else {
+      None
+    };
 
     let post_ = post.clone();
     let context_ = context.reset_request_count();
@@ -322,17 +343,37 @@ impl Object for ApubPost {
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
     spawn_try_task(async move {
-      if is_gallery {
-        match check_urls_are_images(&gallery_forms, &context_).await {
-          // Treat posts multiple attachments that aren't images as single link post
-          Err(_) => generate_post_link_metadata(post_, None, alt_text, |_| None, context_).await,
-          Ok(gallery_forms) => {
+      if let Some(gallery_forms) = gallery_forms {
+        let (no_content_type, has_content_type): (Vec<_>, Vec<_>) = gallery_forms
+          .into_iter()
+          .partition(|f| f.url_content_type.is_none());
+
+        match check_urls_are_images(&no_content_type, &context_).await {
+          // Treat posts with multiple attachments that aren't images as single link post
+          Err(_) => {
+            let mut gallery_forms = no_content_type.clone();
+            gallery_forms.extend(has_content_type);
+
+            let url = gallery_forms
+              .iter()
+              .find(|f| f.page == 0)
+              .map(|f| f.url.clone());
+
+            let form = PostUpdateForm {
+              url: Some(url),
+              ..Default::default()
+            };
+            Post::update(&mut context_.pool(), post_id, &form).await?;
+            generate_post_link_metadata(post_, None, |_| None, context_).await
+          }
+          Ok(mut gallery_forms) => {
+            gallery_forms.extend(has_content_type);
             PostGallery::create_from_vec(&gallery_forms, &mut context_.pool()).await?;
             Ok(())
           }
         }
       } else {
-        generate_post_link_metadata(post_, None, alt_text, |_| None, context_).await
+        generate_post_link_metadata(post_, None, |_| None, context_).await
       }
     });
 
