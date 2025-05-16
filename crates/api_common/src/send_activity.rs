@@ -1,5 +1,6 @@
 use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
 use activitypub_federation::config::Data;
+use either::Either;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
@@ -9,6 +10,7 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
     private_message::PrivateMessage,
+    site::Site,
   },
 };
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -96,14 +98,14 @@ pub enum SendActivityData {
   CreateReport {
     object_id: Url,
     actor: Person,
-    community: Community,
+    receiver: Either<Site, Community>,
     reason: String,
   },
   SendResolveReport {
     object_id: Url,
     actor: Person,
     report_creator: Person,
-    community: Community,
+    receiver: Either<Site, Community>,
   },
 }
 

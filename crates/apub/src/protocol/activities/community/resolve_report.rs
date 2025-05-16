@@ -1,15 +1,11 @@
 use super::report::Report;
-use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  protocol::helpers::deserialize_one,
+use activitypub_federation::{fetch::object_id::ObjectId, protocol::helpers::deserialize_one};
+use either::Either;
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
 };
-use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  utils::protocol::InCommunity,
-};
-use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use url::Url;
@@ -24,15 +20,9 @@ pub enum ResolveType {
 pub struct ResolveReport {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
+  pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: Report,
   #[serde(rename = "type")]
   pub(crate) kind: ResolveType,
   pub(crate) id: Url,
-}
-
-impl InCommunity for ResolveReport {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    self.object.community(context).await
-  }
 }
