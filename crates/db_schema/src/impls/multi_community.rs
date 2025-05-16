@@ -76,13 +76,13 @@ impl MultiCommunity {
     params: ReadParams,
   ) -> Result<MultiCommunityView, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community_entry::table
-      .left_join(multi_community::table.left_join(person::table))
-      .filter(multi_community::id.is_not_null())
+    let mut query = multi_community::table
+      .left_join(person::table)
+      .left_join(multi_community_entry::table)
       .group_by(multi_community::id)
       .select((
-        multi_community::all_columns.assume_not_null(),
-        sql::<Array<Integer>>("array_agg(multi_community_entry.community_id)"),
+        multi_community::all_columns,
+        sql::<Array<Integer>>("array_remove(array_agg(multi_community_entry.community_id), null)"),
       ))
       .into_boxed();
 
@@ -90,7 +90,7 @@ impl MultiCommunity {
       ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
       ReadParams::ApId(ap_id) => query.filter(multi_community::ap_id.eq(ap_id)),
     };
-    let (multi, entries) = query.first(conn).await?;
+    let (multi, entries): (_, Vec<CommunityId>) = query.first(conn).await?;
     Ok(MultiCommunityView { multi, entries })
   }
 
@@ -100,14 +100,13 @@ impl MultiCommunity {
     multi_name: &str,
   ) -> Result<MultiCommunityViewApub, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (multi, entries) = multi_community_entry::table
-      .inner_join(community::table)
-      .left_join(multi_community::table.left_join(person::table))
-      .filter(multi_community::id.is_not_null())
+    let (multi, entries) = multi_community::table
+      .left_join(person::table)
+      .left_join(multi_community_entry::table.inner_join(community::table))
       .group_by(multi_community::id)
       .select((
         multi_community::all_columns.assume_not_null(),
-        sql::<Array<Text>>("array_agg(community.ap_id)"),
+        sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
       ))
       .filter(person::name.eq(user_name))
       .filter(multi_community::name.eq(multi_name))
@@ -141,6 +140,7 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use std::process::exit;
 
   #[tokio::test]
   #[serial]
@@ -172,8 +172,11 @@ mod tests {
     assert_eq!(form.ap_id, multi_create.ap_id);
 
     let multi_read_empty = MultiCommunity::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert_eq!(multi_read_empty.multi.owner_id, multi_create.owner_id);
     assert!(multi_read_empty.entries.is_empty());
+
+    let multi_read_apub_empty =
+      MultiCommunity::read_apub(pool, &bobby.name, &multi_create.name).await?;
+    assert!(multi_read_apub_empty.entries.is_empty());
 
     let multi_entries = vec![community.id];
     MultiCommunity::update(pool, multi_create.id, &multi_entries).await?;
@@ -185,6 +188,11 @@ mod tests {
     let multi_read_apub = MultiCommunity::read_apub(pool, &bobby.name, &multi_create.name).await?;
     assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
     assert_eq!(vec![community.ap_id], multi_read_apub.entries);
+
+    let list = MultiCommunity::list(pool, None).await?;
+    assert_eq!(1, list.len());
+
+    Instance::delete(pool, instance.id).await?;
 
     Ok(())
   }

@@ -65,7 +65,7 @@ impl Collection for ApubMultiCommunity {
     })
     .collect();
 
-    MultiCommunity::update(&mut context.pool(), *owner, communities).await?;
+    MultiCommunity::update(&mut context.pool(), *owner, &communities).await?;
 
     // This return value is unused, so just set an empty vec
     Ok(ApubMultiCommunity(*owner))

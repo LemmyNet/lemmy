@@ -604,7 +604,7 @@ test("Community name with non-ascii chars", async () => {
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });
 
-test("Multi-community", async () => {
+test.only("Multi-community", async () => {
   console.log("multi comm");
   let createMulti = await alpha.createMultiCommunity({ name: "multi-comm" });
   let myUser = await getMyUser(alpha);
@@ -626,11 +626,10 @@ test("Multi-community", async () => {
   });
   expect(success.success).toBeTruthy();
 
-  let list = (await alpha.listMultiCommunities({})).multi_communities.map(
-    m => m.ap_id,
-  );
-  expect(list).toBe([]);
+  let list = await alpha.listMultiCommunities({});
+  expect(list.multi_communities.length).toBe(1);
+  expect(list.multi_communities[0].ap_id).toBe(createMulti.ap_id);
 
   let resolved = await beta.resolveObject({ q: createMulti.ap_id });
-  //expect(resolved.multi_community).toBeDefined();
+  expect(resolved.multi_community).toBeDefined();
 });

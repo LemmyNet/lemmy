@@ -35,6 +35,6 @@ pub async fn update_multi_community(
     Ok::<_, LemmyError>(c)
   }))
   .await?;
-  MultiCommunity::update(&mut context.pool(), data.id, data.communities.clone()).await?;
+  MultiCommunity::update(&mut context.pool(), data.id, &data.communities).await?;
   Ok(Json(SuccessResponse::default()))
 }
