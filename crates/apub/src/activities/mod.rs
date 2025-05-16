@@ -33,11 +33,11 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_is_mod_or_admin,
+  utils::{check_is_mod_or_admin, is_admin},
 };
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-  utils::functions::{verify_admin_action, GetActorType},
+  utils::functions::GetActorType,
 };
 use lemmy_db_schema::{
   source::{
@@ -47,6 +47,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
@@ -108,7 +109,17 @@ async fn verify_mod_or_admin_action(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   match site_or_community {
-    Either::Left(site) => verify_admin_action(person_id, site, context).await,
+    Either::Left(site) => {
+      // admin action comes from the correct instance, so it was presumably done
+      // by an instance admin.
+      // TODO: federate instance admin status and check it here
+      if person_id.inner().domain() == site.ap_id.domain() {
+        return Ok(());
+      }
+      let admin = person_id.dereference(context).await?;
+      let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
+      is_admin(&local_user_view)
+    }
     Either::Right(community) => verify_mod_action(person_id, community, context).await,
   }
 }

@@ -11,13 +11,12 @@ use activitypub_federation::{
 };
 use either::Either;
 use html2md::parse_html;
-use lemmy_api_common::{context::LemmyContext, utils::is_admin};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
-    site::Site,
   },
   traits::Joinable,
   utils::DbPool,
@@ -25,7 +24,6 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
@@ -268,27 +266,6 @@ pub async fn verify_person_in_site_or_community(
     CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
   }
   Ok(())
-}
-
-/// Verify that admin action was performed by an admin.
-///
-/// * `mod_id` - Activitypub ID of the admin who performed the action
-/// * `site` - The site that the person should be an admin of
-pub async fn verify_admin_action(
-  admin_id: &ObjectId<ApubPerson>,
-  site: &Site,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  // admin action comes from the correct instance, so it was presumably done
-  // by an instance admin.
-  // TODO: federate instance admin status and check it here
-  if admin_id.inner().domain() == site.ap_id.domain() {
-    return Ok(());
-  }
-
-  let admin = admin_id.dereference(context).await?;
-  let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
-  is_admin(&local_user_view)
 }
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
