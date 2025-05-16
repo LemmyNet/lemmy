@@ -21,7 +21,7 @@ pub struct Report {
   #[serde(deserialize_with = "deserialize_one")]
   pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: ReportObject,
-  /// Report reason as sent by Lemmy{
+  /// Report reason as sent by Lemmy
   pub(crate) summary: Option<String>,
   /// Report reason as sent by Mastodon
   pub(crate) content: Option<String>,

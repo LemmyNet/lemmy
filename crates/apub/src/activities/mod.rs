@@ -102,7 +102,7 @@ pub(crate) async fn verify_mod_action(
   .await
 }
 
-pub(crate) async fn verify_mod_or_admin_action(
+async fn verify_mod_or_admin_action(
   person_id: &ObjectId<ApubPerson>,
   site_or_community: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
