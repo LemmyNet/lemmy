@@ -1,6 +1,6 @@
-use super::{local_community, report_inboxes};
+use super::{local_community, report_inboxes, verify_mod_or_admin_action};
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_mod_or_admin_action},
+  activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   protocol::activities::community::{
