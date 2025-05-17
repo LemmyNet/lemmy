@@ -1,10 +1,6 @@
 use crate::{
   protocol::page::{
-    Attachment,
-    Hashtag,
-    HashtagType::{self},
-    Page,
-    PageType,
+    Attachment, Hashtag, HashtagType, Page, PageType
   },
   utils::{
     functions::{
@@ -124,6 +120,7 @@ impl Object for ApubPost {
         url.into(),
         self.url_content_type.clone(),
         self.alt_text.clone(),
+	None
       )
     });
     let attachment = if url.is_some() {
@@ -133,10 +130,11 @@ impl Object for ApubPost {
         .iter()
         .map(|item| {
           Attachment::new(
-            item.url.clone().into(),
-            item.url_content_type.clone(),
-            item.alt_text.clone(),
-          )
+	    item.url.clone().into(),
+	    item.url_content_type.clone(),
+	     item.alt_text.clone(),
+	    item.caption.clone(),
+	  )
         })
         .collect()
     };
@@ -342,7 +340,7 @@ impl Object for ApubPost {
               post_id,
               url_content_type: att.url_content_type(),
               alt_text: att.clone().alt_text(),
-              caption: None,
+              caption: att.clone().caption(),
               page: index as i32,
             }
           })

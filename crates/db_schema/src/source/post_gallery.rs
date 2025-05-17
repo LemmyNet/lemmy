@@ -19,13 +19,13 @@ pub struct PostGallery {
   pub post_id: PostId,
   pub url: DbUrl,
   pub page: i32,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub url_content_type: Option<String>,
   // An optional alt_text, usable for image posts.
   #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub caption: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub url_content_type: Option<String>,
   #[serde(skip)]
   pub published: DateTime<Utc>,
   #[serde(skip)]
