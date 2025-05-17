@@ -1635,19 +1635,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
-name = "diffutils"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d7ce619b5c0e13f7543dc2c203a7e6fa37e0111d876339aada7ec9540a58d5"
-dependencies = [
- "chrono",
- "diff",
- "regex",
- "same-file",
- "unicode-width 0.1.13",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2438,7 +2425,7 @@ dependencies = [
  "markup5ever 0.14.0",
  "tendril",
  "thiserror 2.0.11",
- "unicode-width 0.2.0",
+ "unicode-width",
 ]
 
 [[package]]
@@ -3352,7 +3339,6 @@ dependencies = [
  "diesel-async",
  "diesel-derive-newtype",
  "diesel_ltree",
- "diff",
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",
@@ -3386,7 +3372,7 @@ dependencies = [
  "diesel-derive-enum",
  "diesel_ltree",
  "diesel_migrations",
- "diffutils",
+ "diff",
  "lemmy_utils",
  "serde",
  "serial_test",
@@ -6805,12 +6791,6 @@ checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0336d538f7abc86d282a4189614dfaa90810dfc2c6f6427eaf88e16311dd225d"
-
-[[package]]
-name = "unicode-width"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
@@ -7397,7 +7377,7 @@ dependencies = [
  "bumpalo",
  "leb128fmt",
  "memchr",
- "unicode-width 0.2.0",
+ "unicode-width",
  "wasm-encoder 0.227.1",
 ]
 
