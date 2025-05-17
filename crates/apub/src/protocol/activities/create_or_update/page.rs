@@ -1,13 +1,15 @@
-use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::CreateOrUpdateType, objects::page::Page, InCommunity},
-};
+use crate::protocol::activities::CreateOrUpdateType;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::page::Page,
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -26,7 +28,6 @@ pub struct CreateOrUpdatePage {
   pub(crate) id: Url,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdatePage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

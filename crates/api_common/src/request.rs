@@ -10,25 +10,28 @@ use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::source::{
-  images::{ImageDetailsForm, LocalImage, LocalImageForm},
+  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
   site::Site,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
-  header::{CONTENT_TYPE, RANGE},
+  header::{CONTENT_TYPE, LOCATION, RANGE},
+  redirect::Policy,
   Client,
   ClientBuilder,
   Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
+use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
@@ -41,12 +44,44 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .redirect(Policy::none())
     .use_rustls_tls()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
-#[tracing::instrument(skip_all)]
-pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
+pub async fn fetch_link_metadata(
+  url: &Url,
+  context: &LemmyContext,
+  recursion: bool,
+) -> LemmyResult<LinkMetadata> {
+  if url.scheme() != "http" && url.scheme() != "https" {
+    return Err(LemmyErrorType::InvalidUrl.into());
+  }
+
+  // Resolve the domain and throw an error if it points to any internal IP,
+  // using logic from nightly IpAddr::is_global.
+  if !cfg!(debug_assertions) {
+    // TODO: Replace with IpAddr::is_global() once stabilized
+    //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
+    let domain = url.domain().ok_or(FederationError::UrlWithoutDomain)?;
+    let invalid_ip = lookup_host((domain.to_owned(), 80))
+      .await?
+      .any(|addr| match addr.ip() {
+        IpAddr::V4(addr) => {
+          addr.is_private() || addr.is_link_local() || addr.is_loopback() || addr.is_multicast()
+        }
+        IpAddr::V6(addr) => {
+          addr.is_loopback()
+                        || addr.is_multicast()
+                        || ((addr.segments()[0] & 0xfe00) == 0xfc00) // is_unique_local
+                        || ((addr.segments()[0] & 0xffc0) == 0xfe80) // is_unicast_link_local
+        }
+      });
+    if invalid_ip {
+      return Err(LemmyErrorType::InvalidUrl.into());
+    }
+  }
+
   info!("Fetching site metadata for url: {}", url);
   // We only fetch the first MB of data in order to not waste bandwidth especially for large
   // binary files. This high limit is particularly needed for youtube, which includes a lot of
@@ -62,6 +97,16 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .send()
     .await?
     .error_for_status()?;
+
+  // Manually follow one redirect, using internal IP check. Further redirects are ignored.
+  let location = response
+    .headers()
+    .get(LOCATION)
+    .and_then(|l| l.to_str().ok());
+  if let (Some(location), false) = (location, recursion) {
+    let url = location.parse()?;
+    return Box::pin(fetch_link_metadata(&url, context, true)).await;
+  }
 
   let mut content_type: Option<Mime> = response
     .headers()
@@ -150,7 +195,9 @@ pub async fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
-    Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
+    Some(url) => fetch_link_metadata(url, &context, false)
+      .await
+      .unwrap_or_default(),
     _ => Default::default(),
   };
 
@@ -164,6 +211,13 @@ pub async fn generate_post_link_metadata(
   let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
+  // Proxy the post url itself if it is an image
+  let url = if let (true, Some(url)) = (is_image_post, post.url.clone()) {
+    Some(Some(proxy_image_link(url.into(), false, &context).await?))
+  } else {
+    None
+  };
+
   let image_url = if is_image_post {
     post.url
   } else {
@@ -173,7 +227,7 @@ pub async fn generate_post_link_metadata(
   // Attempt to generate a thumbnail depending on the instance settings. Either by proxying,
   // storing image persistently in pict-rs or returning the remote url directly as thumbnail.
   let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
-    proxy_image_link(url.clone(), &context)
+    proxy_image_link(url.clone(), true, &context)
       .await
       .map_err(|e| warn!("Failed to proxy thumbnail: {e}"))
       .ok()
@@ -190,6 +244,7 @@ pub async fn generate_post_link_metadata(
   };
 
   let form = PostUpdateForm {
+    url,
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
@@ -292,17 +347,19 @@ pub struct PictrsFileDetails {
   pub height: u16,
   pub content_type: String,
   pub created_at: DateTime<Utc>,
+  pub blurhash: Option<String>,
 }
 
 impl PictrsFileDetails {
   /// Builds the image form. This should always use the thumbnail_url,
   /// Because the post_view joins to it
-  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsForm {
-    ImageDetailsForm {
+  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsInsertForm {
+    ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
       width: self.width.into(),
       height: self.height.into(),
       content_type: self.content_type.clone(),
+      blurhash: self.blurhash.clone(),
     }
   }
 }
@@ -310,6 +367,7 @@ impl PictrsFileDetails {
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
+  aliases: Vec<String>,
 }
 
 /// Purges an image from pictrs
@@ -317,7 +375,10 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_image_from_pictrs_url(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -326,11 +387,10 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
+  purge_image_from_pictrs(alias, context).await
+}
 
+pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -348,12 +408,21 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
+  // Pictrs purges return all aliases.
+  let aliases = response.aliases;
+
+  // Delete db rows of aliases.
+  LocalImage::delete_by_aliases(&mut context.pool(), &aliases)
+    .await
+    .ok();
+
   match response.msg.as_str() {
     "ok" => Ok(()),
     _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
   }
 }
 
+/// Deletes an alias for an image. If its not the last / only alias, the image might remain.
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
   LocalImage::delete_by_alias(&mut context.pool(), alias)
@@ -374,14 +443,17 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 }
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
-#[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs()?;
 
   match pictrs_config.image_mode {
     PictrsImageMode::None => return Ok(image_url.clone()),
     PictrsImageMode::ProxyAllImages => {
-      return Ok(proxy_image_link(image_url.clone(), context).await?.into())
+      return Ok(
+        proxy_image_link(image_url.clone(), true, context)
+          .await?
+          .into(),
+      )
     }
     _ => {}
   };
@@ -428,7 +500,6 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
 /// Fetches the image details for pictrs proxied images
 ///
 /// We don't need to check for image mode, as that's already been done
-#[tracing::instrument(skip_all)]
 pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
@@ -464,7 +535,7 @@ pub async fn fetch_pictrs_proxied_image_details(
 }
 
 // TODO: get rid of this by reading content type from db
-#[tracing::instrument(skip_all)]
+
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> LemmyResult<()> {
   let response = client.get(url.as_str()).send().await?;
   if response
@@ -498,7 +569,7 @@ mod tests {
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
-    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
+    let sample_res = fetch_link_metadata(&sample_url, &context, false).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title

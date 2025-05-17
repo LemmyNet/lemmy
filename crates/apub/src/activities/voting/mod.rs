@@ -1,23 +1,31 @@
 use crate::{
   activities::community::send_activity_in_community,
   activity_lists::AnnouncableActivities,
-  fetcher::post_or_comment::PostOrComment,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::voting::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
+};
+use lemmy_apub_objects::objects::{
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
+  PostOrComment,
+};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     activity::ActivitySendTargets,
-    comment::{CommentLike, CommentLikeForm},
+    comment::{CommentActions, CommentLikeForm},
     community::Community,
     person::Person,
-    post::{PostLike, PostLikeForm},
+    post::{PostActions, PostLikeForm},
   },
   traits::Likeable,
 };
@@ -52,7 +60,6 @@ pub(crate) async fn send_like_activity(
   }
 }
 
-#[tracing::instrument(skip_all)]
 async fn vote_comment(
   vote_type: &VoteType,
   actor: ApubPerson,
@@ -60,18 +67,16 @@ async fn vote_comment(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let comment_id = comment.id;
-  let like_form = CommentLikeForm {
-    comment_id,
-    person_id: actor.id,
-    score: vote_type.into(),
-  };
+  let mut like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
   let person_id = actor.id;
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
-  CommentLike::like(&mut context.pool(), &like_form).await?;
+  comment.set_not_pending(&mut context.pool()).await?;
+  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
+  like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook_after("after_comment_vote", &like)?;
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 async fn vote_post(
   vote_type: &VoteType,
   actor: ApubPerson,
@@ -79,14 +84,16 @@ async fn vote_post(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let post_id = post.id;
-  let like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
+  let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
   let person_id = actor.id;
-  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
-  PostLike::like(&mut context.pool(), &like_form).await?;
+  post.set_not_pending(&mut context.pool()).await?;
+  PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
+  like_form = plugin_hook_before("before_post_vote", like_form).await?;
+  let like = PostActions::like(&mut context.pool(), &like_form).await?;
+  plugin_hook_after("after_post_vote", &like)?;
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 async fn undo_vote_comment(
   actor: ApubPerson,
   comment: &ApubComment,
@@ -94,11 +101,10 @@ async fn undo_vote_comment(
 ) -> LemmyResult<()> {
   let comment_id = comment.id;
   let person_id = actor.id;
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 async fn undo_vote_post(
   actor: ApubPerson,
   post: &ApubPost,
@@ -106,6 +112,6 @@ async fn undo_vote_post(
 ) -> LemmyResult<()> {
   let post_id = post.id;
   let person_id = actor.id;
-  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
+  PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
   Ok(())
 }

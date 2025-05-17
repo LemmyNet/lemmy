@@ -1,17 +1,19 @@
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
     check_post_deleted_or_removed,
     get_url_blocklist,
     is_mod_or_admin,
-    local_site_to_slur_regex,
     process_markdown,
+    slur_regex,
     update_read_comments,
   },
 };
@@ -19,41 +21,43 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
-    local_site::LocalSite,
     person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
   MAX_COMMENT_DEPTH_LIMIT,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   is_valid_body_field(&content, false)?;
 
   // Check for a community ban
   let post_id = data.post_id;
+
+  let local_instance_id = local_user_view.person.instance_id;
 
   // Read the full post view in order to get the comments count.
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
     true,
   )
   .await?;
@@ -61,16 +65,11 @@ pub async fn create_comment(
   let post = post_view.post;
   let community_id = post_view.community.id;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post_view.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
   if post.locked && !is_mod_or_admin {
@@ -101,41 +100,39 @@ pub async fn create_comment(
   )
   .await?;
 
-  let comment_form = CommentInsertForm {
+  let mut comment_form = CommentInsertForm {
     language_id: Some(language_id),
+    federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
+  comment_form = plugin_hook_before("before_create_local_comment", comment_form).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
-  let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+  let inserted_comment =
+    Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
+  plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
 
   // Scan the comment for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&content);
+  let do_send_email = !local_site.disable_email_notifications;
   let recipient_ids = send_local_notifs(
     mentions,
     PostOrCommentId::Comment(inserted_comment_id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
   // You like your own comment by default
-  let like_form = CommentLikeForm {
-    comment_id: inserted_comment.id,
-    person_id: local_user_view.person.id,
-    score: 1,
-  };
+  let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);
 
-  CommentLike::like(&mut context.pool(), &like_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+  CommentActions::like(&mut context.pool(), &like_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),
@@ -146,7 +143,7 @@ pub async fn create_comment(
   update_read_comments(
     local_user_view.person.id,
     post_id,
-    post_view.counts.comments + 1,
+    post.comments + 1,
     &mut context.pool(),
   )
   .await?;
@@ -166,8 +163,7 @@ pub async fn create_comment(
         reply.id,
         &CommentReplyUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
+      .await?;
     }
 
     // If the parent has PersonCommentMentions mark them as read too
@@ -180,8 +176,7 @@ pub async fn create_comment(
         mention.id,
         &PersonCommentMentionUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonCommentMentions)?;
+      .await?;
     }
   }
 
@@ -191,6 +186,7 @@ pub async fn create_comment(
       inserted_comment.id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

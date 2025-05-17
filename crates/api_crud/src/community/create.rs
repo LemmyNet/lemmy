@@ -6,34 +6,33 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    check_nsfw_allowed,
     generate_followers_url,
     generate_inbox_url,
-    generate_local_apub_endpoint,
     get_url_blocklist,
     is_admin,
-    local_site_to_slur_regex,
     process_markdown_opt,
-    EndpointType,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
+    actor_language::{CommunityLanguage, LocalUserLanguage, SiteLanguage},
     community::{
       Community,
-      CommunityFollower,
+      CommunityActions,
       CommunityFollowerForm,
-      CommunityFollowerState,
       CommunityInsertForm,
-      CommunityModerator,
       CommunityModeratorForm,
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_schema_file::enums::CommunityFollowerState;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
@@ -44,7 +43,6 @@ use lemmy_utils::{
   },
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_community(
   data: Json<CreateCommunity>,
   context: Data<LemmyContext>,
@@ -57,7 +55,8 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
@@ -74,7 +73,7 @@ pub async fn create_community(
     check_slurs(desc, &slur_regex)?;
   }
 
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
 
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
@@ -83,13 +82,8 @@ pub async fn create_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
-  let community_actor_id = generate_local_apub_endpoint(
-    EndpointType::Community,
-    &data.name,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
-  let community_dupe =
-    Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
+  let community_ap_id = Community::local_url(&data.name, context.settings())?;
+  let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
     Err(LemmyErrorType::CommunityAlreadyExists)?
   }
@@ -101,9 +95,9 @@ pub async fn create_community(
     sidebar,
     description,
     nsfw: data.nsfw,
-    actor_id: Some(community_actor_id.clone()),
+    ap_id: Some(community_ap_id.clone()),
     private_key: Some(keypair.private_key),
-    followers_url: Some(generate_followers_url(&community_actor_id)?),
+    followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
@@ -115,44 +109,43 @@ pub async fn create_community(
     )
   };
 
-  let inserted_community = Community::create(&mut context.pool(), &community_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
+  let inserted_community = Community::create(&mut context.pool(), &community_form).await?;
+  let community_id = inserted_community.id;
 
   // The community creator becomes a moderator
-  let community_moderator_form = CommunityModeratorForm {
-    community_id: inserted_community.id,
-    person_id: local_user_view.person.id,
-  };
+  let community_moderator_form =
+    CommunityModeratorForm::new(community_id, local_user_view.person.id);
 
-  CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
+  CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
   // Follow your own community
-  let community_follower_form = CommunityFollowerForm {
-    community_id: inserted_community.id,
-    person_id: local_user_view.person.id,
-    state: Some(CommunityFollowerState::Accepted),
-    approver_id: None,
-  };
+  let community_follower_form = CommunityFollowerForm::new(
+    community_id,
+    local_user_view.person.id,
+    CommunityFollowerState::Accepted,
+  );
 
-  CommunityFollower::follow(&mut context.pool(), &community_follower_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+  CommunityActions::follow(&mut context.pool(), &community_follower_form).await?;
 
   // Update the discussion_languages if that's provided
-  let community_id = inserted_community.id;
-  if let Some(languages) = data.discussion_languages.clone() {
-    let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+  let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+  let languages = if let Some(languages) = data.discussion_languages.clone() {
     // check that community languages are a subset of site languages
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
       Err(LemmyErrorType::LanguageNotAllowed)?
     }
-    CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
-  }
+    languages
+  } else {
+    // Copy languages from creator
+    LocalUserLanguage::read(&mut context.pool(), local_user_view.local_user.id)
+      .await?
+      .into_iter()
+      .filter(|l| site_languages.contains(l))
+      .collect()
+  };
+  CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
 
   build_community_response(&context, local_user_view, community_id).await
 }

@@ -10,10 +10,9 @@ use lemmy_api_common::{
   utils::password_length_check,
 };
 use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn change_password(
   data: Json<ChangePassword>,
   req: HttpRequest,

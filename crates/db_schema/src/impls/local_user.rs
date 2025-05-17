@@ -1,20 +1,16 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{community, community_actions, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
     site::Site,
   },
   utils::{
-    action_query,
     functions::{coalesce, lower},
     get_conn,
     now,
     DbPool,
   },
-  CommunityVisibility,
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
@@ -26,6 +22,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::{
+  enums::CommunityVisibility,
+  schema::{community, community_actions, local_user, person, registration_application},
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalUser {
@@ -49,10 +49,6 @@ impl LocalUser {
 
     LocalUserLanguage::update(pool, languages, local_user_.id).await?;
 
-    // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::new(local_user_.id);
-    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
-
     Ok(local_user_)
   }
 
@@ -60,7 +56,7 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
     form: &LocalUserUpdateForm,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     let res = diesel::update(local_user::table.find(local_user_id))
       .set(form)
@@ -71,13 +67,15 @@ impl LocalUser {
       Err(Error::QueryBuilderError(_)) => Ok(0),
       other => other,
     }
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
   }
 
-  pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> Result<usize, Error> {
+  pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> LemmyResult<usize> {
     let conn = &mut *get_conn(pool).await?;
     diesel::delete(local_user::table.find(id))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 
   pub async fn update_password(
@@ -95,25 +93,27 @@ impl LocalUser {
       .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
   }
 
-  pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user::table)
       .set(local_user::email_verified.eq(true))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
   }
 
   pub async fn set_all_users_registration_applications_accepted(
     pool: &mut DbPool<'_>,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user::table)
       .set(local_user::accepted_application.eq(true))
       .get_results::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
   }
 
-  pub async fn delete_old_denied_local_users(pool: &mut DbPool<'_>) -> Result<usize, Error> {
+  pub async fn delete_old_denied_local_users(pool: &mut DbPool<'_>) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     // Make sure:
@@ -135,7 +135,10 @@ impl LocalUser {
     // Delete the person rows, which should automatically clear the local_user ones
     let persons = person::table.filter(person::id.eq_any(local_users));
 
-    diesel::delete(persons).execute(conn).await
+    diesel::delete(persons)
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 
   pub async fn check_is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
@@ -154,8 +157,8 @@ impl LocalUser {
   pub async fn export_backup(
     pool: &mut DbPool<'_>,
     person_id_: PersonId,
-  ) -> Result<UserBackupLists, Error> {
-    use crate::schema::{
+  ) -> LemmyResult<UserBackupLists> {
+    use lemmy_db_schema_file::schema::{
       comment,
       comment_actions,
       community,
@@ -168,42 +171,48 @@ impl LocalUser {
     };
     let conn = &mut get_conn(pool).await?;
 
-    let followed_communities = action_query(community_actions::followed)
+    let followed_communities = community_actions::table
+      .filter(community_actions::followed.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
-      .select(community::actor_id)
+      .select(community::ap_id)
       .get_results(conn)
       .await?;
 
-    let saved_posts = action_query(post_actions::saved)
+    let saved_posts = post_actions::table
+      .filter(post_actions::saved.is_not_null())
       .filter(post_actions::person_id.eq(person_id_))
       .inner_join(post::table)
       .select(post::ap_id)
       .get_results(conn)
       .await?;
 
-    let saved_comments = action_query(comment_actions::saved)
+    let saved_comments = comment_actions::table
+      .filter(comment_actions::saved.is_not_null())
       .filter(comment_actions::person_id.eq(person_id_))
       .inner_join(comment::table)
       .select(comment::ap_id)
       .get_results(conn)
       .await?;
 
-    let blocked_communities = action_query(community_actions::blocked)
+    let blocked_communities = community_actions::table
+      .filter(community_actions::blocked.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
-      .select(community::actor_id)
+      .select(community::ap_id)
       .get_results(conn)
       .await?;
 
-    let blocked_users = action_query(person_actions::blocked)
+    let blocked_users = person_actions::table
+      .filter(person_actions::blocked.is_not_null())
       .filter(person_actions::person_id.eq(person_id_))
       .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
-      .select(person::actor_id)
+      .select(person::ap_id)
       .get_results(conn)
       .await?;
 
-    let blocked_instances = action_query(instance_actions::blocked)
+    let blocked_instances = instance_actions::table
+      .filter(instance_actions::blocked.is_not_null())
       .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
@@ -271,7 +280,8 @@ impl LocalUser {
       .order_by(local_user::id)
       .select(local_user::person_id);
 
-    let mods = action_query(community_actions::became_moderator)
+    let mods = community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
       .filter(community_actions::community_id.eq(for_community_id))
       .filter(community_actions::person_id.eq_any(&persons))
       .order_by(community_actions::became_moderator)

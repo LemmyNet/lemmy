@@ -1,5 +1,6 @@
+use super::send_activity_from_user_or_community;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity},
+  activities::generate_activity_id,
   insert_received_activity,
   protocol::activities::following::{follow::Follow, reject::RejectFollow},
 };
@@ -11,17 +12,13 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm},
-  },
+  source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl RejectFollow {
-  #[tracing::instrument(skip_all)]
   pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let user_or_community = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
@@ -36,7 +33,7 @@ impl RejectFollow {
       )?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_lemmy_activity(context, reject, &user_or_community, inbox, true).await
+    send_activity_from_user_or_community(context, reject, user_or_community, inbox).await
   }
 }
 
@@ -54,7 +51,6 @@ impl ActivityHandler for RejectFollow {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
@@ -64,15 +60,13 @@ impl ActivityHandler for RejectFollow {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
 
     // remove the follow
-    let form = CommunityFollowerForm::new(community.id, person.id);
-    CommunityFollower::unfollow(&mut context.pool(), &form).await?;
+    CommunityActions::unfollow(&mut context.pool(), person.id, community.id).await?;
 
     Ok(())
   }

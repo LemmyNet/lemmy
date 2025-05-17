@@ -1,11 +1,11 @@
 use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
-  objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
+use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
@@ -16,7 +16,6 @@ pub struct PersonQuery {
 }
 
 /// Return the ActivityPub json representation of a local person over HTTP.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
@@ -33,11 +32,10 @@ pub(crate) async fn get_apub_person_http(
 
     create_apub_response(&apub)
   } else {
-    create_apub_tombstone_response(person.actor_id.clone())
+    create_apub_tombstone_response(person.ap_id.clone())
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
@@ -45,7 +43,7 @@ pub(crate) async fn get_apub_person_outbox(
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  let outbox_id = generate_outbox_url(&person.actor_id)?.into();
+  let outbox_id = generate_outbox_url(&person.ap_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
   create_apub_response(&outbox)
 }

@@ -14,10 +14,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn delete_post(
   data: Json<DeletePost>,
   context: Data<LemmyContext>,
@@ -32,7 +31,7 @@ pub async fn delete_post(
   }
 
   let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
-  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {

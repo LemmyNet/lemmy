@@ -5,11 +5,13 @@ use lemmy_api_common::{
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::{
-  registration_application_view::RegistrationApplicationQuery,
-  structs::LocalUserView,
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::{
+  impls::RegistrationApplicationQuery,
+  RegistrationApplicationView,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.
@@ -18,26 +20,38 @@ pub async fn list_registration_applications(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListRegistrationApplicationsResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let unread_only = data.unread_only.unwrap_or_default();
-  let verified_email_only = local_site.require_email_verification;
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(RegistrationApplicationView::from_cursor(cursor, &mut context.pool()).await?)
+  } else {
+    None
+  };
 
-  let page = data.page;
-  let limit = data.limit;
   let registration_applications = RegistrationApplicationQuery {
-    unread_only,
-    verified_email_only,
-    page,
-    limit,
+    unread_only: data.unread_only,
+    verified_email_only: Some(local_site.require_email_verification),
+    cursor_data,
+    page_back: data.page_back,
+    limit: data.limit,
   }
   .list(&mut context.pool())
   .await?;
 
+  let next_page = registration_applications
+    .last()
+    .map(PaginationCursorBuilder::to_cursor);
+
+  let prev_page = registration_applications
+    .first()
+    .map(PaginationCursorBuilder::to_cursor);
+
   Ok(Json(ListRegistrationApplicationsResponse {
     registration_applications,
+    next_page,
+    prev_page,
   }))
 }

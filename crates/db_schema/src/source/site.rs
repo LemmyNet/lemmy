@@ -1,10 +1,10 @@
-#[cfg(feature = "full")]
-use crate::schema::site;
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
   sensitive::SensitiveString,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::site;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -16,7 +16,8 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The site.
+/// Additional data for federated instances. This may be missing for other platforms which are not
+/// fully compatible. Basic data is guaranteed to be available via [[Instance]].
 pub struct Site {
   pub id: SiteId,
   pub name: String,
@@ -35,8 +36,8 @@ pub struct Site {
   /// A shorter, one-line description of the site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// The federated actor_id.
-  pub actor_id: DbUrl,
+  /// The federated ap_id.
+  pub ap_id: DbUrl,
   /// The time the site was last refreshed.
   pub last_refreshed_at: DateTime<Utc>,
   /// The site inbox
@@ -69,7 +70,7 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub description: Option<String>,
   #[new(default)]
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -94,7 +95,7 @@ pub struct SiteUpdateForm {
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   pub last_refreshed_at: Option<DateTime<Utc>>,
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,

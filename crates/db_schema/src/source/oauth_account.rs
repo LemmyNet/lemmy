@@ -1,7 +1,7 @@
 use crate::newtypes::{LocalUserId, OAuthProviderId};
-#[cfg(feature = "full")]
-use crate::schema::oauth_account;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::oauth_account;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

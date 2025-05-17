@@ -5,22 +5,18 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
-use lemmy_db_schema::source::{
-  actor_language::CommunityLanguage,
-  community::Community,
-  local_site::LocalSite,
-};
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_random_community(
   data: Query<GetRandomCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   check_private_instance(&local_user_view, &local_site)?;
 

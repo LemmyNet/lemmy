@@ -1,12 +1,12 @@
+use super::report_inboxes;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activities::{generate_activity_id, send_lemmy_activity},
+  activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-  protocol::{
-    activities::community::report::{Report, ReportObject},
-    InCommunity,
+  protocol::activities::community::{
+    announce::AnnounceActivity,
+    report::{Report, ReportObject},
   },
-  PostOrComment,
 };
 use activitypub_federation::{
   config::Data,
@@ -18,65 +18,55 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
 };
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
     comment_report::{CommentReport, CommentReportForm},
-    community::Community,
-    person::Person,
     post_report::{PostReport, PostReportForm},
-    site::Site,
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl Report {
-  #[tracing::instrument(skip_all)]
-  pub(crate) async fn send(
-    object_id: ObjectId<PostOrComment>,
-    actor: Person,
-    community: Community,
-    reason: String,
-    context: Data<LemmyContext>,
-  ) -> LemmyResult<()> {
-    let actor: ApubPerson = actor.into();
-    let community: ApubCommunity = community.into();
+  pub(crate) fn new(
+    object_id: &ObjectId<PostOrComment>,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
+    reason: Option<String>,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Self> {
     let kind = FlagType::Flag;
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let report = Report {
+    Ok(Report {
       actor: actor.id().into(),
       to: [community.id().into()],
       object: ReportObject::Lemmy(object_id.clone()),
-      summary: Some(reason),
+      summary: reason,
       content: None,
       kind,
       id: id.clone(),
-    };
+    })
+  }
 
-    // send report to the community where object was posted
-    let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+  pub(crate) async fn send(
+    object_id: ObjectId<PostOrComment>,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
+    reason: String,
+    context: Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    let report = Self::new(&object_id, actor, community, Some(reason), &context)?;
+    let inboxes = report_inboxes(object_id, community, &context).await?;
 
-    // also send report to user's home instance if possible
-    let object_creator_id = match object_id.dereference_local(&context).await? {
-      PostOrComment::Post(p) => p.creator_id,
-      PostOrComment::Comment(c) => c.creator_id,
-    };
-    let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
-    let object_creator_site: Option<ApubSite> =
-      Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
-        .await
-        .ok()
-        .map(Into::into);
-    if let Some(inbox) = object_creator_site.map(|s| s.shared_inbox_or_inbox()) {
-      inboxes.add_inbox(inbox);
-    }
-
-    send_lemmy_activity(&context, report, &actor, inboxes, false).await
+    send_lemmy_activity(&context, report, actor, inboxes, false).await
   }
 }
 
@@ -93,20 +83,18 @@ impl ActivityHandler for Report {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
-      PostOrComment::Post(post) => {
+      PostOrComment::Left(post) => {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -116,10 +104,11 @@ impl ActivityHandler for Report {
           original_post_url: post.url.clone(),
           reason,
           original_post_body: post.body.clone(),
+          violates_instance_rules: false,
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
-      PostOrComment::Comment(comment) => {
+      PostOrComment::Right(comment) => {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {
@@ -127,10 +116,22 @@ impl ActivityHandler for Report {
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
           reason,
+          violates_instance_rules: false,
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
     };
+
+    let community = self.community(context).await?;
+    if community.local {
+      // forward to remote mods
+      let object_id = self.object.object_id(context).await?;
+      let announce = AnnouncableActivities::Report(self);
+      let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
+      let inboxes = report_inboxes(object_id, &community, context).await?;
+      send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
+    }
+
     Ok(())
   }
 }

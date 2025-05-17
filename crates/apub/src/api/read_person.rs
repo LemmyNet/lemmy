@@ -6,19 +6,22 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn read_person(
   data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPersonDetailsResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let local_instance_id = site_view.site.instance_id;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let person_details_id = resolve_person_id_from_id_or_username(
     &data.person_id,
@@ -34,7 +37,14 @@ pub async fn read_person(
     .as_ref()
     .map(|l| is_admin(l).is_ok())
     .unwrap_or_default();
-  let person_view = PersonView::read(&mut context.pool(), person_details_id, is_admin).await?;
+
+  let person_view = PersonView::read(
+    &mut context.pool(),
+    person_details_id,
+    local_instance_id,
+    is_admin,
+  )
+  .await?;
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,
@@ -42,7 +52,7 @@ pub async fn read_person(
   )
   .await?;
 
-  let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
+  let site = read_site_for_actor(person_view.person.ap_id.clone(), &context).await?;
 
   Ok(Json(GetPersonDetailsResponse {
     person_view,

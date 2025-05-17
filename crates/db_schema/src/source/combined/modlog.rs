@@ -9,8 +9,8 @@ use crate::newtypes::{
   ModAddId,
   ModBanFromCommunityId,
   ModBanId,
+  ModChangeCommunityVisibilityId,
   ModFeaturePostId,
-  ModHideCommunityId,
   ModLockPostId,
   ModRemoveCommentId,
   ModRemoveCommunityId,
@@ -18,11 +18,11 @@ use crate::newtypes::{
   ModTransferCommunityId,
   ModlogCombinedId,
 };
-#[cfg(feature = "full")]
-use crate::schema::modlog_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::modlog_combined;
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
@@ -48,7 +48,7 @@ pub struct ModlogCombined {
   pub mod_ban_id: Option<ModBanId>,
   pub mod_ban_from_community_id: Option<ModBanFromCommunityId>,
   pub mod_feature_post_id: Option<ModFeaturePostId>,
-  pub mod_hide_community_id: Option<ModHideCommunityId>,
+  pub mod_change_community_visibility_id: Option<ModChangeCommunityVisibilityId>,
   pub mod_lock_post_id: Option<ModLockPostId>,
   pub mod_remove_comment_id: Option<ModRemoveCommentId>,
   pub mod_remove_community_id: Option<ModRemoveCommunityId>,

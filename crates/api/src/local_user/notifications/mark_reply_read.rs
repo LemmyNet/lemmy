@@ -4,10 +4,9 @@ use lemmy_db_schema::{
   source::comment_reply::{CommentReply, CommentReplyUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_reply_as_read(
   data: Json<MarkCommentReplyAsRead>,
   context: Data<LemmyContext>,
@@ -28,8 +27,7 @@ pub async fn mark_reply_as_read(
     comment_reply_id,
     &CommentReplyUpdateForm { read },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

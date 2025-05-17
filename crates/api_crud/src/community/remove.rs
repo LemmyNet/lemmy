@@ -10,27 +10,21 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
+    community_report::CommunityReport,
     mod_log::moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn remove_community(
   data: Json<RemoveCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    true,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, true, &mut context.pool()).await?;
 
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;
@@ -46,8 +40,14 @@ pub async fn remove_community(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  .await?;
+
+  CommunityReport::resolve_all_for_object(
+    &mut context.pool(),
+    community_id,
+    local_user_view.person.id,
+  )
+  .await?;
 
   // Mod tables
   let form = ModRemoveCommunityForm {

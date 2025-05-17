@@ -3,34 +3,37 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{HidePost, PostResponse},
 };
-use lemmy_db_schema::source::post::PostHide;
-use lemmy_db_views::structs::{LocalUserView, PostView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema::{
+  source::post::{PostActions, PostHideForm},
+  traits::Hideable,
+};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn hide_post(
   data: Json<HidePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
+
+  let hide_form = PostHideForm::new(post_id, person_id);
 
   // Mark the post as hidden / unhidden
   if data.hide {
-    PostHide::hide(&mut context.pool(), post_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntHidePost)?;
+    PostActions::hide(&mut context.pool(), &hide_form).await?;
   } else {
-    PostHide::unhide(&mut context.pool(), post_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntHidePost)?;
+    PostActions::unhide(&mut context.pool(), &hide_form).await?;
   }
 
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
     false,
   )
   .await?;

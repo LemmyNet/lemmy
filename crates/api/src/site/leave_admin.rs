@@ -12,14 +12,14 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   VERSION,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -27,7 +27,12 @@ pub async fn leave_admin(
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-  let admins = PersonView::admins(&mut context.pool()).await?;
+  let admins = PersonQuery {
+    admins_only: Some(true),
+    ..Default::default()
+  }
+  .list(local_user_view.person.instance_id, &mut context.pool())
+  .await?;
   if admins.len() == 1 {
     Err(LemmyErrorType::CannotLeaveAdmin)?
   }
@@ -57,7 +62,12 @@ pub async fn leave_admin(
 
   // Reread site and admins
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let admins = PersonView::admins(&mut context.pool()).await?;
+  let admins = PersonQuery {
+    admins_only: Some(true),
+    ..Default::default()
+  }
+  .list(site_view.instance.id, &mut context.pool())
+  .await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
@@ -71,11 +81,12 @@ pub async fn leave_admin(
     version: VERSION.to_string(),
     all_languages,
     discussion_languages,
-    oauth_providers: Some(oauth_providers),
-    admin_oauth_providers: None,
+    oauth_providers,
+    admin_oauth_providers: vec![],
     blocked_urls,
     tagline,
     my_user: None,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
+    active_plugins: vec![],
   }))
 }

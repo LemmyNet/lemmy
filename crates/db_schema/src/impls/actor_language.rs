@@ -1,7 +1,6 @@
 use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
-  schema::{local_site, site, site_language},
   source::{
     actor_language::{
       CommunityLanguage,
@@ -25,8 +24,20 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use diesel_async::{
+  scoped_futures::ScopedFutureExt,
+  AsyncConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
+use lemmy_db_schema_file::schema::{
+  community_language,
+  local_site,
+  local_user_language,
+  site,
+  site_language,
+};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
@@ -35,18 +46,13 @@ impl LocalUserLanguage {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_local_user_id: LocalUserId,
-  ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::local_user_language::dsl::{
-      language_id,
-      local_user_id,
-      local_user_language,
-    };
+  ) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
 
-    let langs = local_user_language
-      .filter(local_user_id.eq(for_local_user_id))
-      .order(language_id)
-      .select(language_id)
+    let langs = local_user_language::table
+      .filter(local_user_language::local_user_id.eq(for_local_user_id))
+      .order(local_user_language::language_id)
+      .select(local_user_language::language_id)
       .get_results(conn)
       .await?;
     convert_read_languages(conn, langs).await
@@ -59,40 +65,25 @@ impl LocalUserLanguage {
     pool: &mut DbPool<'_>,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    let mut lang_ids = convert_update_languages(conn, language_ids).await?;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
     let current = LocalUserLanguage::read(&mut conn.into(), for_local_user_id).await?;
     if current == lang_ids {
-      return Ok(());
-    }
-
-    // TODO: Force enable undetermined language for all users. This is necessary because many posts
-    //       don't have a language tag (e.g. those from other federated platforms), so Lemmy users
-    //       won't see them if undetermined language is disabled.
-    //       This hack can be removed once a majority of posts have language tags, or when it is
-    //       clearer for new users that they need to enable undetermined language.
-    //       See https://github.com/LemmyNet/lemmy-ui/issues/999
-    if !lang_ids.contains(&UNDETERMINED_ID) {
-      lang_ids.push(UNDETERMINED_ID);
+      return Ok(0);
     }
 
     conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::local_user_language::dsl::{
-            language_id,
-            local_user_id,
-            local_user_language,
-          };
+      .transaction::<_, Error, _>(|conn| {
+        async move {
           // Delete old languages, not including new languages
-          let delete_old = delete(local_user_language)
-            .filter(local_user_id.eq(for_local_user_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
+          delete(local_user_language::table)
+            .filter(local_user_language::local_user_id.eq(for_local_user_id))
+            .filter(local_user_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
           let forms = lang_ids
             .iter()
@@ -103,22 +94,25 @@ impl LocalUserLanguage {
             .collect::<Vec<_>>();
 
           // Insert new languages
-          let insert_new = insert_into(local_user_language)
+          insert_into(local_user_language::table)
             .values(forms)
-            .on_conflict((language_id, local_user_id))
+            .on_conflict((
+              local_user_language::language_id,
+              local_user_language::local_user_id,
+            ))
             .do_nothing()
-            .execute(conn);
-
-          tokio::try_join!(delete_old, insert_new)?;
-          Ok(())
-        }) as _
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read_local_raw(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
@@ -127,9 +121,10 @@ impl SiteLanguage {
       .select(site_language::language_id)
       .load(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
     let langs = site_language::table
       .filter(site_language::site_id.eq(for_site_id))
@@ -145,7 +140,7 @@ impl SiteLanguage {
     pool: &mut DbPool<'_>,
     language_ids: Vec<LanguageId>,
     site: &Site,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
@@ -158,16 +153,14 @@ impl SiteLanguage {
     }
 
     conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::site_language::dsl::{language_id, site_id, site_language};
-
+      .transaction::<_, Error, _>(|conn| {
+        async move {
           // Delete old languages, not including new languages
-          let delete_old = delete(site_language)
-            .filter(site_id.eq(for_site_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
+          delete(site_language::table)
+            .filter(site_language::site_id.eq(for_site_id))
+            .filter(site_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
           let forms = lang_ids
             .iter()
@@ -178,20 +171,23 @@ impl SiteLanguage {
             .collect::<Vec<_>>();
 
           // Insert new languages
-          let insert_new = insert_into(site_language)
+          insert_into(site_language::table)
             .values(forms)
-            .on_conflict((site_id, language_id))
+            .on_conflict((site_language::site_id, site_language::language_id))
             .do_nothing()
-            .execute(conn);
+            .execute(conn)
+            .await?;
 
-          tokio::try_join!(delete_old, insert_new)?;
-
-          CommunityLanguage::limit_languages(conn, instance_id).await?;
+          CommunityLanguage::limit_languages(conn, instance_id)
+            .await
+            .map_err(|_e| diesel::result::Error::NotFound)?;
 
           Ok(())
-        }) as _
+        }
+        .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -202,7 +198,7 @@ impl CommunityLanguage {
     for_language_id: LanguageId,
     for_community_id: CommunityId,
   ) -> LemmyResult<()> {
-    use crate::schema::community_language::dsl::community_language;
+    use lemmy_db_schema_file::schema::community_language::dsl::community_language;
     let conn = &mut get_conn(pool).await?;
 
     let is_allowed = select(exists(
@@ -225,8 +221,8 @@ impl CommunityLanguage {
   async fn limit_languages(
     conn: &mut AsyncPgConnection,
     for_instance_id: InstanceId,
-  ) -> Result<(), Error> {
-    use crate::schema::{
+  ) -> LemmyResult<()> {
+    use lemmy_db_schema_file::schema::{
       community::dsl as c,
       community_language::dsl as cl,
       site_language::dsl as sl,
@@ -251,8 +247,12 @@ impl CommunityLanguage {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
+  ) -> LemmyResult<Vec<LanguageId>> {
+    use lemmy_db_schema_file::schema::community_language::dsl::{
+      community_id,
+      community_language,
+      language_id,
+    };
     let conn = &mut get_conn(pool).await?;
     let langs = community_language
       .filter(community_id.eq(for_community_id))
@@ -267,7 +267,7 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<usize> {
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local_raw(pool).await?;
     }
@@ -277,7 +277,7 @@ impl CommunityLanguage {
     // No need to update if languages are unchanged
     let current = CommunityLanguage::read(&mut conn.into(), for_community_id).await?;
     if current == lang_ids {
-      return Ok(());
+      return Ok(0);
     }
 
     let form = lang_ids
@@ -289,33 +289,30 @@ impl CommunityLanguage {
       .collect::<Vec<_>>();
 
     conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          use crate::schema::community_language::dsl::{
-            community_id,
-            community_language,
-            language_id,
-          };
+      .transaction::<_, Error, _>(|conn| {
+        async move {
           // Delete old languages, not including new languages
-          let delete_old = delete(community_language)
-            .filter(community_id.eq(for_community_id))
-            .filter(language_id.ne_all(&lang_ids))
-            .execute(conn);
+          delete(community_language::table)
+            .filter(community_language::community_id.eq(for_community_id))
+            .filter(community_language::language_id.ne_all(&lang_ids))
+            .execute(conn)
+            .await?;
 
           // Insert new languages
-          let insert_new = insert_into(community_language)
+          insert_into(community_language::table)
             .values(form)
-            .on_conflict((community_id, language_id))
+            .on_conflict((
+              community_language::community_id,
+              community_language::language_id,
+            ))
             .do_nothing()
-            .execute(conn);
-
-          tokio::try_join!(delete_old, insert_new)?;
-
-          Ok(())
-        }) as _
+            .execute(conn)
+            .await
+        }
+        .scope_boxed()
       })
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -325,7 +322,10 @@ pub async fn validate_post_language(
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> LemmyResult<LanguageId> {
-  use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
+  use lemmy_db_schema_file::schema::{
+    community_language::dsl as cl,
+    local_user_language::dsl as ul,
+  };
   let conn = &mut get_conn(pool).await?;
   let language_id = match language_id {
     None | Some(LanguageId(0)) => {
@@ -357,7 +357,7 @@ pub async fn validate_post_language(
 async fn convert_update_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
-) -> Result<Vec<LanguageId>, Error> {
+) -> LemmyResult<Vec<LanguageId>> {
   if language_ids.is_empty() {
     Ok(
       Language::read_all(&mut conn.into())
@@ -376,21 +376,22 @@ async fn convert_update_languages(
 async fn convert_read_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
-) -> Result<Vec<LanguageId>, Error> {
-  static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
-  let count = ALL_LANGUAGES_COUNT
+) -> LemmyResult<Vec<LanguageId>> {
+  static ALL_LANGUAGES_COUNT: OnceCell<i64> = OnceCell::const_new();
+  let count: usize = (*ALL_LANGUAGES_COUNT
     .get_or_init(|| async {
-      use crate::schema::language::dsl::{id, language};
+      use lemmy_db_schema_file::schema::language::dsl::{id, language};
       let count: i64 = language
         .select(count(id))
         .first(conn)
         .await
         .expect("read number of languages");
-      count as usize
+      count
     })
-    .await;
+    .await)
+    .try_into()?;
 
-  if &language_ids.len() == count {
+  if language_ids.len() == count {
     Ok(vec![])
   } else {
     Ok(language_ids)
@@ -414,25 +415,24 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  async fn test_langs1(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  async fn test_langs1(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     Ok(vec![
       Language::read_id_from_code(pool, "en").await?,
       Language::read_id_from_code(pool, "fr").await?,
       Language::read_id_from_code(pool, "ru").await?,
     ])
   }
-  async fn test_langs2(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
+  async fn test_langs2(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
     Ok(vec![
       Language::read_id_from_code(pool, "fi").await?,
       Language::read_id_from_code(pool, "se").await?,
     ])
   }
 
-  async fn create_test_site(pool: &mut DbPool<'_>) -> Result<(Site, Instance), Error> {
+  async fn create_test_site(pool: &mut DbPool<'_>) -> LemmyResult<(Site, Instance)> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
@@ -447,7 +447,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_convert_update_languages() -> Result<(), Error> {
+  async fn test_convert_update_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -465,8 +465,8 @@ mod tests {
   }
   #[tokio::test]
   #[serial]
-  async fn test_convert_read_languages() -> Result<(), Error> {
-    use crate::schema::language::dsl::{id, language};
+  async fn test_convert_read_languages() -> LemmyResult<()> {
+    use lemmy_db_schema_file::schema::language::dsl::{id, language};
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -486,7 +486,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_site_languages() -> Result<(), Error> {
+  async fn test_site_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -531,7 +531,7 @@ mod tests {
     let test_langs2 = test_langs2(pool).await?;
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
     let local_user_langs2 = LocalUserLanguage::read(pool, local_user.id).await?;
-    assert_eq!(3, local_user_langs2.len());
+    assert_eq!(2, local_user_langs2.len());
 
     Person::delete(pool, person.id).await?;
     LocalUser::delete(pool, local_user.id).await?;

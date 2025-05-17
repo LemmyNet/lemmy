@@ -1,8 +1,3 @@
-use crate::{
-  fetcher::post_or_comment::PostOrComment,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
-};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -10,6 +5,10 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one,
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -49,14 +48,17 @@ pub(crate) enum ReportObject {
 }
 
 impl ReportObject {
-  pub async fn dereference(self, context: &Data<LemmyContext>) -> LemmyResult<PostOrComment> {
+  pub(crate) async fn dereference(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<PostOrComment> {
     match self {
       ReportObject::Lemmy(l) => l.dereference(context).await,
       ReportObject::Mastodon(objects) => {
         for o in objects {
           // Find the first reported item which can be dereferenced as post or comment (Lemmy can
           // only handle one item per report).
-          let deref = ObjectId::from(o).dereference(context).await;
+          let deref = ObjectId::from(o.clone()).dereference(context).await;
           if deref.is_ok() {
             return deref;
           }
@@ -65,9 +67,29 @@ impl ReportObject {
       }
     }
   }
+
+  pub(crate) async fn object_id(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<ObjectId<PostOrComment>> {
+    match self {
+      ReportObject::Lemmy(l) => Ok(l.clone()),
+      ReportObject::Mastodon(objects) => {
+        for o in objects {
+          // Same logic as above, but return the ID and not the object itself.
+          let deref = ObjectId::<PostOrComment>::from(o.clone())
+            .dereference(context)
+            .await;
+          if deref.is_ok() {
+            return Ok(o.clone().into());
+          }
+        }
+        Err(LemmyErrorType::NotFound.into())
+      }
+    }
+  }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for Report {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.to[0].dereference(context).await?;

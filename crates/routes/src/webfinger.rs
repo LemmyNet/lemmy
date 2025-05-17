@@ -7,7 +7,6 @@ use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommunityVisibility,
 };
 use lemmy_utils::{
   cache_header::cache_3days,
@@ -51,14 +50,14 @@ async fn get_webfinger_response(
       .await
       .ok()
       .flatten()
-      .map(|c| c.actor_id.into());
+      .map(|c| c.ap_id.into());
     let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
       .flatten()
       .and_then(|c| {
-        if c.visibility == CommunityVisibility::Public {
-          let id: Url = c.actor_id.into();
+        if c.visibility.can_federate() {
+          let id: Url = c.ap_id.into();
           Some(id)
         } else {
           None

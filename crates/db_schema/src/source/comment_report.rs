@@ -1,7 +1,7 @@
 use crate::newtypes::{CommentId, CommentReportId, PersonId};
-#[cfg(feature = "full")]
-use crate::schema::comment_report;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::comment_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -30,6 +30,7 @@ pub struct CommentReport {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  pub violates_instance_rules: bool,
 }
 
 #[derive(Clone)]
@@ -40,4 +41,5 @@ pub struct CommentReportForm {
   pub comment_id: CommentId,
   pub original_comment_text: String,
   pub reason: String,
+  pub violates_instance_rules: bool,
 }

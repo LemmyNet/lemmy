@@ -1,16 +1,8 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    generate_to,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{activities::community::collection_remove::CollectionRemove, InCommunity},
+  protocol::activities::community::collection_remove::CollectionRemove,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,11 +14,18 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
 };
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
     post::{Post, PostUpdateForm},
   },
@@ -36,7 +35,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
-  #[tracing::instrument(skip_all)]
   pub async fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
@@ -51,7 +49,7 @@ impl CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
       object: removed_mod.id(),
-      target: generate_moderators_url(&community.actor_id)?.into(),
+      target: generate_moderators_url(&community.ap_id)?.into(),
       id: id.clone(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
@@ -76,7 +74,7 @@ impl CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
-      target: generate_featured_url(&community.actor_id)?.into(),
+      target: generate_featured_url(&community.ap_id)?.into(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
       id: id.clone(),
@@ -107,7 +105,6 @@ impl ActivityHandler for CollectionRemove {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -116,7 +113,6 @@ impl ActivityHandler for CollectionRemove {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
@@ -127,11 +123,8 @@ impl ActivityHandler for CollectionRemove {
           .dereference(context)
           .await?;
 
-        let form = CommunityModeratorForm {
-          community_id: community.id,
-          person_id: remove_mod.id,
-        };
-        CommunityModerator::leave(&mut context.pool(), &form).await?;
+        let form = CommunityModeratorForm::new(community.id, remove_mod.id);
+        CommunityActions::leave(&mut context.pool(), &form).await?;
 
         // write mod log
         let actor = self.actor.dereference(context).await?;

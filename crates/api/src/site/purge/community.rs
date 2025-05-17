@@ -2,10 +2,9 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::purge_image_from_pictrs,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgeCommunity,
-  utils::{is_admin, purge_image_posts_for_community},
+  utils::is_admin,
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -17,11 +16,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn purge_community(
   data: Json<PurgeCommunity>,
   context: Data<LemmyContext>,
@@ -47,16 +45,6 @@ pub async fn purge_community(
     community_mod_person_ids,
   )
   .await?;
-
-  if let Some(banner) = &community.banner {
-    purge_image_from_pictrs(banner, &context).await.ok();
-  }
-
-  if let Some(icon) = &community.icon {
-    purge_image_from_pictrs(icon, &context).await.ok();
-  }
-
-  purge_image_posts_for_community(data.community_id, &context).await?;
 
   Community::delete(&mut context.pool(), data.community_id).await?;
 

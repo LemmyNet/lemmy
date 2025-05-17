@@ -1,7 +1,4 @@
-use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::collections::group_moderators::GroupModerators,
-};
+use crate::protocol::collections::group_moderators::GroupModerators;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -10,11 +7,11 @@ use activitypub_federation::{
   traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
-use lemmy_db_schema::{
-  source::community::{CommunityModerator, CommunityModeratorForm},
-  traits::Joinable,
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::functions::handle_community_moderators,
 };
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -28,21 +25,19 @@ impl Collection for ApubCommunityModerators {
   type Kind = GroupModerators;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let moderators = CommunityModeratorView::for_community(&mut data.pool(), owner.id).await?;
     let ordered_items = moderators
       .into_iter()
-      .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
+      .map(|m| ObjectId::<ApubPerson>::from(m.moderator.ap_id))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_moderators_url(&owner.actor_id)?.into(),
+      id: generate_moderators_url(&owner.ap_id)?.into(),
       ordered_items,
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
     expected_domain: &Url,
@@ -52,45 +47,12 @@ impl Collection for ApubCommunityModerators {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(
     apub: Self::Kind,
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> LemmyResult<Self> {
-    let community_id = owner.id;
-    let current_moderators =
-      CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
-    // Remove old mods from database which arent in the moderators collection anymore
-    for mod_user in &current_moderators {
-      let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
-      if !apub.ordered_items.contains(&mod_id) {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: mod_user.community.id,
-          person_id: mod_user.moderator.id,
-        };
-        CommunityModerator::leave(&mut data.pool(), &community_moderator_form).await?;
-      }
-    }
-
-    // Add new mods to database which have been added to moderators collection
-    for mod_id in apub.ordered_items {
-      // Ignore errors as mod accounts might be deleted or instances unavailable.
-      let mod_user: Option<ApubPerson> = mod_id.dereference(data).await.ok();
-      if let Some(mod_user) = mod_user {
-        if !current_moderators
-          .iter()
-          .map(|c| c.moderator.actor_id.clone())
-          .any(|x| x == mod_user.actor_id)
-        {
-          let community_moderator_form = CommunityModeratorForm {
-            community_id: owner.id,
-            person_id: mod_user.id,
-          };
-          CommunityModerator::join(&mut data.pool(), &community_moderator_form).await?;
-        }
-      }
-    }
+    handle_community_moderators(&apub.ordered_items, owner, data).await?;
 
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators(()))
@@ -102,18 +64,19 @@ impl Collection for ApubCommunityModerators {
 mod tests {
 
   use super::*;
-  use crate::{
-    objects::{community::tests::parse_lemmy_community, person::tests::parse_lemmy_person},
-    protocol::tests::file_to_json_object,
+  use lemmy_apub_objects::utils::test::{
+    file_to_json_object,
+    parse_lemmy_community,
+    parse_lemmy_person,
   };
   use lemmy_db_schema::{
     source::{
-      community::Community,
+      community::{Community, CommunityActions, CommunityModeratorForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::Crud,
+    traits::{Crud, Joinable},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -132,14 +95,11 @@ mod tests {
     let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
-    let community_moderator_form = CommunityModeratorForm {
-      community_id: community.id,
-      person_id: old_mod.id,
-    };
+    let community_moderator_form = CommunityModeratorForm::new(community.id, old_mod.id);
 
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form).await?;
+    CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
-    assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
+    assert_eq!(site.ap_id.to_string(), "https://enterprise.lemmy.ml/");
 
     let json: GroupModerators =
       file_to_json_object("assets/lemmy/collections/group_moderators.json")?;

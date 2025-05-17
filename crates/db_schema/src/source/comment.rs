@@ -1,28 +1,34 @@
-#[cfg(feature = "full")]
-use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods};
-#[cfg(feature = "full")]
-use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  crate::newtypes::LtreeDef,
+  diesel_ltree::Ltree,
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{comment, comment_actions},
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(
+    Queryable,
+    Selectable,
+    Associations,
+    Identifiable,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = comment_keys))]
 /// A comment.
 pub struct Comment {
   pub id: CommentId,
@@ -51,10 +57,27 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
+  pub score: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  /// The total number of children in this comment branch.
+  pub child_count: i32,
+  #[serde(skip)]
+  pub hot_rank: f64,
+  #[serde(skip)]
+  pub controversy_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
+  /// If a local user comments in a remote community, the comment is hidden until it is confirmed
+  /// accepted by the community (by receiving it back via federation).
+  pub federation_pending: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
   pub creator_id: PersonId,
@@ -76,10 +99,12 @@ pub struct CommentInsertForm {
   pub distinguished: Option<bool>,
   #[new(default)]
   pub language_id: Option<LanguageId>,
+  #[new(default)]
+  pub federation_pending: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentUpdateForm {
   pub content: Option<String>,
@@ -91,61 +116,62 @@ pub struct CommentUpdateForm {
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub federation_pending: Option<bool>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(
+    Identifiable,
+    Queryable,
+    Selectable,
+    Associations,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct CommentLike {
+#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
+pub struct CommentActions {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::like_score.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>))]
-  pub score: i16,
-  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::liked.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::liked>))]
-  pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// The like / score for the comment.
+  pub like_score: Option<i16>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the comment was liked.
+  pub liked: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the comment was saved.
+  pub saved: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[derive(Clone, derive_new::new)]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
-  pub score: i16,
+  pub like_score: i16,
+  #[new(value = "Utc::now()")]
+  pub liked: DateTime<Utc>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
-#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
-#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct CommentSaved {
-  pub comment_id: CommentId,
-  pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::saved.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::saved>))]
-  pub published: DateTime<Utc>,
-}
-
+#[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
-#[derive(derive_new::new)]
 pub struct CommentSavedForm {
-  pub comment_id: CommentId,
   pub person_id: PersonId,
+  pub comment_id: CommentId,
   #[new(value = "Utc::now()")]
   pub saved: DateTime<Utc>,
 }

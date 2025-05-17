@@ -9,11 +9,10 @@ use lemmy_db_schema::{
   source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[tracing::instrument(skip(context))]
 pub async fn create_oauth_provider(
   data: Json<CreateOAuthProvider>,
   context: Data<LemmyContext>,

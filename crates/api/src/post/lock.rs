@@ -14,20 +14,23 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn lock_post(
   data: Json<LockPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let local_instance_id = local_user_view.person.instance_id;
+
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_post.community,
     false,
     &mut context.pool(),
@@ -52,11 +55,17 @@ pub async fn lock_post(
     mod_person_id: local_user_view.person.id,
     post_id: data.post_id,
     locked: Some(locked),
+    reason: data.reason.clone(),
   };
   ModLockPost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::LockPost(post, local_user_view.person.clone(), data.locked),
+    SendActivityData::LockPost(
+      post,
+      local_user_view.person.clone(),
+      data.locked,
+      data.reason.clone(),
+    ),
     &context,
   )?;
 

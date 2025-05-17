@@ -1,16 +1,8 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    generate_to,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, read_from_string_or_source_opt},
-  protocol::{activities::community::update::UpdateCommunity, InCommunity},
+  protocol::activities::community::update::UpdateCommunity,
 };
 use activitypub_federation::{
   config::Data,
@@ -19,6 +11,18 @@ use activitypub_federation::{
 };
 use chrono::Utc;
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::{
+    functions::{
+      generate_to,
+      read_from_string_or_source_opt,
+      verify_person_in_community,
+      verify_visibility,
+    },
+    protocol::{AttributedTo, InCommunity},
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -75,17 +79,15 @@ impl ActivityHandler for UpdateCommunity {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
-    ApubCommunity::verify(&self.object, &community.actor_id.clone().into(), context).await?;
+    ApubCommunity::verify(&self.object, &community.ap_id.clone().into(), context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
@@ -100,7 +102,7 @@ impl ActivityHandler for UpdateCommunity {
       published: self.object.published,
       updated: Some(self.object.updated),
       nsfw: Some(self.object.sensitive.unwrap_or(false)),
-      actor_id: Some(self.object.id.into()),
+      ap_id: Some(self.object.id.into()),
       public_key: Some(self.object.public_key.public_key_pem),
       last_refreshed_at: Some(Utc::now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
@@ -114,9 +116,9 @@ impl ActivityHandler for UpdateCommunity {
           .unwrap_or(self.object.inbox)
           .into(),
       ),
-      moderators_url: self.object.attributed_to.map(Into::into),
+      moderators_url: Some(self.object.attributed_to.and_then(AttributedTo::url)),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
-      featured_url: self.object.featured.map(Into::into),
+      featured_url: Some(self.object.featured.map(Into::into)),
       ..Default::default()
     };
 

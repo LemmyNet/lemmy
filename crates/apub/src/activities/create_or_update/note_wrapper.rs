@@ -1,16 +1,11 @@
-use crate::{
-  objects::community::ApubCommunity,
-  protocol::{
-    activities::create_or_update::{
-      note::CreateOrUpdateNote,
-      note_wrapper::CreateOrUpdateNoteWrapper,
-      private_message::CreateOrUpdatePrivateMessage,
-    },
-    InCommunity,
-  },
+use crate::protocol::activities::create_or_update::{
+  note::CreateOrUpdateNote,
+  note_wrapper::CreateOrUpdateNoteWrapper,
+  private_message::CreateOrUpdatePrivateMessage,
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{objects::community::ApubCommunity, utils::protocol::InCommunity};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
@@ -31,13 +26,11 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
     &self.actor
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // Do everything in receive to avoid extra checks.
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     // Use serde to convert NoteWrapper either into Comment or PrivateMessage,
     // depending on conditions below. This works because NoteWrapper keeps all
@@ -63,7 +56,6 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
   }
 }
 
-#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNoteWrapper {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     // Same logic as in receive. In case this is a private message, an error is returned.

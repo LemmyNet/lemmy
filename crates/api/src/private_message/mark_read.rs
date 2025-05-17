@@ -8,10 +8,9 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_pm_as_read(
   data: Json<MarkPrivateMessageAsRead>,
   context: Data<LemmyContext>,
@@ -35,8 +34,7 @@ pub async fn mark_pm_as_read(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

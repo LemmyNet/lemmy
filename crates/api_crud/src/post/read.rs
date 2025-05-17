@@ -7,28 +7,31 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     comment::Comment,
-    post::{Post, PostRead, PostReadForm},
+    post::{Post, PostActions, PostReadForm},
   },
-  traits::Crud,
+  traits::{Crud, Readable},
+  SearchType,
 };
-use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{LocalUserView, PostView, SiteView},
-};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_search_combined::impls::SearchCombinedQuery;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn get_post(
   data: Query<GetPost>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let local_instance_id = site_view.site.instance_id;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
+  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
 
   // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
   let post_id = if let Some(id) = data.id {
@@ -53,12 +56,11 @@ pub async fn get_post(
   )
   .await
   .is_ok();
-
-  let local_user = local_user_view.map(|l| l.local_user);
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
     local_user.as_ref(),
+    local_instance_id,
     is_mod_or_admin,
   )
   .await?;
@@ -66,12 +68,12 @@ pub async fn get_post(
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
     let read_form = PostReadForm::new(post_id, person_id);
-    PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
+    PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
     update_read_comments(
       person_id,
       post_id,
-      post_view.counts.comments,
+      post_view.post.comments,
       &mut context.pool(),
     )
     .await?;
@@ -86,22 +88,23 @@ pub async fn get_post(
   )
   .await?;
 
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
-
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
-    let mut x_posts = PostQuery {
-      url_only: Some(true),
+    SearchCombinedQuery {
       search_term: Some(url.inner().as_str().into()),
-      local_user: local_user.as_ref(),
+      post_url_only: Some(true),
+      type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(&local_site.site, &mut context.pool())
-    .await?;
-
+    .list(&mut context.pool(), &local_user_view, local_instance_id)
+    .await?
+    .iter()
+    // Filter map to collect posts
+    .filter_map(|f| f.to_post_view())
     // Don't return this post as one of the cross_posts
-    x_posts.retain(|x| x.post.id != post_id);
-    x_posts
+    .filter(|x| x.post.id != post_id)
+    .cloned()
+    .collect::<Vec<PostView>>()
   } else {
     Vec::new()
   };
@@ -110,7 +113,6 @@ pub async fn get_post(
   Ok(Json(GetPostResponse {
     post_view,
     community_view,
-    moderators,
     cross_posts,
   }))
 }

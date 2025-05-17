@@ -1,5 +1,8 @@
-use lemmy_db_schema::newtypes::CommunityId;
-use lemmy_db_views::structs::{ReportCombinedPaginationCursor, ReportCombinedView};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PaginationCursor, PostId},
+  ReportType,
+};
+use lemmy_db_views_report_combined::ReportCombinedView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -14,13 +17,27 @@ pub struct ListReports {
   /// Only shows the unresolved reports
   #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
+  /// Filter the type of report.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<ReportType>,
+  /// Filter by the post id. Can return either comment or post reports.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub post_id: Option<PostId>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ReportCombinedPaginationCursor>,
+  pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+  /// Only for admins: also show reports with `violates_instance_rules=false`
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_community_rule_violations: Option<bool>,
+  /// If true, view all your created reports. Works for non-admins/mods also.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub my_reports_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -29,4 +46,9 @@ pub struct ListReports {
 /// The post reports response.
 pub struct ListReportsResponse {
   pub reports: Vec<ReportCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub next_page: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub prev_page: Option<PaginationCursor>,
 }

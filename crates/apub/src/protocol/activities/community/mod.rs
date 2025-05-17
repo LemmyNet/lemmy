@@ -3,21 +3,21 @@ pub mod collection_add;
 pub mod collection_remove;
 pub mod lock_page;
 pub mod report;
+pub mod resolve_report;
 pub mod update;
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      collection_add::CollectionAdd,
-      collection_remove::CollectionRemove,
-      lock_page::{LockPage, UndoLockPage},
-      report::Report,
-      update::UpdateCommunity,
-    },
-    tests::test_parse_lemmy_item,
+  use super::resolve_report::ResolveReport;
+  use crate::protocol::activities::community::{
+    announce::AnnounceActivity,
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
+    lock_page::{LockPage, UndoLockPage},
+    report::Report,
+    update::UpdateCommunity,
   };
+  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
 
   #[test]
@@ -44,6 +44,10 @@ mod tests {
     )?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
+    test_parse_lemmy_item::<ResolveReport>(
+      "assets/lemmy/activities/community/resolve_report_page.json",
+    )?;
+
     Ok(())
   }
 }

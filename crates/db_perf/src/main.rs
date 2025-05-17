@@ -11,18 +11,17 @@ use diesel::{
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::{
-  schema::post,
   source::{
     community::{Community, CommunityInsertForm},
     instance::Instance,
     person::{Person, PersonInsertForm},
     site::Site,
   },
-  traits::Crud,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{build_db_pool, get_conn, now},
-  PostSortType,
 };
-use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
+use lemmy_db_schema_file::{enums::PostSortType, schema::post};
+use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 use url::Url;
@@ -90,7 +89,7 @@ async fn try_main() -> LemmyResult<()> {
 
   let post_batches = args.people.get() * args.communities.get();
   let posts_per_batch = args.posts.get() / post_batches;
-  let num_posts = post_batches * posts_per_batch;
+  let num_posts: usize = (post_batches * posts_per_batch).try_into()?;
   println!(
     "📜 creating {} posts ({} featured in community)",
     num_posts, post_batches
@@ -127,7 +126,7 @@ async fn try_main() -> LemmyResult<()> {
     }
   }
   // Make sure the println above shows the correct amount
-  assert_eq!(num_inserted_posts, num_posts as usize);
+  assert_eq!(num_inserted_posts, num_posts);
 
   // Manually trigger and wait for a statistics update to ensure consistent and high amount of
   // accuracy in the statistics used for query planning
@@ -142,11 +141,11 @@ async fn try_main() -> LemmyResult<()> {
     .await?;
 
   // TODO: show execution duration stats
-  let mut page_after = None;
+  let mut cursor_data = None;
   for page_num in 1..=args.read_post_pages {
     println!(
       "👀 getting page {page_num} of posts (pagination cursor used: {})",
-      page_after.is_some()
+      cursor_data.is_some()
     );
 
     // TODO: include local_user
@@ -154,18 +153,16 @@ async fn try_main() -> LemmyResult<()> {
       community_id: community_ids.as_slice().first().cloned(),
       sort: Some(PostSortType::New),
       limit: Some(20),
-      page_after,
+      cursor_data,
       ..Default::default()
     }
     .list(&site()?, &mut conn.into())
     .await?;
 
-    if let Some(post_view) = post_views.into_iter().last() {
+    if let Some(post_view) = post_views.into_iter().next_back() {
       println!("👀 getting pagination cursor data for next page");
-      let cursor_data = PaginationCursor::after_post(&post_view)
-        .read(&mut conn.into(), None)
-        .await?;
-      page_after = Some(cursor_data);
+      let cursor = post_view.to_cursor();
+      cursor_data = Some(PostView::from_cursor(&cursor, &mut conn.into()).await?);
     } else {
       println!("👀 reached empty page");
       break;
@@ -192,7 +189,7 @@ fn site() -> LemmyResult<Site> {
     icon: None,
     banner: None,
     description: None,
-    actor_id: Url::parse("http://example.com")?.into(),
+    ap_id: Url::parse("http://example.com")?.into(),
     last_refreshed_at: Default::default(),
     inbox_url: Url::parse("http://example.com")?.into(),
     private_key: None,

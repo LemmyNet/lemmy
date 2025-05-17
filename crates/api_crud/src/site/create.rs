@@ -11,8 +11,8 @@ use lemmy_api_common::{
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -25,14 +25,14 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       is_valid_body_field,
       site_name_length_check,
       site_or_community_description_length_check,
@@ -41,24 +41,23 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[tracing::instrument(skip(context))]
 pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   // Make sure user is an admin; other types of users should not create site data...
   is_admin(&local_user_view)?;
 
   validate_create_payload(&local_site, &data)?;
 
-  let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
+  let ap_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
   let inbox_url = Some(generate_inbox_url()?);
   let keypair = generate_actor_keypair()?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
@@ -66,7 +65,7 @@ pub async fn create_site(
     name: Some(data.name.clone()),
     sidebar: diesel_string_update(sidebar.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
-    actor_id: Some(actor_id),
+    ap_id: Some(ap_id),
     last_refreshed_at: Some(Utc::now()),
     inbox_url,
     private_key: Some(Some(keypair.private_key)),
@@ -105,7 +104,8 @@ pub async fn create_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
-    disable_donation_dialog: data.disable_donation_dialog,
+    disallow_nsfw_content: data.disallow_nsfw_content,
+    disable_email_notifications: data.disable_email_notifications,
     ..Default::default()
   };
 
@@ -150,11 +150,11 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   // Check that the slur regex compiles, and returns the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
-    &create_site
+    create_site
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  );
+  )?;
 
   site_name_length_check(&create_site.name)?;
   check_slurs(&create_site.name, &slur_regex)?;
@@ -165,13 +165,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   }
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
-
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &create_site.private_instance,
-    &create_site.federation_enabled,
-  )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(body) = &create_site.sidebar {
@@ -192,12 +185,8 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_schema::{
-    source::local_site::LocalSite,
-    ListingType,
-    PostSortType,
-    RegistrationMode,
-  };
+  use lemmy_db_schema::source::local_site::LocalSite;
+  use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -264,38 +253,6 @@ mod tests {
         &CreateSite {
           name: String::from("site_name"),
           default_post_listing_type: Some(ListingType::Subscribed),
-          ..Default::default()
-        },
-      ),
-      (
-        "CreateSite is both private and federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          private_instance: Some(true),
-          federation_enabled: Some(true),
-          ..Default::default()
-        },
-      ),
-      (
-        "LocalSite is private, but CreateSite also makes it federated",
-        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &LocalSite {
-          site_setup: false,
-          private_instance: true,
-          federation_enabled: false,
-          registration_mode: RegistrationMode::Open,
-          ..Default::default()
-        },
-        &CreateSite {
-          name: String::from("site_name"),
-          federation_enabled: Some(true),
           ..Default::default()
         },
       ),

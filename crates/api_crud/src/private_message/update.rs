@@ -3,32 +3,27 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{get_url_blocklist, local_site_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    private_message::{PrivateMessage, PrivateMessageUpdateForm},
-  },
+  source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PrivateMessageView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn update_private_message(
   data: Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   // Checking permissions
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
@@ -37,23 +32,21 @@ pub async fn update_private_message(
   }
 
   // Doing the update
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
   let private_message_id = data.private_message_id;
-  PrivateMessage::update(
-    &mut context.pool(),
-    private_message_id,
-    &PrivateMessageUpdateForm {
-      content: Some(content),
-      updated: Some(Some(Utc::now())),
-      ..Default::default()
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  let mut form = PrivateMessageUpdateForm {
+    content: Some(content),
+    updated: Some(Some(Utc::now())),
+    ..Default::default()
+  };
+  form = plugin_hook_before("before_update_local_private_message", form).await?;
+  let private_message =
+    PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
+  plugin_hook_after("after_update_local_private_message", &private_message)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 

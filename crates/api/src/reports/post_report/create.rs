@@ -5,44 +5,36 @@ use lemmy_api_common::{
   context::LemmyContext,
   reports::post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_user_action,
-    check_post_deleted_or_removed,
-    send_new_report_email_to_admins,
-  },
+  utils::{check_community_user_action, check_post_deleted_or_removed, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    post_report::{PostReport, PostReportForm},
-  },
+  source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_reports::PostReportView;
+use lemmy_db_views_site::SiteView;
+use lemmy_email::admin::send_new_report_email_to_admins;
+use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
-#[tracing::instrument(skip(context))]
 pub async fn create_post_report(
   data: Json<CreatePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let reason = data.reason.trim().to_string();
-  check_report_reason(&reason, &local_site)?;
+  let slur_regex = slur_regex(&context).await?;
+  check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
   let post_id = data.post_id;
-  let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let local_instance_id = local_user_view.person.instance_id;
+  let post_view =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &post_view.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
 
   check_post_deleted_or_removed(&post_view.post)?;
 
@@ -53,15 +45,15 @@ pub async fn create_post_report(
     original_post_url: post_view.post.url,
     original_post_body: post_view.post.body,
     reason,
+    violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
-  let report = PostReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = PostReport::report(&mut context.pool(), &report_form).await?;
 
   let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &post_report_view.creator.name,

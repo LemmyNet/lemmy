@@ -3,13 +3,19 @@ use activitypub_federation::{
   activity_sending::SendActivityTask,
   config::Data,
   protocol::context::WithContext,
+  traits::ActivityHandler,
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
-use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  FEDERATION_CONTEXT,
+};
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::ops::Deref;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
@@ -66,7 +72,9 @@ pub(crate) enum SendActivityResult {
 /// to send an activity to multiple inbox URLs, with built-in retry logic.
 pub(crate) struct SendRetryTask<'a> {
   pub activity: &'a SentActivity,
-  pub object: &'a SharedInboxActivities,
+  /// The activity data to be sent. Has type `SharedInboxActivities`, but uses `Value` to avoid
+  /// dependency.
+  pub object: &'a Value,
   /// Must not be empty at this point
   pub inbox_urls: Vec<Url>,
   /// Channel to report results back to the main instance worker
@@ -108,7 +116,8 @@ impl SendRetryTask<'_> {
       .await
       .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
-    let object = WithContext::new(object.clone(), FEDERATION_CONTEXT.deref().clone());
+    let object: DummyActivity = serde_json::from_value(object.clone())?;
+    let object = WithContext::new(object, FEDERATION_CONTEXT.deref().clone());
     let requests = SendActivityTask::prepare(&object, actor.as_ref(), inbox_urls, &context).await?;
     for task in requests {
       // usually only one due to shared inbox
@@ -143,6 +152,37 @@ impl SendRetryTask<'_> {
       published: Some(activity.published),
       was_skipped: false,
     }))?;
+    Ok(())
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct DummyActivity {
+  id: Url,
+  actor: Url,
+  #[serde(flatten)]
+  other: Value,
+}
+
+#[async_trait::async_trait]
+impl ActivityHandler for DummyActivity {
+  type DataType = LemmyContext;
+
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    &self.actor
+  }
+
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+    Ok(())
+  }
+
+  async fn receive(self, _context: &Data<LemmyContext>) -> LemmyResult<()> {
     Ok(())
   }
 }

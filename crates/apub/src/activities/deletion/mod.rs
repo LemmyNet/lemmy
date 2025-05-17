@@ -1,25 +1,12 @@
-use super::{generate_to, verify_is_public};
 use crate::{
   activities::{
     community::send_activity_in_community,
     send_lemmy_activity,
     verify_mod_action,
     verify_person,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-    private_message::ApubPrivateMessage,
-  },
-  protocol::{
-    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
-    InCommunity,
-  },
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{
   config::Data,
@@ -29,6 +16,19 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_apub_objects::{
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    private_message::ApubPrivateMessage,
+  },
+  utils::{
+    functions::{generate_to, verify_is_public, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -40,6 +40,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 use url::Url;
@@ -49,7 +50,6 @@ pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
@@ -79,7 +79,6 @@ pub(crate) async fn send_apub_delete_in_community(
   .await
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) async fn send_apub_delete_private_message(
   actor: &ApubPerson,
   pm: DbPrivateMessage,
@@ -129,7 +128,6 @@ pub enum DeletableObjects {
 }
 
 impl DeletableObjects {
-  #[tracing::instrument(skip_all)]
   pub(crate) async fn read_from_db(
     ap_id: &Url,
     context: &Data<LemmyContext>,
@@ -163,7 +161,6 @@ impl DeletableObjects {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn verify_delete_activity(
   activity: &Delete,
   is_mod_action: bool,
@@ -184,7 +181,7 @@ pub(in crate::activities) async fn verify_delete_activity(
     DeletableObjects::Person(person) => {
       verify_is_public(&activity.to, &[])?;
       verify_person(&activity.actor, context).await?;
-      verify_urls_match(person.actor_id.inner(), activity.object.id())?;
+      verify_urls_match(person.ap_id.inner(), activity.object.id())?;
     }
     DeletableObjects::Post(p) => {
       let community = activity.community(context).await?;
@@ -218,7 +215,6 @@ pub(in crate::activities) async fn verify_delete_activity(
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 async fn verify_delete_post_or_comment(
   actor: &ObjectId<ApubPerson>,
   object_id: &Url,
@@ -237,7 +233,6 @@ async fn verify_delete_post_or_comment(
 }
 
 /// Write deletion or restoring of an object to the database, and send websocket message.
-#[tracing::instrument(skip_all)]
 async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
@@ -265,10 +260,13 @@ async fn receive_delete_action(
       .await?;
     }
     DeletableObjects::Person(person) => {
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      let local_instance_id = site_view.site.instance_id;
+
       if do_purge_user_account.unwrap_or(false) {
-        purge_user_account(person.id, context).await?;
+        purge_user_account(person.id, local_instance_id, context).await?;
       } else {
-        Person::delete_account(&mut context.pool(), person.id).await?;
+        Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }
     }
     DeletableObjects::Post(post) => {

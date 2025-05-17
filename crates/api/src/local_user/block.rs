@@ -4,14 +4,13 @@ use lemmy_api_common::{
   person::{BlockPerson, BlockPersonResponse},
 };
 use lemmy_db_schema::{
-  source::person_block::{PersonBlock, PersonBlockForm},
+  source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn user_block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
@@ -19,16 +18,14 @@ pub async fn user_block_person(
 ) -> LemmyResult<Json<BlockPersonResponse>> {
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
+  let local_instance_id = local_user_view.person.instance_id;
 
   // Don't let a person block themselves
   if target_id == person_id {
     Err(LemmyErrorType::CantBlockYourself)?
   }
 
-  let person_block_form = PersonBlockForm {
-    person_id,
-    target_id,
-  };
+  let person_block_form = PersonBlockForm::new(person_id, target_id);
 
   let target_user = LocalUserView::read_person(&mut context.pool(), target_id)
     .await
@@ -39,16 +36,13 @@ pub async fn user_block_person(
   }
 
   if data.block {
-    PersonBlock::block(&mut context.pool(), &person_block_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
+    PersonActions::block(&mut context.pool(), &person_block_form).await?;
   } else {
-    PersonBlock::unblock(&mut context.pool(), &person_block_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
+    PersonActions::unblock(&mut context.pool(), &person_block_form).await?;
   }
 
-  let person_view = PersonView::read(&mut context.pool(), target_id, false).await?;
+  let person_view =
+    PersonView::read(&mut context.pool(), target_id, local_instance_id, false).await?;
   Ok(Json(BlockPersonResponse {
     person_view,
     blocked: data.block,

@@ -27,6 +27,8 @@ import {
   ListInboxResponse,
   ListInbox,
   InboxDataType,
+  GetModlogResponse,
+  GetModlog,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -83,6 +85,7 @@ import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
+import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_types";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
@@ -153,12 +156,6 @@ export async function setupLogins() {
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
     registration_mode: "Open",
-    rate_limit_message: 999,
-    rate_limit_post: 999,
-    rate_limit_register: 999,
-    rate_limit_image: 999,
-    rate_limit_comment: 999,
-    rate_limit_search: 999,
   };
   await alpha.editSite(editSiteForm);
   await beta.editSite(editSiteForm);
@@ -199,7 +196,7 @@ export async function setupLogins() {
   }
 }
 
-async function allowInstance(api: LemmyHttp, instance: string) {
+export async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,
@@ -324,9 +321,8 @@ export async function searchPostLocal(
   post: Post,
 ): Promise<SearchResponse> {
   let form: Search = {
-    q: post.name,
+    search_term: post.name,
     type_: "Posts",
-    sort: "TopAll",
     listing_type: "All",
   };
   return api.search(form);
@@ -339,7 +335,7 @@ export async function waitForPost(
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
   return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.posts[0]),
+    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
     checker,
   );
 }
@@ -469,8 +465,10 @@ export async function followCommunity(
   const res = await api.followCommunity(form);
   await waitUntil(
     () => getCommunity(api, res.community_view.community.id),
-    g =>
-      g.community_view.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+    g => {
+      let followState = g.community_view.community_actions?.follow_state;
+      return follow ? followState === "Accepted" : followState === undefined;
+    },
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
   await delay(2000);
@@ -801,8 +799,9 @@ export async function reportPost(
 
 export async function listReports(
   api: LemmyHttp,
+  show_community_rule_violations: boolean = false,
 ): Promise<ListReportsResponse> {
-  let form: ListReports = {};
+  let form: ListReports = { show_community_rule_violations };
   return api.listReports(form);
 }
 
@@ -873,7 +872,6 @@ export function listCommunityPendingFollows(
   let form: ListCommunityPendingFollows = {
     pending_only: true,
     all_communities: false,
-    page: 1,
     limit: 50,
   };
   return api.listCommunityPendingFollows(form);
@@ -883,7 +881,8 @@ export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
   community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  return api.getCommunityPendingFollowsCount(community_id);
+  let form: GetCommunityPendingFollowsCountI = { community_id };
+  return api.getCommunityPendingFollowsCount(form);
 }
 
 export function approveCommunityPendingFollow(
@@ -898,6 +897,10 @@ export function approveCommunityPendingFollow(
     approve,
   };
   return api.approveCommunityPendingFollow(form);
+}
+export function getModlog(api: LemmyHttp): Promise<GetModlogResponse> {
+  let form: GetModlog = {};
+  return api.getModlog(form);
 }
 
 export function delay(millis = 500) {
@@ -923,8 +926,8 @@ export function randomString(length: number): string {
   return result;
 }
 
-export async function deleteAllImages(api: LemmyHttp) {
-  const imagesRes = await api.listAllMedia({
+export async function deleteAllMedia(api: LemmyHttp) {
+  const imagesRes = await api.listMediaAdmin({
     limit: imageFetchLimit,
   });
   Promise.all(
@@ -935,7 +938,7 @@ export async function deleteAllImages(api: LemmyHttp) {
         };
         return form;
       })
-      .map(form => api.deleteImage(form)),
+      .map(form => api.deleteMediaAdmin(form)),
   );
 }
 

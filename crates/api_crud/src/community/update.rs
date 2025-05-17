@@ -9,37 +9,38 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
+    check_nsfw_allowed,
     get_url_blocklist,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
-    local_site::LocalSite,
   },
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
@@ -57,13 +58,7 @@ pub async fn update_community(
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify its a mod (only mods can edit it)
-  check_community_mod_action(
-    &local_user_view.person,
-    &old_community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &old_community, false, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {
@@ -89,9 +84,7 @@ pub async fn update_community(
   };
 
   let community_id = data.community_id;
-  let community = Community::update(&mut context.pool(), community_id, &community_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),

@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::{PostId, PostReportId};
-use lemmy_db_views::structs::PostReportView;
+use lemmy_db_views_reports::PostReportView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -11,6 +11,8 @@ use ts_rs::TS;
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub violates_instance_rules: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

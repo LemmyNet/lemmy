@@ -1,7 +1,7 @@
 use crate::newtypes::{DbUrl, PersonId, PostId, PostReportId};
-#[cfg(feature = "full")]
-use crate::schema::post_report;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::post_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -37,6 +37,7 @@ pub struct PostReport {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  pub violates_instance_rules: bool,
 }
 
 #[derive(Clone, Default)]
@@ -49,4 +50,5 @@ pub struct PostReportForm {
   pub original_post_url: Option<DbUrl>,
   pub original_post_body: Option<String>,
   pub reason: String,
+  pub violates_instance_rules: bool,
 }

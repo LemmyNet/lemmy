@@ -4,29 +4,31 @@ use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PostOrCommentId},
   source::{
-    comment::{CommentLike, CommentLikeForm},
+    comment::{CommentActions, CommentLikeForm},
     comment_reply::CommentReply,
-    local_site::LocalSite,
   },
   traits::Likeable,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
+use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn like_comment(
   data: Json<CreateCommentLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
@@ -45,11 +47,12 @@ pub async fn like_comment(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     &mut context.pool(),
   )
@@ -65,23 +68,20 @@ pub async fn like_comment(
     }
   }
 
-  let like_form = CommentLikeForm {
-    comment_id: data.comment_id,
-    person_id: local_user_view.person.id,
-    score: data.score,
-  };
+  let mut like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
 
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
 
   // Only add the like if the score isnt 0
-  let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
+  let do_add =
+    like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
   if do_add {
-    CommentLike::like(&mut context.pool(), &like_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+    plugin_hook_after("after_comment_vote", &like)?;
   }
 
   ActivityChannel::submit_activity(
@@ -100,6 +100,7 @@ pub async fn like_comment(
       comment_id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

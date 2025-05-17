@@ -12,10 +12,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView};
+use lemmy_db_views_custom_emoji::CustomEmojiView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn update_custom_emoji(
   data: Json<EditCustomEmoji>,
   context: Data<LemmyContext>,

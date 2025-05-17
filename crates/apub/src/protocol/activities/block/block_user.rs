@@ -1,8 +1,4 @@
-use crate::{
-  activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::InCommunity,
-};
+use crate::activities::block::SiteOrCommunity;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -12,6 +8,10 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -40,7 +40,6 @@ pub struct BlockUser {
   pub(crate) end_time: Option<DateTime<Utc>>,
 }
 
-#[async_trait::async_trait]
 impl InCommunity for BlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let target = self.target.dereference(context).await?;

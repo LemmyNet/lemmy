@@ -1,15 +1,25 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
-use activitypub_federation::{config::Data, traits::Actor};
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, person::PersonFollower},
-  CommunityVisibility,
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
+  PostOrComment,
 };
+use lemmy_db_schema::{
+  source::{
+    activity::ActivitySendTargets,
+    person::{Person, PersonActions},
+    site::Site,
+  },
+  traits::Crud,
+};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod announce;
@@ -17,6 +27,7 @@ pub mod collection_add;
 pub mod collection_remove;
 pub mod lock_page;
 pub mod report;
+pub mod resolve_report;
 pub mod update;
 
 /// This function sends all activities which are happening in a community to the right inboxes.
@@ -42,7 +53,7 @@ pub(crate) async fn send_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   // If community is local only, don't send anything out
-  if community.visibility == CommunityVisibility::LocalOnly {
+  if !community.visibility.can_federate() {
     return Ok(());
   }
 
@@ -52,7 +63,7 @@ pub(crate) async fn send_activity_in_community(
   // send to user followers
   if !is_mod_action {
     inboxes.add_inboxes(
-      PersonFollower::list_followers(&mut context.pool(), actor.id)
+      PersonActions::list_followers(&mut context.pool(), actor.id)
         .await?
         .into_iter()
         .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
@@ -69,4 +80,38 @@ pub(crate) async fn send_activity_in_community(
 
   send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
   Ok(())
+}
+
+async fn report_inboxes(
+  object_id: ObjectId<PostOrComment>,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<ActivitySendTargets> {
+  // send report to the community where object was posted
+  let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+
+  if community.local {
+    // send to all moderators
+    let moderators =
+      CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+    for m in moderators {
+      inboxes.add_inbox(m.moderator.inbox_url.into());
+    }
+
+    // also send report to user's home instance if possible
+    let object_creator_id = match object_id.dereference_local(context).await? {
+      PostOrComment::Left(p) => p.creator_id,
+      PostOrComment::Right(c) => c.creator_id,
+    };
+    let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
+    let object_creator_site: Option<ApubSite> =
+      Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
+        .await
+        .ok()
+        .map(Into::into);
+    if let Some(inbox) = object_creator_site.map(|s| s.shared_inbox_or_inbox()) {
+      inboxes.add_inbox(inbox);
+    }
+  }
+  Ok(inboxes)
 }

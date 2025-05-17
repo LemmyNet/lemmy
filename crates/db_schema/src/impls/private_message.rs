@@ -1,40 +1,45 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{DbUrl, PersonId, PrivateMessageId},
-  schema::private_message,
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
   utils::{functions::coalesce, get_conn, DbPool},
 };
 use chrono::{DateTime, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::schema::private_message;
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use url::Url;
 
-#[async_trait]
 impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
   }
 
   async fn update(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(private_message::table.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
   }
 }
 
@@ -43,7 +48,7 @@ impl PrivateMessage {
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PrivateMessageInsertForm,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message::table)
       .values(form)
@@ -53,12 +58,13 @@ impl PrivateMessage {
       .set(form)
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
   }
 
   pub async fn mark_all_as_read(
     pool: &mut DbPool<'_>,
     for_recipient_id: PersonId,
-  ) -> Result<Vec<PrivateMessage>, Error> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
       private_message::table
@@ -68,12 +74,13 @@ impl PrivateMessage {
     .set(private_message::read.eq(true))
     .get_results::<Self>(conn)
     .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
   }
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     private_message::table
@@ -81,6 +88,27 @@ impl PrivateMessage {
       .first(conn)
       .await
       .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/private_message/{}", self.id))?.into())
+  }
+
+  pub async fn update_removed_for_creator(
+    pool: &mut DbPool<'_>,
+    for_creator_id: PersonId,
+    removed: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(private_message::table.filter(private_message::creator_id.eq(for_creator_id)))
+      .set((
+        private_message::removed.eq(removed),
+        private_message::updated.eq(Utc::now()),
+      ))
+      .get_results::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
   }
 }
 
@@ -140,6 +168,7 @@ mod tests {
       ))?
       .into(),
       local: true,
+      removed: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;

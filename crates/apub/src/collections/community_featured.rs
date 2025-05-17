@@ -1,7 +1,4 @@
-use crate::{
-  objects::{community::ApubCommunity, post::ApubPost},
-  protocol::collections::group_featured::GroupFeatured,
-};
+use crate::protocol::collections::group_featured::GroupFeatured;
 use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
@@ -10,6 +7,7 @@ use activitypub_federation::{
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
+use lemmy_apub_objects::objects::{community::ApubCommunity, post::ApubPost};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   utils::FETCH_LIMIT_MAX,
@@ -41,8 +39,8 @@ impl Collection for ApubCommunityFeatured {
     .await?;
     Ok(GroupFeatured {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_featured_url(&owner.actor_id)?.into(),
-      total_items: ordered_items.len() as i32,
+      id: generate_featured_url(&owner.ap_id)?.into(),
+      total_items: ordered_items.len().try_into()?,
       ordered_items,
     })
   }
@@ -65,22 +63,15 @@ impl Collection for ApubCommunityFeatured {
     Self: Sized,
   {
     let mut pages = apub.ordered_items;
-    if pages.len() as i64 > FETCH_LIMIT_MAX {
-      pages = pages
-        .get(0..(FETCH_LIMIT_MAX as usize))
-        .unwrap_or_default()
-        .to_vec();
+    if pages.len() > FETCH_LIMIT_MAX {
+      pages = pages.get(0..FETCH_LIMIT_MAX).unwrap_or_default().to_vec();
     }
 
     // process items in parallel, to avoid long delay from fetch_site_metadata() and other
     // processing
-    let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| {
-      async {
-        // use separate request counter for each item, otherwise there will be problems with
-        // parallel processing
-        ApubPost::verify(&page, &apub.id, context).await?;
-        ApubPost::from_json(page, context).await
-      }
+    let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| async move {
+      // Dont verify/receive the `page` directly because it throws error for local post
+      page.id.dereference(context).await
     }))
     .await
     // ignore any failed or unparseable items

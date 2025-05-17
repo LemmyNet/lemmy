@@ -1,8 +1,4 @@
-use crate::fetcher::{
-  post_or_comment::PostOrComment,
-  search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
-  user_or_community::UserOrCommunity,
-};
+use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -10,18 +6,22 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
-use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
-use lemmy_db_views_actor::structs::{CommunityView, PersonView};
+use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
+use lemmy_db_schema::utils::DbPool;
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.
@@ -50,18 +50,25 @@ async fn convert_response(
   let local_user = local_user_view.map(|l| l.local_user);
   let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
 
+  let site_view = SiteView::read_local(pool).await?;
+  let local_instance_id = site_view.site.instance_id;
+
   match object {
-    SearchableObjects::PostOrComment(pc) => match *pc {
-      PostOrComment::Post(p) => {
-        res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), is_admin).await?)
+    SearchableObjects::Left(pc) => match pc {
+      PostOrComment::Left(p) => {
+        res.post =
+          Some(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
       }
-      PostOrComment::Comment(c) => {
-        res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
+      PostOrComment::Right(c) => {
+        res.comment =
+          Some(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
       }
     },
-    SearchableObjects::PersonOrCommunity(pc) => match *pc {
-      UserOrCommunity::User(u) => res.person = Some(PersonView::read(pool, u.id, is_admin).await?),
-      UserOrCommunity::Community(c) => {
+    SearchableObjects::Right(pc) => match pc {
+      UserOrCommunity::Left(u) => {
+        res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
+      }
+      UserOrCommunity::Right(c) => {
         res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
       }
     },
@@ -79,13 +86,13 @@ mod tests {
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::LocalSite,
       post::{Post, PostInsertForm, PostUpdateForm},
-      site::{Site, SiteInsertForm},
     },
     traits::Crud,
   };
-  use lemmy_db_views::structs::LocalUserView;
+  use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
 
@@ -95,6 +102,7 @@ mod tests {
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
+    let instance = create_test_instance(pool).await?;
 
     let name = "test_local_user_name";
     let bio = "test_local_user_bio";
@@ -103,21 +111,10 @@ mod tests {
     let regular_user = LocalUserView::create_test_user(pool, name, bio, false).await?;
     let admin_user = LocalUserView::create_test_user(pool, name, bio, true).await?;
 
-    let instance_id = creator.person.instance_id;
-    let site_form = SiteInsertForm::new("test site".to_string(), instance_id);
-    let site = Site::create(pool, &site_form).await?;
-
-    let local_site_form = LocalSiteInsertForm {
-      site_setup: Some(true),
-      private_instance: Some(false),
-      ..LocalSiteInsertForm::new(site.id)
-    };
-    LocalSite::create(pool, &local_site_form).await?;
-
     let community = Community::create(
       pool,
       &CommunityInsertForm::new(
-        instance_id,
+        instance.id,
         "test".to_string(),
         "test".to_string(),
         "pubkey".to_string(),
@@ -182,8 +179,7 @@ mod tests {
     assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
 
     LocalSite::delete(pool).await?;
-    Site::delete(pool, site.id).await?;
-    Instance::delete(pool, instance_id).await?;
+    Instance::delete(pool, instance.id).await?;
 
     Ok(())
   }

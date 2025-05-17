@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 #[cfg(feature = "full")]
-use {crate::schema::federation_blocklist, ts_rs::TS};
+use {lemmy_db_schema_file::schema::federation_blocklist, ts_rs::TS};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(

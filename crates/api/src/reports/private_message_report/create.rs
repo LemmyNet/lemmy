@@ -3,29 +3,29 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::send_new_report_email_to_admins,
+  utils::slur_regex,
 };
 use lemmy_db_schema::{
   source::{
-    local_site::LocalSite,
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::PrivateMessageReportView;
+use lemmy_db_views_site::SiteView;
+use lemmy_email::admin::send_new_report_email_to_admins;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn create_pm_report(
   data: Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
   let reason = data.reason.trim().to_string();
-  check_report_reason(&reason, &local_site)?;
+  let slur_regex = slur_regex(&context).await?;
+  check_report_reason(&reason, &slur_regex)?;
 
   let person_id = local_user_view.person.id;
   let private_message_id = data.private_message_id;
@@ -43,14 +43,13 @@ pub async fn create_pm_report(
     reason,
   };
 
-  let report = PrivateMessageReport::report(&mut context.pool(), &report_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+  let report = PrivateMessageReport::report(&mut context.pool(), &report_form).await?;
 
   let private_message_report_view =
     PrivateMessageReportView::read(&mut context.pool(), report.id).await?;
 
   // Email the admins
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &private_message_report_view.creator.name,

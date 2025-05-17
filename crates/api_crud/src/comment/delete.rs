@@ -12,20 +12,22 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn delete_comment(
   data: Json<DeleteComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
+  let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
     Some(&local_user_view.local_user),
+    local_instance_id,
   )
   .await?;
 
@@ -35,7 +37,7 @@ pub async fn delete_comment(
   }
 
   check_community_user_action(
-    &local_user_view.person,
+    &local_user_view,
     &orig_comment.community,
     &mut context.pool(),
   )
@@ -56,8 +58,7 @@ pub async fn delete_comment(
       ..Default::default()
     },
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .await?;
 
   let recipient_ids = send_local_notifs(
     vec![],
@@ -66,6 +67,7 @@ pub async fn delete_comment(
     false,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
   let updated_comment_id = updated_comment.id;
@@ -85,6 +87,7 @@ pub async fn delete_comment(
       updated_comment_id,
       Some(local_user_view),
       recipient_ids,
+      local_instance_id,
     )
     .await?,
   ))

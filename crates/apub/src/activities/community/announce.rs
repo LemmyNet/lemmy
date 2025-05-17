@@ -1,20 +1,10 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    generate_announce_activity_id,
-    generate_to,
-    send_lemmy_activity,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{generate_activity_id, generate_announce_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
-    Id,
     IdOrNestedObject,
-    InCommunity,
   },
 };
 use activitypub_federation::{
@@ -23,10 +13,14 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityFollower},
-  CommunityVisibility,
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::{Id, InCommunity},
+  },
 };
+use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
@@ -44,12 +38,10 @@ impl ActivityHandler for RawAnnouncableActivities {
     &self.actor
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
 
@@ -64,13 +56,13 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // verify and receive activity
     activity.verify(context).await?;
-    let actor_id = activity.actor().clone().into();
+    let ap_id = activity.actor().clone().into();
     activity.receive(context).await?;
 
     // if community is local, send activity to followers
     if let Some(community) = community {
       if community.local {
-        verify_person_in_community(&actor_id, &community, context).await?;
+        verify_person_in_community(&ap_id, &community, context).await?;
         AnnounceActivity::send(self, &community, context).await?;
       }
     }
@@ -107,7 +99,6 @@ impl AnnounceActivity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
@@ -154,12 +145,10 @@ impl ActivityHandler for AnnounceActivity {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
@@ -216,11 +205,11 @@ async fn can_accept_activity_in_community(
 ) -> LemmyResult<()> {
   if let Some(community) = community {
     // Local only community can't federate
-    if community.visibility == CommunityVisibility::LocalOnly {
+    if !community.visibility.can_federate() {
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?
+      CommunityActions::check_has_local_followers(&mut context.pool(), community.id).await?
     }
   }
   Ok(())

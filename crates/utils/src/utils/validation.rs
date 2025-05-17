@@ -1,8 +1,9 @@
-use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
+use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
@@ -25,6 +26,10 @@ const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
+const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
+const TAG_NAME_MIN_LENGTH: usize = 3;
+const TAG_NAME_MAX_LENGTH: usize = 100;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',
@@ -86,7 +91,7 @@ fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
@@ -95,6 +100,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   min_length_check(name, 3, LemmyErrorType::InvalidName)?;
   max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
   if VALID_ACTOR_NAME_REGEX.is_match(name) {
@@ -121,7 +127,8 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   let check = !name.starts_with('@')
     && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
     && name.chars().count() <= actor_name_max_length
@@ -196,6 +203,19 @@ pub fn site_or_community_description_length_check(description: &str) -> LemmyRes
   )
 }
 
+pub fn tag_name_length_check(tag_name: &str) -> LemmyResult<()> {
+  min_length_check(
+    tag_name,
+    TAG_NAME_MIN_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )?;
+  max_length_check(
+    tag_name,
+    TAG_NAME_MAX_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )
+}
+
 /// Check minimum and maximum length of input string. If the string is too short or too long, the
 /// corresponding error is returned.
 ///
@@ -221,31 +241,34 @@ fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> L
 }
 
 /// Attempts to build a regex and check it for common errors before inserting into the DB.
-pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> Option<LemmyResult<Regex>> {
+pub fn build_and_check_regex(regex_str_opt: Option<&str>) -> LemmyResult<Regex> {
+  // Placeholder regex which doesnt match anything
+  // https://stackoverflow.com/a/940840
+  let match_nothing = RegexBuilder::new("a^")
+    .build()
+    .with_lemmy_type(LemmyErrorType::InvalidRegex);
   if let Some(regex) = regex_str_opt {
     if regex.is_empty() {
-      None
+      match_nothing
     } else {
-      Some(
-        RegexBuilder::new(regex)
-          .case_insensitive(true)
-          .build()
-          .with_lemmy_type(LemmyErrorType::InvalidRegex)
-          .and_then(|regex| {
-            // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
-            // may match against any string text. To keep it simple, we'll match the regex
-            // against an innocuous string - a single number - which should help catch a regex
-            // that accidentally matches against all strings.
-            if regex.is_match("1") {
-              Err(LemmyErrorType::PermissiveRegex.into())
-            } else {
-              Ok(regex)
-            }
-          }),
-      )
+      RegexBuilder::new(regex)
+        .case_insensitive(true)
+        .build()
+        .with_lemmy_type(LemmyErrorType::InvalidRegex)
+        .and_then(|regex| {
+          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
+          // may match against any string text. To keep it simple, we'll match the regex
+          // against an innocuous string - a single number - which should help catch a regex
+          // that accidentally matches against all strings.
+          if regex.is_match("1") {
+            Err(LemmyErrorType::PermissiveRegex.into())
+          } else {
+            Ok(regex)
+          }
+        })
     }
   } else {
-    None
+    match_nothing
   }
 }
 
@@ -264,22 +287,6 @@ pub fn clean_urls_in_text(text: &str) -> String {
     Ok(res) => res.into_owned(),
     // If there are any errors, just return the original text
     Err(_) => text.to_owned(),
-  }
-}
-
-pub fn check_site_visibility_valid(
-  current_private_instance: bool,
-  current_federation_enabled: bool,
-  new_private_instance: &Option<bool>,
-  new_federation_enabled: &Option<bool>,
-) -> LemmyResult<()> {
-  let private_instance = new_private_instance.unwrap_or(current_private_instance);
-  let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
-
-  if private_instance && federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
-  } else {
-    Ok(())
   }
 }
 
@@ -316,6 +323,25 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   Ok(unique_urls)
 }
 
+pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> LemmyResult<()> {
+  for keyword in blocking_keywords {
+    min_length_check(
+      keyword,
+      MIN_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooShort,
+    )?;
+    max_length_check(
+      keyword,
+      MAX_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooLong,
+    )?;
+  }
+  if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
+}
+
 pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   // Parse and check for errors
   let mut url = Url::parse(url_str).or_else(|e| {
@@ -345,6 +371,45 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   Ok(out)
 }
 
+// Shorten a string to n chars, being mindful of unicode grapheme
+// boundaries
+pub fn truncate_for_db(text: &str, len: usize) -> String {
+  if text.chars().count() <= len {
+    text.to_string()
+  } else {
+    let offset = text
+      .char_indices()
+      .nth(len)
+      .unwrap_or(text.char_indices().last().unwrap_or_default());
+    let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
+    let mut index = 0;
+    // Walk the string backwards and find the first char within our length
+    for idx in (0..graphemes.len()).rev() {
+      if let Some(grapheme) = graphemes.get(idx) {
+        if grapheme.0 < offset.0 {
+          index = idx;
+          break;
+        }
+      }
+    }
+    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let grapheme_count = grapheme.1.chars().count();
+    // `take` isn't inclusive, so if the last grapheme can fit we add its char
+    // length
+    let char_count = if grapheme_count + grapheme.0 <= len {
+      grapheme.0 + grapheme_count
+    } else {
+      grapheme.0
+    };
+
+    text.chars().take(char_count).collect::<String>()
+  }
+}
+
+pub fn truncate_description(text: &str) -> String {
+  truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -352,7 +417,6 @@ mod tests {
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       build_and_check_regex,
-      check_site_visibility_valid,
       check_urls_are_valid,
       clean_url,
       clean_urls_in_text,
@@ -365,6 +429,7 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       site_or_community_description_length_check,
+      truncate_for_db,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -566,63 +631,44 @@ Line3",
   }
 
   #[test]
-  fn test_valid_slur_regex() {
+  fn test_valid_slur_regex() -> LemmyResult<()> {
     let valid_regex = Some("(foo|bar)");
-    let result = build_and_check_regex(&valid_regex);
-    assert!(
-      result.is_some_and(|x| x.is_ok()),
-      "Testing regex: {:?}",
-      valid_regex
-    );
-  }
+    build_and_check_regex(valid_regex)?;
 
-  #[test]
-  fn test_missing_slur_regex() {
     let missing_regex = None;
-    let result = build_and_check_regex(&missing_regex);
-    assert!(result.is_none());
-  }
+    let match_none = build_and_check_regex(missing_regex)?;
+    assert!(!match_none.is_match(""));
+    assert!(!match_none.is_match("a"));
 
-  #[test]
-  fn test_empty_slur_regex() {
     let empty = Some("");
-    let result = build_and_check_regex(&empty);
-    assert!(result.is_none());
+    let match_none = build_and_check_regex(empty)?;
+    assert!(!match_none.is_match(""));
+    assert!(!match_none.is_match("a"));
+
+    Ok(())
   }
 
   #[test]
   fn test_too_permissive_slur_regex() {
     let match_everything_regexes = [
-      (&Some("["), LemmyErrorType::InvalidRegex),
-      (&Some("(foo|bar|)"), LemmyErrorType::PermissiveRegex),
-      (&Some(".*"), LemmyErrorType::PermissiveRegex),
+      (Some("["), LemmyErrorType::InvalidRegex),
+      (Some("(foo|bar|)"), LemmyErrorType::PermissiveRegex),
+      (Some(".*"), LemmyErrorType::PermissiveRegex),
     ];
 
     match_everything_regexes
-      .iter()
+      .into_iter()
       .for_each(|(regex_str, expected_err)| {
         let result = build_and_check_regex(regex_str);
 
-        assert!(result.as_ref().is_some_and(Result::is_err));
+        assert!(result.is_err());
         assert!(
-          result.is_some_and(|x| x.is_err_and(|e| e.error_type.eq(&expected_err.clone()))),
+          result.is_err_and(|e| e.error_type.eq(&expected_err.clone())),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err
         );
       });
-  }
-
-  #[test]
-  fn test_check_site_visibility_valid() {
-    assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
-    assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &Some(true)).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
   }
 
   #[test]
@@ -685,6 +731,16 @@ Line3",
     );
 
     assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
+    Ok(())
+  }
+
+  #[test]
+  fn test_truncate() -> LemmyResult<()> {
+    assert_eq!("Hell", truncate_for_db("Hello", 4));
+    assert_eq!("word", truncate_for_db("word", 10));
+    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
+    assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+
     Ok(())
   }
 }

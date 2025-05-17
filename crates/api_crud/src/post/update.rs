@@ -1,18 +1,22 @@
-use super::{convert_published_time, create::send_webmention};
+use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
+    check_nsfw_allowed,
     get_url_blocklist,
-    local_site_to_slur_regex,
     process_markdown_opt,
+    send_webmention,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -20,15 +24,17 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     community::Community,
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -43,27 +49,28 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let local_instance_id = local_user_view.person.instance_id;
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
 
   let body = diesel_string_update(
     process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
+
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 
@@ -90,14 +97,24 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(
-    &local_user_view.person,
-    &orig_post.community,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
+
+  if let Some(tags) = &data.tags {
+    // post view does not include communityview.post_tags
+    let community_view =
+      CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
+    update_post_tags(
+      &context,
+      &orig_post.post,
+      &community_view,
+      tags,
+      &local_user_view,
+    )
+    .await?;
+  }
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
@@ -127,7 +144,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let post_form = PostUpdateForm {
+  let mut post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -138,11 +155,11 @@ pub async fn update_post(
     scheduled_publish_time,
     ..Default::default()
   };
+  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
-  let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+  let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
+  plugin_hook_after("after_update_local_post", &post_form)?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());
@@ -153,6 +170,7 @@ pub async fn update_post(
     false,
     &context,
     Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
@@ -164,7 +182,7 @@ pub async fn update_post(
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
       let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
-      send_webmention(updated_post.clone(), community);
+      send_webmention(updated_post.clone(), &community);
       generate_post_link_metadata(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),

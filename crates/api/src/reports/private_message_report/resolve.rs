@@ -5,10 +5,10 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
-use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_reports::PrivateMessageReportView;
+use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn resolve_pm_report(
   data: Json<ResolvePrivateMessageReport>,
   context: Data<LemmyContext>,
@@ -19,13 +19,9 @@ pub async fn resolve_pm_report(
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
   if data.resolved {
-    PrivateMessageReport::resolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    PrivateMessageReport::resolve(&mut context.pool(), report_id, person_id).await?;
   } else {
-    PrivateMessageReport::unresolve(&mut context.pool(), report_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+    PrivateMessageReport::unresolve(&mut context.pool(), report_id, person_id).await?;
   }
 
   let private_message_report_view =

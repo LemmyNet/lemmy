@@ -1,40 +1,46 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{ListInbox, ListInboxResponse},
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views_inbox_combined::{
+  impls::InboxCombinedQuery,
+  InboxCombinedView,
+  ListInbox,
+  ListInboxResponse,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::inbox_combined_view::InboxCombinedQuery;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_inbox(
   data: Query<ListInbox>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListInboxResponse>> {
-  let unread_only = data.unread_only;
-  let type_ = data.type_;
   let person_id = local_user_view.person.id;
-  let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
+  let local_instance_id = local_user_view.person.instance_id;
 
-  // parse pagination token
-  let page_after = if let Some(pa) = &data.page_cursor {
-    Some(pa.read(&mut context.pool()).await?)
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(InboxCombinedView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
-  let page_back = data.page_back;
 
   let inbox = InboxCombinedQuery {
-    type_,
-    unread_only,
-    show_bot_accounts,
-    page_after,
-    page_back,
+    type_: data.type_,
+    unread_only: data.unread_only,
+    show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
+    cursor_data,
+    page_back: data.page_back,
+    limit: data.limit,
   }
-  .list(&mut context.pool(), person_id)
+  .list(&mut context.pool(), person_id, local_instance_id)
   .await?;
 
-  Ok(Json(ListInboxResponse { inbox }))
+  let next_page = inbox.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = inbox.first().map(PaginationCursorBuilder::to_cursor);
+
+  Ok(Json(ListInboxResponse {
+    inbox,
+    next_page,
+    prev_page,
+  }))
 }

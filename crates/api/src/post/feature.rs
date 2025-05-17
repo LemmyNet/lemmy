@@ -16,10 +16,9 @@ use lemmy_db_schema::{
   traits::Crud,
   PostFeatureType,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn feature_post(
   data: Json<FeaturePost>,
   context: Data<LemmyContext>,
@@ -29,13 +28,7 @@ pub async fn feature_post(
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
-  check_community_mod_action(
-    &local_user_view.person,
-    &community,
-    false,
-    &mut context.pool(),
-  )
-  .await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   if data.feature_type == PostFeatureType::Local {
     is_admin(&local_user_view)?;

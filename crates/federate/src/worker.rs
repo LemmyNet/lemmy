@@ -143,10 +143,11 @@ impl InstanceWorker {
       // send a new activity if there is one
       self.inbox_collector.update_communities().await?;
       let next_id_to_send = ActivityId(last_sent_id.0 + 1);
+      let successfuls_len: i64 = self.successfuls.len().try_into()?;
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
         let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
-          last_successful_id.0 + (self.successfuls.len() as i64) + i64::from(self.in_flight) + 1
+          last_successful_id.0 + successfuls_len + i64::from(self.in_flight) + 1
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {
@@ -298,7 +299,9 @@ impl InstanceWorker {
         updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
-      Instance::update(&mut self.pool(), self.instance.id, form).await?;
+      Instance::update(&mut self.pool(), self.instance.id, form)
+        .await
+        .map_err(|e| anyhow::anyhow!(e))?;
     }
     Ok(())
   }
@@ -360,7 +363,7 @@ impl InstanceWorker {
         }))?;
       return Ok(());
     };
-    let activity = &ele.0;
+    let activity = &ele;
     let inbox_urls = self.inbox_collector.get_inbox_urls(activity).await?;
     if inbox_urls.is_empty() {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
@@ -388,8 +391,8 @@ impl InstanceWorker {
     let mut report = self.report_send_result.clone();
     tokio::spawn(async move {
       let res = SendRetryTask {
-        activity: &ele.0,
-        object: &ele.1,
+        activity: &ele,
+        object: &ele.data,
         inbox_urls,
         report: &mut report,
         initial_fail_count,
@@ -402,7 +405,7 @@ impl InstanceWorker {
       if let Err(e) = res {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
-          ele.0.ap_id,
+          ele.ap_id,
           e
         );
         // An error in this location means there is some deeper internal issue with the activity,
@@ -425,7 +428,9 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
-    FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
+    FederationQueueState::upsert(&mut self.pool(), &self.state)
+      .await
+      .map_err(|e| anyhow::anyhow!(e))?;
     self.stats_sender.send(FederationQueueStateWithDomain {
       state: self.state.clone(),
       domain: self.instance.domain.clone(),
@@ -453,11 +458,12 @@ mod test {
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{
-      activity::{ActorType, SentActivity, SentActivityForm},
+      activity::{SentActivity, SentActivityForm},
       person::{Person, PersonInsertForm},
     },
     traits::Crud,
   };
+  use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
   use serial_test::serial;
@@ -487,9 +493,9 @@ mod test {
       let instance = Instance::read_or_create(&mut context.pool(), "localhost".to_string()).await?;
 
       let actor_keypair = generate_actor_keypair()?;
-      let actor_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
+      let ap_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
       let person_form = PersonInsertForm {
-        actor_id: Some(actor_id.clone()),
+        ap_id: Some(ap_id.clone()),
         private_key: (Some(actor_keypair.private_key)),
         inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
@@ -571,7 +577,7 @@ mod test {
     tracing::debug!("received first stats");
     assert_eq!(data.instance.id, rcv.state.instance_id);
 
-    let sent = send_activity(data.person.actor_id.clone(), &data.context, true).await?;
+    let sent = send_activity(data.person.ap_id.clone(), &data.context, true).await?;
     tracing::debug!("sent activity");
     // receive for successfully sent activity
     let inbox_rcv = data.inbox_receiver.recv().await.unwrap();
@@ -614,7 +620,7 @@ mod test {
     // let last_id_before = rcv.state.last_successful_id.unwrap();
     let mut sent = Vec::new();
     for _ in 0..40 {
-      sent.push(send_activity(data.person.actor_id.clone(), &data.context, false).await?);
+      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
     }
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
@@ -643,7 +649,7 @@ mod test {
       tracing::debug!("sending {} activities", count);
       let mut sent = Vec::new();
       for _ in 0..count {
-        sent.push(send_activity(data.person.actor_id.clone(), &data.context, false).await?);
+        sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
       }
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
@@ -660,7 +666,7 @@ mod test {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
-    send_activity(data.person.actor_id.clone(), &data.context, true).await?;
+    send_activity(data.person.ap_id.clone(), &data.context, true).await?;
     data.inbox_receiver.recv().await.unwrap();
 
     let instance =
@@ -702,7 +708,7 @@ mod test {
   }
 
   async fn send_activity(
-    actor_id: DbUrl,
+    ap_id: DbUrl,
     context: &LemmyContext,
     wait: bool,
   ) -> LemmyResult<SentActivity> {
@@ -725,7 +731,7 @@ mod test {
       send_all_instances: false,
       send_community_followers_of: None,
       actor_type: ActorType::Person,
-      actor_apub_id: actor_id,
+      actor_apub_id: ap_id,
     };
     let sent = SentActivity::create(&mut context.pool(), form).await?;
 

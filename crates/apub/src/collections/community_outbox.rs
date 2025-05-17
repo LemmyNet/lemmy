@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  objects::community::ApubCommunity,
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -18,8 +17,10 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_apub_objects::objects::community::ApubCommunity;
+use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX};
+use lemmy_db_schema_file::enums::PostSortType;
+use lemmy_db_views_post::impls::PostQuery;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -33,14 +34,13 @@ impl Collection for ApubCommunityOutbox {
   type Kind = GroupOutbox;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site = Site::read_local(&mut data.pool()).await?;
 
     let post_views = PostQuery {
       community_id: Some(owner.id),
       sort: Some(PostSortType::New),
-      limit: Some(FETCH_LIMIT_MAX),
+      limit: Some(FETCH_LIMIT_MAX.try_into()?),
       ..Default::default()
     }
     .list(&site, &mut data.pool())
@@ -48,28 +48,31 @@ impl Collection for ApubCommunityOutbox {
 
     let mut ordered_items = vec![];
     for post_view in post_views {
-      let create = CreateOrUpdatePage::new(
+      // ignore errors, in particular if post creator was deleted
+      if let Ok(create) = CreateOrUpdatePage::new(
         post_view.post.into(),
         &post_view.creator.into(),
         owner,
         CreateOrUpdateType::Create,
         data,
       )
-      .await?;
-      let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-      let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
-      ordered_items.push(announce);
+      .await
+      {
+        let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
+        if let Ok(announce) = AnnounceActivity::new(announcable.try_into()?, owner, data) {
+          ordered_items.push(announce);
+        }
+      }
     }
 
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&owner.actor_id)?.into(),
-      total_items: ordered_items.len() as i32,
+      id: generate_outbox_url(&owner.ap_id)?.into(),
+      total_items: owner.posts,
       ordered_items,
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
@@ -79,16 +82,15 @@ impl Collection for ApubCommunityOutbox {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(
     apub: Self::Kind,
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> LemmyResult<Self> {
     let mut outbox_activities = apub.ordered_items;
-    if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
+    if outbox_activities.len() > FETCH_LIMIT_MAX {
       outbox_activities = outbox_activities
-        .get(0..(FETCH_LIMIT_MAX as usize))
+        .get(0..(FETCH_LIMIT_MAX))
         .unwrap_or_default()
         .to_vec();
     }

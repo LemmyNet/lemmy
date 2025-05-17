@@ -2,46 +2,34 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_private_messages_enabled,
-    get_interface_language,
-    get_url_blocklist,
-    local_site_to_slur_regex,
-    process_markdown,
-    send_email_to_user,
-  },
+  utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
-    local_site::LocalSite,
-    person_block::PersonBlock,
+    person::PersonActions,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
-  traits::Crud,
+  traits::{Blockable, Crud},
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PrivateMessageView;
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::{markdown::markdown_to_html, validation::is_valid_body_field},
-};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_email::notifications::send_private_message_email;
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
-#[tracing::instrument(skip(context))]
 pub async fn create_private_message(
   data: Json<CreatePrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-
-  let slur_regex = local_site_to_slur_regex(&local_site);
+  let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  PersonBlock::read(
+  PersonActions::read_block(
     &mut context.pool(),
     data.recipient_id,
     local_user_view.person.id,
@@ -58,30 +46,29 @@ pub async fn create_private_message(
     check_private_messages_enabled(&recipient_local_user)?;
   }
 
-  let private_message_form = PrivateMessageInsertForm::new(
+  let mut form = PrivateMessageInsertForm::new(
     local_user_view.person.id,
     data.recipient_id,
     content.clone(),
   );
 
-  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
+  form = plugin_hook_before("before_create_local_private_message", form).await?;
+  let inserted_private_message = PrivateMessage::create(&mut context.pool(), &form).await?;
+  plugin_hook_after(
+    "after_create_local_private_message",
+    &inserted_private_message,
+  )?;
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
   // Send email to the local recipient, if one exists
   if view.recipient.local {
-    let recipient_id = data.recipient_id;
-    let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id).await?;
-    let lang = get_interface_language(&local_recipient);
-    let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
-    let sender_name = &local_user_view.person.name;
-    let content = markdown_to_html(&content);
-    send_email_to_user(
+    let local_recipient =
+      LocalUserView::read_person(&mut context.pool(), data.recipient_id).await?;
+    send_private_message_email(
+      &local_user_view,
       &local_recipient,
-      &lang.notification_private_message_subject(sender_name),
-      &lang.notification_private_message_body(inbox_link, &content, sender_name),
+      &content,
       context.settings(),
     )
     .await;

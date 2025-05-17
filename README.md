@@ -1,12 +1,12 @@
 <div align="center">
 
-![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/releases)
 [![Build Status](https://woodpecker.join-lemmy.org/api/badges/LemmyNet/lemmy/status.svg)](https://woodpecker.join-lemmy.org/LemmyNet/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
 [![Translation status](http://weblate.join-lemmy.org/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.join-lemmy.org/engage/lemmy/)
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
-![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
+[![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)](https://github.com/LemmyNet/lemmy/stargazers)
 <a href="https://endsoftwarepatents.org/innovating-without-patents"><img style="height: 20px;" src="https://static.fsf.org/nosvn/esp/logos/patent-free.svg"></a>
 
 </div>
@@ -124,9 +124,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 Lemmy is made possible by a generous grant from the [NLnet foundation](https://nlnet.nl/).
 
 - [Support on Liberapay](https://liberapay.com/Lemmy).
-- [Support on Patreon](https://www.patreon.com/dessalines).
+- [Support on Ko-fi](https://ko-fi.com/lemmynet).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://join-lemmy.org/donate).
+- [Support on Patreon](https://www.patreon.com/dessalines).
 
 ### Crypto
 

@@ -1,14 +1,17 @@
-#[cfg(feature = "full")]
-use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
   sensitive::SensitiveString,
+};
+use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::{
   CommentSortType,
   ListingType,
   PostListingMode,
   PostSortType,
+  VoteShow,
 };
-use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -76,6 +79,13 @@ pub struct LocalUser {
   pub last_donation_notification: DateTime<Utc>,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// A default time range limit to apply to post sorts, in seconds.
+  pub default_post_time_range_seconds: Option<i32>,
+  pub show_score: bool,
+  pub show_upvotes: bool,
+  pub show_downvotes: VoteShow,
+  pub show_upvote_percentage: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -138,13 +148,23 @@ pub struct LocalUserInsertForm {
   pub last_donation_notification: Option<DateTime<Utc>>,
   #[new(default)]
   pub hide_media: Option<bool>,
+  #[new(default)]
+  pub default_post_time_range_seconds: Option<i32>,
+  #[new(default)]
+  pub show_score: Option<bool>,
+  #[new(default)]
+  pub show_upvotes: Option<bool>,
+  #[new(default)]
+  pub show_downvotes: Option<VoteShow>,
+  #[new(default)]
+  pub show_upvote_percentage: Option<bool>,
 }
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserUpdateForm {
-  pub password_encrypted: Option<String>,
+  pub password_encrypted: Option<Option<String>>,
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
@@ -172,4 +192,9 @@ pub struct LocalUserUpdateForm {
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   pub last_donation_notification: Option<DateTime<Utc>>,
   pub hide_media: Option<bool>,
+  pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub show_score: Option<bool>,
+  pub show_upvotes: Option<bool>,
+  pub show_downvotes: Option<VoteShow>,
+  pub show_upvote_percentage: Option<bool>,
 }
