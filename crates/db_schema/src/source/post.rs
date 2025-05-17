@@ -25,7 +25,6 @@ pub struct Post {
   pub name: String,
   /// An optional link / url for the post.
   #[cfg_attr(feature = "full", ts(optional))]
-  #[serde(skip)]
   pub url: Option<DbUrl>,
   /// An optional post body, in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
@@ -65,7 +64,6 @@ pub struct Post {
   /// Whether the post is featured to its site.
   pub featured_local: bool,
   #[cfg_attr(feature = "full", ts(optional))]
-  #[serde(skip)]
   pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
   #[cfg_attr(feature = "full", ts(optional))]

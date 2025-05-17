@@ -581,26 +581,6 @@ pub fn process_gallery(
   }
 }
 
-pub fn gallery_has_new_urls(
-  original_gallery: Vec<PostGallery>,
-  new_gallery: Option<Vec<PostGalleryInsertForm>>,
-) -> bool {
-  if let Some(new) = new_gallery {
-    let mut ret = false;
-    let new_urls = new.iter().map(|i| i.url.clone()).collect::<Vec<_>>();
-    for orig_item in original_gallery {
-      if !new_urls.contains(&orig_item.url) {
-        ret = true;
-        break;
-      }
-    }
-
-    ret
-  } else {
-    true
-  }
-}
-
 /// Read the site for an ap_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
