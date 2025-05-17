@@ -278,7 +278,10 @@ fn run_selected_migrations(
   conn: &mut PgConnection,
   options: &Options,
 ) -> diesel::migration::Result<()> {
-  let mut wrapper = MigrationHarnessWrapper { conn, options };
+  let mut wrapper = MigrationHarnessWrapper {
+    conn,
+    options,
+  };
 
   if options.revert {
     if let Some(limit) = options.limit {
