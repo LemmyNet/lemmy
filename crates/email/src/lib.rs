@@ -1,5 +1,8 @@
+// Avoid warnings for unused 0.19 translations
+#![allow(dead_code)]
+
 use lemmy_db_schema::sensitive::SensitiveString;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

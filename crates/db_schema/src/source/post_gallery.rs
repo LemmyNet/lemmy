@@ -45,3 +45,9 @@ pub struct PostGalleryInsertForm {
   #[new(default)]
   pub alt_text: Option<String>,
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
+pub struct PostGalleryView(pub Vec<PostGallery>);

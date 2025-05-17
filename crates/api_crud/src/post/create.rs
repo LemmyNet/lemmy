@@ -10,6 +10,7 @@ use lemmy_api_common::{
   post::{CreatePost, PostResponse},
   request::{check_urls_are_images, generate_post_link_metadata},
   send_activity::SendActivityData,
+  tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
@@ -32,8 +33,12 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable, Readable},
   utils::{diesel_url_create, get_conn},
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, SiteView};
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
+
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
@@ -91,12 +96,22 @@ pub async fn create_post(
     None
   };
 
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
-  let community_id = community.id;
-  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    data.community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?;
+  let community = &community_view.community;
+  check_community_user_action(&local_user_view, community, &mut context.pool()).await?;
 
-  // If its an NSFW community, then use that as a default
-  let nsfw = data.nsfw.or(Some(community.nsfw));
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
 
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
@@ -125,7 +140,7 @@ pub async fn create_post(
     alt_text: data.alt_text.clone(),
     nsfw,
     language_id: Some(language_id),
-    federation_pending: Some(community_use_pending(&community, &context).await),
+    federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
@@ -172,6 +187,18 @@ pub async fn create_post(
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
+  if let Some(tags) = &data.tags {
+    update_post_tags(
+      &context,
+      &inserted_post,
+      &community_view,
+      tags,
+      &local_user_view,
+    )
+    .await?;
+  }
+
+  let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {
     send_webmention(inserted_post.clone(), community);
     |post| Some(SendActivityData::CreatePost(post))
@@ -196,11 +223,12 @@ pub async fn create_post(
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+  let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
     mentions,
     PostOrCommentId::Post(post_id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
     local_instance_id,

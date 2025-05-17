@@ -1,5 +1,5 @@
 use lemmy_db_schema::newtypes::CustomEmojiId;
-use lemmy_db_views::structs::CustomEmojiView;
+use lemmy_db_views_custom_emoji::CustomEmojiView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -63,11 +63,5 @@ pub struct ListCustomEmojisResponse {
 /// Fetches a list of custom emojis.
 pub struct ListCustomEmojis {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub category: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub ignore_page_limits: Option<bool>,
 }

@@ -11,7 +11,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
 };
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
 use std::sync::{LazyLock, OnceLock};
 use tokio::{
@@ -41,7 +41,7 @@ pub enum SendActivityData {
     reason: Option<String>,
     removed: bool,
   },
-  LockPost(Post, Person, bool),
+  LockPost(Post, Person, bool, Option<String>),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),

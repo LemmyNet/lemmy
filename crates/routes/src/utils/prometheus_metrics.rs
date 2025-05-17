@@ -43,7 +43,7 @@ pub fn serve_prometheus(config: PrometheusConfig, lemmy_context: LemmyContext) -
           .app_data(web::Data::new(Arc::clone(&context)))
           .route("/metrics", web::get().to(metrics))
       })
-      .bind((config.bind, config.port as u16))
+      .bind((config.bind, config.port))
       .unwrap_or_else(|e| panic!("Cannot bind to {}:{}: {e}", config.bind, config.port))
       .run();
 
@@ -95,6 +95,9 @@ fn create_db_pool_metrics() -> LemmyResult<DbPoolMetrics> {
   Ok(metrics)
 }
 
+/// try_from does not support conversion from usize to f64
+/// https://stackoverflow.com/q/35974890
+#[allow(clippy::as_conversions)]
 fn collect_db_pool_metrics(context: &PromContext) {
   let pool_status = context.lemmy.inner_pool().status();
   context

@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::tagline::{Tagline, TaglineUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(
@@ -27,7 +27,7 @@ pub async fn update_tagline(
 
   let tagline_form = TaglineUpdateForm {
     content,
-    updated: Utc::now(),
+    updated: Some(Some(Utc::now())),
   };
 
   let tagline = Tagline::update(&mut context.pool(), data.id, &tagline_form).await?;

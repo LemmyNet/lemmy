@@ -10,8 +10,9 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn distinguish_comment(
   data: Json<DistinguishComment>,
@@ -54,10 +55,8 @@ pub async fn distinguish_comment(
     distinguished: Some(data.distinguished),
     ..Default::default()
   };
-  let comment = Comment::update(&mut context.pool(), data.comment_id, &form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
+  let comment = Comment::update(&mut context.pool(), data.comment_id, &form).await?;
   ActivityChannel::submit_activity(SendActivityData::UpdateComment(comment), &context)?;
 
   let comment_view = CommentView::read(

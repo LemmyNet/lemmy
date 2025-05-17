@@ -1,4 +1,4 @@
-use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
@@ -26,6 +26,10 @@ const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
+const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
+const TAG_NAME_MIN_LENGTH: usize = 3;
+const TAG_NAME_MAX_LENGTH: usize = 100;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',
@@ -87,7 +91,7 @@ fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
@@ -96,6 +100,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   min_length_check(name, 3, LemmyErrorType::InvalidName)?;
   max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
   if VALID_ACTOR_NAME_REGEX.is_match(name) {
@@ -122,7 +127,8 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
+  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   let check = !name.starts_with('@')
     && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
     && name.chars().count() <= actor_name_max_length
@@ -194,6 +200,19 @@ pub fn site_or_community_description_length_check(description: &str) -> LemmyRes
     description,
     SITE_DESCRIPTION_MAX_LENGTH,
     LemmyErrorType::SiteDescriptionLengthOverflow,
+  )
+}
+
+pub fn tag_name_length_check(tag_name: &str) -> LemmyResult<()> {
+  min_length_check(
+    tag_name,
+    TAG_NAME_MIN_LENGTH,
+    LemmyErrorType::InvalidTagName,
+  )?;
+  max_length_check(
+    tag_name,
+    TAG_NAME_MAX_LENGTH,
+    LemmyErrorType::InvalidTagName,
   )
 }
 
@@ -302,6 +321,25 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
 
   let unique_urls = parsed_urls.into_iter().unique().collect();
   Ok(unique_urls)
+}
+
+pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> LemmyResult<()> {
+  for keyword in blocking_keywords {
+    min_length_check(
+      keyword,
+      MIN_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooShort,
+    )?;
+    max_length_check(
+      keyword,
+      MAX_LENGTH_BLOCKING_KEYWORD,
+      LemmyErrorType::BlockKeywordTooLong,
+    )?;
+  }
+  if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
 }
 
 pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {

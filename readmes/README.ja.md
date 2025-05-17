@@ -141,6 +141,7 @@ Reddit や他のリンクアグリゲーターに代わる、企業の支配や�
 Lemmy はフリーでオープンソースのソフトウェアです。つまり、広告やマネタイズ、ベンチャーキャピタルは一切ありません。あなたの寄付は、直接プロジェクトのフルタイム開発をサポートします。
 
 - [Liberapay でのサポート](https://liberapay.com/Lemmy)。
+- [Ko-fi でのサポート](https://ko-fi.com/lemmynet).
 - [Patreon でのサポート](https://www.patreon.com/dessalines)。
 - [OpenCollective でのサポート](https://opencollective.com/lemmy)。
 - [スポンサーのリスト](https://join-lemmy.org/donate)。

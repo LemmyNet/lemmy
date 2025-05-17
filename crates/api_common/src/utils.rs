@@ -5,7 +5,7 @@ use crate::{
   request::{
     delete_image_from_pictrs,
     fetch_pictrs_proxied_image_details,
-    purge_image_from_pictrs,
+    purge_image_from_pictrs_url,
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
@@ -16,7 +16,7 @@ use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentActions, CommentUpdateForm},
+    comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
     instance::{Instance, InstanceActions},
@@ -41,19 +41,13 @@ use lemmy_db_schema::{
   utils::{diesel_url_create, DbPool},
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views::{
-  comment::comment_view::CommentQuery,
-  structs::{
-    CommunityFollowerView,
-    CommunityModeratorView,
-    CommunityPersonBanView,
-    CommunityView,
-    LocalImageView,
-    LocalUserView,
-    PersonView,
-    SiteView,
-  },
-};
+use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_local_image::LocalImageView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
@@ -83,13 +77,50 @@ use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
+pub async fn check_is_mod_or_admin(
+  pool: &mut DbPool<'_>,
+  person_id: PersonId,
+  community_id: CommunityId,
+  local_instance_id: InstanceId,
+) -> LemmyResult<()> {
+  let is_mod =
+    CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+  if is_mod.is_ok()
+    || PersonView::read(pool, person_id, local_instance_id, false)
+      .await
+      .is_ok_and(|t| t.is_admin)
+  {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
+/// Checks if a person is an admin, or moderator of any community.
+pub(crate) async fn check_is_mod_of_any_or_admin(
+  pool: &mut DbPool<'_>,
+  person_id: PersonId,
+  local_instance_id: InstanceId,
+) -> LemmyResult<()> {
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+  if is_mod_of_any.is_ok()
+    || PersonView::read(pool, person_id, local_instance_id, false)
+      .await
+      .is_ok_and(|t| t.is_admin)
+  {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
-  CommunityView::check_is_mod_or_admin(
+  check_is_mod_or_admin(
     pool,
     local_user_view.person.id,
     community_id,
@@ -124,7 +155,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_valid(local_user_view)?;
-  CommunityView::check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
+  check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -171,16 +202,21 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
   if local_user_view.banned() {
     Err(LemmyErrorType::SiteBan)?
   }
-  // check for account deletion
-  else if local_user_view.person.deleted {
+  check_local_user_deleted(local_user_view)
+}
+
+/// Check for account deletion
+pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<()> {
+  if local_user_view.person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
 }
+
 pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
   // Check for a site ban
-  if person_view.banned() {
+  if person_view.creator_banned {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
@@ -575,10 +611,12 @@ pub async fn purge_post_images(
   context: &LemmyContext,
 ) {
   if let Some(url) = url {
-    purge_image_from_pictrs(&url, context).await.ok();
+    purge_image_from_pictrs_url(&url, context).await.ok();
   }
   if let Some(thumbnail_url) = thumbnail_url {
-    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+    purge_image_from_pictrs_url(&thumbnail_url, context)
+      .await
+      .ok();
   }
 }
 
@@ -761,33 +799,14 @@ pub async fn remove_or_restore_user_data_in_community(
   .await?;
 
   // Comments
-  // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-  let site = Site::read_local(pool).await?;
-  let comments = CommentQuery {
-    creator_id: Some(banned_person_id),
-    community_id: Some(community_id),
-    ..Default::default()
-  }
-  .list(&site, pool)
-  .await?;
-
-  for comment_view in &comments {
-    let comment_id = comment_view.comment.id;
-    Comment::update(
-      pool,
-      comment_id,
-      &CommentUpdateForm {
-        removed: Some(remove),
-        ..Default::default()
-      },
-    )
-    .await?;
-  }
+  let removed_comment_ids =
+    Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
+      .await?;
 
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    comments.iter().map(|r| r.comment.id).collect(),
+    removed_comment_ids,
     remove,
     reason,
   )
@@ -796,7 +815,11 @@ pub async fn remove_or_restore_user_data_in_community(
   Ok(())
 }
 
-pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_user_account(
+  person_id: PersonId,
+  local_instance_id: InstanceId,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
   // Delete their local images, if they're a local user
@@ -821,7 +844,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
   }
 
-  Person::delete_account(pool, person_id).await?;
+  Person::delete_account(pool, person_id, local_instance_id).await?;
 
   Ok(())
 }
@@ -905,8 +928,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied =
-          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let proxied = build_proxied_image_url(&link, false, context)?;
         let details_form = details.build_image_details_form(&proxied);
         ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
@@ -938,6 +960,7 @@ pub async fn process_markdown_opt(
 async fn proxy_image_link_internal(
   link: Url,
   image_mode: PictrsImageMode,
+  is_thumbnail: bool,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
@@ -946,7 +969,7 @@ async fn proxy_image_link_internal(
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
 
-    let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+    let proxied = build_proxied_image_url(&link, is_thumbnail, context)?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
@@ -963,8 +986,18 @@ async fn proxy_image_link_internal(
 
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
-pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(link, context.settings().pictrs()?.image_mode, context).await
+pub async fn proxy_image_link(
+  link: Url,
+  is_thumbnail: bool,
+  context: &LemmyContext,
+) -> LemmyResult<DbUrl> {
+  proxy_image_link_internal(
+    link,
+    context.settings().pictrs()?.image_mode,
+    is_thumbnail,
+    context,
+  )
+  .await
 }
 
 pub async fn proxy_image_link_opt_apub(
@@ -972,7 +1005,7 @@ pub async fn proxy_image_link_opt_apub(
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l, context).await.map(Some)
+    proxy_image_link(l, false, context).await.map(Some)
   } else {
     Ok(None)
   }
@@ -980,13 +1013,21 @@ pub async fn proxy_image_link_opt_apub(
 
 fn build_proxied_image_url(
   link: &Url,
-  protocol_and_hostname: &str,
-) -> Result<Url, url::ParseError> {
-  Url::parse(&format!(
+  is_thumbnail: bool,
+  context: &LemmyContext,
+) -> LemmyResult<Url> {
+  let mut url = format!(
     "{}/api/v4/image/proxy?url={}",
-    protocol_and_hostname,
-    encode(link.as_str())
-  ))
+    context.settings().get_protocol_and_hostname(),
+    encode(link.as_str()),
+  );
+  if is_thumbnail {
+    url = format!(
+      "{url}&max_size={}",
+      context.settings().pictrs()?.max_thumbnail_size
+    );
+  }
+  Ok(Url::parse(&url)?)
 }
 
 pub async fn local_user_view_from_jwt(
@@ -997,7 +1038,7 @@ pub async fn local_user_view_from_jwt(
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_deleted(&local_user_view)?;
 
   Ok(local_user_view)
 }
@@ -1017,7 +1058,7 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   }
 }
 
-pub fn send_webmention(post: Post, community: Community) {
+pub fn send_webmention(post: Post, community: &Community) {
   if let Some(url) = post.url.clone() {
     if community.visibility.can_view_without_login() {
       spawn_try_task(async move {
@@ -1039,21 +1080,7 @@ pub fn send_webmention(post: Post, community: Community) {
 
 #[cfg(test)]
 mod tests {
-
   use super::*;
-  use lemmy_db_schema::{
-    source::{
-      comment::CommentInsertForm,
-      community::CommunityInsertForm,
-      person::PersonInsertForm,
-      post::PostInsertForm,
-    },
-    ModlogActionType,
-  };
-  use lemmy_db_views::{
-    combined::modlog_combined_view::ModlogCombinedQuery,
-    structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
-  };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1098,9 +1125,13 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png")?;
-    let proxied =
-      proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
-        .await?;
+    let proxied = proxy_image_link_internal(
+      local_url.clone(),
+      PictrsImageMode::ProxyAllImages,
+      false,
+      &context,
+    )
+    .await?;
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
@@ -1108,6 +1139,7 @@ mod tests {
     let proxied = proxy_image_link_internal(
       remote_image.clone(),
       PictrsImageMode::ProxyAllImages,
+      false,
       &context,
     )
     .await?;
@@ -1123,202 +1155,6 @@ mod tests {
         .await
         .is_ok()
     );
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool();
-
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-    let new_mod = PersonInsertForm::test_form(inserted_instance.id, "modder");
-    let inserted_mod = Person::create(pool, &new_mod).await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "chrimbus");
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "mod_community crepes".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    let inserted_community = Community::create(pool, &new_community).await?;
-
-    let post_form_1 = PostInsertForm::new(
-      "A test post tubular".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
-    let inserted_post_1 = Post::create(pool, &post_form_1).await?;
-
-    let post_form_2 = PostInsertForm::new(
-      "A test post radical".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
-    let inserted_post_2 = Post::create(pool, &post_form_2).await?;
-
-    let comment_form_1 = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post_1.id,
-      "A test comment tubular".into(),
-    );
-    let _inserted_comment_1 = Comment::create(pool, &comment_form_1, None).await?;
-
-    let comment_form_2 = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post_2.id,
-      "A test comment radical".into(),
-    );
-    let _inserted_comment_2 = Comment::create(pool, &comment_form_2, None).await?;
-
-    // Remove the user data
-    remove_or_restore_user_data(
-      inserted_mod.id,
-      inserted_person.id,
-      true,
-      &Some("a remove reason".to_string()),
-      &context,
-    )
-    .await?;
-
-    // Verify that their posts and comments are removed.
-    // Posts
-    let post_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemovePost),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_eq!(2, post_modlog.len());
-
-    assert!(matches!(
-      &post_modlog[..],
-      [
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: true, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: true, .. },
-          ..
-        }),
-      ],
-    ));
-
-    // Comments
-    let comment_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemoveComment),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_eq!(2, comment_modlog.len());
-
-    assert!(matches!(
-      &comment_modlog[..],
-      [
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: true, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: true, .. },
-          ..
-        }),
-      ],
-    ));
-
-    // Now restore the content, and make sure it got appended
-    remove_or_restore_user_data(
-      inserted_mod.id,
-      inserted_person.id,
-      false,
-      &Some("a restore reason".to_string()),
-      &context,
-    )
-    .await?;
-
-    // Posts
-    let post_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemovePost),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_eq!(4, post_modlog.len());
-
-    assert!(matches!(
-      &post_modlog[..],
-      [
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: false, .. },
-          post: Post { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: false, .. },
-          post: Post { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: false, .. },
-          ..
-        }),
-      ],
-    ));
-
-    // Comments
-    let comment_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemoveComment),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_eq!(4, comment_modlog.len());
-
-    assert!(matches!(
-      &comment_modlog[..],
-      [
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: false, .. },
-          comment: Comment { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: false, .. },
-          comment: Comment { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: false, .. },
-          ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: false, .. },
-          ..
-        }),
-      ],
-    ));
-
-    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

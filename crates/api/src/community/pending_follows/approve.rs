@@ -8,7 +8,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{source::community::CommunityActions, traits::Followable};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn post_pending_follows_approve(

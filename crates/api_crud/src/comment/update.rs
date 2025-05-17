@@ -15,9 +15,10 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
@@ -71,9 +72,8 @@ pub async fn update_comment(
     ..Default::default()
   };
   form = plugin_hook_before("before_update_local_comment", form).await?;
-  let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  let updated_comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
+
   plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients

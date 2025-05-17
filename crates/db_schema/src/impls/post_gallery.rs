@@ -8,6 +8,15 @@ use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::post_gallery;
 
+use crate::source::post_gallery::PostGalleryView;
+use diesel::{
+  deserialize::FromSql,
+  pg::{Pg, PgValue},
+  serialize::ToSql,
+  sql_types::{self, Nullable},
+};
+
+
 impl Crud for PostGallery {
   type InsertForm = PostGalleryInsertForm;
   type UpdateForm = PostGalleryInsertForm;
@@ -70,5 +79,26 @@ impl PostGallery {
       .filter(post_gallery::post_id.eq(post_id))
       .get_results::<Self>(conn)
       .await
+  }
+}
+
+impl FromSql<Nullable<sql_types::Json>, Pg> for PostGalleryView {
+  fn from_sql(bytes: PgValue) -> diesel::deserialize::Result<Self> {
+    let value = <serde_json::Value as FromSql<sql_types::Json, Pg>>::from_sql(bytes)?;
+    Ok(serde_json::from_value::<PostGalleryView>(value)?)
+  }
+
+  fn from_nullable_sql(bytes: Option<PgValue>) -> diesel::deserialize::Result<Self> {
+    match bytes {
+      Some(bytes) => Self::from_sql(bytes),
+      None => Ok(Self(vec![])),
+    }
+  }
+}
+
+impl ToSql<Nullable<sql_types::Json>, Pg> for PostGalleryView {
+  fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
+    let value = serde_json::to_value(self)?;
+    <serde_json::Value as ToSql<sql_types::Json, Pg>>::to_sql(&value, &mut out.reborrow())
   }
 }

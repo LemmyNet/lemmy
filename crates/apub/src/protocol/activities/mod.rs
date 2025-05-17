@@ -16,16 +16,14 @@ pub enum CreateOrUpdateType {
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    activities::{
-      community::{announce::AnnounceActivity, report::Report},
-      create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
-      deletion::delete::Delete,
-      following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
-      voting::{undo_vote::UndoVote, vote::Vote},
-    },
-    tests::test_json,
+  use crate::protocol::activities::{
+    community::{announce::AnnounceActivity, report::Report},
+    create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+    deletion::delete::Delete,
+    following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
+    voting::{undo_vote::UndoVote, vote::Vote},
   };
+  use lemmy_apub_objects::utils::test::test_json;
   use lemmy_utils::error::LemmyResult;
 
   #[test]

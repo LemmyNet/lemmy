@@ -42,7 +42,7 @@ use lemmy_db_schema_file::schema::{
   received_activity,
   sent_activity,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -463,7 +463,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     // send out post via federation and webmention
     let send_activity = SendActivityData::CreatePost(post.clone());
     ActivityChannel::submit_activity(send_activity, context)?;
-    send_webmention(post, community);
+    send_webmention(post, &community);
   }
   Ok(())
 }
@@ -562,7 +562,7 @@ mod tests {
 
   use super::*;
   use lemmy_api_common::request::client_builder;
-  use lemmy_db_views::site::site_view::create_test_instance;
+  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
