@@ -195,6 +195,7 @@ pub enum LemmyErrorType {
   CouldntCreateEmailVerification,
   CouldntCreateGalleryItem,
   EmailNotificationsDisabled,
+  PostHasGalleryAndUrl,
 }
 
 /// Federation related errors, these dont need to be translated.

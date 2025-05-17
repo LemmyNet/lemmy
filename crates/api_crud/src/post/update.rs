@@ -76,6 +76,10 @@ pub async fn update_post(
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
+  if url.is_some() && gallery_forms.is_some() {
+    Err(LemmyErrorType::PostHasGalleryAndUrl)?
+  }
+
   if let Some(Some(url)) = &url {
     is_url_blocked(url, &url_blocklist)?;
     is_valid_url(url)?;

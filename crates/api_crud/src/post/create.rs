@@ -20,7 +20,7 @@ use lemmy_api_common::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
-  },
+  }, LemmyErrorType,
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
@@ -70,6 +70,10 @@ pub async fn create_post(
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   is_valid_post_title(&data.name)?;
+
+  if url.is_some() && gallery_forms.is_some() {
+    Err(LemmyErrorType::PostHasGalleryAndUrl)?
+  }
 
   if let Some(url) = &url {
     is_url_blocked(url, &url_blocklist)?;
