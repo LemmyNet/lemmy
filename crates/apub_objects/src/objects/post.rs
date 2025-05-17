@@ -341,7 +341,7 @@ impl Object for ApubPost {
               caption: att
                 .clone()
                 .caption()
-                .map(|c| truncate_for_db(c, MAX_TITLE_LENGTH)),
+                .map(|c| truncate_for_db(&c, MAX_TITLE_LENGTH)),
               page: index as i32,
             }
           })

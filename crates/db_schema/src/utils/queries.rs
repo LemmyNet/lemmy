@@ -1,15 +1,3 @@
-use diesel::{
-  dsl::{case_when, exists, not, Nullable},
-  expression::SqlLiteral,
-  helper_types::{Eq, NotEq},
-  sql_types::Json,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgExpressionMethods,
-  QueryDsl,
-};
 use crate::{
   aliases::{
     creator_community_actions,
@@ -25,6 +13,18 @@ use crate::{
   CreatorLocalInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
+};
+use diesel::{
+  dsl::{case_when, exists, not, Nullable},
+  expression::SqlLiteral,
+  helper_types::{Eq, NotEq},
+  sql_types::Json,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgExpressionMethods,
+  QueryDsl,
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
@@ -97,7 +97,8 @@ pub fn post_creator_is_admin() -> _ {
 
 #[diesel::dsl::auto_type]
 pub fn post_get_gallery() -> _ {
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(post_gallery.*)");
+  let sel: SqlLiteral<Json> =
+    diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(post_gallery.*)");
   post_gallery::table
     .select(sel)
     .filter(post_gallery::post_id.eq(post::id))

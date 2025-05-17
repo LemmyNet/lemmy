@@ -1,10 +1,10 @@
 use crate::newtypes::{DbUrl, PostGalleryId, PostId};
 use chrono::{DateTime, Utc};
+use diesel::sql_types;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {lemmy_db_schema_file::schema::post_gallery, ts_rs::TS};
-use diesel::sql_types;
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

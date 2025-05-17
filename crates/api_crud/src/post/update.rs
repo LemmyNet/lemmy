@@ -173,8 +173,7 @@ pub async fn update_post(
   let updated_post = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
-        let post = Post::update(&mut conn.into(), post_id, &post_form)
-          .await?;
+        let post = Post::update(&mut conn.into(), post_id, &post_form).await?;
 
         if let Some(gallery_forms) = gallery_forms {
           let gallert_forms = gallery_forms
@@ -185,8 +184,7 @@ pub async fn update_post(
             })
             .collect::<Vec<_>>();
 
-          PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
-            .await?;
+          PostGallery::create_from_vec(&gallert_forms, &mut conn.into()).await?;
         }
 
         Ok(post)

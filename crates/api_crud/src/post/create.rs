@@ -37,7 +37,6 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-
   error::{LemmyError, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
@@ -155,8 +154,7 @@ pub async fn create_post(
   let inserted_post = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
-        let post = Post::create(&mut conn.into(), &post_form)
-          .await?;
+        let post = Post::create(&mut conn.into(), &post_form).await?;
 
         let _gallery = if let Some(gallery_forms) = gallery_forms {
           let post_id = post.id;
@@ -168,10 +166,7 @@ pub async fn create_post(
             })
             .collect::<Vec<_>>();
 
-          Some(
-            PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
-              .await?,
-          )
+          Some(PostGallery::create_from_vec(&gallert_forms, &mut conn.into()).await?)
         } else {
           None
         };

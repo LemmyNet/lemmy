@@ -1,21 +1,21 @@
 use crate::{
   newtypes::{PostGalleryId, PostId},
-  source::post_gallery::{PostGallery, PostGalleryInsertForm},
+  source::post_gallery::{PostGallery, PostGalleryInsertForm, PostGalleryView},
   traits::Crud,
   utils::{get_conn, DbPool},
+};
+use diesel::{
+  deserialize::FromSql,
+  insert_into,
+  pg::{Pg, PgValue},
+  serialize::ToSql,
+  sql_types::{self, Nullable},
+  ExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::post_gallery;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use crate::source::post_gallery::PostGalleryView;
-use diesel::{
-  insert_into, ExpressionMethods, QueryDsl,
-  deserialize::FromSql,
-  pg::{Pg, PgValue},
-  serialize::ToSql,
-  sql_types::{self, Nullable},
-};
-
 
 impl Crud for PostGallery {
   type InsertForm = PostGalleryInsertForm;
@@ -49,10 +49,7 @@ impl Crud for PostGallery {
 }
 
 impl PostGallery {
-  pub async fn list_from_post_id(
-    post_id: PostId,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<Self>> {
+  pub async fn list_from_post_id(post_id: PostId, pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     post_gallery::table
       .filter(post_gallery::post_id.eq(post_id))

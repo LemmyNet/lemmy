@@ -91,7 +91,7 @@ pub struct Image {
   name: Option<String>,
   media_type: Option<String>,
   /// Used to caption the image
-  summary: Option<String>
+  summary: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -144,7 +144,7 @@ impl Attachment {
   pub(crate) fn caption(self) -> Option<String> {
     match self {
       Attachment::Image(i) => i.summary,
-      _ => None
+      _ => None,
     }
   }
 
@@ -198,7 +198,12 @@ impl Page {
 
 impl Attachment {
   /// Creates new attachment for a given link and mime type.
-  pub(crate) fn new(url: Url, media_type: Option<String>, alt_text: Option<String>, caption: Option<String>) -> Attachment {
+  pub(crate) fn new(
+    url: Url,
+    media_type: Option<String>,
+    alt_text: Option<String>,
+    caption: Option<String>,
+  ) -> Attachment {
     let is_image = media_type.clone().unwrap_or_default().starts_with("image");
     if is_image {
       Attachment::Image(Image {
@@ -206,7 +211,7 @@ impl Attachment {
         url,
         media_type,
         name: alt_text,
-	summary: caption,
+        summary: caption,
       })
     } else {
       Attachment::Link(Link {

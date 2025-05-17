@@ -1,7 +1,15 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, PaginationCursor, PersonId},
   source::{
-    combined::search::SearchCombined, comment::{Comment, CommentActions}, community::{Community, CommunityActions}, images::ImageDetails, instance::InstanceActions, person::{Person, PersonActions}, post::{Post, PostActions}, post_gallery::PostGalleryView, tag::TagsView
+    combined::search::SearchCombined,
+    comment::{Comment, CommentActions},
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::InstanceActions,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    post_gallery::PostGalleryView,
+    tag::TagsView,
   },
   SearchSortType,
   SearchType,
@@ -25,8 +33,8 @@ use {
       creator_is_admin,
       creator_local_instance_actions_select,
       local_user_can_mod,
-      post_tags_fragment,
       post_get_gallery,
+      post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
@@ -118,7 +126,7 @@ pub(crate) struct SearchCombinedViewInternal {
       select_expression = post_get_gallery()
     )
   )]
-  post_gallery: PostGalleryView
+  post_gallery: PostGalleryView,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
