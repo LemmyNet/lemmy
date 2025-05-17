@@ -8,6 +8,7 @@ use lemmy_db_schema::{
     instance::InstanceActions,
     person::{Person, PersonActions},
     post::{Post, PostActions},
+    post_gallery::PostGalleryView,
     tag::TagsView,
   },
   SearchSortType,
@@ -32,6 +33,7 @@ use {
       creator_is_admin,
       creator_local_instance_actions_select,
       local_user_can_mod,
+      post_get_gallery,
       post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
@@ -119,6 +121,12 @@ pub(crate) struct SearchCombinedViewInternal {
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_gallery()
+    )
+  )]
+  post_gallery: PostGalleryView,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

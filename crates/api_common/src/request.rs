@@ -12,6 +12,7 @@ use futures::StreamExt;
 use lemmy_db_schema::source::{
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
   post::{Post, PostUpdateForm},
+  post_gallery::PostGalleryInsertForm,
   site::Site,
 };
 use lemmy_utils::{
@@ -244,15 +245,16 @@ pub async fn generate_post_link_metadata(
   };
 
   let form = PostUpdateForm {
-    url,
+    url: url.clone(),
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
     thumbnail_url: Some(thumbnail_url),
-    url_content_type: Some(metadata.content_type),
+    url_content_type: Some(metadata.content_type.clone()),
     ..Default::default()
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
+
   if let Some(send_activity) = send_activity(updated_post) {
     ActivityChannel::submit_activity(send_activity, &context)?;
   }
@@ -308,6 +310,33 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     image: og_image.map(Into::into),
     embed_video_url: og_embed_url.map(Into::into),
   })
+}
+
+pub async fn check_gallery_items_are_images(
+  urls: &Vec<PostGalleryInsertForm>,
+  context: &LemmyContext,
+) -> Result<Vec<PostGalleryInsertForm>, LemmyError> {
+  let mut validated = vec![];
+  for url in urls {
+    let metadata = fetch_link_metadata(&url.url, context, false).await?;
+    let is_image = metadata
+      .content_type
+      .as_ref()
+      .is_some_and(|content_type| content_type.starts_with("image"));
+
+    if !is_image {
+      Err(LemmyErrorType::UrlNotImage(url.url.to_string()))?
+    } else {
+      let proxied = proxy_image_link(url.url.clone().into(), false, context).await?;
+      validated.push(PostGalleryInsertForm {
+        url: proxied,
+        url_content_type: metadata.content_type,
+        ..url.clone()
+      });
+    }
+  }
+
+  Ok(validated)
 }
 
 #[derive(Deserialize, Serialize, Debug)]

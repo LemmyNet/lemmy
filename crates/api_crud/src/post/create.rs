@@ -2,12 +2,13 @@ use super::convert_published_time;
 use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   post::{CreatePost, PostResponse},
-  request::generate_post_link_metadata,
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
@@ -15,24 +16,28 @@ use lemmy_api_common::{
     check_nsfw_allowed,
     get_url_blocklist,
     honeypot_check,
+    process_gallery,
     process_markdown_opt,
     send_webmention,
     slur_regex,
-  },
+  }, LemmyErrorType,
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
-  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+  source::{
+    post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
+  },
   traits::{Crud, Likeable, Readable},
-  utils::diesel_url_create,
+  utils::{diesel_url_create, get_conn},
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::LemmyResult,
+  error::{LemmyError, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -60,10 +65,15 @@ pub async fn create_post(
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let url = diesel_url_create(data.url.as_deref())?;
+  let gallery_forms = process_gallery(data.gallery.as_ref(), &url_blocklist)?;
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   is_valid_post_title(&data.name)?;
+
+  if url.is_some() && gallery_forms.is_some() {
+    Err(LemmyErrorType::PostHasGalleryAndUrl)?
+  }
 
   if let Some(url) = &url {
     is_url_blocked(url, &url_blocklist)?;
@@ -74,13 +84,22 @@ pub async fn create_post(
     is_valid_url(custom_thumbnail)?;
   }
 
+  if let Some(body) = &body {
+    is_valid_body_field(body, true)?;
+  }
+
   if let Some(alt_text) = &data.alt_text {
     is_valid_alt_text_field(alt_text)?;
   }
 
-  if let Some(body) = &body {
-    is_valid_body_field(body, true)?;
-  }
+  let gallery_forms = if let Some(gallery_forms) = gallery_forms {
+    Some(check_gallery_items_are_images(&gallery_forms, &context).await?)
+  } else {
+    None
+  };
+  let url_content_type = gallery_forms
+    .as_ref()
+    .and_then(|f| f.first().and_then(|item| item.url_content_type.clone()));
 
   let community_view = CommunityView::read(
     &mut context.pool(),
@@ -119,6 +138,7 @@ pub async fn create_post(
 
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
+
   let mut post_form = PostInsertForm {
     url,
     body,
@@ -127,6 +147,7 @@ pub async fn create_post(
     language_id: Some(language_id),
     federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time,
+    url_content_type,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
       local_user_view.person.id,
@@ -136,7 +157,33 @@ pub async fn create_post(
 
   post_form = plugin_hook_before("before_create_local_post", post_form).await?;
 
-  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
+  let pool = &mut context.pool();
+  let conn = &mut get_conn(pool).await?;
+  let inserted_post = conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        let post = Post::create(&mut conn.into(), &post_form).await?;
+
+        let _gallery = if let Some(gallery_forms) = gallery_forms {
+          let post_id = post.id;
+          let gallert_forms = gallery_forms
+            .iter()
+            .map(|f| PostGalleryInsertForm {
+              post_id,
+              ..f.clone()
+            })
+            .collect::<Vec<_>>();
+
+          Some(PostGallery::create_from_vec(&gallert_forms, &mut conn.into()).await?)
+        } else {
+          None
+        };
+
+        Ok(post)
+      }
+      .scope_boxed()
+    })
+    .await?;
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
@@ -179,7 +226,7 @@ pub async fn create_post(
   let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
     mentions,
-    PostOrCommentId::Post(inserted_post.id),
+    PostOrCommentId::Post(post_id),
     &local_user_view.person,
     do_send_email,
     &context,

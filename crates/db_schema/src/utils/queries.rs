@@ -40,6 +40,7 @@ use lemmy_db_schema_file::{
     person_actions,
     post,
     post_actions,
+    post_gallery,
     post_tag,
     tag,
   },
@@ -92,6 +93,16 @@ pub fn post_creator_is_admin() -> _ {
         .and(creator_local_user.field(local_user::admin).eq(true)),
     ),
   )
+}
+
+#[diesel::dsl::auto_type]
+pub fn post_get_gallery() -> _ {
+  let sel: SqlLiteral<Json> =
+    diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(post_gallery.*)");
+  post_gallery::table
+    .select(sel)
+    .filter(post_gallery::post_id.eq(post::id))
+    .single_value()
 }
 
 #[diesel::dsl::auto_type]
