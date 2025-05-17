@@ -1,7 +1,5 @@
 use crate::{
-  protocol::page::{
-    Attachment, Hashtag, HashtagType, Page, PageType
-  },
+  protocol::page::{Attachment, Hashtag, HashtagType, Page, PageType},
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
@@ -48,7 +46,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::check_slurs_opt,
-    validation::{is_url_blocked, is_valid_url},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db},
   },
 };
 use std::ops::Deref;
@@ -120,7 +118,7 @@ impl Object for ApubPost {
         url.into(),
         self.url_content_type.clone(),
         self.alt_text.clone(),
-	None
+        None,
       )
     });
     let attachment = if url.is_some() {
@@ -130,11 +128,11 @@ impl Object for ApubPost {
         .iter()
         .map(|item| {
           Attachment::new(
-	    item.url.clone().into(),
-	    item.url_content_type.clone(),
-	     item.alt_text.clone(),
-	    item.caption.clone(),
-	  )
+            item.url.clone().into(),
+            item.url_content_type.clone(),
+            item.alt_text.clone(),
+            item.caption.clone(),
+          )
         })
         .collect()
     };
@@ -340,7 +338,10 @@ impl Object for ApubPost {
               post_id,
               url_content_type: att.url_content_type(),
               alt_text: att.clone().alt_text(),
-              caption: att.clone().caption(),
+              caption: att
+                .clone()
+                .caption()
+                .map(|c| truncate_for_db(c, MAX_TITLE_LENGTH)),
               page: index as i32,
             }
           })

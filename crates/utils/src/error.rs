@@ -84,6 +84,7 @@ pub enum LemmyErrorType {
   InvalidMatrixId,
   InvalidPostTitle,
   InvalidBodyField,
+  InvalidGalleryCaption,
   BioLengthOverflow,
   AltTextLengthOverflow,
   MissingTotpToken,

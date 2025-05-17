@@ -4,7 +4,7 @@ CREATE TABLE post_gallery (
     url character varying(2000) NOT NULL,
     page integer NOT NULL DEFAULT 0,
     alt_text text,
-    caption text,
+    caption character varying(200),
     url_content_type text,
     published timestamp with time zone NOT NULL DEFAULT now(),
     updated timestamp with time zone

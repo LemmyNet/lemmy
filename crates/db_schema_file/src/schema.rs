@@ -902,7 +902,8 @@ diesel::table! {
         url -> Varchar,
         page -> Int4,
         alt_text -> Nullable<Text>,
-        caption -> Nullable<Text>,
+        #[max_length = 200]
+        caption -> Nullable<Varchar>,
         url_content_type -> Nullable<Text>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,

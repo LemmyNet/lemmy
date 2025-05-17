@@ -61,6 +61,7 @@ use lemmy_utils::{
       clean_urls_in_text,
       is_url_blocked,
       is_valid_alt_text_field,
+      is_valid_post_title,
       is_valid_url,
     },
   },
@@ -552,8 +553,15 @@ pub fn process_gallery(
       let url = diesel_url_create(Some(&item.url))?.ok_or(LemmyErrorType::InvalidUrl)?;
       is_url_blocked(&url, url_blocklist)?;
       is_valid_url(&url)?;
+
       if let Some(alt_text) = &item.alt_text {
         is_valid_alt_text_field(alt_text)?;
+      }
+
+      if let Some(caption) = &item.caption {
+        if let Err(_) = is_valid_post_title(caption) {
+          Err(LemmyErrorType::InvalidGalleryCaption)?;
+        }
       }
 
       gallery_forms.push(PostGalleryInsertForm {
