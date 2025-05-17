@@ -155,7 +155,8 @@ BEGIN
         UPDATE
             post_aggregates_fast AS paf
         SET
-            hot_rank = pav.hot_rank
+            hot_rank = pav.hot_rank,
+            hot_rank_active = pav.hot_rank_active
         FROM
             post_aggregates_view AS pav
         WHERE
@@ -220,14 +221,36 @@ BEGIN
             post_aggregates_view
         WHERE
             id = NEW.post_id;
-        -- Force the hot rank as zero on week-older posts
+        -- Update the comment hot_ranks as of last week
+        UPDATE
+            comment_aggregates_fast AS caf
+        SET
+            hot_rank = cav.hot_rank,
+            hot_rank_active = cav.hot_rank_active
+        FROM
+            comment_aggregates_view AS cav
+        WHERE
+            caf.id = cav.id
+            AND (cav.published > ('now'::timestamp - '1 week'::interval));
+        -- Update the post ranks
         UPDATE
             post_aggregates_fast AS paf
         SET
-            hot_rank = 0
+            hot_rank = pav.hot_rank,
+            hot_rank_active = pav.hot_rank_active
+        FROM
+            post_aggregates_view AS pav
+        WHERE
+            paf.id = pav.id
+            AND (pav.published > ('now'::timestamp - '1 week'::interval));
+        -- Force the hot rank active as zero on 2 day-older posts (necro-bump)
+        UPDATE
+            post_aggregates_fast AS paf
+        SET
+            hot_rank_active = 0
         WHERE
             paf.id = NEW.post_id
-            AND (paf.published < ('now'::timestamp - '1 week'::interval));
+            AND (paf.published < ('now'::timestamp - '2 days'::interval));
         -- Update community number of comments
         UPDATE
             community_aggregates_fast AS caf

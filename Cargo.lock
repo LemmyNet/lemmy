@@ -3352,6 +3352,7 @@ dependencies = [
  "diesel-async",
  "diesel-derive-newtype",
  "diesel_ltree",
+ "diff",
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",

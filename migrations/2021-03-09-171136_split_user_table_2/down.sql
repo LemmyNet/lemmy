@@ -229,7 +229,7 @@ ALTER SEQUENCE person_id_seq
 -- Add the columns back in
 ALTER TABLE user_
     ADD COLUMN password_encrypted text NOT NULL DEFAULT 'changeme',
-    ADD COLUMN email text,
+    ADD COLUMN email text UNIQUE,
     ADD COLUMN admin boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN show_nsfw boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN theme character varying(20) DEFAULT 'darkly'::character varying NOT NULL,
@@ -238,7 +238,11 @@ ALTER TABLE user_
     ADD COLUMN lang character varying(20) DEFAULT 'browser'::character varying NOT NULL,
     ADD COLUMN show_avatars boolean DEFAULT TRUE NOT NULL,
     ADD COLUMN send_notifications_to_email boolean DEFAULT FALSE NOT NULL,
-    ADD COLUMN matrix_user_id text;
+    ADD COLUMN matrix_user_id text UNIQUE;
+
+-- Default is only for existing rows
+ALTER TABLE user_
+    ALTER COLUMN password_encrypted DROP DEFAULT;
 
 -- Update the user_ table with the local_user data
 UPDATE
@@ -259,6 +263,8 @@ FROM
     local_user lu
 WHERE
     lu.person_id = u.id;
+
+CREATE UNIQUE INDEX idx_user_email_lower ON user_ (lower(email));
 
 CREATE VIEW user_alias_1 AS
 SELECT
