@@ -37,7 +37,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -174,8 +174,7 @@ pub async fn update_post(
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
         let post = Post::update(&mut conn.into(), post_id, &post_form)
-          .await
-          .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+          .await?;
 
         if let Some(gallery_forms) = gallery_forms {
           let gallert_forms = gallery_forms
@@ -187,8 +186,7 @@ pub async fn update_post(
             .collect::<Vec<_>>();
 
           PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
-            .await
-            .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+            .await?;
         }
 
         Ok(post)

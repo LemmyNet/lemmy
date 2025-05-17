@@ -327,7 +327,7 @@ pub async fn check_urls_are_images(
     if !is_image {
       Err(LemmyErrorType::UrlNotImage(url.url.to_string()))?
     } else {
-      let proxied = proxy_image_link(url.url.clone().into(), context).await?;
+      let proxied = proxy_image_link(url.url.clone().into(), false, context).await?;
       validated.push(PostGalleryInsertForm {
         url: proxied,
         url_content_type: metadata.content_type,

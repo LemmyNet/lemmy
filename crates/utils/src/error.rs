@@ -192,6 +192,7 @@ pub enum LemmyErrorType {
   CouldntCreateLoginToken,
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
+  CouldntCreateGalleryItem,
   EmailNotificationsDisabled,
 }
 

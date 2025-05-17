@@ -96,8 +96,8 @@ pub fn post_creator_is_admin() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub(crate) fn post_get_urls() -> _ {
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(*)");
+pub fn post_get_gallery() -> _ {
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(post_gallery.*)");
   post_gallery::table
     .select(sel)
     .filter(post_gallery::post_id.eq(post::id))

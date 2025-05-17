@@ -9,6 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
     tag::TagsView,
+    post_gallery::PostGalleryView,
   },
   PersonContentType,
 };
@@ -28,6 +29,7 @@ use {
       creator_local_instance_actions_select,
       local_user_can_mod,
       post_tags_fragment,
+      post_get_gallery,
     },
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
@@ -106,6 +108,12 @@ pub(crate) struct PersonSavedCombinedViewInternal {
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_get_gallery()
+    )
+  )]
+  post_gallery: PostGalleryView,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

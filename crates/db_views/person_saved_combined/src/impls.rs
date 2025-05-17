@@ -229,7 +229,6 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
     } else {
       Some(PersonSavedCombinedView::Post(PostView {
         post: v.post,
-        urls: v.urls,
         community: v.community,
         creator: v.item_creator,
         image_details: v.image_details,
@@ -244,6 +243,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+	gallery: v.post_gallery,
       }))
     }
   }

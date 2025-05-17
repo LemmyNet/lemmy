@@ -26,7 +26,6 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
-    community::Community,
     post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
     post_gallery::{PostGallery, PostGalleryInsertForm},
   },
@@ -39,7 +38,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
 
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -157,8 +156,7 @@ pub async fn create_post(
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
         let post = Post::create(&mut conn.into(), &post_form)
-          .await
-          .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+          .await?;
 
         let _gallery = if let Some(gallery_forms) = gallery_forms {
           let post_id = post.id;
@@ -172,8 +170,7 @@ pub async fn create_post(
 
           Some(
             PostGallery::create_from_vec(&gallert_forms, &mut conn.into())
-              .await
-              .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?,
+              .await?,
           )
         } else {
           None
