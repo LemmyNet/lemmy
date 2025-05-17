@@ -13,15 +13,11 @@ cfg_if! {
 }
 
 pub mod error;
-use git_version::git_version;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
 
-pub const VERSION: &str = git_version!(
-  args = ["--tags", "--dirty=-modified"],
-  fallback = env!("CARGO_PKG_VERSION")
-);
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -30,9 +26,6 @@ pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_millis(500);
 #[cfg(not(debug_assertions))]
 pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_secs(60);
 
-#[cfg(debug_assertions)]
-pub const CACHE_DURATION_API: Duration = Duration::from_secs(0);
-#[cfg(not(debug_assertions))]
 pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;

@@ -33,6 +33,7 @@ pub struct UndoBlockUser {
   pub(crate) restore_data: Option<bool>,
 }
 
+#[async_trait::async_trait]
 impl InCommunity for UndoBlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

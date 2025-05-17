@@ -55,6 +55,7 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
+#[async_trait]
 impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;
   type UpdateForm = ModRemovePostForm;
@@ -94,6 +95,7 @@ impl ModRemovePost {
   }
 }
 
+#[async_trait]
 impl Crud for ModLockPost {
   type InsertForm = ModLockPostForm;
   type UpdateForm = ModLockPostForm;
@@ -120,6 +122,7 @@ impl Crud for ModLockPost {
   }
 }
 
+#[async_trait]
 impl Crud for ModFeaturePost {
   type InsertForm = ModFeaturePostForm;
   type UpdateForm = ModFeaturePostForm;
@@ -146,6 +149,7 @@ impl Crud for ModFeaturePost {
   }
 }
 
+#[async_trait]
 impl Crud for ModRemoveComment {
   type InsertForm = ModRemoveCommentForm;
   type UpdateForm = ModRemoveCommentForm;
@@ -185,6 +189,7 @@ impl ModRemoveComment {
   }
 }
 
+#[async_trait]
 impl Crud for ModRemoveCommunity {
   type InsertForm = ModRemoveCommunityForm;
   type UpdateForm = ModRemoveCommunityForm;
@@ -211,6 +216,7 @@ impl Crud for ModRemoveCommunity {
   }
 }
 
+#[async_trait]
 impl Crud for ModBanFromCommunity {
   type InsertForm = ModBanFromCommunityForm;
   type UpdateForm = ModBanFromCommunityForm;
@@ -237,6 +243,7 @@ impl Crud for ModBanFromCommunity {
   }
 }
 
+#[async_trait]
 impl Crud for ModBan {
   type InsertForm = ModBanForm;
   type UpdateForm = ModBanForm;
@@ -263,6 +270,7 @@ impl Crud for ModBan {
   }
 }
 
+#[async_trait]
 impl Crud for ModHideCommunity {
   type InsertForm = ModHideCommunityForm;
   type UpdateForm = ModHideCommunityForm;
@@ -289,6 +297,7 @@ impl Crud for ModHideCommunity {
   }
 }
 
+#[async_trait]
 impl Crud for ModAddCommunity {
   type InsertForm = ModAddCommunityForm;
   type UpdateForm = ModAddCommunityForm;
@@ -315,6 +324,7 @@ impl Crud for ModAddCommunity {
   }
 }
 
+#[async_trait]
 impl Crud for ModTransferCommunity {
   type InsertForm = ModTransferCommunityForm;
   type UpdateForm = ModTransferCommunityForm;
@@ -341,6 +351,7 @@ impl Crud for ModTransferCommunity {
   }
 }
 
+#[async_trait]
 impl Crud for ModAdd {
   type InsertForm = ModAddForm;
   type UpdateForm = ModAddForm;

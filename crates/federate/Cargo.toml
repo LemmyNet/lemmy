@@ -18,7 +18,7 @@ workspace = true
 lemmy_api_common.workspace = true
 lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_db_views.workspace = true
+lemmy_db_views_actor.workspace = true
 lemmy_utils.workspace = true
 
 activitypub_federation.workspace = true
@@ -33,6 +33,7 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.13"
+async-trait.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }
@@ -40,5 +41,5 @@ url.workspace = true
 actix-web.workspace = true
 tracing-test = "0.2.5"
 uuid.workspace = true
-test-context = "0.4.1"
+test-context = "0.3.0"
 mockall = "0.13.1"

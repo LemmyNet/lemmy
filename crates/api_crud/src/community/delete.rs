@@ -11,9 +11,11 @@ use lemmy_db_schema::{
   source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
+#[tracing::instrument(skip(context))]
 pub async fn delete_community(
   data: Json<DeleteCommunity>,
   context: Data<LemmyContext>,

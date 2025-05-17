@@ -36,6 +36,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
+  #[tracing::instrument(skip_all)]
   pub async fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
@@ -50,7 +51,7 @@ impl CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
       object: removed_mod.id(),
-      target: generate_moderators_url(&community.ap_id)?.into(),
+      target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
@@ -75,7 +76,7 @@ impl CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
-      target: generate_featured_url(&community.ap_id)?.into(),
+      target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
       id: id.clone(),
@@ -106,6 +107,7 @@ impl ActivityHandler for CollectionRemove {
     self.actor.inner()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -114,6 +116,7 @@ impl ActivityHandler for CollectionRemove {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =

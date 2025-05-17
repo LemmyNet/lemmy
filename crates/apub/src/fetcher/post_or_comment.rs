@@ -39,6 +39,7 @@ impl Object for PostOrComment {
     None
   }
 
+  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
     let post = ApubPost::read_from_id(object_id.clone(), data).await?;
     Ok(match post {
@@ -49,6 +50,7 @@ impl Object for PostOrComment {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       PostOrComment::Post(p) => p.delete(data).await,
@@ -63,6 +65,7 @@ impl Object for PostOrComment {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -74,6 +77,7 @@ impl Object for PostOrComment {
     }
   }
 
+  #[tracing::instrument(skip_all)]
   async fn from_json(apub: PageOrNote, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     Ok(match apub {
       PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_json(*p, context).await?),
@@ -82,6 +86,7 @@ impl Object for PostOrComment {
   }
 }
 
+#[async_trait::async_trait]
 impl InCommunity for PostOrComment {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let cid = match self {

@@ -40,6 +40,7 @@ pub struct BlockUser {
   pub(crate) end_time: Option<DateTime<Utc>>,
 }
 
+#[async_trait::async_trait]
 impl InCommunity for BlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let target = self.target.dereference(context).await?;

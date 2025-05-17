@@ -16,7 +16,7 @@ x-lemmy-default: &lemmy-default
     dockerfile: docker/Dockerfile
   environment:
     - RUST_BACKTRACE=1
-    - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
+    - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
   restart: always
 
 x-postgres-default: &postgres-default
@@ -49,7 +49,7 @@ services:
 
   pictrs:
     restart: always
-    image: asonix/pictrs:0.5.17-pre.9
+    image: asonix/pictrs:0.5.16
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt:Z

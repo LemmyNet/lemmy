@@ -1,6 +1,9 @@
 use crate::{
   newtypes::{CommunityId, CommunityReportId, PersonId},
-  schema::community_report,
+  schema::community_report::{
+    community_id,
+    dsl::{community_report, resolved, resolver_id, updated},
+  },
   source::community_report::{CommunityReport, CommunityReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -9,13 +12,12 @@ use chrono::Utc;
 use diesel::{
   dsl::{insert_into, update},
   result::Error,
-  BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::LemmyResult;
 
+#[async_trait]
 impl Reportable for CommunityReport {
   type Form = CommunityReportForm;
   type IdType = CommunityReportId;
@@ -29,7 +31,7 @@ impl Reportable for CommunityReport {
     community_report_form: &CommunityReportForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(community_report::table)
+    insert_into(community_report)
       .values(community_report_form)
       .get_result::<Self>(conn)
       .await
@@ -46,39 +48,14 @@ impl Reportable for CommunityReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(community_report::table.find(report_id_))
+    update(community_report.find(report_id_))
       .set((
-        community_report::resolved.eq(true),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        resolved.eq(true),
+        resolver_id.eq(by_resolver_id),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
-  }
-
-  async fn resolve_apub(
-    pool: &mut DbPool<'_>,
-    object_id: Self::ObjectIdType,
-    report_creator_id: PersonId,
-    resolver_id: PersonId,
-  ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      update(
-        community_report::table.filter(
-          community_report::community_id
-            .eq(object_id)
-            .and(community_report::creator_id.eq(report_creator_id)),
-        ),
-      )
-      .set((
-        community_report::resolved.eq(true),
-        community_report::resolver_id.eq(resolver_id),
-        community_report::updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await?,
-    )
   }
 
   async fn resolve_all_for_object(
@@ -87,11 +64,11 @@ impl Reportable for CommunityReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(community_report::table.filter(community_report::community_id.eq(community_id_)))
+    update(community_report.filter(community_id.eq(community_id_)))
       .set((
-        community_report::resolved.eq(true),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        resolved.eq(true),
+        resolver_id.eq(by_resolver_id),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -108,11 +85,11 @@ impl Reportable for CommunityReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(community_report::table.find(report_id_))
+    update(community_report.find(report_id_))
       .set((
-        community_report::resolved.eq(false),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        resolved.eq(false),
+        resolver_id.eq(by_resolver_id),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await

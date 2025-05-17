@@ -11,8 +11,6 @@ use ts_rs::TS;
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub violates_instance_rules: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

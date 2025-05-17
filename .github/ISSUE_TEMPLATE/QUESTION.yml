@@ -6,9 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        For questions or discussions use https://lemmy.ml/c/lemmy_support or the [matrix chat](https://matrix.to/#/#lemmy:matrix.org).
-
-        Have a question about how Lemmy works?
+        Have a question about Lemmy?
         Please check the docs first: https://join-lemmy.org/docs/en/index.html
   - type: textarea
     id: question

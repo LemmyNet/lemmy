@@ -6,13 +6,13 @@ use lemmy_api_common::{
   person::{ListPersonContent, ListPersonContentResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
-  combined::person_content_combined_view::PersonContentCombinedQuery,
-  structs::{LocalUserView, PersonContentCombinedView, SiteView},
+  person_content_combined_view::PersonContentCombinedQuery,
+  structs::{LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
+#[tracing::instrument(skip(context))]
 pub async fn list_person_content(
   data: Query<ListPersonContent>,
   context: Data<LemmyContext>,
@@ -30,22 +30,23 @@ pub async fn list_person_content(
   )
   .await?;
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PersonContentCombinedView::from_cursor(cursor, &mut context.pool()).await?)
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
   } else {
     None
   };
+  let page_back = data.page_back;
+  let type_ = data.type_;
 
   let content = PersonContentCombinedQuery {
     creator_id: person_details_id,
-    type_: data.type_,
-    cursor_data,
-    page_back: data.page_back,
+    type_,
+    page_after,
+    page_back,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = content.last().map(PaginationCursorBuilder::to_cursor);
-
-  Ok(Json(ListPersonContentResponse { content, next_page }))
+  Ok(Json(ListPersonContentResponse { content }))
 }

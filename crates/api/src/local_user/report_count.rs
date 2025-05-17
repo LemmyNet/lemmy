@@ -7,6 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::{LocalUserView, ReportCombinedViewInternal};
 use lemmy_utils::error::LemmyResult;
 
+#[tracing::instrument(skip(context))]
 pub async fn report_count(
   data: Query<GetReportCount>,
   context: Data<LemmyContext>,

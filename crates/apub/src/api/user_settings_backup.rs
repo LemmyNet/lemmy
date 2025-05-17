@@ -18,6 +18,7 @@ use lemmy_db_schema::{
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
     person_block::{PersonBlock, PersonBlockForm},
     post::{PostSaved, PostSavedForm},
@@ -54,6 +55,7 @@ pub struct UserSettingsBackup {
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,
+  pub vote_display_mode_settings: Option<LocalUserVoteDisplayMode>,
   #[serde(default)]
   pub followed_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
@@ -68,6 +70,7 @@ pub struct UserSettingsBackup {
   pub blocked_instances: Vec<String>,
 }
 
+#[tracing::instrument(skip(context))]
 pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
@@ -83,6 +86,7 @@ pub async fn export_settings(
     matrix_id: local_user_view.person.matrix_user_id,
     bot_account: local_user_view.person.bot_account.into(),
     settings: Some(local_user_view.local_user),
+    vote_display_mode_settings: Some(local_user_view.local_user_vote_display_mode),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
     blocked_instances: lists.blocked_instances,
@@ -92,6 +96,7 @@ pub async fn export_settings(
   }))
 }
 
+#[tracing::instrument(skip(context))]
 pub async fn import_settings(
   data: Json<UserSettingsBackup>,
   local_user_view: LocalUserView,
@@ -100,7 +105,7 @@ pub async fn import_settings(
   let person_form = PersonUpdateForm {
     display_name: data.display_name.clone().map(Some),
     bio: data.bio.clone().map(Some),
-    matrix_user_id: data.matrix_id.clone().map(Some),
+    matrix_user_id: data.bio.clone().map(Some),
     bot_account: data.bot_account,
     ..Default::default()
   };
@@ -127,16 +132,33 @@ pub async fn import_settings(
     blur_nsfw: data.settings.as_ref().map(|s| s.blur_nsfw),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
-    show_score: data.settings.as_ref().map(|s| s.show_score),
-    show_upvotes: data.settings.as_ref().map(|s| s.show_upvotes),
-    show_downvotes: data.settings.as_ref().map(|s| s.show_downvotes),
-    show_upvote_percentage: data.settings.as_ref().map(|s| s.show_upvote_percentage),
     ..Default::default()
   };
   LocalUser::update(
     &mut context.pool(),
     local_user_view.local_user.id,
     &local_user_form,
+  )
+  .await?;
+
+  // Update the vote display mode settings
+  let vote_display_mode_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.vote_display_mode_settings.as_ref().map(|s| s.score),
+    upvotes: data.vote_display_mode_settings.as_ref().map(|s| s.upvotes),
+    downvotes: data
+      .vote_display_mode_settings
+      .as_ref()
+      .map(|s| s.downvotes),
+    upvote_percentage: data
+      .vote_display_mode_settings
+      .as_ref()
+      .map(|s| s.upvote_percentage),
+  };
+
+  LocalUserVoteDisplayMode::update(
+    &mut context.pool(),
+    local_user_view.local_user.id,
+    &vote_display_mode_form,
   )
   .await?;
 
@@ -301,7 +323,8 @@ pub(crate) mod tests {
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
+  use lemmy_db_views::structs::LocalUserView;
+  use lemmy_db_views_actor::structs::CommunityFollowerView;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
@@ -348,7 +371,7 @@ pub(crate) mod tests {
 
     let follows = CommunityFollowerView::for_person(pool, import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
-    assert_eq!(follows[0].community.ap_id, community.ap_id);
+    assert_eq!(follows[0].community.actor_id, community.actor_id);
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;

@@ -18,7 +18,7 @@ use crate::{
   },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
-    community::{report::Report, resolve_report::ResolveReport},
+    community::report::Report,
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -43,7 +43,7 @@ use lemmy_db_schema::{
   traits::Crud,
   CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -59,6 +59,7 @@ pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
+#[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
   context: &Data<LemmyContext>,
@@ -74,6 +75,7 @@ async fn verify_person(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
+#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
@@ -82,7 +84,7 @@ pub(crate) async fn verify_person_in_community(
   let person = person_id.dereference(context).await?;
   if person.banned {
     Err(FederationError::PersonIsBannedFromSite(
-      person.ap_id.to_string(),
+      person.actor_id.to_string(),
     ))?
   }
   let person_id = person.id;
@@ -95,6 +97,7 @@ pub(crate) async fn verify_person_in_community(
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
 /// * `object_id` - Activitypub ID of the actor or object that is being moderated
 /// * `community` - The community inside which moderation is happening
+#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   community: &Community,
@@ -103,7 +106,7 @@ pub(crate) async fn verify_mod_action(
   // mod action comes from the same instance as the community, so it was presumably done
   // by an instance admin.
   // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == community.ap_id.domain() {
+  if mod_id.inner().domain() == community.actor_id.domain() {
     return Ok(());
   }
 
@@ -134,13 +137,13 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
 
 /// Marks object as public only if the community is public
 pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
-  let ap_id = community.ap_id.clone().into();
+  let actor_id = community.actor_id.clone().into();
   if community.visibility == CommunityVisibility::Public {
-    Ok(vec![ap_id, public()])
+    Ok(vec![actor_id, public()])
   } else {
     Ok(vec![
-      ap_id.clone(),
-      Url::parse(&format!("{}/followers", ap_id))?,
+      actor_id.clone(),
+      Url::parse(&format!("{}/followers", actor_id))?,
     ])
   }
 }
@@ -187,6 +190,7 @@ pub(crate) trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
 
+#[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
@@ -378,31 +382,7 @@ pub async fn match_outgoing_activities(
         actor,
         community,
         reason,
-      } => {
-        Report::send(
-          ObjectId::from(object_id),
-          &actor.into(),
-          &community.into(),
-          reason,
-          context,
-        )
-        .await
-      }
-      SendResolveReport {
-        object_id,
-        actor,
-        report_creator,
-        community,
-      } => {
-        ResolveReport::send(
-          ObjectId::from(object_id),
-          &actor.into(),
-          &report_creator.into(),
-          &community.into(),
-          context,
-        )
-        .await
-      }
+      } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
       AcceptFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, true, &context).await
       }

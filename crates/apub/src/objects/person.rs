@@ -1,7 +1,9 @@
+use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
+  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::person::{Person, UserTypes},
@@ -11,7 +13,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::{verify_domains_match, verify_is_remote_object},
+  protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -20,15 +22,16 @@ use lemmy_api_common::{
   utils::{
     generate_outbox_url,
     get_url_blocklist,
+    local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
-    slur_regex,
   },
 };
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
     activity::ActorType,
+    local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -69,6 +72,7 @@ impl Object for ApubPerson {
     Some(self.last_refreshed_at)
   }
 
+  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -80,6 +84,7 @@ impl Object for ApubPerson {
     )
   }
 
+  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = PersonUpdateForm {
       deleted: Some(true),
@@ -89,6 +94,7 @@ impl Object for ApubPerson {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Person> {
     let kind = if self.bot_account {
       UserTypes::Service
@@ -98,7 +104,7 @@ impl Object for ApubPerson {
 
     let person = Person {
       kind,
-      id: self.ap_id.clone().into(),
+      id: self.actor_id.clone().into(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -107,7 +113,7 @@ impl Object for ApubPerson {
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(self.published),
-      outbox: generate_outbox_url(&self.ap_id)?.into(),
+      outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: None,
       public_key: self.public_key(),
       updated: self.updated,
@@ -116,31 +122,35 @@ impl Object for ApubPerson {
     Ok(person)
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     person: &Person,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    let slur_regex = slur_regex(context).await?;
-    check_slurs(&person.preferred_username, &slur_regex)?;
-    check_slurs_opt(&person.name, &slur_regex)?;
+    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
+    check_slurs(&person.preferred_username, slur_regex)?;
+    check_slurs_opt(&person.name, slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
     verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    check_slurs_opt(&bio, &slur_regex)?;
+    check_slurs_opt(&bio, slur_regex)?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn from_json(person: Person, context: &Data<Self::DataType>) -> LemmyResult<ApubPerson> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let slur_regex = slur_regex(context).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, context).await?;
+    let bio = process_markdown_opt(&bio, slur_regex, &url_blocklist, context).await?;
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
@@ -159,7 +169,7 @@ impl Object for ApubPerson {
       banner,
       published: person.published,
       updated: person.updated,
-      ap_id: Some(person.id.into()),
+      actor_id: Some(person.id.into()),
       bio,
       local: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
@@ -184,7 +194,7 @@ impl Object for ApubPerson {
 
 impl Actor for ApubPerson {
   fn id(&self) -> Url {
-    self.ap_id.inner().clone()
+    self.actor_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {
@@ -264,7 +274,7 @@ pub(crate) mod tests {
     ApubPerson::verify(&json, &url, &context).await?;
     let person = ApubPerson::from_json(json, &context).await?;
 
-    assert_eq!(person.ap_id, url.into());
+    assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);

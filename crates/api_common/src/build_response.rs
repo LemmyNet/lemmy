@@ -3,7 +3,12 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_instance_community_block, is_mod_or_admin, send_email_to_user},
+  utils::{
+    check_person_instance_community_block,
+    get_interface_language,
+    is_mod_or_admin,
+    send_email_to_user,
+  },
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
@@ -20,7 +25,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
+use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{markdown::markdown_to_html, mention::MentionData},
@@ -86,7 +92,7 @@ pub async fn build_post_response(
 }
 
 // TODO: this function is a mess and should be split up to handle email separately
-
+#[tracing::instrument(skip_all)]
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   post_or_comment_id: PostOrCommentId,
@@ -96,6 +102,7 @@ pub async fn send_local_notifs(
   local_user_view: Option<&LocalUserView>,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
+  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   let (comment_opt, post, community) = match post_or_comment_id {
     PostOrCommentId::Post(post_id) => {
@@ -135,8 +142,6 @@ pub async fn send_local_notifs(
     }
   };
 
-  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
-
   // Send the local mentions
   for mention in mentions
     .iter()
@@ -152,7 +157,7 @@ pub async fn send_local_notifs(
       recipient_ids.push(mention_user_view.local_user.id);
 
       // Make the correct reply form depending on whether its a post or comment mention
-      let (link, comment_content_or_post_body) = if let Some(comment) = &comment_opt {
+      let comment_content_or_post_body = if let Some(comment) = &comment_opt {
         let person_comment_mention_form = PersonCommentMentionInsertForm {
           recipient_id: mention_user_view.person.id,
           comment_id: comment.id,
@@ -164,10 +169,7 @@ pub async fn send_local_notifs(
         PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
           .await
           .ok();
-        (
-          comment.local_url(context.settings())?,
-          comment.content.clone(),
-        )
+        comment.content.clone()
       } else {
         let person_post_mention_form = PersonPostMentionInsertForm {
           recipient_id: mention_user_view.person.id,
@@ -179,20 +181,17 @@ pub async fn send_local_notifs(
         PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
           .await
           .ok();
-        (
-          post.local_url(context.settings())?,
-          post.body.clone().unwrap_or_default(),
-        )
+        post.body.clone().unwrap_or_default()
       };
 
       // Send an email to those local users that have notifications on
       if do_send_email {
-        let lang = &mention_user_view.local_user.interface_i18n_language();
+        let lang = get_interface_language(&mention_user_view);
         let content = markdown_to_html(&comment_content_or_post_body);
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
+          &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
           context.settings(),
         )
         .await
@@ -240,19 +239,12 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = &parent_user_view.local_user.interface_i18n_language();
+              let lang = get_interface_language(&parent_user_view);
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
-                &lang.notification_comment_reply_body(
-                  comment.local_url(context.settings())?,
-                  &content,
-                  &inbox_link,
-                  &parent_comment.content,
-                  &post.name,
-                  &person.name,
-                ),
+                &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
                 context.settings(),
               )
               .await
@@ -293,18 +285,12 @@ pub async fn send_local_notifs(
               .ok();
 
             if do_send_email {
-              let lang = &parent_user_view.local_user.interface_i18n_language();
+              let lang = get_interface_language(&parent_user_view);
               let content = markdown_to_html(&comment.content);
               send_email_to_user(
                 &parent_user_view,
                 &lang.notification_post_reply_subject(&person.name),
-                &lang.notification_post_reply_body(
-                  comment.local_url(context.settings())?,
-                  &content,
-                  &inbox_link,
-                  &post.name,
-                  &person.name,
-                ),
+                &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
                 context.settings(),
               )
               .await

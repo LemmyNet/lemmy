@@ -10,14 +10,17 @@ use lemmy_api_common::{
     check_registration_application,
     check_user_valid,
     generate_inbox_url,
+    generate_local_apub_endpoint,
     honeypot_check,
+    local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
-    send_verification_email_if_required,
-    slur_regex,
+    send_verification_email,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{
+  aggregates::structs::PersonAggregates,
   newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
@@ -25,6 +28,7 @@ use lemmy_db_schema::{
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::OAuthProvider,
     person::{Person, PersonInsertForm},
@@ -100,7 +104,7 @@ pub async fn register(
     .await?;
   }
 
-  let slur_regex = slur_regex(&context).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
@@ -189,6 +193,7 @@ pub async fn register(
   Ok(Json(login_response))
 }
 
+#[tracing::instrument(skip(context))]
 pub async fn authenticate_with_oauth(
   data: Json<AuthenticateWithOauth>,
   req: HttpRequest,
@@ -326,7 +331,7 @@ pub async fn authenticate_with_oauth(
         .as_ref()
         .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
-      let slur_regex = slur_regex(&context).await?;
+      let slur_regex = local_site_to_slur_regex(&local_site);
       check_slurs(username, &slur_regex)?;
       check_slurs_opt(&data.answer, &slur_regex)?;
 
@@ -399,7 +404,7 @@ pub async fn authenticate_with_oauth(
     login_response.jwt = Some(jwt);
   }
 
-  Ok(Json(login_response))
+  return Ok(Json(login_response));
 }
 
 async fn create_person(
@@ -410,11 +415,15 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let ap_id = Person::local_url(&username, context.settings())?;
+  let actor_id = generate_local_apub_endpoint(
+    EndpointType::Person,
+    &username,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
 
   // Register the new person
   let person_form = PersonInsertForm {
-    ap_id: Some(ap_id.clone()),
+    actor_id: Some(actor_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)
@@ -450,19 +459,15 @@ async fn create_local_user(
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
 
-  // Enable site languages. Ignored if all languages are enabled.
-  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
-
-  // Enable languages from `Accept-Language` header only if no site languages are set. Otherwise it
-  // is possible that browser languages are only set to e.g. French, and the user won't see any
-  // English posts.
-  if !discussion_languages.is_empty() {
-    for l in &language_tags {
-      if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
-        language_ids.insert(found.id);
-      }
+  // Enable languages from `Accept-Language` header
+  for l in &language_tags {
+    if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
+      language_ids.insert(found.id);
     }
   }
+
+  // Enable site languages. Ignored if all languages are enabled.
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
   language_ids.extend(discussion_languages);
 
   let language_ids = language_ids.into_iter().collect();
@@ -476,6 +481,37 @@ async fn create_local_user(
     LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
+}
+
+async fn send_verification_email_if_required(
+  context: &Data<LemmyContext>,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
+) -> LemmyResult<bool> {
+  let mut sent = false;
+  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+    let local_user_view = LocalUserView {
+      local_user: local_user.clone(),
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+      person: person.clone(),
+      counts: PersonAggregates::default(),
+    };
+
+    send_verification_email(
+      &local_user_view,
+      &local_user
+        .email
+        .clone()
+        .ok_or(LemmyErrorType::EmailRequired)?,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
+
+    sent = true;
+  }
+  Ok(sent)
 }
 
 fn validate_registration_answer(

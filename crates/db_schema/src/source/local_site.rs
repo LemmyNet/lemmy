@@ -17,7 +17,7 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -86,23 +86,6 @@ pub struct LocalSite {
   /// If this is true, users will never see the dialog asking to support Lemmy development with
   /// donations.
   pub disable_donation_dialog: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// A default time range limit to apply to post sorts, in seconds.
-  pub default_post_time_range_seconds: Option<i32>,
-  pub users: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub communities: i64,
-  /// The number of users with any activity in the last day.
-  pub users_active_day: i64,
-  /// The number of users with any activity in the last week.
-  pub users_active_week: i64,
-  /// The number of users with any activity in the last month.
-  pub users_active_month: i64,
-  /// The number of users with any activity in the last half year.
-  pub users_active_half_year: i64,
-  /// Block NSFW content being created
-  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -164,10 +147,6 @@ pub struct LocalSiteInsertForm {
   pub comment_downvotes: Option<FederationMode>,
   #[new(default)]
   pub disable_donation_dialog: Option<bool>,
-  #[new(default)]
-  pub default_post_time_range_seconds: Option<Option<i32>>,
-  #[new(default)]
-  pub disallow_nsfw_content: bool,
 }
 
 #[derive(Clone, Default)]
@@ -202,6 +181,4 @@ pub struct LocalSiteUpdateForm {
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
   pub disable_donation_dialog: Option<bool>,
-  pub default_post_time_range_seconds: Option<Option<i32>>,
-  pub disallow_nsfw_content: Option<bool>,
 }

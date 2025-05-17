@@ -9,12 +9,10 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
-    check_nsfw_allowed,
     get_url_blocklist,
     honeypot_check,
+    local_site_to_slur_regex,
     process_markdown_opt,
-    send_webmention,
-    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -27,10 +25,13 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
+  CommunityVisibility,
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -43,23 +44,27 @@ use lemmy_utils::{
     },
   },
 };
+use tracing::Instrument;
+use url::Url;
+use webmention::{Webmention, WebmentionError};
 
+#[tracing::instrument(skip(context))]
 pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  honeypot_check(&data.honeypot)?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let slur_regex = slur_regex(&context).await?;
+  honeypot_check(&data.honeypot)?;
+
+  let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let url = diesel_url_create(data.url.as_deref())?;
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
-  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   is_valid_post_title(&data.name)?;
 
@@ -164,4 +169,24 @@ pub async fn create_post(
   PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
+}
+
+pub fn send_webmention(post: Post, community: Community) {
+  if let Some(url) = post.url.clone() {
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
+  };
 }

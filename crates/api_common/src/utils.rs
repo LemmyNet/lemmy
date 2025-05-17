@@ -1,5 +1,4 @@
 use crate::{
-  claims::Claims,
   context::LemmyContext,
   request::{
     delete_image_from_pictrs,
@@ -8,11 +7,10 @@ use crate::{
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::{http::header::Header, HttpRequest};
-use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
@@ -25,7 +23,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -37,56 +34,51 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostLike},
-    post_actions::{PostActions, PostActionsForm},
-    private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
   traits::{Crud, Likeable},
   utils::DbPool,
-  CommunityVisibility,
   FederationMode,
   RegistrationMode,
 };
 use lemmy_db_views::{
-  comment::comment_view::CommentQuery,
-  structs::{
-    CommunityFollowerView,
-    CommunityModeratorView,
-    CommunityPersonBanView,
-    CommunityView,
-    LocalImageView,
-    LocalUserView,
-    SiteView,
-  },
+  comment_view::CommentQuery,
+  structs::{LocalImageView, LocalUserView, SiteView},
+};
+use lemmy_db_views_actor::structs::{
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityPersonBanView,
+  CommunityView,
 };
 use lemmy_utils::{
-  email::send_email,
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  email::{send_email, translations::Lang},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
   settings::{
     structs::{PictrsImageMode, Settings},
     SETTINGS,
   },
-  spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
-    slurs::remove_slurs,
-    validation::{build_and_check_regex, clean_urls_in_text},
+    slurs::{build_slur_regex, remove_slurs},
+    validation::clean_urls_in_text,
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
+use rosetta_i18n::{Language, LanguageId};
 use std::sync::LazyLock;
-use tracing::{warn, Instrument};
+use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
-use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
+#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person: &Person,
@@ -96,6 +88,7 @@ pub async fn is_mod_or_admin(
   CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
   pool: &mut DbPool<'_>,
   local_user_view: Option<&LocalUserView>,
@@ -115,6 +108,7 @@ pub async fn is_mod_or_admin_opt(
 /// Check that a person is either a mod of any community, or an admin
 ///
 /// Should only be used for read operations
+#[tracing::instrument(skip_all)]
 pub async fn check_community_mod_of_any_or_admin_action(
   local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
@@ -152,19 +146,20 @@ pub fn is_top_mod(
 }
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
+#[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
   read_comments: i64,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let person_post_agg_form = PostActionsForm {
+  let person_post_agg_form = PersonPostAggregatesForm {
     person_id,
     post_id,
     read_comments,
   };
 
-  PostActions::upsert(pool, &person_post_agg_form).await?;
+  PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
 
   Ok(())
 }
@@ -282,6 +277,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
@@ -295,6 +291,7 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_local_vote_mode(
   score: i16,
   post_or_comment_id: PostOrCommentId,
@@ -323,6 +320,7 @@ pub async fn check_local_vote_mode(
 }
 
 /// Dont allow bots to do certain actions, like voting
+#[tracing::instrument(skip_all)]
 pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   if person.bot_account {
     Err(LemmyErrorType::InvalidBotAction)?
@@ -331,6 +329,7 @@ pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
   local_site: &LocalSite,
@@ -343,6 +342,7 @@ pub fn check_private_instance(
 }
 
 /// If private messages are disabled, dont allow them to be sent / received
+#[tracing::instrument(skip_all)]
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
     Err(LemmyErrorType::CouldntCreatePrivateMessage)?
@@ -351,6 +351,7 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
   pool: &mut DbPool<'_>,
@@ -446,7 +447,7 @@ pub async fn send_password_reset_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
+  let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
@@ -462,15 +463,13 @@ pub async fn send_password_reset_email(
 
 /// Send a verification email
 pub async fn send_verification_email(
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
+  user: &LocalUserView,
   new_email: &str,
   pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> LemmyResult<()> {
   let form = EmailVerificationForm {
-    local_user_id: local_user.id,
+    local_user_id: user.local_user.id,
     email: new_email.to_string(),
     verification_token: uuid::Uuid::new_v4().to_string(),
   };
@@ -481,45 +480,29 @@ pub async fn send_verification_email(
   );
   EmailVerification::create(pool, &form).await?;
 
-  let lang = local_user.interface_i18n_language();
+  let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
+  let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
+  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
 
-  // If an application is required, use a translation that includes that warning.
-  let body = if local_site.registration_mode == RegistrationMode::RequireApplication {
-    lang.verify_email_body_with_application(&settings.hostname, &person.name, verify_link)
-  } else {
-    lang.verify_email_body(&settings.hostname, &person.name, verify_link)
-  };
-
-  send_email(&subject, new_email, &person.name, &body, settings).await
+  Ok(())
 }
 
-/// Returns true if email was sent.
-pub async fn send_verification_email_if_required(
-  context: &LemmyContext,
-  local_site: &LocalSite,
-  local_user: &LocalUser,
-  person: &Person,
-) -> LemmyResult<bool> {
-  let email = &local_user
-    .email
-    .clone()
-    .ok_or(LemmyErrorType::EmailRequired)?;
+pub fn get_interface_language(user: &LocalUserView) -> Lang {
+  lang_str_to_lang(&user.local_user.interface_language)
+}
 
-  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-    send_verification_email(
-      local_site,
-      local_user,
-      person,
-      email,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
-    Ok(true)
-  } else {
-    Ok(false)
-  }
+pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
+  lang_str_to_lang(&user.local_user.interface_language)
+}
+
+#[allow(clippy::expect_used)]
+fn lang_str_to_lang(lang: &str) -> Lang {
+  let lang_id = LanguageId::new(lang);
+  Lang::from_language_id(&lang_id).unwrap_or_else(|| {
+    let en = LanguageId::new("en");
+    Lang::from_language_id(&en).expect("default language")
+  })
 }
 
 pub fn local_site_rate_limit_to_rate_limit_config(
@@ -540,22 +523,15 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
-  static CACHE: CacheLock<Regex> = LazyLock::new(|| {
-    Cache::builder()
-      .max_capacity(1)
-      .time_to_live(CACHE_DURATION_FEDERATION)
-      .build()
-  });
-  Ok(
-    CACHE
-      .try_get_with((), async {
-        let local_site = LocalSite::read(&mut context.pool()).await.ok();
-        build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
-      })
-      .await
-      .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
-  )
+pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
+  build_slur_regex(local_site.slur_filter_regex.as_deref())
+}
+
+pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
+  local_site
+    .as_ref()
+    .map(local_site_to_slur_regex)
+    .unwrap_or(None)
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
@@ -593,8 +569,8 @@ pub async fn send_application_approved_email(
     .email
     .clone()
     .ok_or(LemmyErrorType::EmailRequired)?;
-  let lang = &user.local_user.interface_i18n_language();
-  let subject = lang.registration_approved_subject(&user.person.ap_id);
+  let lang = get_interface_language(user);
+  let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings).await
 }
@@ -619,7 +595,7 @@ pub async fn send_new_applicant_email_to_admins(
       .email
       .clone()
       .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = &admin.local_user.interface_i18n_language();
+    let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
@@ -641,7 +617,7 @@ pub async fn send_new_report_email_to_admins(
 
   for admin in &admins {
     if let Some(email) = &admin.local_user.email {
-      let lang = &admin.local_user.interface_i18n_language();
+      let lang = get_interface_language_from_settings(admin);
       let subject =
         lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
       let body = lang.new_report_body(reports_link);
@@ -659,40 +635,16 @@ pub fn check_private_instance_and_federation_enabled(local_site: &LocalSite) -> 
   }
 }
 
-pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
-  let is_nsfw = nsfw.unwrap_or_default();
-  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
-
-  if nsfw_disallowed && is_nsfw {
-    Err(LemmyErrorType::NsfwNotAllowed)?
-  }
-
-  Ok(())
-}
-
-/// Read the site for an ap_id.
+/// Read the site for an actor_id.
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
 pub async fn read_site_for_actor(
-  ap_id: DbUrl,
+  actor_id: DbUrl,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Site>> {
-  let site_id = Site::instance_ap_id_from_url(ap_id.clone().into());
+  let site_id = Site::instance_actor_id_from_url(actor_id.clone().into());
   let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
   Ok(site)
-}
-
-pub async fn purge_post_images(
-  url: Option<DbUrl>,
-  thumbnail_url: Option<DbUrl>,
-  context: &LemmyContext,
-) {
-  if let Some(url) = url {
-    purge_image_from_pictrs(&url, context).await.ok();
-  }
-  if let Some(thumbnail_url) = thumbnail_url {
-    purge_image_from_pictrs(&thumbnail_url, context).await.ok();
-  }
 }
 
 pub async fn purge_image_posts_for_person(
@@ -702,7 +654,12 @@ pub async fn purge_image_posts_for_person(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
   for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await;
+    if let Some(url) = post.url {
+      purge_image_from_pictrs(&url, context).await.ok();
+    }
+    if let Some(thumbnail_url) = post.thumbnail_url {
+      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+    }
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_creator(pool, banned_person_id).await?;
@@ -734,7 +691,12 @@ pub async fn purge_image_posts_for_community(
   let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
   for post in posts {
-    purge_post_images(post.url, post.thumbnail_url, context).await;
+    if let Some(url) = post.url {
+      purge_image_from_pictrs(&url, context).await.ok();
+    }
+    if let Some(thumbnail_url) = post.thumbnail_url {
+      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
+    }
   }
 
   Post::remove_pictrs_post_images_and_thumbnails_for_community(pool, banned_community_id).await?;
@@ -846,9 +808,6 @@ pub async fn remove_or_restore_user_data(
     reason,
   )
   .await?;
-
-  // Private messages
-  PrivateMessage::update_removed_for_creator(pool, banned_person_id, removed).await?;
 
   Ok(())
 }
@@ -997,8 +956,33 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
-pub fn generate_followers_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{ap_id}/followers"))?.into())
+pub enum EndpointType {
+  Community,
+  Person,
+  Post,
+  Comment,
+  PrivateMessage,
+}
+
+/// Generates an apub endpoint for a given domain, IE xyz.tld
+pub fn generate_local_apub_endpoint(
+  endpoint_type: EndpointType,
+  name: &str,
+  domain: &str,
+) -> Result<DbUrl, ParseError> {
+  let point = match endpoint_type {
+    EndpointType::Community => "c",
+    EndpointType::Person => "u",
+    EndpointType::Post => "post",
+    EndpointType::Comment => "comment",
+    EndpointType::PrivateMessage => "private_message",
+  };
+
+  Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
+}
+
+pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
 }
 
 pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
@@ -1006,12 +990,12 @@ pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
   Ok(Url::parse(&url)?.into())
 }
 
-pub fn generate_outbox_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{ap_id}/outbox"))?.into())
+pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
 }
 
-pub fn generate_featured_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{ap_id}/featured"))?.into())
+pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
 }
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> LemmyResult<DbUrl> {
@@ -1045,6 +1029,7 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn check_conflicting_like_filters(
   liked_only: Option<bool>,
   disliked_only: Option<bool>,
@@ -1058,7 +1043,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Regex,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1090,7 +1075,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Regex,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
@@ -1160,54 +1145,6 @@ fn build_proxied_image_url(
   ))
 }
 
-pub async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> LemmyResult<LocalUserView> {
-  let local_user_id = Claims::validate(jwt, context)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(&local_user_view.person)?;
-
-  Ok(local_user_view)
-}
-
-pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
-  // Try reading jwt from auth header
-  if let Ok(header) = Authorization::<Bearer>::parse(req) {
-    Ok(Some(header.as_ref().token().to_string()))
-  }
-  // If that fails, try to read from cookie
-  else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
-    Ok(Some(cookie.value().to_string()))
-  }
-  // Otherwise, there's no auth
-  else {
-    Ok(None)
-  }
-}
-
-pub fn send_webmention(post: Post, community: Community) {
-  if let Some(url) = post.url.clone() {
-    if community.visibility == CommunityVisibility::Public {
-      spawn_try_task(async move {
-        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-        webmention.set_checked(true);
-        match webmention
-          .send()
-          .instrument(tracing::info_span!("Sending webmention"))
-          .await
-        {
-          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-          Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-        }
-      });
-    }
-  };
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -1221,8 +1158,8 @@ mod tests {
     },
     ModlogActionType,
   };
-  use lemmy_db_views::{
-    combined::modlog_combined_view::ModlogCombinedQuery,
+  use lemmy_db_views_moderator::{
+    modlog_combined_view::ModlogCombinedQuery,
     structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;

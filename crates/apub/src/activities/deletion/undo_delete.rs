@@ -47,6 +47,7 @@ impl ActivityHandler for UndoDelete {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     if self.object.summary.is_some() {
@@ -63,6 +64,7 @@ impl ActivityHandler for UndoDelete {
 }
 
 impl UndoDelete {
+  #[tracing::instrument(skip_all)]
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
     object: DeletableObjects,
@@ -77,9 +79,9 @@ impl UndoDelete {
       UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
+    let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(UndoDelete {
-      actor: actor.ap_id.clone().into(),
+      actor: actor.actor_id.clone().into(),
       to,
       object,
       cc: cc.into_iter().collect(),
@@ -88,6 +90,7 @@ impl UndoDelete {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   pub(in crate::activities) async fn receive_undo_remove_action(
     actor: &ApubPerson,
     object: &Url,

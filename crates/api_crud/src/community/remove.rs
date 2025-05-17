@@ -10,14 +10,14 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
-    community_report::CommunityReport,
     mod_log::moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
-  traits::{Crud, Reportable},
+  traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
+#[tracing::instrument(skip(context))]
 pub async fn remove_community(
   data: Json<RemoveCommunity>,
   context: Data<LemmyContext>,
@@ -48,13 +48,6 @@ pub async fn remove_community(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
-
-  CommunityReport::resolve_all_for_object(
-    &mut context.pool(),
-    community_id,
-    local_user_view.person.id,
-  )
-  .await?;
 
   // Mod tables
   let form = ModRemoveCommunityForm {

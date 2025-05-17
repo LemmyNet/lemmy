@@ -30,11 +30,16 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityPersonBan, CommunityPersonBanForm},
+    community::{
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
     mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
-  traits::{Bannable, Crud},
+  traits::{Bannable, Crud, Followable},
 };
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
@@ -67,6 +72,7 @@ impl BlockUser {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     target: &SiteOrCommunity,
     user: &ApubPerson,
@@ -114,6 +120,7 @@ impl ActivityHandler for BlockUser {
     self.actor.inner()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -141,6 +148,7 @@ impl ActivityHandler for BlockUser {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let expires = self.end_time;
@@ -183,9 +191,11 @@ impl ActivityHandler for BlockUser {
         };
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
-        // Dont unsubscribe the user so that we can receive a potential unban activity.
-        // If we unfollowed the community here, activities from the community would be rejected
-        // in [[can_accept_activity_in_community]] in case are no other local followers.
+        // Also unsubscribe them from the community, if they are subscribed
+        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
+        CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
+          .await
+          .ok();
 
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(

@@ -9,9 +9,9 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
+#[async_trait]
 impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
@@ -82,25 +82,6 @@ impl PrivateMessage {
       .await
       .optional()
   }
-  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/private_message/{}", self.id))?.into())
-  }
-
-  pub async fn update_removed_for_creator(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-    removed: bool,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(private_message::table.filter(private_message::creator_id.eq(for_creator_id)))
-      .set((
-        private_message::removed.eq(removed),
-        private_message::updated.eq(Utc::now()),
-      ))
-      .get_results::<Self>(conn)
-      .await
-  }
 }
 
 #[cfg(test)]
@@ -159,7 +140,6 @@ mod tests {
       ))?
       .into(),
       local: true,
-      removed: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;

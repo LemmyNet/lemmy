@@ -44,7 +44,6 @@ use lemmy_api::{
       unread_count::unread_count,
     },
     report_count::report_count,
-    resend_verification_email::resend_verification_email,
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
@@ -66,7 +65,6 @@ use lemmy_api::{
   private_message::mark_read::mark_pm_as_read,
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
-    community_report::{create::create_community_report, resolve::resolve_community_report},
     post_report::{create::create_post_report, resolve::resolve_post_report},
     private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
     report_combined::list::list_reports,
@@ -144,7 +142,7 @@ use lemmy_api_crud::{
   },
 };
 use lemmy_apub::api::{
-  list_comments::{list_comments, list_comments_slim},
+  list_comments::list_comments,
   list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
@@ -198,11 +196,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.search())
           .route(get().to(search)),
       )
-      .service(
-        resource("/resolve_object")
-          .wrap(rate_limit.search())
-          .route(get().to(resolve_object)),
-      )
+      .route("/resolve_object", get().to(resolve_object))
       // Community
       .service(
         resource("/community")
@@ -218,8 +212,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
-          .route("/report", post().to(create_community_report))
-          .route("/report/resolve", put().to(resolve_community_report))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
@@ -240,16 +232,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .route("/federated_instances", get().to(get_federated_instances))
       // Post
       .service(
+        // Handle POST to /post separately to add the post() rate limitter
         resource("/post")
-          // Handle POST to /post separately to add the post() rate limitter
           .guard(guard::Post())
           .wrap(rate_limit.post())
           .route(post().to(create_post)),
-      )
-      .service(
-        resource("/post/site_metadata")
-          .wrap(rate_limit.search())
-          .route(get().to(get_link_metadata)),
       )
       .service(
         scope("/post")
@@ -267,7 +254,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_post_likes))
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
-          .route("/report/resolve", put().to(resolve_post_report)),
+          .route("/report/resolve", put().to(resolve_post_report))
+          .route("/site_metadata", get().to(get_link_metadata)),
       )
       // Comment
       .service(
@@ -289,7 +277,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
-          .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
       )
@@ -324,10 +311,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
           .route("/verify_email", post().to(verify_email))
-          .route(
-            "/resend_verification_email",
-            post().to(resend_verification_email),
-          )
           .route("/saved", get().to(list_person_saved)),
       )
       .service(

@@ -9,7 +9,7 @@ use std::{
 use url::Url;
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Settings {
   /// settings related to the postgresql database
   pub database: DatabaseConfig,
@@ -44,21 +44,17 @@ pub struct Settings {
   // Prometheus configuration.
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
-  /// Sets a response Access-Control-Allow-Origin CORS header. Can also be set via environment:
-  /// `LEMMY_CORS_ORIGIN=example.org,site.com`
+  /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
-  cors_origin: Vec<String>,
-  /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
-  pub json_logging: bool,
+  cors_origin: Option<String>,
 }
 
 impl Settings {
-  pub fn cors_origin(&self) -> Vec<String> {
+  pub fn cors_origin(&self) -> Option<String> {
     env::var("LEMMY_CORS_ORIGIN")
       .ok()
-      .map(|e| e.split(',').map(ToString::to_string).collect())
-      .unwrap_or(self.cors_origin.clone())
+      .or(self.cors_origin.clone())
   }
 }
 
@@ -95,22 +91,14 @@ pub struct PictrsConfig {
   #[default(512)]
   pub max_thumbnail_size: u32,
 
-  /// Maximum size for user avatar, community icon and site icon. Larger images are downscaled.
+  /// Maximum size for user avatar, community icon and site icon.
   #[default(512)]
   pub max_avatar_size: u32,
 
-  /// Maximum size for user, community and site banner. Larger images are downscaled.
+  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
+  /// into a square of this size.
   #[default(1024)]
   pub max_banner_size: u32,
-
-  /// Maximum size for other uploads (e.g. post images or markdown embed images). Larger
-  /// images are downscaled.
-  #[doku(example = "1024")]
-  pub max_upload_size: Option<u32>,
-
-  /// Whether users can upload videos as post image or markdown embed.
-  #[default(true)]
-  pub allow_video_uploads: bool,
 
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
@@ -119,6 +107,7 @@ pub struct PictrsConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {
   /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
   /// Opengraph image is directly returned as thumbnail
@@ -141,7 +130,7 @@ pub enum PictrsImageMode {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct DatabaseConfig {
   /// Configure the database by specifying URI pointing to a postgres instance
   ///
@@ -162,19 +151,34 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
-#[serde(default, deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct EmailConfig {
-  /// https://docs.rs/lettre/0.11.14/lettre/transport/smtp/struct.AsyncSmtpTransport.html#method.from_url
-  #[default("smtp://localhost:25")]
-  #[doku(example = "smtps://user:pass@hostname:port")]
-  pub(crate) connection: String,
-  /// Address to send emails from, eg "noreply@your-instance.com"
+  /// Hostname and port of the smtp server
+  #[doku(example = "localhost:25")]
+  pub smtp_server: String,
+  /// Login name for smtp server
+  pub smtp_login: Option<String>,
+  /// Password to login to the smtp server
+  smtp_password: Option<String>,
   #[doku(example = "noreply@example.com")]
-  pub(crate) smtp_from_address: String,
+  /// Address to send emails from, eg "noreply@your-instance.com"
+  pub smtp_from_address: String,
+  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
+  #[default("none")]
+  #[doku(example = "none")]
+  pub tls_type: String,
+}
+
+impl EmailConfig {
+  pub fn smtp_password(&self) -> Option<String> {
+    std::env::var("LEMMY_SMTP_PASSWORD")
+      .ok()
+      .or(self.smtp_password.clone())
+  }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
@@ -191,7 +195,7 @@ pub struct SetupConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct PrometheusConfig {
   // Address that the Prometheus metrics will be served on.
   #[default(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))]
@@ -204,7 +208,7 @@ pub struct PrometheusConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 // named federation"worker"config to disambiguate from the activitypub library configuration
 pub struct FederationWorkerConfig {
   /// Limit to the number of concurrent outgoing federation requests per target instance.

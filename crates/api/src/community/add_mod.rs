@@ -14,9 +14,11 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
+#[tracing::instrument(skip(context))]
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,

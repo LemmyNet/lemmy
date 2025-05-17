@@ -11,7 +11,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
 };
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views_actor::structs::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
 use std::sync::{LazyLock, OnceLock};
 use tokio::{
@@ -98,12 +98,6 @@ pub enum SendActivityData {
     actor: Person,
     community: Community,
     reason: String,
-  },
-  SendResolveReport {
-    object_id: Url,
-    actor: Person,
-    report_creator: Person,
-    community: Community,
   },
 }
 

@@ -10,6 +10,7 @@ use lemmy_db_schema::{source::custom_emoji::CustomEmoji, traits::Crud};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
+#[tracing::instrument(skip(context))]
 pub async fn delete_custom_emoji(
   data: Json<DeleteCustomEmoji>,
   context: Data<LemmyContext>,

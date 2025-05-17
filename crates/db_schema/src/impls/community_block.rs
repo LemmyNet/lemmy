@@ -6,7 +6,7 @@ use crate::{
     community_block::{CommunityBlock, CommunityBlockForm},
   },
   traits::Blockable,
-  utils::{get_conn, now, uplete, DbPool},
+  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
@@ -27,14 +27,14 @@ impl CommunityBlock {
     for_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    let find_action = community_actions::table
-      .find((for_person_id, for_community_id))
-      .filter(community_actions::blocked.is_not_null());
-    select(not(exists(find_action)))
-      .get_result::<bool>(conn)
-      .await?
-      .then_some(())
-      .ok_or(LemmyErrorType::CommunityIsBlocked.into())
+    select(not(exists(find_action(
+      community_actions::blocked,
+      (for_person_id, for_community_id),
+    ))))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityIsBlocked.into())
   }
 
   pub async fn for_person(
@@ -42,8 +42,7 @@ impl CommunityBlock {
     person_id: PersonId,
   ) -> Result<Vec<Community>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_actions::table
-      .filter(community_actions::blocked.is_not_null())
+    action_query(community_actions::blocked)
       .inner_join(community::table)
       .select(community::all_columns)
       .filter(community_actions::person_id.eq(person_id))
@@ -55,6 +54,7 @@ impl CommunityBlock {
   }
 }
 
+#[async_trait]
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
   async fn block(pool: &mut DbPool<'_>, community_block_form: &Self::Form) -> Result<Self, Error> {

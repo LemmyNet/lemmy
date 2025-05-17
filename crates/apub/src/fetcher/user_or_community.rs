@@ -46,6 +46,7 @@ impl Object for UserOrCommunity {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
     let person = ApubPerson::read_from_id(object_id.clone(), data).await?;
     Ok(match person {
@@ -56,6 +57,7 @@ impl Object for UserOrCommunity {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       UserOrCommunity::User(p) => p.delete(data).await,
@@ -70,6 +72,7 @@ impl Object for UserOrCommunity {
     })
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -81,6 +84,7 @@ impl Object for UserOrCommunity {
     }
   }
 
+  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self> {
     Ok(match apub {
       PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_json(p, data).await?),

@@ -24,6 +24,8 @@ pub mod utils;
 
 pub extern crate lemmy_db_schema;
 pub extern crate lemmy_db_views;
+pub extern crate lemmy_db_views_actor;
+pub extern crate lemmy_db_views_moderator;
 pub extern crate lemmy_utils;
 
 pub use lemmy_utils::error::LemmyErrorType;
@@ -33,7 +35,7 @@ use std::{cmp::min, time::Duration};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A response that completes successfully.
+/// Saves settings for your user.
 pub struct SuccessResponse {
   pub success: bool,
 }

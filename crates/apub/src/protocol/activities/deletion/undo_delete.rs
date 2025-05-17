@@ -31,6 +31,7 @@ pub struct UndoDelete {
   pub(crate) cc: Vec<Url>,
 }
 
+#[async_trait::async_trait]
 impl InCommunity for UndoDelete {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

@@ -18,6 +18,7 @@ pub struct UndoVote {
   pub(crate) id: Url,
 }
 
+#[async_trait::async_trait]
 impl InCommunity for UndoVote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;

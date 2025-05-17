@@ -1,12 +1,4 @@
-use crate::utils::mention::MENTIONS_REGEX;
-use markdown_it::{
-  generics::inline::full_link,
-  parser::inline::Text,
-  MarkdownIt,
-  Node,
-  NodeValue,
-  Renderer,
-};
+use markdown_it::{generics::inline::full_link, MarkdownIt, Node, NodeValue, Renderer};
 
 /// Renders markdown links. Copied directly from markdown-it source, unlike original code it also
 /// sets `rel=nofollow` attribute.
@@ -28,14 +20,6 @@ impl NodeValue for Link {
 
     if let Some(title) = &self.title {
       attrs.push(("title", title.clone()));
-    }
-
-    let text = node.children.first().and_then(|n| n.cast::<Text>());
-    if let Some(text) = text {
-      if MENTIONS_REGEX.is_match(&text.content) {
-        attrs.push(("class", "u-url".to_string()));
-        attrs.push(("class", "mention".to_string()));
-      }
     }
 
     fmt.open("a", &attrs);

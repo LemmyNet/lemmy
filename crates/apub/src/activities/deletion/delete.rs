@@ -14,7 +14,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
-    community_report::CommunityReport,
     mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -44,11 +43,13 @@ impl ActivityHandler for Delete {
     self.actor.inner()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     if let Some(reason) = self.summary {
@@ -92,9 +93,9 @@ impl Delete {
       DeleteType::Delete,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
+    let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
-      actor: actor.ap_id.clone().into(),
+      actor: actor.actor_id.clone().into(),
       to,
       object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
@@ -106,6 +107,7 @@ impl Delete {
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,
@@ -117,7 +119,6 @@ pub(in crate::activities) async fn receive_remove_action(
       if community.local {
         Err(FederationError::OnlyLocalAdminCanRemoveCommunity)?
       }
-      CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
       let form = ModRemoveCommunityForm {
         mod_person_id: actor.id,
         community_id: community.id,

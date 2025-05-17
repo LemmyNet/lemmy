@@ -5,13 +5,13 @@ use lemmy_api_common::{
   person::{ListPersonSaved, ListPersonSavedResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views::{
-  combined::person_saved_combined_view::PersonSavedCombinedQuery,
-  structs::{LocalUserView, PersonSavedCombinedView, SiteView},
+  person_saved_combined_view::PersonSavedCombinedQuery,
+  structs::{LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
+#[tracing::instrument(skip(context))]
 pub async fn list_person_saved(
   data: Query<ListPersonSaved>,
   context: Data<LemmyContext>,
@@ -21,21 +21,22 @@ pub async fn list_person_saved(
 
   check_private_instance(&Some(local_user_view.clone()), &local_site.local_site)?;
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PersonSavedCombinedView::from_cursor(cursor, &mut context.pool()).await?)
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
   } else {
     None
   };
+  let page_back = data.page_back;
+  let type_ = data.type_;
 
   let saved = PersonSavedCombinedQuery {
-    type_: data.type_,
-    cursor_data,
-    page_back: data.page_back,
+    type_,
+    page_after,
+    page_back,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;
 
-  let next_page = saved.last().map(PaginationCursorBuilder::to_cursor);
-
-  Ok(Json(ListPersonSavedResponse { saved, next_page }))
+  Ok(Json(ListPersonSavedResponse { saved }))
 }

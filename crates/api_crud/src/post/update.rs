@@ -1,4 +1,4 @@
-use super::convert_published_time;
+use super::{convert_published_time, create::send_webmention};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
@@ -10,11 +10,9 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
-    check_nsfw_allowed,
     get_url_blocklist,
+    local_site_to_slur_regex,
     process_markdown_opt,
-    send_webmention,
-    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -45,27 +43,27 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
+#[tracing::instrument(skip(context))]
 pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+
   let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  let slur_regex = slur_regex(&context).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
 
   let body = diesel_string_update(
     process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
-
-  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let alt_text = diesel_string_update(data.alt_text.as_deref());
 

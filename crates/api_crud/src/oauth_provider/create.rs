@@ -13,6 +13,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
+#[tracing::instrument(skip(context))]
 pub async fn create_oauth_provider(
   data: Json<CreateOAuthProvider>,
   context: Data<LemmyContext>,

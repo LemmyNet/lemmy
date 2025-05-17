@@ -1,6 +1,5 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  impls::local_user::local_user_can_mod,
   newtypes::{CommentId, DbUrl, PersonId},
   schema::{comment, comment_actions},
   source::comment::{
@@ -13,28 +12,19 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{
-    functions::{coalesce, hot_rank},
-    get_conn,
-    now,
-    uplete,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{case_when, insert_into, not},
+  dsl::insert_into,
   expression::SelectableHelper,
   result::Error,
-  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 impl Comment {
@@ -126,58 +116,9 @@ impl Comment {
       None
     }
   }
-  pub async fn update_hot_rank(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    diesel::update(comment::table.find(comment_id))
-      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
-      .get_result::<Self>(conn)
-      .await
-  }
-  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?.into())
-  }
 }
 
-/// Selects the comment columns, but gives an empty string for content when
-/// deleted or removed, and you're not a mod/admin.
-#[diesel::dsl::auto_type]
-pub fn comment_select_remove_deletes() -> _ {
-  let deleted_or_removed = comment::deleted.or(comment::removed);
-
-  // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod());
-  let content = case_when(can_view_content, comment::content).otherwise("");
-
-  (
-    comment::id,
-    comment::creator_id,
-    comment::post_id,
-    content,
-    comment::removed,
-    comment::published,
-    comment::updated,
-    comment::deleted,
-    comment::ap_id,
-    comment::local,
-    comment::path,
-    comment::distinguished,
-    comment::language_id,
-    comment::score,
-    comment::upvotes,
-    comment::downvotes,
-    comment::child_count,
-    comment::hot_rank,
-    comment::controversy_rank,
-    comment::report_count,
-    comment::unresolved_report_count,
-  )
-}
-
+#[async_trait]
 impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
@@ -202,6 +143,7 @@ impl Crud for Comment {
   }
 }
 
+#[async_trait]
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
@@ -234,6 +176,7 @@ impl Likeable for CommentLike {
   }
 }
 
+#[async_trait]
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
   async fn save(
@@ -267,17 +210,25 @@ impl Saveable for CommentSaved {
 #[cfg(test)]
 mod tests {
 
-  use super::*;
   use crate::{
     newtypes::LanguageId,
     source::{
+      comment::{
+        Comment,
+        CommentInsertForm,
+        CommentLike,
+        CommentLikeForm,
+        CommentSaved,
+        CommentSavedForm,
+        CommentUpdateForm,
+      },
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
+    utils::{build_db_pool_for_tests, uplete},
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
@@ -337,14 +288,6 @@ mod tests {
       distinguished: false,
       local: true,
       language_id: LanguageId::default(),
-      child_count: 1,
-      controversy_rank: 0.0,
-      downvotes: 0,
-      upvotes: 1,
-      score: 1,
-      hot_rank: RANK_DEFAULT,
-      report_count: 0,
-      unresolved_report_count: 0,
     };
 
     let child_comment_form = CommentInsertForm::new(
@@ -399,6 +342,7 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_comment, read_comment);
+    assert_eq!(expected_comment, inserted_comment);
     assert_eq!(expected_comment, updated_comment);
     assert_eq!(expected_comment_like, inserted_comment_like);
     assert_eq!(expected_comment_saved, inserted_comment_saved);
@@ -409,109 +353,6 @@ mod tests {
     assert_eq!(uplete::Count::only_updated(1), like_removed);
     assert_eq!(uplete::Count::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_aggregates() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_comment_agg");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_comment_agg");
-
-    let another_inserted_person = Person::create(pool, &another_person).await?;
-
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "TIL_comment_agg".into(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    let inserted_community = Community::create(pool, &new_community).await?;
-
-    let new_post = PostInsertForm::new(
-      "A test post".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
-    let inserted_post = Post::create(pool, &new_post).await?;
-
-    let comment_form = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post.id,
-      "A test comment".into(),
-    );
-    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
-
-    let child_comment_form = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post.id,
-      "A test comment".into(),
-    );
-    let _inserted_child_comment =
-      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
-
-    let comment_like = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-
-    CommentLike::like(pool, &comment_like).await?;
-
-    let comment_aggs_before_delete = Comment::read(pool, inserted_comment.id).await?;
-
-    assert_eq!(1, comment_aggs_before_delete.score);
-    assert_eq!(1, comment_aggs_before_delete.upvotes);
-    assert_eq!(0, comment_aggs_before_delete.downvotes);
-
-    // Add a post dislike from the other person
-    let comment_dislike = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: another_inserted_person.id,
-      score: -1,
-    };
-
-    CommentLike::like(pool, &comment_dislike).await?;
-
-    let comment_aggs_after_dislike = Comment::read(pool, inserted_comment.id).await?;
-
-    assert_eq!(0, comment_aggs_after_dislike.score);
-    assert_eq!(1, comment_aggs_after_dislike.upvotes);
-    assert_eq!(1, comment_aggs_after_dislike.downvotes);
-
-    // Remove the first comment like
-    CommentLike::remove(pool, inserted_person.id, inserted_comment.id).await?;
-    let after_like_remove = Comment::read(pool, inserted_comment.id).await?;
-    assert_eq!(-1, after_like_remove.score);
-    assert_eq!(0, after_like_remove.upvotes);
-    assert_eq!(1, after_like_remove.downvotes);
-
-    // Remove the parent post
-    Post::delete(pool, inserted_post.id).await?;
-
-    // Should be none found, since the post was deleted
-    let after_delete = Comment::read(pool, inserted_comment.id).await;
-    assert!(after_delete.is_err());
-
-    // This should delete all the associated rows, and fire triggers
-    Person::delete(pool, another_inserted_person.id).await?;
-    let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
-    assert_eq!(1, person_num_deleted);
-
-    // Delete the community
-    let community_num_deleted = Community::delete(pool, inserted_community.id).await?;
-    assert_eq!(1, community_num_deleted);
-
-    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

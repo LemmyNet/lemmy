@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{send_new_report_email_to_admins, slur_regex},
+  utils::send_new_report_email_to_admins,
 };
 use lemmy_db_schema::{
   source::{
@@ -16,14 +16,16 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
+#[tracing::instrument(skip(context))]
 pub async fn create_pm_report(
   data: Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {
+  let local_site = LocalSite::read(&mut context.pool()).await?;
+
   let reason = data.reason.trim().to_string();
-  let slur_regex = slur_regex(&context).await?;
-  check_report_reason(&reason, &slur_regex)?;
+  check_report_reason(&reason, &local_site)?;
 
   let person_id = local_user_view.person.id;
   let private_message_id = data.private_message_id;
@@ -49,7 +51,6 @@ pub async fn create_pm_report(
     PrivateMessageReportView::read(&mut context.pool(), report.id).await?;
 
   // Email the admins
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
       &private_message_report_view.creator.name,

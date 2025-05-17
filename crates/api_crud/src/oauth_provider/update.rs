@@ -10,6 +10,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
+#[tracing::instrument(skip(context))]
 pub async fn update_oauth_provider(
   data: Json<EditOAuthProvider>,
   context: Data<LemmyContext>,

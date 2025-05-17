@@ -9,6 +9,7 @@ use diesel::{insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyResult;
 
+#[async_trait]
 impl Crud for Tag {
   type InsertForm = TagInsertForm;
 

@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   ListingType,
 };
-use lemmy_db_views::structs::{
+use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunitySortType,
   CommunityView,
@@ -96,10 +96,6 @@ pub struct ListCommunities {
   pub type_: Option<ListingType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<CommunitySortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  /// Filter to within a given time range, in seconds.
-  /// IE 60 would give results for the past minute.
-  pub time_range_seconds: Option<i32>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]

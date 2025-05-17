@@ -137,13 +137,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         .wrap(rate_limit.image())
         .route(post().to(upload_image)),
     )
-    .service(
-      scope("/pictrs")
-        .wrap(rate_limit.message())
-        .route("/image/{filename}", get().to(get_image))
-        .route("/image/delete/{token}/{filename}", get().to(delete_image))
-        .route("/healthz", get().to(pictrs_health)),
-    )
+    .service(resource("/pictrs/image/{filename}").route(get().to(get_image)))
+    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete_image)))
+    .service(resource("/pictrs/healthz").route(get().to(pictrs_health)))
     .service(
       scope("/api/v3")
         .route("/image_proxy", get().to(image_proxy))
@@ -169,7 +165,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         )
         .service(
           resource("/resolve_object")
-            .wrap(rate_limit.search())
+            .wrap(rate_limit.message())
             .route(get().to(resolve_object)),
         )
         // Community
@@ -202,16 +198,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         )
         // Post
         .service(
+          // Handle POST to /post separately to add the post() rate limitter
           resource("/post")
-            // Handle POST to /post separately to add the post() rate limitter
             .guard(guard::Post())
             .wrap(rate_limit.post())
             .route(post().to(create_post)),
-        )
-        .service(
-          resource("/post/site_metadata")
-            .wrap(rate_limit.search())
-            .route(get().to(get_link_metadata)),
         )
         .service(
           scope("/post")
@@ -229,7 +220,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .route("/like/list", get().to(list_post_likes))
             .route("/save", put().to(save_post))
             .route("/report", post().to(create_post_report))
-            .route("/report/resolve", put().to(resolve_post_report)),
+            .route("/report/resolve", put().to(resolve_post_report))
+            .route("/site_metadata", get().to(get_link_metadata)),
         )
         // Comment
         .service(
