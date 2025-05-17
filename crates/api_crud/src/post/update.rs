@@ -8,7 +8,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   post::{EditPost, PostResponse},
-  request::generate_post_link_metadata,
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
@@ -124,6 +124,18 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
+  if !orig_gallery.is_empty() && gallery_forms.is_none() {
+    PostGallery::delete_from_post_id(post_id, &mut context.pool()).await?;
+  }
+  let gallery_forms = if let Some(gallery_forms) = gallery_forms {
+    Some(check_gallery_items_are_images(&gallery_forms, &context).await?)
+  } else {
+    None
+  };
+  let url_content_type = gallery_forms
+    .as_ref()
+    .map(|f| f.first().and_then(|item| item.url_content_type.clone()));
+
   let language_id = validate_post_language(
     &mut context.pool(),
     data.language_id,
@@ -155,19 +167,12 @@ pub async fn update_post(
     language_id: Some(language_id),
     updated: Some(Some(Utc::now())),
     scheduled_publish_time,
+    url_content_type,
     ..Default::default()
   };
-
-  if !orig_gallery.is_empty() && gallery_forms.is_none() {
-    PostGallery::delete_from_post_id(post_id, &mut context.pool()).await?;
-  }
-
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
-  // let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
-  //   .await
-  //   .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let updated_post = conn

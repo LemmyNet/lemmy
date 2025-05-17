@@ -26,7 +26,7 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  request::{check_urls_are_images, generate_post_link_metadata},
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
@@ -326,13 +326,14 @@ impl Object for ApubPost {
 
     let post_id = post.id;
     let gallery_forms = if is_gallery {
+      let len: i32 = page.attachment.len().try_into()?;
       Some(
         page
           .attachment
           .iter()
-          .enumerate()
+          .zip(0..len)
           .map(|a| {
-            let (index, att) = a;
+            let (att, index) = a;
             PostGalleryInsertForm {
               url: att.clone().url().into(),
               post_id,
@@ -342,7 +343,7 @@ impl Object for ApubPost {
                 .clone()
                 .caption()
                 .map(|c| truncate_for_db(&c, MAX_TITLE_LENGTH)),
-              page: index as i32,
+              page: index,
             }
           })
           .collect::<Vec<_>>(),
@@ -362,7 +363,7 @@ impl Object for ApubPost {
           .into_iter()
           .partition(|f| f.url_content_type.is_none());
 
-        match check_urls_are_images(&no_content_type, &context_).await {
+        match check_gallery_items_are_images(&no_content_type, &context_).await {
           // Treat posts with multiple attachments that aren't images as single link post
           Err(_) => {
             let mut gallery_forms = no_content_type.clone();

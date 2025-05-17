@@ -559,7 +559,7 @@ pub fn process_gallery(
       }
 
       if let Some(caption) = &item.caption {
-        if let Err(_) = is_valid_post_title(caption) {
+        if is_valid_post_title(caption).is_err() {
           Err(LemmyErrorType::InvalidGalleryCaption)?;
         }
       }
@@ -567,7 +567,7 @@ pub fn process_gallery(
       gallery_forms.push(PostGalleryInsertForm {
         // We overwrite this later.
         post_id: PostId(0),
-        page: index as i32,
+        page: index.try_into()?,
         url,
         url_content_type: None,
         caption: item.caption.clone(),

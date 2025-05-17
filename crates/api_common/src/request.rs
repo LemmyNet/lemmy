@@ -312,7 +312,7 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   })
 }
 
-pub async fn check_urls_are_images(
+pub async fn check_gallery_items_are_images(
   urls: &Vec<PostGalleryInsertForm>,
   context: &LemmyContext,
 ) -> Result<Vec<PostGalleryInsertForm>, LemmyError> {

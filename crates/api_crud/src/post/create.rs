@@ -8,7 +8,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   post::{CreatePost, PostResponse},
-  request::{check_urls_are_images, generate_post_link_metadata},
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
@@ -89,10 +89,13 @@ pub async fn create_post(
   }
 
   let gallery_forms = if let Some(gallery_forms) = gallery_forms {
-    Some(check_urls_are_images(&gallery_forms, &context).await?)
+    Some(check_gallery_items_are_images(&gallery_forms, &context).await?)
   } else {
     None
   };
+  let url_content_type = gallery_forms
+    .as_ref()
+    .and_then(|f| f.first().and_then(|item| item.url_content_type.clone()));
 
   let community_view = CommunityView::read(
     &mut context.pool(),
@@ -140,6 +143,7 @@ pub async fn create_post(
     language_id: Some(language_id),
     federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time,
+    url_content_type,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
       local_user_view.person.id,
