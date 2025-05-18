@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_edit_community"
+name = "lemmy_db_views_create_community_tag"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -17,13 +17,11 @@ workspace = true
 [features]
 full = [
   "ts-rs",
-  "lemmy_db_schema/full",
-  "lemmy_db_schema_file/full",
+  "lemmy_db_schema/full"
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
-lemmy_db_schema_file = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }

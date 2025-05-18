@@ -74,6 +74,14 @@ members = [
   "crates/federate",
   "crates/email",
   "crates/db_views/edit_community",
+  "crates/db_views/add_mod_to_community_response",
+  "crates/db_views/hide_community",
+  "crates/db_views/delete_community",
+  "crates/db_views/create_community_tag",
+  "crates/db_views/update_community_tag",
+  "crates/db_views/delete_community_tag",
+  "crates/db_views/get_community",
+  "crates/db_views/get_community_response",
 ]
 
 [workspace.lints.clippy]
@@ -123,8 +131,16 @@ lemmy_db_views_person = { version = "=1.0.0-alpha.4", path = "./crates/db_views/
 lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/custom_emoji" }
 lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views/vote" }
+lemmy_db_views_add_mod_to_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/add_mod_to_community_response" }
 lemmy_db_views_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community" }
+lemmy_db_views_get_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community" }
+lemmy_db_views_get_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community_response" }
+lemmy_db_views_create_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_community_tag" }
+lemmy_db_views_delete_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_community_tag" }
+lemmy_db_views_update_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/update_community_tag" }
 lemmy_db_views_edit_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_community" }
+lemmy_db_views_delete_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_community" }
+lemmy_db_views_hide_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/hide_community" }
 lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_moderator" }
 lemmy_db_views_community_follower = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_follower" }
 lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_person_ban" }

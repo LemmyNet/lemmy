@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
+  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId},
   source::site::Site,
   CommunitySortType,
 };
@@ -12,62 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Create a tag for a community.
-pub struct CreateCommunityTag {
-  pub community_id: CommunityId,
-  pub display_name: String,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Update a community tag.
-pub struct UpdateCommunityTag {
-  pub tag_id: TagId,
-  pub display_name: String,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Delete a community tag.
-pub struct DeleteCommunityTag {
-  pub tag_id: TagId,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-// TODO make this into a tagged enum
-/// Get a community. Must provide either an id, or a name.
-pub struct GetCommunity {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub id: Option<CommunityId>,
-  /// Example: star_trek , or star_trek@xyz.tld
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub name: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The community response.
-pub struct GetCommunityResponse {
-  pub community_view: CommunityView,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub site: Option<Site>,
-  pub moderators: Vec<CommunityModeratorView>,
-  pub discussion_languages: Vec<LanguageId>,
-}
 
 #[skip_serializing_none]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -188,36 +132,6 @@ pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of adding a moderator to a community.
-pub struct AddModToCommunityResponse {
-  pub moderators: Vec<CommunityModeratorView>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Hide a community from the main view.
-pub struct HideCommunity {
-  pub community_id: CommunityId,
-  pub hidden: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub reason: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Delete your own community.
-pub struct DeleteCommunity {
-  pub community_id: CommunityId,
-  pub deleted: bool,
 }
 
 #[skip_serializing_none]

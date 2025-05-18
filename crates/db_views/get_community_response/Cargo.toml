@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_edit_community"
+name = "lemmy_db_views_get_community_response"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -18,12 +18,14 @@ workspace = true
 full = [
   "ts-rs",
   "lemmy_db_schema/full",
-  "lemmy_db_schema_file/full",
+  "lemmy_db_views_community/full",
+  "lemmy_db_views_community_moderator/full"
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
-lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
+lemmy_db_views_community = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }

@@ -1,11 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
-  community::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
-  context::LemmyContext,
-  utils::check_community_mod_action,
-};
+use lemmy_api_common::{context::LemmyContext, utils::check_community_mod_action};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -13,7 +9,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_create_community_tag::CreateCommunityTag;
+use lemmy_db_views_delete_community_tag::DeleteCommunityTag;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_update_community_tag::UpdateCommunityTag;
 use lemmy_utils::{error::LemmyResult, utils::validation::tag_name_length_check};
 
 pub async fn create_community_tag(

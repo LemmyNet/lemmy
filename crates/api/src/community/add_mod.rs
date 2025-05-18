@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
-  community::{AddModToCommunity, AddModToCommunityResponse},
+  community::AddModToCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
@@ -16,6 +16,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
   utils::get_conn,
 };
+use lemmy_db_views_add_mod_to_community_response::AddModToCommunityResponse;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};

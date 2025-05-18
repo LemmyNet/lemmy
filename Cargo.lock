@@ -3120,11 +3120,15 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_add_mod_to_community_response",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
+ "lemmy_db_views_create_community_tag",
+ "lemmy_db_views_delete_community_tag",
+ "lemmy_db_views_get_community_response",
  "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
@@ -3136,6 +3140,7 @@ dependencies = [
  "lemmy_db_views_report_combined",
  "lemmy_db_views_reports",
  "lemmy_db_views_site",
+ "lemmy_db_views_update_community_tag",
  "lemmy_db_views_vote",
  "lemmy_email",
  "lemmy_utils",
@@ -3227,6 +3232,7 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_delete_community",
  "lemmy_db_views_edit_community",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
@@ -3267,6 +3273,8 @@ dependencies = [
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
+ "lemmy_db_views_get_community",
+ "lemmy_db_views_get_community_response",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3396,6 +3404,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_add_mod_to_community_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_views_community_moderator",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_comment"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3477,6 +3494,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_create_community_tag"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_custom_emoji"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3490,14 +3517,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_delete_community"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_delete_community_tag"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_edit_community"
 version = "1.0.0-alpha.4"
 dependencies = [
- "diesel",
- "diesel-async",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_utils",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_get_community"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_get_community_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "lemmy_db_views_community",
+ "lemmy_db_views_community_moderator",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_hide_community"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
  "serde",
  "serde_with",
  "ts-rs",
@@ -3755,6 +3831,16 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_utils",
  "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_update_community_tag"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "serde_with",
  "ts-rs",
 ]
 

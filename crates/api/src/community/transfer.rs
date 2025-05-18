@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use anyhow::Context;
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
-  community::{GetCommunityResponse, TransferCommunity},
+  community::TransferCommunity,
   context::LemmyContext,
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
@@ -16,6 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_get_community_response::GetCommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
