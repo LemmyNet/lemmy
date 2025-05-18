@@ -45,3 +45,4 @@ tracing = { workspace = true, optional = true }
 [dev-dependencies]
 serial_test = { workspace = true }
 diff = "0.1.13"
+itertools = { workspace = true }

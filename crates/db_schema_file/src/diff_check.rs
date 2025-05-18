@@ -1,5 +1,6 @@
 #![cfg(test)]
 #![expect(clippy::expect_used)]
+use itertools::Itertools;
 use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,
@@ -7,6 +8,7 @@ use std::{
     btree_set::{self, BTreeSet},
     HashSet,
   },
+  num::NonZero,
   process::{Command, Stdio},
 };
 
@@ -55,54 +57,42 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     return;
   }
 
-  let mut match_before_len = before
-    .as_bytes()
-    .into_iter()
-    .zip(after.as_bytes())
-    .position(|(a, b)| a != b)
-    .unwrap_or(0);
-  let mut match_after_len = before
-    .as_bytes()
-    .into_iter()
-    .rev()
-    .zip(after.as_bytes().into_iter().rev())
-    .position(|(a, b)| a != b)
-    .unwrap_or(0);
-  match_before_len = before
-    .get(0..match_before_len)
-    .and_then(|s| s.rfind("\n\n"))
-    .unwrap_or(0);
-  match_after_len -= before
-    .get((before.len() - match_after_len)..)
-    .and_then(|s| s.find("\n\n"))
-    .unwrap_or(0);
+  let len_of_match_at_beginning = count_bytes_until_chunks_dont_match(
+    before.as_bytes().into_iter(),
+    after.as_bytes().into_iter(),
+  );
+  let len_of_match_at_end = count_bytes_until_chunks_dont_match(
+    before.as_bytes().into_iter().rev(),
+    after.as_bytes().into_iter().rev(),
+  );
   let [before_chunks, after_chunks] = [&before, &after].map(|dump| {
     dump
-      .get(match_before_len..(dump.len() - match_after_len))
-      .unwrap_or(dump.as_str())
+      .get(len_of_match_at_beginning..(dump.len() - len_of_match_at_end))
+      .expect("invalid count_bytes_until_chunks_dont_match result")
       .split("\n\n")
-      .filter_map(normalize_chunk)
+      .filter_map(remove_ignored_details_from_chunk)
       .collect::<Vec<_>>()
   });
-  let mut before_diff = BTreeSet::new();
-  let mut after_diff = BTreeSet::new();
   let diff_results = diff::slice(&before_chunks, &after_chunks);
   dbg!(diff_results.len());
+  let mut before_diff = BTreeSet::new();
+  let mut after_diff = BTreeSet::new();
   for res in diff_results {
-    match res {
-      diff::Result::Both(_, _) => (),
-      diff::Result::Left(chunk) => {
-        before_diff.insert((&**chunk));
-      }
-      diff::Result::Right(chunk) => {
-        after_diff.insert((&**chunk));
-      }
-    }
+    let not_duplicate = match res {
+      diff::Result::Both(_, _) => true,
+      diff::Result::Left(chunk) => before_diff.insert((&**chunk)),
+      diff::Result::Right(chunk) => after_diff.insert((&**chunk)),
+    };
+    assert!(
+      not_duplicate,
+      "a dump contains the same chunk multiple times"
+    );
   }
-  let diffs = [before_diff, after_diff];
-  let [only_in_before, only_in_after] = diffs
-    .differences()
-    .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
+  let [only_in_before, only_in_after] = [
+    before_diff.difference(&after_diff),
+    after_diff.difference(&before_diff),
+  ]
+  .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
 
   if only_in_before.is_empty() && only_in_after.is_empty() {
     return;
@@ -121,22 +111,22 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     .into_iter()
     .chain(std::iter::repeat(""))
     .map_while(|chunk| {
+      // Compare with the most similar chunk in the other dump, to output better diffs
       let (most_similar_chunk_index, most_similar_chunk) = other_chunks
         .iter()
         .enumerate()
         .max_by_key(|(_, other_chunk)| {
-          if sql_command_name(chunk) != sql_command_name(other_chunk) {
-            0
-          } else {
-            similarity(chunk, other_chunk)
-          }
+          let command_name_match = sql_command_name(chunk) == sql_command_name(other_chunk);
+          (command_name_match, similarity(chunk, other_chunk))
         })?;
 
-      let diff_lines = if after_has_more {
-        diff::lines(most_similar_chunk, chunk)
+      let [chunk_before, chunk_after] = if after_has_more {
+        [most_similar_chunk, chunk]
       } else {
-        diff::lines(chunk, most_similar_chunk)
+        [chunk, most_similar_chunk]
       };
+
+      let diff_lines = diff::lines(chunk_before, chunk_after);
 
       other_chunks.swap_remove(most_similar_chunk_index);
 
@@ -148,7 +138,7 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
             diff::Result::Right(s) => ["+ ", s, "\n"],
             diff::Result::Both(s, _) => ["  ", s, "\n"],
           })
-          .chain(["\n"])
+          .chain(["\n"]) // Blank line after each chunk diff
           .collect::<String>(),
       )
     });
@@ -159,6 +149,32 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
       .chain(diffs)
       .collect::<String>()
   );
+}
+
+fn count_bytes_until_chunks_dont_match<
+  'a,
+  T: Iterator<Item = &'a u8> + DoubleEndedIterator + ExactSizeIterator + Clone,
+>(
+  iter0: T,
+  iter1: T,
+) -> usize {
+  // iter0: FOO\n\nBAR\n\nBUNNY
+  // iter1: FOO\n\nBAR\n\nBURROW
+  //        ^^^^^^^^^^^^^^^^ matching_len
+  //                      ^^ last_chunk_matching_len
+  let matching_len = iter0
+    .clone()
+    .zip(iter1.clone())
+    .take_while(|(a, b)| a == b)
+    .count();
+  let last_chunk_matching_len = iter0
+    .take(matching_len)
+    .rev()
+    .copied()
+    .tuple_windows::<(_, _)>()
+    .take_while(|&a| a != (b'\n', b'\n'))
+    .count();
+  matching_len - last_chunk_matching_len
 }
 
 trait Differences<T> {
@@ -201,10 +217,9 @@ fn similarity(chunk: &str, other_chunk: &str) -> usize {
     .count()
 }
 
-fn normalize_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
-  chunk = chunk.trim();
-  while let Some(s) = remove_skipped_item_from_beginning(chunk) {
-    chunk = s.trim_start();
+fn remove_ignored_details_from_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
+  while let Some(s) = trim_start_of_chunk(chunk) {
+    chunk = s;
   }
   if chunk.is_empty() ||
   // Skip old views and fast table triggers
@@ -225,13 +240,12 @@ fn normalize_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
   }
   let mut chunk = Cow::Borrowed(chunk);
 
-  let stripped_lines = chunk
-    .lines()
-    .map(|line| line.strip_suffix(',').unwrap_or(line));
-
   // Sort column names, so differences in column order are ignored
   if chunk.starts_with("CREATE TABLE ") {
-    let mut lines = stripped_lines.collect::<Vec<_>>();
+    let mut lines = chunk
+      .lines()
+      .map(|line| line.strip_suffix(',').unwrap_or(line))
+      .collect::<Vec<_>>();
 
     sort_within_sections(&mut lines, |line| {
       match line.chars().next() {
@@ -296,10 +310,13 @@ fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
-fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
-  // Skip commented line
+fn trim_start_of_chunk(s: &str) -> Option<&str> {
   if let Some(after) = s.strip_prefix("--") {
+    // Skip commented line
     Some(after_first_occurence(after, "\n"))
+  } else if let Some(after) = s.strip_prefix(char::is_whitespace) {
+    // Skip whitespace
+    Some(after.trim_start())
   } else {
     None
   }
@@ -319,4 +336,30 @@ fn after_skipped_trigger_name(s: &str) -> Option<&str> {
     .or_else(|| s.strip_prefix("refresh_post"))
     .or_else(|| s.strip_prefix("refresh_private_message"))
     .or_else(|| s.strip_prefix("refresh_user"))
+}
+
+// cfg(test) would be redundant here
+mod tests {
+  #[test]
+  fn test_count_bytes_until_chunks_dont_match() {
+    let a = b"FOO\n\nFOO\n\nFOO\nFOO";
+    let b = b"FOO\n\nFOO\n\nFOO\nBAR";
+    let c = b"FOO\n\nFOO\n\n";
+    assert_eq!(
+      super::count_bytes_until_chunks_dont_match(a.into_iter(), b.into_iter()),
+      c.len()
+    );
+    assert_eq!(
+      super::count_bytes_until_chunks_dont_match(a.into_iter(), a.into_iter()),
+      a.len()
+    );
+    assert_eq!(
+      super::count_bytes_until_chunks_dont_match(b"z".into_iter(), b"z".into_iter()),
+      1
+    );
+    assert_eq!(
+      super::count_bytes_until_chunks_dont_match(b"z".into_iter(), b"y".into_iter()),
+      0
+    );
+  }
 }

@@ -3373,6 +3373,7 @@ dependencies = [
  "diesel_ltree",
  "diesel_migrations",
  "diff",
+ "itertools 0.14.0",
  "lemmy_utils",
  "serde",
  "serial_test",
