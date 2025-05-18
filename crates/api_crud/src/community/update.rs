@@ -4,7 +4,7 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_community_response,
-  community::{CommunityResponse, EditCommunity},
+  community::CommunityResponse,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -25,6 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_db_views_edit_community::EditCommunity;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},

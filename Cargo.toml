@@ -73,6 +73,7 @@ members = [
   "crates/routes",
   "crates/federate",
   "crates/email",
+  "crates/db_views/edit_community",
 ]
 
 [workspace.lints.clippy]
@@ -123,6 +124,7 @@ lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_
 lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views/vote" }
 lemmy_db_views_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community" }
+lemmy_db_views_edit_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_community" }
 lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_moderator" }
 lemmy_db_views_community_follower = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_follower" }
 lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_person_ban" }

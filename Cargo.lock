@@ -3227,6 +3227,7 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_edit_community",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
@@ -3485,6 +3486,20 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_utils",
  "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_edit_community"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "serde",
+ "serde_with",
  "ts-rs",
 ]
 
