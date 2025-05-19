@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{DbUrl, LocalUserId},
+  newtypes::{DbUrl, PersonId},
   source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
 };
@@ -47,7 +47,7 @@ impl LocalImage {
   pub async fn validate_by_alias_and_user(
     pool: &mut DbPool<'_>,
     alias: &str,
-    local_user_id: LocalUserId,
+    person_id: PersonId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
@@ -55,7 +55,7 @@ impl LocalImage {
       local_image::table.filter(
         local_image::pictrs_alias
           .eq(alias)
-          .and(local_image::local_user_id.eq(local_user_id)),
+          .and(local_image::person_id.eq(person_id)),
       ),
     ))
     .get_result::<bool>(conn)
