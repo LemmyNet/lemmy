@@ -108,7 +108,7 @@ diesel_migrations = "2.1.0"
 diesel-async = "0.4.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_with = "3.12.0"
-actix-web = { version = "4.11.0", default-features = false, features = [
+actix-web = { version = "4.8.0", default-features = false, features = [
   "macros",
   "rustls-0_23",
   "compress-brotli",
@@ -121,7 +121,7 @@ tracing-actix-web = { version = "0.7.18", default-features = false }
 tracing-error = "0.2.1"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
-url = { version = "2.5.4", features = ["serde"] }
+url = { version = "2.5.2", features = ["serde"] }
 reqwest = { version = "0.11.27", default-features = false, features = [
   "json",
   "blocking",
@@ -136,10 +136,10 @@ bcrypt = "0.15.1"
 chrono = { version = "0.4.41", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.140", features = ["preserve_order"] }
 base64 = "0.22.1"
-uuid = { version = "1.16.0", features = ["serde", "v4"] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
 async-trait = "0.1.88"
 captcha = "0.0.9"
-anyhow = { version = "1.0.98", features = [
+anyhow = { version = "1.0.86", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.1"
