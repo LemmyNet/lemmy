@@ -82,6 +82,24 @@ members = [
   "crates/db_views/delete_community_tag",
   "crates/db_views/get_community",
   "crates/db_views/get_community_response",
+  "crates/db_views/create_community",
+  "crates/db_views/community_response",
+  "crates/db_views/list_communities",
+  "crates/db_views/list_communities_response",
+  "crates/db_views/ban_from_community",
+  "crates/db_views/ban_from_community_response",
+  "crates/db_views/add_mod_to_community",
+  "crates/db_views/remove_community",
+  "crates/db_views/follow_community",
+  "crates/db_views/block_community",
+  "crates/db_views/block_community_response",
+  "crates/db_views/get_random_community",
+  "crates/db_views/list_community_pending_follows",
+  "crates/db_views/transfer_community",
+  "crates/db_views/get_community_pending_follows_count",
+  "crates/db_views/get_community_pending_follows_count_response",
+  "crates/db_views/list_community_pending_follows_response",
+  "crates/db_views/approve_community_pending_follower",
 ]
 
 [workspace.lints.clippy]
@@ -132,13 +150,31 @@ lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_
 lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views/vote" }
 lemmy_db_views_add_mod_to_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/add_mod_to_community_response" }
+lemmy_db_views_approve_community_pending_follower = { version = "=1.0.0-alpha.4", path = "./crates/db_views/approve_community_pending_follower" }
+lemmy_db_views_ban_from_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/ban_from_community" }
+lemmy_db_views_ban_from_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/ban_from_community_response" }
 lemmy_db_views_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community" }
+lemmy_db_views_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_response" }
 lemmy_db_views_get_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community" }
+lemmy_db_views_get_community_pending_follows_count = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community_pending_follows_count" }
+lemmy_db_views_get_community_pending_follows_count_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community_pending_follows_count_response" }
 lemmy_db_views_get_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_community_response" }
+lemmy_db_views_get_random_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_random_community" }
 lemmy_db_views_create_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_community_tag" }
 lemmy_db_views_delete_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_community_tag" }
 lemmy_db_views_update_community_tag = { version = "=1.0.0-alpha.4", path = "./crates/db_views/update_community_tag" }
+lemmy_db_views_list_community_pending_follows = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_community_pending_follows" }
+lemmy_db_views_list_community_pending_follows_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_community_pending_follows_response" }
+lemmy_db_views_list_communities = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_communities" }
+lemmy_db_views_list_communities_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_communities_response" }
 lemmy_db_views_edit_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_community" }
+lemmy_db_views_block_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/block_community" }
+lemmy_db_views_block_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/block_community_response" }
+lemmy_db_views_create_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_community" }
+lemmy_db_views_follow_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/follow_community" }
+lemmy_db_views_remove_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/remove_community" }
+lemmy_db_views_transfer_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/transfer_community" }
+lemmy_db_views_add_mod_to_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/add_mod_to_community" }
 lemmy_db_views_delete_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_community" }
 lemmy_db_views_hide_community = { version = "=1.0.0-alpha.4", path = "./crates/db_views/hide_community" }
 lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.4", path = "./crates/db_views/community_moderator" }

@@ -1,10 +1,8 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  community::{GetCommunityPendingFollowsCount, GetCommunityPendingFollowsCountResponse},
-  context::LemmyContext,
-  utils::is_mod_or_admin,
-};
+use lemmy_api_common::{context::LemmyContext, utils::is_mod_or_admin};
 use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_get_community_pending_follows_count::GetCommunityPendingFollowsCount;
+use lemmy_db_views_get_community_pending_follows_count_response::GetCommunityPendingFollowsCountResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

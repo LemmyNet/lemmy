@@ -1,7 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_deleted_removed, check_local_user_valid},
@@ -16,6 +15,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_community_response::CommunityResponse;
+use lemmy_db_views_follow_community::FollowCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

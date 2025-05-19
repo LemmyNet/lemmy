@@ -4,14 +4,10 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_community_response,
-  community::CommunityResponse,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_mod_action,
-    check_nsfw_allowed,
-    get_url_blocklist,
-    process_markdown_opt,
+    check_community_mod_action, check_nsfw_allowed, get_url_blocklist, process_markdown_opt,
     slur_regex,
   },
 };
@@ -23,9 +19,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
+use lemmy_db_views_community_response::CommunityResponse;
+use lemmy_db_views_edit_community::EditCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
-use lemmy_db_views_edit_community::EditCommunity;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},

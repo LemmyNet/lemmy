@@ -3,7 +3,6 @@ pub mod build_response;
 #[cfg(feature = "full")]
 pub mod claims;
 pub mod comment;
-pub mod community;
 #[cfg(feature = "full")]
 pub mod context;
 pub mod custom_emoji;

@@ -62,8 +62,10 @@ full = [
 [dependencies]
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_community = { workspace = true }
+lemmy_db_views_community_response = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
 lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_ban_from_community = { workspace = true }
 lemmy_db_views_community_person_ban = { workspace = true }
 lemmy_db_views_post = { workspace = true }
 lemmy_db_views_vote = { workspace = true }

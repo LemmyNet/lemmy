@@ -2,13 +2,10 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
-  community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_mod_action,
-    check_expire_time,
-    remove_or_restore_user_data_in_community,
+    check_community_mod_action, check_expire_time, remove_or_restore_user_data_in_community,
   },
 };
 use lemmy_db_schema::{
@@ -20,6 +17,8 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
+use lemmy_db_views_ban_from_community::BanFromCommunity;
+use lemmy_db_views_ban_from_community_response::BanFromCommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_utils::{

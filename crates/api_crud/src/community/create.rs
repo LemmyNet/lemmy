@@ -3,32 +3,25 @@ use activitypub_federation::{config::Data, http_signatures::generate_actor_keypa
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_community_response,
-  community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
-    check_nsfw_allowed,
-    generate_followers_url,
-    generate_inbox_url,
-    get_url_blocklist,
-    is_admin,
-    process_markdown_opt,
-    slur_regex,
+    check_nsfw_allowed, generate_followers_url, generate_inbox_url, get_url_blocklist, is_admin,
+    process_markdown_opt, slur_regex,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, LocalUserLanguage, SiteLanguage},
     community::{
-      Community,
-      CommunityActions,
-      CommunityFollowerForm,
-      CommunityInsertForm,
+      Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
       CommunityModeratorForm,
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
+use lemmy_db_views_community_response::CommunityResponse;
+use lemmy_db_views_create_community::CreateCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
@@ -36,9 +29,7 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      site_or_community_description_length_check,
+      is_valid_actor_name, is_valid_body_field, site_or_community_description_length_check,
     },
   },
 };

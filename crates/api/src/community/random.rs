@@ -1,12 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
-  community::{CommunityResponse, GetRandomCommunity},
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
 use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_response::CommunityResponse;
+use lemmy_db_views_get_random_community::GetRandomCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

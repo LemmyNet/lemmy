@@ -1,11 +1,9 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  community::{ListCommunityPendingFollows, ListCommunityPendingFollowsResponse},
-  context::LemmyContext,
-  utils::check_community_mod_of_any_or_admin_action,
-};
+use lemmy_api_common::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_community_follower::{CommunityFollowerView, PendingFollow};
+use lemmy_db_views_list_community_pending_follows::ListCommunityPendingFollows;
+use lemmy_db_views_list_community_pending_follows_response::ListCommunityPendingFollowsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

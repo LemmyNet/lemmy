@@ -1,16 +1,14 @@
-use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
+use crate::{context::LemmyContext, post::DeletePost};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
-    comment::Comment,
-    community::Community,
-    person::Person,
-    post::Post,
+    comment::Comment, community::Community, person::Person, post::Post,
     private_message::PrivateMessage,
   },
 };
+use lemmy_db_views_ban_from_community::BanFromCommunity;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
 use std::sync::{LazyLock, OnceLock};
