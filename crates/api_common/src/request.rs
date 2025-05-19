@@ -9,13 +9,10 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::{
-  newtypes::{PersonId, PostId},
-  source::{
-    images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
-    post::{Post, PostUpdateForm},
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+  post::{Post, PostUpdateForm},
+  site::Site,
 };
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -222,7 +219,7 @@ pub async fn generate_post_link_metadata(
   };
 
   let image_url = if is_image_post {
-    post.url
+    post.url.clone()
   } else {
     metadata.opengraph_data.image.clone()
   };
@@ -236,7 +233,7 @@ pub async fn generate_post_link_metadata(
       .ok()
       .or(Some(url.into()))
   } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
-    generate_pictrs_thumbnail(post.creator_id, post.id, &url, &context)
+    generate_pictrs_thumbnail(&post, &url, &context)
       .await
       .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
@@ -447,8 +444,7 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 async fn generate_pictrs_thumbnail(
-  creator_id: PersonId,
-  post_id: PostId,
+  post: &Post,
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<Url> {
@@ -492,8 +488,8 @@ async fn generate_pictrs_thumbnail(
   let form = LocalImageForm {
     pictrs_alias: image.file.clone(),
     // For thumbnails, the person_id is the post creator
-    person_id: creator_id,
-    thumbnail_for_post_id: Some(Some(post_id)),
+    person_id: post.creator_id,
+    thumbnail_for_post_id: Some(Some(post.id)),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.image_url(&protocol_and_hostname)?;
