@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId};
+use crate::newtypes::{DbUrl, MultiCommunityId, PersonId};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::multi_community;
 use serde::{Deserialize, Serialize};
@@ -24,19 +24,4 @@ pub struct MultiCommunityInsertForm {
   pub owner_id: PersonId,
   pub name: String,
   pub ap_id: DbUrl,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-// TODO: should be moved to other crate
-pub struct MultiCommunityView {
-  pub multi: MultiCommunity,
-  pub entries: Vec<CommunityId>,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct MultiCommunityViewApub {
-  pub multi: MultiCommunity,
-  pub entries: Vec<DbUrl>,
 }

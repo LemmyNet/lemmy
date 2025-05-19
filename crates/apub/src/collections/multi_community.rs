@@ -8,10 +8,10 @@ use chrono::{DateTime, Utc};
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
-  impls::multi_community::ReadParams,
   newtypes::{CommunityId, MultiCommunityId},
   source::multi_community::MultiCommunity,
 };
+use lemmy_db_views_community::{multi_community::ReadParams, MultiCommunityView};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
 use url::Url;
@@ -108,7 +108,7 @@ impl Object for ApubMultiCommunity {
   }
 
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
-    let multi = MultiCommunity::read(
+    let multi = MultiCommunityView::read(
       &mut context.pool(),
       ReadParams::ApId(json.id.clone().into()),
     )

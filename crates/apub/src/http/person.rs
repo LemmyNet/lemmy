@@ -6,10 +6,8 @@ use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
-use lemmy_db_schema::{
-  source::{multi_community::MultiCommunity, person::Person},
-  traits::ApubActor,
-};
+use lemmy_db_schema::{source::person::Person, traits::ApubActor};
+use lemmy_db_views_community::MultiCommunityViewApub;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
@@ -62,7 +60,8 @@ pub(crate) async fn get_apub_person_multi_community(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let multi =
-    MultiCommunity::read_apub(&mut context.pool(), &query.user_name, &query.multi_name).await?;
+    MultiCommunityViewApub::read_local(&mut context.pool(), &query.user_name, &query.multi_name)
+      .await?;
 
   let collection = MultiCommunityCollection {
     r#type: Default::default(),

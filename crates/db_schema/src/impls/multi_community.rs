@@ -1,28 +1,16 @@
 use crate::{
-  diesel::NullableExpressionMethods,
-  newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
-  source::multi_community::{
-    MultiCommunity,
-    MultiCommunityInsertForm,
-    MultiCommunityView,
-    MultiCommunityViewApub,
-  },
+  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::{delete, insert_into, sql},
+  dsl::{delete, insert_into},
   result::Error,
-  sql_types::{Array, Integer, Text},
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
-use lemmy_db_schema_file::schema::{community, multi_community, multi_community_entry, person};
-
-pub enum ReadParams {
-  Id(MultiCommunityId),
-  ApId(DbUrl),
-}
+use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
 
 impl MultiCommunity {
   pub async fn create(
@@ -51,7 +39,7 @@ impl MultiCommunity {
             .execute(conn)
             .await?;
           let forms = new_communities
-            .into_iter()
+            .iter()
             .map(|k| {
               (
                 multi_community_entry::multi_community_id.eq(id),
@@ -71,54 +59,6 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    params: ReadParams,
-  ) -> Result<MultiCommunityView, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community::table
-      .left_join(person::table)
-      .left_join(multi_community_entry::table)
-      .group_by(multi_community::id)
-      .select((
-        multi_community::all_columns,
-        // Get vec of CommunityId. If no row exists for multi_community_entry this returns [null]
-        // so we need to filter that with array_remove.
-        sql::<Array<Integer>>("array_remove(array_agg(multi_community_entry.community_id), null)"),
-      ))
-      .into_boxed();
-
-    query = match params {
-      ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
-      ReadParams::ApId(ap_id) => query.filter(multi_community::ap_id.eq(ap_id)),
-    };
-    let (multi, entries): (_, Vec<CommunityId>) = query.first(conn).await?;
-    Ok(MultiCommunityView { multi, entries })
-  }
-
-  pub async fn read_apub(
-    pool: &mut DbPool<'_>,
-    user_name: &str,
-    multi_name: &str,
-  ) -> Result<MultiCommunityViewApub, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (multi, entries) = multi_community::table
-      .left_join(person::table)
-      .left_join(multi_community_entry::table.inner_join(community::table))
-      .group_by(multi_community::id)
-      .select((
-        multi_community::all_columns.assume_not_null(),
-        // Get vec of community.ap_id. If no row exists for multi_community_entry this returns
-        // [null] so we need to filter that with array_remove.
-        sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
-      ))
-      .filter(person::name.eq(user_name))
-      .filter(multi_community::name.eq(multi_name))
-      .first(conn)
-      .await?;
-    Ok(MultiCommunityViewApub { multi, entries })
-  }
-
   pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut query = multi_community::table.into_boxed();
@@ -126,78 +66,5 @@ impl MultiCommunity {
       query = query.filter(multi_community::owner_id.eq(owner_id));
     }
     query.get_results(conn).await
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
-  };
-  use lemmy_utils::error::LemmyResult;
-  use pretty_assertions::assert_eq;
-  use serial_test::serial;
-  use std::process::exit;
-
-  #[tokio::test]
-  #[serial]
-  async fn test_multi_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-    let form = PersonInsertForm::test_form(instance.id, "bobby");
-    let bobby = Person::create(pool, &form).await?;
-
-    let form = CommunityInsertForm::new(
-      instance.id,
-      "TIL".into(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    let community = Community::create(pool, &form).await?;
-
-    let form = MultiCommunityInsertForm {
-      owner_id: bobby.id,
-      name: "multi".to_string(),
-      ap_id: DbUrl(Box::new("http://example.com".parse()?)),
-    };
-    let multi_create = MultiCommunity::create(pool, &form).await?;
-    assert_eq!(form.owner_id, multi_create.owner_id);
-    assert_eq!(form.name, multi_create.name);
-    assert_eq!(form.ap_id, multi_create.ap_id);
-
-    let multi_read_empty = MultiCommunity::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert!(multi_read_empty.entries.is_empty());
-
-    let multi_read_apub_empty =
-      MultiCommunity::read_apub(pool, &bobby.name, &multi_create.name).await?;
-    assert!(multi_read_apub_empty.entries.is_empty());
-
-    let multi_entries = vec![community.id];
-    MultiCommunity::update(pool, multi_create.id, &multi_entries).await?;
-
-    let multi_read = MultiCommunity::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
-    assert_eq!(multi_entries, multi_read.entries);
-
-    let multi_read_apub = MultiCommunity::read_apub(pool, &bobby.name, &multi_create.name).await?;
-    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
-    assert_eq!(vec![community.ap_id], multi_read_apub.entries);
-
-    let list = MultiCommunity::list(pool, None).await?;
-    assert_eq!(1, list.len());
-
-    Instance::delete(pool, instance.id).await?;
-
-    Ok(())
   }
 }

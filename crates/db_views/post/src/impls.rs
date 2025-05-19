@@ -2317,7 +2317,7 @@ mod tests {
       Url::parse("http://example.com")?.into(),
     );
     let multi = MultiCommunity::create(pool, &form).await?;
-    MultiCommunity::update(pool, multi.id, vec![community_1.id, community_2.id]).await?;
+    MultiCommunity::update(pool, multi.id, &vec![community_1.id, community_2.id]).await?;
 
     let listing = PostQuery {
       community_id: Some(multi.id.into()),

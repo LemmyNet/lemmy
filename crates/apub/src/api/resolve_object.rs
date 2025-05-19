@@ -11,13 +11,9 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
-use lemmy_db_schema::{
-  impls::multi_community::ReadParams,
-  source::multi_community::MultiCommunity,
-  utils::DbPool,
-};
+use lemmy_db_schema::utils::DbPool;
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{multi_community::ReadParams, CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
@@ -85,7 +81,7 @@ async fn convert_response(
       },
     },
     SearchableObjects2::Right(multi) => {
-      res.multi_community = Some(MultiCommunity::read(pool, ReadParams::Id(multi.0)).await?)
+      res.multi_community = Some(MultiCommunityView::read(pool, ReadParams::Id(multi.0)).await?)
     }
   };
 

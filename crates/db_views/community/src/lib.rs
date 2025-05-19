@@ -1,7 +1,11 @@
-use lemmy_db_schema::source::{
-  community::{Community, CommunityActions},
-  instance::InstanceActions,
-  tag::TagsView,
+use lemmy_db_schema::{
+  newtypes::{CommunityId, DbUrl},
+  source::{
+    community::{Community, CommunityActions},
+    instance::InstanceActions,
+    multi_community::MultiCommunity,
+    tag::TagsView,
+  },
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -14,6 +18,8 @@ use {
 
 #[cfg(feature = "full")]
 pub mod impls;
+#[cfg(feature = "full")]
+pub mod multi_community;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -42,4 +48,18 @@ pub struct CommunityView {
     )
   )]
   pub post_tags: TagsView,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct MultiCommunityView {
+  pub multi: MultiCommunity,
+  pub entries: Vec<CommunityId>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct MultiCommunityViewApub {
+  pub multi: MultiCommunity,
+  pub entries: Vec<DbUrl>,
 }

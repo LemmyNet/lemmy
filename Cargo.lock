@@ -3424,6 +3424,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
  "serial_test",
