@@ -22,24 +22,28 @@ CREATE INDEX idx_person_liked_combined ON person_liked_combined (person_id);
 -- Updating the history
 INSERT INTO person_liked_combined (liked, like_score, person_id, post_id, comment_id)
 SELECT
-    liked,
-    like_score,
-    person_id,
-    post_id,
+    pa.liked,
+    pa.like_score,
+    pa.person_id,
+    pa.post_id,
     NULL::int
 FROM
-    post_actions
+    post_actions pa
+    INNER JOIN person p ON pa.person_id = p.id
 WHERE
-    liked IS NOT NULL
+    pa.liked IS NOT NULL
+    AND p.local = TRUE
 UNION ALL
 SELECT
-    liked,
-    like_score,
-    person_id,
+    ca.liked,
+    ca.like_score,
+    ca.person_id,
     NULL::int,
-    comment_id
+    ca.comment_id
 FROM
-    comment_actions
+    comment_actions ca
+    INNER JOIN person p ON ca.person_id = p.id
 WHERE
-    liked IS NOT NULL;
+    liked IS NOT NULL
+    AND p.local = TRUE;
 
