@@ -3,8 +3,7 @@
 #   it is expected that this script is called by run-federation-test.sh script.
 set -e
 
-if [ -z "$LEMMY_LOG_LEVEL" ];
-then
+if [ -z "$LEMMY_LOG_LEVEL" ]; then
   LEMMY_LOG_LEVEL=info
 fi
 
@@ -16,11 +15,10 @@ export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queu
 PICTRS_PATH="api_tests/pict-rs"
 PICTRS_EXPECTED_HASH="7f7ac2a45ef9b13403ee139b7512135be6b060ff2f6460e0c800e18e1b49d2fd  api_tests/pict-rs"
 
-# Pictrs setup. Download file with hash check and up to 3 retries. 
+# Pictrs setup. Download file with hash check and up to 3 retries.
 if [ ! -f "$PICTRS_PATH" ]; then
   count=0
-  while [ ! -f "$PICTRS_PATH" ] && [ "$count" -lt 3 ]
-  do
+  while [ ! -f "$PICTRS_PATH" ] && [ "$count" -lt 3 ]; do
     # This one sometimes goes down
     curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.17-pre.9/pict-rs-linux-amd64" -o "$PICTRS_PATH"
     # curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
