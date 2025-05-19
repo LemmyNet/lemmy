@@ -16,12 +16,11 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::{asc_if, SortDirection};
 use lemmy_db_schema::{
-  impls::{local_user::LocalUserOptionHelper, multi_community::ReadParams},
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, MultiCommunityId, PaginationCursor, PersonId, PostId},
   source::{
     community::CommunityActions,
     local_user::LocalUser,
-    multi_community::MultiCommunity,
     person::Person,
     post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
@@ -58,7 +57,15 @@ use lemmy_db_schema_file::{
     ListingType,
     PostSortType::{self, *},
   },
-  schema::{community, community_actions, local_user_language, person, post, post_actions},
+  schema::{
+    community,
+    community_actions,
+    local_user_language,
+    multi_community_entry,
+    person,
+    post,
+    post_actions,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;
@@ -367,8 +374,10 @@ impl PostQuery<'_> {
         query = query.filter(post::community_id.eq(id));
       }
       Some(CommunityOrMulti::MultiCommunityId(id)) => {
-        let multi = MultiCommunity::read(pool, ReadParams::Id(id)).await?;
-        query = query.filter(post::community_id.eq_any(multi.entries));
+        let communities = multi_community_entry::table
+          .filter(multi_community_entry::multi_community_id.eq(id))
+          .select(multi_community_entry::community_id);
+        query = query.filter(post::community_id.eq_any(communities));
       }
       None => {
         if let (Some(ListingType::Subscribed), Some(id)) =
