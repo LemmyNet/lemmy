@@ -4,6 +4,7 @@ use lemmy_db_schema::source::{
   instance::InstanceActions,
   person::{Person, PersonActions},
   post::{Post, PostActions},
+  post_gallery::PostGalleryView,
   tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,7 @@ use {
       creator_local_instance_actions_select,
       local_user_can_mod_post,
       post_creator_is_admin,
+      post_get_gallery,
       post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
@@ -40,6 +42,10 @@ pub mod impls;
 pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full", diesel(
+    select_expression = post_get_gallery()
+  ))]
+  pub gallery: PostGalleryView,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]

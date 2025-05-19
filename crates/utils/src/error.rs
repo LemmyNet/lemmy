@@ -34,6 +34,7 @@ pub enum LemmyErrorType {
   NotAnImageType,
   InvalidImageUpload,
   ImageUploadDisabled,
+  UrlNotImage(String),
   NotAModOrAdmin,
   NotTopMod,
   NotLoggedIn,
@@ -83,6 +84,7 @@ pub enum LemmyErrorType {
   InvalidMatrixId,
   InvalidPostTitle,
   InvalidBodyField,
+  InvalidGalleryCaption,
   BioLengthOverflow,
   AltTextLengthOverflow,
   MissingTotpToken,
@@ -191,7 +193,9 @@ pub enum LemmyErrorType {
   CouldntCreateLoginToken,
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
+  CouldntCreateGalleryItem,
   EmailNotificationsDisabled,
+  PostHasGalleryAndUrl,
 }
 
 /// Federation related errors, these dont need to be translated.

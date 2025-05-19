@@ -21,6 +21,8 @@ pub struct CreatePost {
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub url: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub gallery: Option<Vec<CreateGalleryItem>>,
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
@@ -49,6 +51,23 @@ pub struct CreatePost {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PostResponse {
   pub post_view: PostView,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreateGalleryItem {
+  pub url: String,
+  /// Can be used to set the order of images in a gallery.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page: Option<i32>,
+  /// An optional alt_text.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub alt_text: Option<String>,
+  /// Optional caption to be displayed with the image.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub caption: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -162,6 +181,8 @@ pub struct EditPost {
   /// An optional body for the post in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub gallery: Option<Vec<CreateGalleryItem>>,
   /// An optional alt_text, usable for image posts.
   #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,

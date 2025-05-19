@@ -896,6 +896,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_gallery (id) {
+        id -> Int4,
+        post_id -> Int4,
+        #[max_length = 2000]
+        url -> Varchar,
+        page -> Int4,
+        alt_text -> Nullable<Text>,
+        #[max_length = 200]
+        caption -> Nullable<Varchar>,
+        url_content_type -> Nullable<Text>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     post_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -1179,6 +1195,7 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
+diesel::joinable!(post_gallery -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
@@ -1257,6 +1274,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_saved_combined,
   post,
   post_actions,
+  post_gallery,
   post_report,
   post_tag,
   previously_run_sql,

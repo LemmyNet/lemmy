@@ -265,6 +265,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        gallery: v.post_gallery,
       }))
     }
   }

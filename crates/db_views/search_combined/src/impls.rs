@@ -410,6 +410,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        gallery: v.post_gallery,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {

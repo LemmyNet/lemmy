@@ -2,18 +2,20 @@ use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   post::{EditPost, PostResponse},
-  request::generate_post_link_metadata,
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
     get_url_blocklist,
+    process_gallery,
     process_markdown_opt,
     send_webmention,
     slur_regex,
@@ -25,16 +27,17 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update},
+  utils::{diesel_string_update, diesel_url_update, get_conn},
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -56,12 +59,13 @@ pub async fn update_post(
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
-  let url = diesel_url_update(data.url.as_deref())?;
 
   let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
-
+  let url = diesel_url_update(data.url.as_deref())?;
+  let gallery_forms = process_gallery(data.gallery.as_ref(), &url_blocklist)?;
+  let alt_text = diesel_string_update(data.alt_text.as_deref());
   let slur_regex = slur_regex(&context).await?;
 
   let body = diesel_string_update(
@@ -72,7 +76,14 @@ pub async fn update_post(
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
-  let alt_text = diesel_string_update(data.alt_text.as_deref());
+  if url.is_some() && gallery_forms.is_some() {
+    Err(LemmyErrorType::PostHasGalleryAndUrl)?
+  }
+
+  if let Some(Some(url)) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    is_valid_url(url)?;
+  }
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
@@ -87,11 +98,6 @@ pub async fn update_post(
     is_valid_alt_text_field(alt_text)?;
   }
 
-  if let Some(Some(url)) = &url {
-    is_url_blocked(url, &url_blocklist)?;
-    is_valid_url(url)?;
-  }
-
   if let Some(Some(custom_thumbnail)) = &custom_thumbnail {
     is_valid_url(custom_thumbnail)?;
   }
@@ -99,6 +105,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let orig_post =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_gallery = PostGallery::list_from_post_id(post_id, &mut context.pool()).await?;
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
@@ -120,6 +127,18 @@ pub async fn update_post(
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
+
+  if !orig_gallery.is_empty() && gallery_forms.is_none() {
+    PostGallery::delete_from_post_id(post_id, &mut context.pool()).await?;
+  }
+  let gallery_forms = if let Some(gallery_forms) = gallery_forms {
+    Some(check_gallery_items_are_images(&gallery_forms, &context).await?)
+  } else {
+    None
+  };
+  let url_content_type = gallery_forms
+    .as_ref()
+    .map(|f| f.first().and_then(|item| item.url_content_type.clone()));
 
   let language_id = validate_post_language(
     &mut context.pool(),
@@ -145,21 +164,45 @@ pub async fn update_post(
   };
 
   let mut post_form = PostUpdateForm {
-    name: data.name.clone(),
     url,
+    name: data.name.clone(),
     body,
-    alt_text,
     nsfw: data.nsfw,
     language_id: Some(language_id),
     updated: Some(Some(Utc::now())),
     scheduled_publish_time,
+    url_content_type,
     ..Default::default()
   };
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
-  let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
-  plugin_hook_after("after_update_local_post", &post_form)?;
+  let pool = &mut context.pool();
+  let conn = &mut get_conn(pool).await?;
+  let updated_post = conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        let post = Post::update(&mut conn.into(), post_id, &post_form).await?;
+
+        if let Some(gallery_forms) = gallery_forms {
+          let gallert_forms = gallery_forms
+            .iter()
+            .map(|f| PostGalleryInsertForm {
+              post_id,
+              ..f.clone()
+            })
+            .collect::<Vec<_>>();
+
+          PostGallery::create_from_vec(&gallert_forms, &mut conn.into()).await?;
+        }
+
+        Ok(post)
+      }
+      .scope_boxed()
+    })
+    .await?;
+
+  plugin_hook_after("after_update_local_post", &updated_post.clone())?;
 
   // Scan the post body for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());

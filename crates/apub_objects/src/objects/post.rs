@@ -1,11 +1,5 @@
 use crate::{
-  protocol::page::{
-    Attachment,
-    Hashtag,
-    HashtagType::{self},
-    Page,
-    PageType,
-  },
+  protocol::page::{Attachment, Hashtag, HashtagType, Page, PageType},
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
@@ -32,7 +26,7 @@ use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  request::generate_post_link_metadata,
+  request::{check_gallery_items_are_images, generate_post_link_metadata},
   utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
@@ -40,6 +34,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
+    post_gallery::{PostGallery, PostGalleryInsertForm},
   },
   traits::Crud,
 };
@@ -51,7 +46,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::check_slurs_opt,
-    validation::{is_url_blocked, is_valid_url},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db},
   },
 };
 use std::ops::Deref;
@@ -116,19 +111,31 @@ impl Object for ApubPost {
     let community_id = self.community_id;
     let community = Community::read(&mut context.pool(), community_id).await?;
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
+    let gallery = PostGallery::list_from_post_id(self.id, &mut context.pool()).await?;
 
-    let attachment = self
-      .url
-      .clone()
-      .map(|url| {
-        Attachment::new(
-          url.into(),
-          self.url_content_type.clone(),
-          self.alt_text.clone(),
-        )
-      })
-      .into_iter()
-      .collect();
+    let url = self.url.clone().map(|url| {
+      Attachment::new(
+        url.into(),
+        self.url_content_type.clone(),
+        self.alt_text.clone(),
+        None,
+      )
+    });
+    let attachment = if url.is_some() {
+      url.into_iter().collect()
+    } else {
+      gallery
+        .iter()
+        .map(|item| {
+          Attachment::new(
+            item.url.clone().into(),
+            item.url_content_type.clone(),
+            item.alt_text.clone(),
+            item.caption.clone(),
+          )
+        })
+        .collect()
+    };
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
       name: format!("#{}", &community.name),
@@ -226,8 +233,22 @@ impl Object for ApubPost {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
 
+    let is_gallery = page
+      .attachment
+      .iter()
+      .filter(|a| {
+        let content_type = a.url_content_type();
+        content_type
+          .as_ref()
+          .is_some_and(|s| !s.starts_with("image"))
+          || content_type.is_none()
+      })
+      .count()
+      != 0
+      && page.attachment.len() > 1;
+
     let first_attachment = page.attachment.first();
-    let url = if let Some(attachment) = first_attachment.cloned() {
+    let url = if let (Some(attachment), false) = (first_attachment.cloned(), is_gallery) {
       Some(attachment.url())
     } else if page.kind == PageType::Video {
       // we cant display videos directly, so insert a link to external video page
@@ -268,7 +289,11 @@ impl Object for ApubPost {
       None
     };
 
-    let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
+    let alt_text = if !is_gallery {
+      first_attachment.cloned().and_then(Attachment::alt_text)
+    } else {
+      None
+    };
 
     let slur_regex = slur_regex(context).await?;
 
@@ -298,14 +323,74 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
+
+    let post_id = post.id;
+    let gallery_forms = if is_gallery {
+      let len: i32 = page.attachment.len().try_into()?;
+      Some(
+        page
+          .attachment
+          .iter()
+          .zip(0..len)
+          .map(|a| {
+            let (att, index) = a;
+            PostGalleryInsertForm {
+              url: att.clone().url().into(),
+              post_id,
+              url_content_type: att.url_content_type(),
+              alt_text: att.clone().alt_text(),
+              caption: att
+                .clone()
+                .caption()
+                .map(|c| truncate_for_db(&c, MAX_TITLE_LENGTH)),
+              page: index,
+            }
+          })
+          .collect::<Vec<_>>(),
+      )
+    } else {
+      None
+    };
+
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
-    spawn_try_task(
-      async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
-    );
+    spawn_try_task(async move {
+      if let Some(gallery_forms) = gallery_forms {
+        let (no_content_type, has_content_type): (Vec<_>, Vec<_>) = gallery_forms
+          .into_iter()
+          .partition(|f| f.url_content_type.is_none());
+
+        match check_gallery_items_are_images(&no_content_type, &context_).await {
+          // Treat posts with multiple attachments that aren't images as single link post
+          Err(_) => {
+            let mut gallery_forms = no_content_type.clone();
+            gallery_forms.extend(has_content_type);
+
+            let url = gallery_forms
+              .iter()
+              .find(|f| f.page == 0)
+              .map(|f| f.url.clone());
+
+            let form = PostUpdateForm {
+              url: Some(url),
+              ..Default::default()
+            };
+            Post::update(&mut context_.pool(), post_id, &form).await?;
+            generate_post_link_metadata(post_, None, |_| None, context_).await
+          }
+          Ok(mut gallery_forms) => {
+            gallery_forms.extend(has_content_type);
+            PostGallery::create_from_vec(&gallery_forms, &mut context_.pool()).await?;
+            Ok(())
+          }
+        }
+      } else {
+        generate_post_link_metadata(post_, None, |_| None, context_).await
+      }
+    });
 
     Ok(post.into())
   }

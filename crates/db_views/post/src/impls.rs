@@ -106,6 +106,7 @@ impl PostView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
+    // .left_join(post_url_join)
   }
 
   pub async fn read(
