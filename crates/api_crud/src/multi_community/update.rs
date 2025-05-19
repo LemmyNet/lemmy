@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, MAX_API_PARAM_ELEMENTS};
 
 pub async fn update_multi_community(
   data: Json<UpdateMultiCommunity>,
@@ -26,6 +26,10 @@ pub async fn update_multi_community(
   if read.multi.owner_id != local_user_view.person.id {
     return Err(LemmyErrorType::NotFound.into());
   }
+  if data.communities.len() > MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?;
+  }
+
   // Disallow removed/deleted communities
   try_join_all(data.communities.iter().map(|id| async {
     let c = Community::read(&mut context.pool(), *id).await?;

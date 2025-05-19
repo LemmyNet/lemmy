@@ -82,6 +82,8 @@ impl MultiCommunity {
       .group_by(multi_community::id)
       .select((
         multi_community::all_columns,
+        // Get vec of CommunityId. If no row exists for multi_community_entry this returns [null]
+        // so we need to filter that with array_remove.
         sql::<Array<Integer>>("array_remove(array_agg(multi_community_entry.community_id), null)"),
       ))
       .into_boxed();
@@ -106,6 +108,8 @@ impl MultiCommunity {
       .group_by(multi_community::id)
       .select((
         multi_community::all_columns.assume_not_null(),
+        // Get vec of community.ap_id. If no row exists for multi_community_entry this returns
+        // [null] so we need to filter that with array_remove.
         sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
       ))
       .filter(person::name.eq(user_name))
