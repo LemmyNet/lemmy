@@ -3,7 +3,7 @@ use actix_web::web::*;
 use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, DeleteImageParams},
-  request::{delete_image_from_pictrs, purge_image_from_pictrs},
+  request::{delete_image_alias, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
@@ -128,14 +128,14 @@ pub async fn delete_image(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  LocalImage::delete_by_alias_and_user(
+  LocalImage::validate_by_alias_and_user(
     &mut context.pool(),
     &data.filename,
     local_user_view.person.id,
   )
   .await?;
 
-  delete_image_from_pictrs(&data.filename, &context).await?;
+  delete_image_alias(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

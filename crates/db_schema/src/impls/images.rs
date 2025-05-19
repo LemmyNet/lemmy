@@ -10,7 +10,6 @@ use diesel::{
   select,
   BoolExpressionMethods,
   ExpressionMethods,
-  NotFound,
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
@@ -45,6 +44,26 @@ impl LocalImage {
       .with_lemmy_type(LemmyErrorType::CouldntCreateImage)
   }
 
+  pub async fn validate_by_alias_and_user(
+    pool: &mut DbPool<'_>,
+    alias: &str,
+    person_id: PersonId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+
+    select(exists(
+      local_image::table.filter(
+        local_image::pictrs_alias
+          .eq(alias)
+          .and(local_image::person_id.eq(person_id)),
+      ),
+    ))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotFound.into())
+  }
+
   pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
@@ -60,29 +79,6 @@ impl LocalImage {
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::Deleted)
-  }
-
-  pub async fn delete_by_alias_and_user(
-    pool: &mut DbPool<'_>,
-    alias: &str,
-    person_id: PersonId,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      local_image::table.filter(
-        local_image::pictrs_alias
-          .eq(alias)
-          .and(local_image::person_id.eq(person_id)),
-      ),
-    )
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::Deleted)
-  }
-
-  pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> LemmyResult<Self> {
-    let alias = url.as_str().split('/').next_back().ok_or(NotFound)?;
-    Self::delete_by_alias(pool, alias).await
   }
 }
 
