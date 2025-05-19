@@ -2,7 +2,7 @@ CREATE TABLE multi_community (
     id serial PRIMARY KEY,
     owner_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     name text NOT NULL,
-    ap_id text NOT NULL
+    ap_id text UNIQUE NOT NULL
 );
 
 CREATE TABLE multi_community_entry (

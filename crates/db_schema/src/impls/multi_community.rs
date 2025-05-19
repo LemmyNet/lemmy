@@ -24,6 +24,20 @@ impl MultiCommunity {
       .await
   }
 
+  pub async fn upsert(
+    pool: &mut DbPool<'_>,
+    form: &MultiCommunityInsertForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(multi_community::table)
+      .values(form)
+      .on_conflict(multi_community::ap_id)
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
   pub async fn update(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,

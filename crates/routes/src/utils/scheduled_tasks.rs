@@ -1,5 +1,5 @@
 use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitypub_federation::{config::Data, fetch::collection_id::CollectionId};
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -581,17 +581,12 @@ async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<(
     .get_results(&mut conn)
     .await?;
 
-  join_all(
-    multi_communities
-      .into_iter()
-      .map(|m| (m.id, m.ap_id.into()))
-      .map(
-        |(id, ap_id): (_, CollectionId<ApubMultiCommunity>)| async move {
-          // Fetch data, if successful it is written to db in ApubMultiCommunity::from_json
-          ap_id.dereference(&id, context).await.ok()
-        },
-      ),
-  )
+  join_all(multi_communities.into_iter().map(|m| m.ap_id.into()).map(
+    |ap_id: ObjectId<ApubMultiCommunity>| async move {
+      // Fetch data, if successful it is written to db in ApubMultiCommunity::from_json
+      ap_id.dereference(context).await.ok()
+    },
+  ))
   .await;
 
   info!("Finished updating multi-communities...");

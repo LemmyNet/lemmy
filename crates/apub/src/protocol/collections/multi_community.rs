@@ -1,5 +1,5 @@
 use activitypub_federation::{fetch::object_id::ObjectId, kinds::collection::CollectionType};
-use lemmy_apub_objects::objects::community::ApubCommunity;
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -10,4 +10,6 @@ pub struct MultiCommunityCollection {
   pub(crate) id: Url,
   pub(crate) total_items: i32,
   pub(crate) items: Vec<ObjectId<ApubCommunity>>,
+  pub(crate) name: String,
+  pub(crate) attributed_to: ObjectId<ApubPerson>,
 }

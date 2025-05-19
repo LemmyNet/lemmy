@@ -1177,8 +1177,8 @@ diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
 diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(multi_community -> person (owner_id));
-diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_entry -> community (community_id));
+diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));

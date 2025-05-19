@@ -18,7 +18,7 @@ pub struct MultiCommunity {
 }
 
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable))]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 pub struct MultiCommunityInsertForm {
   pub owner_id: PersonId,
