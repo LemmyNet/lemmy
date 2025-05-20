@@ -12,5 +12,5 @@ CREATE TABLE multi_community_entry (
 );
 
 ALTER TABLE local_site
-    ADD COLUMN featured_communities int REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN suggested_communities int REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE;
 

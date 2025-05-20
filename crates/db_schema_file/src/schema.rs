@@ -451,7 +451,7 @@ diesel::table! {
         users_active_month -> Int8,
         users_active_half_year -> Int8,
         disable_email_notifications -> Bool,
-        featured_communities -> Nullable<Int4>,
+        suggested_communities -> Nullable<Int4>,
     }
 }
 
@@ -1135,7 +1135,7 @@ diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> local_user (local_user_id));
-diesel::joinable!(local_site -> multi_community (featured_communities));
+diesel::joinable!(local_site -> multi_community (suggested_communities));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
