@@ -50,13 +50,7 @@ steps:
     image: alpine:3
     commands:
       - apk add perl make
-      - version=5.6
-      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v${version}.tar.gz
-      - tar xzf v${version}.tar.gz
-      - cd pgFormatter-${version}/
-      - perl Makefile.PL
-      - make && sudo make install
-      - cd ../ && rm -rf v${version}.tar.gz && rm -rf pgFormatter-${version} #clean up
+      - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
