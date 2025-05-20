@@ -46,6 +46,21 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  sql_fmt:
+    image: alpine:3
+    commands:
+      - apk add perl make
+      - version=5.6
+      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v${version}.tar.gz
+      - tar xzf v${version}.tar.gz
+      - cd pgFormatter-${version}/
+      - perl Makefile.PL
+      - make && sudo make install
+      - cd ../ && rm -rf v${version}.tar.gz && rm -rf pgFormatter-${version} #clean up
+      - ./scripts/sql_format_check.sh
+    when:
+      - event: pull_request
+
   prettier_check:
     image: tmknom/prettier:3.4.2
     commands:
@@ -57,13 +72,6 @@ steps:
     image: tamasfe/taplo:0.9.3
     commands:
       - taplo format --check
-    when:
-      - event: pull_request
-
-  sql_fmt:
-    image: backplane/pgformatter:latest
-    commands:
-      - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
 
