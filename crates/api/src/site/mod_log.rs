@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::GetModlog,
-  utils::{check_private_instance, is_admin_opt, is_mod_or_admin_opt},
+  utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
@@ -36,7 +36,10 @@ pub async fn get_mod_log(
     .await
     .is_err()
   } else {
-    is_admin_opt(local_user_view.as_ref()).is_err()
+    !local_user_view
+      .as_ref()
+      .map(|l| l.local_user.admin)
+      .unwrap_or_default()
   };
 
   // Only allow mod person id filters if its not hidden

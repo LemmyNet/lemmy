@@ -156,19 +156,6 @@ pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
   }
 }
 
-pub fn is_admin_opt(local_user_view: Option<&LocalUserView>) -> LemmyResult<()> {
-  if let Some(local_user_view) = local_user_view {
-    check_local_user_valid(local_user_view)?;
-    if !local_user_view.local_user.admin {
-      Err(LemmyErrorType::NotAnAdmin)?
-    } else {
-      Ok(())
-    }
-  } else {
-    Err(LemmyErrorType::NotAnAdmin)?
-  }
-}
-
 pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
