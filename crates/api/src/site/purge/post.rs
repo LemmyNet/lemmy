@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     mod_log::admin::{AdminPurgePost, AdminPurgePostForm},
     post::Post,
+    post_gallery::PostGallery,
   },
   traits::Crud,
 };
@@ -37,7 +38,15 @@ pub async fn purge_post(
   )
   .await?;
 
-  purge_post_images(post.url.clone(), post.thumbnail_url.clone(), &context).await;
+  let gallery = PostGallery::list_from_post_id(post.id, &mut context.pool()).await?;
+
+  purge_post_images(
+    post.url.clone(),
+    post.thumbnail_url.clone(),
+    &gallery,
+    &context,
+  )
+  .await;
 
   Post::delete(&mut context.pool(), data.post_id).await?;
 

@@ -313,25 +313,25 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
 }
 
 pub async fn check_gallery_items_are_images(
-  urls: &Vec<PostGalleryInsertForm>,
+  gallery_items: &Vec<PostGalleryInsertForm>,
   context: &LemmyContext,
 ) -> Result<Vec<PostGalleryInsertForm>, LemmyError> {
   let mut validated = vec![];
-  for url in urls {
-    let metadata = fetch_link_metadata(&url.url, context, false).await?;
+  for item in gallery_items {
+    let metadata = fetch_link_metadata(&item.url, context, false).await?;
     let is_image = metadata
       .content_type
       .as_ref()
       .is_some_and(|content_type| content_type.starts_with("image"));
 
     if !is_image {
-      Err(LemmyErrorType::UrlNotImage(url.url.to_string()))?
+      Err(LemmyErrorType::UrlNotImage(item.url.to_string()))?
     } else {
-      let proxied = proxy_image_link(url.url.clone().into(), false, context).await?;
+      let proxied = proxy_image_link(item.url.clone().into(), false, context).await?;
       validated.push(PostGalleryInsertForm {
         url: proxied,
         url_content_type: metadata.content_type,
-        ..url.clone()
+        ..item.clone()
       });
     }
   }

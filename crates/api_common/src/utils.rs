@@ -601,6 +601,7 @@ pub async fn read_site_for_actor(
 pub async fn purge_post_images(
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
+  gallery: &[PostGallery],
   context: &LemmyContext,
 ) {
   if let Some(url) = url {
@@ -610,6 +611,9 @@ pub async fn purge_post_images(
     purge_image_from_pictrs_url(&thumbnail_url, context)
       .await
       .ok();
+  }
+  for item in gallery {
+    purge_image_from_pictrs_url(&item.url, context).await.ok();
   }
 }
 
