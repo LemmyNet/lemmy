@@ -88,11 +88,11 @@ pub fn check_dump_diff(before_change: String, after_change: String, change_descr
       "a dump contains the same chunk multiple times"
     );
   }
-  let [only_in_before, only_in_after] = [
+  let [mut only_in_before, mut only_in_after] = [
     before_diff.difference(&after_diff),
     after_diff.difference(&before_diff),
   ]
-  .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
+  .map(|chunks| chunks.map(|i| &**i).collect::<HashSet<_>>());
 
   if only_in_before.is_empty() && only_in_after.is_empty() {
     return;
@@ -100,58 +100,55 @@ pub fn check_dump_diff(before_change: String, after_change: String, change_descr
 
   // Build the panic message
 
-  let after_has_more = only_in_before.len() < only_in_after.len();
-  let [chunks, mut other_chunks] = if after_has_more {
-    [only_in_before, only_in_after]
-  } else {
-    [only_in_after, only_in_before]
-  };
-
-  let diffs = chunks
-    .into_iter()
-    .chain(std::iter::repeat(""))
-    .map_while(|chunk| {
-      // Compare with the most similar chunk in the other dump, kinda like what git does to detect
-      // which old file corresponds to which new file if it was renamed
-      let (most_similar_chunk_index, most_similar_chunk) = other_chunks
+  // All possible pairs of an item in only_in_before and an item in only_in_after
+  let mut maybe_in_both = only_in_before
+    .iter()
+    .flat_map(|&a| {
+      only_in_after
         .iter()
-        .enumerate()
-        .min_by_key(|(_, other_chunk)| {
-          // Prioritize similarity of specific parts by returning the difference amount in each
-          // part, starting with higher priority
-          chunk_parts_for_pair_selection(chunk)
-            .into_iter()
-            .zip(chunk_parts_for_pair_selection(other_chunk))
-            .map(|(a, b)| count_inserted_or_deleted_chars_in_diff(a, b))
-            .collect::<Vec<_>>()
-        })?;
+        .map(move |&b| (chunk_difference_amount(a, b), a, b))
+    })
+    .collect::<BTreeSet<_>>();
 
-      let [chunk_after, chunk_before] = if after_has_more {
-        [most_similar_chunk, chunk]
-      } else {
-        [chunk, most_similar_chunk]
-      };
+  // Determine which item in only_in_before corresponds with which item in only_in_after, kinda like
+  // what git does to detect which old file corresponds to which new file if it was renamed
+  let in_both = std::iter::from_fn(|| {
+    // Get the pair with minimum difference amount
+    let (_, item_in_before, item_in_after) = maybe_in_both.pop_first()?;
 
-      let diff_lines = diff::lines(chunk_before, chunk_after);
+    // Remove alternative pairings of these chunks
+    maybe_in_both.retain(|&(_, other_in_before, other_in_after)| {
+      other_in_before != item_in_before && other_in_after != item_in_after
+    });
 
-      other_chunks.swap_remove(most_similar_chunk_index);
+    // Remove these chunks from only_in_before and only_in_after
+    only_in_before.remove(item_in_before);
+    only_in_after.remove(item_in_after);
 
-      Some(
-        diff_lines
-          .into_iter()
-          .flat_map(|line| match line {
-            diff::Result::Left(s) => ["- ", s, "\n"],
-            diff::Result::Right(s) => ["+ ", s, "\n"],
-            diff::Result::Both(s, _) => ["  ", s, "\n"],
-          })
-          .chain(["\n"]) // Blank line after each chunk diff
-          .collect::<String>(),
-      )
+    Some((item_in_before, item_in_after))
+  })
+  .collect::<Vec<_>>();
+
+  let header = format!("{change_description}\n\n");
+
+  let diffs = in_both
+    .into_iter()
+    .chain(only_in_before.into_iter().map(|i| (i, "")))
+    .chain(only_in_after.into_iter().map(|i| ("", i)))
+    .flat_map(|(before, after)| {
+      diff::lines(before, after)
+        .into_iter()
+        .flat_map(|line| match line {
+          diff::Result::Left(s) => ["- ", s, "\n"],
+          diff::Result::Right(s) => ["+ ", s, "\n"],
+          diff::Result::Both(s, _) => ["  ", s, "\n"],
+        })
+        .chain(["\n"]) // Blank line after each chunk diff
     });
 
   panic!(
     "{}",
-    std::iter::once(format!("{change_description}\n\n"))
+    std::iter::once(header.as_str())
       .chain(diffs)
       .collect::<String>()
   );
@@ -213,6 +210,16 @@ impl<T: Ord> Differences<T> for [BTreeSet<T>; 2] {
     let [a, b] = self;
     [a.difference(b), b.difference(a)]
   }
+}
+
+fn chunk_difference_amount(a: &str, b: &str) -> Vec<usize> {
+  // Prioritize similarity of specific parts by returning the difference amount in each
+  // part, starting with higher priority
+  chunk_parts_for_pair_selection(a)
+    .into_iter()
+    .zip(chunk_parts_for_pair_selection(b))
+    .map(|(a, b)| count_inserted_or_deleted_chars_in_diff(a, b))
+    .collect::<Vec<_>>()
 }
 
 fn chunk_parts_for_pair_selection(chunk: &str) -> [&str; 3] {
