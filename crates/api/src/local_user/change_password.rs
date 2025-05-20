@@ -3,14 +3,11 @@ use actix_web::{
   HttpRequest,
 };
 use bcrypt::verify;
-use lemmy_api_common::{
-  claims::Claims,
-  context::LemmyContext,
-  person::{ChangePassword, LoginResponse},
-  utils::password_length_check,
-};
+use lemmy_api_common::{claims::Claims, context::LemmyContext, utils::password_length_check};
 use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
+use lemmy_db_views_change_password::ChangePassword;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_login_response::LoginResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password(

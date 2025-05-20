@@ -1,10 +1,9 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{ListPersonHidden, ListPersonHiddenResponse},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::post::PostActions;
+use lemmy_db_views_list_person_hidden::ListPersonHidden;
+use lemmy_db_views_list_person_hidden_response::ListPersonHiddenResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;

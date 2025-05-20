@@ -2,7 +2,6 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  person::SaveUserSettings,
   utils::{get_url_blocklist, process_markdown_opt, slur_regex},
   SuccessResponse,
 };
@@ -17,14 +16,13 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_save_user_settings::SaveUserSettings;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::{
-    check_blocking_keywords_are_valid,
-    is_valid_bio_field,
-    is_valid_display_name,
+    check_blocking_keywords_are_valid, is_valid_bio_field, is_valid_display_name,
     is_valid_matrix_id,
   },
 };

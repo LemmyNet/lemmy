@@ -3,10 +3,11 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_get_person_details::GetPersonDetails;
+use lemmy_db_views_get_person_details_response::GetPersonDetailsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_site::SiteView;

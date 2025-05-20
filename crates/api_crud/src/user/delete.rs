@@ -3,16 +3,14 @@ use actix_web::web::Json;
 use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
-  person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
   utils::purge_user_account,
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
-  login_token::LoginToken,
-  oauth_account::OAuthAccount,
-  person::Person,
+  login_token::LoginToken, oauth_account::OAuthAccount, person::Person,
 };
+use lemmy_db_views_delete_account::DeleteAccount;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

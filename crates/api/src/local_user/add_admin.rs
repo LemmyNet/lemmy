@@ -1,9 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{AddAdmin, AddAdminResponse},
-  utils::is_admin,
-};
+use lemmy_api_common::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
@@ -11,6 +7,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_add_admin::AddAdmin;
+use lemmy_db_views_add_admin_response::AddAdminResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_utils::error::LemmyResult;

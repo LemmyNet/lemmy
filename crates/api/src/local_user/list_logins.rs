@@ -1,6 +1,7 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, person::ListLoginsResponse};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::login_token::LoginToken;
+use lemmy_db_views_list_logins_response::ListLoginsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

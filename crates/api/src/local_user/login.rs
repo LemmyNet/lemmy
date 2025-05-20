@@ -7,10 +7,11 @@ use bcrypt::verify;
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
-  person::{Login, LoginResponse},
   utils::{check_email_verified, check_local_user_deleted, check_registration_application},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_login::Login;
+use lemmy_db_views_login_response::LoginResponse;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

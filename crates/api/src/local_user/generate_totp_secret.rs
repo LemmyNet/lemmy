@@ -1,11 +1,12 @@
 use crate::{build_totp_2fa, generate_totp_2fa_secret};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{context::LemmyContext, person::GenerateTotpSecretResponse};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{
   local_user::{LocalUser, LocalUserUpdateForm},
   site::Site,
 };
+use lemmy_db_views_generate_totp_secret_response::GenerateTotpSecretResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

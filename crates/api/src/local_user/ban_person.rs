@@ -2,7 +2,6 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
@@ -14,6 +13,8 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
+use lemmy_db_views_ban_person::BanPerson;
+use lemmy_db_views_ban_person_response::BanPersonResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};

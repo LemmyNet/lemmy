@@ -1,14 +1,11 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::MarkPersonPostMentionAsRead,
-  SuccessResponse,
-};
+use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   source::person_post_mention::{PersonPostMention, PersonPostMentionUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_mark_person_post_mention_as_read::MarkPersonPostMentionAsRead;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn mark_post_mention_as_read(
