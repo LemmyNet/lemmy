@@ -46,15 +46,6 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  sql_fmt:
-    image: alpine:3
-    commands:
-      - apk add perl make bash
-      - ./scripts/alpine_install_pg_formatter.sh
-      - ./scripts/sql_format_check.sh
-    when:
-      - event: pull_request
-
   prettier_check:
     image: tmknom/prettier:3.4.2
     commands:
@@ -66,6 +57,15 @@ steps:
     image: tamasfe/taplo:0.9.3
     commands:
       - taplo format --check
+    when:
+      - event: pull_request
+
+  sql_fmt:
+    image: alpine:3
+    commands:
+      - apk add perl make bash
+      - ./scripts/alpine_install_pg_formatter.sh
+      - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
 
