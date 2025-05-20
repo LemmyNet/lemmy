@@ -320,6 +320,7 @@ impl SearchCombinedQuery {
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
+      ListingType::Suggested => todo!(),
     }
 
     // Filter by the time range

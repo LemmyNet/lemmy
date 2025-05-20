@@ -60,7 +60,9 @@ use lemmy_db_schema_file::{
   schema::{
     community,
     community_actions,
+    local_site,
     local_user_language,
+    multi_community,
     multi_community_entry,
     person,
     post,
@@ -399,6 +401,13 @@ impl PostQuery<'_> {
       ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
+      }
+      ListingType::Suggested => {
+        let suggested = local_site::table
+          .left_join(multi_community::table.inner_join(multi_community_entry::table))
+          .filter(multi_community_entry::community_id.is_not_null())
+          .select(multi_community_entry::community_id.assume_not_null());
+        query = query.filter(post::community_id.eq_any(suggested))
       }
     }
 

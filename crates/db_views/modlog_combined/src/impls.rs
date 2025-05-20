@@ -393,6 +393,7 @@ impl ModlogCombinedQuery<'_> {
         .filter(community::local.eq(true))
         .filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+      ListingType::Suggested => todo!(),
     };
 
     // Sorting by published

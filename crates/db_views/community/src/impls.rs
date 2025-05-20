@@ -134,6 +134,7 @@ impl CommunityQuery<'_> {
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }
+        ListingType::Suggested => todo!(),
       };
     }
 

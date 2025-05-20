@@ -206,6 +206,7 @@ impl CommentQuery<'_> {
       ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::All => query,
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+      ListingType::Suggested => todo!(),
     };
 
     if let Some(my_id) = my_person_id {

@@ -14,3 +14,6 @@ CREATE TABLE multi_community_entry (
 ALTER TABLE local_site
     ADD COLUMN suggested_communities int REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE;
 
+ALTER TYPE listing_type_enum
+    ADD VALUE 'Suggested';
+
