@@ -56,9 +56,7 @@ pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump
     dump
       .split("\n\n")
       .filter_map(remove_ignored_details_from_chunk)
-      // Sort
-      .collect::<BTreeSet<_>>()
-      .into_iter()
+      .sorted_unstable()
       .collect::<Vec<_>>()
   });
   let diff_results = diff::slice(&before_chunks, &after_chunks);
