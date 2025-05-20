@@ -61,6 +61,7 @@ full = [
 
 [dependencies]
 lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_comment_response = { workspace = true }
 lemmy_db_views_community = { workspace = true }
 lemmy_db_views_community_response = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }

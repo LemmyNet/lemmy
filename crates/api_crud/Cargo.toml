@@ -14,6 +14,12 @@ workspace = true
 
 [dependencies]
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_comment_response = { workspace = true, features = ["full"] }
+lemmy_db_views_create_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_edit_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_remove_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_get_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_response = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }

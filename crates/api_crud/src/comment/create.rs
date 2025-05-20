@@ -3,18 +3,12 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
-  comment::{CommentResponse, CreateComment},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_user_action,
-    check_post_deleted_or_removed,
-    get_url_blocklist,
-    is_mod_or_admin,
-    process_markdown,
-    slur_regex,
-    update_read_comments,
+    check_community_user_action, check_post_deleted_or_removed, get_url_blocklist, is_mod_or_admin,
+    process_markdown, slur_regex, update_read_comments,
   },
 };
 use lemmy_db_schema::{
@@ -27,6 +21,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views_comment_response::CommentResponse;
+use lemmy_db_views_create_comment::CreateComment;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;

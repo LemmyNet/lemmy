@@ -2,7 +2,6 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
-  comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_user_action,
@@ -13,6 +12,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment_response::CommentResponse;
+use lemmy_db_views_delete_comment::DeleteComment;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

@@ -19,6 +19,9 @@ workspace = true
 
 [dependencies]
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_get_comments = { workspace = true, features = ["full"] }
+lemmy_db_views_get_comments_response = { workspace = true, features = ["full"] }
+lemmy_db_views_get_comments_slim_response = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_ban_from_community = { workspace = true, features = ["full"] }
 lemmy_db_views_get_community = { workspace = true, features = ["full"] }

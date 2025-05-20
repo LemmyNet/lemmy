@@ -1,10 +1,9 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
-  build_response::build_comment_response,
-  comment::{CommentResponse, GetComment},
-  context::LemmyContext,
-  utils::check_private_instance,
+  build_response::build_comment_response, context::LemmyContext, utils::check_private_instance,
 };
+use lemmy_db_views_comment_response::CommentResponse;
+use lemmy_db_views_get_comment::GetComment;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

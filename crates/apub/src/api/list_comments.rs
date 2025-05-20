@@ -3,7 +3,6 @@ use crate::{api::listing_type_with_default, fetcher::resolve_ap_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
-  comment::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
@@ -14,6 +13,9 @@ use lemmy_db_schema::{
   traits::{Crud, PaginationCursorBuilder},
 };
 use lemmy_db_views_comment::{impls::CommentQuery, CommentView};
+use lemmy_db_views_get_comments::GetComments;
+use lemmy_db_views_get_comments_response::GetCommentsResponse;
+use lemmy_db_views_get_comments_slim_response::GetCommentsSlimResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

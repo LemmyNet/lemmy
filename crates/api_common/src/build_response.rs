@@ -1,5 +1,4 @@
 use crate::{
-  comment::CommentResponse,
   context::LemmyContext,
   post::PostResponse,
   utils::{check_person_instance_community_block, is_mod_or_admin},
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment_response::CommentResponse;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_response::CommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
