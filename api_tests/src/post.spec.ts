@@ -462,7 +462,7 @@ test("Search for a post", async () => {
   expect(betaPost?.post.name).toBeDefined();
 });
 
-test.only("Enforce site ban federation for local user", async () => {
+test("Enforce site ban federation for local user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }

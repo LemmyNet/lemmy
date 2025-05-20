@@ -221,8 +221,9 @@ pub async fn do_upload_image(
     // but still a user may upload multiple and so we need to store all links in db for
     // to allow deletion via web ui.
     let form = LocalImageForm {
-      local_user_id: Some(local_user_view.local_user.id),
       pictrs_alias: image.file.to_string(),
+      person_id: local_user_view.person.id,
+      thumbnail_for_post_id: None,
     };
 
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
