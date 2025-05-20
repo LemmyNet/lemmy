@@ -334,8 +334,7 @@ mod tests {
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
 
-    // Run all migrations, make sure the newest migration can be redone, and check the newest
-    // down.sql file
+    // Run all migrations, and make sure that changes can be correctly reverted
     assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
 
     // Check for early return

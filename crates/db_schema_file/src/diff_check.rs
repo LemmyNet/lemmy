@@ -51,21 +51,21 @@ pub fn get_dump() -> String {
 
 const PATTERN_LEN: usize = 19;
 
-pub fn check_dump_diff(before: String, after: String, label: &str) {
+pub fn check_dump_diff(before_change: String, after_change: String, change_description: &str) {
   // Performance optimization
-  if after == before {
+  if after_change == before_change {
     return;
   }
 
   let len_of_match_at_beginning = count_bytes_until_chunks_dont_match(
-    before.as_bytes().into_iter(),
-    after.as_bytes().into_iter(),
+    before_change.as_bytes().into_iter(),
+    after_change.as_bytes().into_iter(),
   );
   let len_of_match_at_end = count_bytes_until_chunks_dont_match(
-    before.as_bytes().into_iter().rev(),
-    after.as_bytes().into_iter().rev(),
+    before_change.as_bytes().into_iter().rev(),
+    after_change.as_bytes().into_iter().rev(),
   );
-  let [before_chunks, after_chunks] = [&before, &after].map(|dump| {
+  let [before_chunks, after_chunks] = [&before_change, &after_change].map(|dump| {
     dump
       .get(len_of_match_at_beginning..(dump.len() - len_of_match_at_end))
       .expect("invalid count_bytes_until_chunks_dont_match result")
@@ -111,16 +111,22 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     .into_iter()
     .chain(std::iter::repeat(""))
     .map_while(|chunk| {
-      // Compare with the most similar chunk in the other dump, to output better diffs
+      // Compare with the most similar chunk in the other dump, kinda like what git does to detect
+      // which old file corresponds to which new file if it was renamed
       let (most_similar_chunk_index, most_similar_chunk) = other_chunks
         .iter()
         .enumerate()
-        .max_by_key(|(_, other_chunk)| {
-          let command_name_match = sql_command_name(chunk) == sql_command_name(other_chunk);
-          (command_name_match, similarity(chunk, other_chunk))
+        .min_by_key(|(_, other_chunk)| {
+          // Prioritize similarity of specific parts by returning the difference amount in each
+          // part, starting with higher priority
+          chunk_parts_for_pair_selection(chunk)
+            .into_iter()
+            .zip(chunk_parts_for_pair_selection(other_chunk))
+            .map(|(a, b)| count_inserted_or_deleted_chars_in_diff(a, b))
+            .collect::<Vec<_>>()
         })?;
 
-      let [chunk_before, chunk_after] = if after_has_more {
+      let [chunk_after, chunk_before] = if after_has_more {
         [most_similar_chunk, chunk]
       } else {
         [chunk, most_similar_chunk]
@@ -145,7 +151,7 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
 
   panic!(
     "{}",
-    std::iter::once(format!("{label}\n\n"))
+    std::iter::once(format!("{change_description}\n\n"))
       .chain(diffs)
       .collect::<String>()
   );
@@ -161,20 +167,40 @@ fn count_bytes_until_chunks_dont_match<
   // iter0: FOO\n\nBAR\n\nBUNNY
   // iter1: FOO\n\nBAR\n\nBURROW
   //        ^^^^^^^^^^^^^^^^ matching_len
-  //                      ^^ last_chunk_matching_len
+  //                      ^^ partial_match_len
   let matching_len = iter0
     .clone()
     .zip(iter1.clone())
     .take_while(|(a, b)| a == b)
     .count();
-  let last_chunk_matching_len = iter0
-    .take(matching_len)
-    .rev()
-    .copied()
-    .tuple_windows::<(_, _)>()
-    .take_while(|&a| a != (b'\n', b'\n'))
-    .count();
-  matching_len - last_chunk_matching_len
+  let partial_match_len = if match_end_aligns_with_chunk_end(iter0.clone(), matching_len)
+    && match_end_aligns_with_chunk_end(iter1, matching_len)
+  {
+    0
+  } else {
+    iter0
+      .take(matching_len)
+      .rev()
+      .copied()
+      .tuple_windows::<(_, _)>()
+      .take_while(|&a| a != (b'\n', b'\n'))
+      .count()
+  };
+  matching_len - partial_match_len
+}
+
+fn match_end_aligns_with_chunk_end<
+  'a,
+  T: Iterator<Item = &'a u8> + DoubleEndedIterator + ExactSizeIterator + Clone,
+>(
+  iter: T,
+  matching_len: usize,
+) -> bool {
+  iter
+    .skip(matching_len)
+    .chain(b"\n\n") // treat end of string as a chunk boundary
+    .take(2)
+    .eq(b"\n\n")
 }
 
 trait Differences<T> {
@@ -189,14 +215,18 @@ impl<T: Ord> Differences<T> for [BTreeSet<T>; 2] {
   }
 }
 
-fn sql_command_name(chunk: &str) -> &str {
-  chunk
+fn chunk_parts_for_pair_selection(chunk: &str) -> [&str; 3] {
+  let (command_name, after_command_name) = chunk
     .split_once(|c: char| c.is_lowercase())
-    .unwrap_or_default()
-    .0
+    .unwrap_or(("", chunk));
+  // First line typically includes the name of a table, function, etc.
+  let (remainder_of_first_line, after_first_line) = after_command_name
+    .split_once('\n')
+    .unwrap_or(("", after_command_name));
+  [command_name, remainder_of_first_line, after_first_line]
 }
 
-fn similarity(chunk: &str, other_chunk: &str) -> usize {
+/*fn similarity(chunk: &str, other_chunk: &str) -> usize {
   diff::chars(chunk, other_chunk)
     .into_iter()
     .filter(|i| {
@@ -214,6 +244,13 @@ fn similarity(chunk: &str, other_chunk: &str) -> usize {
         _ => false,
       }
     })
+    .count()
+}*/
+
+fn count_inserted_or_deleted_chars_in_diff(a: &str, b: &str) -> usize {
+  diff::chars(a, b)
+    .into_iter()
+    .filter(|i| !matches!(i, diff::Result::Both(_, _)))
     .count()
 }
 
@@ -344,10 +381,15 @@ mod tests {
   fn test_count_bytes_until_chunks_dont_match() {
     let a = b"FOO\n\nFOO\n\nFOO\nFOO";
     let b = b"FOO\n\nFOO\n\nFOO\nBAR";
-    let c = b"FOO\n\nFOO\n\n";
+    let c = b"FOO\n\nFOO\n\nBUNNY";
+    let d = b"FOO\n\nFOO\n\n";
     assert_eq!(
       super::count_bytes_until_chunks_dont_match(a.into_iter(), b.into_iter()),
-      c.len()
+      d.len()
+    );
+    assert_eq!(
+      super::count_bytes_until_chunks_dont_match(a.into_iter(), c.into_iter()),
+      d.len()
     );
     assert_eq!(
       super::count_bytes_until_chunks_dont_match(a.into_iter(), a.into_iter()),
