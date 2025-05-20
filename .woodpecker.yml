@@ -49,7 +49,7 @@ steps:
   sql_fmt:
     image: alpine:3
     commands:
-      - apk add perl make
+      - apk add perl make bash
       - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
     when:
