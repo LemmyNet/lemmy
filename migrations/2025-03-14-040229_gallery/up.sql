@@ -6,7 +6,6 @@ CREATE TABLE post_gallery (
     alt_text text,
     caption character varying(200),
     url_content_type text,
-    published timestamp with time zone NOT NULL DEFAULT now(),
-    updated timestamp with time zone
+    published timestamp with time zone NOT NULL DEFAULT now()
 );
 

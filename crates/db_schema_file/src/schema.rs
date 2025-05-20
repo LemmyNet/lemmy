@@ -906,7 +906,6 @@ diesel::table! {
         caption -> Nullable<Varchar>,
         url_content_type -> Nullable<Text>,
         published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
     }
 }
 

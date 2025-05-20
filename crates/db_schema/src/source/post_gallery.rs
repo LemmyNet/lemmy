@@ -28,8 +28,6 @@ pub struct PostGallery {
   pub url_content_type: Option<String>,
   #[serde(skip)]
   pub published: DateTime<Utc>,
-  #[serde(skip)]
-  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
