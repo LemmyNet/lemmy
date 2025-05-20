@@ -46,7 +46,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::check_slurs_opt,
-    validation::{is_url_blocked, is_valid_url, truncate_for_db},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db, MAX_GALLERY_LENGTH},
   },
 };
 use std::ops::Deref;
@@ -326,7 +326,7 @@ impl Object for ApubPost {
 
     let post_id = post.id;
     let gallery_forms = if is_gallery {
-      let len: i32 = page.attachment.len().try_into()?;
+      let len: i32 = page.attachment.len().min(MAX_GALLERY_LENGTH).try_into()?;
       Some(
         page
           .attachment

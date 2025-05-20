@@ -30,6 +30,7 @@ const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const TAG_NAME_MIN_LENGTH: usize = 3;
 const TAG_NAME_MAX_LENGTH: usize = 100;
+pub const MAX_GALLERY_LENGTH: usize = 25;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',

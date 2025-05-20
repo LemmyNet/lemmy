@@ -63,6 +63,7 @@ use lemmy_utils::{
       is_valid_alt_text_field,
       is_valid_post_title,
       is_valid_url,
+      MAX_GALLERY_LENGTH,
     },
   },
   CacheLock,
@@ -536,6 +537,10 @@ pub fn process_gallery(
   url_blocklist: &RegexSet,
 ) -> LemmyResult<Option<Vec<PostGalleryInsertForm>>> {
   if let Some(gallery_items) = gallery_items {
+    if gallery_items.len() > MAX_GALLERY_LENGTH {
+      Err(LemmyErrorType::TooManyItems)?
+    }
+
     let mut gallery_forms = vec![];
 
     // Sort the items. Anything with a number is put at the start and ordered by
