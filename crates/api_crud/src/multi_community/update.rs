@@ -31,15 +31,22 @@ pub async fn update_multi_community(
   }
   check_api_elements_count(data.communities.len())?;
 
-  // Disallow removed/deleted communities
-  try_join_all(data.communities.iter().map(|id| async {
+  // Exclude removed/deleted and nonpublic communities
+  let community_ids = try_join_all(data.communities.iter().map(|id| async {
     let c = Community::read(&mut context.pool(), *id).await?;
-    if c.removed || c.deleted || c.visibility != CommunityVisibility::Public {
-      return Err(LemmyErrorType::NotFound.into());
-    }
-    Ok::<_, LemmyError>(c)
+    Ok::<_, LemmyError>(
+      if c.removed || c.deleted || c.visibility != CommunityVisibility::Public {
+        None
+      } else {
+        Some(c.id)
+      },
+    )
   }))
-  .await?;
-  MultiCommunity::update(&mut context.pool(), data.id, &data.communities).await?;
+  .await?
+  .into_iter()
+  .flatten()
+  .collect();
+
+  MultiCommunity::update(&mut context.pool(), data.id, &community_ids).await?;
   Ok(Json(SuccessResponse::default()))
 }
