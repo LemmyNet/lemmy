@@ -1,11 +1,7 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  request::{
-    delete_image_from_pictrs,
-    fetch_pictrs_proxied_image_details,
-    purge_image_from_pictrs_url,
-  },
+  request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use actix_web::{http::header::Header, HttpRequest};
@@ -549,19 +545,15 @@ pub async fn purge_post_images(
   }
 }
 
-/// Delete a local_user's images
+/// Delete local images attributed to a person
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
-    let pictrs_uploads =
-      LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
-        .await?;
+  let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
 
-    // Delete their images
-    for upload in pictrs_uploads {
-      delete_image_from_pictrs(&upload.local_image.pictrs_alias, context)
-        .await
-        .ok();
-    }
+  // Delete their images
+  for upload in pictrs_uploads {
+    delete_image_alias(&upload.local_image.pictrs_alias, context)
+      .await
+      .ok();
   }
   Ok(())
 }

@@ -1,4 +1,4 @@
-use lemmy_db_schema::source::{images::LocalImage, person::Person};
+use lemmy_db_schema::source::{images::LocalImage, person::Person, post::Post};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -21,4 +21,7 @@ pub struct LocalImageView {
   pub local_image: LocalImage,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub post: Option<Post>,
 }
