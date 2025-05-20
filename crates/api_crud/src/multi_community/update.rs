@@ -14,7 +14,10 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community::{multi_community::ReadParams, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyResult, MAX_API_PARAM_ELEMENTS};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  utils::validation::check_api_elements_count,
+};
 
 pub async fn update_multi_community(
   data: Json<UpdateMultiCommunity>,
@@ -26,9 +29,7 @@ pub async fn update_multi_community(
   if read.multi.owner_id != local_user_view.person.id {
     return Err(LemmyErrorType::NotFound.into());
   }
-  if data.communities.len() > MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?;
-  }
+  check_api_elements_count(data.communities.len())?;
 
   // Disallow removed/deleted communities
   try_join_all(data.communities.iter().map(|id| async {
