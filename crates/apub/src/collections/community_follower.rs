@@ -33,7 +33,7 @@ impl Collection for ApubCommunityFollower {
     Ok(GroupFollowers {
       id: generate_followers_url(&community.ap_id)?.into(),
       r#type: CollectionType::Collection,
-      total_items: community_followers as i32,
+      total_items: community_followers,
       items: vec![],
     })
   }

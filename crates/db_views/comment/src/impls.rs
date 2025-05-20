@@ -272,7 +272,8 @@ impl CommentQuery<'_> {
     // A Max depth given means its a tree fetch
     let limit = if let Some(max_depth) = o.max_depth {
       let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
-        parent_path.0.split('.').count() as i32 + max_depth
+        let count: i32 = parent_path.0.split('.').count().try_into()?;
+        count + max_depth
         // Add one because of root "0"
       } else {
         max_depth + 1

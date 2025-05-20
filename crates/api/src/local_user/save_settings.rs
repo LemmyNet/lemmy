@@ -81,7 +81,7 @@ pub async fn save_user_settings(
   if let Some(Some(display_name)) = &display_name {
     is_valid_display_name(
       display_name.trim(),
-      site_view.local_site.actor_name_max_length as usize,
+      site_view.local_site.actor_name_max_length,
     )?;
   }
 
