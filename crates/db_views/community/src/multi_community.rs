@@ -1,6 +1,6 @@
 use crate::{MultiCommunityView, MultiCommunityViewApub};
 use diesel::{
-  dsl::sql,
+  dsl::{not, sql},
   result::Error,
   sql_types::{Array, Integer, Text},
   ExpressionMethods,
@@ -27,8 +27,10 @@ impl MultiCommunityView {
     let conn = &mut get_conn(pool).await?;
     let mut query = multi_community::table
       .left_join(person::table)
-      .left_join(multi_community_entry::table)
+      .left_join(multi_community_entry::table.left_join(community::table))
       .group_by(multi_community::id)
+      .filter(not(community::removed))
+      .filter(not(community::deleted))
       .select((
         multi_community::all_columns,
         // Get vec of CommunityId. If no row exists for multi_community_entry this returns [null]
@@ -57,15 +59,17 @@ impl MultiCommunityViewApub {
       .left_join(person::table)
       .left_join(multi_community_entry::table.inner_join(community::table))
       .group_by(multi_community::id)
+      .filter(not(community::removed))
+      .filter(not(community::deleted))
+      .filter(person::name.eq(user_name))
+      .filter(person::local)
+      .filter(multi_community::name.eq(multi_name))
       .select((
         multi_community::all_columns.assume_not_null(),
         // Get vec of community.ap_id. If no row exists for multi_community_entry this returns
         // [null] so we need to filter that with array_remove.
         sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
       ))
-      .filter(person::name.eq(user_name))
-      .filter(person::local)
-      .filter(multi_community::name.eq(multi_name))
       .first(conn)
       .await?;
     Ok(MultiCommunityViewApub { multi, entries })
