@@ -89,8 +89,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
       let after = diff_check::get_dump();
 
       diff_check::check_dump_diff(
-        after,
-        before,
+        [&after, &before],
         &format!(
           "These changes need to be applied in migrations/{}/down.sql:",
           migration.name()
@@ -234,7 +233,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
       let after = diff_check::get_dump();
 
-      diff_check::check_dump_diff(before, after, "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
     }
 
     run_replaceable_schema(&mut conn)?;

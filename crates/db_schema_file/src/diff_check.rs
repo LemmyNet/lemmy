@@ -45,21 +45,17 @@ pub fn get_dump() -> String {
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
-pub fn check_dump_diff(before_change: String, after_change: String, change_description: &str) {
+pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
   // Performance optimization
-  if after_change == before_change {
+  if dumps[0] == dumps[1] {
     return;
   }
 
-  let len_of_match_at_beginning = count_bytes_until_chunks_dont_match(
-    before_change.as_bytes().iter(),
-    after_change.as_bytes().iter(),
-  );
-  let len_of_match_at_end = count_bytes_until_chunks_dont_match(
-    before_change.as_bytes().iter().rev(),
-    after_change.as_bytes().iter().rev(),
-  );
-  let [before_chunks, after_chunks] = [&before_change, &after_change].map(|dump| {
+  let len_of_match_at_beginning =
+    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter()));
+  let len_of_match_at_end =
+    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter().rev()));
+  let [before_chunks, after_chunks] = dumps.map(|dump| {
     dump
       .get(len_of_match_at_beginning..(dump.len() - len_of_match_at_end))
       .expect("invalid count_bytes_until_chunks_dont_match result")
@@ -106,6 +102,7 @@ pub fn check_dump_diff(before_change: String, after_change: String, change_descr
 
   // Determine which item in only_in_before corresponds with which item in only_in_after, kinda like
   // what git does to detect which old file corresponds to which new file if it was renamed
+  #[expect(clippy::needless_collect)]
   let in_both = std::iter::from_fn(|| {
     // Get the pair with minimum difference amount
     let (_, item_in_before, item_in_after) = maybe_in_both.pop_first()?;
@@ -121,9 +118,10 @@ pub fn check_dump_diff(before_change: String, after_change: String, change_descr
 
     Some((item_in_before, item_in_after))
   })
+  // Finish all changes to only_in_before and only_in_after before using the iterators
   .collect::<Vec<_>>();
 
-  let header = format!("{change_description}\n\n");
+  let header = format!("{label_of_change_from_dump_0_to_dump_1}\n\n");
 
   let diffs = in_both
     .into_iter()
@@ -148,24 +146,22 @@ pub fn check_dump_diff(before_change: String, after_change: String, change_descr
   );
 }
 
-fn count_bytes_until_chunks_dont_match<
-  'a,
-  T: Iterator<Item = &'a u8> + DoubleEndedIterator + ExactSizeIterator + Clone,
->(
-  iter0: T,
-  iter1: T,
+fn count_bytes_until_chunks_dont_match<'a>(
+  [iter0, iter1]: [impl DoubleEndedIterator<Item = &'a u8> + ExactSizeIterator + Clone; 2],
 ) -> usize {
   // iter0: FOO\n\nBAR\n\nBUNNY
   // iter1: FOO\n\nBAR\n\nBURROW
   //        ^^^^^^^^^^^^^^^^ matching_len
   //                      ^^ partial_match_len
+  //        ^^^^^^^^^^^^^^   the returned number
   let matching_len = iter0
     .clone()
     .zip(iter1.clone())
     .take_while(|(a, b)| a == b)
     .count();
-  let partial_match_len = if match_end_aligns_with_chunk_end(iter0.clone(), matching_len)
-    && match_end_aligns_with_chunk_end(iter1, matching_len)
+  let partial_match_len = if [&iter0, &iter1]
+    .into_iter()
+    .all(|i| match_end_aligns_with_chunk_end(i.clone(), matching_len))
   {
     0
   } else {
@@ -180,11 +176,8 @@ fn count_bytes_until_chunks_dont_match<
   matching_len - partial_match_len
 }
 
-fn match_end_aligns_with_chunk_end<
-  'a,
-  T: Iterator<Item = &'a u8> + DoubleEndedIterator + ExactSizeIterator + Clone,
->(
-  iter: T,
+fn match_end_aligns_with_chunk_end<'a>(
+  iter: impl DoubleEndedIterator<Item = &'a u8> + ExactSizeIterator + Clone,
   matching_len: usize,
 ) -> bool {
   iter
@@ -311,23 +304,23 @@ mod tests {
     let c = b"FOO\n\nFOO\n\nBUNNY";
     let d = b"FOO\n\nFOO\n\n";
     assert_eq!(
-      super::count_bytes_until_chunks_dont_match(a.iter(), b.iter()),
+      super::count_bytes_until_chunks_dont_match([a.iter(), b.iter()]),
       d.len()
     );
     assert_eq!(
-      super::count_bytes_until_chunks_dont_match(a.iter(), c.iter()),
+      super::count_bytes_until_chunks_dont_match([a.iter(), c.iter()]),
       d.len()
     );
     assert_eq!(
-      super::count_bytes_until_chunks_dont_match(a.iter(), a.iter()),
+      super::count_bytes_until_chunks_dont_match([a.iter(), a.iter()]),
       a.len()
     );
     assert_eq!(
-      super::count_bytes_until_chunks_dont_match(b"z".iter(), b"z".iter()),
+      super::count_bytes_until_chunks_dont_match([b"z".iter(), b"z".iter()]),
       1
     );
     assert_eq!(
-      super::count_bytes_until_chunks_dont_match(b"z".iter(), b"y".iter()),
+      super::count_bytes_until_chunks_dont_match([b"z".iter(), b"y".iter()]),
       0
     );
   }
