@@ -7,6 +7,6 @@ use url::Url;
 pub(crate) struct GroupFollowers {
   pub(crate) id: Url,
   pub(crate) r#type: CollectionType,
-  pub(crate) total_items: i32,
+  pub(crate) total_items: i64,
   pub(crate) items: Vec<()>,
 }

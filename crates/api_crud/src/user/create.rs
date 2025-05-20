@@ -458,7 +458,7 @@ async fn create_person(
   conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
-  is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&username, local_site.actor_name_max_length)?;
   let ap_id = Person::local_url(&username, settings)?;
 
   // Register the new person

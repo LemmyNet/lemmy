@@ -89,7 +89,7 @@ async fn try_main() -> LemmyResult<()> {
 
   let post_batches = args.people.get() * args.communities.get();
   let posts_per_batch = args.posts.get() / post_batches;
-  let num_posts = post_batches * posts_per_batch;
+  let num_posts: usize = (post_batches * posts_per_batch).try_into()?;
   println!(
     "📜 creating {} posts ({} featured in community)",
     num_posts, post_batches
@@ -126,7 +126,7 @@ async fn try_main() -> LemmyResult<()> {
     }
   }
   // Make sure the println above shows the correct amount
-  assert_eq!(num_inserted_posts, num_posts as usize);
+  assert_eq!(num_inserted_posts, num_posts);
 
   // Manually trigger and wait for a statistics update to ensure consistent and high amount of
   // accuracy in the statistics used for query planning
