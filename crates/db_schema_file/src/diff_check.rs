@@ -45,20 +45,15 @@ pub fn get_dump() -> String {
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
-pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
-  // Performance optimization
+pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
+  // Performance optimizations
   if dumps[0] == dumps[1] {
     return;
   }
+  dumps = trim_matching_chunks_at_beginning_and_end(dumps);
 
-  let len_of_match_at_beginning =
-    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter()));
-  let len_of_match_at_end =
-    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter().rev()));
   let [before_chunks, after_chunks] = dumps.map(|dump| {
     dump
-      .get(len_of_match_at_beginning..(dump.len() - len_of_match_at_end))
-      .expect("invalid count_bytes_until_chunks_dont_match result")
       .split("\n\n")
       .filter_map(remove_ignored_details_from_chunk)
       // Sort
@@ -137,6 +132,18 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: 
       .chain(diffs)
       .collect::<String>()
   );
+}
+
+fn trim_matching_chunks_at_beginning_and_end(dumps: [&str; 2]) -> [&str; 2] {
+  let len_of_match_at_beginning =
+    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter()));
+  let len_of_match_at_end =
+    count_bytes_until_chunks_dont_match(dumps.map(|dump| dump.as_bytes().iter().rev()));
+  dumps.map(|dump| {
+    dump
+      .get(len_of_match_at_beginning..(dump.len() - len_of_match_at_end))
+      .expect("invalid count_bytes_until_chunks_dont_match result")
+  })
 }
 
 fn count_bytes_until_chunks_dont_match<'a>(
