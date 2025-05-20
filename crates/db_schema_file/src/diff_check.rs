@@ -64,7 +64,6 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: 
       .collect::<Vec<_>>()
   });
   let diff_results = diff::slice(&before_chunks, &after_chunks);
-  diff_results.len();
   let mut before_diff = BTreeSet::new();
   let mut after_diff = BTreeSet::new();
   for res in diff_results {
