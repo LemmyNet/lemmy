@@ -179,6 +179,12 @@ impl ReportCombinedViewInternal {
 
     if user.local_user.admin {
       query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
+      // Hide reports of remote communities
+      query = query.filter(
+        report_combined::community_report_id
+          .is_null()
+          .or(community::local),
+      );
     } else {
       query = query.filter(filter_mod_reports());
     }
@@ -273,6 +279,12 @@ impl ReportCombinedQuery {
       if !show_community_rule_violations {
         query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
       }
+      // Hide reports of remote communities
+      query = query.filter(
+        report_combined::community_report_id
+          .is_null()
+          .or(community::local),
+      );
     } else {
       query = query.filter(filter_mod_reports());
     }
@@ -366,16 +378,10 @@ fn filter_violates_instance_rules() -> _ {
 
 #[diesel::dsl::auto_type]
 fn report_is_not_resolved() -> _ {
-  let resolver_is_local = aliases::person2.field(person::local);
   post_report::resolved
     .or(comment_report::resolved)
     .or(private_message_report::resolved)
-    .or(community_report::resolved.and(
-      // if a local user reported a remote community, and the remote admin chose to not remove it,
-      // then maybe a local admin wants to do something about it (for example, remove the community
-      // locally, or block the instance)
-      resolver_is_local.or(community::removed),
-    ))
+    .or(community_report::resolved)
     .is_distinct_from(true)
 }
 
