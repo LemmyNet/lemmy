@@ -7,7 +7,6 @@ pub mod context;
 pub mod custom_emoji;
 pub mod image;
 pub mod oauth_provider;
-pub mod person;
 #[cfg(feature = "full")]
 pub mod plugins;
 pub mod post;
