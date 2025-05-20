@@ -27,7 +27,7 @@ impl MultiCommunityView {
     let conn = &mut get_conn(pool).await?;
     let mut query = multi_community::table
       .left_join(person::table)
-      .left_join(multi_community_entry::table.left_join(community::table))
+      .left_join(multi_community_entry::table.inner_join(community::table))
       .group_by(multi_community::id)
       .filter(not(community::removed))
       .filter(not(community::deleted))
