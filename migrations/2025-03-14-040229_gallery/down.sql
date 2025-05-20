@@ -7,7 +7,8 @@ SET
 FROM
     post_gallery
 WHERE
-    post_gallery.post_id = post.id and post_gallery.page = 0;
+    post_gallery.post_id = post.id
+    AND post_gallery.page = 0;
 
 DROP TABLE post_gallery;
 

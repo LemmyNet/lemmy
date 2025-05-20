@@ -10,14 +10,3 @@ CREATE TABLE post_gallery (
     updated timestamp with time zone
 );
 
-INSERT INTO post_gallery (post_id, url, alt_text, url_content_type)
-SELECT
-    id,
-    url,
-    alt_text,
-    url_content_type
-FROM
-    post
-where
-    post.url_content_type like 'image/%';
-
