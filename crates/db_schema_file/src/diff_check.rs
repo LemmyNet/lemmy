@@ -61,27 +61,21 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: 
       .expect("invalid count_bytes_until_chunks_dont_match result")
       .split("\n\n")
       .filter_map(remove_ignored_details_from_chunk)
+      // Sort
+      .collect::<BTreeSet<_>>()
+      .into_iter()
       .collect::<Vec<_>>()
   });
   let diff_results = diff::slice(&before_chunks, &after_chunks);
-  let mut before_diff = BTreeSet::new();
-  let mut after_diff = BTreeSet::new();
+  let mut only_in_before = HashSet::new();
+  let mut only_in_after = HashSet::new();
   for res in diff_results {
-    let not_duplicate = match res {
-      diff::Result::Both(_, _) => true,
-      diff::Result::Left(chunk) => before_diff.insert(&**chunk),
-      diff::Result::Right(chunk) => after_diff.insert(&**chunk),
+    match res {
+      diff::Result::Left(chunk) => only_in_before.insert(&**chunk),
+      diff::Result::Right(chunk) => only_in_after.insert(&**chunk),
+      diff::Result::Both(_, _) => continue,
     };
-    assert!(
-      not_duplicate,
-      "a dump contains the same chunk multiple times"
-    );
   }
-  let [mut only_in_before, mut only_in_after] = [
-    before_diff.difference(&after_diff),
-    after_diff.difference(&before_diff),
-  ]
-  .map(|chunks| chunks.map(|i| &**i).collect::<HashSet<_>>());
 
   if only_in_before.is_empty() && only_in_after.is_empty() {
     return;
