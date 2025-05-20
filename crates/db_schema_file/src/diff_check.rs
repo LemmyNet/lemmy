@@ -70,12 +70,21 @@ pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump
     };
   }
 
-  if only_in_before.is_empty() && only_in_after.is_empty() {
-    return;
+  if !(only_in_before.is_empty() && only_in_after.is_empty()) {
+    panic!(
+      "{}",
+      [&label_of_change_from_dump_0_to_dump_1, "\n\n"]
+        .into_iter()
+        .chain(display_diffs(only_in_before, only_in_after))
+        .collect::<String>()
+    );
   }
+}
 
-  // Build the panic message
-
+fn display_diffs<'a>(
+  mut only_in_before: HashSet<&'a str>,
+  mut only_in_after: HashSet<&'a str>,
+) -> impl Iterator<Item = &'a str> {
   // All possible pairs of an item in only_in_before and an item in only_in_after
   let mut maybe_in_both = only_in_before
     .iter()
@@ -107,9 +116,7 @@ pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump
   // Finish all changes to only_in_before and only_in_after before using the iterators
   .collect::<Vec<_>>();
 
-  let header = format!("{label_of_change_from_dump_0_to_dump_1}\n\n");
-
-  let diffs = in_both
+  in_both
     .into_iter()
     .chain(only_in_before.into_iter().map(|i| (i, "")))
     .chain(only_in_after.into_iter().map(|i| ("", i)))
@@ -122,14 +129,7 @@ pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump
           diff::Result::Both(s, _) => ["  ", s, "\n"],
         })
         .chain(["\n"]) // Blank line after each chunk diff
-    });
-
-  panic!(
-    "{}",
-    std::iter::once(header.as_str())
-      .chain(diffs)
-      .collect::<String>()
-  );
+    })
 }
 
 fn trim_matching_chunks_at_beginning_and_end(dumps: [&str; 2]) -> [&str; 2] {
