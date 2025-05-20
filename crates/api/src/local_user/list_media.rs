@@ -19,9 +19,9 @@ pub async fn list_media(
     None
   };
 
-  let images = LocalImageView::get_all_paged_by_local_user_id(
+  let images = LocalImageView::get_all_paged_by_person_id(
     &mut context.pool(),
-    local_user_view.local_user.id,
+    local_user_view.person.id,
     cursor_data,
     data.page_back,
     data.limit,
