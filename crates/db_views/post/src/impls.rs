@@ -377,7 +377,7 @@ impl PostQuery<'_> {
         let communities = multi_community_entry::table
           .filter(multi_community_entry::multi_community_id.eq(id))
           .select(multi_community_entry::community_id);
-        query = query.filter(post::community_id.eq_any(communities));
+        query = query.filter(post::community_id.eq_any(communities))
       }
       None => {
         if let (Some(ListingType::Subscribed), Some(id)) =

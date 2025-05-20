@@ -613,13 +613,17 @@ test("Multi-community", async () => {
   );
   expect(createMulti.owner_id).toBe(myUser.local_user_view.person.id);
 
-  let alphaCommunity = await createCommunity(alpha);
-  let betaCommunity = await resolveBetaCommunity(alpha);
+  let createCommunity1 = await createCommunity(beta);
+  let community1 = await resolveCommunity(
+    alpha,
+    createCommunity1.community_view.community.ap_id,
+  );
+  let community2 = await resolveBetaCommunity(alpha);
   let success = await alpha.updateMultiCommunity({
     id: createMulti.id,
     communities: [
-      alphaCommunity.community_view.community.id,
-      betaCommunity.community!.community.id,
+      community1.community!.community.id,
+      community2.community!.community.id,
     ],
   });
   expect(success.success).toBeTruthy();
@@ -631,4 +635,13 @@ test("Multi-community", async () => {
   let resolved = await beta.resolveObject({ q: createMulti.ap_id });
   expect(resolved.multi_community!.multi.ap_id).toBe(createMulti.ap_id);
   expect(resolved.multi_community).toBeDefined();
+
+  expect(resolved.multi_community?.entries.length).toBe(2);
+  await createPost(beta, resolved.multi_community!.entries[0]);
+  await createPost(beta, resolved.multi_community!.entries[1]);
+
+  let listing = await beta.getPosts({
+    multi_community_id: resolved.multi_community?.multi.id,
+  });
+  expect(listing.posts.length).toBe(2);
 });

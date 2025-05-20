@@ -192,6 +192,7 @@ pub enum LemmyErrorType {
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
   EmailNotificationsDisabled,
+  InvalidCommunityId,
 }
 
 /// Federation related errors, these dont need to be translated.
