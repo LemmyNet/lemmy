@@ -1,6 +1,7 @@
 use crate::{
   newtypes::{CommunityId, MultiCommunityId, PersonId},
   source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityUpdateForm},
+  traits::Crud,
   utils::{get_conn, DbConn, DbPool},
 };
 use diesel::{
@@ -13,8 +14,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
 use lemmy_utils::error::LemmyResult;
 
-impl MultiCommunity {
-  pub async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
+impl Crud for MultiCommunity {
+  type InsertForm = MultiCommunityInsertForm;
+  type UpdateForm = MultiCommunityUpdateForm;
+  type IdType = MultiCommunityId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     Ok(
       insert_into(multi_community::table)
@@ -24,12 +29,12 @@ impl MultiCommunity {
     )
   }
 
-  /// Cant use `impl Crud` because this must take DbConn instead of DbPool to work in transactions
-  pub async fn update(
-    conn: &mut DbConn<'_>,
+  async fn update(
+    pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     form: &MultiCommunityUpdateForm,
   ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       update(multi_community::table.find(id))
         .set(form)
@@ -37,6 +42,9 @@ impl MultiCommunity {
         .await?,
     )
   }
+}
+
+impl MultiCommunity {
   pub async fn upsert(conn: &mut DbConn<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
     Ok(
       insert_into(multi_community::table)
@@ -47,6 +55,37 @@ impl MultiCommunity {
         .get_result::<Self>(conn)
         .await?,
     )
+  }
+
+  pub async fn create_entry(
+    pool: &mut DbPool<'_>,
+    id: MultiCommunityId,
+    new_community: CommunityId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(multi_community_entry::table)
+      .values((
+        multi_community_entry::multi_community_id.eq(id),
+        multi_community_entry::community_id.eq(new_community),
+      ))
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+  pub async fn delete_entry(
+    pool: &mut DbPool<'_>,
+    id: MultiCommunityId,
+    new_community: CommunityId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    delete(
+      multi_community_entry::table
+        .filter(multi_community_entry::multi_community_id.eq(id))
+        .filter(multi_community_entry::community_id.eq(new_community)),
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
   }
 
   /// Should be called in a transaction together with update() or upsert()

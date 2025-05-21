@@ -117,6 +117,8 @@ use lemmy_api_crud::{
   },
   multi_community::{
     create::create_multi_community,
+    create_entry::create_multi_community_entry,
+    delete_entry::delete_multi_community_entry,
     list::list_multi_communities,
     update::update_multi_community,
   },
@@ -251,6 +253,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/multi_community")
           .route("", post().to(create_multi_community))
           .route("", put().to(update_multi_community))
+          .route("/entry", post().to(create_multi_community_entry))
+          .route("/entry", delete().to(delete_multi_community_entry))
           .route("/list", get().to(list_multi_communities)),
       )
       .route("/federated_instances", get().to(get_federated_instances))

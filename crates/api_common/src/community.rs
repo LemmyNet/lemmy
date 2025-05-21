@@ -380,7 +380,14 @@ pub struct UpdateMultiCommunity {
   pub title: Option<String>,
   pub description: Option<String>,
   pub deleted: Option<bool>,
-  pub communities: Vec<CommunityId>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreateOrDeleteMultiCommunityEntry {
+  pub id: MultiCommunityId,
+  pub community_id: CommunityId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
