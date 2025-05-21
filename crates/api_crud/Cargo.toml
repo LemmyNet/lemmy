@@ -37,6 +37,12 @@ lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_views_register = { workspace = true, features = ["full"] }
 lemmy_db_views_login_response = { workspace = true, features = ["full"] }
 lemmy_db_views_custom_emoji = { workspace = true, features = ["full"] }
+lemmy_db_views_create_custom_emoji = { workspace = true, features = ["full"] }
+lemmy_db_views_create_emoji_response = { workspace = true, features = ["full"] }
+lemmy_db_views_edit_custom_emoji = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_custom_emoji = { workspace = true, features = ["full"] }
+lemmy_db_views_list_custom_emojis = { workspace = true, features = ["full"] }
+lemmy_db_views_list_custom_emojis_response = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }

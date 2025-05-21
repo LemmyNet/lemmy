@@ -4,7 +4,6 @@ pub mod build_response;
 pub mod claims;
 #[cfg(feature = "full")]
 pub mod context;
-pub mod custom_emoji;
 pub mod image;
 pub mod oauth_provider;
 #[cfg(feature = "full")]

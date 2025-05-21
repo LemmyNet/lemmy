@@ -3290,15 +3290,21 @@ dependencies = [
  "lemmy_db_views_community_response",
  "lemmy_db_views_create_comment",
  "lemmy_db_views_create_community",
+ "lemmy_db_views_create_custom_emoji",
+ "lemmy_db_views_create_emoji_response",
  "lemmy_db_views_custom_emoji",
  "lemmy_db_views_delete_account",
  "lemmy_db_views_delete_comment",
  "lemmy_db_views_delete_community",
+ "lemmy_db_views_delete_custom_emoji",
  "lemmy_db_views_edit_comment",
  "lemmy_db_views_edit_community",
+ "lemmy_db_views_edit_custom_emoji",
  "lemmy_db_views_get_comment",
  "lemmy_db_views_list_communities",
  "lemmy_db_views_list_communities_response",
+ "lemmy_db_views_list_custom_emojis",
+ "lemmy_db_views_list_custom_emojis_response",
  "lemmy_db_views_local_user",
  "lemmy_db_views_login_response",
  "lemmy_db_views_person",
@@ -3762,6 +3768,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_create_custom_emoji"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "serde",
+ "ts-rs",
+ "url",
+]
+
+[[package]]
+name = "lemmy_db_views_create_emoji_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_views_custom_emoji",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_custom_emoji"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3814,6 +3838,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_delete_custom_emoji"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_distinguish_comment"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3842,6 +3875,16 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_edit_custom_emoji"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "ts-rs",
+ "url",
 ]
 
 [[package]]
@@ -4098,6 +4141,24 @@ version = "1.0.0-alpha.4"
 dependencies = [
  "lemmy_db_schema",
  "lemmy_db_views_community_follower",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_list_custom_emojis"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_list_custom_emojis_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_views_custom_emoji",
  "serde",
  "ts-rs",
 ]

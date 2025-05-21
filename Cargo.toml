@@ -150,6 +150,12 @@ members = [
   "crates/db_views/list_media_response",
   "crates/db_views/list_logins_response",
   "crates/db_views/resend_verification_email",
+  "crates/db_views/create_custom_emoji",
+  "crates/db_views/edit_custom_emoji",
+  "crates/db_views/delete_custom_emoji",
+  "crates/db_views/create_emoji_response",
+  "crates/db_views/list_custom_emojis_response",
+  "crates/db_views/list_custom_emojis",
 ]
 
 [workspace.lints.clippy]
@@ -247,6 +253,12 @@ lemmy_db_views_list_media_response = { version = "=1.0.0-alpha.4", path = "./cra
 lemmy_db_views_list_logins_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_logins_response" }
 lemmy_db_views_resend_verification_email = { version = "=1.0.0-alpha.4", path = "./crates/db_views/resend_verification_email" }
 lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/custom_emoji" }
+lemmy_db_views_create_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_custom_emoji" }
+lemmy_db_views_create_emoji_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_emoji_response" }
+lemmy_db_views_edit_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_custom_emoji" }
+lemmy_db_views_delete_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_custom_emoji" }
+lemmy_db_views_list_custom_emojis_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_custom_emojis_response" }
+lemmy_db_views_list_custom_emojis = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_custom_emojis" }
 lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views/vote" }
 lemmy_db_views_add_mod_to_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/add_mod_to_community_response" }
