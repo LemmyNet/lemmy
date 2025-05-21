@@ -398,6 +398,13 @@ pub struct CreateOrDeleteMultiCommunityEntry {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+pub struct GetMultiCommunity {
+  pub id: MultiCommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ListMultiCommunities {
   #[cfg_attr(feature = "full", ts(optional))]
   pub owner_id: Option<PersonId>,
