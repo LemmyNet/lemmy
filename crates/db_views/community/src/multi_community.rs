@@ -126,7 +126,8 @@ mod tests {
     assert!(multi_read_apub_empty.entries.is_empty());
 
     let multi_entries = vec![community.id];
-    MultiCommunity::update_entries(pool, multi_create.id, &multi_entries).await?;
+    let conn = &mut get_conn(pool).await?;
+    MultiCommunity::update_entries(conn, multi_create.id, &multi_entries).await?;
 
     let multi_read = MultiCommunityView::read(pool, ReadParams::Id(multi_create.id)).await?;
     assert_eq!(multi_read.multi.creator_id, multi_create.creator_id);

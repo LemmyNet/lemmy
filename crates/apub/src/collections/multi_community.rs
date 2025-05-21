@@ -83,8 +83,18 @@ impl Object for ApubMultiCommunity {
     })
     .collect();
 
-    let multi = MultiCommunity::upsert(&mut context.pool(), &form).await?;
-    MultiCommunity::update_entries(&mut context.pool(), multi.id, &communities).await?;
+    let pool = &mut context.pool();
+    let conn = &mut get_conn(pool).await?;
+    let multi = conn
+      .transaction::<_, LemmyError, _>(|conn| {
+        async move {
+          let multi = MultiCommunity::upsert(conn, &form).await?;
+          MultiCommunity::update_entries(conn, multi.id, &communities).await?;
+          Ok(multi)
+        }
+        .scope_boxed()
+      })
+      .await?;
 
     Ok(ApubMultiCommunity(multi.id))
   }

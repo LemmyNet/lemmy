@@ -59,7 +59,17 @@ pub async fn update_multi_community(
     deleted: data.deleted,
     updated: Some(Utc::now()),
   };
-  MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
-  MultiCommunity::update_entries(&mut context.pool(), data.id, &community_ids).await?;
+  let pool = &mut context.pool();
+  let conn = &mut get_conn(pool).await?;
+  conn
+    .transaction::<_, LemmyError, _>(|conn| {
+      async move {
+        MultiCommunity::update(conn, data.id, &form).await?;
+        MultiCommunity::update_entries(conn, data.id, &community_ids).await?;
+        Ok(())
+      }
+      .scope_boxed()
+    })
+    .await?;
   Ok(Json(SuccessResponse::default()))
 }
