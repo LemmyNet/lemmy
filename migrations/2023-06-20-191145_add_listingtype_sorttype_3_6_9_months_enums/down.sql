@@ -1,3 +1,6 @@
+ALTER TABLE local_user
+    ALTER default_sort_type DROP DEFAULT;
+
 -- update the default sort type
 UPDATE
     local_user
@@ -31,6 +34,9 @@ CREATE TYPE sort_type_enum AS ENUM (
 ALTER TABLE local_user
     ALTER COLUMN default_sort_type TYPE sort_type_enum
     USING default_sort_type::text::sort_type_enum;
+
+ALTER TABLE local_user
+    ALTER default_sort_type SET DEFAULT 'Active';
 
 -- drop the old enum
 DROP TYPE sort_type_enum__;
