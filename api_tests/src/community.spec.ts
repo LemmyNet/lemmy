@@ -611,7 +611,7 @@ test("Multi-community", async () => {
   expect(createMulti.ap_id).toBe(
     "http://lemmy-alpha:8541/u/lemmy_alpha/m/multi-comm",
   );
-  expect(createMulti.owner_id).toBe(myUser.local_user_view.person.id);
+  expect(createMulti.creator_id).toBe(myUser.local_user_view.person.id);
 
   let createCommunity1 = await createCommunity(beta);
   let community1 = await resolveCommunity(
@@ -619,14 +619,16 @@ test("Multi-community", async () => {
     createCommunity1.community_view.community.ap_id,
   );
   let community2 = await resolveBetaCommunity(alpha);
-  let success = await alpha.updateMultiCommunity({
+  let success1 = await alpha.createMultiCommunityEntry({
     id: createMulti.id,
-    communities: [
-      community1.community!.community.id,
-      community2.community!.community.id,
-    ],
+    community_id: community1.community!.community.id
   });
-  expect(success.success).toBeTruthy();
+  expect(success1.success).toBeTruthy();
+  let success2 = await alpha.createMultiCommunityEntry({
+    id: createMulti.id,
+    community_id: community2.community!.community.id
+  });
+  expect(success2.success).toBeTruthy();
 
   let list = await alpha.listMultiCommunities({});
   expect(list.multi_communities.length).toBe(1);
@@ -644,4 +646,9 @@ test("Multi-community", async () => {
     multi_community_id: resolved.multi_community?.multi.id,
   });
   expect(listing.posts.length).toBe(2);
+  let success3 = await alpha.deleteMultiCommunityEntry({
+    id: createMulti.id,
+    community_id: community2.community!.community.id
+  });
+  expect(success3.success).toBeTruthy();
 });

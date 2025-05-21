@@ -368,7 +368,9 @@ pub struct ApproveCommunityPendingFollower {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CreateMultiCommunity {
   pub name: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
 }
 
@@ -377,8 +379,11 @@ pub struct CreateMultiCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct UpdateMultiCommunity {
   pub id: MultiCommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub deleted: Option<bool>,
 }
 

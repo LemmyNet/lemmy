@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.15.14)
       lemmy-js-client:
-        specifier: 1.0.0-multi-community.8
-        version: 1.0.0-multi-community.8
+        specifier: 1.0.0-multi-community.10
+        version: 1.0.0-multi-community.10
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1573,8 +1573,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@1.0.0-multi-community.8:
-    resolution: {integrity: sha512-XtHTEEqDcHuqBLbeJlRw2yG/RKq/ejHWqfCPdGYF5+8UXd75Ecx13DXUlc/7eBduAKqF64B/WlIlt77ZKmEk7A==}
+  lemmy-js-client@1.0.0-multi-community.10:
+    resolution: {integrity: sha512-v7MA8Ll04HHgS2O6gZ35IlCf89/R7xEUDmoaFVurl0sZCRfBvWf7QsfqHF2S9iKNPrmY71vkN+xWPHr0OH8KTQ==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4365,7 +4365,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@1.0.0-multi-community.8:
+  lemmy-js-client@1.0.0-multi-community.10:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

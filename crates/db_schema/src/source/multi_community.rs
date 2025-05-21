@@ -15,11 +15,14 @@ pub struct MultiCommunity {
   pub id: MultiCommunityId,
   pub creator_id: PersonId,
   pub name: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   pub deleted: bool,
   pub ap_id: DbUrl,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

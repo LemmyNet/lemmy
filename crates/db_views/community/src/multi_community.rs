@@ -1,9 +1,11 @@
 use crate::{MultiCommunityView, MultiCommunityViewApub};
 use diesel::{
-  dsl::{not, sql},
+  dsl::sql,
   result::Error,
   sql_types::{Array, Integer, Text},
+  BoolExpressionMethods,
   ExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -28,8 +30,11 @@ impl MultiCommunityView {
       .left_join(person::table)
       .left_join(multi_community_entry::table.inner_join(community::table))
       .group_by(multi_community::id)
-      .filter(not(community::removed))
-      .filter(not(community::deleted))
+      .filter(
+        community::removed
+          .or(community::deleted)
+          .is_distinct_from(true),
+      )
       .select((
         multi_community::all_columns,
         // Get vec of CommunityId. If no row exists for multi_community_entry this returns [null]
@@ -58,8 +63,11 @@ impl MultiCommunityViewApub {
       .left_join(person::table)
       .left_join(multi_community_entry::table.inner_join(community::table))
       .group_by(multi_community::id)
-      .filter(not(community::removed))
-      .filter(not(community::deleted))
+      .filter(
+        community::removed
+          .or(community::deleted)
+          .is_distinct_from(true),
+      )
       .filter(person::name.eq(user_name))
       .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
