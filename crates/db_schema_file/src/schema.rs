@@ -420,7 +420,6 @@ diesel::table! {
         default_theme -> Text,
         default_post_listing_type -> ListingTypeEnum,
         legal_information -> Nullable<Text>,
-        hide_modlog_mod_names -> Bool,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
         actor_name_max_length -> Int4,
