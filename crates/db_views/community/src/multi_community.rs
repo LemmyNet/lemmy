@@ -4,7 +4,6 @@ use diesel::{
   result::Error,
   sql_types::{Array, Integer, Text},
   ExpressionMethods,
-  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -65,7 +64,7 @@ impl MultiCommunityViewApub {
       .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
       .select((
-        multi_community::all_columns.assume_not_null(),
+        multi_community::all_columns,
         // Get vec of community.ap_id. If no row exists for multi_community_entry this returns
         // [null] so we need to filter that with array_remove.
         sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
@@ -112,13 +111,10 @@ mod tests {
     );
     let community = Community::create(pool, &form).await?;
 
-    let form = MultiCommunityInsertForm {
-      owner_id: bobby.id,
-      name: "multi".to_string(),
-      ap_id: community.ap_id.clone(),
-    };
+    let form =
+      MultiCommunityInsertForm::new(bobby.id, "multi".to_string(), community.ap_id.clone());
     let multi_create = MultiCommunity::create(pool, &form).await?;
-    assert_eq!(form.owner_id, multi_create.owner_id);
+    assert_eq!(form.creator_id, multi_create.creator_id);
     assert_eq!(form.name, multi_create.name);
     assert_eq!(form.ap_id, multi_create.ap_id);
 
@@ -130,15 +126,15 @@ mod tests {
     assert!(multi_read_apub_empty.entries.is_empty());
 
     let multi_entries = vec![community.id];
-    MultiCommunity::update(pool, multi_create.id, &multi_entries).await?;
+    MultiCommunity::update_entries(pool, multi_create.id, &multi_entries).await?;
 
     let multi_read = MultiCommunityView::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
+    assert_eq!(multi_read.multi.creator_id, multi_create.creator_id);
     assert_eq!(multi_entries, multi_read.entries);
 
     let multi_read_apub =
       MultiCommunityViewApub::read_local(pool, &bobby.name, &multi_create.name).await?;
-    assert_eq!(multi_read.multi.owner_id, multi_create.owner_id);
+    assert_eq!(multi_read.multi.creator_id, multi_create.creator_id);
     assert_eq!(vec![community.ap_id], multi_read_apub.entries);
 
     let list = MultiCommunity::list(pool, None).await?;

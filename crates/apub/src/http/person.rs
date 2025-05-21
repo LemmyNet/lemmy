@@ -66,13 +66,15 @@ pub(crate) async fn get_apub_person_multi_community(
     MultiCommunityViewApub::read_local(&mut context.pool(), &query.user_name, &query.multi_name)
       .await?;
 
-  let owner = Person::read(&mut context.pool(), multi.multi.owner_id).await?;
+  let owner = Person::read(&mut context.pool(), multi.multi.creator_id).await?;
   let collection = MultiCommunityCollection {
     r#type: Default::default(),
     id: multi.multi.ap_id.into(),
     total_items: multi.entries.len().try_into()?,
     items: multi.entries.into_iter().map(Into::into).collect(),
     name: multi.multi.name,
+    summary: multi.multi.title,
+    content: multi.multi.description,
     attributed_to: owner.ap_id.into(),
   };
   create_apub_response(&collection)

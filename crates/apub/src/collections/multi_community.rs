@@ -5,11 +5,13 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
   newtypes::{CommunityId, MultiCommunityId},
   source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
+  utils::get_conn,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
@@ -55,13 +57,14 @@ impl Object for ApubMultiCommunity {
   }
 
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
-    let owner = json.attributed_to.dereference(context).await?;
+    let creator = json.attributed_to.dereference(context).await?;
     let form = MultiCommunityInsertForm {
-      owner_id: owner.id,
+      creator_id: creator.id,
       name: json.name,
       ap_id: json.id.into(),
+      title: json.summary,
+      description: json.content,
     };
-    let multi = MultiCommunity::upsert(&mut context.pool(), &form).await?;
 
     let communities = join_all(
       json
@@ -80,7 +83,8 @@ impl Object for ApubMultiCommunity {
     })
     .collect();
 
-    MultiCommunity::update(&mut context.pool(), multi.id, &communities).await?;
+    let multi = MultiCommunity::upsert(&mut context.pool(), &form).await?;
+    MultiCommunity::update_entries(&mut context.pool(), multi.id, &communities).await?;
 
     Ok(ApubMultiCommunity(multi.id))
   }

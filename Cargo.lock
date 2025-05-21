@@ -3253,6 +3253,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "diesel",
+ "diesel-async",
  "either",
  "enum_delegate",
  "futures",

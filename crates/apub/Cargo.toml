@@ -55,6 +55,7 @@ anyhow = { workspace = true }
 serde_with.workspace = true
 enum_delegate = "0.2.0"
 either = "1.15.0"
+diesel-async.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }

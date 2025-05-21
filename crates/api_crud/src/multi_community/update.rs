@@ -1,5 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use futures::future::try_join_all;
 use lemmy_api_common::{
   community::UpdateMultiCommunity,
@@ -8,8 +10,12 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{
-  source::{community::Community, multi_community::MultiCommunity},
+  source::{
+    community::Community,
+    multi_community::{MultiCommunity, MultiCommunityUpdateForm},
+  },
   traits::Crud,
+  utils::{diesel_string_update, get_conn},
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community::{multi_community::ReadParams, MultiCommunityView};
@@ -26,7 +32,7 @@ pub async fn update_multi_community(
 ) -> LemmyResult<Json<SuccessResponse>> {
   // check that owner is correct
   let read = MultiCommunityView::read(&mut context.pool(), ReadParams::Id(data.id)).await?;
-  if read.multi.owner_id != local_user_view.person.id {
+  if read.multi.creator_id != local_user_view.person.id {
     return Err(LemmyErrorType::NotFound.into());
   }
   check_api_elements_count(data.communities.len())?;
@@ -47,6 +53,13 @@ pub async fn update_multi_community(
   .flatten()
   .collect();
 
-  MultiCommunity::update(&mut context.pool(), data.id, &community_ids).await?;
+  let form = MultiCommunityUpdateForm {
+    title: diesel_string_update(data.title.as_deref()),
+    description: diesel_string_update(data.description.as_deref()),
+    deleted: data.deleted,
+    updated: Some(Utc::now()),
+  };
+  MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
+  MultiCommunity::update_entries(&mut context.pool(), data.id, &community_ids).await?;
   Ok(Json(SuccessResponse::default()))
 }

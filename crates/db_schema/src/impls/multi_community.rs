@@ -1,29 +1,51 @@
 use crate::{
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
+  source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityUpdateForm},
+  traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{
   dsl::{delete, insert_into},
   result::Error,
+  update,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
+use lemmy_utils::error::LemmyResult;
 
-impl MultiCommunity {
-  pub async fn create(
-    pool: &mut DbPool<'_>,
-    form: &MultiCommunityInsertForm,
-  ) -> Result<Self, Error> {
+impl Crud for MultiCommunity {
+  type InsertForm = MultiCommunityInsertForm;
+  type UpdateForm = MultiCommunityUpdateForm;
+  type IdType = MultiCommunityId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(multi_community::table)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
+    Ok(
+      insert_into(multi_community::table)
+        .values(form)
+        .get_result(conn)
+        .await?,
+    )
   }
 
+  async fn update(
+    pool: &mut DbPool<'_>,
+    id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      update(multi_community::table.find(id))
+        .set(form)
+        .get_result(conn)
+        .await?,
+    )
+  }
+}
+
+impl MultiCommunity {
   pub async fn upsert(
     pool: &mut DbPool<'_>,
     form: &MultiCommunityInsertForm,
@@ -38,11 +60,12 @@ impl MultiCommunity {
       .await
   }
 
-  pub async fn update(
+  /// Should be called in a transaction together with update() or upsert()
+  pub async fn update_entries(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     conn
       .transaction::<_, Error, _>(|conn| {
@@ -77,7 +100,7 @@ impl MultiCommunity {
     let conn = &mut get_conn(pool).await?;
     let mut query = multi_community::table.into_boxed();
     if let Some(owner_id) = owner_id {
-      query = query.filter(multi_community::owner_id.eq(owner_id));
+      query = query.filter(multi_community::creator_id.eq(owner_id));
     }
     query.get_results(conn).await
   }

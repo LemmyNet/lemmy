@@ -11,5 +11,7 @@ pub struct MultiCommunityCollection {
   pub(crate) total_items: i32,
   pub(crate) items: Vec<ObjectId<ApubCommunity>>,
   pub(crate) name: String,
+  pub(crate) summary: Option<String>,
+  pub(crate) content: Option<String>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
 }

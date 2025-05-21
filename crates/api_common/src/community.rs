@@ -368,6 +368,8 @@ pub struct ApproveCommunityPendingFollower {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CreateMultiCommunity {
   pub name: String,
+  pub title: Option<String>,
+  pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -375,6 +377,9 @@ pub struct CreateMultiCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct UpdateMultiCommunity {
   pub id: MultiCommunityId,
+  pub title: Option<String>,
+  pub description: Option<String>,
+  pub deleted: Option<bool>,
   pub communities: Vec<CommunityId>,
 }
 
