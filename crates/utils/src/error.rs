@@ -193,6 +193,7 @@ pub enum LemmyErrorType {
   CouldntCreateEmailVerification,
   EmailNotificationsDisabled,
   InvalidCommunityId,
+  MultiCommunityUpdateWrongUser,
 }
 
 /// Federation related errors, these dont need to be translated.

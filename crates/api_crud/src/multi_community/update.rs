@@ -33,7 +33,7 @@ pub async fn update_multi_community(
   // check that owner is correct
   let read = MultiCommunityView::read(&mut context.pool(), ReadParams::Id(data.id)).await?;
   if read.multi.creator_id != local_user_view.person.id {
-    return Err(LemmyErrorType::NotFound.into());
+    return Err(LemmyErrorType::MultiCommunityUpdateWrongUser.into());
   }
   check_api_elements_count(data.communities.len())?;
 

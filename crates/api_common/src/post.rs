@@ -105,6 +105,8 @@ pub struct GetPosts {
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub multi_community_id: Option<MultiCommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
@@ -131,8 +133,6 @@ pub struct GetPosts {
   pub page_back: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub multi_community_id: Option<MultiCommunityId>,
 }
 
 #[skip_serializing_none]

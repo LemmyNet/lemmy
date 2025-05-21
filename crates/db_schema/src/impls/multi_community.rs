@@ -5,7 +5,6 @@ use crate::{
 };
 use diesel::{
   dsl::{delete, insert_into},
-  result::Error,
   update,
   ExpressionMethods,
   QueryDsl,
@@ -38,17 +37,16 @@ impl MultiCommunity {
         .await?,
     )
   }
-  pub async fn upsert(
-    conn: &mut DbConn<'_>,
-    form: &MultiCommunityInsertForm,
-  ) -> Result<Self, Error> {
-    insert_into(multi_community::table)
-      .values(form)
-      .on_conflict(multi_community::ap_id)
-      .do_update()
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
+  pub async fn upsert(conn: &mut DbConn<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
+    Ok(
+      insert_into(multi_community::table)
+        .values(form)
+        .on_conflict(multi_community::ap_id)
+        .do_update()
+        .set(form)
+        .get_result::<Self>(conn)
+        .await?,
+    )
   }
 
   /// Should be called in a transaction together with update() or upsert()
@@ -79,12 +77,12 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut query = multi_community::table.into_boxed();
     if let Some(owner_id) = owner_id {
       query = query.filter(multi_community::creator_id.eq(owner_id));
     }
-    query.get_results(conn).await
+    Ok(query.get_results(conn).await?)
   }
 }

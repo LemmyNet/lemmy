@@ -11,8 +11,6 @@ pub async fn list_multi_communities(
   data: Query<ListMultiCommunities>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<ListMultiCommunitiesResponse>> {
-  let res = MultiCommunity::list(&mut context.pool(), data.owner_id).await?;
-  Ok(Json(ListMultiCommunitiesResponse {
-    multi_communities: res,
-  }))
+  let multi_communities = MultiCommunity::list(&mut context.pool(), data.owner_id).await?;
+  Ok(Json(ListMultiCommunitiesResponse { multi_communities }))
 }
