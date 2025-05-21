@@ -244,30 +244,13 @@ impl PostView {
   }
 }
 
-#[derive(Clone)]
-pub enum CommunityOrMulti {
-  CommunityId(CommunityId),
-  MultiCommunityId(MultiCommunityId),
-}
-
-impl From<CommunityId> for CommunityOrMulti {
-  fn from(value: CommunityId) -> Self {
-    Self::CommunityId(value)
-  }
-}
-
-impl From<MultiCommunityId> for CommunityOrMulti {
-  fn from(value: MultiCommunityId) -> Self {
-    Self::MultiCommunityId(value)
-  }
-}
-
 #[derive(Clone, Default)]
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<PostSortType>,
   pub time_range_seconds: Option<i32>,
-  pub community_id: Option<CommunityOrMulti>,
+  pub community_id: Option<CommunityId>,
+  pub multi_community_id: Option<MultiCommunityId>,
   pub local_user: Option<&'a LocalUser>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
@@ -372,17 +355,20 @@ impl PostQuery<'_> {
         .filter(post::scheduled_publish_time.is_null());
     }
 
-    match o.community_id {
-      Some(CommunityOrMulti::CommunityId(id)) => {
+    match (o.community_id, o.multi_community_id) {
+      (Some(id), None) => {
         query = query.filter(post::community_id.eq(id));
       }
-      Some(CommunityOrMulti::MultiCommunityId(id)) => {
+      (None, Some(id)) => {
         let communities = multi_community_entry::table
           .filter(multi_community_entry::multi_community_id.eq(id))
           .select(multi_community_entry::community_id);
         query = query.filter(post::community_id.eq_any(communities))
       }
-      None => {
+      (Some(_), Some(_)) => {
+        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into())
+      }
+      (None, None) => {
         if let (Some(ListingType::Subscribed), Some(id)) =
           (o.listing_type, largest_subscribed_for_prefetch)
         {
@@ -893,7 +879,7 @@ mod tests {
     data.tegan.local_user.show_bot_accounts = false;
 
     let mut read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -924,7 +910,7 @@ mod tests {
     data.tegan.local_user.show_bot_accounts = true;
 
     let post_listings_with_bots = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -945,7 +931,7 @@ mod tests {
     let pool = &mut pool.into();
 
     let read_post_listing_multiple_no_person = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: None,
       ..data.default_post_query()
     }
@@ -979,7 +965,7 @@ mod tests {
     CommunityActions::block(pool, &community_block).await?;
 
     let read_post_listings_with_person_after_block = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1040,7 +1026,7 @@ mod tests {
     data.tegan.local_user.show_bot_accounts = false;
 
     let mut read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1073,7 +1059,7 @@ mod tests {
 
     // Read the liked only
     let read_liked_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       liked_only: Some(true),
       ..data.default_post_query()
     }
@@ -1084,7 +1070,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
 
     let read_disliked_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       disliked_only: Some(true),
       ..data.default_post_query()
     }
@@ -1132,7 +1118,7 @@ mod tests {
     let community_id = data.community.id;
 
     let tegan_listings = PostQuery {
-      community_id: Some(community_id.into()),
+      community_id: Some(community_id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1583,7 +1569,7 @@ mod tests {
     }
 
     let options = PostQuery {
-      community_id: Some(inserted_community.id.into()),
+      community_id: Some(inserted_community.id),
       sort: Some(PostSortType::MostComments),
       limit: Some(10),
       ..Default::default()
@@ -2051,7 +2037,7 @@ mod tests {
 
     // No posts returned without auth
     let read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       ..Default::default()
     }
     .list(&data.site, pool)
@@ -2063,7 +2049,7 @@ mod tests {
     // No posts returned for non-follower who is not admin
     data.tegan.local_user.admin = false;
     let read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       ..Default::default()
     }
@@ -2083,7 +2069,7 @@ mod tests {
     // Admin can view content without following
     data.tegan.local_user.admin = true;
     let read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       ..Default::default()
     }
@@ -2110,7 +2096,7 @@ mod tests {
     CommunityActions::follow(pool, &follow_form).await?;
 
     let read_post_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       ..Default::default()
     }
@@ -2150,7 +2136,7 @@ mod tests {
 
     // Make sure all the posts are returned when `hide_media` is unset
     let hide_media_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       ..Default::default()
     }
@@ -2168,7 +2154,7 @@ mod tests {
 
     // Ensure you don't see the image post
     let hide_media_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       ..Default::default()
     }
@@ -2178,7 +2164,7 @@ mod tests {
 
     // Make sure the `hide_media` override works
     let hide_media_listing = PostQuery {
-      community_id: Some(data.community.id.into()),
+      community_id: Some(data.community.id),
       local_user: Some(&data.tegan.local_user),
       hide_media: Some(false),
       ..Default::default()
@@ -2331,7 +2317,7 @@ mod tests {
     MultiCommunity::update_entries(conn, multi.id, &vec![community_1.id, community_2.id]).await?;
 
     let listing = PostQuery {
-      community_id: Some(multi.id.into()),
+      multi_community_id: Some(multi.id),
       ..Default::default()
     }
     .list(&data.site, pool)

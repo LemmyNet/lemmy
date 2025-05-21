@@ -12,7 +12,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
-  LemmyErrorType,
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
@@ -21,10 +20,7 @@ use lemmy_db_schema::{
   traits::{PaginationCursorBuilder, Readable},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{
-  impls::{CommunityOrMulti, PostQuery},
-  PostView,
-};
+use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
@@ -91,19 +87,13 @@ pub async fn list_posts(
   };
   let page_back = data.page_back;
 
-  let community_id = match (data.community_id, data.multi_community_id) {
-    (Some(id), None) => Some(CommunityOrMulti::CommunityId(id)),
-    (None, Some(id)) => Some(CommunityOrMulti::MultiCommunityId(id)),
-    (Some(_), Some(_)) => return Err(LemmyErrorType::InvalidCommunityId.into()),
-    (None, None) => None,
-  };
-
   let posts = PostQuery {
     local_user,
     listing_type,
     sort,
     time_range_seconds,
-    community_id,
+    community_id: data.community_id,
+    multi_community_id: data.multi_community_id,
     liked_only,
     disliked_only,
     limit,

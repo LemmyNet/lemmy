@@ -252,7 +252,7 @@ async fn get_feed_community(
 
   let posts = PostQuery {
     sort: (Some(*sort_type)),
-    community_id: (Some(community.id.into())),
+    community_id: (Some(community.id)),
     limit: (Some(*limit)),
     ..Default::default()
   }

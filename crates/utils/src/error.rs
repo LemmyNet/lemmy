@@ -194,6 +194,7 @@ pub enum LemmyErrorType {
   EmailNotificationsDisabled,
   InvalidCommunityId,
   MultiCommunityUpdateWrongUser,
+  CannotCombineCommunityIdAndMultiCommunityId,
 }
 
 /// Federation related errors, these dont need to be translated.
