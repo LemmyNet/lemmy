@@ -74,7 +74,7 @@ SELECT
             NULL
         END) AS upvotes,
     count(
-        CASE WHEN pl.score = - 1 THEN
+        CASE WHEN pl.score = -1 THEN
             1
         ELSE
             NULL
@@ -430,7 +430,7 @@ SELECT
             NULL
         END) AS upvotes,
     count(
-        CASE WHEN cl.score = - 1 THEN
+        CASE WHEN cl.score = -1 THEN
             1
         ELSE
             NULL
