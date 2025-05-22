@@ -179,12 +179,6 @@ impl ReportCombinedViewInternal {
 
     if user.local_user.admin {
       query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
-      // Hide reports of remote communities
-      query = query.filter(
-        report_combined::community_report_id
-          .is_null()
-          .or(community::local),
-      );
     } else {
       query = query.filter(filter_mod_reports());
     }
@@ -279,12 +273,6 @@ impl ReportCombinedQuery {
       if !show_community_rule_violations {
         query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
       }
-      // Hide reports of remote communities
-      query = query.filter(
-        report_combined::community_report_id
-          .is_null()
-          .or(community::local),
-      );
     } else {
       query = query.filter(filter_mod_reports());
     }
