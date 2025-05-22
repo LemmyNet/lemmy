@@ -43,6 +43,7 @@ use lemmy_db_schema::{
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
+      suggested_communities,
     },
     seconds_to_pg_interval,
     DbPool,
@@ -302,26 +303,20 @@ impl SearchCombinedQuery {
     };
 
     // Listing type
-    match self.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
-      ListingType::Local => {
-        query = query.filter(
-          community::local
-            .eq(true)
-            .and(filter_not_unlisted_or_is_subscribed())
-            .or(search_combined::person_id.is_not_null().and(person::local)),
-        );
-      }
-      ListingType::All => {
-        query = query.filter(
-          filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
-        )
-      }
-      ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator.is_not_null());
-      }
-      ListingType::Suggested => todo!(),
-    }
+    query = match self.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
+      ListingType::Local => query.filter(
+        community::local
+          .eq(true)
+          .and(filter_not_unlisted_or_is_subscribed())
+          .or(search_combined::person_id.is_not_null().and(person::local)),
+      ),
+      ListingType::All => query.filter(
+        filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
+      ),
+      ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+      ListingType::Suggested => query.filter(suggested_communities()),
+    };
 
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {

@@ -22,6 +22,7 @@ use lemmy_db_schema::{
       my_community_actions_join,
       my_instance_actions_community_join,
       my_local_user_admin_join,
+      suggested_communities,
     },
     seconds_to_pg_interval,
     DbPool,
@@ -135,7 +136,7 @@ impl CommunityQuery<'_> {
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator.is_not_null())
         }
-        ListingType::Suggested => todo!(),
+        ListingType::Suggested => query.filter(suggested_communities()),
       };
     }
 

@@ -44,6 +44,7 @@ use lemmy_db_schema::{
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
+      suggested_communities,
     },
     seconds_to_pg_interval,
     Commented,
@@ -60,9 +61,7 @@ use lemmy_db_schema_file::{
   schema::{
     community,
     community_actions,
-    local_site,
     local_user_language,
-    multi_community,
     multi_community_entry,
     person,
     post,
@@ -377,6 +376,7 @@ impl PostQuery<'_> {
       }
     }
 
+    let conn = &mut get_conn(pool).await?;
     match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
       ListingType::Local => {
@@ -388,13 +388,7 @@ impl PostQuery<'_> {
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
-      ListingType::Suggested => {
-        let suggested = local_site::table
-          .left_join(multi_community::table.inner_join(multi_community_entry::table))
-          .filter(multi_community_entry::community_id.is_not_null())
-          .select(multi_community_entry::community_id.assume_not_null());
-        query = query.filter(post::community_id.eq_any(suggested))
-      }
+      ListingType::Suggested => query = query.filter(suggested_communities()),
     }
 
     if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
@@ -550,7 +544,6 @@ impl PostQuery<'_> {
     let query = pq.as_query();
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-    let conn = &mut get_conn(pool).await?;
     Commented::new(query)
       .text("PostQuery::list")
       .load::<PostView>(conn)
@@ -597,6 +590,7 @@ mod tests {
       instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
       keyword_block::LocalUserKeywordBlock,
       language::Language,
+      local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -610,13 +604,13 @@ mod tests {
         PostUpdateForm,
       },
       post_tag::{PostTag, PostTagForm},
-      site::Site,
+      site::{Site, SiteInsertForm},
       tag::{Tag, TagInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
   };
-  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
@@ -2334,6 +2328,32 @@ mod tests {
 
     let listing_posts = listing.iter().map(|l| l.post.id).collect::<HashSet<_>>();
     assert_eq!(HashSet::from([post_1.id, post_2.id]), listing_posts);
+
+    let site_form = SiteInsertForm::new("test_site".into(), data.instance.id);
+    let site = Site::create(pool, &site_form).await?;
+
+    let suggested = PostQuery {
+      listing_type: Some(ListingType::Suggested),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert!(suggested.is_empty());
+
+    let form = LocalSiteInsertForm {
+      suggested_communities: Some(multi.id),
+      ..LocalSiteInsertForm::new(site.id)
+    };
+    LocalSite::create(pool, &form).await?;
+
+    let suggested = PostQuery {
+      listing_type: Some(ListingType::Suggested),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(listing, suggested);
+
     Ok(())
   }
 }
