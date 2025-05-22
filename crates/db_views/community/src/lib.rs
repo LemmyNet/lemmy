@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl},
+  newtypes::DbUrl,
   source::{
     community::{Community, CommunityActions},
     instance::InstanceActions,
@@ -48,14 +48,6 @@ pub struct CommunityView {
     )
   )]
   pub post_tags: TagsView,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct MultiCommunityView {
-  pub multi: MultiCommunity,
-  pub entries: Vec<CommunityId>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

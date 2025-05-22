@@ -1,56 +1,16 @@
-use crate::{MultiCommunityView, MultiCommunityViewApub};
+use crate::MultiCommunityViewApub;
 use diesel::{
   dsl::sql,
   result::Error,
-  sql_types::{Array, Integer, Text},
+  sql_types::{Array, Text},
   BoolExpressionMethods,
   ExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, MultiCommunityId},
-  utils::{get_conn, DbPool},
-};
+use lemmy_db_schema::utils::{get_conn, DbPool};
 use lemmy_db_schema_file::schema::{community, multi_community, multi_community_entry, person};
-
-pub enum ReadParams {
-  Id(MultiCommunityId),
-  ApId(DbUrl),
-}
-
-impl MultiCommunityView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    params: ReadParams,
-  ) -> Result<MultiCommunityView, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community::table
-      .left_join(person::table)
-      .left_join(multi_community_entry::table.inner_join(community::table))
-      .group_by(multi_community::id)
-      .filter(
-        community::removed
-          .or(community::deleted)
-          .is_distinct_from(true),
-      )
-      .select((
-        multi_community::all_columns,
-        // Get vec of CommunityId. If no row exists for multi_community_entry this returns [null]
-        // so we need to filter that with array_remove.
-        sql::<Array<Integer>>("array_remove(array_agg(multi_community_entry.community_id), null)"),
-      ))
-      .into_boxed();
-
-    query = match params {
-      ReadParams::Id(id) => query.filter(multi_community::id.eq(id)),
-      ReadParams::ApId(ap_id) => query.filter(multi_community::ap_id.eq(ap_id)),
-    };
-    let (multi, entries): (_, Vec<CommunityId>) = query.first(conn).await?;
-    Ok(MultiCommunityView { multi, entries })
-  }
-}
 
 impl MultiCommunityViewApub {
   pub async fn read_local(
@@ -126,9 +86,6 @@ mod tests {
     assert_eq!(form.name, multi_create.name);
     assert_eq!(form.ap_id, multi_create.ap_id);
 
-    let multi_read_empty = MultiCommunityView::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert!(multi_read_empty.entries.is_empty());
-
     let multi_read_apub_empty =
       MultiCommunityViewApub::read_local(pool, &bobby.name, &multi_create.name).await?;
     assert!(multi_read_apub_empty.entries.is_empty());
@@ -137,13 +94,9 @@ mod tests {
     let conn = &mut get_conn(pool).await?;
     MultiCommunity::update_entries(conn, multi_create.id, &multi_entries).await?;
 
-    let multi_read = MultiCommunityView::read(pool, ReadParams::Id(multi_create.id)).await?;
-    assert_eq!(multi_read.multi.creator_id, multi_create.creator_id);
-    assert_eq!(multi_entries, multi_read.entries);
-
     let multi_read_apub =
       MultiCommunityViewApub::read_local(pool, &bobby.name, &multi_create.name).await?;
-    assert_eq!(multi_read.multi.creator_id, multi_create.creator_id);
+    assert_eq!(multi_read_apub.multi.creator_id, multi_create.creator_id);
     assert_eq!(vec![community.ap_id], multi_read_apub.entries);
 
     let list = MultiCommunity::list(pool, None).await?;

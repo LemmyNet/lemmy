@@ -18,6 +18,7 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    multi_community::MultiCommunity,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     tagline::Tagline,
@@ -33,7 +34,7 @@ use lemmy_db_schema_file::enums::{
   RegistrationMode,
 };
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_community::{CommunityView, MultiCommunityView};
+use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -72,7 +73,7 @@ pub struct ResolveObjectResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub person: Option<PersonView>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub multi_community: Option<MultiCommunityView>,
+  pub multi_community: Option<MultiCommunity>,
 }
 
 #[skip_serializing_none]
