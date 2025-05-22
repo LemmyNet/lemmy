@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
   source::{
     community::{community_keys as key, Community},
     local_user::LocalUser,
@@ -31,7 +31,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
-  schema::{community, community_actions, instance_actions},
+  schema::{community, community_actions, instance_actions, multi_community_entry},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -99,6 +99,7 @@ pub struct CommunityQuery<'a> {
   pub time_range_seconds: Option<i32>,
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
+  pub multi_community_id: Option<MultiCommunityId>,
   pub cursor_data: Option<Community>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -147,6 +148,13 @@ impl CommunityQuery<'_> {
     }
 
     query = o.local_user.visible_communities_only(query);
+
+    if let Some(multi_community_id) = o.multi_community_id {
+      let communities = multi_community_entry::table
+        .filter(multi_community_entry::multi_community_id.eq(multi_community_id))
+        .select(multi_community_entry::community_id);
+      query = query.filter(community::id.eq_any(communities))
+    }
 
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
