@@ -129,10 +129,7 @@ async fn report_inboxes(
 }
 
 fn local_community(site_or_community: &Either<ApubSite, ApubCommunity>) -> Option<&ApubCommunity> {
-  match site_or_community {
-    Either::Right(c) if c.local => Some(c),
-    _ => None,
-  }
+  site_or_community.as_ref().right().filter(|c| c.local)
 }
 
 async fn verify_mod_or_admin_action(
