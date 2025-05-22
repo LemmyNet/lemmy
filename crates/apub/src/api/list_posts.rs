@@ -43,6 +43,7 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
+  let multi_community_id = data.multi_community_id;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   // Show nsfw content if param is true, or if content_warning exists
@@ -92,8 +93,8 @@ pub async fn list_posts(
     listing_type,
     sort,
     time_range_seconds,
-    community_id: data.community_id,
-    multi_community_id: data.multi_community_id,
+    community_id,
+    multi_community_id,
     liked_only,
     disliked_only,
     limit,

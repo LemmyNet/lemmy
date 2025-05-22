@@ -601,6 +601,7 @@ test("Community name with non-ascii chars", async () => {
     community_name: fediName,
   };
   let posts = await beta.getPosts(form);
+  expect(posts.posts.length).toBe(1);
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });
 
