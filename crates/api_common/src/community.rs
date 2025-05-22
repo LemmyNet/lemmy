@@ -407,7 +407,7 @@ pub struct GetMultiCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListMultiCommunities {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub owner_id: Option<PersonId>,
+  pub creator_id: Option<PersonId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

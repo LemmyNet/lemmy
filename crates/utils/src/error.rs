@@ -192,7 +192,6 @@ pub enum LemmyErrorType {
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
   EmailNotificationsDisabled,
-  InvalidCommunityId,
   MultiCommunityUpdateWrongUser,
   CannotCombineCommunityIdAndMultiCommunityId,
 }
