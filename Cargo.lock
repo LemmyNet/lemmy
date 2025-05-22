@@ -3185,6 +3185,7 @@ dependencies = [
  "lemmy_db_views_mark_person_comment_mention_as_read",
  "lemmy_db_views_mark_person_post_mention_as_read",
  "lemmy_db_views_mark_post_as_read",
+ "lemmy_db_views_mark_private_message_as_read",
  "lemmy_db_views_modlog_combined",
  "lemmy_db_views_password_change_after_reset",
  "lemmy_db_views_password_reset",
@@ -3309,16 +3310,19 @@ dependencies = [
  "lemmy_db_views_create_custom_emoji",
  "lemmy_db_views_create_emoji_response",
  "lemmy_db_views_create_post",
+ "lemmy_db_views_create_private_message",
  "lemmy_db_views_custom_emoji",
  "lemmy_db_views_delete_account",
  "lemmy_db_views_delete_comment",
  "lemmy_db_views_delete_community",
  "lemmy_db_views_delete_custom_emoji",
  "lemmy_db_views_delete_post",
+ "lemmy_db_views_delete_private_message",
  "lemmy_db_views_edit_comment",
  "lemmy_db_views_edit_community",
  "lemmy_db_views_edit_custom_emoji",
  "lemmy_db_views_edit_post",
+ "lemmy_db_views_edit_private_message",
  "lemmy_db_views_get_comment",
  "lemmy_db_views_get_post",
  "lemmy_db_views_get_post_response",
@@ -3332,6 +3336,7 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_post_response",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_private_message_response",
  "lemmy_db_views_register",
  "lemmy_db_views_remove_comment",
  "lemmy_db_views_remove_community",
@@ -3830,6 +3835,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_create_private_message"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_custom_emoji"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3900,6 +3914,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_delete_private_message"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_distinguish_comment"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -3947,6 +3970,15 @@ dependencies = [
  "lemmy_db_schema",
  "serde",
  "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_edit_private_message"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
  "ts-rs",
 ]
 
@@ -4517,6 +4549,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_mark_private_message_as_read"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_schema",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_modlog_combined"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -4663,6 +4704,15 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_private_message_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_views_private_message",
  "serde",
  "ts-rs",
 ]

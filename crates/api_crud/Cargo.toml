@@ -51,6 +51,10 @@ lemmy_db_views_delete_custom_emoji = { workspace = true, features = ["full"] }
 lemmy_db_views_list_custom_emojis = { workspace = true, features = ["full"] }
 lemmy_db_views_list_custom_emojis_response = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
+lemmy_db_views_create_private_message = { workspace = true, features = ["full"] }
+lemmy_db_views_edit_private_message = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_private_message = { workspace = true, features = ["full"] }
+lemmy_db_views_private_message_response = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }

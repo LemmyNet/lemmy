@@ -4,7 +4,6 @@ use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
@@ -12,8 +11,10 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views_edit_private_message::EditPrivateMessage;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_private_message_response::PrivateMessageResponse;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,

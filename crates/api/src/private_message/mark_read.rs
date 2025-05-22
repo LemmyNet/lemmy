@@ -1,14 +1,11 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  private_message::MarkPrivateMessageAsRead,
-  SuccessResponse,
-};
+use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_mark_private_message_as_read::MarkPrivateMessageAsRead;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn mark_pm_as_read(

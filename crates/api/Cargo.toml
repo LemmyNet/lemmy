@@ -85,6 +85,7 @@ lemmy_db_views_verify_email = { workspace = true, features = ["full"] }
 lemmy_db_views_generate_totp_secret_response = { workspace = true, features = ["full"] }
 lemmy_db_views_update_totp = { workspace = true, features = ["full"] }
 lemmy_db_views_update_totp_response = { workspace = true, features = ["full"] }
+lemmy_db_views_mark_private_message_as_read = { workspace = true, features = ["full"] }
 lemmy_db_views_list_media = { workspace = true, features = ["full"] }
 lemmy_db_views_list_media_response = { workspace = true, features = ["full"] }
 lemmy_db_views_list_logins_response = { workspace = true, features = ["full"] }

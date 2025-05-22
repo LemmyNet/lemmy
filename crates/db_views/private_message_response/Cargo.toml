@@ -1,0 +1,26 @@
+[package]
+name = "lemmy_db_views_private_message_response"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+  "ts-rs",
+  "lemmy_db_views_private_message/full",
+]
+
+[dependencies]
+lemmy_db_views_private_message = { workspace = true }
+serde = { workspace = true }
+ts-rs = { workspace = true, optional = true }

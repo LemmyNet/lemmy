@@ -178,6 +178,11 @@ members = [
   "crates/db_views/open_graph_data",
   "crates/db_views/list_post_likes",
   "crates/db_views/list_post_likes_response",
+  "crates/db_views/create_private_message",
+  "crates/db_views/edit_private_message",
+  "crates/db_views/delete_private_message",
+  "crates/db_views/mark_private_message_as_read",
+  "crates/db_views/private_message_response",
 ]
 
 [workspace.lints.clippy]
@@ -220,6 +225,11 @@ lemmy_routes = { version = "=1.0.0-alpha.4", path = "./crates/routes" }
 lemmy_federate = { version = "=1.0.0-alpha.4", path = "./crates/federate" }
 lemmy_email = { version = "=1.0.0-alpha.4", path = "./crates/email" }
 lemmy_db_views_private_message = { version = "=1.0.0-alpha.4", path = "./crates/db_views/private_message" }
+lemmy_db_views_mark_private_message_as_read = { version = "=1.0.0-alpha.4", path = "./crates/db_views/mark_private_message_as_read" }
+lemmy_db_views_private_message_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/private_message_response" }
+lemmy_db_views_create_private_message = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_private_message" }
+lemmy_db_views_edit_private_message = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_private_message" }
+lemmy_db_views_delete_private_message = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_private_message" }
 lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.4", path = "./crates/db_views/registration_applications" }
 lemmy_db_views_comment = { version = "=1.0.0-alpha.4", path = "./crates/db_views/comment" }
 lemmy_db_views_create_comment = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_comment" }
