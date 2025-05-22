@@ -4,7 +4,6 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
@@ -13,8 +12,10 @@ use lemmy_db_schema::{
   source::post::{PostActions, PostLikeForm, PostReadForm},
   traits::{Likeable, Readable},
 };
+use lemmy_db_views_create_post_like::CreatePostLike;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_response::PostResponse;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;

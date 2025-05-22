@@ -1,8 +1,6 @@
 use crate::{
   api::{
-    listing_type_with_default,
-    post_sort_type_with_default,
-    post_time_range_seconds_with_default,
+    listing_type_with_default, post_sort_type_with_default, post_time_range_seconds_with_default,
   },
   fetcher::resolve_ap_identifier,
 };
@@ -10,7 +8,6 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
@@ -19,6 +16,8 @@ use lemmy_db_schema::{
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::{PaginationCursorBuilder, Readable},
 };
+use lemmy_db_views_get_posts::GetPosts;
+use lemmy_db_views_get_posts_response::GetPostsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;

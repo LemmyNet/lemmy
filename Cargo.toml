@@ -156,6 +156,28 @@ members = [
   "crates/db_views/create_emoji_response",
   "crates/db_views/list_custom_emojis_response",
   "crates/db_views/list_custom_emojis",
+  "crates/db_views/create_post",
+  "crates/db_views/post_response",
+  "crates/db_views/get_post",
+  "crates/db_views/get_post_response",
+  "crates/db_views/get_posts",
+  "crates/db_views/get_posts_response",
+  "crates/db_views/create_post_like",
+  "crates/db_views/edit_post",
+  "crates/db_views/delete_post",
+  "crates/db_views/remove_post",
+  "crates/db_views/mark_post_as_read",
+  "crates/db_views/mark_many_posts_as_read",
+  "crates/db_views/hide_post",
+  "crates/db_views/lock_post",
+  "crates/db_views/feature_post",
+  "crates/db_views/save_post",
+  "crates/db_views/get_site_metadata",
+  "crates/db_views/get_site_metadata_response",
+  "crates/db_views/link_metadata",
+  "crates/db_views/open_graph_data",
+  "crates/db_views/list_post_likes",
+  "crates/db_views/list_post_likes_response",
 ]
 
 [workspace.lints.clippy]
@@ -260,6 +282,28 @@ lemmy_db_views_delete_custom_emoji = { version = "=1.0.0-alpha.4", path = "./cra
 lemmy_db_views_list_custom_emojis_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_custom_emojis_response" }
 lemmy_db_views_list_custom_emojis = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_custom_emojis" }
 lemmy_db_views_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post" }
+lemmy_db_views_post_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/post_response" }
+lemmy_db_views_create_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_post" }
+lemmy_db_views_edit_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_post" }
+lemmy_db_views_delete_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_post" }
+lemmy_db_views_hide_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/hide_post" }
+lemmy_db_views_lock_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/lock_post" }
+lemmy_db_views_feature_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/feature_post" }
+lemmy_db_views_remove_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/remove_post" }
+lemmy_db_views_save_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/save_post" }
+lemmy_db_views_create_post_like = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_post_like" }
+lemmy_db_views_get_post = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_post" }
+lemmy_db_views_get_post_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_post_response" }
+lemmy_db_views_get_posts = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_posts" }
+lemmy_db_views_get_posts_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_posts_response" }
+lemmy_db_views_open_graph_data = { version = "=1.0.0-alpha.4", path = "./crates/db_views/open_graph_data" }
+lemmy_db_views_link_metadata = { version = "=1.0.0-alpha.4", path = "./crates/db_views/link_metadata" }
+lemmy_db_views_get_site_metadata = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_site_metadata" }
+lemmy_db_views_get_site_metadata_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/get_site_metadata_response" }
+lemmy_db_views_mark_post_as_read = { version = "=1.0.0-alpha.4", path = "./crates/db_views/mark_post_as_read" }
+lemmy_db_views_mark_many_posts_as_read = { version = "=1.0.0-alpha.4", path = "./crates/db_views/mark_many_posts_as_read" }
+lemmy_db_views_list_post_likes = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_post_likes" }
+lemmy_db_views_list_post_likes_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_post_likes_response" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.4", path = "./crates/db_views/vote" }
 lemmy_db_views_add_mod_to_community_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/add_mod_to_community_response" }
 lemmy_db_views_approve_community_pending_follower = { version = "=1.0.0-alpha.4", path = "./crates/db_views/approve_community_pending_follower" }

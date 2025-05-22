@@ -1,6 +1,5 @@
 use crate::{
   context::LemmyContext,
-  post::PostResponse,
   utils::{check_person_instance_community_block, is_mod_or_admin},
 };
 use actix_web::web::Json;
@@ -24,6 +23,7 @@ use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_response::CommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_response::PostResponse;
 use lemmy_email::notifications::{
   send_comment_reply_email, send_mention_email, send_post_reply_email,
 };

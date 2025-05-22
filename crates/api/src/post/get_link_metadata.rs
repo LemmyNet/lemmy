@@ -1,9 +1,7 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{GetSiteMetadata, GetSiteMetadataResponse},
-  request::fetch_link_metadata,
-};
+use lemmy_api_common::{context::LemmyContext, request::fetch_link_metadata};
+use lemmy_db_views_get_site_metadata::GetSiteMetadata;
+use lemmy_db_views_get_site_metadata_response::GetSiteMetadataResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;

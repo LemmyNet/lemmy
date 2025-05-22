@@ -6,17 +6,12 @@ use lemmy_api_common::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
-    check_community_user_action,
-    check_nsfw_allowed,
-    get_url_blocklist,
-    process_markdown_opt,
-    send_webmention,
-    slur_regex,
+    check_community_user_action, check_nsfw_allowed, get_url_blocklist, process_markdown_opt,
+    send_webmention, slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -30,8 +25,10 @@ use lemmy_db_schema::{
   utils::{diesel_string_update, diesel_url_update},
 };
 use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_edit_post::EditPost;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_response::PostResponse;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -39,10 +36,7 @@ use lemmy_utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
-      is_url_blocked,
-      is_valid_alt_text_field,
-      is_valid_body_field,
-      is_valid_post_title,
+      is_url_blocked, is_valid_alt_text_field, is_valid_body_field, is_valid_post_title,
       is_valid_url,
     },
   },

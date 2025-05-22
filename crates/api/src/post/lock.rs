@@ -3,7 +3,6 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
-  post::{LockPost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -15,7 +14,9 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_lock_post::LockPost;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_response::PostResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(

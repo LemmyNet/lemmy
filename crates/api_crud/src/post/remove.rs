@@ -3,7 +3,6 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
-  post::{PostResponse, RemovePost},
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -18,6 +17,8 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post_response::PostResponse;
+use lemmy_db_views_remove_post::RemovePost;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_post(

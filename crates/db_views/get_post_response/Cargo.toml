@@ -1,0 +1,29 @@
+[package]
+name = "lemmy_db_views_get_post_response"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+  "ts-rs",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_community/full",
+]
+
+[dependencies]
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
+ts-rs = { workspace = true, optional = true }

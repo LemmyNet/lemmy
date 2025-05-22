@@ -69,6 +69,10 @@ lemmy_db_views_community_follower = { workspace = true }
 lemmy_db_views_ban_from_community = { workspace = true }
 lemmy_db_views_community_person_ban = { workspace = true }
 lemmy_db_views_post = { workspace = true }
+lemmy_db_views_link_metadata = { workspace = true }
+lemmy_db_views_open_graph_data = { workspace = true }
+lemmy_db_views_delete_post = { workspace = true }
+lemmy_db_views_post_response = { workspace = true }
 lemmy_db_views_vote = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_person = { workspace = true }

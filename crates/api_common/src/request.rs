@@ -1,7 +1,6 @@
 use crate::{
   context::LemmyContext,
   lemmy_db_schema::traits::Crud,
-  post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
   utils::proxy_image_link,
 };
@@ -14,19 +13,18 @@ use lemmy_db_schema::source::{
   post::{Post, PostUpdateForm},
   site::Site,
 };
+use lemmy_db_views_link_metadata::LinkMetadata;
+use lemmy_db_views_open_graph_data::OpenGraphData;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  REQWEST_TIMEOUT,
-  VERSION,
+  REQWEST_TIMEOUT, VERSION,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
-  Client,
-  ClientBuilder,
-  Response,
+  Client, ClientBuilder, Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
