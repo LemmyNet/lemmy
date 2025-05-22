@@ -145,8 +145,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub hide_modlog_mod_names: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
@@ -252,9 +250,6 @@ pub struct EditSite {
   /// Whether to email admins when receiving a new application.
   #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
-  /// Whether to hide moderator names from the modlog.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub hide_modlog_mod_names: Option<bool>,
   /// A list of allowed discussion languages.
   #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
