@@ -32,7 +32,8 @@ pub async fn create_multi_community(
     description: data.description.clone(),
     ap_id: Url::parse(&format!(
       "{}/m/{}",
-      &local_user_view.person.ap_id, &data.name
+      context.settings().get_protocol_and_hostname(),
+      &data.name
     ))?
     .into(),
   };

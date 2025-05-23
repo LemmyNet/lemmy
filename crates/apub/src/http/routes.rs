@@ -50,7 +50,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       web::get().to(get_apub_person_outbox),
     )
     .route(
-      "/u/{user_name}/m/{multi_name}",
+      "/m/{multi_name}",
       web::get().to(get_apub_person_multi_community),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))
