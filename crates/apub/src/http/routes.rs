@@ -1,3 +1,4 @@
+use super::person::get_apub_person_multi_community;
 use crate::http::{
   comment::get_apub_comment,
   community::{
@@ -47,6 +48,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route(
       "/u/{user_name}/outbox",
       web::get().to(get_apub_person_outbox),
+    )
+    .route(
+      "/m/{multi_name}",
+      web::get().to(get_apub_person_multi_community),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))
     .route("/comment/{comment_id}", web::get().to(get_apub_comment))

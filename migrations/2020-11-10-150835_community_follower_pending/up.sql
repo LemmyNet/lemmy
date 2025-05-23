@@ -1,3 +1,3 @@
 ALTER TABLE community_follower
-    ADD COLUMN pending BOOLEAN DEFAULT FALSE;
+    ADD COLUMN pending boolean DEFAULT FALSE;
 

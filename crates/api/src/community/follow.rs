@@ -1,3 +1,4 @@
+use super::community_follower_state;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable},
 };
-use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -37,17 +37,7 @@ pub async fn follow_community(
       CommunityPersonBanView::check(&mut context.pool(), person_id, community.id).await?;
     }
 
-    let follow_state = if community.local {
-      // Local follow is accepted immediately
-      CommunityFollowerState::Accepted
-    } else if community.visibility == CommunityVisibility::Private {
-      // Private communities require manual approval
-      CommunityFollowerState::ApprovalRequired
-    } else {
-      // remote follow needs to be federated first
-      CommunityFollowerState::Pending
-    };
-
+    let follow_state = community_follower_state(&community);
     let form = CommunityFollowerForm::new(community.id, person_id, follow_state);
 
     // Write to db

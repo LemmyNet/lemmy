@@ -249,6 +249,7 @@ diesel::table! {
         became_moderator -> Nullable<Timestamptz>,
         received_ban -> Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
+        is_multi_community_follow -> Bool,
     }
 }
 
@@ -451,6 +452,7 @@ diesel::table! {
         users_active_month -> Int8,
         users_active_half_year -> Int8,
         disable_email_notifications -> Bool,
+        suggested_communities -> Nullable<Int4>,
     }
 }
 
@@ -705,6 +707,42 @@ diesel::table! {
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
+    multi_community (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        #[max_length = 255]
+        name -> Varchar,
+        #[max_length = 255]
+        title -> Nullable<Varchar>,
+        #[max_length = 255]
+        description -> Nullable<Varchar>,
+        local -> Bool,
+        deleted -> Bool,
+        ap_id -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    multi_community_entry (multi_community_id, community_id) {
+        multi_community_id -> Int4,
+        community_id -> Int4,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityFollowerState;
+
+    multi_community_follow (multi_community_id, person_id) {
+        multi_community_id -> Int4,
+        person_id -> Int4,
+        follow_state -> CommunityFollowerState,
     }
 }
 
@@ -1119,6 +1157,7 @@ diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> person (person_id));
 diesel::joinable!(local_image -> post (thumbnail_for_post_id));
+diesel::joinable!(local_site -> multi_community (suggested_communities));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -1159,6 +1198,11 @@ diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id))
 diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
 diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
+diesel::joinable!(multi_community -> person (creator_id));
+diesel::joinable!(multi_community_entry -> community (community_id));
+diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
+diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
+diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
@@ -1244,6 +1288,9 @@ diesel::allow_tables_to_appear_in_same_query!(
   mod_remove_post,
   mod_transfer_community,
   modlog_combined,
+  multi_community,
+  multi_community_entry,
+  multi_community_follow,
   oauth_account,
   oauth_provider,
   password_reset_request,

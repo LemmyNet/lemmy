@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     CommunityId,
     InstanceId,
     LanguageId,
+    MultiCommunityId,
     PaginationCursor,
     PersonId,
     PostId,
@@ -17,6 +18,7 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    multi_community::MultiCommunity,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     tagline::Tagline,
@@ -70,6 +72,8 @@ pub struct ResolveObjectResponse {
   pub community: Option<CommunityView>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub person: Option<PersonView>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub multi_community: Option<MultiCommunity>,
 }
 
 #[skip_serializing_none]
@@ -198,6 +202,8 @@ pub struct CreateSite {
   pub disallow_nsfw_content: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_email_notifications: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub suggested_communities: Option<MultiCommunityId>,
 }
 
 #[skip_serializing_none]
@@ -331,6 +337,9 @@ pub struct EditSite {
   /// Dont send email notifications to users for new replies, mentions etc
   #[cfg_attr(feature = "full", ts(optional))]
   pub disable_email_notifications: Option<bool>,
+  /// A multicommunity with suggested communities which is shown on the homepage
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub suggested_communities: Option<MultiCommunityId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

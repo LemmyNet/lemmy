@@ -33,6 +33,7 @@ import {
   unfollows,
   getMyUser,
   userBlockInstance,
+  resolveBetaCommunity,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import { EditCommunity, GetPosts } from "lemmy-js-client";
@@ -600,5 +601,64 @@ test("Community name with non-ascii chars", async () => {
     community_name: fediName,
   };
   let posts = await beta.getPosts(form);
+  expect(posts.posts.length).toBe(1);
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
+});
+
+test("Multi-community", async () => {
+  // create multi
+  let createMulti = await alpha.createMultiCommunity({ name: "multi-comm" });
+  let myUser = await getMyUser(alpha);
+  expect(createMulti.name).toBe("multi-comm");
+  expect(createMulti.ap_id).toBe(
+    "http://lemmy-alpha:8541/u/lemmy_alpha/m/multi-comm",
+  );
+  expect(createMulti.creator_id).toBe(myUser.local_user_view.person.id);
+
+  // add two communities
+  let createCommunity1 = await createCommunity(beta);
+  let community1 = await resolveCommunity(
+    alpha,
+    createCommunity1.community_view.community.ap_id,
+  );
+  let community2 = await resolveBetaCommunity(alpha);
+  let success1 = await alpha.createMultiCommunityEntry({
+    id: createMulti.id,
+    community_id: community1.community!.community.id,
+  });
+  expect(success1.success).toBeTruthy();
+  let success2 = await alpha.createMultiCommunityEntry({
+    id: createMulti.id,
+    community_id: community2.community!.community.id,
+  });
+  expect(success2.success).toBeTruthy();
+
+  // list multi
+  let list = await alpha.listMultiCommunities({});
+  expect(list.multi_communities.length).toBe(1);
+  expect(list.multi_communities[0].ap_id).toBe(createMulti.ap_id);
+
+  // resolve over federation
+  let resolved = await beta.resolveObject({ q: createMulti.ap_id });
+  expect(resolved.multi_community!.multi.ap_id).toBe(createMulti.ap_id);
+  expect(resolved.multi_community).toBeDefined();
+
+  expect(resolved.multi_community?.entries.length).toBe(2);
+  await createPost(beta, resolved.multi_community!.entries[0]);
+  await createPost(beta, resolved.multi_community!.entries[1]);
+
+  // list posts in multi
+  let listing = await beta.getPosts({
+    multi_community_id: resolved.multi_community?.multi.id,
+  });
+  expect(listing.posts.length).toBe(2);
+
+  // delete entry
+  let success3 = await alpha.deleteMultiCommunityEntry({
+    id: createMulti.id,
+    community_id: community2.community!.community.id,
+  });
+  expect(success3.success).toBeTruthy();
+  let getMulti = await alpha.getMultiCommunity({ id: createMulti.id });
+  expect(getMulti.entries.length).toBe(1);
 });

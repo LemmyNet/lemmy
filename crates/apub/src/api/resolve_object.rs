@@ -1,13 +1,14 @@
 use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
-use lemmy_db_schema::utils::DbPool;
+use lemmy_apub_objects::objects::SearchableObjects;
+use lemmy_db_schema::{source::multi_community::MultiCommunity, traits::Crud, utils::DbPool};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -53,25 +54,31 @@ async fn convert_response(
   let site_view = SiteView::read_local(pool).await?;
   let local_instance_id = site_view.site.instance_id;
 
+  use Either::*;
   match object {
-    SearchableObjects::Left(pc) => match pc {
-      PostOrComment::Left(p) => {
-        res.post =
-          Some(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
-      }
-      PostOrComment::Right(c) => {
-        res.comment =
-          Some(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
-      }
+    Left(s) => match s {
+      Left(x) => match x {
+        Left(p) => {
+          res.post = Some(
+            PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?,
+          )
+        }
+        Right(c) => {
+          res.comment =
+            Some(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
+        }
+      },
+      Right(s) => match s {
+        Left(u) => {
+          res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
+        }
+        Right(c) => {
+          res.community =
+            Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
+        }
+      },
     },
-    SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(u) => {
-        res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
-      }
-      UserOrCommunity::Right(c) => {
-        res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
-      }
-    },
+    Right(multi) => res.multi_community = Some(MultiCommunity::read(pool, multi.0).await?),
   };
 
   Ok(Json(res))

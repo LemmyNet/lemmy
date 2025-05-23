@@ -192,6 +192,8 @@ pub enum LemmyErrorType {
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
   EmailNotificationsDisabled,
+  MultiCommunityUpdateWrongUser,
+  CannotCombineCommunityIdAndMultiCommunityId,
 }
 
 /// Federation related errors, these dont need to be translated.
@@ -238,7 +240,7 @@ cfg_if! {
     }
 
     /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
-    pub const MAX_API_PARAM_ELEMENTS: usize = 10_000;
+    pub(crate) const MAX_API_PARAM_ELEMENTS: usize = 10_000;
 
     impl<T> From<T> for LemmyError
     where
