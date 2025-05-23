@@ -132,11 +132,21 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn list(pool: &mut DbPool<'_>, owner_id: Option<PersonId>) -> LemmyResult<Vec<Self>> {
+  pub async fn list(
+    pool: &mut DbPool<'_>,
+    owner_id: Option<PersonId>,
+    followed_by: Option<PersonId>,
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community::table.into_boxed();
+    let mut query = multi_community::table
+      .inner_join(multi_community_follow::table)
+      .select(multi_community::all_columns)
+      .into_boxed();
     if let Some(owner_id) = owner_id {
       query = query.filter(multi_community::creator_id.eq(owner_id));
+    }
+    if let Some(followed_by) = followed_by {
+      query = query.filter(multi_community_follow::person_id.eq(followed_by));
     }
     Ok(query.get_results(conn).await?)
   }
@@ -265,8 +275,10 @@ mod tests {
     assert_eq!(multi_read_apub.multi.creator_id, multi_create.creator_id);
     assert_eq!(vec![community.ap_id], multi_read_apub.entries);
 
-    let list = MultiCommunity::list(pool, None).await?;
-    assert_eq!(1, list.len());
+    //let list = MultiCommunity::list(pool, None).await?;
+    //assert_eq!(1, list.len());
+    // TODO: test follow methods, test list(followed_by)
+    todo!();
 
     Instance::delete(pool, instance.id).await?;
 

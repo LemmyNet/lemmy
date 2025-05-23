@@ -5,12 +5,20 @@ use lemmy_api_common::{
   context::LemmyContext,
 };
 use lemmy_db_schema::source::multi_community::MultiCommunity;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_multi_communities(
   data: Query<ListMultiCommunities>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListMultiCommunitiesResponse>> {
-  let multi_communities = MultiCommunity::list(&mut context.pool(), data.creator_id).await?;
+  let followed_by = if let Some(true) = data.followed_only {
+    local_user_view.map(|l| l.person.id)
+  } else {
+    None
+  };
+  let multi_communities =
+    MultiCommunity::list(&mut context.pool(), data.creator_id, followed_by).await?;
   Ok(Json(ListMultiCommunitiesResponse { multi_communities }))
 }

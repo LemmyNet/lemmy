@@ -401,6 +401,8 @@ pub struct CreateOrDeleteMultiCommunityEntry {
 pub struct ListMultiCommunities {
   #[cfg_attr(feature = "full", ts(optional))]
   pub creator_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub followed_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
