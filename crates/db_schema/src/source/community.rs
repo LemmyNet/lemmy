@@ -180,7 +180,7 @@ pub struct CommunityUpdateForm {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(
   feature = "full",
   derive(
@@ -225,6 +225,9 @@ pub struct CommunityActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When their ban expires.
   pub ban_expires: Option<DateTime<Utc>>,
+  /// True indicates that user is following this community as part of multi-comm (not part of
+  /// subscribed feed)
+  pub is_multi_community_follow: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -260,6 +263,8 @@ pub struct CommunityFollowerForm {
   pub follow_approver_id: Option<PersonId>,
   #[new(value = "Utc::now()")]
   pub followed: DateTime<Utc>,
+  #[new(default)]
+  pub is_multi_community_follow: Option<bool>,
 }
 
 #[derive(derive_new::new)]

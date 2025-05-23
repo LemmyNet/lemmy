@@ -30,3 +30,6 @@ ALTER TABLE local_site
 ALTER TYPE listing_type_enum
     ADD VALUE 'Suggested';
 
+ALTER TABLE community_actions
+    ADD COLUMN is_multi_community_follow bool NOT NULL DEFAULT FALSE;
+

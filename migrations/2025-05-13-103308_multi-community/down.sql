@@ -44,3 +44,6 @@ DROP TYPE listing_type_enum;
 
 ALTER TYPE listing_type_enum_tmp RENAME TO listing_type_enum;
 
+ALTER TABLE community_actions
+    DROP COLUMN is_multi_community_follow;
+

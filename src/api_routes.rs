@@ -11,6 +11,7 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
+    multi_community_follow::follow_multi_community,
     pending_follows::{
       approve::post_pending_follows_approve,
       count::get_pending_follows_count,
@@ -257,7 +258,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(get_multi_community))
           .route("/entry", post().to(create_multi_community_entry))
           .route("/entry", delete().to(delete_multi_community_entry))
-          .route("/list", get().to(list_multi_communities)),
+          .route("/list", get().to(list_multi_communities))
+          .route("/follow", post().to(follow_multi_community)),
       )
       .route("/federated_instances", get().to(get_federated_instances))
       // Post

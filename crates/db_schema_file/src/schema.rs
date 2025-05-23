@@ -249,6 +249,7 @@ diesel::table! {
         became_moderator -> Nullable<Timestamptz>,
         received_ban -> Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
+        is_multi_community_follow -> Bool,
     }
 }
 
