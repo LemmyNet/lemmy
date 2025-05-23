@@ -424,3 +424,11 @@ pub struct GetMultiCommunityResponse {
   pub multi: MultiCommunity,
   pub entries: Vec<CommunityView>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct FollowMultiCommunity {
+  pub multi_community_id: MultiCommunityId,
+  pub follow: bool,
+}

@@ -1,6 +1,12 @@
 use crate::{
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm, MultiCommunityUpdateForm},
+  source::multi_community::{
+    MultiCommunity,
+    MultiCommunityFollow,
+    MultiCommunityFollowForm,
+    MultiCommunityInsertForm,
+    MultiCommunityUpdateForm,
+  },
   traits::Crud,
   utils::{get_conn, DbConn, DbPool},
 };
@@ -11,7 +17,11 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{multi_community, multi_community_entry};
+use lemmy_db_schema_file::schema::{
+  multi_community,
+  multi_community_entry,
+  multi_community_follow,
+};
 use lemmy_utils::error::LemmyResult;
 
 impl Crud for MultiCommunity {
@@ -123,5 +133,41 @@ impl MultiCommunity {
       query = query.filter(multi_community::creator_id.eq(owner_id));
     }
     Ok(query.get_results(conn).await?)
+  }
+
+  pub async fn follow(
+    pool: &mut DbPool<'_>,
+    form: &MultiCommunityFollowForm,
+  ) -> LemmyResult<MultiCommunityFollow> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      insert_into(multi_community_follow::table)
+        .values(form)
+        .on_conflict((
+          multi_community_follow::multi_community_id,
+          multi_community_follow::person_id,
+        ))
+        .do_update()
+        .set(form)
+        .get_result(conn)
+        .await?,
+    )
+  }
+
+  pub async fn unfollow(
+    pool: &mut DbPool<'_>,
+    multi_community_id: MultiCommunityId,
+    person_id: PersonId,
+  ) -> LemmyResult<MultiCommunityFollow> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      delete(
+        multi_community_follow::table
+          .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
+          .filter(multi_community_follow::person_id.eq(person_id)),
+      )
+      .get_result(conn)
+      .await?,
+    )
   }
 }

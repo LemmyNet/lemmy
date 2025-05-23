@@ -1,5 +1,5 @@
 use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -14,19 +14,16 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use futures::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
-use lemmy_apub::collections::multi_community::ApubMultiCommunity;
 use lemmy_db_schema::{
   source::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
-    multi_community::MultiCommunity,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -40,7 +37,6 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
-  multi_community,
   person,
   post,
   received_activity,
@@ -567,7 +563,10 @@ async fn build_update_instance_form(
 }
 
 /// Updates all multi-communities from remote users
-async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<()> {
+async fn update_multi_communities(_context: &Data<LemmyContext>) -> LemmyResult<()> {
+  // TODO: get rid of this?
+  todo!();
+  /*
   info!("Updating multi-communities...");
   let pool = &mut context.pool();
   let mut conn = get_conn(pool).await?;
@@ -591,6 +590,7 @@ async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<(
 
   info!("Finished updating multi-communities...");
   Ok(())
+  */
 }
 
 #[cfg(test)]
