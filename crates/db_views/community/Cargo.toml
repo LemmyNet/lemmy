@@ -40,4 +40,3 @@ i-love-jesus = { workspace = true, optional = true }
 serial_test = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
-pretty_assertions = { workspace = true }

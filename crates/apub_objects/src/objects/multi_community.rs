@@ -1,4 +1,4 @@
-use crate::protocol::collections::multi_community::MultiCommunityCollection;
+use crate::protocol::multi_community::MultiCommunityCollection;
 use activitypub_federation::{
   config::Data,
   protocol::verification::verify_domains_match,
@@ -96,6 +96,8 @@ impl Object for ApubMultiCommunity {
         .scope_boxed()
       })
       .await?;
+
+    // TODO: local users who followed the multi-comm need to have community follows updated here
 
     Ok(ApubMultiCommunity(multi.id))
   }

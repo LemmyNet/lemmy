@@ -1,5 +1,5 @@
 use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -14,16 +14,19 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use futures::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
+use lemmy_apub_objects::objects::multi_community::ApubMultiCommunity;
 use lemmy_db_schema::{
   source::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    multi_community::MultiCommunity,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -37,6 +40,7 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
+  multi_community,
   person,
   post,
   received_activity,
@@ -563,19 +567,21 @@ async fn build_update_instance_form(
 }
 
 /// Updates all multi-communities from remote users
-async fn update_multi_communities(_context: &Data<LemmyContext>) -> LemmyResult<()> {
-  // TODO: get rid of this?
-  todo!();
-  /*
+async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<()> {
   info!("Updating multi-communities...");
   let pool = &mut context.pool();
   let mut conn = get_conn(pool).await?;
 
-  // Select all multi-communities from instances that were reachable in the last 3 days
   let multi_communities: Vec<MultiCommunity> = multi_community::table
     .left_join(person::table.left_join(instance::table))
+    // home instance is not dead
     .filter(instance::updated.gt((now() - IntervalDsl::days(3)).nullable()))
-    .filter(person::local.eq(false))
+    // multi-comm wasnt updated in last day
+    .filter(
+      coalesce(multi_community::updated, multi_community::published)
+        .lt(now() - IntervalDsl::days(1)),
+    )
+    .filter(multi_community::local.eq(false))
     .select(multi_community::all_columns)
     .get_results(&mut conn)
     .await?;
@@ -590,7 +596,6 @@ async fn update_multi_communities(_context: &Data<LemmyContext>) -> LemmyResult<
 
   info!("Finished updating multi-communities...");
   Ok(())
-  */
 }
 
 #[cfg(test)]

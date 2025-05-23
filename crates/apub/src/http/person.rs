@@ -1,11 +1,14 @@
 use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
-  protocol::collections::{empty_outbox::EmptyOutbox, multi_community::MultiCommunityCollection},
+  protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_apub_objects::objects::person::ApubPerson;
+use lemmy_apub_objects::{
+  objects::person::ApubPerson,
+  protocol::multi_community::MultiCommunityCollection,
+};
 use lemmy_db_schema::{
   source::{multi_community::MultiCommunityApub, person::Person},
   traits::{ApubActor, Crud},

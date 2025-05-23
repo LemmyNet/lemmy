@@ -1,15 +1,12 @@
-use crate::collections::multi_community::ApubMultiCommunity;
 use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
 };
-use either::Either;
+use either::Either::*;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
-
-pub(crate) type SearchableObjects2 = Either<SearchableObjects, ApubMultiCommunity>;
 
 /// Converts search query to object id. The query can either be an URL, which will be treated as
 /// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
@@ -17,7 +14,7 @@ pub(crate) type SearchableObjects2 = Either<SearchableObjects, ApubMultiCommunit
 pub(crate) async fn search_query_to_object_id(
   mut query: String,
   context: &Data<LemmyContext>,
-) -> LemmyResult<SearchableObjects2> {
+) -> LemmyResult<SearchableObjects> {
   Ok(match Url::parse(&query) {
     Ok(url) => {
       // its already an url, just go with it
@@ -28,7 +25,7 @@ pub(crate) async fn search_query_to_object_id(
       if query.starts_with('!') || query.starts_with('@') {
         query.remove(0);
       }
-      SearchableObjects2::Left(SearchableObjects::Right(
+      Left(Right(
         webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
       ))
     }
@@ -41,7 +38,7 @@ pub(crate) async fn search_query_to_object_id(
 pub(crate) async fn search_query_to_object_id_local(
   query: &str,
   context: &Data<LemmyContext>,
-) -> LemmyResult<SearchableObjects2> {
+) -> LemmyResult<SearchableObjects> {
   let url = Url::parse(query)?;
   ObjectId::from(url).dereference_local(context).await
 }
