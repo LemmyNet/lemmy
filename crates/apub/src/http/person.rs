@@ -7,10 +7,9 @@ use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
-  source::person::Person,
+  source::{multi_community::MultiCommunityApub, person::Person},
   traits::{ApubActor, Crud},
 };
-use lemmy_db_views_community::MultiCommunityViewApub;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
@@ -63,7 +62,7 @@ pub(crate) async fn get_apub_person_multi_community(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let multi =
-    MultiCommunityViewApub::read_local(&mut context.pool(), &query.user_name, &query.multi_name)
+    MultiCommunityApub::read_local(&mut context.pool(), &query.user_name, &query.multi_name)
       .await?;
 
   let owner = Person::read(&mut context.pool(), multi.multi.creator_id).await?;
