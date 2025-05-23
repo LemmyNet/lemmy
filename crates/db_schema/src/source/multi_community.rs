@@ -19,6 +19,7 @@ pub struct MultiCommunity {
   pub title: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
+  pub local: bool,
   pub deleted: bool,
   pub ap_id: DbUrl,
   pub published: DateTime<Utc>,
@@ -33,6 +34,8 @@ pub struct MultiCommunityInsertForm {
   pub creator_id: PersonId,
   pub name: String,
   pub ap_id: DbUrl,
+  #[new(default)]
+  pub local: Option<bool>,
   #[new(default)]
   pub title: Option<String>,
   #[new(default)]

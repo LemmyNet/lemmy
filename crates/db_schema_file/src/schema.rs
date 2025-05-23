@@ -720,6 +720,7 @@ diesel::table! {
         title -> Nullable<Varchar>,
         #[max_length = 255]
         description -> Nullable<Varchar>,
+        local -> Bool,
         deleted -> Bool,
         ap_id -> Text,
         published -> Timestamptz,

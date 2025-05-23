@@ -4,6 +4,7 @@ CREATE TABLE multi_community (
     name varchar(255) NOT NULL,
     title varchar(255),
     description varchar(255),
+    local bool not null default true,
     deleted bool NOT NULL DEFAULT FALSE,
     ap_id text UNIQUE NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),

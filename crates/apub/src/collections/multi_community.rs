@@ -62,6 +62,7 @@ impl Object for ApubMultiCommunity {
       creator_id: creator.id,
       name: json.name,
       ap_id: json.id.into(),
+      local: Some(false),
       title: json.summary,
       description: json.content,
     };

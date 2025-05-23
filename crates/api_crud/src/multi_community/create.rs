@@ -28,6 +28,7 @@ pub async fn create_multi_community(
     creator_id: local_user_view.person.id,
     name: data.name.clone(),
     title: data.title.clone(),
+    local: Some(true),
     description: data.description.clone(),
     ap_id: Url::parse(&format!(
       "{}/m/{}",
