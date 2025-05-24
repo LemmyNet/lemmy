@@ -3366,6 +3366,7 @@ dependencies = [
 name = "lemmy_db_schema_file"
 version = "1.0.0-alpha.4"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "chrono",
  "diesel",

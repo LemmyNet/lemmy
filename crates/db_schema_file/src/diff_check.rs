@@ -1,5 +1,6 @@
 #![cfg(test)]
 #![expect(clippy::expect_used)]
+use aho_corasick::{AhoCorasick, AhoCorasickKind};
 use itertools::Itertools;
 use lemmy_utils::settings::SETTINGS;
 use std::{
@@ -45,39 +46,83 @@ pub fn get_dump() -> String {
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
-pub fn check_dump_diff(mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
-  // Performance optimizations
-  if dumps[0] == dumps[1] {
-    return;
-  }
-  dumps = trim_matching_chunks_at_beginning_and_end(dumps);
+pub struct DiffChecker {
+  ignored_chunk_prefixes: AhoCorasick,
+}
 
-  let [before_chunks, after_chunks] = dumps.map(|dump| {
-    dump
-      .split("\n\n")
-      .filter_map(remove_ignored_details_from_chunk)
-      .sorted_unstable()
-      .collect::<Vec<_>>()
-  });
-  let diff_results = diff::slice(&before_chunks, &after_chunks);
-  let mut only_in_before = HashSet::new();
-  let mut only_in_after = HashSet::new();
-  for res in diff_results {
-    match res {
-      diff::Result::Left(chunk) => only_in_before.insert(&**chunk),
-      diff::Result::Right(chunk) => only_in_after.insert(&**chunk),
-      diff::Result::Both(_, _) => continue,
-    };
-  }
-
-  if !(only_in_before.is_empty() && only_in_after.is_empty()) {
-    panic!(
-      "{}",
-      [&label_of_change_from_dump_0_to_dump_1, "\n\n"]
-        .into_iter()
-        .chain(display_diffs(only_in_before, only_in_after))
-        .collect::<String>()
+impl DiffChecker {
+  pub fn new() -> Self {
+    let prefixes = [
+      "CREATE MATERIALIZED VIEW ",
+      "CREATE OR REPLACE VIEW ",
+      "CREATE VIEW ",
+    ]
+    .into_iter()
+    .map(|s| s.to_owned())
+    .chain(
+      [
+        "refresh_comment",
+        "refresh_comment_like",
+        "refresh_community",
+        "refresh_community_follower",
+        "refresh_community_user_ban",
+        "refresh_post",
+        "refresh_post_like",
+        "refresh_private_message",
+        "refresh_user",
+      ]
+      .into_iter()
+      .flat_map(|s| {
+        [
+          format!("CREATE FUNCTION public.{s}("),
+          format!("CREATE TRIGGER {s} "),
+        ]
+      }),
     );
+
+    DiffChecker {
+      ignored_chunk_prefixes: AhoCorasick::builder()
+        .start_kind(aho_corasick::StartKind::Anchored)
+        .kind(Some(AhoCorasickKind::DFA))
+        .build(prefixes)
+        .expect("AhoCorasick build failed"),
+    }
+  }
+
+  pub fn check_dump_diff(&self, mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
+    // Performance optimizations
+    if dumps[0] == dumps[1] {
+      return;
+    }
+    dumps = trim_matching_chunks_at_beginning_and_end(dumps);
+
+    let [before_chunks, after_chunks] = dumps.map(|dump| {
+      dump
+        .split("\n\n")
+        .filter_map(|chunk| remove_ignored_details_from_chunk(chunk, &self.ignored_chunk_prefixes))
+        .sorted_unstable()
+        .collect::<Vec<_>>()
+    });
+    let diff_results = diff::slice(&before_chunks, &after_chunks);
+    let mut only_in_before = HashSet::new();
+    let mut only_in_after = HashSet::new();
+    for res in diff_results {
+      match res {
+        diff::Result::Left(chunk) => only_in_before.insert(&**chunk),
+        diff::Result::Right(chunk) => only_in_after.insert(&**chunk),
+        diff::Result::Both(_, _) => continue,
+      };
+    }
+
+    if !(only_in_before.is_empty() && only_in_after.is_empty()) {
+      panic!(
+        "{}",
+        [&label_of_change_from_dump_0_to_dump_1, "\n\n"]
+          .into_iter()
+          .chain(display_diffs(only_in_before, only_in_after))
+          .collect::<String>()
+      );
+    }
   }
 }
 
@@ -213,25 +258,17 @@ fn count_inserted_or_deleted_chars_in_diff(a: &str, b: &str) -> usize {
     .count()
 }
 
-fn remove_ignored_details_from_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
+fn remove_ignored_details_from_chunk<'a>(
+  mut chunk: &'a str,
+  ignored_chunk_prefixes: &AhoCorasick,
+) -> Option<Cow<'a, str>> {
   while let Some(s) = trim_start_of_chunk(chunk) {
     chunk = s;
   }
-  if chunk.is_empty() ||
-  // Skip old views and fast table triggers
-  chunk.strip_prefix("CREATE ").is_some_and(|c| {
-    c
-      .starts_with("VIEW ")
-      || c.starts_with("OR REPLACE VIEW ")
-      || c.starts_with("MATERIALIZED VIEW ")
-      || c.strip_prefix("FUNCTION public.")
-          .and_then(after_skipped_trigger_name)
-          .is_some_and(|a| a.starts_with('('))
-      ||
-        c.strip_prefix("TRIGGER ")
-          .and_then(after_skipped_trigger_name)
-          .is_some_and(|a| a.starts_with(' '))
-  }) {
+  if chunk.is_empty()
+    || ignored_chunk_prefixes
+      .is_match(aho_corasick::Input::new(chunk).anchored(aho_corasick::Anchored::Yes))
+  {
     return None;
   }
   let mut chunk = Cow::Borrowed(chunk);
@@ -279,18 +316,6 @@ fn trim_start_of_chunk(s: &str) -> Option<&str> {
 
 fn after_first_occurence<'a>(s: &'a str, pat: &str) -> &'a str {
   s.split_once(pat).unwrap_or_default().1
-}
-
-fn after_skipped_trigger_name(s: &str) -> Option<&str> {
-  s.strip_prefix("refresh_comment_like")
-    .or_else(|| s.strip_prefix("refresh_comment"))
-    .or_else(|| s.strip_prefix("refresh_community_follower"))
-    .or_else(|| s.strip_prefix("refresh_community_user_ban"))
-    .or_else(|| s.strip_prefix("refresh_community"))
-    .or_else(|| s.strip_prefix("refresh_post_like"))
-    .or_else(|| s.strip_prefix("refresh_post"))
-    .or_else(|| s.strip_prefix("refresh_private_message"))
-    .or_else(|| s.strip_prefix("refresh_user"))
 }
 
 // cfg(test) would be redundant here
