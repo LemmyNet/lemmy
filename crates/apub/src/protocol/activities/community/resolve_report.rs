@@ -1,10 +1,8 @@
 use super::report::Report;
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  protocol::helpers::deserialize_one,
+  config::Data, fetch::object_id::ObjectId, protocol::helpers::deserialize_one,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::protocol::InCommunity,

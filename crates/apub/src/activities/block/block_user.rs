@@ -3,9 +3,7 @@ use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_mod_action,
+    generate_activity_id, send_lemmy_activity, verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -17,7 +15,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };

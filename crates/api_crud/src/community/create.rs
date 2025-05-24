@@ -1,7 +1,7 @@
 use super::check_community_visibility_allowed;
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   utils::{

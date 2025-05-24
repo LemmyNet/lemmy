@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
 use lemmy_db_views_get_report_count::GetReportCount;
 use lemmy_db_views_get_report_count_response::GetReportCountResponse;
 use lemmy_db_views_local_user::LocalUserView;

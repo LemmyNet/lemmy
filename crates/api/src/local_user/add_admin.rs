@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},

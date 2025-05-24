@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::post::{PostActions, PostReadForm},
   traits::Readable,

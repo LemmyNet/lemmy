@@ -1,8 +1,6 @@
 use crate::{
   activities::{
-    check_community_deleted_or_removed,
-    community::send_activity_in_community,
-    generate_activity_id,
+    check_community_deleted_or_removed, community::send_activity_in_community, generate_activity_id,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -14,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::send_local_notifs,
   context::LemmyContext,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},

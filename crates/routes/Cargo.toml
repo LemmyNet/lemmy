@@ -23,9 +23,15 @@ lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
+lemmy_db_views_upload_image_response = { workspace = true, features = ["full"] }
+lemmy_db_views_community_id_query = { workspace = true, features = ["full"] }
+lemmy_db_views_success_response = { workspace = true, features = ["full"] }
+lemmy_db_views_image_proxy_params = { workspace = true, features = ["full"] }
+lemmy_db_views_image_get_params = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_image_params = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true, features = ["cookies"] }

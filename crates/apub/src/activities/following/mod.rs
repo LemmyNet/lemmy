@@ -1,12 +1,9 @@
 use super::{generate_activity_id, send_lemmy_activity};
 use crate::protocol::activities::following::{
-  accept::AcceptFollow,
-  follow::Follow,
-  reject::RejectFollow,
-  undo_follow::UndoFollow,
+  accept::AcceptFollow, follow::Follow, reject::RejectFollow, undo_follow::UndoFollow,
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},

@@ -3,14 +3,10 @@ use crate::site::{application_question_check, site_default_post_listing_type_che
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  site::{EditSite, SiteResponse},
   utils::{
-    get_url_blocklist,
-    is_admin,
-    local_site_rate_limit_to_rate_limit_config,
-    process_markdown_opt,
+    get_url_blocklist, is_admin, local_site_rate_limit_to_rate_limit_config, process_markdown_opt,
     slur_regex,
   },
 };
@@ -27,17 +23,16 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_edit_site::EditSite;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site_response::SiteResponse;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
     slurs::check_slurs_opt,
     validation::{
-      build_and_check_regex,
-      check_urls_are_valid,
-      is_valid_body_field,
-      site_name_length_check,
+      build_and_check_regex, check_urls_are_valid, is_valid_body_field, site_name_length_check,
       site_or_community_description_length_check,
     },
   },
@@ -226,9 +221,9 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
 mod tests {
 
   use crate::site::update::validate_update_payload;
-  use lemmy_api_common::site::EditSite;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
+  use lemmy_db_views_edit_site::EditSite;
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]

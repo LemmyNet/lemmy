@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_comment_response, context::LemmyContext, utils::check_private_instance,
 };
 use lemmy_db_views_comment_response::CommentResponse;

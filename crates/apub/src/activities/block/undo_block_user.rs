@@ -3,8 +3,7 @@ use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
-    generate_activity_id,
-    send_lemmy_activity,
+    generate_activity_id, send_lemmy_activity,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -16,7 +15,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };

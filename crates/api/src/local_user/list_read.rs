@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::post::PostActions;
 use lemmy_db_views_list_person_read::ListPersonRead;
 use lemmy_db_views_list_person_read_response::ListPersonReadResponse;

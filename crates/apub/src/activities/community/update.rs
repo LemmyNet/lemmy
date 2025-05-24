@@ -10,15 +10,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use chrono::Utc;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::{
     functions::{
-      generate_to,
-      read_from_string_or_source_opt,
-      verify_person_in_community,
-      verify_visibility,
+      generate_to, read_from_string_or_source_opt, verify_person_in_community, verify_visibility,
     },
     protocol::{AttributedTo, InCommunity},
   },

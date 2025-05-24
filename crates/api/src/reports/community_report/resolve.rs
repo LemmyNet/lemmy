@@ -1,12 +1,10 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  reports::community::{CommunityReportResponse, ResolveCommunityReport},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{source::community_report::CommunityReport, traits::Reportable};
+use lemmy_db_views_community_report_response::CommunityReportResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::CommunityReportView;
+use lemmy_db_views_resolve_community_report::ResolveCommunityReport;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(

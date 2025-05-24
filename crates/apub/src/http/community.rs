@@ -1,10 +1,8 @@
 use super::check_community_content_fetchable;
 use crate::{
   collections::{
-    community_featured::ApubCommunityFeatured,
-    community_follower::ApubCommunityFollower,
-    community_moderators::ApubCommunityModerators,
-    community_outbox::ApubCommunityOutbox,
+    community_featured::ApubCommunityFeatured, community_follower::ApubCommunityFollower,
+    community_moderators::ApubCommunityModerators, community_outbox::ApubCommunityOutbox,
   },
   fetcher::get_instance_id,
   http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
@@ -17,10 +15,9 @@ use activitypub_federation::{
 };
 use actix_web::{
   web::{Path, Query},
-  HttpRequest,
-  HttpResponse,
+  HttpRequest, HttpResponse,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, SiteOrCommunityOrUser};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_schema_file::enums::CommunityVisibility;

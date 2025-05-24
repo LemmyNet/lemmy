@@ -9,9 +9,7 @@ use crate::{
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
-      send_apub_delete_in_community,
-      send_apub_delete_private_message,
-      send_apub_delete_user,
+      send_apub_delete_in_community, send_apub_delete_private_message, send_apub_delete_user,
       DeletableObjects,
     },
     voting::send_like_activity,
@@ -29,7 +27,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use following::send_accept_or_reject_follow;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,

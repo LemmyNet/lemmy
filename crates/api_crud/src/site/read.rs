@@ -1,12 +1,10 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
+use lemmy_api_utils::{context::LemmyContext, plugins::plugin_metadata};
 use lemmy_db_schema::source::{
-  actor_language::SiteLanguage,
-  language::Language,
-  local_site_url_blocklist::LocalSiteUrlBlocklist,
-  oauth_provider::OAuthProvider,
-  tagline::Tagline,
+  actor_language::SiteLanguage, language::Language,
+  local_site_url_blocklist::LocalSiteUrlBlocklist, oauth_provider::OAuthProvider, tagline::Tagline,
 };
+use lemmy_db_views_get_site_response::GetSiteResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_site::SiteView;

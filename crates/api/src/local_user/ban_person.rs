@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},

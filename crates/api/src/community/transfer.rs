@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use anyhow::Context;
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_community_user_action, is_admin, is_top_mod},
 };

@@ -57,9 +57,25 @@ lemmy_db_views_delete_private_message = { workspace = true, features = ["full"] 
 lemmy_db_views_private_message_response = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
+lemmy_db_views_create_site = { workspace = true, features = ["full"] }
+lemmy_db_views_edit_site = { workspace = true, features = ["full"] }
+lemmy_db_views_site_response = { workspace = true, features = ["full"] }
+lemmy_db_views_get_site_response = { workspace = true, features = ["full"] }
+lemmy_db_views_my_user_info = { workspace = true, features = ["full"] }
+lemmy_db_views_authenticate_with_oauth = { workspace = true, features = ["full"] }
+lemmy_db_views_create_oauth_provider = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_oauth_provider = { workspace = true, features = ["full"] }
+lemmy_db_views_edit_oauth_provider = { workspace = true, features = ["full"] }
+lemmy_db_views_success_response = { workspace = true, features = ["full"] }
+lemmy_db_views_create_tagline = { workspace = true, features = ["full"] }
+lemmy_db_views_update_tagline = { workspace = true, features = ["full"] }
+lemmy_db_views_tagline_response = { workspace = true, features = ["full"] }
+lemmy_db_views_list_taglines = { workspace = true, features = ["full"] }
+lemmy_db_views_list_taglines_response = { workspace = true, features = ["full"] }
+lemmy_db_views_delete_tagline = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }

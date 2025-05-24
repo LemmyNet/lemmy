@@ -37,13 +37,16 @@ lemmy_db_views_get_person_details = { workspace = true, features = ["full"] }
 lemmy_db_views_get_person_details_response = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
+lemmy_db_views_resolve_object = { workspace = true, features = ["full"] }
+lemmy_db_views_resolve_object_response = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_success_response = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_apub_objects = { workspace = true }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

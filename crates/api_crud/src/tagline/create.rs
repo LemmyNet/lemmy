@@ -1,15 +1,16 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  tagline::{CreateTagline, TaglineResponse},
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
   source::tagline::{Tagline, TaglineInsertForm},
   traits::Crud,
 };
+use lemmy_db_views_create_tagline::CreateTagline;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_tagline_response::TaglineResponse;
 use lemmy_utils::error::LemmyError;
 
 pub async fn create_tagline(

@@ -1,12 +1,9 @@
 use crate::protocol::collections::group_moderators::GroupModerators;
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::collection::OrderedCollectionType,
-  protocol::verification::verify_domains_match,
-  traits::Collection,
+  config::Data, fetch::object_id::ObjectId, kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match, traits::Collection,
 };
-use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
+use lemmy_api_utils::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::functions::handle_community_moderators,
@@ -65,9 +62,7 @@ mod tests {
 
   use super::*;
   use lemmy_apub_objects::utils::test::{
-    file_to_json_object,
-    parse_lemmy_community,
-    parse_lemmy_person,
+    file_to_json_object, parse_lemmy_community, parse_lemmy_person,
   };
   use lemmy_db_schema::{
     source::{

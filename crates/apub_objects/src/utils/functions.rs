@@ -4,13 +4,11 @@ use crate::{
   protocol::page::Attachment,
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::public,
+  config::Data, fetch::object_id::ObjectId, kinds::public,
   protocol::values::MediaTypeMarkdownOrHtml,
 };
 use html2md::parse_html;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
@@ -26,8 +24,7 @@ use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
-  CacheLock,
-  CACHE_DURATION_FEDERATION,
+  CacheLock, CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};

@@ -1,15 +1,13 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  site::GetModlog,
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views_get_modlog::GetModlog;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog_combined::{
-  impls::ModlogCombinedQuery,
-  GetModlogResponse,
-  ModlogCombinedView,
+  impls::ModlogCombinedQuery, GetModlogResponse, ModlogCombinedView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
@@ -74,7 +72,7 @@ pub async fn get_mod_log(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use lemmy_api_common::utils::remove_or_restore_user_data;
+  use lemmy_api_utils::utils::remove_or_restore_user_data;
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -88,10 +86,7 @@ mod tests {
     ModlogActionType,
   };
   use lemmy_db_views_modlog_combined::{
-    impls::ModlogCombinedQuery,
-    ModRemoveCommentView,
-    ModRemovePostView,
-    ModlogCombinedView,
+    impls::ModlogCombinedQuery, ModRemoveCommentView, ModRemovePostView, ModlogCombinedView,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

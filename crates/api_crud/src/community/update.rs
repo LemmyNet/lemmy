@@ -2,7 +2,7 @@ use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},

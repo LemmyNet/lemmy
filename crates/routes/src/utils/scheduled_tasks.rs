@@ -7,14 +7,10 @@ use diesel::{
   query_builder::AsQuery,
   sql_query,
   sql_types::{Integer, Timestamptz},
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-  QueryableByName,
+  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, QueryDsl, QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
@@ -30,17 +26,8 @@ use lemmy_db_schema::{
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
-  captcha_answer,
-  comment,
-  community,
-  community_actions,
-  federation_blocklist,
-  instance,
-  instance_actions,
-  person,
-  post,
-  received_activity,
-  sent_activity,
+  captcha_answer, comment, community, community_actions, federation_blocklist, instance,
+  instance_actions, person, post, received_activity, sent_activity,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -561,7 +548,7 @@ async fn build_update_instance_form(
 mod tests {
 
   use super::*;
-  use lemmy_api_common::request::client_builder;
+  use lemmy_api_utils::request::client_builder;
   use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},

@@ -8,12 +8,12 @@ use actix_web::{
   HttpResponse, HttpResponseBuilder,
 };
 use captcha::{generate, Difficulty};
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
 use lemmy_db_views_captcha_response::CaptchaResponse;
 use lemmy_db_views_get_captcha_response::GetCaptchaResponse;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

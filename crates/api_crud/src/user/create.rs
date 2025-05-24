@@ -1,10 +1,9 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  oauth_provider::AuthenticateWithOauth,
   utils::{
     check_email_verified, check_local_user_valid, check_registration_application,
     generate_inbox_url, honeypot_check, password_length_check, slur_regex,
@@ -27,6 +26,7 @@ use lemmy_db_schema::{
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_authenticate_with_oauth::AuthenticateWithOauth;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_login_response::LoginResponse;
 use lemmy_db_views_register::Register;

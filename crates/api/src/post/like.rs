@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},

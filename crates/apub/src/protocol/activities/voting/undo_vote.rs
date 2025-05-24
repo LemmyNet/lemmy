@@ -1,6 +1,6 @@
 use super::vote::Vote;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::protocol::InCommunity,

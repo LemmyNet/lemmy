@@ -1,6 +1,6 @@
 use crate::check_totp_2fa_valid;
 use actix_web::web::{Data, Json};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_update_totp::UpdateTotp;

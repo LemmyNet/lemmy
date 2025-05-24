@@ -1,14 +1,15 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  reports::comment::{CommentReportResponse, ResolveCommentReport},
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
+use lemmy_db_views_comment_report_response::CommentReportResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::CommentReportView;
+use lemmy_db_views_resolve_comment_report::ResolveCommentReport;
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community

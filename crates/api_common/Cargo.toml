@@ -57,6 +57,7 @@ full = [
   "lemmy_db_views_report_combined/full",
   "lemmy_db_views_site/full",
   "lemmy_db_views_registration_applications/full",
+  "lemmy_api_utils/full"
 ]
 
 [dependencies]
@@ -87,6 +88,7 @@ lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 lemmy_email = { workspace = true, optional = true }
+lemmy_api_utils = { workspace = true }
 activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }

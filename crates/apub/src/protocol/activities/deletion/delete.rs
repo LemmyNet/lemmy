@@ -1,12 +1,10 @@
 use crate::{activities::deletion::DeletableObjects, protocol::IdOrNestedObject};
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::activity::DeleteType,
+  config::Data, fetch::object_id::ObjectId, kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::tombstone::Tombstone,

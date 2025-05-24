@@ -10,14 +10,12 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::actor::GroupType,
   protocol::{
-    helpers::deserialize_skip_error,
-    public_key::PublicKey,
-    values::MediaTypeHtml,
+    helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml,
     verification::verify_domains_match,
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_utils::{
   error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},

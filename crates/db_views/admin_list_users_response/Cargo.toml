@@ -1,0 +1,28 @@
+[package]
+name = "lemmy_db_views_admin_list_users_response"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+    "lemmy_db_schema/full",
+    "lemmy_db_views_local_user/full",
+    "ts-rs",
+]
+
+[dependencies]
+lemmy_db_schema = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+serde = { workspace = true }
+ts-rs = { workspace = true, optional = true }

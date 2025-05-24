@@ -1,11 +1,12 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, SuccessResponse};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::comment_reply::{CommentReply, CommentReplyUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_mark_comment_reply_as_read::MarkCommentReplyAsRead;
+use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn mark_reply_as_read(

@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };

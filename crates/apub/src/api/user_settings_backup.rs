@@ -2,12 +2,9 @@ use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::O
 use actix_web::web::Json;
 use futures::{future::try_join_all, StreamExt};
 use itertools::Itertools;
-use lemmy_api_common::{context::LemmyContext, SuccessResponse};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{
-  comment::ApubComment,
-  community::ApubCommunity,
-  person::ApubPerson,
-  post::ApubPost,
+  comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -23,6 +20,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
@@ -275,7 +273,7 @@ pub(crate) mod tests {
   use super::*;
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use actix_web::web::Json;
-  use lemmy_api_common::context::LemmyContext;
+  use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},

@@ -1,10 +1,6 @@
 use crate::check_report_reason;
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  reports::community::{CommunityReportResponse, CreateCommunityReport},
-  utils::slur_regex,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -12,6 +8,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_views_community_report_response::CommunityReportResponse;
+use lemmy_db_views_create_community_report::CreateCommunityReport;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::CommunityReportView;
 use lemmy_db_views_site::SiteView;

@@ -14,7 +14,7 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
 };

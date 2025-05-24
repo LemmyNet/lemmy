@@ -1,10 +1,8 @@
 use crate::protocol::activities::CreateOrUpdateType;
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  protocol::helpers::deserialize_one_or_many,
+  config::Data, fetch::object_id::ObjectId, protocol::helpers::deserialize_one_or_many,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::note::Note,

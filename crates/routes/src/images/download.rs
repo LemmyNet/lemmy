@@ -3,15 +3,12 @@ use actix_web::{
   body::{BodyStream, BoxBody},
   http::StatusCode,
   web::{Data, *},
-  HttpRequest,
-  HttpResponse,
-  Responder,
+  HttpRequest, HttpResponse, Responder,
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  image::{ImageGetParams, ImageProxyParams},
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
+use lemmy_db_views_image_get_params::ImageGetParams;
+use lemmy_db_views_image_proxy_params::ImageProxyParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

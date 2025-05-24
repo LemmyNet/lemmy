@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{context::LemmyContext, utils::is_mod_or_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_list_comment_likes::ListCommentLikes;
 use lemmy_db_views_list_comment_likes_response::ListCommentLikesResponse;

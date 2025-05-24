@@ -3,16 +3,11 @@ use crate::site::{application_question_check, site_default_post_listing_type_che
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  site::{CreateSite, SiteResponse},
   utils::{
-    generate_inbox_url,
-    get_url_blocklist,
-    is_admin,
-    local_site_rate_limit_to_rate_limit_config,
-    process_markdown_opt,
-    slur_regex,
+    generate_inbox_url, get_url_blocklist, is_admin, local_site_rate_limit_to_rate_limit_config,
+    process_markdown_opt, slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -25,16 +20,16 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
+use lemmy_db_views_create_site::CreateSite;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site_response::SiteResponse;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
-      build_and_check_regex,
-      is_valid_body_field,
-      site_name_length_check,
+      build_and_check_regex, is_valid_body_field, site_name_length_check,
       site_or_community_description_length_check,
     },
   },
@@ -184,9 +179,9 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 mod tests {
 
   use crate::site::create::validate_create_payload;
-  use lemmy_api_common::site::CreateSite;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
+  use lemmy_db_views_create_site::CreateSite;
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]

@@ -7,16 +7,10 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::{
-  context::LemmyContext,
-  plugins::{plugin_hook_after, plugin_hook_before},
-};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
 use lemmy_apub_objects::objects::{
-  comment::ApubComment,
-  community::ApubCommunity,
-  person::ApubPerson,
-  post::ApubPost,
-  PostOrComment,
+  comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost, PostOrComment,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,

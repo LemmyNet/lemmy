@@ -6,7 +6,7 @@ use crate::{
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };

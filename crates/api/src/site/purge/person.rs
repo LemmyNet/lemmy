@@ -1,11 +1,9 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  site::PurgePerson,
   utils::{is_admin, purge_user_account},
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -17,6 +15,8 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_purge_person::PurgePerson;
+use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_person(

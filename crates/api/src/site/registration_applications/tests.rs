@@ -1,20 +1,11 @@
 use crate::site::registration_applications::{
-  approve::approve_registration_application,
-  list::list_registration_applications,
+  approve::approve_registration_application, list::list_registration_applications,
   unread_count::get_unread_registration_application_count,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{
-    ApproveRegistrationApplication,
-    EditSite,
-    GetUnreadRegistrationApplicationCountResponse,
-    ListRegistrationApplicationsResponse,
-  },
-};
 use lemmy_api_crud::site::update::update_site;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
@@ -30,6 +21,10 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_approve_registration_application::ApproveRegistrationApplication;
+use lemmy_db_views_edit_site::EditSite;
+use lemmy_db_views_get_unread_registration_application_count_response::GetUnreadRegistrationApplicationCountResponse;
+use lemmy_db_views_list_registration_applications_response::ListRegistrationApplicationsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

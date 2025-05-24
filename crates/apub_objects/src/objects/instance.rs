@@ -2,9 +2,7 @@ use crate::{
   protocol::instance::Instance,
   utils::{
     functions::{
-      check_apub_id_valid_with_strictness,
-      read_from_string_or_source_opt,
-      GetActorType,
+      check_apub_id_valid_with_strictness, read_from_string_or_source_opt, GetActorType,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, LanguageTag, Source},
@@ -21,7 +19,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
 };

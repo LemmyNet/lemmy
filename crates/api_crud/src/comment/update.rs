@@ -1,10 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
+use lemmy_api_utils::{
   build_response::{build_comment_response, send_local_notifs},
   context::LemmyContext,
-  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };

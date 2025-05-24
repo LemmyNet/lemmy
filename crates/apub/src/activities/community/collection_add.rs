@@ -3,8 +3,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   protocol::activities::community::{
-    collection_add::CollectionAdd,
-    collection_remove::CollectionRemove,
+    collection_add::CollectionAdd, collection_remove::CollectionRemove,
   },
 };
 use activitypub_federation::{
@@ -13,7 +12,7 @@ use activitypub_federation::{
   kinds::activity::AddType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
 };

@@ -1,7 +1,7 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, local_user_view_from_jwt},
 };
@@ -23,11 +23,7 @@ use lemmy_utils::{
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
-  Category,
-  Channel,
-  EnclosureBuilder,
-  Guid,
-  Item,
+  Category, Channel, EnclosureBuilder, Guid, Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};

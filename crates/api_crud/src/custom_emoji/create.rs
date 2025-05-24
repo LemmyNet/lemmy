@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm},

@@ -1,18 +1,13 @@
 use crate::{
   protocol::page::{
-    Attachment,
-    Hashtag,
+    Attachment, Hashtag,
     HashtagType::{self},
-    Page,
-    PageType,
+    Page, PageType,
   },
   utils::{
     functions::{
-      check_apub_id_valid_with_strictness,
-      generate_to,
-      read_from_string_or_source_opt,
-      verify_person_in_community,
-      verify_visibility,
+      check_apub_id_valid_with_strictness, generate_to, read_from_string_or_source_opt,
+      verify_person_in_community, verify_visibility,
     },
     markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
     protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, Source},
@@ -29,9 +24,9 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
-use lemmy_api_common::{
+use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
+use lemmy_api_utils::{
   context::LemmyContext,
-  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
 };

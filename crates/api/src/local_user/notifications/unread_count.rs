@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_get_unread_count_response::GetUnreadCountResponse;
 use lemmy_db_views_inbox_combined::InboxCombinedViewInternal;
 use lemmy_db_views_local_user::LocalUserView;

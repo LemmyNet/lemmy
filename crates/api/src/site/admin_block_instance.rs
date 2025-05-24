@@ -1,12 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::AdminBlockInstanceParams,
-  utils::is_admin,
-  LemmyErrorType,
-  SuccessResponse,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
@@ -15,8 +9,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_admin_block_instance_params::AdminBlockInstanceParams;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_db_views_success_response::SuccessResponse;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_block_instance(
   data: Json<AdminBlockInstanceParams>,

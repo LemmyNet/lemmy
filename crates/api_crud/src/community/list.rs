@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_community::{impls::CommunityQuery, CommunityView};
 use lemmy_db_views_list_communities::ListCommunities;

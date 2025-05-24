@@ -1,21 +1,16 @@
 use crate::{
   activities::{
-    check_community_deleted_or_removed,
-    community::send_activity_in_community,
-    generate_activity_id,
-    verify_mod_action,
+    check_community_deleted_or_removed, community::send_activity_in_community,
+    generate_activity_id, verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   protocol::activities::community::lock_page::{LockPage, LockType, UndoLockPage},
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::activity::UndoType,
-  traits::ActivityHandler,
+  config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::ActivityHandler,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::community::ApubCommunity,
   utils::{

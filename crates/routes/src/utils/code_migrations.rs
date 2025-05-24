@@ -3,13 +3,10 @@ use activitypub_federation::http_signatures::generate_actor_keypair;
 use chrono::Utc;
 use diesel::{
   sql_types::{Nullable, Text},
-  ExpressionMethods,
-  IntoSql,
-  QueryDsl,
-  TextExpressionMethods,
+  ExpressionMethods, IntoSql, QueryDsl, TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_api_common::utils::{generate_followers_url, generate_inbox_url};
+use lemmy_api_utils::utils::{generate_followers_url, generate_inbox_url};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},

@@ -2,11 +2,11 @@ use actix_web::{
   web::{Data, Json},
   HttpRequest,
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{local_user_view_from_jwt, read_auth_token},
-  SuccessResponse,
 };
+use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Returns an error message if the auth token is invalid for any reason. Necessary because other

@@ -1,12 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{context::LemmyContext, oauth_provider::EditOAuthProvider, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm},
   traits::Crud,
   utils::{diesel_required_string_update, diesel_required_url_update},
 };
+use lemmy_db_views_edit_oauth_provider::EditOAuthProvider;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyError;
 

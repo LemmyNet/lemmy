@@ -1,7 +1,7 @@
 use crate::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
@@ -9,10 +9,7 @@ use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_search_combined::{
-  impls::SearchCombinedQuery,
-  Search,
-  SearchCombinedView,
-  SearchResponse,
+  impls::SearchCombinedQuery, Search, SearchCombinedView, SearchResponse,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

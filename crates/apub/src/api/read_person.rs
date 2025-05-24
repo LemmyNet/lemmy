@@ -1,7 +1,7 @@
 use super::resolve_person_id_from_id_or_username;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };

@@ -1,18 +1,16 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::{
-    actor_language::LocalUserLanguage,
-    community::CommunityActions,
-    instance::InstanceActions,
-    keyword_block::LocalUserKeywordBlock,
-    person::PersonActions,
+    actor_language::LocalUserLanguage, community::CommunityActions, instance::InstanceActions,
+    keyword_block::LocalUserKeywordBlock, person::PersonActions,
   },
   traits::Blockable,
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_my_user_info::MyUserInfo;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_my_user(

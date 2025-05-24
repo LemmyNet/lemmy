@@ -1,11 +1,9 @@
 use crate::protocol::collections::group_followers::GroupFollowers;
 use activitypub_federation::{
-  config::Data,
-  kinds::collection::CollectionType,
-  protocol::verification::verify_domains_match,
+  config::Data, kinds::collection::CollectionType, protocol::verification::verify_domains_match,
   traits::Collection,
 };
-use lemmy_api_common::{context::LemmyContext, utils::generate_followers_url};
+use lemmy_api_utils::{context::LemmyContext, utils::generate_followers_url};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_community_follower::CommunityFollowerView;

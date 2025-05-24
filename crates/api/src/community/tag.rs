@@ -1,7 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{context::LemmyContext, utils::check_community_mod_action};
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_action};
 use lemmy_db_schema::{
   source::{
     community::Community,

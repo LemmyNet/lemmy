@@ -1,9 +1,6 @@
 use crate::{
   objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
+    comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
     PostOrComment,
   },
   protocol::page::Attachment,
@@ -22,7 +19,7 @@ use activitypub_federation::{
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
