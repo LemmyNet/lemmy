@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_person(
@@ -24,6 +24,8 @@ pub async fn purge_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let local_instance_id = local_user_view.person.instance_id;
+
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
@@ -40,7 +42,7 @@ pub async fn purge_person(
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {
       moderator: local_user_view.person.clone(),
-      banned_user: person.clone(),
+      banned_user: person,
       reason: data.reason.clone(),
       remove_or_restore_data: Some(true),
       ban: true,
@@ -50,12 +52,12 @@ pub async fn purge_person(
   )?;
 
   // Clear profile data.
-  purge_user_account(data.person_id, &context).await?;
+  purge_user_account(data.person_id, local_instance_id, &context).await?;
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   InstanceActions::ban(
     &mut context.pool(),
-    &InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, None),
+    &InstanceBanForm::new(data.person_id, local_instance_id, None),
   )
   .await?;
 
@@ -65,18 +67,6 @@ pub async fn purge_person(
     reason: data.reason.clone(),
   };
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
-
-  ActivityChannel::submit_activity(
-    SendActivityData::BanFromSite {
-      moderator: local_user_view.person,
-      banned_user: person,
-      reason: data.reason.clone(),
-      remove_or_restore_data: Some(true),
-      ban: true,
-      expires: None,
-    },
-    &context,
-  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

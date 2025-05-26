@@ -40,6 +40,10 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "registration_mode_enum"))]
   pub struct RegistrationModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "vote_show_enum"))]
+  pub struct VoteShowEnum;
 }
 
 diesel::table! {
@@ -390,9 +394,10 @@ diesel::table! {
 
 diesel::table! {
     local_image (pictrs_alias) {
-        local_user_id -> Nullable<Int4>,
         pictrs_alias -> Text,
         published -> Timestamptz,
+        person_id -> Int4,
+        thumbnail_for_post_id -> Nullable<Int4>,
     }
 }
 
@@ -416,7 +421,6 @@ diesel::table! {
         default_theme -> Text,
         default_post_listing_type -> ListingTypeEnum,
         legal_information -> Nullable<Text>,
-        hide_modlog_mod_names -> Bool,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
         actor_name_max_length -> Int4,
@@ -447,6 +451,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
+        disable_email_notifications -> Bool,
     }
 }
 
@@ -487,6 +492,7 @@ diesel::table! {
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::CommentSortTypeEnum;
+    use super::sql_types::VoteShowEnum;
 
     local_user (id) {
         id -> Int4,
@@ -523,8 +529,16 @@ diesel::table! {
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
         show_upvotes -> Bool,
-        show_downvotes -> Bool,
+        show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
+    }
+}
+
+diesel::table! {
+    local_user_keyword_block (local_user_id, keyword) {
+        local_user_id -> Int4,
+        #[max_length = 50]
+        keyword -> Varchar,
     }
 }
 
@@ -624,6 +638,7 @@ diesel::table! {
         post_id -> Int4,
         locked -> Bool,
         published -> Timestamptz,
+        reason -> Nullable<Text>,
     }
 }
 
@@ -1104,14 +1119,17 @@ diesel::joinable!(inbox_combined -> person_post_mention (person_post_mention_id)
 diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
-diesel::joinable!(local_image -> local_user (local_user_id));
+diesel::joinable!(local_image -> person (person_id));
+diesel::joinable!(local_image -> post (thumbnail_for_post_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
+diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
+diesel::joinable!(mod_ban -> instance (instance_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
@@ -1213,6 +1231,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_site_rate_limit,
   local_site_url_blocklist,
   local_user,
+  local_user_keyword_block,
   local_user_language,
   login_token,
   mod_add,

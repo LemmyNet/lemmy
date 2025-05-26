@@ -43,8 +43,6 @@ pub struct LocalSite {
   /// An optional legal disclaimer page.
   #[cfg_attr(feature = "full", ts(optional))]
   pub legal_information: Option<String>,
-  /// Whether to hide mod names on the modlog.
-  pub hide_modlog_mod_names: bool,
   /// Whether new applications email admins.
   pub application_email_admins: bool,
   /// An optional regex to filter words.
@@ -100,6 +98,8 @@ pub struct LocalSite {
   pub users_active_month: i64,
   /// The number of users with any activity in the last half year.
   pub users_active_half_year: i64,
+  /// Dont send email notifications to users for new replies, mentions etc
+  pub disable_email_notifications: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -123,8 +123,6 @@ pub struct LocalSiteInsertForm {
   pub default_post_listing_type: Option<ListingType>,
   #[new(default)]
   pub legal_information: Option<String>,
-  #[new(default)]
-  pub hide_modlog_mod_names: Option<bool>,
   #[new(default)]
   pub application_email_admins: Option<bool>,
   #[new(default)]
@@ -160,9 +158,11 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub comment_downvotes: Option<FederationMode>,
   #[new(default)]
-  pub default_post_time_range_seconds: Option<Option<i32>>,
+  pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
   pub disallow_nsfw_content: bool,
+  #[new(default)]
+  pub disable_email_notifications: bool,
 }
 
 #[derive(Clone, Default)]
@@ -177,7 +177,6 @@ pub struct LocalSiteUpdateForm {
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<Option<String>>,
-  pub hide_modlog_mod_names: Option<bool>,
   pub application_email_admins: Option<bool>,
   pub slur_filter_regex: Option<Option<String>>,
   pub actor_name_max_length: Option<i32>,
@@ -198,4 +197,5 @@ pub struct LocalSiteUpdateForm {
   pub comment_downvotes: Option<FederationMode>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub disallow_nsfw_content: Option<bool>,
+  pub disable_email_notifications: Option<bool>,
 }

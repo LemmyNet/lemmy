@@ -27,9 +27,10 @@ use lemmy_db_schema::{
   utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -98,7 +99,6 @@ pub async fn update_site(
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
-    hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
@@ -113,6 +113,7 @@ pub async fn update_site(
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
     disallow_nsfw_content: data.disallow_nsfw_content,
+    disable_email_notifications: data.disable_email_notifications,
     ..Default::default()
   };
 
@@ -160,9 +161,7 @@ pub async fn update_site(
     .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
     .unwrap_or(false);
   if !old_require_application && new_require_application {
-    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
+    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool()).await?;
   }
 
   let new_require_email_verification = update_local_site
@@ -170,9 +169,7 @@ pub async fn update_site(
     .map(|ols| ols.require_email_verification)
     .unwrap_or(false);
   if !local_site.require_email_verification && new_require_email_verification {
-    LocalUser::set_all_users_email_verified(&mut context.pool())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
+    LocalUser::set_all_users_email_verified(&mut context.pool()).await?;
   }
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;

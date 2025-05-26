@@ -213,13 +213,13 @@ pub async fn generate_post_link_metadata(
 
   // Proxy the post url itself if it is an image
   let url = if let (true, Some(url)) = (is_image_post, post.url.clone()) {
-    Some(Some(proxy_image_link(url.into(), &context).await?))
+    Some(Some(proxy_image_link(url.into(), false, &context).await?))
   } else {
     None
   };
 
   let image_url = if is_image_post {
-    post.url
+    post.url.clone()
   } else {
     metadata.opengraph_data.image.clone()
   };
@@ -227,13 +227,13 @@ pub async fn generate_post_link_metadata(
   // Attempt to generate a thumbnail depending on the instance settings. Either by proxying,
   // storing image persistently in pict-rs or returning the remote url directly as thumbnail.
   let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
-    proxy_image_link(url.clone(), &context)
+    proxy_image_link(url.clone(), true, &context)
       .await
       .map_err(|e| warn!("Failed to proxy thumbnail: {e}"))
       .ok()
       .or(Some(url.into()))
   } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
-    generate_pictrs_thumbnail(&url, &context)
+    generate_pictrs_thumbnail(&post, &url, &context)
       .await
       .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
@@ -367,6 +367,7 @@ impl PictrsFileDetails {
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
+  aliases: Vec<String>,
 }
 
 /// Purges an image from pictrs
@@ -374,7 +375,10 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
+pub async fn purge_image_from_pictrs_url(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -383,11 +387,10 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
+  purge_image_from_pictrs(alias, context).await
+}
 
+pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -405,20 +408,32 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
+  // Pictrs purges return all aliases.
+  let aliases = response.aliases;
+
+  // Delete db rows of aliases.
+  LocalImage::delete_by_aliases(&mut context.pool(), &aliases)
+    .await
+    .ok();
+
   match response.msg.as_str() {
     "ok" => Ok(()),
     _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
   }
 }
 
-pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
-  // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), alias)
-    .await
-    .ok();
-
+/// Deletes an alias for an image from the local db and pictrs. If it's not the last / only alias,
+/// the image might remain.
+///
+/// # Security Warning
+/// This is a low-level function that doesn't check if the user is allowed to delete the image
+/// alias. Callers MUST check if the user has permission to delete the alias
+/// before calling this function (the user is an admin or the image belongs to the user).
+pub async fn delete_image_alias(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
   let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
+
+  // Send the delete request to pictrs.
   context
     .pictrs_client()
     .post(&url)
@@ -427,17 +442,30 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
     .send()
     .await?
     .error_for_status()?;
+
+  // Delete db row if any (old Lemmy versions didn't generate this).
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
+    .await
+    .ok();
   Ok(())
 }
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
-async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
+async fn generate_pictrs_thumbnail(
+  post: &Post,
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs()?;
 
   match pictrs_config.image_mode {
     PictrsImageMode::None => return Ok(image_url.clone()),
     PictrsImageMode::ProxyAllImages => {
-      return Ok(proxy_image_link(image_url.clone(), context).await?.into())
+      return Ok(
+        proxy_image_link(image_url.clone(), true, context)
+          .await?
+          .into(),
+      )
     }
     _ => {}
   };
@@ -466,10 +494,10 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
   let form = LocalImageForm {
-    // This is none because its an internal request.
-    // IE, a local user shouldn't get to delete the thumbnails for their link posts
-    local_user_id: None,
     pictrs_alias: image.file.clone(),
+    // For thumbnails, the person_id is the post creator
+    person_id: post.creator_id,
+    thumbnail_for_post_id: Some(Some(post.id)),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.image_url(&protocol_and_hostname)?;

@@ -768,7 +768,7 @@ export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   let my_user = await getMyUser(api);
   let remoteFollowed =
     my_user.follows.filter(c => c.community.local == false) ?? [];
-  await Promise.all(
+  await Promise.allSettled(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
 
@@ -872,7 +872,6 @@ export function listCommunityPendingFollows(
   let form: ListCommunityPendingFollows = {
     pending_only: true,
     all_communities: false,
-    page: 1,
     limit: 50,
   };
   return api.listCommunityPendingFollows(form);
@@ -927,11 +926,11 @@ export function randomString(length: number): string {
   return result;
 }
 
-export async function deleteAllImages(api: LemmyHttp) {
-  const imagesRes = await api.listAllMedia({
+export async function deleteAllMedia(api: LemmyHttp) {
+  const imagesRes = await api.listMediaAdmin({
     limit: imageFetchLimit,
   });
-  Promise.all(
+  Promise.allSettled(
     imagesRes.images
       .map(image => {
         const form: DeleteImageParams = {
@@ -939,19 +938,19 @@ export async function deleteAllImages(api: LemmyHttp) {
         };
         return form;
       })
-      .map(form => api.deleteImage(form)),
+      .map(form => api.deleteMediaAdmin(form)),
   );
 }
 
 export async function unfollows() {
-  await Promise.all([
+  await Promise.allSettled([
     unfollowRemotes(alpha),
     unfollowRemotes(beta),
     unfollowRemotes(gamma),
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
-  await Promise.all([
+  await Promise.allSettled([
     purgeAllPosts(alpha),
     purgeAllPosts(beta),
     purgeAllPosts(gamma),
@@ -963,7 +962,7 @@ export async function unfollows() {
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
   let res = await api.getPosts({ type_: "All", limit: 50 });
-  await Promise.all(
+  await Promise.allSettled(
     Array.from(new Set(res.posts.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id }))
       // Ignore errors

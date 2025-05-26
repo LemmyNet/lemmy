@@ -34,7 +34,7 @@ git submodule update --remote
 cargo check
 
 # The commit
-git add Cargo.toml Cargo.lock crates/utils/translations
+git add Cargo.toml Cargo.lock crates/email/translations
 git commit -m"Version $new_tag"
 git tag $new_tag
 

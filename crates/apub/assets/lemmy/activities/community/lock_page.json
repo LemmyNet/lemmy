@@ -4,5 +4,6 @@
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "object": "http://lemmy-alpha:8541/post/2",
   "cc": ["http://lemmy-alpha:8541/c/main"],
-  "type": "Lock"
+  "type": "Lock",
+  "summary": "A reason for the lock"
 }

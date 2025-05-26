@@ -14,7 +14,8 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(table_name = instance))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A federated instance / site.
+/// Basic data about a Fediverse instance which is available for every known domain. Additional
+/// data may be available in [[Site]].
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,

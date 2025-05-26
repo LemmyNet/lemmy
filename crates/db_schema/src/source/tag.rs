@@ -1,11 +1,13 @@
-use crate::newtypes::{CommunityId, DbUrl, PostId, TagId};
+use crate::newtypes::{CommunityId, DbUrl, TagId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{post_tag, tag};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use {
+  diesel::{AsExpression, FromSqlRow},
+  lemmy_db_schema_file::schema::tag,
+  ts_rs::TS,
+};
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -58,10 +60,9 @@ pub struct TagUpdateForm {
   pub deleted: Option<bool>,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_tag))]
-pub struct PostTagInsertForm {
-  pub post_id: PostId,
-  pub tag_id: TagId,
-}
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct TagsView(pub Vec<Tag>);

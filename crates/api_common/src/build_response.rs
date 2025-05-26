@@ -20,7 +20,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
 use lemmy_email::notifications::{
   send_comment_reply_email,
   send_mention_email,

@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
@@ -41,7 +41,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
   if let Some(header) = any_header {
     let mut writer = hound::WavWriter::new(&mut output_buffer, header)
       .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
-    let mut writer16 = writer.get_i16_writer(concat_samples.len() as u32);
+    let mut writer16 = writer.get_i16_writer(concat_samples.len().try_into()?);
     for sample in concat_samples {
       writer16.write_sample(sample);
     }

@@ -143,10 +143,11 @@ impl InstanceWorker {
       // send a new activity if there is one
       self.inbox_collector.update_communities().await?;
       let next_id_to_send = ActivityId(last_sent_id.0 + 1);
+      let successfuls_len: i64 = self.successfuls.len().try_into()?;
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
         let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
-          last_successful_id.0 + (self.successfuls.len() as i64) + i64::from(self.in_flight) + 1
+          last_successful_id.0 + successfuls_len + i64::from(self.in_flight) + 1
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {
@@ -298,7 +299,9 @@ impl InstanceWorker {
         updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
-      Instance::update(&mut self.pool(), self.instance.id, form).await?;
+      Instance::update(&mut self.pool(), self.instance.id, form)
+        .await
+        .map_err(|e| anyhow::anyhow!(e))?;
     }
     Ok(())
   }
@@ -360,7 +363,7 @@ impl InstanceWorker {
         }))?;
       return Ok(());
     };
-    let activity = &ele.0;
+    let activity = &ele;
     let inbox_urls = self.inbox_collector.get_inbox_urls(activity).await?;
     if inbox_urls.is_empty() {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
@@ -388,8 +391,8 @@ impl InstanceWorker {
     let mut report = self.report_send_result.clone();
     tokio::spawn(async move {
       let res = SendRetryTask {
-        activity: &ele.0,
-        object: &ele.1,
+        activity: &ele,
+        object: &ele.data,
         inbox_urls,
         report: &mut report,
         initial_fail_count,
@@ -402,7 +405,7 @@ impl InstanceWorker {
       if let Err(e) = res {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
-          ele.0.ap_id,
+          ele.ap_id,
           e
         );
         // An error in this location means there is some deeper internal issue with the activity,
@@ -425,7 +428,9 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
-    FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
+    FederationQueueState::upsert(&mut self.pool(), &self.state)
+      .await
+      .map_err(|e| anyhow::anyhow!(e))?;
     self.stats_sender.send(FederationQueueStateWithDomain {
       state: self.state.clone(),
       domain: self.instance.domain.clone(),

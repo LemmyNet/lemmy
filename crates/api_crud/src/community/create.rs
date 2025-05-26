@@ -29,9 +29,10 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
@@ -72,7 +73,7 @@ pub async fn create_community(
     check_slurs(desc, &slur_regex)?;
   }
 
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
 
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
@@ -108,9 +109,7 @@ pub async fn create_community(
     )
   };
 
-  let inserted_community = Community::create(&mut context.pool(), &community_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
+  let inserted_community = Community::create(&mut context.pool(), &community_form).await?;
   let community_id = inserted_community.id;
 
   // The community creator becomes a moderator

@@ -36,6 +36,7 @@ full = [
   "rustls",
   "i-love-jesus",
   "tuplex",
+  "moka",
   "lemmy_db_schema_file/full",
 ]
 
@@ -70,6 +71,7 @@ uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
+moka = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

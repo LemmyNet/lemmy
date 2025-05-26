@@ -14,7 +14,8 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, get_conn},
 };
-use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::RegistrationApplicationView;
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 

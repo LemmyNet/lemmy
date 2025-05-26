@@ -25,7 +25,8 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -91,7 +92,6 @@ pub async fn create_site(
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
-    hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
@@ -104,6 +104,7 @@ pub async fn create_site(
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
     disallow_nsfw_content: data.disallow_nsfw_content,
+    disable_email_notifications: data.disable_email_notifications,
     ..Default::default()
   };
 

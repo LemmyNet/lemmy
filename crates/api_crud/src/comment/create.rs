@@ -27,9 +27,11 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::{LocalUserView, PostView};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
   MAX_COMMENT_DEPTH_LIMIT,
 };
@@ -42,6 +44,7 @@ pub async fn create_comment(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   is_valid_body_field(&content, false)?;
 
   // Check for a community ban
@@ -107,20 +110,20 @@ pub async fn create_comment(
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
-  let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+  let inserted_comment =
+    Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let inserted_comment_id = inserted_comment.id;
 
   // Scan the comment for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&content);
+  let do_send_email = !local_site.disable_email_notifications;
   let recipient_ids = send_local_notifs(
     mentions,
     PostOrCommentId::Comment(inserted_comment_id),
     &local_user_view.person,
-    true,
+    do_send_email,
     &context,
     Some(&local_user_view),
     local_instance_id,
@@ -161,8 +164,7 @@ pub async fn create_comment(
         reply.id,
         &CommentReplyUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
+      .await?;
     }
 
     // If the parent has PersonCommentMentions mark them as read too
@@ -175,8 +177,7 @@ pub async fn create_comment(
         mention.id,
         &PersonCommentMentionUpdateForm { read: Some(true) },
       )
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonCommentMentions)?;
+      .await?;
     }
   }
 

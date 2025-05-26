@@ -1,9 +1,10 @@
-use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::voting::vote::Vote, InCommunity},
-};
+use super::vote::Vote;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::protocol::InCommunity,
+};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
