@@ -25,5 +25,10 @@ pub async fn create_multi_community_entry(
   check_community_deleted_removed(&community)?;
 
   MultiCommunity::create_entry(&mut context.pool(), data.id, data.community_id).await?;
+
+  // TODO: update community follows for local followers of this multi
+  
+  // TODO: federate
+
   Ok(Json(SuccessResponse::default()))
 }
