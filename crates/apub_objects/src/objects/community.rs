@@ -2,7 +2,12 @@ use crate::{
   objects::instance::fetch_instance_actor_for_object,
   protocol::group::Group,
   utils::{
-    functions::{community_visibility, read_from_string_or_source_opt, GetActorType},
+    functions::{
+      check_apub_id_valid_with_strictness,
+      community_visibility,
+      read_from_string_or_source_opt,
+      GetActorType,
+    },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
   },
@@ -10,7 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
-  protocol::values::MediaTypeHtml,
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -40,7 +45,7 @@ use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, validation::truncate_description},
+  utils::{markdown::markdown_to_html, slurs::{check_slurs, check_slurs_opt}, validation::truncate_description},
 };
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
@@ -138,7 +143,15 @@ impl Object for ApubCommunity {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    group.verify(expected_domain, context).await
+    check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
+    verify_domains_match(expected_domain, group.id.inner())?;
+
+    let slur_regex = slur_regex(context).await?;
+
+    check_slurs(&group.preferred_username, &slur_regex)?;
+    check_slurs_opt(&group.name, &slur_regex)?;
+    check_slurs_opt(&group.summary, &slur_regex)?;
+    Ok(())
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
