@@ -1,17 +1,21 @@
 use crate::{
   diesel::{BoolExpressionMethods, PgExpressionMethods},
   newtypes::{CommunityId, MultiCommunityId, PersonId},
-  source::multi_community::{
-    MultiCommunity,
-    MultiCommunityApub,
-    MultiCommunityFollow,
-    MultiCommunityFollowForm,
-    MultiCommunityInsertForm,
-    MultiCommunityUpdateForm,
+  source::{
+    community::{Community, CommunityActions, CommunityFollowerForm},
+    multi_community::{
+      MultiCommunity,
+      MultiCommunityApub,
+      MultiCommunityFollow,
+      MultiCommunityFollowForm,
+      MultiCommunityInsertForm,
+      MultiCommunityUpdateForm,
+    },
   },
-  traits::Crud,
+  traits::{Crud, Followable},
   utils::{get_conn, DbConn, DbPool},
 };
+use chrono::Utc;
 use diesel::{
   dsl::{delete, insert_into, sql},
   pg::sql_types::Array,
@@ -21,12 +25,9 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  community,
-  multi_community,
-  multi_community_entry,
-  multi_community_follow,
-  person,
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility},
+  schema::{community, multi_community, multi_community_entry, multi_community_follow, person},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -76,32 +77,34 @@ impl MultiCommunity {
   pub async fn create_entry(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
-    new_community: CommunityId,
+    new_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     insert_into(multi_community_entry::table)
       .values((
         multi_community_entry::multi_community_id.eq(id),
-        multi_community_entry::community_id.eq(new_community),
+        multi_community_entry::community_id.eq(new_community.id),
       ))
       .execute(conn)
       .await?;
+    Self::update_local_follows(pool, id, new_community, false).await?;
     Ok(())
   }
 
   pub async fn delete_entry(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
-    new_community: CommunityId,
+    old_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     delete(
       multi_community_entry::table
         .filter(multi_community_entry::multi_community_id.eq(id))
-        .filter(multi_community_entry::community_id.eq(new_community)),
+        .filter(multi_community_entry::community_id.eq(old_community.id)),
     )
     .execute(conn)
     .await?;
+    Self::update_local_follows(pool, id, old_community, true).await?;
     Ok(())
   }
 
@@ -186,6 +189,48 @@ impl MultiCommunity {
       .get_result(conn)
       .await?,
     )
+  }
+
+  pub async fn update_local_follows(
+    pool: &mut DbPool<'_>,
+    multi_community_id: MultiCommunityId,
+    community: &Community,
+    is_removed_from_multi: bool,
+  ) -> LemmyResult<()> {
+    if !community.local {
+      return Ok(());
+    }
+
+    let conn = &mut get_conn(pool).await?;
+    let local_follows: Vec<PersonId> = multi_community_follow::table
+      .inner_join(person::table)
+      .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
+      .filter(person::local)
+      .select(person::id)
+      .get_results(conn)
+      .await?;
+
+    for person_id in local_follows {
+      if is_removed_from_multi {
+        let follow_state = if community.visibility == CommunityVisibility::Private {
+          CommunityFollowerState::ApprovalRequired
+        } else {
+          CommunityFollowerState::Accepted
+        };
+        let form = CommunityFollowerForm {
+          community_id: community.id,
+          person_id,
+          follow_state,
+          follow_approver_id: None,
+          followed: Utc::now(),
+          is_multi_community_follow: Some(true),
+        };
+        CommunityActions::follow(pool, &form).await?;
+      } else {
+        CommunityActions::unfollow(pool, person_id, community.id).await?;
+      }
+    }
+    Ok(())
   }
 }
 

@@ -6,7 +6,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   SuccessResponse,
 };
-use lemmy_db_schema::source::multi_community::MultiCommunity;
+use lemmy_db_schema::{
+  source::{community::Community, multi_community::MultiCommunity},
+  traits::Crud,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
@@ -16,10 +19,9 @@ pub async fn delete_multi_community_entry(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   check_multi_community_creator(data.id, &local_user_view, &context).await?;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
 
-  MultiCommunity::delete_entry(&mut context.pool(), data.id, data.community_id).await?;
-
-  // TODO: update community follows for local followers of this multi
+  MultiCommunity::delete_entry(&mut context.pool(), data.id, &community).await?;
 
   // TODO: federate
 
