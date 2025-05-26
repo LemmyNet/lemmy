@@ -37,7 +37,6 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
-    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
   },
   traits::{ApubActor, Crud},
 };
@@ -45,7 +44,11 @@ use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, slurs::{check_slurs, check_slurs_opt}, validation::truncate_description},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::{check_slurs, check_slurs_opt},
+    validation::truncate_description,
+  },
 };
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
@@ -176,9 +179,6 @@ impl Object for ApubCommunity {
       .err()
       .map(|_| true);
 
-    let old_community =
-      Community::read_from_apub_id(&mut context.pool(), &group.id.clone().into()).await?;
-
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -227,16 +227,6 @@ impl Object for ApubCommunity {
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
-
-    if old_community.is_some() && old_community.map(|c| c.visibility) != Some(community.visibility)
-    {
-      let form = ModChangeCommunityVisibilityForm {
-        mod_person_id: todo!(),
-        community_id: community.id,
-        visibility: community.visibility,
-      };
-      ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
-    }
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {
