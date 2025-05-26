@@ -2,7 +2,7 @@ use crate::{
   objects::instance::fetch_instance_actor_for_object,
   protocol::group::Group,
   utils::{
-    functions::{read_from_string_or_source_opt, GetActorType},
+    functions::{community_visibility, read_from_string_or_source_opt, GetActorType},
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
   },
@@ -32,6 +32,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
   },
   traits::{ApubActor, Crud},
 };
@@ -155,18 +156,15 @@ impl Object for ApubCommunity {
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
-    let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
-      CommunityVisibility::Private
-    } else if !group.discoverable.unwrap_or(true) {
-      CommunityVisibility::Unlisted
-    } else {
-      CommunityVisibility::Public
-    });
+    let visibility = Some(community_visibility(&group));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
       .err()
       .map(|_| true);
+
+    let old_community =
+      Community::read_from_apub_id(&mut context.pool(), &group.id.clone().into()).await?;
 
     let form = CommunityInsertForm {
       published: group.published,
@@ -216,6 +214,16 @@ impl Object for ApubCommunity {
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
+
+    if old_community.is_some() && old_community.map(|c| c.visibility) != Some(community.visibility)
+    {
+      let form = ModChangeCommunityVisibilityForm {
+        mod_person_id: todo!(),
+        community_id: community.id,
+        visibility: community.visibility,
+      };
+      ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+    }
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {

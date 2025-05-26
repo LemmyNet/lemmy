@@ -808,7 +808,6 @@ mod tests {
       mod_person_id: data.timmy.id,
       community_id: data.community.id,
       visibility: CommunityVisibility::Unlisted,
-      reason: None,
     };
     ModChangeCommunityVisibility::create(pool, &form).await?;
 
@@ -817,7 +816,6 @@ mod tests {
       mod_person_id: data.jessica.id,
       community_id: data.community_2.id,
       visibility: CommunityVisibility::Unlisted,
-      reason: None,
     };
     ModChangeCommunityVisibility::create(pool, &form).await?;
 

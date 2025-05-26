@@ -15,6 +15,7 @@ use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::{
     functions::{
+      community_visibility,
       generate_to,
       read_from_string_or_source_opt,
       verify_person_in_community,
@@ -27,6 +28,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityUpdateForm},
+    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
     person::Person,
   },
   traits::Crud,
@@ -90,7 +92,8 @@ impl ActivityHandler for UpdateCommunity {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let community = self.community(context).await?;
+    let old_community = self.community(context).await?;
+    let visibility = Some(community_visibility(&self.object));
 
     let community_update_form = CommunityUpdateForm {
       title: Some(self.object.name.unwrap_or(self.object.preferred_username)),
@@ -119,10 +122,27 @@ impl ActivityHandler for UpdateCommunity {
       moderators_url: Some(self.object.attributed_to.and_then(AttributedTo::url)),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
       featured_url: Some(self.object.featured.map(Into::into)),
+      visibility,
+      // TODO: this is missing various fields and should be merged with logic in community.rs
       ..Default::default()
     };
 
-    Community::update(&mut context.pool(), community.id, &community_update_form).await?;
+    let community = Community::update(
+      &mut context.pool(),
+      old_community.id,
+      &community_update_form,
+    )
+    .await?;
+
+    if old_community.visibility != community.visibility {
+      let actor = self.actor.dereference(context).await?;
+      let form = ModChangeCommunityVisibilityForm {
+        mod_person_id: actor.id,
+        community_id: old_community.id,
+        visibility: old_community.visibility,
+      };
+      ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+    }
     Ok(())
   }
 }
