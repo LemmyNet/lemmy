@@ -15,6 +15,7 @@ pub mod impls;
 /// A vote view for checking a post or comments votes.
 pub struct VoteView {
   pub creator: Person,
+  /// Post id or comment id of the item being voted on
   pub item_id: i32,
   pub creator_banned_from_community: bool,
   pub score: i16,
