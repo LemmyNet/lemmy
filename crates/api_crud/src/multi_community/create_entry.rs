@@ -27,7 +27,7 @@ pub async fn create_multi_community_entry(
   MultiCommunity::create_entry(&mut context.pool(), data.id, data.community_id).await?;
 
   // TODO: update community follows for local followers of this multi
-  
+
   // TODO: federate
 
   Ok(Json(SuccessResponse::default()))

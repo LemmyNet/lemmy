@@ -88,6 +88,7 @@ impl MultiCommunity {
       .await?;
     Ok(())
   }
+
   pub async fn delete_entry(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
@@ -191,7 +192,6 @@ impl MultiCommunity {
 impl MultiCommunityApub {
   pub async fn read_local(
     pool: &mut DbPool<'_>,
-    user_name: &str,
     multi_name: &str,
   ) -> LemmyResult<MultiCommunityApub> {
     let conn = &mut get_conn(pool).await?;
@@ -204,7 +204,6 @@ impl MultiCommunityApub {
           .or(community::deleted)
           .is_distinct_from(true),
       )
-      .filter(person::name.eq(user_name))
       .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
       .select((
@@ -262,16 +261,14 @@ mod tests {
     assert_eq!(form.name, multi_create.name);
     assert_eq!(form.ap_id, multi_create.ap_id);
 
-    let multi_read_apub_empty =
-      MultiCommunityApub::read_local(pool, &bobby.name, &multi_create.name).await?;
+    let multi_read_apub_empty = MultiCommunityApub::read_local(pool, &multi_create.name).await?;
     assert!(multi_read_apub_empty.entries.is_empty());
 
     let multi_entries = vec![community.id];
     let conn = &mut get_conn(pool).await?;
     MultiCommunity::update_entries(conn, multi_create.id, &multi_entries).await?;
 
-    let multi_read_apub =
-      MultiCommunityApub::read_local(pool, &bobby.name, &multi_create.name).await?;
+    let multi_read_apub = MultiCommunityApub::read_local(pool, &multi_create.name).await?;
     assert_eq!(multi_read_apub.multi.creator_id, multi_create.creator_id);
     assert_eq!(vec![community.ap_id], multi_read_apub.entries);
 

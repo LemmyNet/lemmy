@@ -23,7 +23,6 @@ pub struct PersonQuery {
 
 #[derive(Deserialize)]
 pub struct MultiCommunityQuery {
-  user_name: String,
   multi_name: String,
 }
 
@@ -64,9 +63,7 @@ pub(crate) async fn get_apub_person_multi_community(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi =
-    MultiCommunityApub::read_local(&mut context.pool(), &query.user_name, &query.multi_name)
-      .await?;
+  let multi = MultiCommunityApub::read_local(&mut context.pool(), &query.multi_name).await?;
 
   let owner = Person::read(&mut context.pool(), multi.multi.creator_id).await?;
   let collection = MultiCommunityCollection {
