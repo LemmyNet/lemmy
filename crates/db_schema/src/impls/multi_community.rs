@@ -13,7 +13,7 @@ use crate::{
     },
   },
   traits::{Crud, Followable},
-  utils::{get_conn, DbConn, DbPool},
+  utils::{get_conn, uplete, DbConn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -27,7 +27,14 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{community, multi_community, multi_community_entry, multi_community_follow, person},
+  schema::{
+    community,
+    community_actions,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    person,
+  },
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -225,9 +232,22 @@ impl MultiCommunity {
           followed: Utc::now(),
           is_multi_community_follow: Some(true),
         };
-        CommunityActions::follow(pool, &form).await?;
+        CommunityActions::follow(&mut DbPool::Conn(conn), &form).await?;
       } else {
-        CommunityActions::unfollow(pool, person_id, community.id).await?;
+        // Unlike CommunityActions::unfollow this checks `is_multi_community_follow`
+        // TODO: also need to check for other followed multi-comm which may still contain this
+        // community
+        uplete::new(
+          community_actions::table
+            .find((person_id, community.id))
+            .filter(community_actions::is_multi_community_follow.eq(true)),
+        )
+        .set_null(community_actions::followed)
+        .set_null(community_actions::follow_state)
+        .set_null(community_actions::follow_approver_id)
+        .set_null(community_actions::is_multi_community_follow)
+        .get_result::<uplete::Count>(conn)
+        .await?;
       }
     }
     Ok(())
