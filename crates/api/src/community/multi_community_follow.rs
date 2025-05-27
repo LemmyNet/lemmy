@@ -95,6 +95,7 @@ pub async fn follow_multi_community(
 
     for community in to_unfollow {
       if community.local {
+        // TODO: needs to use same logic as MultiCommunity::update_local_follows
         CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
       } else {
         ActivityChannel::submit_activity(

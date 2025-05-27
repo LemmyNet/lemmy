@@ -227,7 +227,7 @@ pub struct CommunityActions {
   pub ban_expires: Option<DateTime<Utc>>,
   /// True indicates that user is following this community as part of multi-comm (not part of
   /// subscribed feed)
-  pub is_multi_community_follow: bool,
+  pub is_multi_community_follow: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]
