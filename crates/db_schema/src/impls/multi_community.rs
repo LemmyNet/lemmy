@@ -17,13 +17,14 @@ use crate::{
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{delete, exists, insert_into, sql},
+  dsl::{count, delete, exists, insert_into, sql},
   pg::sql_types::Array,
   select,
   sql_types::Text,
   update,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -38,7 +39,9 @@ use lemmy_db_schema_file::{
     person,
   },
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+
+const MULTI_COMMUNITY_ENTRY_LIMIT: i8 = 50;
 
 impl Crud for MultiCommunity {
   type InsertForm = MultiCommunityInsertForm;
@@ -77,6 +80,16 @@ impl MultiCommunity {
     new_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
+    let count: i64 = multi_community::table
+      .left_join(multi_community_entry::table)
+      .filter(multi_community::id.eq(id))
+      .select(count(multi_community_entry::community_id.nullable()))
+      .first(conn)
+      .await?;
+    if count >= MULTI_COMMUNITY_ENTRY_LIMIT.into() {
+      return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
+    }
+
     insert_into(multi_community_entry::table)
       .values((
         multi_community_entry::multi_community_id.eq(id),
@@ -279,6 +292,10 @@ impl MultiCommunityApub {
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
   ) -> LemmyResult<()> {
+    if new_communities.len() >= usize::try_from(MULTI_COMMUNITY_ENTRY_LIMIT)? {
+      return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
+    }
+
     delete(multi_community_entry::table)
       .filter(multi_community_entry::multi_community_id.eq(id))
       .filter(multi_community_entry::community_id.ne_all(new_communities))
