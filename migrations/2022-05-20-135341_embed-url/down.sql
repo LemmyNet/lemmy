@@ -1,6 +1,6 @@
 ALTER TABLE post
-    DROP COLUMN embed_url;
+    DROP COLUMN embed_video_url;
 
 ALTER TABLE post
-    ADD COLUMN embed_video_url text;
+    ADD COLUMN embed_html text;
 

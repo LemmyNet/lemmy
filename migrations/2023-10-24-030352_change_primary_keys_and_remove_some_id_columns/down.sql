@@ -148,7 +148,7 @@ ALTER TABLE post_read
 ALTER TABLE received_activity
     ADD UNIQUE (ap_id),
     DROP CONSTRAINT received_activity_pkey,
-    ADD COLUMN id serial PRIMARY KEY;
+    ADD COLUMN id bigserial PRIMARY KEY;
 
 CREATE INDEX idx_post_saved_person_id ON post_saved (person_id);
 
