@@ -2308,8 +2308,7 @@ mod tests {
       Url::parse("http://example.com")?.into(),
     );
     let multi = MultiCommunity::create(pool, &form).await?;
-    let conn = &mut get_conn(pool).await?;
-    MultiCommunityApub::update_entries(conn, multi.id, &vec![community_1.id, community_2.id])
+    MultiCommunityApub::update_entries(pool, multi.id, &vec![community_1.id, community_2.id])
       .await?;
 
     let listing = PostQuery {

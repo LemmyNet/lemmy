@@ -21,8 +21,19 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{community::ApubCommunity, SiteOrCommunityOrUser};
-use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  multi_community::ApubMultiCommunity,
+  multi_community_collection::ApubFeedCollection,
+  SiteOrCommunityOrUser,
+};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    multi_community::MultiCommunity,
+  },
+  traits::ApubActor,
+};
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -154,6 +165,34 @@ pub(crate) async fn get_apub_community_featured(
   check_community_content_fetchable(&community, &request, &context).await?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
+}
+
+#[derive(Deserialize)]
+pub(crate) struct MultiCommunityQuery {
+  multi_name: String,
+}
+
+pub(crate) async fn get_apub_person_multi_community(
+  query: Path<MultiCommunityQuery>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let multi = ApubMultiCommunity(
+    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name).await?,
+  );
+
+  create_apub_response(&multi.into_json(&context).await?)
+}
+
+pub(crate) async fn get_apub_person_multi_community_follows(
+  query: Path<MultiCommunityQuery>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let multi = ApubMultiCommunity(
+    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name).await?,
+  );
+
+  let collection = ApubFeedCollection::read_local(&multi, &context).await?;
+  create_apub_response(&collection)
 }
 
 #[cfg(test)]

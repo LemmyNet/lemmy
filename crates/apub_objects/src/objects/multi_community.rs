@@ -1,21 +1,14 @@
-use crate::protocol::multi_community::MultiCommunityCollection;
+use crate::protocol::multi_community::Feed;
 use activitypub_federation::{
   config::Data,
   protocol::verification::verify_domains_match,
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
-use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
-  utils::get_conn,
-};
+use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use std::ops::Deref;
-use tracing::info;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -35,7 +28,7 @@ impl Deref for ApubMultiCommunity {
 #[async_trait::async_trait]
 impl Object for ApubMultiCommunity {
   type DataType = LemmyContext;
-  type Kind = MultiCommunityCollection;
+  type Kind = Feed;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
@@ -61,7 +54,7 @@ impl Object for ApubMultiCommunity {
     expected_domain: &Url,
     _context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    verify_domains_match(expected_domain, &json.id)?;
+    verify_domains_match(expected_domain, json.id.inner())?;
     Ok(())
   }
 
@@ -77,38 +70,8 @@ impl Object for ApubMultiCommunity {
       description: json.content,
     };
 
-    let communities = join_all(
-      json
-        .items
-        .into_iter()
-        .map(|ap_id| async move { Ok(ap_id.dereference(context).await?.id) }),
-    )
-    .await
-    .into_iter()
-    .flat_map(|c: LemmyResult<CommunityId>| match c {
-      Ok(c) => Some(c),
-      Err(e) => {
-        info!("Failed to fetch multi-community item: {e}");
-        None
-      }
-    })
-    .collect();
-
-    let pool = &mut context.pool();
-    let conn = &mut get_conn(pool).await?;
-    let multi = conn
-      .transaction::<_, LemmyError, _>(|conn| {
-        async move {
-          let multi = MultiCommunityApub::upsert(conn, &form).await?;
-          MultiCommunityApub::update_entries(conn, multi.id, &communities).await?;
-          Ok(multi)
-        }
-        .scope_boxed()
-      })
-      .await?;
-
-    // TODO: local users who followed the multi-comm need to have community follows updated here
-
-    Ok(ApubMultiCommunity(multi))
+    let multi = ApubMultiCommunity(MultiCommunityApub::upsert(&mut context.pool(), &form).await?);
+    json.following.dereference(&multi, context).await?;
+    Ok(multi)
   }
 }

@@ -13,7 +13,7 @@ use crate::{
     },
   },
   traits::{Crud, Followable},
-  utils::{get_conn, uplete, DbConn, DbPool},
+  utils::{functions::lower, get_conn, uplete, DbConn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -74,6 +74,18 @@ impl Crud for MultiCommunity {
 }
 
 impl MultiCommunity {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, multi_name: &str) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      multi_community::table
+        .filter(multi_community::local.eq(true))
+        .filter(multi_community::deleted.eq(false))
+        .filter(lower(multi_community::name).eq(multi_name.to_lowercase()))
+        .first(conn)
+        .await?,
+    )
+  }
+
   pub async fn create_entry(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
@@ -272,9 +284,10 @@ impl MultiCommunity {
 
 impl MultiCommunityApub {
   pub async fn upsert(
-    conn: &mut DbConn<'_>,
+    pool: &mut DbPool<'_>,
     form: &MultiCommunityInsertForm,
   ) -> LemmyResult<MultiCommunity> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       insert_into(multi_community::table)
         .values(form)
@@ -288,10 +301,11 @@ impl MultiCommunityApub {
 
   /// Should be called in a transaction together with update() or upsert()
   pub async fn update_entries(
-    conn: &mut DbConn<'_>,
+    pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
   ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
     if new_communities.len() >= usize::try_from(MULTI_COMMUNITY_ENTRY_LIMIT)? {
       return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
     }
@@ -318,6 +332,7 @@ impl MultiCommunityApub {
     Ok(())
   }
 
+  // TODO: not needed?
   pub async fn read_local(
     pool: &mut DbPool<'_>,
     multi_name: &str,
@@ -416,8 +431,7 @@ mod tests {
     assert!(multi_read_apub_empty.entries.is_empty());
 
     let multi_entries = vec![data.community.id];
-    let conn = &mut get_conn(pool).await?;
-    MultiCommunityApub::update_entries(conn, data.multi.id, &multi_entries).await?;
+    MultiCommunityApub::update_entries(pool, data.multi.id, &multi_entries).await?;
 
     let multi_read_apub = MultiCommunityApub::read_local(pool, &data.multi.name).await?;
     assert_eq!(multi_read_apub.multi.creator_id, data.multi.creator_id);

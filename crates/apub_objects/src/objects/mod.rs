@@ -2,6 +2,7 @@ pub mod comment;
 pub mod community;
 pub mod instance;
 pub mod multi_community;
+pub mod multi_community_collection;
 pub mod person;
 pub mod post;
 pub mod private_message;
