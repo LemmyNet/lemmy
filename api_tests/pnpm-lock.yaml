@@ -33,8 +33,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.15.14)
       lemmy-js-client:
-        specifier: 1.0.0-multi-community.11
-        version: 1.0.0-multi-community.11
+        specifier: 1.0.0-multi-community.12
+        version: 1.0.0-multi-community.12
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1573,8 +1573,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@1.0.0-multi-community.11:
-    resolution: {integrity: sha512-yBHMtmqnToY8kBrvM80cxhh8GfqBzMO8O5/YvceWvuoyealSRZfN+aydYnmowS0l4tMK6+/gHOCG89jvKsRF3w==}
+  lemmy-js-client@1.0.0-multi-community.12:
+    resolution: {integrity: sha512-b7jBpUMwecNIITcVdAn+xMgbaNIHSe1WbmOxOI5uZ27LdIJWSLNKtz8ILgSmB8QDJPQglvbWdi2GfgyjsFiebg==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -1661,10 +1661,6 @@ packages:
 
   mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
-    engines: {node: '>= 0.6'}
-
-  mime-db@1.53.0:
-    resolution: {integrity: sha512-oHlN/w+3MQ3rba9rqFr6V/ypF10LSkdwUysQL7GkXoTgIWeV+tcXGA852TBxH+gsh8UWoyhR1hKcoMJTuWflpg==}
     engines: {node: '>= 0.6'}
 
   mime-db@1.54.0:
@@ -2625,7 +2621,7 @@ snapshots:
   '@hapi/mimos@7.0.1':
     dependencies:
       '@hapi/hoek': 11.0.7
-      mime-db: 1.53.0
+      mime-db: 1.54.0
 
   '@hapi/nigel@5.0.1':
     dependencies:
@@ -4365,7 +4361,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@1.0.0-multi-community.11:
+  lemmy-js-client@1.0.0-multi-community.12:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:
@@ -4439,8 +4435,6 @@ snapshots:
       picomatch: 2.3.1
 
   mime-db@1.52.0: {}
-
-  mime-db@1.53.0: {}
 
   mime-db@1.54.0: {}
 

@@ -610,9 +610,7 @@ test("Multi-community", async () => {
   let createMulti = await alpha.createMultiCommunity({ name: "multi-comm" });
   let myUser = await getMyUser(alpha);
   expect(createMulti.name).toBe("multi-comm");
-  expect(createMulti.ap_id).toBe(
-    "http://lemmy-alpha:8541/u/lemmy_alpha/m/multi-comm",
-  );
+  expect(createMulti.ap_id).toBe("http://lemmy-alpha:8541/m/multi-comm");
   expect(createMulti.creator_id).toBe(myUser.local_user_view.person.id);
 
   // add two communities
@@ -640,16 +638,18 @@ test("Multi-community", async () => {
 
   // resolve over federation
   let resolved = await beta.resolveObject({ q: createMulti.ap_id });
-  expect(resolved.multi_community!.multi.ap_id).toBe(createMulti.ap_id);
-  expect(resolved.multi_community).toBeDefined();
+  expect(resolved.multi_community!.ap_id).toBe(createMulti.ap_id);
+  let multi = await beta.getMultiCommunity({
+    id: resolved.multi_community!.id,
+  });
 
-  expect(resolved.multi_community?.entries.length).toBe(2);
-  await createPost(beta, resolved.multi_community!.entries[0]);
-  await createPost(beta, resolved.multi_community!.entries[1]);
+  expect(multi.entries.length).toBe(2);
+  await createPost(beta, multi.entries[0].community.id);
+  await createPost(beta, multi.entries[1].community.id);
 
   // list posts in multi
   let listing = await beta.getPosts({
-    multi_community_id: resolved.multi_community?.multi.id,
+    multi_community_id: resolved.multi_community?.id,
   });
   expect(listing.posts.length).toBe(2);
 

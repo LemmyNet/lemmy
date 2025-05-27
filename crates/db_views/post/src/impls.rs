@@ -592,7 +592,7 @@ mod tests {
       language::Language,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      multi_community::{MultiCommunity, MultiCommunityInsertForm},
+      multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{
         Post,
