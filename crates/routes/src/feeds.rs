@@ -12,6 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
@@ -58,6 +59,7 @@ enum RequestType {
   User,
   Front,
   Inbox,
+  Modlog,
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -169,6 +171,7 @@ async fn get_feed(
     "c" => RequestType::Community,
     "front" => RequestType::Front,
     "inbox" => RequestType::Inbox,
+    "modlog" => RequestType::Modlog,
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
@@ -181,6 +184,7 @@ async fn get_feed(
       get_feed_front(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
     RequestType::Inbox => get_feed_inbox(&context, &param).await,
+    RequestType::Modlog => get_feed_modlog(&context, &param).await,
   }
   .map_err(ErrorBadRequest)?;
 
@@ -348,6 +352,39 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   Ok(channel)
 }
 
+/// Gets your ModeratorView modlog
+async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
+
+  let modlog = ModlogCombinedQuery {
+    listing_type: Some(ListingType::ModeratorView),
+    local_user: Some(&local_user.local_user),
+    hide_modlog_names: Some(false),
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await?;
+
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let items = create_modlog_items(modlog, &protocol_and_hostname)?;
+
+  let mut channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - Modlog", local_user.person.name),
+    link: format!("{protocol_and_hostname}/modlog"),
+    items,
+    ..Default::default()
+  };
+
+  if let Some(site_desc) = site_view.site.description {
+    channel.set_description(&site_desc);
+  }
+
+  Ok(channel)
+}
+
 fn create_reply_and_mention_items(
   inbox: Vec<InboxCombinedView>,
   protocol_and_hostname: &str,
@@ -400,6 +437,183 @@ fn create_reply_and_mention_items(
     .collect::<LemmyResult<Vec<Item>>>()?;
 
   Ok(reply_items)
+}
+
+fn create_modlog_items(
+  modlog: Vec<ModlogCombinedView>,
+  protocol_and_hostname: &str,
+) -> LemmyResult<Vec<Item>> {
+  // All of these go to your modlog url
+  let modlog_url = format!(
+    "{}/modlog?listing_type=ModeratorView",
+    protocol_and_hostname
+  );
+
+  let modlog_items: Vec<Item> = modlog
+    .iter()
+    .map(|r| match r {
+      ModlogCombinedView::AdminAllowInstance(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_allow_instance.published,
+        &modlog_url,
+        &format!("Admin allowed instance - {}", &v.instance.domain),
+        &v.admin_allow_instance.reason,
+      ),
+      ModlogCombinedView::AdminBlockInstance(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_block_instance.published,
+        &modlog_url,
+        &format!("Admin blocked instance - {}", &v.instance.domain),
+        &v.admin_block_instance.reason,
+      ),
+      ModlogCombinedView::AdminPurgeComment(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_purge_comment.published,
+        &modlog_url,
+        "Admin purged comment",
+        &v.admin_purge_comment.reason,
+      ),
+      ModlogCombinedView::AdminPurgeCommunity(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_purge_community.published,
+        &modlog_url,
+        "Admin purged community",
+        &v.admin_purge_community.reason,
+      ),
+      ModlogCombinedView::AdminPurgePerson(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_purge_person.published,
+        &modlog_url,
+        "Admin purged person",
+        &v.admin_purge_person.reason,
+      ),
+      ModlogCombinedView::AdminPurgePost(v) => build_modlog_item(
+        &v.admin,
+        &v.admin_purge_post.published,
+        &modlog_url,
+        "Admin purged post",
+        &v.admin_purge_post.reason,
+      ),
+      ModlogCombinedView::ModAdd(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_add.published,
+        &modlog_url,
+        &format!("Added admin {}", &v.other_person.name),
+        &None,
+      ),
+      ModlogCombinedView::ModAddCommunity(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_add_community.published,
+        &modlog_url,
+        &format!(
+          "Added mod {} to /c/{}",
+          &v.other_person.name, &v.community.name
+        ),
+        &None,
+      ),
+      ModlogCombinedView::ModBan(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_ban.published,
+        &modlog_url,
+        &format!("Banned {}", &v.other_person.name),
+        &v.mod_ban.reason,
+      ),
+      ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_ban_from_community.published,
+        &modlog_url,
+        &format!(
+          "Banned {} from /c/{}",
+          &v.other_person.name, &v.community.name
+        ),
+        &v.mod_ban_from_community.reason,
+      ),
+      ModlogCombinedView::ModFeaturePost(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_feature_post.published,
+        &modlog_url,
+        &format!("Featured post {}", &v.post.name),
+        &None,
+      ),
+      ModlogCombinedView::ModChangeCommunityVisibility(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_change_community_visibility.published,
+        &modlog_url,
+        &format!(
+          "Changed /c/{} visibility to {}",
+          &v.community.name, &v.mod_change_community_visibility.visibility
+        ),
+        &v.mod_change_community_visibility.reason,
+      ),
+      ModlogCombinedView::ModLockPost(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_lock_post.published,
+        &modlog_url,
+        &format!("Locked post {}", &v.post.name),
+        &v.mod_lock_post.reason,
+      ),
+      ModlogCombinedView::ModRemoveComment(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_remove_comment.published,
+        &modlog_url,
+        &format!("Removed comment {}", &v.comment.content),
+        &v.mod_remove_comment.reason,
+      ),
+      ModlogCombinedView::ModRemoveCommunity(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_remove_community.published,
+        &modlog_url,
+        &format!("Removed community /c/{}", &v.community.name),
+        &v.mod_remove_community.reason,
+      ),
+      ModlogCombinedView::ModRemovePost(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_remove_post.published,
+        &modlog_url,
+        &format!("Removed post {}", &v.post.name),
+        &v.mod_remove_post.reason,
+      ),
+      ModlogCombinedView::ModTransferCommunity(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_transfer_community.published,
+        &modlog_url,
+        &format!(
+          "Tranferred /c/{} to /u/{}",
+          &v.community.name, &v.other_person.name
+        ),
+        &None,
+      ),
+    })
+    .collect::<LemmyResult<Vec<Item>>>()?;
+
+  Ok(modlog_items)
+}
+
+fn build_modlog_item(
+  mod_: &Option<Person>,
+  published: &DateTime<Utc>,
+  url: &str,
+  action: &str,
+  reason: &Option<String>,
+) -> LemmyResult<Item> {
+  let guid = Some(Guid {
+    permalink: true,
+    value: url.to_owned(),
+  });
+  let author = mod_
+    .as_ref()
+    .map(|mod_| format!("/u/{} <a href=\"{}\">(link)</a>", mod_.name, mod_.ap_id));
+
+  Ok(Item {
+    title: Some(action.to_string()),
+    author,
+    pub_date: Some(published.to_rfc2822()),
+    comments: Some(url.to_owned()),
+    link: Some(url.to_owned()),
+    guid,
+    description: reason.clone(),
+    ..Default::default()
+  })
 }
 
 fn build_item(
