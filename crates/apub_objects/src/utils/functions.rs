@@ -1,6 +1,6 @@
 use super::protocol::Source;
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::page::Attachment,
 };
 use activitypub_federation::{
@@ -9,6 +9,7 @@ use activitypub_federation::{
   kinds::public,
   protocol::values::MediaTypeMarkdownOrHtml,
 };
+use either::Either;
 use html2md::parse_html;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -248,6 +249,23 @@ pub async fn verify_person_in_community(
   let person_id = person.id;
   let community_id = community.id;
   CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
+}
+
+/// Fetches the person and community or site to verify their type, then checks if person is banned
+/// from local site or community.
+pub async fn verify_person_in_site_or_community(
+  person_id: &ObjectId<ApubPerson>,
+  site_or_community: &Either<ApubSite, ApubCommunity>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let person = person_id.dereference(context).await?;
+  InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
+  if let Either::Right(community) = site_or_community {
+    let person_id = person.id;
+    let community_id = community.id;
+    CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
+  }
+  Ok(())
 }
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {

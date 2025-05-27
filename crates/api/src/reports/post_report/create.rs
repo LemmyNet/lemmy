@@ -1,6 +1,7 @@
 use crate::check_report_reason;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   reports::post::{CreatePostReport, PostReportResponse},
@@ -68,7 +69,7 @@ pub async fn create_post_report(
     SendActivityData::CreateReport {
       object_id: post_view.post.ap_id.inner().clone(),
       actor: local_user_view.person,
-      community: post_view.community,
+      receiver: Either::Right(post_view.community),
       reason: data.reason.clone(),
     },
     &context,
