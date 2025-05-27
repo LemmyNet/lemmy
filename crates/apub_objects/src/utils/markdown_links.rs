@@ -72,7 +72,9 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
       }
       .ok(),
     },
-    Right(multi) => todo!(),
+    Right(multi) => format_actor_url(&multi.name, "m", multi.instance_id, context)
+      .await
+      .ok(),
   }
 }
 

@@ -1,4 +1,4 @@
-use crate::newtypes::{DbUrl, MultiCommunityId, PersonId};
+use crate::newtypes::{DbUrl, InstanceId, MultiCommunityId, PersonId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::multi_community;
@@ -15,6 +15,7 @@ use ts_rs::TS;
 pub struct MultiCommunity {
   pub id: MultiCommunityId,
   pub creator_id: PersonId,
+  pub instance_id: InstanceId,
   pub name: String,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
@@ -33,6 +34,7 @@ pub struct MultiCommunity {
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 pub struct MultiCommunityInsertForm {
   pub creator_id: PersonId,
+  pub instance_id: InstanceId,
   pub name: String,
   pub ap_id: DbUrl,
   #[new(default)]

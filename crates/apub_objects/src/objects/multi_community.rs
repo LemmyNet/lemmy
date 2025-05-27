@@ -9,16 +9,25 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, MultiCommunityId},
-  source::multi_community::{MultiCommunityApub, MultiCommunityInsertForm},
+  newtypes::CommunityId,
+  source::multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
   utils::get_conn,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
+use std::ops::Deref;
 use tracing::info;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubMultiCommunity(pub MultiCommunityId);
+pub struct ApubMultiCommunity(pub MultiCommunity);
+
+impl Deref for ApubMultiCommunity {
+  type Target = MultiCommunity;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 /// TODO: This should use Collection instead of Object, but then it would not work with
 /// resolve_object. Anyway the Collection trait is not working well and should be rewritten
@@ -60,6 +69,7 @@ impl Object for ApubMultiCommunity {
     let creator = json.attributed_to.dereference(context).await?;
     let form = MultiCommunityInsertForm {
       creator_id: creator.id,
+      instance_id: creator.instance_id,
       name: json.name,
       ap_id: json.id.into(),
       local: Some(false),
@@ -99,6 +109,6 @@ impl Object for ApubMultiCommunity {
 
     // TODO: local users who followed the multi-comm need to have community follows updated here
 
-    Ok(ApubMultiCommunity(multi.id))
+    Ok(ApubMultiCommunity(multi))
   }
 }

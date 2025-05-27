@@ -26,6 +26,7 @@ pub async fn create_multi_community(
 
   let form = MultiCommunityInsertForm {
     creator_id: local_user_view.person.id,
+    instance_id: local_user_view.person.instance_id,
     name: data.name.clone(),
     title: data.title.clone(),
     local: Some(true),

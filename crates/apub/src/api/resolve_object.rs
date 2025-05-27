@@ -47,6 +47,7 @@ async fn convert_response(
   local_user_view: Option<LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
+  use Either::*;
   let mut res = ResolveObjectResponse::default();
   let local_user = local_user_view.map(|l| l.local_user);
   let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
@@ -54,7 +55,6 @@ async fn convert_response(
   let site_view = SiteView::read_local(pool).await?;
   let local_instance_id = site_view.site.instance_id;
 
-  use Either::*;
   match object {
     Left(s) => match s {
       Left(x) => match x {
@@ -78,7 +78,7 @@ async fn convert_response(
         }
       },
     },
-    Right(multi) => res.multi_community = Some(MultiCommunity::read(pool, multi.0).await?),
+    Right(multi) => res.multi_community = Some(MultiCommunity::read(pool, multi.id).await?),
   };
 
   Ok(Json(res))

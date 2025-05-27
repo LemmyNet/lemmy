@@ -2303,6 +2303,7 @@ mod tests {
 
     let form = MultiCommunityInsertForm::new(
       data.tegan.person.id,
+      data.tegan.person.instance_id,
       "test multi".to_string(),
       Url::parse("http://example.com")?.into(),
     );

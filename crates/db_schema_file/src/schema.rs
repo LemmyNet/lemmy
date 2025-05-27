@@ -715,6 +715,7 @@ diesel::table! {
     multi_community (id) {
         id -> Int4,
         creator_id -> Int4,
+        instance_id -> Int4,
         #[max_length = 255]
         name -> Varchar,
         #[max_length = 255]
@@ -1199,6 +1200,7 @@ diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id))
 diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
 diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
+diesel::joinable!(multi_community -> instance (instance_id));
 diesel::joinable!(multi_community -> person (creator_id));
 diesel::joinable!(multi_community_entry -> community (community_id));
 diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
