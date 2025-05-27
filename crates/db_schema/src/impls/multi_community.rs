@@ -243,8 +243,6 @@ impl MultiCommunity {
     .get_result::<bool>(conn)
     .await?;
 
-    // TODO: if user also followed comm manually then only set is_multi_community_follow=false
-
     if !community_has_other_multi_follows {
       // delete the community follow
       uplete::new(community_actions::table.find((person_id, community_id)))
@@ -261,10 +259,9 @@ impl MultiCommunity {
 
 impl MultiCommunityApub {
   pub async fn upsert(
-    pool: &mut DbPool<'_>,
+    conn: &mut DbConn<'_>,
     form: &MultiCommunityInsertForm,
   ) -> LemmyResult<MultiCommunity> {
-    let conn = &mut get_conn(pool).await?;
     Ok(
       insert_into(multi_community::table)
         .values(form)
@@ -333,6 +330,7 @@ impl MultiCommunityApub {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
   use super::*;
   use crate::{
@@ -373,7 +371,7 @@ mod tests {
 
     let form =
       MultiCommunityInsertForm::new(person.id, "multi".to_string(), community.ap_id.clone());
-    let multi = MultiCommunityApub::upsert(pool, &form).await?;
+    let multi = MultiCommunity::create(pool, &form).await?;
     assert_eq!(form.creator_id, multi.creator_id);
     assert_eq!(form.name, multi.name);
     assert_eq!(form.ap_id, multi.ap_id);

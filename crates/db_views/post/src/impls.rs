@@ -2308,7 +2308,8 @@ mod tests {
     );
     let multi = MultiCommunity::create(pool, &form).await?;
     let conn = &mut get_conn(pool).await?;
-    MultiCommunity::update_entries(conn, multi.id, &vec![community_1.id, community_2.id]).await?;
+    MultiCommunityApub::update_entries(conn, multi.id, &vec![community_1.id, community_2.id])
+      .await?;
 
     let listing = PostQuery {
       multi_community_id: Some(multi.id),

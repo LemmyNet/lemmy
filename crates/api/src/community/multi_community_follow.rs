@@ -67,9 +67,8 @@ pub async fn follow_multi_community(
       let state = community_follower_state(&community);
       let mut form = CommunityFollowerForm::new(community.id, person_id, state);
       form.is_multi_community_follow = Some(true);
-      if community.local {
-        CommunityActions::follow(&mut context.pool(), &form).await?;
-      } else {
+      CommunityActions::follow(&mut context.pool(), &form).await?;
+      if !community.local {
         ActivityChannel::submit_activity(
           SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
           &context,
@@ -88,16 +87,14 @@ pub async fn follow_multi_community(
       .into_iter()
       .filter(|c| {
         let actions = c.community_actions.clone().unwrap_or_default();
-        actions.followed.is_some() && actions.is_multi_community_follow
+        actions.followed.is_some() && actions.is_multi_community_follow.unwrap_or_default()
       })
       .map(|c| c.community)
       .collect();
 
     for community in to_unfollow {
-      if community.local {
-        // TODO: needs to use same logic as MultiCommunity::update_local_follows
-        CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
-      } else {
+      CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
+      if !community.local {
         ActivityChannel::submit_activity(
           SendActivityData::FollowCommunity(community, local_user_view.person.clone(), false),
           &context,

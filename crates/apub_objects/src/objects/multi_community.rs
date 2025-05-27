@@ -10,7 +10,7 @@ use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
   newtypes::{CommunityId, MultiCommunityId},
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
+  source::multi_community::{MultiCommunityApub, MultiCommunityInsertForm},
   utils::get_conn,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -89,8 +89,8 @@ impl Object for ApubMultiCommunity {
     let multi = conn
       .transaction::<_, LemmyError, _>(|conn| {
         async move {
-          let multi = MultiCommunity::upsert(conn, &form).await?;
-          MultiCommunity::update_entries(conn, multi.id, &communities).await?;
+          let multi = MultiCommunityApub::upsert(conn, &form).await?;
+          MultiCommunityApub::update_entries(conn, multi.id, &communities).await?;
           Ok(multi)
         }
         .scope_boxed()
