@@ -57,10 +57,7 @@ impl CollectionAdd {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, &context)?;
     let add = CollectionAdd {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -82,10 +79,7 @@ impl CollectionAdd {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -113,10 +107,7 @@ impl CollectionAdd {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().into(),
       to: vec![public()],

@@ -109,13 +109,13 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
 
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(kind: T, protocol_and_hostname: &str) -> Result<Url, ParseError>
+fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> Result<Url, ParseError>
 where
   T: ToString,
 {
   let id = format!(
     "{}/activities/{}/{}",
-    protocol_and_hostname,
+    &context.settings().get_protocol_and_hostname(),
     kind.to_string().to_lowercase(),
     Uuid::new_v4()
   );

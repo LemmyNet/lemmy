@@ -27,10 +27,7 @@ impl RejectFollow {
       to: Some([person.id().into()]),
       object: follow,
       kind: RejectType::Reject,
-      id: generate_activity_id(
-        RejectType::Reject,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(RejectType::Reject, &context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_activity_from_user_or_community(context, reject, user_or_community, inbox).await

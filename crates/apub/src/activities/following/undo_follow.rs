@@ -30,10 +30,7 @@ impl UndoFollow {
       to: Some([community.id().into()]),
       object,
       kind: UndoType::Undo,
-      id: generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(UndoType::Undo, &context)?,
     };
     let inbox = if community.local {
       ActivitySendTargets::empty()

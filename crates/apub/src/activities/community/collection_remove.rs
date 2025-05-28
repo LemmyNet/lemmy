@@ -46,10 +46,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, &context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -71,10 +68,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, &context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -102,10 +96,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, &context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: vec![public()],

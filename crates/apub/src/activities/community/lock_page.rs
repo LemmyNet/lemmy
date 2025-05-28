@@ -136,10 +136,7 @@ pub(crate) async fn send_lock_post(
   let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
     .await?
     .into();
-  let id = generate_activity_id(
-    LockType::Lock,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(LockType::Lock, &context)?;
   let community_id = community.ap_id.inner().clone();
 
   let lock = LockPage {
@@ -154,10 +151,7 @@ pub(crate) async fn send_lock_post(
   let activity = if locked {
     AnnouncableActivities::LockPost(lock)
   } else {
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo, &context)?;
     let undo = UndoLockPage {
       actor: lock.actor.clone(),
       to: generate_to(&community)?,

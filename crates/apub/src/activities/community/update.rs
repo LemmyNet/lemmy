@@ -41,10 +41,7 @@ pub(crate) async fn send_update_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(
-    UpdateType::Update,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(UpdateType::Update, &context)?;
   let update = UpdateCommunity {
     actor: actor.id().into(),
     to: generate_to(&community)?,

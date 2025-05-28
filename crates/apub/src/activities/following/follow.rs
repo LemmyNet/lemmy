@@ -38,10 +38,7 @@ impl Follow {
       object: community.id().into(),
       to: Some([community.id().into()]),
       kind: FollowType::Follow,
-      id: generate_activity_id(
-        FollowType::Follow,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(FollowType::Follow, &context)?,
     })
   }
 
