@@ -1,27 +1,13 @@
 use crate::{
   objects::community::ApubCommunity,
-  utils::{
-    functions::check_apub_id_valid_with_strictness,
-    protocol::{AttributedTo, Endpoints, ImageObject, LanguageTag, Source},
-  },
+  utils::protocol::{AttributedTo, Endpoints, ImageObject, LanguageTag, Source},
 };
 use activitypub_federation::{
-  config::Data,
   fetch::object_id::ObjectId,
   kinds::actor::GroupType,
-  protocol::{
-    helpers::deserialize_skip_error,
-    public_key::PublicKey,
-    values::MediaTypeHtml,
-    verification::verify_domains_match,
-  },
+  protocol::{helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::slur_regex};
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::slurs::{check_slurs, check_slurs_opt},
-};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
@@ -71,22 +57,4 @@ pub struct Group {
   pub updated: Option<DateTime<Utc>>,
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
-}
-
-impl Group {
-  pub(crate) async fn verify(
-    &self,
-    expected_domain: &Url,
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
-    check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
-    verify_domains_match(expected_domain, self.id.inner())?;
-
-    let slur_regex = slur_regex(context).await?;
-
-    check_slurs(&self.preferred_username, &slur_regex)?;
-    check_slurs_opt(&self.name, &slur_regex)?;
-    check_slurs_opt(&self.summary, &slur_regex)?;
-    Ok(())
-  }
 }

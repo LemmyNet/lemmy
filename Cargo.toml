@@ -135,7 +135,7 @@ lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.5", path = "./c
 lemmy_db_views_report_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/report_combined" }
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
-activitypub_federation = { version = "0.6.3", default-features = false, features = [
+activitypub_federation = { version = "0.6.4", default-features = false, features = [
   "actix-web",
 ] }
 diesel = { version = "2.2.10", features = [
@@ -211,6 +211,7 @@ derive-new = "0.7.0"
 tuplex = "0.1.2"
 html2text = "0.14.0"
 async-trait = "0.1.88"
+either = "1.15.0"
 
 [dependencies]
 lemmy_api = { workspace = true }
