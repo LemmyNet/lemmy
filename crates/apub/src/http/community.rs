@@ -28,10 +28,7 @@ use lemmy_apub_objects::objects::{
   SiteOrCommunityOrUser,
 };
 use lemmy_db_schema::{
-  source::{
-    community::Community,
-    multi_community::MultiCommunity,
-  },
+  source::{community::Community, multi_community::MultiCommunity},
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;

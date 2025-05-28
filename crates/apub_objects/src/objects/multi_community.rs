@@ -6,7 +6,11 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm};
+use lemmy_db_schema::source::multi_community::{
+  MultiCommunity,
+  MultiCommunityApub,
+  MultiCommunityInsertForm,
+};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use std::ops::Deref;
 use url::Url;

@@ -91,7 +91,7 @@ impl InCommunity for AnnouncableActivities {
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
       Report(a) => a.community(context).await,
-      ResolveReport(a) => a.community(context).await,
+      ResolveReport(a) => a.object.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }

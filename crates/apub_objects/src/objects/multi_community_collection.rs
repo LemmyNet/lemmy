@@ -7,10 +7,7 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::multi_community::MultiCommunityApub,
-};
+use lemmy_db_schema::{newtypes::CommunityId, source::multi_community::MultiCommunityApub};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
 use url::Url;

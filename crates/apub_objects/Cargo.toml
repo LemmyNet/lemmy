@@ -40,7 +40,6 @@ async-trait = "0.1.88"
 anyhow = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
-diesel-async.workspace = true
 html2md = "0.2.15"
 html2text = { workspace = true }
 stringreader = "0.1.1"

@@ -2,17 +2,11 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{
-  config::Data,
-  traits::Object,
-};
+use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
-use lemmy_db_schema::{
-  source::person::Person,
-  traits::ApubActor,
-};
+use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 

@@ -19,6 +19,8 @@ pub type PostOrComment = Either<ApubPost, ApubComment>;
 
 pub type SearchableObjects = Either<Either<PostOrComment, UserOrCommunity>, ApubMultiCommunity>;
 
+pub type ReportableObjects = Either<PostOrComment, ApubCommunity>;
+
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 
 pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;

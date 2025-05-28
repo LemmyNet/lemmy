@@ -123,6 +123,7 @@ pub async fn is_mod_or_admin_opt(
   community_id: Option<CommunityId>,
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
+    check_local_user_valid(local_user_view)?;
     if let Some(community_id) = community_id {
       is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
@@ -282,7 +283,7 @@ pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()>
 
 /// Check that the given user can perform a mod action in the community.
 ///
-/// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
+/// In particular it checks that they're an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
   local_user_view: &LocalUserView,
