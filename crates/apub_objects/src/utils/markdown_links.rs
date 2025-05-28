@@ -90,16 +90,16 @@ mod tests {
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let instance = create_test_instance(&mut context.pool()).await?;
-    let community = Community::create(
-      &mut context.pool(),
-      &CommunityInsertForm::new(
+    let community_form = CommunityInsertForm {
+      ap_id: Some(Url::parse("https://example.com/c/my_community")?.into()),
+      ..CommunityInsertForm::new(
         instance.id,
         "my_community".to_string(),
         "My Community".to_string(),
         "pubkey".to_string(),
-      ),
-    )
-    .await?;
+      )
+    };
+    let community = Community::create(&mut context.pool(), &community_form).await?;
     let user =
       LocalUserView::create_test_user(&mut context.pool(), "garda", "garda bio", false).await?;
 
