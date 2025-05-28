@@ -553,7 +553,7 @@ fn create_modlog_items(
           "Changed /c/{} visibility to {}",
           &v.community.name, &v.mod_change_community_visibility.visibility
         ),
-        &v.mod_change_community_visibility.reason,
+        &None,
         settings,
       ),
       ModlogCombinedView::ModLockPost(v) => build_modlog_item(
