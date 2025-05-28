@@ -24,3 +24,5 @@ pub type ReportableObjects = Either<PostOrComment, ApubCommunity>;
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 
 pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
+
+pub type CommunityOrMulti = Either<ApubCommunity, ApubMultiCommunity>;

@@ -7,10 +7,21 @@ use crate::protocol::activities::following::{
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  multi_community::ApubMultiCommunity,
+  person::ApubPerson,
+  CommunityOrMulti,
+  UserOrCommunity,
+};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  source::{activity::ActivitySendTargets, community::Community, person::Person},
+  source::{
+    activity::ActivitySendTargets,
+    community::Community,
+    multi_community::MultiCommunity,
+    person::Person,
+  },
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -21,18 +32,17 @@ pub(crate) mod follow;
 pub(crate) mod reject;
 pub(crate) mod undo_follow;
 
-pub async fn send_follow_community(
-  community: Community,
+pub async fn send_follow(
+  target: CommunityOrMulti,
   person: Person,
   follow: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let community: ApubCommunity = community.into();
   let actor: ApubPerson = person.into();
   if follow {
-    Follow::send(&actor, &community, context).await
+    Follow::send(&actor, &target, context).await
   } else {
-    UndoFollow::send(&actor, &community, context).await
+    UndoFollow::send(&actor, &target, context).await
   }
 }
 

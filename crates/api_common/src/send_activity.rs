@@ -62,6 +62,7 @@ pub enum SendActivityData {
     score: i16,
   },
   FollowCommunity(Community, Person, bool),
+  FollowMultiCommunity(MultiCommunity, Person, bool),
   AcceptFollower(CommunityId, PersonId),
   RejectFollower(CommunityId, PersonId),
   UpdateCommunity(Person, Community),

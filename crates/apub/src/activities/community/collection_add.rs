@@ -117,6 +117,7 @@ impl CollectionAdd {
       kind: AddType::Add,
       id: id.clone(),
     };
+    dbg!(&add);
     let activity = AnnouncableActivities::CollectionAdd(add);
     send_lemmy_activity(
       context,
@@ -152,8 +153,9 @@ impl ActivityHandler for CollectionAdd {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
+    dbg!(&self);
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+      dbg!(Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await)?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)

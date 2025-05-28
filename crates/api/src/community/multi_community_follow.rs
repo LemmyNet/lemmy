@@ -20,7 +20,6 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
-// TODO: maybe deduplicate some code here and in follow_community()
 pub async fn follow_multi_community(
   data: Json<FollowMultiCommunity>,
   context: Data<LemmyContext>,
@@ -103,7 +102,12 @@ pub async fn follow_multi_community(
     }
   }
 
-  // TODO: send federated follow to remote multi-comm
+  if !multi.local {
+    ActivityChannel::submit_activity(
+      SendActivityData::FollowMultiCommunity(multi, local_user_view.person.clone(), data.follow),
+      &context,
+    )?;
+  }
 
   Ok(Json(SuccessResponse::default()))
 }

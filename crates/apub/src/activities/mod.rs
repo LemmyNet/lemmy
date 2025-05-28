@@ -1,4 +1,3 @@
-use self::following::send_follow_community;
 use crate::{
   activities::{
     block::{send_ban_from_community, send_ban_from_site},
@@ -29,7 +28,8 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use community::collection_add::send_multi_comm_change_entry;
-use following::send_accept_or_reject_follow;
+use either::Either;
+use following::{send_accept_or_reject_follow, send_follow};
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -259,7 +259,10 @@ pub async fn match_outgoing_activities(
         score,
       } => send_like_activity(object_id, actor, community, score, context).await,
       FollowCommunity(community, person, follow) => {
-        send_follow_community(community, person, follow, &context).await
+        send_follow(Either::Left(community.into()), person, follow, &context).await
+      }
+      FollowMultiCommunity(multi, person, follow) => {
+        send_follow(Either::Right(multi.into()), person, follow, &context).await
       }
       UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
       DeleteCommunity(actor, community, removed) => {

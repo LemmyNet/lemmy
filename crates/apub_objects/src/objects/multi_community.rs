@@ -110,3 +110,25 @@ impl Object for ApubMultiCommunity {
     Ok(multi)
   }
 }
+
+impl Actor for ApubMultiCommunity {
+  fn id(&self) -> Url {
+    self.ap_id.inner().clone()
+  }
+
+  fn public_key_pem(&self) -> &str {
+    todo!()
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    todo!()
+  }
+
+  fn inbox(&self) -> Url {
+    todo!()
+  }
+
+  fn shared_inbox(&self) -> Option<Url> {
+    None
+  }
+}

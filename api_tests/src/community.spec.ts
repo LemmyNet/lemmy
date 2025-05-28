@@ -698,9 +698,23 @@ test.only("Multi-community", async () => {
   expect(alphaMulti.ap_id).toBe("http://lemmy-alpha:8541/m/multi-comm");
   expect(alphaMulti.creator_id).toBe(myUser.local_user_view.person.id);
 
+  // add initial community
+  let community1 = (await createCommunity(alpha)).community_view.community;
+  let success1 = await alpha.createMultiCommunityEntry({
+    id: alphaMulti.id,
+    community_id: community1.id,
+  });
+  expect(success1.success).toBeTruthy();
+
   // resolve over federation
   let betaMulti = (await beta.resolveObject({ q: alphaMulti.ap_id })).multi_community!;
   expect(betaMulti.ap_id).toBe(alphaMulti.ap_id);
+  
+  var getBetaMulti = await waitUntil(
+    () => beta.getMultiCommunity({id: betaMulti.id}),
+    m => m.entries.length == 1,
+  );
+  expect(getBetaMulti.entries[0].community.ap_id).toBe(community1.ap_id);
 
   // follow multi over federation
   let form: FollowMultiCommunity ={multi_community_id: betaMulti.id, follow: true};
@@ -713,19 +727,19 @@ test.only("Multi-community", async () => {
   expect(followed.multi_communities[0].ap_id).toBe(betaMulti.ap_id);
 
   // add community to multi
-  let community = await resolveBetaCommunity(alpha);
-  let success1 = await alpha.createMultiCommunityEntry({
+  let community2 = await resolveBetaCommunity(alpha);
+  let success2 = await alpha.createMultiCommunityEntry({
     id: alphaMulti.id,
-    community_id: community.community!.community.id,
+    community_id: community2.community!.community.id,
   });
-  expect(success1.success).toBeTruthy();
+  expect(success2.success).toBeTruthy();
 
   // federated to beta
-  let getBetaMulti = await waitUntil(
+  getBetaMulti = await waitUntil(
     () => beta.getMultiCommunity({id: betaMulti.id}),
-    m => m.entries.length == 1,
+    m => m.entries.length ==2,
   );
-  expect(getBetaMulti.entries[0].community.ap_id).toBe(community.community?.community.ap_id);
+  expect(getBetaMulti.entries[1].community.ap_id).toBe(community2.community?.community.ap_id);
 
 
 

@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity},
+  objects::{community::ApubCommunity, person::ApubPerson, CommunityOrMulti, UserOrCommunity},
   utils::functions::verify_person_in_community,
 };
 use lemmy_db_schema::{
@@ -30,13 +30,13 @@ use url::Url;
 impl Follow {
   pub(in crate::activities::following) fn new(
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Follow> {
     Ok(Follow {
       actor: actor.id().into(),
-      object: community.id().into(),
-      to: Some([community.id().into()]),
+      object: target.id().into(),
+      to: Some([target.id().into()]),
       kind: FollowType::Follow,
       id: generate_activity_id(FollowType::Follow, &context)?,
     })
@@ -44,15 +44,11 @@ impl Follow {
 
   pub async fn send(
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let follow = Follow::new(actor, community, context)?;
-    let inbox = if community.local {
-      ActivitySendTargets::empty()
-    } else {
-      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
-    };
+    let follow = Follow::new(actor, target, context)?;
+    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }

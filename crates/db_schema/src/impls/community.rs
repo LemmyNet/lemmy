@@ -110,6 +110,7 @@ impl Joinable for CommunityActions {
   }
 }
 
+#[derive(Debug)]
 pub enum CollectionType {
   Moderators,
   Featured,
