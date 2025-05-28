@@ -18,11 +18,16 @@ pub async fn create_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunity>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
-  is_valid_display_name(&data.name, local_site.actor_name_max_length)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  is_valid_display_name(&data.name, site_view.local_site.actor_name_max_length)?;
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
+  let ap_id = Url::parse(&format!(
+    "{}/m/{}",
+    context.settings().get_protocol_and_hostname(),
+    &data.name
+  ))?;
 
   let form = MultiCommunityInsertForm {
     creator_id: local_user_view.person.id,
@@ -31,12 +36,10 @@ pub async fn create_multi_community(
     title: data.title.clone(),
     local: Some(true),
     description: data.description.clone(),
-    ap_id: Url::parse(&format!(
-      "{}/m/{}",
-      context.settings().get_protocol_and_hostname(),
-      &data.name
-    ))?
-    .into(),
+    ap_id: Some(ap_id.into()),
+    public_key: Some(site_view.site.public_key),
+    private_key: site_view.site.private_key,
+    inbox_url: Some(site_view.site.inbox_url),
   };
   let res = MultiCommunity::create(&mut context.pool(), &form).await?;
   Ok(Json(res))

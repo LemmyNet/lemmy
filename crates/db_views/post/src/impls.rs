@@ -2305,7 +2305,6 @@ mod tests {
       data.tegan.person.id,
       data.tegan.person.instance_id,
       "test multi".to_string(),
-      Url::parse("http://example.com")?.into(),
     );
     let multi = MultiCommunity::create(pool, &form).await?;
     MultiCommunityApub::update_entries(pool, multi.id, &vec![community_1.id, community_2.id])

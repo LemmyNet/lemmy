@@ -1,4 +1,7 @@
-use crate::newtypes::{DbUrl, InstanceId, MultiCommunityId, PersonId};
+use crate::{
+  newtypes::{DbUrl, InstanceId, MultiCommunityId, PersonId},
+  sensitive::SensitiveString,
+};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::multi_community;
@@ -24,6 +27,9 @@ pub struct MultiCommunity {
   pub local: bool,
   pub deleted: bool,
   pub ap_id: DbUrl,
+  pub public_key: String,
+  pub private_key: Option<SensitiveString>,
+  pub inbox_url: DbUrl,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
@@ -36,13 +42,20 @@ pub struct MultiCommunityInsertForm {
   pub creator_id: PersonId,
   pub instance_id: InstanceId,
   pub name: String,
-  pub ap_id: DbUrl,
+  #[new(default)]
+  pub ap_id: Option<DbUrl>,
   #[new(default)]
   pub local: Option<bool>,
   #[new(default)]
   pub title: Option<String>,
   #[new(default)]
   pub description: Option<String>,
+  #[new(default)]
+  pub public_key: Option<String>,
+  #[new(default)]
+  pub private_key: Option<SensitiveString>,
+  #[new(default)]
+  pub inbox_url: Option<DbUrl>,
 }
 
 #[derive(Debug, Clone)]

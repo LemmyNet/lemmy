@@ -724,6 +724,9 @@ diesel::table! {
         local -> Bool,
         deleted -> Bool,
         ap_id -> Text,
+        public_key -> Text,
+        private_key -> Nullable<Text>,
+        inbox_url -> Text,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
     }

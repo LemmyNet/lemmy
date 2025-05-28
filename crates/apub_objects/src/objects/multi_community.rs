@@ -9,6 +9,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
+  sensitive::SensitiveString,
   source::{
     multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
     person::Person,
@@ -97,10 +98,13 @@ impl Object for ApubMultiCommunity {
       creator_id: creator.id,
       instance_id: creator.instance_id,
       name: json.name,
-      ap_id: json.id.into(),
+      ap_id: Some(json.id.into()),
       local: Some(false),
       title: json.summary,
       description: json.content,
+      public_key: Some(json.public_key.public_key_pem),
+      private_key: None,
+      inbox_url: Some(json.inbox.into()),
     };
 
     let multi = MultiCommunityApub::upsert(&mut context.pool(), &form)
@@ -117,15 +121,15 @@ impl Actor for ApubMultiCommunity {
   }
 
   fn public_key_pem(&self) -> &str {
-    todo!()
+    &self.public_key
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    todo!()
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {
-    todo!()
+    self.inbox_url.clone().into()
   }
 
   fn shared_inbox(&self) -> Option<Url> {

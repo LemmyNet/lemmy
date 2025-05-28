@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, CommunityOrMulti, UserOrCommunity},
+  objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunity},
   utils::functions::verify_person_in_community,
 };
 use lemmy_db_schema::{
@@ -48,6 +48,7 @@ impl Follow {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let follow = Follow::new(actor, target, context)?;
+    dbg!(&follow);
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(context, follow, actor, inbox, true).await
   }
@@ -80,9 +81,10 @@ impl ActivityHandler for Follow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     use CommunityVisibility::*;
+    dbg!(&self);
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
-    let object = self.object.dereference(context).await?;
+    let object = dbg!(self.object.dereference(context).await)?;
     match object {
       UserOrCommunity::Left(u) => {
         let form = PersonFollowerForm::new(u.id, actor.id, false);

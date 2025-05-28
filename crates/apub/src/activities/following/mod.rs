@@ -7,21 +7,10 @@ use crate::protocol::activities::following::{
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{
-  community::ApubCommunity,
-  multi_community::ApubMultiCommunity,
-  person::ApubPerson,
-  CommunityOrMulti,
-  UserOrCommunity,
-};
+use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  source::{
-    activity::ActivitySendTargets,
-    community::Community,
-    multi_community::MultiCommunity,
-    person::Person,
-  },
+  source::{activity::ActivitySendTargets, community::Community, person::Person},
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};

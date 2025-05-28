@@ -401,16 +401,11 @@ mod tests {
     );
     let community = Community::create(pool, &form).await?;
 
-    let form = MultiCommunityInsertForm::new(
-      person.id,
-      instance.id,
-      "multi".to_string(),
-      community.ap_id.clone(),
-    );
+    let form = MultiCommunityInsertForm::new(person.id, instance.id, "multi".to_string());
     let multi = MultiCommunity::create(pool, &form).await?;
     assert_eq!(form.creator_id, multi.creator_id);
     assert_eq!(form.name, multi.name);
-    assert_eq!(form.ap_id, multi.ap_id);
+    assert_eq!(form.ap_id.as_ref(), Some(&multi.ap_id));
 
     Ok(Data {
       multi,
@@ -485,12 +480,7 @@ mod tests {
     let form = PersonInsertForm::test_form(data.instance.id, "tom");
     let person2 = Person::create(pool, &form).await?;
 
-    let form = MultiCommunityInsertForm::new(
-      person2.id,
-      person2.instance_id,
-      "multi2".to_string(),
-      data.person.ap_id.clone(),
-    );
+    let form = MultiCommunityInsertForm::new(person2.id, person2.instance_id, "multi2".to_string());
     let multi2 = MultiCommunity::create(pool, &form).await?;
 
     // list all multis
@@ -534,7 +524,6 @@ mod tests {
       data.person.id,
       data.person.instance_id,
       "multi2".to_string(),
-      data.person.ap_id.clone(),
     );
     let multi2 = MultiCommunity::create(pool, &form).await?;
 

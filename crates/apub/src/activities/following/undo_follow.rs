@@ -10,12 +10,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{
-  community::ApubCommunity,
-  person::ApubPerson,
-  CommunityOrMulti,
-  UserOrCommunity,
-};
+use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunity};
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions, person::PersonActions},
   traits::Followable,
