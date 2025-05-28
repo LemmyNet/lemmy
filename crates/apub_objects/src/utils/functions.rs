@@ -1,7 +1,7 @@
 use super::protocol::Source;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-  protocol::page::Attachment,
+  protocol::{group::Group, page::Attachment},
 };
 use activitypub_federation::{
   config::Data,
@@ -303,4 +303,14 @@ pub async fn append_attachments_to_comment(
   }
 
   Ok(content)
+}
+
+pub fn community_visibility(group: &Group) -> CommunityVisibility {
+  if group.manually_approves_followers.unwrap_or_default() {
+    CommunityVisibility::Private
+  } else if !group.discoverable.unwrap_or(true) {
+    CommunityVisibility::Unlisted
+  } else {
+    CommunityVisibility::Public
+  }
 }
