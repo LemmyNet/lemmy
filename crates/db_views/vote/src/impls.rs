@@ -27,7 +27,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl VoteView {
   pub fn to_post_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and post
-    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.item_id)];
+    let prefixes_and_ids = [('P', self.creator.id.0)];
 
     PaginationCursor::new(&prefixes_and_ids)
   }
@@ -80,7 +80,6 @@ impl VoteView {
       .filter(post_actions::like_score.is_not_null())
       .select((
         person::all_columns,
-        post::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -104,7 +103,7 @@ impl VoteView {
 
   pub fn to_comment_actions_cursor(&self) -> PaginationCursor {
     // This needs a person and comment
-    let prefixes_and_ids = [('P', self.creator.id.0), ('C', self.item_id)];
+    let prefixes_and_ids = [('P', self.creator.id.0)];
 
     PaginationCursor::new(&prefixes_and_ids)
   }
@@ -155,7 +154,6 @@ impl VoteView {
       .filter(comment_actions::like_score.is_not_null())
       .select((
         person::all_columns,
-        comment::id,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -245,13 +243,11 @@ mod tests {
     let mut expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
-        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_timmy.clone(),
-        item_id: inserted_post.id.0,
         creator_banned_from_community: false,
         score: 1,
       },
@@ -274,13 +270,11 @@ mod tests {
     let mut expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
-        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_sara.clone(),
-        item_id: inserted_comment.id.0,
         creator_banned_from_community: false,
         score: 1,
       },
