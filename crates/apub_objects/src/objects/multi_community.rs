@@ -1,22 +1,27 @@
-use crate::protocol::multi_community::Feed;
+use super::multi_community_collection::ApubFeedCollection;
+use crate::{objects::ApubSite, protocol::multi_community::Feed};
 use activitypub_federation::{
   config::Data,
+  fetch::collection_id::CollectionId,
   protocol::verification::verify_domains_match,
-  traits::Object,
+  traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_db_schema::source::multi_community::{
-  MultiCommunity,
-  MultiCommunityApub,
-  MultiCommunityInsertForm,
+use lemmy_db_schema::{
+  source::{
+    multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
+    person::Person,
+  },
+  traits::Crud,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubMultiCommunity(pub MultiCommunity);
+pub struct ApubMultiCommunity(MultiCommunity);
 
 impl Deref for ApubMultiCommunity {
   type Target = MultiCommunity;
@@ -26,9 +31,18 @@ impl Deref for ApubMultiCommunity {
   }
 }
 
-/// TODO: This should use Collection instead of Object, but then it would not work with
-/// resolve_object. Anyway the Collection trait is not working well and should be rewritten
-/// in the library.
+impl ApubMultiCommunity {
+  pub fn following_url(&self) -> LemmyResult<CollectionId<ApubFeedCollection>> {
+    Ok(Url::parse(&format!("{}/following", self.ap_id))?.into())
+  }
+}
+
+impl From<MultiCommunity> for ApubMultiCommunity {
+  fn from(m: MultiCommunity) -> Self {
+    ApubMultiCommunity(m)
+  }
+}
+
 #[async_trait::async_trait]
 impl Object for ApubMultiCommunity {
   type DataType = LemmyContext;
@@ -50,9 +64,24 @@ impl Object for ApubMultiCommunity {
     Err(LemmyErrorType::NotFound.into())
   }
 
-  async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    Err(LemmyErrorType::NotFound.into())
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let site = ApubSite(site_view.site.clone());
+    let creator = Person::read(&mut context.pool(), self.creator_id).await?;
+    Ok(Feed {
+      r#type: Default::default(),
+      id: self.ap_id.clone().into(),
+      inbox: site_view.site.inbox_url.into(),
+      // reusing pubkey from site instead of generating new one
+      public_key: site.public_key(),
+      following: self.following_url()?,
+      name: self.name.clone(),
+      summary: self.title.clone(),
+      content: self.description.clone(),
+      attributed_to: creator.ap_id.into(),
+    })
   }
+
   async fn verify(
     json: &Self::Kind,
     expected_domain: &Url,
@@ -74,7 +103,9 @@ impl Object for ApubMultiCommunity {
       description: json.content,
     };
 
-    let multi = ApubMultiCommunity(MultiCommunityApub::upsert(&mut context.pool(), &form).await?);
+    let multi = MultiCommunityApub::upsert(&mut context.pool(), &form)
+      .await?
+      .into();
     json.following.dereference(&multi, context).await?;
     Ok(multi)
   }

@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
+    multi_community::MultiCommunity,
     person::Person,
     post::Post,
     private_message::PrivateMessage,
@@ -107,6 +108,7 @@ pub enum SendActivityData {
     report_creator: Person,
     receiver: Either<Site, Community>,
   },
+  ChangeMultiCommunityEntry(MultiCommunity, Community, Person, bool),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

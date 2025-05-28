@@ -1,5 +1,10 @@
 use crate::{
-  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
+  activities::{
+    community::send_activity_in_community,
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_mod_action,
+  },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   protocol::activities::community::{
@@ -10,7 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::activity::AddType,
+  kinds::{activity::AddType, public},
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
@@ -18,7 +23,12 @@ use lemmy_api_common::{
   utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{
+    community::ApubCommunity,
+    multi_community::ApubMultiCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+  },
   utils::{
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
@@ -31,6 +41,7 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
+    multi_community::MultiCommunity,
     person::Person,
     post::{Post, PostUpdateForm},
   },
@@ -40,7 +51,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
-  pub async fn send_add_mod(
+  async fn send_add_mod(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
     actor: &ApubPerson,
@@ -65,7 +76,7 @@ impl CollectionAdd {
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
-  pub async fn send_add_featured_post(
+  async fn send_add_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
@@ -92,6 +103,36 @@ impl CollectionAdd {
       ActivitySendTargets::empty(),
       true,
       context,
+    )
+    .await
+  }
+
+  async fn send_add_multi_community_entry(
+    multi: ApubMultiCommunity,
+    community: &ApubCommunity,
+    actor: &ApubPerson,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    let id = generate_activity_id(
+      AddType::Add,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
+    let add = CollectionAdd {
+      actor: actor.id().into(),
+      to: vec![public()],
+      object: community.ap_id.clone().into(),
+      target: multi.following_url()?.into(),
+      cc: vec![multi.ap_id.clone().into()],
+      kind: AddType::Add,
+      id: id.clone(),
+    };
+    let activity = AnnouncableActivities::CollectionAdd(add);
+    send_lemmy_activity(
+      context,
+      activity,
+      actor,
+      ActivitySendTargets::empty(),
+      false,
     )
     .await
   }
@@ -201,5 +242,22 @@ pub(crate) async fn send_feature_post(
     CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await
   } else {
     CollectionRemove::send_remove_featured_post(&community, &post, &actor, &context).await
+  }
+}
+
+pub(crate) async fn send_multi_comm_change_entry(
+  multi: MultiCommunity,
+  community: Community,
+  actor: Person,
+  added: bool,
+  context: Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let multi = multi.into();
+  let actor = actor.into();
+  if added {
+    CollectionAdd::send_add_multi_community_entry(multi, &community.into(), &actor, &context).await
+  } else {
+    CollectionRemove::send_remove_multi_community_entry(multi, &community.into(), &actor, &context)
+      .await
   }
 }

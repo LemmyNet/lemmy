@@ -19,13 +19,13 @@ async fn check_multi_community_creator(
   id: MultiCommunityId,
   local_user_view: &LocalUserView,
   context: &LemmyContext,
-) -> LemmyResult<()> {
+) -> LemmyResult<MultiCommunity> {
   let multi = MultiCommunity::read(&mut context.pool(), id).await?;
   if multi.local && local_user_view.local_user.admin {
-    return Ok(());
+    return Ok(multi);
   }
   if multi.creator_id != local_user_view.person.id {
     return Err(LemmyErrorType::MultiCommunityUpdateWrongUser.into());
   }
-  Ok(())
+  Ok(multi)
 }

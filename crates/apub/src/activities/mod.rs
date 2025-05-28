@@ -28,6 +28,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
+use community::collection_add::send_multi_comm_change_entry;
 use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -358,6 +359,9 @@ pub async fn match_outgoing_activities(
       }
       RejectFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      }
+      ChangeMultiCommunityEntry(multi, community, actor, added) => {
+        send_multi_comm_change_entry(multi, community, actor, added, context).await
       }
     }
   };

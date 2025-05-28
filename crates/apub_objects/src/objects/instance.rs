@@ -48,7 +48,7 @@ use tracing::debug;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct ApubSite(Site);
+pub struct ApubSite(pub Site);
 
 impl Deref for ApubSite {
   type Target = Site;

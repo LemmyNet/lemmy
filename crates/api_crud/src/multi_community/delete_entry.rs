@@ -4,6 +4,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   community::CreateOrDeleteMultiCommunityEntry,
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -18,12 +19,15 @@ pub async fn delete_multi_community_entry(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_multi_community_creator(data.id, &local_user_view, &context).await?;
+  let multi = check_multi_community_creator(data.id, &local_user_view, &context).await?;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   MultiCommunity::delete_entry(&mut context.pool(), data.id, &community).await?;
 
-  // TODO: federate
+  ActivityChannel::submit_activity(
+    SendActivityData::ChangeMultiCommunityEntry(multi, community, local_user_view.person, false),
+    &context,
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

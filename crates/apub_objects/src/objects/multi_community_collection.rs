@@ -14,9 +14,6 @@ use url::Url;
 
 pub struct ApubFeedCollection;
 
-/// TODO: This should use Collection instead of Object, but then it would not work with
-/// resolve_object. Anyway the Collection trait is not working well and should be rewritten
-/// in the library.
 #[async_trait::async_trait]
 impl Collection for ApubFeedCollection {
   type DataType = LemmyContext;
@@ -32,7 +29,7 @@ impl Collection for ApubFeedCollection {
     let multi = MultiCommunityApub::read_local(&mut context.pool(), &owner.name).await?;
     Ok(Self::Kind {
       r#type: Default::default(),
-      id: Url::parse(&format!("{}/following", owner.ap_id))?.into(),
+      id: owner.following_url()?,
       total_items: multi.entries.len().try_into()?,
       items: multi.entries.into_iter().map(Into::into).collect(),
     })

@@ -173,9 +173,10 @@ pub(crate) async fn get_apub_person_multi_community(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi = ApubMultiCommunity(
-    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name).await?,
-  );
+  let multi: ApubMultiCommunity =
+    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name)
+      .await?
+      .into();
 
   create_apub_response(&multi.into_json(&context).await?)
 }
@@ -184,9 +185,9 @@ pub(crate) async fn get_apub_person_multi_community_follows(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi = ApubMultiCommunity(
-    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name).await?,
-  );
+  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name)
+    .await?
+    .into();
 
   let collection = ApubFeedCollection::read_local(&multi, &context).await?;
   create_apub_response(&collection)

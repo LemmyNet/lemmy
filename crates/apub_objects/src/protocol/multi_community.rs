@@ -18,7 +18,6 @@ pub struct Feed {
   pub r#type: FeedType,
   pub id: ObjectId<ApubMultiCommunity>,
   pub inbox: Url,
-  pub followers: Option<Url>,
   pub public_key: PublicKey,
 
   pub following: CollectionId<ApubFeedCollection>,
@@ -28,8 +27,9 @@ pub struct Feed {
   pub attributed_to: ObjectId<ApubPerson>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum FeedType {
+  #[default]
   Feed,
 }
 
