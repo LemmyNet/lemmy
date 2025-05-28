@@ -335,7 +335,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(inbox, &protocol_and_hostname, context)?;
+  let items = create_reply_and_mention_items(inbox, context)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -368,7 +368,7 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_modlog_items(modlog, &protocol_and_hostname)?;
+  let items = create_modlog_items(modlog, context.settings())?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -387,7 +387,6 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
 
 fn create_reply_and_mention_items(
   inbox: Vec<InboxCombinedView>,
-  protocol_and_hostname: &str,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = inbox
@@ -396,41 +395,41 @@ fn create_reply_and_mention_items(
       InboxCombinedView::CommentReply(v) => {
         let reply_url = v.comment.local_url(context.settings())?;
         build_item(
-          &v.creator.name,
+          &v.creator,
           &v.comment.published,
           reply_url.as_str(),
           &v.comment.content,
-          protocol_and_hostname,
+          context.settings(),
         )
       }
       InboxCombinedView::CommentMention(v) => {
         let mention_url = v.comment.local_url(context.settings())?;
         build_item(
-          &v.creator.name,
+          &v.creator,
           &v.comment.published,
           mention_url.as_str(),
           &v.comment.content,
-          protocol_and_hostname,
+          context.settings(),
         )
       }
       InboxCombinedView::PostMention(v) => {
         let mention_url = v.post.local_url(context.settings())?;
         build_item(
-          &v.creator.name,
+          &v.creator,
           &v.post.published,
           mention_url.as_str(),
           &v.post.body.clone().unwrap_or_default(),
-          protocol_and_hostname,
+          context.settings(),
         )
       }
       InboxCombinedView::PrivateMessage(v) => {
-        let inbox_url = format!("{}/inbox", protocol_and_hostname);
+        let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
         build_item(
-          &v.creator.name,
+          &v.creator,
           &v.private_message.published,
           &inbox_url,
           &v.private_message.content,
-          protocol_and_hostname,
+          context.settings(),
         )
       }
     })
@@ -441,12 +440,12 @@ fn create_reply_and_mention_items(
 
 fn create_modlog_items(
   modlog: Vec<ModlogCombinedView>,
-  protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> LemmyResult<Vec<Item>> {
   // All of these go to your modlog url
   let modlog_url = format!(
     "{}/modlog?listing_type=ModeratorView",
-    protocol_and_hostname
+    settings.get_protocol_and_hostname()
   );
 
   let modlog_items: Vec<Item> = modlog
@@ -458,6 +457,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Admin allowed instance - {}", &v.instance.domain),
         &v.admin_allow_instance.reason,
+        settings,
       ),
       ModlogCombinedView::AdminBlockInstance(v) => build_modlog_item(
         &v.admin,
@@ -465,6 +465,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Admin blocked instance - {}", &v.instance.domain),
         &v.admin_block_instance.reason,
+        settings,
       ),
       ModlogCombinedView::AdminPurgeComment(v) => build_modlog_item(
         &v.admin,
@@ -472,6 +473,7 @@ fn create_modlog_items(
         &modlog_url,
         "Admin purged comment",
         &v.admin_purge_comment.reason,
+        settings,
       ),
       ModlogCombinedView::AdminPurgeCommunity(v) => build_modlog_item(
         &v.admin,
@@ -479,6 +481,7 @@ fn create_modlog_items(
         &modlog_url,
         "Admin purged community",
         &v.admin_purge_community.reason,
+        settings,
       ),
       ModlogCombinedView::AdminPurgePerson(v) => build_modlog_item(
         &v.admin,
@@ -486,6 +489,7 @@ fn create_modlog_items(
         &modlog_url,
         "Admin purged person",
         &v.admin_purge_person.reason,
+        settings,
       ),
       ModlogCombinedView::AdminPurgePost(v) => build_modlog_item(
         &v.admin,
@@ -493,6 +497,7 @@ fn create_modlog_items(
         &modlog_url,
         "Admin purged post",
         &v.admin_purge_post.reason,
+        settings,
       ),
       ModlogCombinedView::ModAdd(v) => build_modlog_item(
         &v.moderator,
@@ -500,6 +505,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Added admin {}", &v.other_person.name),
         &None,
+        settings,
       ),
       ModlogCombinedView::ModAddCommunity(v) => build_modlog_item(
         &v.moderator,
@@ -510,6 +516,7 @@ fn create_modlog_items(
           &v.other_person.name, &v.community.name
         ),
         &None,
+        settings,
       ),
       ModlogCombinedView::ModBan(v) => build_modlog_item(
         &v.moderator,
@@ -517,6 +524,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Banned {}", &v.other_person.name),
         &v.mod_ban.reason,
+        settings,
       ),
       ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
         &v.moderator,
@@ -527,6 +535,7 @@ fn create_modlog_items(
           &v.other_person.name, &v.community.name
         ),
         &v.mod_ban_from_community.reason,
+        settings,
       ),
       ModlogCombinedView::ModFeaturePost(v) => build_modlog_item(
         &v.moderator,
@@ -534,6 +543,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Featured post {}", &v.post.name),
         &None,
+        settings,
       ),
       ModlogCombinedView::ModChangeCommunityVisibility(v) => build_modlog_item(
         &v.moderator,
@@ -544,6 +554,7 @@ fn create_modlog_items(
           &v.community.name, &v.mod_change_community_visibility.visibility
         ),
         &v.mod_change_community_visibility.reason,
+        settings,
       ),
       ModlogCombinedView::ModLockPost(v) => build_modlog_item(
         &v.moderator,
@@ -551,6 +562,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Locked post {}", &v.post.name),
         &v.mod_lock_post.reason,
+        settings,
       ),
       ModlogCombinedView::ModRemoveComment(v) => build_modlog_item(
         &v.moderator,
@@ -558,6 +570,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Removed comment {}", &v.comment.content),
         &v.mod_remove_comment.reason,
+        settings,
       ),
       ModlogCombinedView::ModRemoveCommunity(v) => build_modlog_item(
         &v.moderator,
@@ -565,6 +578,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Removed community /c/{}", &v.community.name),
         &v.mod_remove_community.reason,
+        settings,
       ),
       ModlogCombinedView::ModRemovePost(v) => build_modlog_item(
         &v.moderator,
@@ -572,6 +586,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!("Removed post {}", &v.post.name),
         &v.mod_remove_post.reason,
+        settings,
       ),
       ModlogCombinedView::ModTransferCommunity(v) => build_modlog_item(
         &v.moderator,
@@ -582,6 +597,7 @@ fn create_modlog_items(
           &v.community.name, &v.other_person.name
         ),
         &None,
+        settings,
       ),
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
@@ -595,20 +611,26 @@ fn build_modlog_item(
   url: &str,
   action: &str,
   reason: &Option<String>,
+  settings: &Settings,
 ) -> LemmyResult<Item> {
   let guid = Some(Guid {
     permalink: true,
-    value: url.to_owned(),
+    value: action.to_owned(),
   });
-  let author = mod_
-    .as_ref()
-    .map(|mod_| format!("/u/{} <a href=\"{}\">(link)</a>", mod_.name, mod_.ap_id));
+  let author = if let Some(mod_) = mod_ {
+    Some(format!(
+      "/u/{} <a href=\"{}\">(link)</a>",
+      mod_.name,
+      mod_.actor_url(settings)?
+    ))
+  } else {
+    None
+  };
 
   Ok(Item {
     title: Some(action.to_string()),
     author,
     pub_date: Some(published.to_rfc2822()),
-    comments: Some(url.to_owned()),
     link: Some(url.to_owned()),
     guid,
     description: reason.clone(),
@@ -617,11 +639,11 @@ fn build_modlog_item(
 }
 
 fn build_item(
-  creator_name: &str,
+  creator: &Person,
   published: &DateTime<Utc>,
   url: &str,
   content: &str,
-  protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> LemmyResult<Item> {
   // TODO add images
   let guid = Some(Guid {
@@ -631,10 +653,11 @@ fn build_item(
   let description = Some(markdown_to_html(content));
 
   Ok(Item {
-    title: Some(format!("Reply from {creator_name}")),
+    title: Some(format!("Reply from {}", creator.name)),
     author: Some(format!(
-      "/u/{creator_name} <a href=\"{}\">(link)</a>",
-      format_args!("{protocol_and_hostname}/u/{creator_name}")
+      "/u/{} <a href=\"{}\">(link)</a>",
+      creator.name,
+      creator.actor_url(settings)?
     )),
     pub_date: Some(published.to_rfc2822()),
     comments: Some(url.to_owned()),
@@ -650,7 +673,7 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
 
   for p in posts {
     let post_url = p.post.local_url(settings)?;
-    let community_url = Community::local_url(&p.community.name, settings)?;
+    let community_url = &p.community.actor_url(settings)?;
     let dublin_core_ext = Some(DublinCoreExtension {
       creators: vec![p.creator.ap_id.to_string()],
       ..DublinCoreExtension::default()
@@ -660,7 +683,7 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
       value: post_url.to_string(),
     });
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
-    p.creator.ap_id,
+    p.creator.actor_url(settings)?,
     &p.creator.name,
     community_url,
     &p.community.name,

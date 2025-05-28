@@ -14,8 +14,12 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use std::future::Future;
+use url::Url;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -326,6 +330,9 @@ pub trait ApubActor {
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
   where
     Self: Sized;
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl>;
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url>;
 }
 
 pub trait InternalToCombinedView {

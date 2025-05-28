@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageUpdateForm},
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
-  traits::Crud,
+  traits::{ApubActor, Crud},
   utils::{get_conn, DbPool},
 };
 use lemmy_db_views_site::SiteView;
@@ -70,7 +70,7 @@ async fn user_updates_2020_04_02(pool: &mut DbPool<'_>, settings: &Settings) -> 
     let keypair = generate_actor_keypair()?;
 
     let form = PersonUpdateForm {
-      ap_id: Some(Person::local_url(&cperson.name, settings)?),
+      ap_id: Some(Person::generate_local_actor_url(&cperson.name, settings)?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(Utc::now()),
@@ -103,7 +103,7 @@ async fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_ap_id = Community::local_url(&ccommunity.name, settings)?;
+    let community_ap_id = Community::generate_local_actor_url(&ccommunity.name, settings)?;
 
     let form = CommunityUpdateForm {
       ap_id: Some(community_ap_id.clone()),
@@ -400,7 +400,7 @@ async fn initialize_local_site_2022_10_10(
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
-    let person_ap_id = Person::local_url(&setup.admin_username, settings)?;
+    let person_ap_id = Person::generate_local_actor_url(&setup.admin_username, settings)?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {

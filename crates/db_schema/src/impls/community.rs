@@ -277,11 +277,6 @@ impl Community {
     Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
   }
 
-  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
-  }
-
   pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
@@ -650,6 +645,27 @@ impl ApubActor for Community {
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let local_protocol_and_hostname = settings.get_protocol_and_hostname();
+    let local_hostname = &settings.hostname;
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+    let url = if domain != local_hostname {
+      format!("{local_protocol_and_hostname}/c/{}@{}", self.name, domain)
+    } else {
+      format!("{local_protocol_and_hostname}/c/{}", self.name)
+    };
+    Ok(Url::parse(&url)?)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 
