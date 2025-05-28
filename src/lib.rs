@@ -36,7 +36,6 @@ use lemmy_routes::{
   },
   nodeinfo,
   utils::{
-    code_migrations::run_advanced_migrations,
     cors_config,
     prometheus_metrics::{new_prometheus_metrics, serve_prometheus},
     scheduled_tasks,
@@ -172,9 +171,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   // Set up the connection pool
   let pool = build_db_pool()?;
-
-  // Run the Code-required migrations
-  run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;
 
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into()).await?;
