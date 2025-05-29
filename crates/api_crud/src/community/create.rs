@@ -18,6 +18,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  sensitive::SensitiveString,
   source::{
     actor_language::{CommunityLanguage, LocalUserLanguage, SiteLanguage},
     community::{
@@ -95,7 +96,7 @@ pub async fn create_community(
     .banner(banner)
     .nsfw(data.nsfw)
     .actor_id(Some(community_actor_id.clone()))
-    .private_key(site_view.site.private_key.map(|p| p.into_inner()))
+    .private_key(site_view.site.private_key.map(SensitiveString::into_inner))
     .public_key(site_view.site.public_key)
     .followers_url(Some(generate_followers_url(&community_actor_id)?))
     .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
