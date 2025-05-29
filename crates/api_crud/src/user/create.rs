@@ -1,4 +1,4 @@
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::config::Data;
 use actix_web::{web::Json, HttpRequest};
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection};
 use lemmy_api_common::{
@@ -17,7 +17,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::{InstanceId, OAuthProviderId},
+  newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
@@ -41,7 +41,6 @@ use lemmy_email::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -132,20 +131,13 @@ pub async fn register(
   // in a transaction, so that if any fail, the rows aren't created.
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  let tx_local_site = local_site.clone();
-  let tx_settings = context.settings();
+  let tx_context = context.clone();
   let user = conn
     .transaction::<_, LemmyError, _>(|conn| {
       async move {
+        let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
         // We have to create both a person, and local_user
-        let person = create_person(
-          tx_data.username.clone(),
-          &tx_local_site,
-          site_view.site.instance_id,
-          tx_settings,
-          conn,
-        )
-        .await?;
+        let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
 
         // Create the local user
         let local_user_form = LocalUserInsertForm {
@@ -156,7 +148,7 @@ pub async fn register(
         };
 
         let local_user =
-          create_local_user(conn, language_tags, local_user_form, &tx_local_site).await?;
+          create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
 
         if local_site.site_setup && require_registration_application {
           if let Some(answer) = tx_data.answer.clone() {
@@ -356,11 +348,11 @@ pub async fn authenticate_with_oauth(
       // in a transaction, so that if any fail, the rows aren't created.
       let conn = &mut get_conn(pool).await?;
       let tx_data = data.clone();
-      let tx_local_site = local_site.clone();
-      let tx_settings = context.settings();
+      let tx_context = context.clone();
       let user = conn
         .transaction::<_, LemmyError, _>(|conn| {
           async move {
+            let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
             // make sure the username is provided
             let username = tx_data
               .username
@@ -373,14 +365,7 @@ pub async fn authenticate_with_oauth(
             Person::check_username_taken(&mut conn.into(), username).await?;
 
             // We have to create a person, a local_user, and an oauth_account
-            let person = create_person(
-              username.clone(),
-              &tx_local_site,
-              site_view.site.instance_id,
-              tx_settings,
-              conn,
-            )
-            .await?;
+            let person = create_person(username.clone(), &site_view, &tx_context, conn).await?;
 
             // Create the local user
             let local_user_form = LocalUserInsertForm {
@@ -392,7 +377,8 @@ pub async fn authenticate_with_oauth(
             };
 
             let local_user =
-              create_local_user(conn, language_tags, local_user_form, &tx_local_site).await?;
+              create_local_user(conn, language_tags, local_user_form, &site_view.local_site)
+                .await?;
 
             // Create the oauth account
             let oauth_account_form =
@@ -452,21 +438,23 @@ pub async fn authenticate_with_oauth(
 
 async fn create_person(
   username: String,
-  local_site: &LocalSite,
-  instance_id: InstanceId,
-  settings: &Settings,
+  site_view: &SiteView,
+  context: &LemmyContext,
   conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
-  let actor_keypair = generate_actor_keypair()?;
-  is_valid_actor_name(&username, local_site.actor_name_max_length)?;
-  let ap_id = Person::local_url(&username, settings)?;
+  is_valid_actor_name(&username, site_view.local_site.actor_name_max_length)?;
+  let ap_id = Person::local_url(&username, context.settings())?;
 
   // Register the new person
   let person_form = PersonInsertForm {
     ap_id: Some(ap_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
-    private_key: Some(actor_keypair.private_key),
-    ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)
+    private_key: site_view.site.private_key.clone(),
+    ..PersonInsertForm::new(
+      username.clone(),
+      site_view.site.public_key.clone(),
+      site_view.site.instance_id,
+    )
   };
 
   // insert the person
