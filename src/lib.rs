@@ -26,7 +26,6 @@ use lemmy_apub::{
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
-use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
@@ -39,6 +38,7 @@ use lemmy_routes::{
     cors_config,
     prometheus_metrics::{new_prometheus_metrics, serve_prometheus},
     scheduled_tasks,
+    setup_local_site::setup_local_site,
   },
   webfinger,
 };
@@ -176,7 +176,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let secret = Secret::init(&mut (&pool).into()).await?;
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(&mut (&pool).into()).await?;
+  let site_view = setup_local_site(&mut (&pool).into(), &SETTINGS).await?;
   let federation_enabled = site_view.local_site.federation_enabled;
 
   if federation_enabled {
