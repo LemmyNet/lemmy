@@ -459,7 +459,7 @@ async fn initialize_local_site_2022_10_10(
       actor_id: Some(person_actor_id.clone()),
       inbox_url: Some(generate_inbox_url(&person_actor_id)?),
       shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
-      private_key: Some(person_keypair.private_key),
+      private_key: Some(person_keypair.private_key.into()),
       ..PersonInsertForm::new(
         setup.admin_username.clone(),
         person_keypair.public_key,

@@ -1,4 +1,4 @@
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_community_response,
@@ -87,9 +87,6 @@ pub async fn create_community(
     Err(LemmyErrorType::CommunityAlreadyExists)?
   }
 
-  // When you create a community, make sure the user becomes a moderator and a follower
-  let keypair = generate_actor_keypair()?;
-
   let community_form = CommunityInsertForm::builder()
     .name(data.name.clone())
     .title(data.title.clone())
@@ -98,8 +95,8 @@ pub async fn create_community(
     .banner(banner)
     .nsfw(data.nsfw)
     .actor_id(Some(community_actor_id.clone()))
-    .private_key(Some(keypair.private_key))
-    .public_key(keypair.public_key)
+    .private_key(site_view.site.private_key.map(|p| p.into_inner()))
+    .public_key(site_view.site.public_key)
     .followers_url(Some(generate_followers_url(&community_actor_id)?))
     .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
     .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
