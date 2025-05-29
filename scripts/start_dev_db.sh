@@ -1,15 +1,17 @@
 # This script is meant to be run with `source` so it can set environment variables.
 
 export PGDATA="$PWD/target/dev_pgdata"
-export PGHOST=$PWD
+export PGHOST="$PWD/target"
 
 # Necessary to encode the dev db path into proper URL params
 export ENCODED_HOST=$(printf $PWD | jq -sRr @uri)
 
 export PGUSER=postgres
-export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/lemmy"
+export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/target/lemmy"
 export LEMMY_DATABASE_URL=$DATABASE_URL
 export PGDATABASE=lemmy
+
+pushd target
 
 # If cluster exists, stop the server and delete the cluster
 if [[ -d $PGDATA ]]
@@ -52,3 +54,5 @@ pg_ctl start --silent --options="${config_args[*]}"
 # Setup database
 PGDATABASE=postgres psql --quiet -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
 PGDATABASE=postgres psql --quiet -c "CREATE DATABASE lemmy WITH OWNER lemmy;"
+
+popd
