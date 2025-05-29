@@ -1,8 +1,13 @@
-use super::check_multi_community_creator;
+use super::{check_multi_community_creator, send_federation_update};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{community::UpdateMultiCommunity, context::LemmyContext, SuccessResponse};
+use lemmy_api_common::{
+  community::UpdateMultiCommunity,
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+  SuccessResponse,
+};
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityUpdateForm},
   traits::Crud,
@@ -24,6 +29,9 @@ pub async fn update_multi_community(
     deleted: data.deleted,
     updated: Some(Utc::now()),
   };
-  MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
+  let multi = MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
+
+  send_federation_update(multi, local_user_view, &context).await?;
+
   Ok(Json(SuccessResponse::default()))
 }

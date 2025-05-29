@@ -1,4 +1,9 @@
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use activitypub_federation::config::Data;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+  LemmyErrorType,
+};
 use lemmy_db_schema::{
   newtypes::MultiCommunityId,
   source::multi_community::MultiCommunity,
@@ -28,4 +33,16 @@ async fn check_multi_community_creator(
     return Err(LemmyErrorType::MultiCommunityUpdateWrongUser.into());
   }
   Ok(multi)
+}
+
+async fn send_federation_update(
+  multi: MultiCommunity,
+  local_user_view: LocalUserView,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdateMultiCommunity(multi, local_user_view.person),
+    &context,
+  )?;
+  Ok(())
 }

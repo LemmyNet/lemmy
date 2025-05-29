@@ -37,7 +37,8 @@ full = [
   "i-love-jesus",
   "tuplex",
   "moka",
-  "lemmy_db_schema_file/full","either"
+  "lemmy_db_schema_file/full",
+  "either",
 ]
 
 [dependencies]

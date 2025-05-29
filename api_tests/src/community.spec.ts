@@ -690,7 +690,7 @@ test("Community name with non-ascii chars", async () => {
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });
 
-test.only("Multi-community", async () => {
+test("Multi-community", async () => {
   // create multi
   let alphaMulti = await alpha.createMultiCommunity({ name: "multi-comm" });
   let myUser = await getMyUser(alpha);
@@ -707,24 +707,29 @@ test.only("Multi-community", async () => {
   expect(success1.success).toBeTruthy();
 
   // resolve over federation
-  let betaMulti = (await beta.resolveObject({ q: alphaMulti.ap_id })).multi_community!;
+  let betaMulti = (await beta.resolveObject({ q: alphaMulti.ap_id }))
+    .multi_community!;
   expect(betaMulti.ap_id).toBe(alphaMulti.ap_id);
-  
+
   var getBetaMulti = await waitUntil(
-    () => beta.getMultiCommunity({id: betaMulti.id}),
+    () => beta.getMultiCommunity({ id: betaMulti.id }),
     m => m.entries.length == 1,
   );
   expect(getBetaMulti.entries[0].community.ap_id).toBe(community1.ap_id);
 
   // follow multi over federation
-  let form: FollowMultiCommunity ={multi_community_id: betaMulti.id, follow: true};
+  let form: FollowMultiCommunity = {
+    multi_community_id: betaMulti.id,
+    follow: true,
+  };
   await beta.followMultiCommunity(form);
 
   let followed = await waitUntil(
-    () => beta.listMultiCommunities({followed_only: true}),
+    () => beta.listMultiCommunities({ followed_only: true }),
     m => m.multi_communities.length == 1,
   );
   expect(followed.multi_communities[0].ap_id).toBe(betaMulti.ap_id);
+  await delay();
 
   // add community to multi
   let community2 = await resolveBetaCommunity(alpha);
@@ -735,59 +740,13 @@ test.only("Multi-community", async () => {
   expect(success2.success).toBeTruthy();
 
   // federated to beta
-  console.log(1);
   getBetaMulti = await waitUntil(
-    () => beta.getMultiCommunity({id: betaMulti.id}),
-    m => m.entries.length ==2,
+    () => beta.getMultiCommunity({ id: betaMulti.id }),
+    m => m.entries.length == 2,
   );
-  console.log(2);
-  expect(getBetaMulti.entries[1].community.ap_id).toBe(community2.community?.community.ap_id);
-
-
-
-  /*
-  // add two communities
-  let createCommunity1 = await createCommunity(beta);
-  let community1 = await resolveCommunity(
-    alpha,
-    createCommunity1.community_view.community.ap_id,
+  expect(getBetaMulti.entries[1].community.ap_id).toBe(
+    community2.community?.community.ap_id,
   );
-  let community2 = await resolveBetaCommunity(alpha);
-  let success1 = await alpha.createMultiCommunityEntry({
-    id: alphaMulti.id,
-    community_id: community1.community!.community.id,
-  });
-  expect(success1.success).toBeTruthy();
-  let success2 = await alpha.createMultiCommunityEntry({
-    id: alphaMulti.id,
-    community_id: community2.community!.community.id,
-  });
-  expect(success2.success).toBeTruthy();
-
-  // list multi
-  let list = await alpha.listMultiCommunities({});
-  expect(list.multi_communities.length).toBe(1);
-  expect(list.multi_communities[0].ap_id).toBe(alphaMulti.ap_id);
-
-  expect(multi.entries.length).toBe(2);
-  await createPost(beta, multi.entries[0].community.id);
-  await createPost(beta, multi.entries[1].community.id);
-
-  // list posts in multi
-  let listing = await beta.getPosts({
-    multi_community_id: resolved.multi_community?.id,
-  });
-  expect(listing.posts.length).toBe(2);
-
-  // delete entry
-  let success3 = await alpha.deleteMultiCommunityEntry({
-    id: alphaMulti.id,
-    community_id: community2.community!.community.id,
-  });
-  expect(success3.success).toBeTruthy();
-  let getMulti = await alpha.getMultiCommunity({ id: alphaMulti.id });
-  expect(getMulti.entries.length).toBe(1);
-  */
 });
 
 function checkCommunityReportName(

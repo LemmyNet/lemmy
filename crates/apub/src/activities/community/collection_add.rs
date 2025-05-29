@@ -114,7 +114,6 @@ impl ActivityHandler for CollectionAdd {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    dbg!(&self);
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {

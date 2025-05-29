@@ -4,7 +4,6 @@ use crate::{
     community::{
       collection_add::{send_add_mod_to_community, send_feature_post},
       lock_page::send_lock_post,
-      update::send_update_community,
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
@@ -27,6 +26,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
+use community::update::{send_update_community, send_update_multi_community};
 use either::Either;
 use following::{send_accept_or_reject_follow, send_follow};
 use lemmy_api_common::{
@@ -362,8 +362,8 @@ pub async fn match_outgoing_activities(
       RejectFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, false, &context).await
       }
-      ChangeMultiCommunityEntry(multi, community, actor, added) => {
-        todo!()
+      UpdateMultiCommunity(multi, actor) => {
+        send_update_multi_community(multi, actor, context).await
       }
     }
   };

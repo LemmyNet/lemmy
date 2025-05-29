@@ -1,4 +1,4 @@
-use super::check_multi_community_creator;
+use super::{check_multi_community_creator, send_federation_update};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -27,10 +27,7 @@ pub async fn create_multi_community_entry(
 
   MultiCommunity::create_entry(&mut context.pool(), data.id, &community).await?;
 
-  ActivityChannel::submit_activity(
-    SendActivityData::ChangeMultiCommunityEntry(multi, community, local_user_view.person, true),
-    &context,
-  )?;
+  send_federation_update(multi, local_user_view, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

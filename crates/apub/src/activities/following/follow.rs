@@ -118,7 +118,7 @@ impl ActivityHandler for Follow {
           follow_state: CommunityFollowerState::Accepted,
         };
 
-        dbg!(MultiCommunity::follow(&mut context.pool(), &form).await)?;
+        MultiCommunity::follow(&mut context.pool(), &form).await?;
         AcceptFollow::send(self, context).await?;
       }
     }

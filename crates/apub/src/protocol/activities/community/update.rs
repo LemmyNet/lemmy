@@ -4,10 +4,11 @@ use activitypub_federation::{
   kinds::activity::UpdateType,
   protocol::helpers::deserialize_one_or_many,
 };
-use lemmy_api_common::context::LemmyContext;
+use either::Either;
+use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::group::Group,
+  protocol::{group::Group, multi_community::Feed},
   utils::protocol::InCommunity,
 };
 use lemmy_utils::error::LemmyResult;
@@ -18,12 +19,12 @@ use url::Url;
 /// fields of a local community.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateCommunity {
+pub struct Update {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
-  pub(crate) object: Box<Group>,
+  pub(crate) object: Either<Group, Feed>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -31,9 +32,14 @@ pub struct UpdateCommunity {
   pub(crate) id: Url,
 }
 
-impl InCommunity for UpdateCommunity {
+impl InCommunity for Update {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community: ApubCommunity = self.object.id.clone().dereference(context).await?;
-    Ok(community)
+    match &self.object {
+      Either::Left(c) => {
+        let community: ApubCommunity = c.id.clone().dereference(context).await?;
+        Ok(community)
+      }
+      Either::Right(_) => Err(LemmyErrorType::NotFound.into()),
+    }
   }
 }

@@ -7,12 +7,12 @@ CREATE TABLE multi_community (
     description varchar(255),
     local bool NOT NULL DEFAULT TRUE,
     deleted bool NOT NULL DEFAULT FALSE,
-    ap_id text UNIQUE NOT NULL default generate_unique_changeme(),
-    public_key text not null,
+    ap_id text UNIQUE NOT NULL DEFAULT generate_unique_changeme (),
+    public_key text NOT NULL,
     private_key text,
-    inbox_url text not null default generate_unique_changeme(),
-    last_refreshed_at timestamptz not null default now(),
-    following_url text not null,
+    inbox_url text NOT NULL DEFAULT generate_unique_changeme (),
+    last_refreshed_at timestamptz NOT NULL DEFAULT now(),
+    following_url text NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),
     updated timestamptz
 );

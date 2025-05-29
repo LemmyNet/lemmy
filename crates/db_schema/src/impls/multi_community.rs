@@ -294,14 +294,14 @@ impl MultiCommunity {
     multi_community_id: MultiCommunityId,
   ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
-    dbg!(multi_community_follow::table
+    multi_community_follow::table
       .inner_join(person::table)
       .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
       .select(person::inbox_url)
       .distinct()
       .load(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound))
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

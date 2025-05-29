@@ -109,7 +109,7 @@ pub enum SendActivityData {
     report_creator: Person,
     receiver: Either<Site, Community>,
   },
-  ChangeMultiCommunityEntry(MultiCommunity, Community, Person, bool),
+  UpdateMultiCommunity(MultiCommunity, Person),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
