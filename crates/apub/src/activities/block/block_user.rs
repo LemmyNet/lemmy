@@ -57,7 +57,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: reason,
-      id: generate_activity_id(BlockType::Block, &context)?,
+      id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
     })
   }

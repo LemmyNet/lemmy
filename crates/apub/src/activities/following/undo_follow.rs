@@ -36,7 +36,7 @@ impl UndoFollow {
       to: Some([target.id().into()]),
       object,
       kind: UndoType::Undo,
-      id: generate_activity_id(UndoType::Undo, &context)?,
+      id: generate_activity_id(UndoType::Undo, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(context, undo, actor, inbox, true).await

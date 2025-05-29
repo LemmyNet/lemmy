@@ -30,7 +30,7 @@ impl UndoVote {
       actor: actor.id().into(),
       object: vote,
       kind: UndoType::Undo,
-      id: generate_activity_id(UndoType::Undo, &context)?,
+      id: generate_activity_id(UndoType::Undo, context)?,
     })
   }
 }

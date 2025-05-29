@@ -60,7 +60,7 @@ pub enum AnnouncableActivities {
   UndoVote(UndoVote),
   Delete(Delete),
   UndoDelete(UndoDelete),
-  UpdateCommunity(Update),
+  UpdateCommunity(Box<Update>),
   BlockUser(BlockUser),
   UndoBlockUser(UndoBlockUser),
   CollectionAdd(CollectionAdd),

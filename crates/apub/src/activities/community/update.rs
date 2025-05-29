@@ -49,7 +49,7 @@ pub(crate) async fn send_update_community(
     id: id.clone(),
   };
 
-  let activity = AnnouncableActivities::UpdateCommunity(update);
+  let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
   send_activity_in_community(
     activity,
     &actor,
@@ -78,7 +78,7 @@ pub(crate) async fn send_update_multi_community(
     id: id.clone(),
   };
 
-  let activity = AnnouncableActivities::UpdateCommunity(update);
+  let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
   let mut inboxes = ActivitySendTargets::empty();
   inboxes.add_inboxes(MultiCommunity::follower_inboxes(&mut context.pool(), multi.id).await?);
   send_lemmy_activity(&context, activity, &actor, inboxes, false).await
@@ -104,9 +104,9 @@ impl ActivityHandler for Update {
         verify_visibility(&self.to, &self.cc, &community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
-        ApubCommunity::verify(&c, &self.id, context).await?
+        ApubCommunity::verify(c, &self.id, context).await?
       }
-      Either::Right(m) => ApubMultiCommunity::verify(&m, &self.id, context).await?,
+      Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,
     }
     Ok(())
   }

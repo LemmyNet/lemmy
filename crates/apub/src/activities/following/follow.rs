@@ -40,7 +40,7 @@ impl Follow {
       object: target.id().into(),
       to: Some([target.id().into()]),
       kind: FollowType::Follow,
-      id: generate_activity_id(FollowType::Follow, &context)?,
+      id: generate_activity_id(FollowType::Follow, context)?,
     })
   }
 

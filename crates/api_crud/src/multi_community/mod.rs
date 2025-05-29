@@ -42,7 +42,7 @@ async fn send_federation_update(
 ) -> LemmyResult<()> {
   ActivityChannel::submit_activity(
     SendActivityData::UpdateMultiCommunity(multi, local_user_view.person),
-    &context,
+    context,
   )?;
   Ok(())
 }
