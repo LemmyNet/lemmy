@@ -17,12 +17,7 @@ use activitypub_federation::{
 use either::Either;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{
-    community::ApubCommunity,
-    multi_community::ApubMultiCommunity,
-    person::ApubPerson,
-    CommunityOrMulti,
-  },
+  objects::{community::ApubCommunity, multi_community::ApubMultiCommunity, person::ApubPerson},
   utils::{
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::InCommunity,

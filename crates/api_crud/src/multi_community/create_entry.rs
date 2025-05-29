@@ -4,7 +4,6 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   community::CreateOrDeleteMultiCommunityEntry,
   context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_deleted_removed,
   SuccessResponse,
 };
