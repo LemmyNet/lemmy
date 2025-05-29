@@ -9,10 +9,16 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
+use either::Either::*;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunity};
+use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti};
 use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityActions, person::PersonActions},
+  source::{
+    activity::ActivitySendTargets,
+    community::CommunityActions,
+    multi_community::MultiCommunity,
+    person::PersonActions,
+  },
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -66,12 +72,13 @@ impl ActivityHandler for UndoFollow {
     let object = self.object.object.dereference(context).await?;
 
     match object {
-      UserOrCommunity::Left(u) => {
+      Left(u) => {
         PersonActions::unfollow(&mut context.pool(), person.id, u.id).await?;
       }
-      UserOrCommunity::Right(c) => {
+      Right(Left(c)) => {
         CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
       }
+      Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,
     }
 
     Ok(())

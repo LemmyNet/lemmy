@@ -1,4 +1,4 @@
-use super::send_activity_from_user_or_community;
+use super::send_activity_from_user_or_community_or_multi;
 use crate::{
   activities::generate_activity_id,
   insert_received_activity,
@@ -30,7 +30,7 @@ impl RejectFollow {
       id: generate_activity_id(RejectType::Reject, &context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_activity_from_user_or_community(context, reject, user_or_community, inbox).await
+    send_activity_from_user_or_community_or_multi(context, reject, user_or_community, inbox).await
   }
 }
 

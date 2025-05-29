@@ -11,6 +11,8 @@ CREATE TABLE multi_community (
     public_key text not null,
     private_key text,
     inbox_url text not null default generate_unique_changeme(),
+    last_refreshed_at timestamptz not null default now(),
+    following_url text not null,
     published timestamptz NOT NULL DEFAULT now(),
     updated timestamptz
 );

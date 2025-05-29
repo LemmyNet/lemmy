@@ -1,8 +1,6 @@
-use super::multi_community_collection::ApubFeedCollection;
-use crate::{objects::ApubSite, protocol::multi_community::Feed};
+use crate::{objects::ApubSite, protocol::multi_community::Feed, utils::functions::GetActorType};
 use activitypub_federation::{
   config::Data,
-  fetch::collection_id::CollectionId,
   protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
@@ -16,6 +14,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use std::ops::Deref;
@@ -32,12 +31,6 @@ impl Deref for ApubMultiCommunity {
   }
 }
 
-impl ApubMultiCommunity {
-  pub fn following_url(&self) -> LemmyResult<CollectionId<ApubFeedCollection>> {
-    Ok(Url::parse(&format!("{}/following", self.ap_id))?.into())
-  }
-}
-
 impl From<MultiCommunity> for ApubMultiCommunity {
   fn from(m: MultiCommunity) -> Self {
     ApubMultiCommunity(m)
@@ -51,14 +44,18 @@ impl Object for ApubMultiCommunity {
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    None
+    Some(self.last_refreshed_at)
   }
 
   async fn read_from_id(
-    _object_id: Url,
-    _context: &Data<Self::DataType>,
+    object_id: Url,
+    context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
-    Ok(None)
+    Ok(
+      MultiCommunity::read_from_ap_id(&mut context.pool(), &object_id.into())
+        .await?
+        .map(Into::into),
+    )
   }
 
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
@@ -75,7 +72,7 @@ impl Object for ApubMultiCommunity {
       inbox: site_view.site.inbox_url.into(),
       // reusing pubkey from site instead of generating new one
       public_key: site.public_key(),
-      following: self.following_url()?,
+      following: self.following_url.clone().into(),
       name: self.name.clone(),
       summary: self.title.clone(),
       content: self.description.clone(),
@@ -105,6 +102,8 @@ impl Object for ApubMultiCommunity {
       public_key: Some(json.public_key.public_key_pem),
       private_key: None,
       inbox_url: Some(json.inbox.into()),
+      following_url: Some(json.following.clone().into()),
+      last_refreshed_at: Some(Utc::now()),
     };
 
     let multi = MultiCommunityApub::upsert(&mut context.pool(), &form)
@@ -134,5 +133,11 @@ impl Actor for ApubMultiCommunity {
 
   fn shared_inbox(&self) -> Option<Url> {
     None
+  }
+}
+
+impl GetActorType for ApubMultiCommunity {
+  fn actor_type(&self) -> ActorType {
+    ActorType::MultiCommunity
   }
 }

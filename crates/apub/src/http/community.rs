@@ -25,7 +25,7 @@ use lemmy_apub_objects::objects::{
   community::ApubCommunity,
   multi_community::ApubMultiCommunity,
   multi_community_collection::ApubFeedCollection,
-  SiteOrCommunityOrUser,
+  SiteOrMultiOrCommunityOrUser,
 };
 use lemmy_db_schema::{
   source::{community::Community, multi_community::MultiCommunity},
@@ -43,7 +43,7 @@ pub(crate) struct CommunityPath {
 
 #[derive(Deserialize, Clone)]
 pub struct CommunityIsFollowerQuery {
-  is_follower: Option<ObjectId<SiteOrCommunityOrUser>>,
+  is_follower: Option<ObjectId<SiteOrMultiOrCommunityOrUser>>,
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
@@ -87,7 +87,7 @@ pub(crate) async fn get_apub_community_followers(
 /// Checks if a given actor follows the private community. Returns status 200 if true.
 async fn check_is_follower(
   community: Community,
-  is_follower: &ObjectId<SiteOrCommunityOrUser>,
+  is_follower: &ObjectId<SiteOrMultiOrCommunityOrUser>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
@@ -95,7 +95,8 @@ async fn check_is_follower(
     return Ok(HttpResponse::BadRequest().body("must be a private community"));
   }
   // also check for http sig so that followers are not exposed publicly
-  let signing_actor = signing_actor::<SiteOrCommunityOrUser>(&request, None, &context).await?;
+  let signing_actor =
+    signing_actor::<SiteOrMultiOrCommunityOrUser>(&request, None, &context).await?;
   CommunityFollowerView::check_has_followers_from_instance(
     community.id,
     get_instance_id(&signing_actor),

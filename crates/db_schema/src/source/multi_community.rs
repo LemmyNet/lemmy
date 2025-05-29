@@ -30,6 +30,8 @@ pub struct MultiCommunity {
   pub public_key: String,
   pub private_key: Option<SensitiveString>,
   pub inbox_url: DbUrl,
+  pub last_refreshed_at: DateTime<Utc>,
+  pub following_url: DbUrl,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
@@ -53,9 +55,13 @@ pub struct MultiCommunityInsertForm {
   #[new(default)]
   pub public_key: Option<String>,
   #[new(default)]
+  pub last_refreshed_at: Option<DateTime<Utc>>,
+  #[new(default)]
   pub private_key: Option<SensitiveString>,
   #[new(default)]
   pub inbox_url: Option<DbUrl>,
+  #[new(default)]
+  pub following_url: Option<DbUrl>,
 }
 
 #[derive(Debug, Clone)]

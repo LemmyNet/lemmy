@@ -28,18 +28,21 @@ pub async fn create_multi_community(
     context.settings().get_protocol_and_hostname(),
     &data.name
   ))?;
+  let following_url = Url::parse(&format!("{}/following", ap_id))?;
 
   let form = MultiCommunityInsertForm {
-    creator_id: local_user_view.person.id,
-    instance_id: local_user_view.person.instance_id,
-    name: data.name.clone(),
     title: data.title.clone(),
-    local: Some(true),
     description: data.description.clone(),
     ap_id: Some(ap_id.into()),
     public_key: Some(site_view.site.public_key),
     private_key: site_view.site.private_key,
     inbox_url: Some(site_view.site.inbox_url),
+    following_url: Some(following_url.into()),
+    ..MultiCommunityInsertForm::new(
+      local_user_view.person.id,
+      local_user_view.person.instance_id,
+      data.name.clone(),
+    )
   };
   let res = MultiCommunity::create(&mut context.pool(), &form).await?;
   Ok(Json(res))

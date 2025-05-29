@@ -1,6 +1,6 @@
 use crate::{
-  diesel::{BoolExpressionMethods, PgExpressionMethods},
-  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods},
+  newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
   source::{
     community::{Community, CommunityActions, CommunityFollowerForm},
     multi_community::{
@@ -39,7 +39,7 @@ use lemmy_db_schema_file::{
     person,
   },
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 const MULTI_COMMUNITY_ENTRY_LIMIT: i8 = 50;
 
@@ -84,6 +84,16 @@ impl MultiCommunity {
         .first(conn)
         .await?,
     )
+  }
+
+  pub async fn read_from_ap_id(pool: &mut DbPool<'_>, ap_id: &DbUrl) -> LemmyResult<Option<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    multi_community::table
+      .filter(multi_community::ap_id.eq(ap_id))
+      .first(conn)
+      .await
+      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn create_entry(
@@ -170,19 +180,18 @@ impl MultiCommunity {
 
   pub async fn unfollow(
     pool: &mut DbPool<'_>,
-    multi_community_id: MultiCommunityId,
     person_id: PersonId,
-  ) -> LemmyResult<MultiCommunityFollow> {
+    multi_community_id: MultiCommunityId,
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      delete(
-        multi_community_follow::table
-          .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
-          .filter(multi_community_follow::person_id.eq(person_id)),
-      )
-      .get_result(conn)
-      .await?,
+    delete(
+      multi_community_follow::table
+        .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
+        .filter(multi_community_follow::person_id.eq(person_id)),
     )
+    .execute(conn)
+    .await?;
+    Ok(())
   }
 
   pub async fn update_local_follows(
@@ -279,6 +288,20 @@ impl MultiCommunity {
         .await?;
     }
     Ok(())
+  }
+  pub async fn follower_inboxes(
+    pool: &mut DbPool<'_>,
+    multi_community_id: MultiCommunityId,
+  ) -> LemmyResult<Vec<DbUrl>> {
+    let conn = &mut get_conn(pool).await?;
+    dbg!(multi_community_follow::table
+      .inner_join(person::table)
+      .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
+      .select(person::inbox_url)
+      .distinct()
+      .load(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound))
   }
 }
 

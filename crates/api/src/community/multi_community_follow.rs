@@ -75,7 +75,7 @@ pub async fn follow_multi_community(
       }
     }
   } else {
-    MultiCommunity::unfollow(&mut context.pool(), multi_community_id, person_id).await?;
+    MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
 
     // Unfollow all communities which were followed as part of multi-comm
     // (is_multi_community_follow=true)

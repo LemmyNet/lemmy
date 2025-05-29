@@ -15,6 +15,8 @@ use multi_community::ApubMultiCommunity;
 use person::ApubPerson;
 use post::ApubPost;
 
+// TODO: some of these are redundant?
+
 pub type PostOrComment = Either<ApubPost, ApubComment>;
 
 pub type SearchableObjects = Either<Either<PostOrComment, UserOrCommunity>, ApubMultiCommunity>;
@@ -23,6 +25,9 @@ pub type ReportableObjects = Either<PostOrComment, ApubCommunity>;
 
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 
-pub type SiteOrCommunityOrUser = Either<ApubSite, UserOrCommunity>;
+pub type SiteOrMultiOrCommunityOrUser =
+  Either<Either<ApubSite, ApubMultiCommunity>, UserOrCommunity>;
 
 pub type CommunityOrMulti = Either<ApubCommunity, ApubMultiCommunity>;
+
+pub type UserOrCommunityOrMulti = Either<ApubPerson, CommunityOrMulti>;

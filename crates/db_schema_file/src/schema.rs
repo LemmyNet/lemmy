@@ -727,6 +727,8 @@ diesel::table! {
         public_key -> Text,
         private_key -> Nullable<Text>,
         inbox_url -> Text,
+        last_refreshed_at -> Timestamptz,
+        following_url -> Text,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
     }

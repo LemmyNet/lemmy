@@ -183,6 +183,7 @@ pub enum ActorType {
   Site,
   Community,
   Person,
+  MultiCommunity,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

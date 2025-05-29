@@ -6,8 +6,9 @@ use crate::protocol::activities::following::{
   undo_follow::UndoFollow,
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::ActivityHandler};
+use either::Either::*;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunity};
+use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunityOrMulti};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{activity::ActivitySendTargets, community::Community, person::Person},
@@ -59,21 +60,20 @@ pub async fn send_accept_or_reject_follow(
 }
 
 /// Wrapper type which is needed because we cant implement ActorT for Either.
-async fn send_activity_from_user_or_community<Activity>(
+async fn send_activity_from_user_or_community_or_multi<Activity>(
   context: &Data<LemmyContext>,
   activity: Activity,
-  user_or_community: UserOrCommunity,
+  target: UserOrCommunityOrMulti,
   send_targets: ActivitySendTargets,
 ) -> LemmyResult<()>
 where
   Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
 {
-  match user_or_community {
-    UserOrCommunity::Left(user) => {
-      send_lemmy_activity(context, activity, &user, send_targets, true).await
-    }
-    UserOrCommunity::Right(community) => {
+  match target {
+    Left(user) => send_lemmy_activity(context, activity, &user, send_targets, true).await,
+    Right(Left(community)) => {
       send_lemmy_activity(context, activity, &community, send_targets, true).await
     }
+    Right(Right(multi)) => send_lemmy_activity(context, activity, &multi, send_targets, true).await,
   }
 }

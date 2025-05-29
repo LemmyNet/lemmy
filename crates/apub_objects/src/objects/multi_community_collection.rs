@@ -29,7 +29,7 @@ impl Collection for ApubFeedCollection {
     let multi = MultiCommunityApub::read_local(&mut context.pool(), &owner.name).await?;
     Ok(Self::Kind {
       r#type: Default::default(),
-      id: owner.following_url()?,
+      id: owner.following_url.clone().into(),
       total_items: multi.entries.len().try_into()?,
       items: multi.entries.into_iter().map(Into::into).collect(),
     })

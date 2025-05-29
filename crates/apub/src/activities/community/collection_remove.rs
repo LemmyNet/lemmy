@@ -7,7 +7,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::{activity::RemoveType, public},
+  kinds::activity::RemoveType,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
@@ -15,12 +15,7 @@ use lemmy_api_common::{
   utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
-  objects::{
-    community::ApubCommunity,
-    multi_community::ApubMultiCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-  },
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
@@ -75,34 +70,6 @@ impl CollectionRemove {
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.ap_id)?.into(),
       cc: vec![community.id()],
-      kind: RemoveType::Remove,
-      id: id.clone(),
-    };
-    let activity = AnnouncableActivities::CollectionRemove(remove);
-    send_activity_in_community(
-      activity,
-      actor,
-      community,
-      ActivitySendTargets::empty(),
-      true,
-      context,
-    )
-    .await
-  }
-
-  pub(super) async fn send_remove_multi_community_entry(
-    multi: ApubMultiCommunity,
-    community: &ApubCommunity,
-    actor: &ApubPerson,
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
-    let id = generate_activity_id(RemoveType::Remove, &context)?;
-    let remove = CollectionRemove {
-      actor: actor.id().into(),
-      to: vec![public()],
-      object: multi.ap_id.clone().into(),
-      target: generate_featured_url(&community.ap_id)?.into(),
-      cc: vec![multi.ap_id.clone().into()],
       kind: RemoveType::Remove,
       id: id.clone(),
     };

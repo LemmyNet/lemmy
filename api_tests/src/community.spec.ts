@@ -735,10 +735,12 @@ test.only("Multi-community", async () => {
   expect(success2.success).toBeTruthy();
 
   // federated to beta
+  console.log(1);
   getBetaMulti = await waitUntil(
     () => beta.getMultiCommunity({id: betaMulti.id}),
     m => m.entries.length ==2,
   );
+  console.log(2);
   expect(getBetaMulti.entries[1].community.ap_id).toBe(community2.community?.community.ap_id);
 
 
