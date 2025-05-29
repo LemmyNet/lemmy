@@ -3280,15 +3280,20 @@ dependencies = [
  "lemmy_db_views_create_comment",
  "lemmy_db_views_create_comment_like",
  "lemmy_db_views_create_community",
+ "lemmy_db_views_create_custom_emoji",
  "lemmy_db_views_create_post",
  "lemmy_db_views_create_post_like",
+ "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_custom_emoji_response",
  "lemmy_db_views_delete_account",
  "lemmy_db_views_delete_comment",
  "lemmy_db_views_delete_community",
+ "lemmy_db_views_delete_custom_emoji",
  "lemmy_db_views_delete_post",
  "lemmy_db_views_distinguish_comment",
  "lemmy_db_views_edit_comment",
  "lemmy_db_views_edit_community",
+ "lemmy_db_views_edit_custom_emoji",
  "lemmy_db_views_edit_post",
  "lemmy_db_views_feature_post",
  "lemmy_db_views_follow_community",
@@ -3366,13 +3371,13 @@ dependencies = [
  "lemmy_db_views_create_comment",
  "lemmy_db_views_create_community",
  "lemmy_db_views_create_custom_emoji",
- "lemmy_db_views_create_emoji_response",
  "lemmy_db_views_create_oauth_provider",
  "lemmy_db_views_create_post",
  "lemmy_db_views_create_private_message",
  "lemmy_db_views_create_site",
  "lemmy_db_views_create_tagline",
  "lemmy_db_views_custom_emoji",
+ "lemmy_db_views_custom_emoji_response",
  "lemmy_db_views_delete_account",
  "lemmy_db_views_delete_comment",
  "lemmy_db_views_delete_community",
@@ -4048,15 +4053,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_create_emoji_response"
-version = "1.0.0-alpha.4"
-dependencies = [
- "lemmy_db_views_custom_emoji",
- "serde",
- "ts-rs",
-]
-
-[[package]]
 name = "lemmy_db_views_create_oauth_provider"
 version = "1.0.0-alpha.4"
 dependencies = [
@@ -4139,6 +4135,15 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_utils",
+ "serde",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_custom_emoji_response"
+version = "1.0.0-alpha.4"
+dependencies = [
+ "lemmy_db_views_custom_emoji",
  "serde",
  "ts-rs",
 ]

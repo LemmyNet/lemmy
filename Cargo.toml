@@ -153,7 +153,7 @@ members = [
   "crates/db_views/create_custom_emoji",
   "crates/db_views/edit_custom_emoji",
   "crates/db_views/delete_custom_emoji",
-  "crates/db_views/create_emoji_response",
+  "crates/db_views/custom_emoji_response",
   "crates/db_views/list_custom_emojis_response",
   "crates/db_views/list_custom_emojis",
   "crates/db_views/create_post",
@@ -360,7 +360,7 @@ lemmy_db_views_list_logins_response = { version = "=1.0.0-alpha.4", path = "./cr
 lemmy_db_views_resend_verification_email = { version = "=1.0.0-alpha.4", path = "./crates/db_views/resend_verification_email" }
 lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/custom_emoji" }
 lemmy_db_views_create_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_custom_emoji" }
-lemmy_db_views_create_emoji_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/create_emoji_response" }
+lemmy_db_views_custom_emoji_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/custom_emoji_response" }
 lemmy_db_views_edit_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/edit_custom_emoji" }
 lemmy_db_views_delete_custom_emoji = { version = "=1.0.0-alpha.4", path = "./crates/db_views/delete_custom_emoji" }
 lemmy_db_views_list_custom_emojis_response = { version = "=1.0.0-alpha.4", path = "./crates/db_views/list_custom_emojis_response" }

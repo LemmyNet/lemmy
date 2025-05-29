@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_create_emoji_response"
+name = "lemmy_db_views_custom_emoji_response"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
