@@ -1,6 +1,6 @@
 # This script is meant to be run with `source` so it can set environment variables.
 
-export PGDATA="$PWD/dev_pgdata"
+export PGDATA="$PWD/target/dev_pgdata"
 export PGHOST=$PWD
 
 # Necessary to encode the dev db path into proper URL params
