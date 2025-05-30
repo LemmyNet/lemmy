@@ -52,6 +52,7 @@ pub struct MultiCommunityInsertForm {
   pub creator_id: PersonId,
   pub instance_id: InstanceId,
   pub name: String,
+  pub public_key: String,
   #[new(default)]
   pub ap_id: Option<DbUrl>,
   #[new(default)]
@@ -60,8 +61,6 @@ pub struct MultiCommunityInsertForm {
   pub title: Option<String>,
   #[new(default)]
   pub description: Option<String>,
-  #[new(default)]
-  pub public_key: Option<String>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]

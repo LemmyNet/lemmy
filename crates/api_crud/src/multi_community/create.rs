@@ -34,7 +34,6 @@ pub async fn create_multi_community(
     title: data.title.clone(),
     description: data.description.clone(),
     ap_id: Some(ap_id.into()),
-    public_key: Some(site_view.site.public_key),
     private_key: site_view.site.private_key,
     inbox_url: Some(site_view.site.inbox_url),
     following_url: Some(following_url.into()),
@@ -42,6 +41,7 @@ pub async fn create_multi_community(
       local_user_view.person.id,
       local_user_view.person.instance_id,
       data.name.clone(),
+      site_view.site.public_key,
     )
   };
   let res = MultiCommunity::create(&mut context.pool(), &form).await?;

@@ -99,7 +99,7 @@ impl Object for ApubMultiCommunity {
       local: Some(false),
       title: json.summary,
       description: json.content,
-      public_key: Some(json.public_key.public_key_pem),
+      public_key: json.public_key.public_key_pem,
       private_key: None,
       inbox_url: Some(json.inbox.into()),
       following_url: Some(json.following.clone().into()),

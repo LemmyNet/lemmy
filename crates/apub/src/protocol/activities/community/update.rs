@@ -23,7 +23,7 @@ pub struct Update {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  // TODO: would be nice to use a separate struct here, which only contains the fields updated here
+  #[serde(with = "either::serde_untagged")]
   pub(crate) object: Either<Group, Feed>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
