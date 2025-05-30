@@ -616,7 +616,6 @@ diesel::table! {
         community_id -> Int4,
         mod_person_id -> Int4,
         published -> Timestamptz,
-        reason -> Nullable<Text>,
         visibility -> CommunityVisibility,
     }
 }

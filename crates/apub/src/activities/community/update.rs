@@ -23,11 +23,15 @@ use lemmy_apub_objects::{
     protocol::InCommunity,
   },
 };
-use lemmy_db_schema::source::{
-  activity::ActivitySendTargets,
-  community::Community,
-  multi_community::MultiCommunity,
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    activity::ActivitySendTargets,
+    community::Community,
+    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
+    multi_community::MultiCommunity,
+    person::Person,
+  },
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -115,8 +119,20 @@ impl ActivityHandler for Update {
     insert_received_activity(&self.id, context).await?;
 
     match self.object {
-      Either::Left(c) => {
-        ApubCommunity::from_json(c, context).await?;
+      Either::Left(ref c) => {
+        let old_community = self.community(context).await?;
+
+        let community = ApubCommunity::from_json(c.clone(), context).await?;
+
+        if old_community.visibility != community.visibility {
+          let actor = self.actor.dereference(context).await?;
+          let form = ModChangeCommunityVisibilityForm {
+            mod_person_id: actor.id,
+            community_id: old_community.id,
+            visibility: old_community.visibility,
+          };
+          ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+        }
       }
       Either::Right(m) => {
         ApubMultiCommunity::from_json(m, context).await?;
