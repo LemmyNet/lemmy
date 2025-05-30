@@ -4,14 +4,12 @@ export PGDATA="$PWD/target/dev_pgdata"
 export PGHOST="$PWD/target"
 
 # Necessary to encode the dev db path into proper URL params
-export ENCODED_HOST=$(printf $PWD | jq -sRr @uri)
+export ENCODED_HOST=$(printf $PGHOST | jq -sRr @uri)
 
 export PGUSER=postgres
-export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/target/lemmy"
+export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/lemmy"
 export LEMMY_DATABASE_URL=$DATABASE_URL
 export PGDATABASE=lemmy
-
-pushd target
 
 # If cluster exists, stop the server and delete the cluster
 if [[ -d $PGDATA ]]
@@ -30,7 +28,7 @@ fi
 config_args=(
   # Only listen to socket in current directory
   -c listen_addresses=
-  -c unix_socket_directories=$PWD
+  -c unix_socket_directories=$PGHOST
 
   # Write logs to a file in $PGDATA/log
   -c logging_collector=on
@@ -54,5 +52,3 @@ pg_ctl start --silent --options="${config_args[*]}"
 # Setup database
 PGDATABASE=postgres psql --quiet -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
 PGDATABASE=postgres psql --quiet -c "CREATE DATABASE lemmy WITH OWNER lemmy;"
-
-popd
