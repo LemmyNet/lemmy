@@ -43,7 +43,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
     let person_form = PersonInsertForm {
       ap_id: Some(person_ap_id.clone()),
       inbox_url: Some(generate_inbox_url()?),
-      private_key: Some(person_keypair.private_key),
+      private_key: Some(person_keypair.private_key.into()),
       ..PersonInsertForm::new(
         setup.admin_username.clone(),
         person_keypair.public_key,
