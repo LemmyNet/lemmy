@@ -10,7 +10,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{functions::lower, get_conn, uplete, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, uplete, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -146,11 +146,6 @@ impl Person {
     .then_some(())
     .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
   }
-
-  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
-  }
 }
 
 impl PersonInsertForm {
@@ -209,6 +204,21 @@ impl ApubActor for Person {
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'u', settings)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
   }
 }
 
