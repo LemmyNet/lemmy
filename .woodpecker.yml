@@ -258,7 +258,7 @@ steps:
       - event: tag
 
   nightly_build:
-    image: woodpeckerci/plugin-docker-buildx
+    image: woodpeckerci/plugin-docker-buildx:5.2.2
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
