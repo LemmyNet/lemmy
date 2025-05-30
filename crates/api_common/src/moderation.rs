@@ -1,13 +1,13 @@
-pub mod log {
-  pub use lemmy_db_schema::{
-    newtypes::ModlogCombinedId, source::combined::modlog::ModlogCombined, ModlogActionType,
-  };
-  pub use lemmy_db_views_get_modlog::GetModlog;
-  pub use lemmy_db_views_modlog_combined::{
-    AdminAllowInstanceView, AdminBlockInstanceView, AdminPurgeCommentView, AdminPurgeCommunityView,
-    AdminPurgePersonView, AdminPurgePostView, GetModlogResponse, ModAddCommunityView, ModAddView,
-    ModBanFromCommunityView, ModBanView, ModChangeCommunityVisibilityView, ModFeaturePostView,
-    ModLockPostView, ModRemoveCommentView, ModRemoveCommunityView, ModRemovePostView,
-    ModTransferCommunityView, ModlogCombinedView,
-  };
-}
+pub use lemmy_db_schema::{
+  newtypes::{
+    CommentReportId, CommunityReportId, PostReportId, PrivateMessageReportId, ReportCombinedId,
+  },
+  source::{
+    combined::report::ReportCombined, comment_report::CommentReport,
+    community_report::CommunityReport, post_report::PostReport,
+    private_message_report::PrivateMessageReport,
+  },
+  ReportType,
+};
+pub use lemmy_db_views_list_reports::ListReports;
+pub use lemmy_db_views_list_reports_response::ListReportsResponse;

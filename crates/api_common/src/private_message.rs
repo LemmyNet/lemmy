@@ -1,6 +1,10 @@
 pub use lemmy_db_schema::newtypes::PrivateMessageId;
 pub use lemmy_db_views_create_private_message::CreatePrivateMessage;
+pub use lemmy_db_views_create_private_message_report::CreatePrivateMessageReport;
 pub use lemmy_db_views_delete_private_message::DeletePrivateMessage;
 pub use lemmy_db_views_edit_private_message::EditPrivateMessage;
+pub use lemmy_db_views_mark_private_message_as_read::MarkPrivateMessageAsRead;
 pub use lemmy_db_views_private_message::PrivateMessageView;
+pub use lemmy_db_views_private_message_report_response::PrivateMessageReportResponse;
 pub use lemmy_db_views_private_message_response::PrivateMessageResponse;
+pub use lemmy_db_views_resolve_private_message_report::ResolvePrivateMessageReport;
