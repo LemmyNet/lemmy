@@ -3445,6 +3445,7 @@ dependencies = [
  "lemmy_db_views_upload_image_response",
  "lemmy_db_views_user_block_instance_params",
  "lemmy_db_views_verify_email",
+ "lemmy_utils",
 ]
 
 [[package]]

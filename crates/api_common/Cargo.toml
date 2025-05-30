@@ -205,3 +205,4 @@ lemmy_db_views_reports.workspace = true
 lemmy_db_views_community_follower.workspace = true
 lemmy_db_views_federated_instances.workspace = true
 lemmy_db_views_plugin_metadata.workspace = true
+lemmy_utils.workspace = true

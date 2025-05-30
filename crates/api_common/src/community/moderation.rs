@@ -1,8 +1,0 @@
-pub use lemmy_db_views_approve_community_pending_follower::ApproveCommunityPendingFollower;
-pub use lemmy_db_views_ban_from_community::BanFromCommunity;
-pub use lemmy_db_views_ban_from_community_response::BanFromCommunityResponse;
-pub use lemmy_db_views_get_community_pending_follows_count::GetCommunityPendingFollowsCount;
-pub use lemmy_db_views_get_community_pending_follows_count_response::GetCommunityPendingFollowsCountResponse;
-pub use lemmy_db_views_remove_community::RemoveCommunity;
-pub use lemmy_db_views_transfer_community::TransferCommunity;
-pub use lemmy_db_views_update_community_tag::UpdateCommunityTag;
