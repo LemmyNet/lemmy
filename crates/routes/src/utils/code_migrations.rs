@@ -406,7 +406,7 @@ async fn initialize_local_site_2022_10_10(
     let person_form = PersonInsertForm {
       ap_id: Some(person_ap_id.clone()),
       inbox_url: Some(generate_inbox_url()?),
-      private_key: Some(person_keypair.private_key),
+      private_key: Some(person_keypair.private_key.into()),
       ..PersonInsertForm::new(
         setup.admin_username.clone(),
         person_keypair.public_key,
