@@ -10,7 +10,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{functions::lower, get_conn, uplete, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, uplete, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -207,19 +207,13 @@ impl ApubActor for Person {
   }
 
   fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
-    let local_protocol_and_hostname = settings.get_protocol_and_hostname();
-    let local_hostname = &settings.hostname;
     let domain = self
       .ap_id
       .inner()
       .domain()
       .ok_or(LemmyErrorType::NotFound)?;
-    let url = if domain != local_hostname {
-      format!("{local_protocol_and_hostname}/u/{}@{}", self.name, domain)
-    } else {
-      format!("{local_protocol_and_hostname}/u/{}", self.name)
-    };
-    Ok(Url::parse(&url)?)
+
+    format_actor_url(&self.name, domain, 'u', settings)
   }
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {

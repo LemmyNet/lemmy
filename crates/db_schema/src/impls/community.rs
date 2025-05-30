@@ -17,6 +17,7 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable, Joinable},
   utils::{
+    format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     uplete,
@@ -648,19 +649,13 @@ impl ApubActor for Community {
   }
 
   fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
-    let local_protocol_and_hostname = settings.get_protocol_and_hostname();
-    let local_hostname = &settings.hostname;
     let domain = self
       .ap_id
       .inner()
       .domain()
       .ok_or(LemmyErrorType::NotFound)?;
-    let url = if domain != local_hostname {
-      format!("{local_protocol_and_hostname}/c/{}@{}", self.name, domain)
-    } else {
-      format!("{local_protocol_and_hostname}/c/{}", self.name)
-    };
-    Ok(Url::parse(&url)?)
+
+    format_actor_url(&self.name, domain, 'c', settings)
   }
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
