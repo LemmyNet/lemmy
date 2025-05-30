@@ -261,7 +261,7 @@ steps:
         from_secret: docker_password
       platforms: linux/amd64, linux/arm64
       build_args:
-        - RUST_RELEASE_MODE=release
+        RUST_RELEASE_MODE: release
       tag: ${CI_COMMIT_TAG}
     when:
       - event: tag
@@ -315,7 +315,7 @@ steps:
         from_secret: docker_password
       platforms: linux/amd64,linux/arm64
       build_args:
-        - RUST_RELEASE_MODE=release
+        RUST_RELEASE_MODE: release
       tag: dev
     when:
       - event: cron
