@@ -1,5 +1,14 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PaginationCursor, PostId, TagId},
+  newtypes::{
+    CommentId,
+    CommunityId,
+    DbUrl,
+    LanguageId,
+    MultiCommunityId,
+    PaginationCursor,
+    PostId,
+    TagId,
+  },
   PostFeatureType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
@@ -95,6 +104,8 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub multi_community_id: Option<MultiCommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]

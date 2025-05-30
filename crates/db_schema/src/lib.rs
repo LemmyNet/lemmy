@@ -233,6 +233,7 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::is_multi_community_follow>,
 );
 
 #[cfg(feature = "full")]

@@ -211,7 +211,7 @@ derive-new = "0.7.0"
 tuplex = "0.1.2"
 html2text = "0.14.0"
 async-trait = "0.1.88"
-either = "1.15.0"
+either = { version = "1.15.0", features = ["serde"] }
 
 [dependencies]
 lemmy_api = { workspace = true }

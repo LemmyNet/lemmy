@@ -1,7 +1,11 @@
-use crate::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
+use crate::objects::SearchableObjects;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use either::Either::*;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
+use lemmy_db_schema::{
+  newtypes::{DbUrl, InstanceId},
+  source::instance::Instance,
+};
 use lemmy_utils::{
   error::LemmyResult,
   utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
@@ -56,22 +60,16 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   }
   let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
-    SearchableObjects::Left(pc) => match pc {
-      PostOrComment::Left(post) => post.local_url(context.settings()),
-      PostOrComment::Right(comment) => comment.local_url(context.settings()),
+    Left(Left(Left(post))) => post.local_url(context.settings()),
+    Left(Left(Right(comment))) => comment.local_url(context.settings()),
+    Left(Right(Left(user))) => format_actor_url(&user.name, "u", user.instance_id, context).await,
+    Left(Right(Right(community))) => {
+      format_actor_url(&community.name, "c", community.instance_id, context).await
     }
-    .ok()
-    .map(Into::into),
-    SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(user) => {
-        format_actor_url(&user.name, "u", user.instance_id, context).await
-      }
-      UserOrCommunity::Right(community) => {
-        format_actor_url(&community.name, "c", community.instance_id, context).await
-      }
-    }
-    .ok(),
+    Right(multi) => format_actor_url(&multi.name, "m", multi.instance_id, context).await,
   }
+  .ok()
+  .map(Into::into)
 }
 
 async fn format_actor_url(
@@ -79,7 +77,7 @@ async fn format_actor_url(
   kind: &str,
   instance_id: InstanceId,
   context: &LemmyContext,
-) -> LemmyResult<Url> {
+) -> LemmyResult<DbUrl> {
   let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let local_hostname = &context.settings().hostname;
   let instance = Instance::read(&mut context.pool(), instance_id).await?;
@@ -91,7 +89,7 @@ async fn format_actor_url(
   } else {
     format!("{local_protocol_and_hostname}/{kind}/{name}")
   };
-  Ok(Url::parse(&url)?)
+  Ok(Url::parse(&url)?.into())
 }
 
 #[cfg(test)]

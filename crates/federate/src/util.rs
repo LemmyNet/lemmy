@@ -1,13 +1,15 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
+use either::Either::*;
+use lemmy_apub_objects::objects::SiteOrMultiOrCommunityOrUser;
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
     activity::SentActivity,
     community::Community,
     federation_queue_state::FederationQueueState,
+    multi_community::MultiCommunity,
     person::Person,
     site::Site,
   },
@@ -134,33 +136,39 @@ pub(crate) async fn get_actor_cached(
   pool: &mut DbPool<'_>,
   actor_type: ActorType,
   actor_apub_id: &Url,
-) -> Result<Arc<SiteOrCommunityOrUser>> {
-  static CACHE: LazyLock<Cache<Url, Arc<SiteOrCommunityOrUser>>> =
+) -> Result<Arc<SiteOrMultiOrCommunityOrUser>> {
+  static CACHE: LazyLock<Cache<Url, Arc<SiteOrMultiOrCommunityOrUser>>> =
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   CACHE
     .try_get_with(actor_apub_id.clone(), async {
       let url = actor_apub_id.clone().into();
-      let person = match actor_type {
-        ActorType::Site => SiteOrCommunityOrUser::Left(
+      let actor = match actor_type {
+        ActorType::Site => Left(Left(
           Site::read_from_apub_id(pool, &url)
             .await?
             .context("apub site not found")?
             .into(),
-        ),
-        ActorType::Community => SiteOrCommunityOrUser::Right(UserOrCommunity::Right(
+        )),
+        ActorType::Community => Right(Right(
           Community::read_from_apub_id(pool, &url)
             .await?
             .context("apub community not found")?
             .into(),
         )),
-        ActorType::Person => SiteOrCommunityOrUser::Right(UserOrCommunity::Left(
+        ActorType::Person => Right(Left(
           Person::read_from_apub_id(pool, &url)
             .await?
             .context("apub person not found")?
             .into(),
         )),
+        ActorType::MultiCommunity => Left(Right(
+          MultiCommunity::read_from_ap_id(pool, &url)
+            .await?
+            .context("apub multi-comm not found")?
+            .into(),
+        )),
       };
-      Result::<_, LemmyError>::Ok(Arc::new(person))
+      Result::<_, LemmyError>::Ok(Arc::new(actor))
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
