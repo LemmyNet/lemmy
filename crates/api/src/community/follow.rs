@@ -1,11 +1,10 @@
-use super::community_follower_state;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_deleted_removed, check_local_user_valid},
+  utils::{check_community_deleted_removed, check_local_user_valid, community_follower_state},
 };
 use lemmy_db_schema::{
   source::{

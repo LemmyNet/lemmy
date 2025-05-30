@@ -327,17 +327,20 @@ impl MultiCommunityApub {
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<(Vec<CommunityId>, Vec<CommunityId>)> {
     let conn = &mut get_conn(pool).await?;
     if new_communities.len() >= usize::try_from(MULTI_COMMUNITY_ENTRY_LIMIT)? {
       return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
     }
 
-    delete(multi_community_entry::table)
-      .filter(multi_community_entry::multi_community_id.eq(id))
-      .filter(multi_community_entry::community_id.ne_all(new_communities))
-      .execute(conn)
-      .await?;
+    let removed: Vec<CommunityId> = delete(
+      multi_community_entry::table
+        .filter(multi_community_entry::multi_community_id.eq(id))
+        .filter(multi_community_entry::community_id.ne_all(new_communities)),
+    )
+    .returning(multi_community_entry::community_id)
+    .get_results::<CommunityId>(conn)
+    .await?;
     let forms = new_communities
       .iter()
       .map(|k| {
@@ -347,12 +350,13 @@ impl MultiCommunityApub {
         )
       })
       .collect::<Vec<_>>();
-    insert_into(multi_community_entry::table)
+    let added: Vec<_> = insert_into(multi_community_entry::table)
       .values(forms)
       .on_conflict_do_nothing()
-      .execute(conn)
+      .returning(multi_community_entry::community_id)
+      .get_results::<CommunityId>(conn)
       .await?;
-    Ok(())
+    Ok((removed, added))
   }
 
   // TODO: not needed?

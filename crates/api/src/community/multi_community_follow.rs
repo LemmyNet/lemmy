@@ -1,18 +1,15 @@
-use super::community_follower_state;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   community::FollowMultiCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::{community_follow_many, community_unfollow_many},
   SuccessResponse,
 };
 use lemmy_db_schema::{
-  source::{
-    community::{CommunityActions, CommunityFollowerForm},
-    multi_community::{MultiCommunity, MultiCommunityFollowForm},
-  },
-  traits::{Crud, Followable},
+  source::multi_community::{MultiCommunity, MultiCommunityFollowForm},
+  traits::Crud,
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::impls::CommunityQuery;
@@ -62,18 +59,7 @@ pub async fn follow_multi_community(
       .collect();
 
     // Then follow them
-    for community in to_follow {
-      let state = community_follower_state(&community);
-      let mut form = CommunityFollowerForm::new(community.id, person_id, state);
-      form.is_multi_community_follow = Some(true);
-      CommunityActions::follow(&mut context.pool(), &form).await?;
-      if !community.local {
-        ActivityChannel::submit_activity(
-          SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
-          &context,
-        )?;
-      }
-    }
+    community_follow_many(&local_user_view.person, to_follow, &context).await?;
   } else {
     MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
 
@@ -90,16 +76,7 @@ pub async fn follow_multi_community(
       })
       .map(|c| c.community)
       .collect();
-
-    for community in to_unfollow {
-      CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
-      if !community.local {
-        ActivityChannel::submit_activity(
-          SendActivityData::FollowCommunity(community, local_user_view.person.clone(), false),
-          &context,
-        )?;
-      }
-    }
+    community_unfollow_many(&local_user_view.person, to_unfollow, &context).await?;
   }
 
   if !multi.local {

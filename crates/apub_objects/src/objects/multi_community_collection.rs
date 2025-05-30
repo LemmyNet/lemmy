@@ -66,9 +66,15 @@ impl Collection for ApubFeedCollection {
     })
     .collect();
 
-    MultiCommunityApub::update_entries(&mut context.pool(), owner.id, &communities).await?;
+    let (added, removed) =
+      MultiCommunityApub::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
-    // TODO: local users who followed the multi-comm need to have community follows updated here
+    // TODO:
+    // - get all local users who follow the multi-comm
+    // - then for each user get all the added communities, and follow them if not already followed
+    // - also for each user get all removed communities, and unfollow if they are not manually
+    //   followed, or part of another multi-comm
+    // - need to optimize this and avoid unnecessary db queries
 
     Ok(ApubFeedCollection)
   }
