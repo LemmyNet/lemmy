@@ -3131,6 +3131,7 @@ dependencies = [
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
  "lemmy_db_views_person",
+ "lemmy_db_views_person_liked_combined",
  "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_registration_applications",
@@ -3582,6 +3583,27 @@ name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-alpha.5"
 dependencies = [
  "derive-new",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_local_user",
+ "lemmy_db_views_post",
+ "lemmy_utils",
+ "pretty_assertions",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person_liked_combined"
+version = "1.0.0-alpha.5"
+dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",

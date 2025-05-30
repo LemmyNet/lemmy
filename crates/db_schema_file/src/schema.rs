@@ -815,6 +815,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_liked_combined (id) {
+        id -> Int4,
+        liked -> Timestamptz,
+        like_score -> Int2,
+        person_id -> Int4,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     person_post_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
@@ -1167,6 +1178,9 @@ diesel::joinable!(person_comment_mention -> comment (comment_id));
 diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
 diesel::joinable!(person_content_combined -> post (post_id));
+diesel::joinable!(person_liked_combined -> comment (comment_id));
+diesel::joinable!(person_liked_combined -> person (person_id));
+diesel::joinable!(person_liked_combined -> post (post_id));
 diesel::joinable!(person_post_mention -> person (recipient_id));
 diesel::joinable!(person_post_mention -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
@@ -1251,6 +1265,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_ban,
   person_comment_mention,
   person_content_combined,
+  person_liked_combined,
   person_post_mention,
   person_saved_combined,
   post,

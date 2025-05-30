@@ -62,8 +62,8 @@ ALTER TABLE local_site
 
 -- Add the new column to both tables (null means no limit)
 ALTER TABLE local_user
-    ADD COLUMN default_post_time_range_seconds INTEGER;
+    ADD COLUMN default_post_time_range_seconds integer;
 
 ALTER TABLE local_site
-    ADD COLUMN default_post_time_range_seconds INTEGER;
+    ADD COLUMN default_post_time_range_seconds integer;
 

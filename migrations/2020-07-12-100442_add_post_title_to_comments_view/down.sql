@@ -52,7 +52,7 @@ FROM
                     NULL
                 END) AS up,
             count(
-                CASE WHEN l.score = - 1 THEN
+                CASE WHEN l.score = -1 THEN
                     1
                 ELSE
                     NULL
