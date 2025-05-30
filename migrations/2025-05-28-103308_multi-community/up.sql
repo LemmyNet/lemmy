@@ -12,7 +12,7 @@ CREATE TABLE multi_community (
     private_key text,
     inbox_url text NOT NULL DEFAULT generate_unique_changeme (),
     last_refreshed_at timestamptz NOT NULL DEFAULT now(),
-    following_url text NOT NULL default generate_unique_changeme (),
+    following_url text NOT NULL DEFAULT generate_unique_changeme (),
     published timestamptz NOT NULL DEFAULT now(),
     updated timestamptz
 );
