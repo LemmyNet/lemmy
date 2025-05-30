@@ -3863,7 +3863,6 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
