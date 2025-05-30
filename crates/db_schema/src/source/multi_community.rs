@@ -4,9 +4,9 @@ use crate::{
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::multi_community;
-use lemmy_db_schema_file::{enums::CommunityFollowerState, schema::multi_community_follow};
+use lemmy_db_schema_file::schema::{multi_community, multi_community_follow};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
