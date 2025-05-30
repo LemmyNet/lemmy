@@ -1,6 +1,11 @@
 pub mod comment;
 pub mod community;
 pub mod custom_emoji;
+pub mod federation;
+pub mod media;
+pub mod moderation;
 pub mod person;
 pub mod post;
 pub mod private_message;
+pub mod search;
+pub mod site;
