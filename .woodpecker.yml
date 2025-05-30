@@ -304,22 +304,6 @@ steps:
     when:
       - event: tag
 
-  nightly_build:
-    image: woodpeckerci/plugin-docker-buildx
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      platforms: linux/amd64,linux/arm64
-      build_args:
-        RUST_RELEASE_MODE: release
-      tag: dev
-    when:
-      - event: cron
-
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
