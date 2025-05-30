@@ -1,3 +1,4 @@
+pub use lemmy_db_schema::{newtypes::TaglineId, source::tagline::Tagline};
 pub use lemmy_db_views_create_tagline::CreateTagline;
 pub use lemmy_db_views_delete_tagline::DeleteTagline;
 pub use lemmy_db_views_list_taglines::ListTaglines;

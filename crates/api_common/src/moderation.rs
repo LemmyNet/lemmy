@@ -1,3 +1,5 @@
+pub mod admin;
+
 pub use lemmy_db_schema::{
   newtypes::{
     CommentReportId, CommunityReportId, PostReportId, PrivateMessageReportId, ReportCombinedId,
@@ -9,5 +11,5 @@ pub use lemmy_db_schema::{
   },
   ReportType,
 };
-pub use lemmy_db_views_list_reports::ListReports;
-pub use lemmy_db_views_list_reports_response::ListReportsResponse;
+pub use lemmy_db_views_add_mod_to_community::AddModToCommunity;
+pub use lemmy_db_views_add_mod_to_community_response::AddModToCommunityResponse;
