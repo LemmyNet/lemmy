@@ -25,3 +25,4 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_schema_file::enums::VoteShow;
 pub use lemmy_db_views_success_response::SuccessResponse;
+pub use lemmy_db_views_vote::VoteView;

@@ -19,6 +19,7 @@ workspace = true
 [dependencies]
 lemmy_db_schema.workspace = true
 lemmy_db_schema_file.workspace = true
+lemmy_db_views_vote.workspace = true
 lemmy_db_views_post.workspace = true
 lemmy_db_views_create_post.workspace = true
 lemmy_db_views_create_post_like.workspace = true
@@ -201,6 +202,7 @@ lemmy_db_views_authenticate_with_oauth.workspace = true
 lemmy_db_views_image_proxy_params.workspace = true
 lemmy_db_views_image_get_params.workspace = true
 lemmy_db_views_local_image.workspace = true
+lemmy_db_views_local_user.workspace = true
 lemmy_db_views_reports.workspace = true
 lemmy_db_views_community_follower.workspace = true
 lemmy_db_views_federated_instances.workspace = true

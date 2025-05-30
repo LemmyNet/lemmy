@@ -8,6 +8,7 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_views_get_person_details::GetPersonDetails;
 pub use lemmy_db_views_get_person_details_response::GetPersonDetailsResponse;
+pub use lemmy_db_views_local_user::LocalUserView;
 pub use lemmy_db_views_person::PersonView;
 
 pub mod actions {
@@ -23,6 +24,8 @@ pub mod actions {
       newtypes::RegistrationApplicationId,
       source::registration_application::RegistrationApplication,
     };
+    pub use lemmy_db_views_ban_person::BanPerson;
+    pub use lemmy_db_views_ban_person_response::BanPersonResponse;
     pub use lemmy_db_views_get_registration_application::GetRegistrationApplication;
     pub use lemmy_db_views_purge_person::PurgePerson;
     pub use lemmy_db_views_registration_application_response::RegistrationApplicationResponse;

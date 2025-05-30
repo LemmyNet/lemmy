@@ -1,6 +1,8 @@
 pub use lemmy_db_schema::{
-  newtypes::{ActivityId, AdminAllowInstanceId, AdminBlockInstanceId, InstanceId},
+  newtypes::{ActivityId, InstanceId},
   source::{
+    federation_allowlist::FederationAllowList,
+    federation_blocklist::FederationBlockList,
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceActions},
   },
@@ -13,3 +15,8 @@ pub use lemmy_db_views_readable_federation_state::ReadableFederationState;
 pub use lemmy_db_views_resolve_object::ResolveObject;
 pub use lemmy_db_views_resolve_object_response::ResolveObjectResponse;
 pub use lemmy_db_views_user_block_instance_params::UserBlockInstanceParams;
+
+pub mod administration {
+  pub use lemmy_db_views_admin_allow_instance_params::AdminAllowInstanceParams;
+  pub use lemmy_db_views_admin_block_instance_params::AdminBlockInstanceParams;
+}

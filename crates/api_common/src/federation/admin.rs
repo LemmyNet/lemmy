@@ -1,2 +1,0 @@
-pub use lemmy_db_views_admin_allow_instance_params::AdminAllowInstanceParams;
-pub use lemmy_db_views_admin_block_instance_params::AdminBlockInstanceParams;
