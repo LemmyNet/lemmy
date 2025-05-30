@@ -14,6 +14,8 @@ use post::ApubPost;
 
 pub type PostOrComment = Either<ApubPost, ApubComment>;
 
+pub type ReportableObjects = Either<PostOrComment, ApubCommunity>;
+
 pub type SearchableObjects = Either<PostOrComment, UserOrCommunity>;
 
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;

@@ -9,24 +9,19 @@ use activitypub_federation::{
   kinds::activity::UpdateType,
   traits::{ActivityHandler, Actor, Object},
 };
-use chrono::Utc;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::{
-    functions::{
-      generate_to,
-      read_from_string_or_source_opt,
-      verify_person_in_community,
-      verify_visibility,
-    },
-    protocol::{AttributedTo, InCommunity},
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
   },
 };
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityUpdateForm},
+    community::Community,
+    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
     person::Person,
   },
   traits::Crud,
@@ -90,39 +85,19 @@ impl ActivityHandler for UpdateCommunity {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let community = self.community(context).await?;
+    let old_community = self.community(context).await?;
 
-    let community_update_form = CommunityUpdateForm {
-      title: Some(self.object.name.unwrap_or(self.object.preferred_username)),
-      description: Some(read_from_string_or_source_opt(
-        &self.object.summary,
-        &None,
-        &self.object.source,
-      )),
-      published: self.object.published,
-      updated: Some(self.object.updated),
-      nsfw: Some(self.object.sensitive.unwrap_or(false)),
-      ap_id: Some(self.object.id.into()),
-      public_key: Some(self.object.public_key.public_key_pem),
-      last_refreshed_at: Some(Utc::now()),
-      icon: Some(self.object.icon.map(|i| i.url.into())),
-      banner: Some(self.object.image.map(|i| i.url.into())),
-      followers_url: self.object.followers.map(Into::into),
-      inbox_url: Some(
-        self
-          .object
-          .endpoints
-          .map(|e| e.shared_inbox)
-          .unwrap_or(self.object.inbox)
-          .into(),
-      ),
-      moderators_url: Some(self.object.attributed_to.and_then(AttributedTo::url)),
-      posting_restricted_to_mods: self.object.posting_restricted_to_mods,
-      featured_url: Some(self.object.featured.map(Into::into)),
-      ..Default::default()
-    };
+    let community = ApubCommunity::from_json(*self.object, context).await?;
 
-    Community::update(&mut context.pool(), community.id, &community_update_form).await?;
+    if old_community.visibility != community.visibility {
+      let actor = self.actor.dereference(context).await?;
+      let form = ModChangeCommunityVisibilityForm {
+        mod_person_id: actor.id,
+        community_id: old_community.id,
+        visibility: old_community.visibility,
+      };
+      ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+    }
     Ok(())
   }
 }

@@ -220,7 +220,6 @@ pub struct ModBan {
 pub struct ModChangeCommunityVisibilityForm {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub reason: Option<String>,
   pub visibility: CommunityVisibility,
 }
 
@@ -235,8 +234,6 @@ pub struct ModChangeCommunityVisibility {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub reason: Option<String>,
   pub visibility: CommunityVisibility,
 }
 

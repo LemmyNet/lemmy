@@ -496,7 +496,7 @@ mod test {
       let ap_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
       let person_form = PersonInsertForm {
         ap_id: Some(ap_id.clone()),
-        private_key: (Some(actor_keypair.private_key)),
+        private_key: (Some(actor_keypair.private_key.into())),
         inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
       };
