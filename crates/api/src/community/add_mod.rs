@@ -55,32 +55,33 @@ pub async fn add_mod_to_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  conn.run_transaction(|conn| {
-    async move {
-      // Update in local database
-      let community_moderator_form =
-        CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
-      if tx_data.added {
-        CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
-      } else {
-        CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
+  conn
+    .run_transaction(|conn| {
+      async move {
+        // Update in local database
+        let community_moderator_form =
+          CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
+        if tx_data.added {
+          CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
+        } else {
+          CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
+        }
+
+        // Mod tables
+        let form = ModAddCommunityForm {
+          mod_person_id: local_user_view.person.id,
+          other_person_id: tx_data.person_id,
+          community_id: tx_data.community_id,
+          removed: Some(!tx_data.added),
+        };
+
+        ModAddCommunity::create(&mut conn.into(), &form).await?;
+
+        Ok(())
       }
-
-      // Mod tables
-      let form = ModAddCommunityForm {
-        mod_person_id: local_user_view.person.id,
-        other_person_id: tx_data.person_id,
-        community_id: tx_data.community_id,
-        removed: Some(!tx_data.added),
-      };
-
-      ModAddCommunity::create(&mut conn.into(), &form).await?;
-
-      Ok(())
-    }
-    .scope_boxed()
-  })
-  .await?;
+      .scope_boxed()
+    })
+    .await?;
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

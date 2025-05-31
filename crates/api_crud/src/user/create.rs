@@ -7,8 +7,13 @@ use lemmy_api_common::{
   oauth_provider::AuthenticateWithOauth,
   person::{LoginResponse, Register},
   utils::{
-    check_email_verified, check_local_user_valid, check_registration_application,
-    generate_inbox_url, honeypot_check, password_length_check, slur_regex,
+    check_email_verified,
+    check_local_user_valid,
+    check_registration_application,
+    generate_inbox_url,
+    honeypot_check,
+    password_length_check,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -31,7 +36,8 @@ use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::{
-  account::send_verification_email_if_required, admin::send_new_applicant_email_to_admins,
+  account::send_verification_email_if_required,
+  admin::send_new_applicant_email_to_admins,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -126,44 +132,45 @@ pub async fn register(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   let tx_context = context.clone();
-  let user = conn.run_transaction(|conn| {
-    async move {
-      let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
-      // We have to create both a person, and local_user
-      let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
+  let user = conn
+    .run_transaction(|conn| {
+      async move {
+        let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
+        // We have to create both a person, and local_user
+        let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
 
-      // Create the local user
-      let local_user_form = LocalUserInsertForm {
-        email: tx_data.email.as_deref().map(str::to_lowercase),
-        show_nsfw: Some(show_nsfw),
-        accepted_application,
-        ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
-      };
+        // Create the local user
+        let local_user_form = LocalUserInsertForm {
+          email: tx_data.email.as_deref().map(str::to_lowercase),
+          show_nsfw: Some(show_nsfw),
+          accepted_application,
+          ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
+        };
 
-      let local_user =
-        create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
+        let local_user =
+          create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
 
-      if local_site.site_setup && require_registration_application {
-        if let Some(answer) = tx_data.answer.clone() {
-          // Create the registration application
-          let form = RegistrationApplicationInsertForm {
-            local_user_id: local_user.id,
-            answer,
-          };
+        if local_site.site_setup && require_registration_application {
+          if let Some(answer) = tx_data.answer.clone() {
+            // Create the registration application
+            let form = RegistrationApplicationInsertForm {
+              local_user_id: local_user.id,
+              answer,
+            };
 
-          RegistrationApplication::create(&mut conn.into(), &form).await?;
+            RegistrationApplication::create(&mut conn.into(), &form).await?;
+          }
         }
-      }
 
-      Ok(LocalUserView {
-        person,
-        local_user,
-        instance_actions: None,
-      })
-    }
-    .scope_boxed()
-  })
-  .await?;
+        Ok(LocalUserView {
+          person,
+          local_user,
+          instance_actions: None,
+        })
+      }
+      .scope_boxed()
+    })
+    .await?;
 
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.require_email_verification {
