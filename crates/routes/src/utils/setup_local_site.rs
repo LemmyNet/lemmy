@@ -24,10 +24,9 @@ use url::Url;
 pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<SiteView> {
   // Check to see if local_site exists
   let site_view_result = SiteView::read_local(pool).await;
-  if site_view_result
+  if !site_view_result
     .as_ref()
-    .err()
-    .is_none_or(|err| err.error_type != LemmyErrorType::LocalSiteNotSetup)
+    .is_err_and(|err| err.error_type == LemmyErrorType::LocalSiteNotSetup)
   {
     return site_view_result;
   }
