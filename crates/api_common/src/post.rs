@@ -15,8 +15,6 @@ pub use lemmy_db_views_open_graph_data::OpenGraphData;
 pub use lemmy_db_views_post::PostView;
 pub use lemmy_db_views_post_response::PostResponse;
 
-pub mod linked_page {}
-
 pub mod actions {
   pub use lemmy_db_views_create_post::CreatePost;
   pub use lemmy_db_views_create_post_like::CreatePostLike;

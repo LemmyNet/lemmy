@@ -1,12 +1,8 @@
 pub use lemmy_db_schema::{
   newtypes::{LocalSiteId, OAuthProviderId, SiteId},
   source::{
-    local_site::LocalSite,
-    local_site_rate_limit::LocalSiteRateLimit,
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    oauth_account::OAuthAccount,
-    oauth_provider::{OAuthProvider, PublicOAuthProvider},
-    site::Site,
+    local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit,
+    local_site_url_blocklist::LocalSiteUrlBlocklist, site::Site,
   },
 };
 pub use lemmy_db_schema_file::enums::RegistrationMode;

@@ -1,6 +1,9 @@
 pub use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::community::{Community, CommunityActions},
+  newtypes::{CommunityId, TagId},
+  source::{
+    community::{Community, CommunityActions},
+    tag::{Tag, TagsView},
+  },
 };
 pub use lemmy_db_schema_file::enums::CommunityVisibility;
 pub use lemmy_db_views_community::CommunityView;
