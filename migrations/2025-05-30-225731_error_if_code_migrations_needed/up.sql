@@ -50,5 +50,5 @@ FROM ((
         FROM
             site
         WHERE
-            public_key = ''));
+            public_key = '')) AS broken_rows;
 
