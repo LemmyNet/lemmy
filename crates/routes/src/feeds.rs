@@ -455,7 +455,15 @@ fn create_modlog_items(
         &v.admin,
         &v.admin_allow_instance.published,
         &modlog_url,
-        &format!("Admin allowed instance - {}", &v.instance.domain),
+        &format!(
+          "Admin {} instance - {}",
+          if v.admin_allow_instance.allowed {
+            "allowed"
+          } else {
+            "disallowed"
+          },
+          &v.instance.domain
+        ),
         &v.admin_allow_instance.reason,
         settings,
       ),
@@ -463,7 +471,15 @@ fn create_modlog_items(
         &v.admin,
         &v.admin_block_instance.published,
         &modlog_url,
-        &format!("Admin blocked instance - {}", &v.instance.domain),
+        &format!(
+          "Admin {} instance - {}",
+          if v.admin_block_instance.blocked {
+            "blocked"
+          } else {
+            "unblocked"
+          },
+          &v.instance.domain
+        ),
         &v.admin_block_instance.reason,
         settings,
       ),
@@ -503,7 +519,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_add.published,
         &modlog_url,
-        &format!("Added admin {}", &v.other_person.name),
+        &format!(
+          "{} admin {}",
+          if v.mod_add.removed {
+            "Removed"
+          } else {
+            "Added"
+          },
+          &v.other_person.name
+        ),
         &None,
         settings,
       ),
@@ -512,8 +536,14 @@ fn create_modlog_items(
         &v.mod_add_community.published,
         &modlog_url,
         &format!(
-          "Added mod {} to /c/{}",
-          &v.other_person.name, &v.community.name
+          "{} mod {} to /c/{}",
+          if v.mod_add_community.removed {
+            "Removed"
+          } else {
+            "Added"
+          },
+          &v.other_person.name,
+          &v.community.name
         ),
         &None,
         settings,
@@ -522,7 +552,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_ban.published,
         &modlog_url,
-        &format!("Banned {}", &v.other_person.name),
+        &format!(
+          "{} {}",
+          if v.mod_ban.banned {
+            "Banned"
+          } else {
+            "Unbanned"
+          },
+          &v.other_person.name
+        ),
         &v.mod_ban.reason,
         settings,
       ),
@@ -531,8 +569,14 @@ fn create_modlog_items(
         &v.mod_ban_from_community.published,
         &modlog_url,
         &format!(
-          "Banned {} from /c/{}",
-          &v.other_person.name, &v.community.name
+          "{} {} from /c/{}",
+          if v.mod_ban_from_community.banned {
+            "Banned"
+          } else {
+            "Unbanned"
+          },
+          &v.other_person.name,
+          &v.community.name
         ),
         &v.mod_ban_from_community.reason,
         settings,
@@ -541,7 +585,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_feature_post.published,
         &modlog_url,
-        &format!("Featured post {}", &v.post.name),
+        &format!(
+          "{} post {}",
+          if v.mod_feature_post.featured {
+            "Featured"
+          } else {
+            "Unfeatured"
+          },
+          &v.post.name
+        ),
         &None,
         settings,
       ),
@@ -560,7 +612,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_lock_post.published,
         &modlog_url,
-        &format!("Locked post {}", &v.post.name),
+        &format!(
+          "{} post {}",
+          if v.mod_lock_post.locked {
+            "Locked"
+          } else {
+            "Unlocked"
+          },
+          &v.post.name
+        ),
         &v.mod_lock_post.reason,
         settings,
       ),
@@ -568,7 +628,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_remove_comment.published,
         &modlog_url,
-        &format!("Removed comment {}", &v.comment.content),
+        &format!(
+          "{} comment {}",
+          if v.mod_remove_comment.removed {
+            "Removed"
+          } else {
+            "Restored"
+          },
+          &v.comment.content
+        ),
         &v.mod_remove_comment.reason,
         settings,
       ),
@@ -576,7 +644,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_remove_community.published,
         &modlog_url,
-        &format!("Removed community /c/{}", &v.community.name),
+        &format!(
+          "{} community /c/{}",
+          if v.mod_remove_community.removed {
+            "Removed"
+          } else {
+            "Restored"
+          },
+          &v.community.name
+        ),
         &v.mod_remove_community.reason,
         settings,
       ),
@@ -584,7 +660,15 @@ fn create_modlog_items(
         &v.moderator,
         &v.mod_remove_post.published,
         &modlog_url,
-        &format!("Removed post {}", &v.post.name),
+        &format!(
+          "{} post {}",
+          if v.mod_remove_post.removed {
+            "Removed"
+          } else {
+            "Restored"
+          },
+          &v.post.name
+        ),
         &v.mod_remove_post.reason,
         settings,
       ),
