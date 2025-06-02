@@ -48,15 +48,7 @@ use lemmy_db_schema_file::{
     CommunityVisibility,
     ListingType,
   },
-  schema::{
-    comment,
-    comment_actions,
-    community,
-    community_actions,
-    local_user_language,
-    person,
-    post,
-  },
+  schema::{comment, community, community_actions, local_user_language, person, post},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -163,9 +155,6 @@ pub struct CommentQuery<'a> {
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
-  // TODO get rid of liked / disliked_only
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
   pub max_depth: Option<i32>,
   pub cursor_data: Option<Comment>,
   pub page_back: Option<bool>,
@@ -207,19 +196,6 @@ impl CommentQuery<'_> {
       ListingType::All => query,
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
-
-    if let Some(my_id) = my_person_id {
-      let not_creator_filter = comment::creator_id.ne(my_id);
-      if o.liked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(comment_actions::like_score.eq(1));
-      } else if o.disliked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(comment_actions::like_score.eq(-1));
-      }
-    }
 
     if !o.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
@@ -544,52 +520,6 @@ mod tests {
     assert!(read_comment_from_blocked_person
       .person_actions
       .is_some_and(|x| x.blocked.is_some()));
-
-    cleanup(data, pool).await
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    // Unblock sara first
-    let timmy_unblocks_sara_form =
-      PersonBlockForm::new(data.timmy_local_user_view.person.id, data.sara_person.id);
-    PersonActions::unblock(pool, &timmy_unblocks_sara_form).await?;
-
-    // Like a new comment
-    let comment_like_form =
-      CommentLikeForm::new(data.timmy_local_user_view.person.id, data.comment_1.id, 1);
-    CommentActions::like(pool, &comment_like_form).await?;
-
-    let read_liked_comment_views = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view.local_user),
-      liked_only: Some(true),
-      ..Default::default()
-    }
-    .list(&data.site, pool)
-    .await?
-    .into_iter()
-    .map(|c| c.comment.content)
-    .collect::<Vec<String>>();
-
-    // Shouldn't include your own post, only other peoples
-    assert_eq!(data.comment_1.content, read_liked_comment_views[0]);
-
-    assert_length!(1, read_liked_comment_views);
-
-    let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view.local_user),
-      disliked_only: Some(true),
-      ..Default::default()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    assert!(read_disliked_comment_views.is_empty());
 
     cleanup(data, pool).await
   }
