@@ -241,8 +241,6 @@ pub struct PostQuery<'a> {
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
   pub local_user: Option<&'a LocalUser>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
@@ -395,20 +393,6 @@ impl PostQuery<'_> {
         ),
       ));
     }
-
-    // TODO move liked only elsewhere
-    if let Some(my_id) = my_person_id {
-      let not_creator_filter = post::creator_id.ne(my_id);
-      if o.liked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(post_actions::like_score.eq(1));
-      } else if o.disliked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(post_actions::like_score.eq(-1));
-      }
-    };
 
     query = o.local_user.visible_communities_only(query);
     query = query.filter(
@@ -1016,48 +1000,6 @@ mod tests {
     let like_removed =
       PostActions::remove_like(pool, data.tegan_local_user_view.person.id, data.post.id).await?;
     assert_eq!(uplete::Count::only_deleted(1), like_removed);
-    Ok(())
-  }
-
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn post_listing_liked_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
-    let pool = &mut pool.into();
-
-    // Like both the bot post, and your own
-    // The liked_only should not show your own post
-    let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
-    PostActions::like(pool, &post_like_form).await?;
-
-    let bot_post_like_form =
-      PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, 1);
-    PostActions::like(pool, &bot_post_like_form).await?;
-
-    // Read the liked only
-    let read_liked_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      liked_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
-
-    let read_disliked_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      disliked_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // Should be no posts
-    assert_eq!(read_disliked_post_listing, vec![]);
-
     Ok(())
   }
 
