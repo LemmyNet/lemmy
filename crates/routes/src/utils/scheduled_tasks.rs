@@ -52,10 +52,6 @@ use tracing::{info, warn};
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Setup the connections
   let mut scheduler = AsyncScheduler::new();
-  startup_jobs(&mut context.pool())
-    .await
-    .inspect_err(|e| warn!("Failed to run startup tasks: {e}"))
-    .ok();
 
   let context_1 = context.clone();
   // Update active counts expired bans and unpublished posts every hour
@@ -141,18 +137,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     scheduler.run_pending().await;
     tokio::time::sleep(Duration::from_millis(1000)).await;
   }
-}
-
-/// Run these on server startup
-async fn startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  active_counts(pool).await?;
-  update_hot_ranks(pool).await?;
-  update_banned_when_expired(pool).await?;
-  delete_instance_block_when_expired(pool).await?;
-  clear_old_activities(pool).await?;
-  overwrite_deleted_posts_and_comments(pool).await?;
-  delete_old_denied_users(pool).await?;
-  Ok(())
 }
 
 /// Update the hot_rank columns for the aggregates tables
