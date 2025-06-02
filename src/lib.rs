@@ -26,6 +26,7 @@ use lemmy_apub::{
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_schema_file::schema_setup;
+use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
