@@ -23,11 +23,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{
-  scoped_futures::ScopedFutureExt,
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{
   community_language,
   local_site,
