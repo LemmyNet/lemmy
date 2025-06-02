@@ -23,6 +23,10 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_comment/full",
+  "lemmy_db_views_community/full",
+  "lemmy_db_views_person/full",
 ]
 
 [dependencies]
