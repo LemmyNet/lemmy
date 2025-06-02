@@ -1,4 +1,8 @@
-use actix_web::{guard, web::*};
+use actix_extensible_rate_limit::{
+  backend::{memory::InMemoryBackend, SimpleInputFunctionBuilder, SimpleInputFuture, SimpleOutput},
+  RateLimiter,
+};
+use actix_web::{dev::ServiceRequest, guard, web::*};
 use lemmy_api::{
   comment::{
     distinguish::distinguish_comment,
@@ -155,6 +159,7 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
+use lemmy_db_schema::source::local_site_rate_limit::LocalSiteRateLimit;
 use lemmy_routes::images::{
   delete::{
     delete_community_banner,
@@ -179,11 +184,64 @@ use lemmy_routes::images::{
   },
 };
 use lemmy_utils::rate_limit::RateLimitCell;
+use std::time::Duration;
 
-pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
+struct RateLimit {
+  limits: LocalSiteRateLimit,
+  message: InMemoryBackend,
+}
+
+impl RateLimit {
+  fn new(limits: LocalSiteRateLimit) -> Self {
+    Self {
+      limits,
+      message: InMemoryBackend::builder().build(),
+    }
+  }
+
+  fn build_rate_limiter(
+    backend: &InMemoryBackend,
+    interval: Duration,
+    max_requests: u64,
+  ) -> RateLimiter<
+    InMemoryBackend,
+    SimpleOutput,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+  > {
+    let input = SimpleInputFunctionBuilder::new(interval, max_requests)
+      .real_ip_key()
+      .build();
+    RateLimiter::builder(backend.clone(), input)
+      .add_headers()
+      .rollback_server_errors()
+      .build()
+  }
+
+  fn message(
+    &self,
+  ) -> RateLimiter<
+    InMemoryBackend,
+    SimpleOutput,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+  > {
+    Self::build_rate_limiter(
+      &self.message,
+      Duration::from_secs(self.limits.message.try_into().unwrap_or(0)),
+      // TODO: rename db fields as message_per_interval
+      self.limits.message_per_second.try_into().unwrap_or(0),
+    )
+  }
+}
+
+pub fn config(
+  cfg: &mut ServiceConfig,
+  rate_limit: &RateLimitCell,
+  rate_limit_new: &LocalSiteRateLimit,
+) {
+  let rate_limit_new = RateLimit::new(rate_limit_new.clone());
   cfg.service(
     scope("/api/v4")
-      .wrap(rate_limit.message())
+      .wrap(rate_limit_new.message())
       // Site
       .service(
         scope("/site")

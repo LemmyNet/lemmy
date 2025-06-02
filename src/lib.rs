@@ -258,7 +258,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     Some(create_http_server(
       federation_config.clone(),
       SETTINGS.clone(),
-      federation_enabled,
+      site_view,
     )?)
   } else {
     None
@@ -333,7 +333,7 @@ fn create_startup_server() -> LemmyResult<ServerHandle> {
 fn create_http_server(
   federation_config: FederationConfig<LemmyContext>,
   settings: Settings,
-  federation_enabled: bool,
+  site_view: SiteView,
 ) -> LemmyResult<ServerHandle> {
   // These must come before HttpServer creation so they can collect data across threads.
   let prom_api_metrics = new_prometheus_metrics()?;
@@ -368,9 +368,9 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, &rate_limit_cell, &site_view.local_site_rate_limit))
       .configure(|cfg| {
-        if federation_enabled {
+        if site_view.local_site.federation_enabled {
           lemmy_apub::http::routes::config(cfg);
           webfinger::config(cfg);
         }
