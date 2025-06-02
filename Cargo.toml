@@ -67,6 +67,7 @@ members = [
   "crates/db_views/modlog_combined",
   "crates/db_views/person_content_combined",
   "crates/db_views/person_saved_combined",
+  "crates/db_views/person_liked_combined",
   "crates/db_views/report_combined",
   "crates/db_views/search_combined",
   "crates/db_views/site",
@@ -132,10 +133,11 @@ lemmy_db_views_inbox_combined = { version = "=1.0.0-alpha.5", path = "./crates/d
 lemmy_db_views_modlog_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/modlog_combined" }
 lemmy_db_views_person_content_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_content_combined" }
 lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_saved_combined" }
+lemmy_db_views_person_liked_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_liked_combined" }
 lemmy_db_views_report_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/report_combined" }
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
-activitypub_federation = { version = "0.6.4", default-features = false, features = [
+activitypub_federation = { version = "0.7.0-beta.1", default-features = false, features = [
   "actix-web",
 ] }
 diesel = { version = "2.2.10", features = [
@@ -158,16 +160,16 @@ actix-web = { version = "4.10.2", default-features = false, features = [
   "rustls-0_23",
 ] }
 tracing = { version = "0.1.41", default-features = false }
-tracing-actix-web = { version = "0.7.15", default-features = false }
+tracing-actix-web = { version = "0.7.18", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 url = { version = "2.5.4", features = ["serde"] }
-reqwest = { version = "0.12.12", default-features = false, features = [
+reqwest = { version = "0.12.18", default-features = false, features = [
   "blocking",
   "gzip",
   "json",
   "rustls-tls",
 ] }
-reqwest-middleware = "0.3.3"
+reqwest-middleware = "0.4.2"
 reqwest-tracing = "0.5.5"
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
