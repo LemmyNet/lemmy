@@ -393,9 +393,10 @@ diesel::table! {
 
 diesel::table! {
     local_image (pictrs_alias) {
-        local_user_id -> Nullable<Int4>,
         pictrs_alias -> Text,
         published -> Timestamptz,
+        person_id -> Int4,
+        thumbnail_for_post_id -> Nullable<Int4>,
     }
 }
 
@@ -419,7 +420,6 @@ diesel::table! {
         default_theme -> Text,
         default_post_listing_type -> ListingTypeEnum,
         legal_information -> Nullable<Text>,
-        hide_modlog_mod_names -> Bool,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
         actor_name_max_length -> Int4,
@@ -614,7 +614,6 @@ diesel::table! {
         community_id -> Int4,
         mod_person_id -> Int4,
         published -> Timestamptz,
-        reason -> Nullable<Text>,
         visibility -> CommunityVisibility,
     }
 }
@@ -1117,7 +1116,8 @@ diesel::joinable!(inbox_combined -> person_post_mention (person_post_mention_id)
 diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
-diesel::joinable!(local_image -> local_user (local_user_id));
+diesel::joinable!(local_image -> person (person_id));
+diesel::joinable!(local_image -> post (thumbnail_for_post_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));

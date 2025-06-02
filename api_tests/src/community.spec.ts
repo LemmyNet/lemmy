@@ -33,9 +33,19 @@ import {
   unfollows,
   getMyUser,
   userBlockInstance,
+  reportCommunity,
+  randomString,
+  listReports,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
-import { EditCommunity, GetPosts } from "lemmy-js-client";
+import {
+  CommunityReport,
+  CommunityReportView,
+  EditCommunity,
+  GetPosts,
+  ReportCombinedView,
+  ResolveCommunityReport,
+} from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
@@ -178,6 +188,80 @@ test("Remove community", async () => {
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
     false,
   );
+});
+
+test("Report a community", async () => {
+  // Create community on alpha
+  let alphaCommunity = await createCommunity(alpha);
+  expect(alphaCommunity.community_view.community).toBeDefined();
+
+  // Send report from beta
+  let betaCommunity = (
+    await resolveCommunity(beta, alphaCommunity.community_view.community.ap_id)
+  ).community!;
+  let betaReport = (
+    await reportCommunity(beta, betaCommunity.community.id, randomString(10))
+  ).community_report_view.community_report;
+  expect(betaReport).toBeDefined();
+
+  // Report was federated to alpha
+  let alphaReport = (
+    (await waitUntil(
+      () =>
+        listReports(alpha).then(p =>
+          p.reports.find(r => {
+            return checkCommunityReportName(r, betaReport);
+          }),
+        ),
+      res => !!res,
+    ))! as CommunityReportView
+  ).community_report;
+  expect(alphaReport).toBeDefined();
+  expect(alphaReport.resolved).toBe(false);
+  expect(alphaReport.original_community_name).toBe(
+    betaReport.original_community_name,
+  );
+  expect(alphaReport.original_community_title).toBe(
+    betaReport.original_community_title,
+  );
+  expect(alphaReport.original_community_banner).toBe(
+    betaReport.original_community_banner,
+  );
+  expect(alphaReport.original_community_description).toBe(
+    betaReport.original_community_description,
+  );
+  expect(alphaReport.original_community_icon).toBe(
+    betaReport.original_community_icon,
+  );
+  expect(alphaReport.original_community_sidebar).toBe(
+    betaReport.original_community_sidebar,
+  );
+  expect(alphaReport.reason).toBe(betaReport.reason);
+
+  // Resolve report as admin of the community's instance
+  let resolveParams: ResolveCommunityReport = {
+    report_id: alphaReport.id,
+    resolved: true,
+  };
+  let resolve = await alpha.resolveCommunityReport(resolveParams);
+  expect(resolve.community_report_view.community_report.resolved).toBeTruthy();
+
+  // Report should be marked resolved on reporter's instance
+  let resolvedReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return (
+              checkCommunityReportName(r, alphaReport) && r.resolver != null
+            );
+          }),
+        ),
+      res => !!res,
+    ))! as CommunityReportView
+  ).community_report;
+  expect(resolvedReport).toBeDefined();
+  expect(resolvedReport.resolved).toBe(true);
 });
 
 test("Search for beta community", async () => {
@@ -602,3 +686,18 @@ test("Community name with non-ascii chars", async () => {
   let posts = await beta.getPosts(form);
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });
+
+function checkCommunityReportName(
+  rcv: ReportCombinedView,
+  report: CommunityReport,
+) {
+  switch (rcv.type_) {
+    case "Community":
+      return (
+        rcv.community_report.original_community_name ===
+        report.original_community_name
+      );
+    default:
+      return false;
+  }
+}

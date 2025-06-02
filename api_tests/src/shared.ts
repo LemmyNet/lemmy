@@ -80,6 +80,8 @@ import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportRespons
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
+import { CommunityReportResponse } from "lemmy-js-client/dist/types/CommunityReportResponse";
+import { CreateCommunityReport } from "lemmy-js-client/dist/types/CreateCommunityReport";
 import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
@@ -768,7 +770,7 @@ export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   let my_user = await getMyUser(api);
   let remoteFollowed =
     my_user.follows.filter(c => c.community.local == false) ?? [];
-  await Promise.all(
+  await Promise.allSettled(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
 
@@ -795,6 +797,18 @@ export async function reportPost(
     reason,
   };
   return api.createPostReport(form);
+}
+
+export async function reportCommunity(
+  api: LemmyHttp,
+  community_id: number,
+  reason: string,
+): Promise<CommunityReportResponse> {
+  let form: CreateCommunityReport = {
+    community_id,
+    reason,
+  };
+  return api.createCommunityReport(form);
 }
 
 export async function listReports(
@@ -930,7 +944,7 @@ export async function deleteAllMedia(api: LemmyHttp) {
   const imagesRes = await api.listMediaAdmin({
     limit: imageFetchLimit,
   });
-  Promise.all(
+  Promise.allSettled(
     imagesRes.images
       .map(image => {
         const form: DeleteImageParams = {
@@ -943,14 +957,14 @@ export async function deleteAllMedia(api: LemmyHttp) {
 }
 
 export async function unfollows() {
-  await Promise.all([
+  await Promise.allSettled([
     unfollowRemotes(alpha),
     unfollowRemotes(beta),
     unfollowRemotes(gamma),
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
-  await Promise.all([
+  await Promise.allSettled([
     purgeAllPosts(alpha),
     purgeAllPosts(beta),
     purgeAllPosts(gamma),
@@ -962,7 +976,7 @@ export async function unfollows() {
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
   let res = await api.getPosts({ type_: "All", limit: 50 });
-  await Promise.all(
+  await Promise.allSettled(
     Array.from(new Set(res.posts.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id }))
       // Ignore errors

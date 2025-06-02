@@ -20,7 +20,7 @@
 
   pictrs: {
     url: "http://pictrs:8080/"
-    # api_key: "API_KEY"
+    api_key: "my-pictrs-key"
     image_mode: None
   }
 

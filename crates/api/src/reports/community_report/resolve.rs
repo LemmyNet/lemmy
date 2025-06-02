@@ -1,10 +1,19 @@
-use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{source::community_report::CommunityReport, traits::Reportable};
-use lemmy_db_views_community_report_response::CommunityReportResponse;
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
+use either::Either;
+use lemmy_api_utils::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+  utils::is_admin,
+};
+use lemmy_db_schema::{
+  source::{community_report::CommunityReport, site::Site},
+  traits::Reportable,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::CommunityReportView;
 use lemmy_db_views_resolve_community_report::ResolveCommunityReport;
+use lemmy_db_views_community_report_response::CommunityReportResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(
@@ -24,6 +33,21 @@ pub async fn resolve_community_report(
 
   let community_report_view =
     CommunityReportView::read(&mut context.pool(), report_id, person_id).await?;
+  let site = Site::read_from_instance_id(
+    &mut context.pool(),
+    community_report_view.community.instance_id,
+  )
+  .await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::SendResolveReport {
+      object_id: community_report_view.community.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      report_creator: community_report_view.creator.clone(),
+      receiver: Either::Left(site),
+    },
+    &context,
+  )?;
 
   Ok(Json(CommunityReportResponse {
     community_report_view,

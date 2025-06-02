@@ -1,10 +1,17 @@
 use crate::check_report_reason;
-use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
+use either::Either;
+use lemmy_api_utils::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+  utils::slur_regex,
+};
 use lemmy_db_schema::{
   source::{
     community::Community,
     community_report::{CommunityReport, CommunityReportForm},
+    site::Site,
   },
   traits::{Crud, Reportable},
 };
@@ -28,6 +35,7 @@ pub async fn create_community_report(
   let person_id = local_user_view.person.id;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
+  let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
   let report_form = CommunityReportForm {
     creator_id: person_id,
@@ -61,7 +69,15 @@ pub async fn create_community_report(
     .await?;
   }
 
-  // TODO: consider federating this
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateReport {
+      object_id: community.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      receiver: Either::Left(site),
+      reason: data.reason.clone(),
+    },
+    &context,
+  )?;
 
   Ok(Json(CommunityReportResponse {
     community_report_view,

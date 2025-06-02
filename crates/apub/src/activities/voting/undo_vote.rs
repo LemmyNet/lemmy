@@ -52,7 +52,7 @@ impl ActivityHandler for UndoVote {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
+    let community = self.object.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;

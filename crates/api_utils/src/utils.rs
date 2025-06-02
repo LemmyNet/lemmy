@@ -1,9 +1,7 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  request::{
-    delete_image_from_pictrs, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url,
-  },
+  request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
 use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
@@ -122,6 +120,7 @@ pub async fn is_mod_or_admin_opt(
   community_id: Option<CommunityId>,
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
+    check_local_user_valid(local_user_view)?;
     if let Some(community_id) = community_id {
       is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
@@ -281,7 +280,7 @@ pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()>
 
 /// Check that the given user can perform a mod action in the community.
 ///
-/// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
+/// In particular it checks that they're an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
   local_user_view: &LocalUserView,
@@ -544,19 +543,15 @@ pub async fn purge_post_images(
   }
 }
 
-/// Delete a local_user's images
+/// Delete local images attributed to a person
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
-    let pictrs_uploads =
-      LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
-        .await?;
+  let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
 
-    // Delete their images
-    for upload in pictrs_uploads {
-      delete_image_from_pictrs(&upload.local_image.pictrs_alias, context)
-        .await
-        .ok();
-    }
+  // Delete their images
+  for upload in pictrs_uploads {
+    delete_image_alias(&upload.local_image.pictrs_alias, context)
+      .await
+      .ok();
   }
   Ok(())
 }
