@@ -581,7 +581,13 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let instance = create_test_instance(&mut context.pool()).await?;
 
-    startup_jobs(&mut context.pool()).await?;
+    active_counts(&mut context.pool()).await?;
+    update_hot_ranks(&mut context.pool()).await?;
+    update_banned_when_expired(&mut context.pool()).await?;
+    delete_instance_block_when_expired(&mut context.pool()).await?;
+    clear_old_activities(&mut context.pool()).await?;
+    overwrite_deleted_posts_and_comments(&mut context.pool()).await?;
+    delete_old_denied_users(&mut context.pool()).await?;
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
