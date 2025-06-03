@@ -26,6 +26,9 @@ pub struct CreateComment {
   pub parent_id: Option<CommentId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
+  /// If false the author doesnt get notified about new replies
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -48,6 +51,8 @@ pub struct EditComment {
   pub content: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[skip_serializing_none]

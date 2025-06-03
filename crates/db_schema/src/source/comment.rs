@@ -71,6 +71,8 @@ pub struct Comment {
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  /// If false the author doesnt get notified about new replies
+  pub disable_reply_notifications: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -101,6 +103,8 @@ pub struct CommentInsertForm {
   pub language_id: Option<LanguageId>,
   #[new(default)]
   pub federation_pending: Option<bool>,
+  #[new(default)]
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -117,6 +121,7 @@ pub struct CommentUpdateForm {
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
   pub federation_pending: Option<bool>,
+  pub disable_reply_notifications: Option<bool>,
 }
 
 #[skip_serializing_none]
