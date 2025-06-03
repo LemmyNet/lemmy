@@ -48,6 +48,7 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .http1_only()
     .redirect(Policy::none())
 }
 
