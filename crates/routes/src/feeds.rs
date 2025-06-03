@@ -521,11 +521,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} admin {}",
-          if v.mod_add.removed {
-            "Removed"
-          } else {
-            "Added"
-          },
+          removed_added_str(v.mod_add.removed),
           &v.other_person.name
         ),
         &None,
@@ -537,11 +533,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} mod {} to /c/{}",
-          if v.mod_add_community.removed {
-            "Removed"
-          } else {
-            "Added"
-          },
+          removed_added_str(v.mod_add_community.removed),
           &v.other_person.name,
           &v.community.name
         ),
@@ -554,11 +546,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} {}",
-          if v.mod_ban.banned {
-            "Banned"
-          } else {
-            "Unbanned"
-          },
+          banned_unbanned_str(v.mod_ban.banned),
           &v.other_person.name
         ),
         &v.mod_ban.reason,
@@ -570,11 +558,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} {} from /c/{}",
-          if v.mod_ban_from_community.banned {
-            "Banned"
-          } else {
-            "Unbanned"
-          },
+          banned_unbanned_str(v.mod_ban_from_community.banned),
           &v.other_person.name,
           &v.community.name
         ),
@@ -630,11 +614,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} comment {}",
-          if v.mod_remove_comment.removed {
-            "Removed"
-          } else {
-            "Restored"
-          },
+          removed_restored_str(v.mod_remove_comment.removed),
           &v.comment.content
         ),
         &v.mod_remove_comment.reason,
@@ -646,11 +626,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} community /c/{}",
-          if v.mod_remove_community.removed {
-            "Removed"
-          } else {
-            "Restored"
-          },
+          removed_restored_str(v.mod_remove_community.removed),
           &v.community.name
         ),
         &v.mod_remove_community.reason,
@@ -662,11 +638,7 @@ fn create_modlog_items(
         &modlog_url,
         &format!(
           "{} post {}",
-          if v.mod_remove_post.removed {
-            "Removed"
-          } else {
-            "Restored"
-          },
+          removed_restored_str(v.mod_remove_post.removed),
           &v.post.name
         ),
         &v.mod_remove_post.reason,
@@ -687,6 +659,30 @@ fn create_modlog_items(
     .collect::<LemmyResult<Vec<Item>>>()?;
 
   Ok(modlog_items)
+}
+
+fn removed_added_str(removed: bool) -> &'static str {
+  if removed {
+    "Removed"
+  } else {
+    "Added"
+  }
+}
+
+fn banned_unbanned_str(banned: bool) -> &'static str {
+  if banned {
+    "Banned"
+  } else {
+    "Unbanned"
+  }
+}
+
+fn removed_restored_str(removed: bool) -> &'static str {
+  if removed {
+    "Removed"
+  } else {
+    "Restored"
+  }
 }
 
 fn build_modlog_item(
