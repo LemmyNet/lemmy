@@ -21,11 +21,15 @@ workspace = true
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_get_comments = { workspace = true, features = ["full"] }
 lemmy_db_views_get_comments_response = { workspace = true, features = ["full"] }
-lemmy_db_views_get_comments_slim_response = { workspace = true, features = ["full"] }
+lemmy_db_views_get_comments_slim_response = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_ban_from_community = { workspace = true, features = ["full"] }
 lemmy_db_views_get_community = { workspace = true, features = ["full"] }
-lemmy_db_views_get_community_response = { workspace = true, features = ["full"] }
+lemmy_db_views_get_community_response = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
@@ -34,11 +38,15 @@ lemmy_db_views_get_posts_response = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_views_get_person_details = { workspace = true, features = ["full"] }
-lemmy_db_views_get_person_details_response = { workspace = true, features = ["full"] }
+lemmy_db_views_get_person_details_response = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_db_views_resolve_object = { workspace = true, features = ["full"] }
-lemmy_db_views_resolve_object_response = { workspace = true, features = ["full"] }
+lemmy_db_views_resolve_object_response = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }

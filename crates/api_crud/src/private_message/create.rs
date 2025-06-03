@@ -1,8 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };

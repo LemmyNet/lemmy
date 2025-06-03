@@ -22,8 +22,14 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    check_nsfw_allowed, generate_featured_url, generate_moderators_url, generate_outbox_url,
-    get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex,
+    check_nsfw_allowed,
+    generate_featured_url,
+    generate_moderators_url,
+    generate_outbox_url,
+    get_url_blocklist,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{

@@ -1,5 +1,6 @@
 use crate::site::registration_applications::{
-  approve::approve_registration_application, list::list_registration_applications,
+  approve::approve_registration_application,
+  list::list_registration_applications,
   unread_count::get_unread_registration_application_count,
 };
 use activitypub_federation::config::Data;

@@ -1,6 +1,8 @@
 use crate::util::get_actor_cached;
 use activitypub_federation::{
-  activity_sending::SendActivityTask, config::Data, protocol::context::WithContext,
+  activity_sending::SendActivityTask,
+  config::Data,
+  protocol::context::WithContext,
   traits::ActivityHandler,
 };
 use anyhow::{Context, Result};
@@ -9,7 +11,8 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  federate_retry_sleep_duration, FEDERATION_CONTEXT,
+  federate_retry_sleep_duration,
+  FEDERATION_CONTEXT,
 };
 use reqwest::Url;
 use serde::{Deserialize, Serialize};

@@ -5,7 +5,8 @@ use actix_web::{
     StatusCode,
   },
   web::{Data, Json},
-  HttpResponse, HttpResponseBuilder,
+  HttpResponse,
+  HttpResponseBuilder,
 };
 use captcha::{generate, Difficulty};
 use lemmy_api_utils::context::LemmyContext;

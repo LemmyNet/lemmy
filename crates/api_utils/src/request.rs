@@ -7,24 +7,29 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::source::{
-  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
-  post::{Post, PostUpdateForm},
-  site::Site,
+use lemmy_db_schema::{
+  source::{
+    images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+    post::{Post, PostUpdateForm},
+    site::Site,
+  },
+  traits::Crud,
 };
-use lemmy_db_schema::traits::Crud;
 use lemmy_db_views_link_metadata::LinkMetadata;
 use lemmy_db_views_open_graph_data::OpenGraphData;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  REQWEST_TIMEOUT, VERSION,
+  REQWEST_TIMEOUT,
+  VERSION,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
-  Client, ClientBuilder, Response,
+  Client,
+  ClientBuilder,
+  Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};

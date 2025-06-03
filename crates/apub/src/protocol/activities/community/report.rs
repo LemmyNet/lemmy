@@ -1,5 +1,7 @@
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::FlagType,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::FlagType,
   protocol::helpers::deserialize_one,
 };
 use either::Either;

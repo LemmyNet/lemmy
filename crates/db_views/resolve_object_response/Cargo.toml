@@ -20,7 +20,7 @@ full = [
   "lemmy_db_views_post/full",
   "lemmy_db_views_comment/full",
   "lemmy_db_views_community/full",
-  "lemmy_db_views_person/full"
+  "lemmy_db_views_person/full",
 ]
 
 [dependencies]

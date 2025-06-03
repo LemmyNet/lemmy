@@ -6,8 +6,12 @@ use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    generate_inbox_url, get_url_blocklist, is_admin, local_site_rate_limit_to_rate_limit_config,
-    process_markdown_opt, slur_regex,
+    generate_inbox_url,
+    get_url_blocklist,
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    process_markdown_opt,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -29,7 +33,9 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      build_and_check_regex, is_valid_body_field, site_name_length_check,
+      build_and_check_regex,
+      is_valid_body_field,
+      site_name_length_check,
       site_or_community_description_length_check,
     },
   },

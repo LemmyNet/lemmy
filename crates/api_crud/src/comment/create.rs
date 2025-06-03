@@ -1,14 +1,19 @@
 use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
 use lemmy_api_utils::{
   build_response::{build_comment_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_user_action, check_post_deleted_or_removed, get_url_blocklist, is_mod_or_admin,
-    process_markdown, slur_regex, update_read_comments,
+    check_community_user_action,
+    check_post_deleted_or_removed,
+    get_url_blocklist,
+    is_mod_or_admin,
+    process_markdown,
+    slur_regex,
+    update_read_comments,
   },
 };
 use lemmy_db_schema::{

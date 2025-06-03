@@ -15,10 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "ts-rs",
-  "lemmy_db_views_custom_emoji/full"
-]
+full = ["ts-rs", "lemmy_db_views_custom_emoji/full"]
 
 [dependencies]
 lemmy_db_views_custom_emoji = { workspace = true }

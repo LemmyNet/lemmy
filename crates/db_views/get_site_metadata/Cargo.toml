@@ -15,9 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "ts-rs",
-]
+full = ["ts-rs"]
 
 [dependencies]
 serde = { workspace = true }

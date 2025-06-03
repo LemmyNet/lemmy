@@ -2,7 +2,8 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   insert_received_activity,
   protocol::activities::{
-    create_or_update::private_message::CreateOrUpdatePrivateMessage, CreateOrUpdateType,
+    create_or_update::private_message::CreateOrUpdatePrivateMessage,
+    CreateOrUpdateType,
   },
 };
 use activitypub_federation::{

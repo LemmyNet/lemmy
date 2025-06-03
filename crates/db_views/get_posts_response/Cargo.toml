@@ -15,11 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "ts-rs",
-  "lemmy_db_views_post/full",
-  "lemmy_db_schema/full",
-]
+full = ["ts-rs", "lemmy_db_views_post/full", "lemmy_db_schema/full"]
 
 [dependencies]
 lemmy_db_views_post = { workspace = true }

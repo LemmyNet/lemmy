@@ -3,7 +3,8 @@ use crate::{
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   protocol::activities::community::{
-    collection_add::CollectionAdd, collection_remove::CollectionRemove,
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
   },
 };
 use activitypub_federation::{

@@ -7,7 +7,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_mod_action, check_nsfw_allowed, get_url_blocklist, process_markdown_opt,
+    check_community_mod_action,
+    check_nsfw_allowed,
+    get_url_blocklist,
+    process_markdown_opt,
     slur_regex,
   },
 };

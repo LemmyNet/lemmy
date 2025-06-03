@@ -1,5 +1,7 @@
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::RemoveType,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::RemoveType,
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_utils::context::LemmyContext;

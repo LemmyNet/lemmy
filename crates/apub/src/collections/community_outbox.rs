@@ -2,7 +2,8 @@ use crate::{
   activity_lists::AnnouncableActivities,
   protocol::{
     activities::{
-      community::announce::AnnounceActivity, create_or_update::page::CreateOrUpdatePage,
+      community::announce::AnnounceActivity,
+      create_or_update::page::CreateOrUpdatePage,
       CreateOrUpdateType,
     },
     collections::group_outbox::GroupOutbox,

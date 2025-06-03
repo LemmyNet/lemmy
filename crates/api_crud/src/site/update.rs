@@ -6,7 +6,10 @@ use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    get_url_blocklist, is_admin, local_site_rate_limit_to_rate_limit_config, process_markdown_opt,
+    get_url_blocklist,
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    process_markdown_opt,
     slur_regex,
   },
 };
@@ -32,7 +35,10 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs_opt,
     validation::{
-      build_and_check_regex, check_urls_are_valid, is_valid_body_field, site_name_length_check,
+      build_and_check_regex,
+      check_urls_are_valid,
+      is_valid_body_field,
+      site_name_length_check,
       site_or_community_description_length_check,
     },
   },

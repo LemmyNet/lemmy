@@ -1,6 +1,8 @@
 use crate::{
   activities::{
-    check_community_deleted_or_removed, community::send_activity_in_community, generate_activity_id,
+    check_community_deleted_or_removed,
+    community::send_activity_in_community,
+    generate_activity_id,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,

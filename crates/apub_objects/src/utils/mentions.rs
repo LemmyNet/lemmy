@@ -1,6 +1,9 @@
 use crate::objects::{comment::ApubComment, person::ApubPerson};
 use activitypub_federation::{
-  config::Data, fetch::webfinger::webfinger_resolve_actor, kinds::link::MentionType, traits::Actor,
+  config::Data,
+  fetch::webfinger::webfinger_resolve_actor,
+  kinds::link::MentionType,
+  traits::Actor,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{

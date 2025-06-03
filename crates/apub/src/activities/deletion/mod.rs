@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::send_activity_in_community, send_lemmy_activity, verify_mod_action, verify_person,
+    community::send_activity_in_community,
+    send_lemmy_activity,
+    verify_mod_action,
+    verify_person,
   },
   activity_lists::AnnouncableActivities,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
@@ -15,7 +18,10 @@ use activitypub_federation::{
 use lemmy_api_utils::{context::LemmyContext, utils::purge_user_account};
 use lemmy_apub_objects::{
   objects::{
-    comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
     private_message::ApubPrivateMessage,
   },
   utils::{

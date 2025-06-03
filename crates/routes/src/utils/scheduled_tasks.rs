@@ -7,7 +7,11 @@ use diesel::{
   query_builder::AsQuery,
   sql_query,
   sql_types::{Integer, Timestamptz},
-  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, QueryDsl, QueryableByName,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_utils::{
@@ -26,8 +30,17 @@ use lemmy_db_schema::{
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
-  captcha_answer, comment, community, community_actions, federation_blocklist, instance,
-  instance_actions, person, post, received_activity, sent_activity,
+  captcha_answer,
+  comment,
+  community,
+  community_actions,
+  federation_blocklist,
+  instance,
+  instance_actions,
+  person,
+  post,
+  received_activity,
+  sent_activity,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

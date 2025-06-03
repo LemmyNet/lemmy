@@ -1,6 +1,8 @@
 use crate::{activities::deletion::DeletableObjects, protocol::IdOrNestedObject};
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::DeleteType,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
 };
 use anyhow::anyhow;

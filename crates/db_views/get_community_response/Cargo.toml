@@ -19,7 +19,7 @@ full = [
   "ts-rs",
   "lemmy_db_schema/full",
   "lemmy_db_views_community/full",
-  "lemmy_db_views_community_moderator/full"
+  "lemmy_db_views_community_moderator/full",
 ]
 
 [dependencies]

@@ -1,6 +1,10 @@
 use lemmy_db_schema::{newtypes::LanguageId, sensitive::SensitiveString};
 use lemmy_db_schema_file::enums::{
-  CommentSortType, ListingType, PostListingMode, PostSortType, VoteShow,
+  CommentSortType,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  VoteShow,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

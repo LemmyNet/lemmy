@@ -5,8 +5,13 @@ use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
   utils::{
-    check_email_verified, check_local_user_valid, check_registration_application,
-    generate_inbox_url, honeypot_check, password_length_check, slur_regex,
+    check_email_verified,
+    check_local_user_valid,
+    check_registration_application,
+    generate_inbox_url,
+    honeypot_check,
+    password_length_check,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -32,7 +37,8 @@ use lemmy_db_views_login_response::LoginResponse;
 use lemmy_db_views_register::Register;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::{
-  account::send_verification_email_if_required, admin::send_new_applicant_email_to_admins,
+  account::send_verification_email_if_required,
+  admin::send_new_applicant_email_to_admins,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},

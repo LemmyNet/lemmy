@@ -21,7 +21,7 @@ full = [
   "lemmy_db_views_my_user_info/full",
   "lemmy_db_views_site/full",
   "lemmy_db_views_person/full",
-  "lemmy_db_views_plugin_metadata/full"
+  "lemmy_db_views_plugin_metadata/full",
 ]
 
 [dependencies]

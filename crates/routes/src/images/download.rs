@@ -3,7 +3,9 @@ use actix_web::{
   body::{BodyStream, BoxBody},
   http::StatusCode,
   web::{Data, *},
-  HttpRequest, HttpResponse, Responder,
+  HttpRequest,
+  HttpResponse,
+  Responder,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;

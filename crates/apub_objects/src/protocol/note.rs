@@ -1,6 +1,9 @@
 use crate::{
   objects::{
-    comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
     PostOrComment,
   },
   protocol::page::Attachment,

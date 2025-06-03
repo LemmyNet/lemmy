@@ -2,8 +2,11 @@ use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::{
-    actor_language::LocalUserLanguage, community::CommunityActions, instance::InstanceActions,
-    keyword_block::LocalUserKeywordBlock, person::PersonActions,
+    actor_language::LocalUserLanguage,
+    community::CommunityActions,
+    instance::InstanceActions,
+    keyword_block::LocalUserKeywordBlock,
+    person::PersonActions,
   },
   traits::Blockable,
 };

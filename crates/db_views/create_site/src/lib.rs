@@ -1,6 +1,11 @@
 use lemmy_db_schema::newtypes::LanguageId;
 use lemmy_db_schema_file::enums::{
-  CommentSortType, FederationMode, ListingType, PostListingMode, PostSortType, RegistrationMode,
+  CommentSortType,
+  FederationMode,
+  ListingType,
+  PostListingMode,
+  PostSortType,
+  RegistrationMode,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

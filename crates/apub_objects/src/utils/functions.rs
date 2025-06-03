@@ -4,7 +4,9 @@ use crate::{
   protocol::{group::Group, page::Attachment},
 };
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::public,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::public,
   protocol::values::MediaTypeMarkdownOrHtml,
 };
 use either::Either;
@@ -25,7 +27,8 @@ use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
-  CacheLock, CACHE_DURATION_FEDERATION,
+  CacheLock,
+  CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};

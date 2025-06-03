@@ -6,7 +6,8 @@ use lemmy_db_views_list_registration_applications::ListRegistrationApplications;
 use lemmy_db_views_list_registration_applications_response::ListRegistrationApplicationsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
-  impls::RegistrationApplicationQuery, RegistrationApplicationView,
+  impls::RegistrationApplicationQuery,
+  RegistrationApplicationView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

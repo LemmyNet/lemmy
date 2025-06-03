@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
-
 #[cfg(feature = "full")]
 use {
   extism::FromBytes,

@@ -18,7 +18,10 @@ use lemmy_db_schema::{
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     mod_log::moderator::{
-      ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm,
+      ModRemoveComment,
+      ModRemoveCommentForm,
+      ModRemovePost,
+      ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
     person::{Person, PersonActions, PersonUpdateForm},
@@ -50,7 +53,8 @@ use lemmy_utils::{
     slurs::remove_slurs,
     validation::{build_and_check_regex, clean_urls_in_text},
   },
-  CacheLock, CACHE_DURATION_FEDERATION,
+  CacheLock,
+  CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};

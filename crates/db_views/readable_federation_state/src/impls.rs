@@ -1,7 +1,6 @@
+use crate::ReadableFederationState;
 use lemmy_db_schema::source::federation_queue_state::FederationQueueState;
 use lemmy_utils::federate_retry_sleep_duration;
-
-use crate::ReadableFederationState;
 
 #[allow(clippy::expect_used)]
 impl From<FederationQueueState> for ReadableFederationState {

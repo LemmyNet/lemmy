@@ -5,7 +5,9 @@ use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
   web::{get, scope, Data},
-  App, HttpResponse, HttpServer,
+  App,
+  HttpResponse,
+  HttpServer,
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
@@ -18,7 +20,8 @@ use lemmy_api_utils::{
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
   collections::fetch_community_collections,
-  VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};

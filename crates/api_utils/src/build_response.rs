@@ -25,7 +25,9 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_post_response::PostResponse;
 use lemmy_email::notifications::{
-  send_comment_reply_email, send_mention_email, send_post_reply_email,
+  send_comment_reply_email,
+  send_mention_email,
+  send_post_reply_email,
 };
 use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
 

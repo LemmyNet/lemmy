@@ -4,7 +4,10 @@ use futures::{future::try_join_all, StreamExt};
 use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{
-  comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,

@@ -1,14 +1,19 @@
 pub use lemmy_db_schema::{
   newtypes::{CommentReplyId, PersonCommentMentionId, PersonPostMentionId},
   source::{
-    comment_reply::CommentReply, person_comment_mention::PersonCommentMention,
+    comment_reply::CommentReply,
+    person_comment_mention::PersonCommentMention,
     person_post_mention::PersonPostMention,
   },
   InboxDataType,
 };
 pub use lemmy_db_views_get_unread_count_response::GetUnreadCountResponse;
 pub use lemmy_db_views_inbox_combined::{
-  CommentReplyView, InboxCombinedView, ListInbox, ListInboxResponse, PersonCommentMentionView,
+  CommentReplyView,
+  InboxCombinedView,
+  ListInbox,
+  ListInboxResponse,
+  PersonCommentMentionView,
   PersonPostMentionView,
 };
 pub use lemmy_db_views_mark_comment_reply_as_read::MarkCommentReplyAsRead;

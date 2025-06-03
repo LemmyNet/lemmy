@@ -3,7 +3,8 @@ use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
-    generate_activity_id, send_lemmy_activity,
+    generate_activity_id,
+    send_lemmy_activity,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,

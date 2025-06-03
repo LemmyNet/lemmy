@@ -2,7 +2,8 @@ use actix_web::{
   body::MessageBody,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
   http::header::{HeaderValue, CACHE_CONTROL},
-  Error, HttpMessage,
+  Error,
+  HttpMessage,
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;

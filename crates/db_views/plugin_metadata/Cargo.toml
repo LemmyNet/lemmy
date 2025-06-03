@@ -15,11 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "ts-rs",
-  "extism",
-  "extism-convert"
-]
+full = ["ts-rs", "extism", "extism-convert"]
 
 [dependencies]
 serde = { workspace = true }

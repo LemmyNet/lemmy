@@ -23,7 +23,11 @@ use lemmy_utils::{
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
-  Category, Channel, EnclosureBuilder, Guid, Item,
+  Category,
+  Channel,
+  EnclosureBuilder,
+  Guid,
+  Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};

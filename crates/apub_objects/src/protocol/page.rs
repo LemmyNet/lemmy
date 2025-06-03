@@ -1,7 +1,12 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::protocol::{
-    AttributedTo, ImageObject, InCommunity, LanguageTag, PersonOrGroupType, Source,
+    AttributedTo,
+    ImageObject,
+    InCommunity,
+    LanguageTag,
+    PersonOrGroupType,
+    Source,
   },
 };
 use activitypub_federation::{

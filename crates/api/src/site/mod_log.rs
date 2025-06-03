@@ -7,7 +7,9 @@ use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_get_modlog::GetModlog;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog_combined::{
-  impls::ModlogCombinedQuery, GetModlogResponse, ModlogCombinedView,
+  impls::ModlogCombinedQuery,
+  GetModlogResponse,
+  ModlogCombinedView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
@@ -97,7 +99,10 @@ mod tests {
     ModlogActionType,
   };
   use lemmy_db_views_modlog_combined::{
-    impls::ModlogCombinedQuery, ModRemoveCommentView, ModRemovePostView, ModlogCombinedView,
+    impls::ModlogCombinedQuery,
+    ModRemoveCommentView,
+    ModRemovePostView,
+    ModlogCombinedView,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

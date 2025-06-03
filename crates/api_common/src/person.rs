@@ -16,7 +16,9 @@ pub mod actions {
   pub use lemmy_db_views_block_person::BlockPerson;
   pub use lemmy_db_views_block_person_response::BlockPersonResponse;
   pub use lemmy_db_views_person_content_combined::{
-    ListPersonContent, ListPersonContentResponse, PersonContentCombinedView,
+    ListPersonContent,
+    ListPersonContentResponse,
+    PersonContentCombinedView,
   };
 
   pub mod moderation {

@@ -34,5 +34,5 @@ pub struct GetComments {
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub parent_id: Option<CommentId>
+  pub parent_id: Option<CommentId>,
 }

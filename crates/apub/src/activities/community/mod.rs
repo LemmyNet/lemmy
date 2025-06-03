@@ -1,13 +1,17 @@
 use super::verify_mod_action;
 use crate::{
-  activities::send_lemmy_activity, activity_lists::AnnouncableActivities,
+  activities::send_lemmy_activity,
+  activity_lists::AnnouncableActivities,
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use either::Either;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_apub_objects::objects::{
-  community::ApubCommunity, instance::ApubSite, person::ApubPerson, PostOrComment,
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
+  PostOrComment,
   ReportableObjects,
 };
 use lemmy_db_schema::{

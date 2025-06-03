@@ -1,6 +1,8 @@
 use super::block_user::BlockUser;
 use activitypub_federation::{
-  fetch::object_id::ObjectId, kinds::activity::UndoType, protocol::helpers::deserialize_one_or_many,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_apub_objects::objects::person::ApubPerson;
 use serde::{Deserialize, Serialize};

@@ -1,15 +1,14 @@
 use crate::{
   api::{
-    listing_type_with_default, post_sort_type_with_default, post_time_range_seconds_with_default,
+    listing_type_with_default,
+    post_sort_type_with_default,
+    post_time_range_seconds_with_default,
   },
   fetcher::resolve_ap_identifier,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_utils::{
-  context::LemmyContext,
-  utils::check_private_instance,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,

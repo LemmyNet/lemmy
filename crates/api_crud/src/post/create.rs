@@ -2,16 +2,21 @@ use super::convert_published_time;
 use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::plugins::{plugin_hook_after, plugin_hook_before};
 use lemmy_api_utils::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   tags::update_post_tags,
   utils::{
-    check_community_user_action, check_nsfw_allowed, get_url_blocklist, honeypot_check,
-    process_markdown_opt, send_webmention, slur_regex,
+    check_community_user_action,
+    check_nsfw_allowed,
+    get_url_blocklist,
+    honeypot_check,
+    process_markdown_opt,
+    send_webmention,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -33,7 +38,10 @@ use lemmy_utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
-      is_url_blocked, is_valid_alt_text_field, is_valid_body_field, is_valid_post_title,
+      is_url_blocked,
+      is_valid_alt_text_field,
+      is_valid_body_field,
+      is_valid_post_title,
       is_valid_url,
     },
   },
