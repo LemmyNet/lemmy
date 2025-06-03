@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -14,7 +14,7 @@ use lemmy_db_views_block_community::BlockCommunity;
 use lemmy_db_views_block_community_response::BlockCommunityResponse;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn user_block_community(
   data: Json<BlockCommunity>,
@@ -29,7 +29,7 @@ pub async fn user_block_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   conn
-    .transaction::<_, LemmyError, _>(|conn| {
+    .run_transaction(|conn| {
       async move {
         if tx_data.block {
           CommunityActions::block(&mut conn.into(), &community_block_form).await?;

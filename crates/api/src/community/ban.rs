@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -23,10 +23,7 @@ use lemmy_db_views_ban_from_community::BanFromCommunity;
 use lemmy_db_views_ban_from_community_response::BanFromCommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::validation::is_valid_body_field,
-};
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
@@ -62,7 +59,7 @@ pub async fn ban_from_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   conn
-    .transaction::<_, LemmyError, _>(|conn| {
+    .run_transaction(|conn| {
       async move {
         if tx_data.ban {
           CommunityActions::ban(&mut conn.into(), &community_user_ban_form).await?;

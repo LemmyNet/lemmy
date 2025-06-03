@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use anyhow::Context;
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_community_user_action, is_admin, is_top_mod},
@@ -19,7 +19,7 @@ use lemmy_db_views_get_community_response::GetCommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_transfer_community::TransferCommunity;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   location_info,
 };
 
@@ -59,7 +59,7 @@ pub async fn transfer_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   conn
-    .transaction::<_, LemmyError, _>(|conn| {
+    .run_transaction(|conn| {
       async move {
         CommunityActions::delete_mods_for_community(&mut conn.into(), community_id).await?;
 

@@ -2,13 +2,8 @@ use crate::{
   source::local_site_url_blocklist::{LocalSiteUrlBlocklist, LocalSiteUrlBlocklistForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error};
-use diesel_async::{
-  scoped_futures::ScopedFutureExt,
-  AsyncConnection,
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel::dsl::insert_into;
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::local_site_url_blocklist;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -17,11 +12,9 @@ impl LocalSiteUrlBlocklist {
     let conn = &mut get_conn(pool).await?;
 
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
-          Self::clear(conn)
-            .await
-            .map_err(|_e| diesel::result::Error::NotFound)?;
+          Self::clear(conn).await?;
 
           let forms = url_blocklist
             .into_iter()
@@ -32,11 +25,11 @@ impl LocalSiteUrlBlocklist {
             .values(forms)
             .execute(conn)
             .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLocalSiteUrlBlocklist)
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateLocalSiteUrlBlocklist)
   }
 
   async fn clear(conn: &mut AsyncPgConnection) -> LemmyResult<usize> {
