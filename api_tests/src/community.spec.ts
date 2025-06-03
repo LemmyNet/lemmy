@@ -754,7 +754,9 @@ test("Multi-community", async () => {
     () => beta.getPosts({ multi_community_id: getBetaMulti.multi.id }),
     p => p.posts.length == 1,
   );
-  expect(multi_post_listing.posts[0].post.ap_id).toBe(post.post_view.post.id);
+  expect(multi_post_listing.posts[0].post.ap_id).toBe(
+    post.post_view.post.ap_id,
+  );
 });
 
 function checkCommunityReportName(

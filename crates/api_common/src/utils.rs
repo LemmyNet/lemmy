@@ -1027,7 +1027,7 @@ pub async fn community_follow_many(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   for community in to_follow {
-    let state = community_follower_state(&community);
+    let state = community_follower_state(community);
     let mut form = CommunityFollowerForm::new(community.id, person.id, state);
     form.is_multi_community_follow = Some(true);
     CommunityActions::follow(&mut context.pool(), &form).await?;
@@ -1051,7 +1051,7 @@ pub async fn community_unfollow_many(
     if !community.local {
       ActivityChannel::submit_activity(
         SendActivityData::FollowCommunity(community.clone(), person.clone(), false),
-        &context,
+        context,
       )?;
     }
   }
