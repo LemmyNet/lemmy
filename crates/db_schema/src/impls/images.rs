@@ -6,13 +6,12 @@ use crate::{
 use diesel::{
   dsl::exists,
   insert_into,
-  result::Error,
   select,
   BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::{image_details, local_image, remote_image};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
@@ -25,23 +24,21 @@ impl LocalImage {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
           let local_insert = insert_into(local_image::table)
             .values(form)
             .get_result::<Self>(conn)
-            .await;
-
-          ImageDetails::create(&mut conn.into(), image_details_form)
             .await
-            .map_err(|_e| diesel::result::Error::NotFound)?;
+            .with_lemmy_type(LemmyErrorType::CouldntCreateImage);
+
+          ImageDetails::create(&mut conn.into(), image_details_form).await?;
 
           local_insert
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateImage)
   }
 
   pub async fn validate_by_alias_and_user(
