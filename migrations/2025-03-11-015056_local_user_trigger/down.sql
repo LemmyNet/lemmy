@@ -1,5 +1,5 @@
 UPDATE
-    local_site
+    site_aggregates
 SET
     users = (
         SELECT
