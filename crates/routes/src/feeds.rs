@@ -505,7 +505,7 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
     };
 
     let i = Item {
-      title: Some(p.post.name),
+      title: Some(format!("[{}] {}", p.community.name, p.post.name)),
       pub_date: Some(p.post.published.to_rfc2822()),
       comments: Some(post_url.to_string()),
       guid,
