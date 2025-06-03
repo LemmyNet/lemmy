@@ -336,16 +336,23 @@ impl SearchCombinedQuery {
     // NSFW
     let user_and_site_nsfw = user.as_ref().map(|u| &u.local_user).show_nsfw(site_local);
     if !self.show_nsfw.unwrap_or(user_and_site_nsfw) {
+      let safe_community = community::nsfw.eq(false);
+      let safe_post_and_community = post::nsfw.eq(false).and(safe_community);
+
       query = query.filter(
-        search_combined::post_id
+        search_combined::community_id
           .is_not_null()
-          .and(post::nsfw.eq(false))
+          .and(safe_community)
           .or(
-            search_combined::community_id
+            search_combined::post_id
               .is_not_null()
-              .and(community::nsfw.eq(false)),
+              .and(safe_post_and_community),
           )
-          .or(search_combined::comment_id.is_not_null())
+          .or(
+            search_combined::comment_id
+              .is_not_null()
+              .and(safe_post_and_community),
+          )
           .or(search_combined::person_id.is_not_null()),
       );
     };
@@ -495,6 +502,7 @@ mod tests {
     timmy_comment: Comment,
     sara_comment: Comment,
     sara_comment_2: Comment,
+    comment_in_nsfw_post: Comment,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -567,6 +575,13 @@ mod tests {
       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
+    let comment_in_nsfw_post_form = CommentInsertForm::new(
+      sara.id,
+      nsfw_post.id,
+      "sara comment in nsfw post prv 2".into(),
+    );
+    let comment_in_nsfw_post = Comment::create(pool, &comment_in_nsfw_post_form, None).await?;
+
     // Timmy likes and dislikes a few things
     let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, 1);
     PostActions::like(pool, &timmy_like_post_form).await?;
@@ -601,6 +616,7 @@ mod tests {
       timmy_comment,
       sara_comment,
       sara_comment_2,
+      comment_in_nsfw_post,
     })
   }
 
@@ -1092,6 +1108,36 @@ mod tests {
 
     // Make sure the first is the nsfw
     if let SearchCombinedView::Post(v) = &nsfw_post_search[0] {
+      assert_eq!(data.nsfw_post.id, v.post.id);
+      assert!(v.post.nsfw);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn nsfw_comment() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let nsfw_comment_search = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      show_nsfw: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(4, nsfw_comment_search);
+
+    // Make sure the first is the nsfw
+    if let SearchCombinedView::Comment(v) = &nsfw_comment_search[0] {
+      assert_eq!(data.comment_in_nsfw_post.id, v.comment.id);
       assert_eq!(data.nsfw_post.id, v.post.id);
       assert!(v.post.nsfw);
     } else {
