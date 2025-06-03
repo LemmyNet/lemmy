@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   },
   utils::{naive_now, ActualDbPool, DbPool},
 };
-use std::{collections::BinaryHeap, ops::Add, time::Duration};
+use std::{cmp::max, collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
   time::sleep,
@@ -260,7 +260,7 @@ impl InstanceWorker {
         SendActivityResult::Success(s) => {
           self.in_flight -= 1;
           if !s.was_skipped {
-            self.state.fail_count = 0;
+            self.state.fail_count = max(0, self.state.fail_count - 1);
             self.mark_instance_alive().await?;
           }
           self.successfuls.push(s);
