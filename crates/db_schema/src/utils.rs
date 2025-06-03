@@ -27,13 +27,14 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
+  scoped_futures::ScopedBoxFuture,
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
   utils::validation::clean_url,
 };
@@ -88,6 +89,21 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
   })
+}
+
+impl DbConn<'_> {
+  pub async fn run_transaction<'a, R, F>(&mut self, callback: F) -> LemmyResult<R>
+  where
+    F: for<'r> FnOnce(&'r mut AsyncPgConnection) -> ScopedBoxFuture<'a, 'r, LemmyResult<R>>
+      + Send
+      + 'a,
+    R: Send + 'a,
+  {
+    self
+      .deref_mut()
+      .transaction::<_, LemmyError, _>(callback)
+      .await
+  }
 }
 
 impl Deref for DbConn<'_> {
@@ -610,7 +626,6 @@ pub fn paginate<Q, C>(
 
 #[cfg(test)]
 mod tests {
-
   use super::*;
   use pretty_assertions::assert_eq;
 
