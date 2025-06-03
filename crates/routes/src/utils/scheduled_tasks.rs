@@ -53,27 +53,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Setup the connections
   let mut scheduler = AsyncScheduler::new();
 
-  let context_1 = context.clone();
-  // Update active counts expired bans and unpublished posts every hour
-  scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      active_counts(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to update active counts: {e}"))
-        .ok();
-      update_banned_when_expired(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to update expired bans: {e}"))
-        .ok();
-      delete_instance_block_when_expired(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
-        .ok();
-    }
-  });
-
   let context_1 = context.reset_request_count();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
@@ -91,6 +70,27 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       publish_scheduled_posts(&context)
         .await
         .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
+        .ok();
+    }
+  });
+
+  let context_1 = context.clone();
+  // Update active counts expired bans and unpublished posts every hour
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
+    let context = context_1.clone();
+
+    async move {
+      active_counts(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update active counts: {e}"))
+        .ok();
+      update_banned_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update expired bans: {e}"))
+        .ok();
+      delete_instance_block_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
         .ok();
     }
   });
