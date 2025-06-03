@@ -138,10 +138,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
-      update_multi_communities(&context)
-        .await
-        .inspect_err(|e| warn!("Failed to update multi-communities: {e}"))
-        .ok();
     }
   });
 
@@ -566,38 +562,6 @@ async fn build_update_instance_form(
   Some(instance_form)
 }
 
-/// Updates all multi-communities from remote users
-async fn update_multi_communities(context: &Data<LemmyContext>) -> LemmyResult<()> {
-  info!("Updating multi-communities...");
-  let pool = &mut context.pool();
-  let mut conn = get_conn(pool).await?;
-
-  let multi_communities: Vec<MultiCommunity> = multi_community::table
-    .left_join(person::table.left_join(instance::table))
-    // home instance is not dead
-    .filter(instance::updated.gt((now() - IntervalDsl::days(3)).nullable()))
-    // multi-comm wasnt updated in last day
-    .filter(
-      coalesce(multi_community::updated, multi_community::published)
-        .lt(now() - IntervalDsl::days(1)),
-    )
-    .filter(multi_community::local.eq(false))
-    .select(multi_community::all_columns)
-    .get_results(&mut conn)
-    .await?;
-
-  join_all(multi_communities.into_iter().map(|m| m.ap_id.into()).map(
-    |ap_id: ObjectId<ApubMultiCommunity>| async move {
-      // Fetch data, if successful it is written to db in ApubMultiCommunity::from_json
-      ap_id.dereference(context).await.ok()
-    },
-  ))
-  .await;
-
-  info!("Finished updating multi-communities...");
-  Ok(())
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -642,7 +606,6 @@ mod tests {
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
-    update_multi_communities(&context).await?;
     Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
