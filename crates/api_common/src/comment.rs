@@ -141,10 +141,6 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub parent_id: Option<CommentId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub liked_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub disliked_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

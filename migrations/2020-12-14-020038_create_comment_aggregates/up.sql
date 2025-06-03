@@ -78,7 +78,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN NEW.score = - 1 THEN
+            downvotes = CASE WHEN NEW.score = -1 THEN
                 downvotes + 1
             ELSE
                 downvotes
@@ -96,7 +96,7 @@ BEGIN
             ELSE
                 upvotes
             END,
-            downvotes = CASE WHEN OLD.score = - 1 THEN
+            downvotes = CASE WHEN OLD.score = -1 THEN
                 downvotes - 1
             ELSE
                 downvotes

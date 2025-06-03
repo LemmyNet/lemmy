@@ -158,6 +158,19 @@ pub enum PostFeatureType {
   Community,
 }
 
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
+)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The like_type for a persons liked content.
+pub enum LikeType {
+  #[default]
+  All,
+  LikedOnly,
+  DislikedOnly,
+}
+
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
 /// vec on failure.
 #[macro_export]
