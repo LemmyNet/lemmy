@@ -50,33 +50,8 @@ use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
-  // Setup the connections
-  let mut scheduler = AsyncScheduler::new();
-  startup_jobs(&mut context.pool())
-    .await
-    .inspect_err(|e| warn!("Failed to run startup tasks: {e}"))
-    .ok();
-
-  let context_1 = context.clone();
-  // Update active counts expired bans and unpublished posts every hour
-  scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      active_counts(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to update active counts: {e}"))
-        .ok();
-      update_banned_when_expired(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to update expired bans: {e}"))
-        .ok();
-      delete_instance_block_when_expired(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
-        .ok();
-    }
-  });
+  // https://github.com/mdsherry/clokwerk/issues/38
+  let mut scheduler = AsyncScheduler::with_tz(Utc);
 
   let context_1 = context.reset_request_count();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
@@ -100,14 +75,22 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   });
 
   let context_1 = context.clone();
-  // Clear old activities every week
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
+  // Update active counts expired bans and unpublished posts every hour
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
     async move {
-      clear_old_activities(&mut context.pool())
+      active_counts(&mut context.pool())
         .await
-        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
+        .inspect_err(|e| warn!("Failed to update active counts: {e}"))
+        .ok();
+      update_banned_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update expired bans: {e}"))
+        .ok();
+      delete_instance_block_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
         .ok();
     }
   });
@@ -117,6 +100,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
+  // - Delete old outgoing activities
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.clone();
 
@@ -133,6 +117,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
+      clear_old_activities(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
+        .ok();
     }
   });
 
@@ -141,18 +129,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     scheduler.run_pending().await;
     tokio::time::sleep(Duration::from_millis(1000)).await;
   }
-}
-
-/// Run these on server startup
-async fn startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  active_counts(pool).await?;
-  update_hot_ranks(pool).await?;
-  update_banned_when_expired(pool).await?;
-  delete_instance_block_when_expired(pool).await?;
-  clear_old_activities(pool).await?;
-  overwrite_deleted_posts_and_comments(pool).await?;
-  delete_old_denied_users(pool).await?;
-  Ok(())
 }
 
 /// Update the hot_rank columns for the aggregates tables
@@ -597,7 +573,13 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let instance = create_test_instance(&mut context.pool()).await?;
 
-    startup_jobs(&mut context.pool()).await?;
+    active_counts(&mut context.pool()).await?;
+    update_hot_ranks(&mut context.pool()).await?;
+    update_banned_when_expired(&mut context.pool()).await?;
+    delete_instance_block_when_expired(&mut context.pool()).await?;
+    clear_old_activities(&mut context.pool()).await?;
+    overwrite_deleted_posts_and_comments(&mut context.pool()).await?;
+    delete_old_denied_users(&mut context.pool()).await?;
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;

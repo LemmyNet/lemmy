@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::{web::Json, HttpRequest};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -133,7 +133,7 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_context = context.clone();
   let user = conn
-    .transaction::<_, LemmyError, _>(|conn| {
+    .run_transaction(|conn| {
       async move {
         let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
         // We have to create both a person, and local_user
@@ -350,7 +350,7 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_context = context.clone();
       let user = conn
-        .transaction::<_, LemmyError, _>(|conn| {
+        .run_transaction(|conn| {
           async move {
             let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
             // make sure the username is provided
