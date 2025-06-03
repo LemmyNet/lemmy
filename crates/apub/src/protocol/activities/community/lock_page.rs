@@ -59,10 +59,3 @@ impl InCommunity for LockPage {
     Ok(community.into())
   }
 }
-
-impl InCommunity for UndoLockPage {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community = self.object.community(context).await?;
-    Ok(community)
-  }
-}

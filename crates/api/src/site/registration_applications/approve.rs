@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::RegistrationApplicationView;
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,
@@ -33,7 +33,7 @@ pub async fn approve_registration_application(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   let approved_user_id = conn
-    .transaction::<_, LemmyError, _>(|conn| {
+    .run_transaction(|conn| {
       async move {
         // Update the registration with reason, admin_id
         let deny_reason = diesel_string_update(tx_data.deny_reason.as_deref());

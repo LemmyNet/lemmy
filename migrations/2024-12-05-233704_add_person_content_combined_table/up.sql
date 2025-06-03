@@ -33,8 +33,10 @@ CREATE TABLE person_saved_combined (
     id serial PRIMARY KEY,
     saved timestamptz NOT NULL,
     person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    UNIQUE (person_id, post_id),
+    UNIQUE (person_id, comment_id),
     -- Make sure only one of the columns is not null
     CHECK (num_nonnulls (post_id, comment_id) = 1)
 );

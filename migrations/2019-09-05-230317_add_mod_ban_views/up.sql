@@ -70,7 +70,7 @@ with all_post AS (
                 NULL
             END) AS upvotes,
         count(
-            CASE WHEN pl.score = - 1 THEN
+            CASE WHEN pl.score = -1 THEN
                 1
             ELSE
                 NULL
