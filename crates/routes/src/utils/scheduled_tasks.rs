@@ -50,8 +50,8 @@ use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
-  // Setup the connections
-  let mut scheduler = AsyncScheduler::new();
+  // https://github.com/mdsherry/clokwerk/issues/38
+  let mut scheduler = AsyncScheduler::with_tz(Utc);
 
   let context_1 = context.reset_request_count();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
