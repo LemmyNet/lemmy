@@ -96,23 +96,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   });
 
   let context_1 = context.clone();
-  // Clear old activities every week
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      clear_old_activities(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
-        .ok();
-    }
-  });
-
-  let context_1 = context.clone();
   // Daily tasks:
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
+  // - Delete old outgoing activities
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.clone();
 
@@ -128,6 +116,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_instance_software(&mut context.pool(), context.client())
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
+        .ok();
+      clear_old_activities(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
     }
   });
