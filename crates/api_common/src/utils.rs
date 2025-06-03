@@ -1023,7 +1023,7 @@ pub fn community_follower_state(community: &Community) -> CommunityFollowerState
 
 pub async fn community_follow_many(
   person: &Person,
-  to_follow: Vec<Community>,
+  to_follow: &Vec<Community>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   for community in to_follow {
@@ -1033,7 +1033,7 @@ pub async fn community_follow_many(
     CommunityActions::follow(&mut context.pool(), &form).await?;
     if !community.local {
       ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community, person.clone(), true),
+        SendActivityData::FollowCommunity(community.clone(), person.clone(), true),
         context,
       )?;
     }
@@ -1043,14 +1043,14 @@ pub async fn community_follow_many(
 
 pub async fn community_unfollow_many(
   person: &Person,
-  to_unfollow: Vec<Community>,
+  to_unfollow: &Vec<Community>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   for community in to_unfollow {
     CommunityActions::unfollow(&mut context.pool(), person.id, community.id).await?;
     if !community.local {
       ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community, person.clone(), false),
+        SendActivityData::FollowCommunity(community.clone(), person.clone(), false),
         &context,
       )?;
     }

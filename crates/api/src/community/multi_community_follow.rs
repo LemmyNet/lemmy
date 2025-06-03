@@ -59,7 +59,7 @@ pub async fn follow_multi_community(
       .collect();
 
     // Then follow them
-    community_follow_many(&local_user_view.person, to_follow, &context).await?;
+    community_follow_many(&local_user_view.person, &to_follow, &context).await?;
   } else {
     MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
 
@@ -76,7 +76,7 @@ pub async fn follow_multi_community(
       })
       .map(|c| c.community)
       .collect();
-    community_unfollow_many(&local_user_view.person, to_unfollow, &context).await?;
+    community_unfollow_many(&local_user_view.person, &to_unfollow, &context).await?;
   }
 
   if !multi.local {

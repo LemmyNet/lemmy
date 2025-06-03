@@ -6,7 +6,10 @@ use activitypub_federation::{
   traits::Collection,
 };
 use futures::future::join_all;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{community_follow_many, community_unfollow_many},
+};
 use lemmy_db_schema::{newtypes::CommunityId, source::multi_community::MultiCommunityApub};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
@@ -66,15 +69,13 @@ impl Collection for ApubFeedCollection {
     })
     .collect();
 
-    let (added, removed) =
+    let (added, removed, local_followers) =
       MultiCommunityApub::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
-    // TODO:
-    // - get all local users who follow the multi-comm
-    // - then for each user get all the added communities, and follow them if not already followed
-    // - also for each user get all removed communities, and unfollow if they are not manually
-    //   followed, or part of another multi-comm
-    // - need to optimize this and avoid unnecessary db queries
+    for p in &local_followers {
+      community_follow_many(p, &added, context).await?;
+      community_unfollow_many(p, &removed, context).await?;
+    }
 
     Ok(ApubFeedCollection)
   }

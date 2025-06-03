@@ -1,5 +1,5 @@
 use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -14,19 +14,16 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use futures::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
-use lemmy_apub_objects::objects::multi_community::ApubMultiCommunity;
 use lemmy_db_schema::{
   source::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
-    multi_community::MultiCommunity,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -40,7 +37,6 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
-  multi_community,
   person,
   post,
   received_activity,

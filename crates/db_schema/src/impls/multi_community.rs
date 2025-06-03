@@ -11,6 +11,7 @@ use crate::{
       MultiCommunityInsertForm,
       MultiCommunityUpdateForm,
     },
+    person::Person,
   },
   traits::{Crud, Followable},
   utils::{functions::lower, get_conn, uplete, DbConn, DbPool},
@@ -327,7 +328,7 @@ impl MultiCommunityApub {
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
-  ) -> LemmyResult<(Vec<CommunityId>, Vec<CommunityId>)> {
+  ) -> LemmyResult<(Vec<Community>, Vec<Community>, Vec<Person>)> {
     let conn = &mut get_conn(pool).await?;
     if new_communities.len() >= usize::try_from(MULTI_COMMUNITY_ENTRY_LIMIT)? {
       return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
@@ -341,6 +342,11 @@ impl MultiCommunityApub {
     .returning(multi_community_entry::community_id)
     .get_results::<CommunityId>(conn)
     .await?;
+    let removed: Vec<Community> = community::table
+      .filter(community::id.eq_any(removed))
+      .get_results(conn)
+      .await?;
+
     let forms = new_communities
       .iter()
       .map(|k| {
@@ -356,7 +362,22 @@ impl MultiCommunityApub {
       .returning(multi_community_entry::community_id)
       .get_results::<CommunityId>(conn)
       .await?;
-    Ok((removed, added))
+    let added: Vec<Community> = community::table
+      .filter(community::id.eq_any(added))
+      .get_results(conn)
+      .await?;
+
+    // get all local users who follow the multi-comm
+    let local_followers: Vec<Person> = multi_community_follow::table
+      .left_join(person::table)
+      .inner_join(multi_community::table)
+      .filter(person::id.is_not_null())
+      .filter(person::local)
+      .select(person::all_columns.nullable().assume_not_null())
+      .get_results(conn)
+      .await?;
+
+    Ok((added, removed, local_followers))
   }
 
   // TODO: not needed?
