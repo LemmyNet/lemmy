@@ -198,7 +198,9 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = post_actions_keys))]
 pub struct PostActions {
+  #[serde(skip)]
   pub post_id: PostId,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was read.

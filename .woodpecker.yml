@@ -312,8 +312,8 @@ steps:
         from_secret: cargo_api_token
     commands:
       - *install_binstall
-      # Install cargo-workspaces
-      - cargo binstall -y cargo-workspaces
+      # Install cargo-workspaces, need pinned version for Rust 1.81 compat
+      - cargo binstall -y cargo-workspaces@0.3.6
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     when:
