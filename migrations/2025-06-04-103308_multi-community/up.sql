@@ -39,3 +39,11 @@ ALTER TYPE listing_type_enum
 ALTER TABLE community_actions
     ADD COLUMN is_multi_community_follow bool;
 
+CREATE INDEX idx_multi_community_read_from_name ON multi_community (local, deleted, name);
+
+CREATE INDEX idx_multi_community_ap_id ON multi_community (ap_id);
+
+CREATE INDEX idx_multi_creator_id ON multi_community (creator_id);
+
+CREATE INDEX idx_multi_followed_by ON multi_community_follow (person_id);
+
