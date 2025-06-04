@@ -69,6 +69,8 @@ pub enum ListingType {
   Subscribed,
   /// Content that you can moderate (because you are a moderator of the community it is posted to)
   ModeratorView,
+  /// Communities which are recommended by local instance admins
+  Suggested,
 }
 
 #[derive(
@@ -181,6 +183,7 @@ pub enum ActorType {
   Site,
   Community,
   Person,
+  MultiCommunity,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

@@ -24,8 +24,9 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
+  error::LemmyResult,
   spawn_try_task,
+  utils::validation::check_api_elements_count,
 };
 use serde::{Deserialize, Serialize};
 use std::future::Future;
@@ -144,9 +145,7 @@ pub async fn import_settings(
     + data.blocked_instances.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
-  if url_count > MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?;
-  }
+  check_api_elements_count(url_count)?;
 
   spawn_try_task(async move {
     let person_id = local_user_view.person.id;

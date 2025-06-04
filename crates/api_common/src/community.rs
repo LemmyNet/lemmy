@@ -1,6 +1,6 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
-  source::site::Site,
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
+  source::{multi_community::MultiCommunity, site::Site},
   CommunitySortType,
 };
 use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
@@ -361,4 +361,76 @@ pub struct ApproveCommunityPendingFollower {
   pub community_id: CommunityId,
   pub follower_id: PersonId,
   pub approve: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreateMultiCommunity {
+  pub name: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdateMultiCommunity {
+  pub id: MultiCommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub description: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub deleted: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CreateOrDeleteMultiCommunityEntry {
+  pub id: MultiCommunityId,
+  pub community_id: CommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMultiCommunities {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub creator_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub followed_only: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMultiCommunitiesResponse {
+  pub multi_communities: Vec<MultiCommunity>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetMultiCommunity {
+  pub id: MultiCommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetMultiCommunityResponse {
+  pub multi: MultiCommunity,
+  pub entries: Vec<CommunityView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct FollowMultiCommunity {
+  pub multi_community_id: MultiCommunityId,
+  pub follow: bool,
 }

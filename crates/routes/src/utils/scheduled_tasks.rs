@@ -95,14 +95,14 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     }
   });
 
-  let context_1 = context.clone();
+  let context_1 = context.reset_request_count();
   // Daily tasks:
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
   // - Delete old outgoing activities
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       overwrite_deleted_posts_and_comments(&mut context.pool())

@@ -1,5 +1,6 @@
 pub mod group;
 pub mod instance;
+pub mod multi_community;
 pub mod note;
 pub mod page;
 pub mod person;

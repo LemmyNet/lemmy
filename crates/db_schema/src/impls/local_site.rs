@@ -18,8 +18,7 @@ impl LocalSite {
   }
 
   /// Only used for tests
-  #[cfg(test)]
-  async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+  pub async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     local_site::table
       .first(conn)

@@ -26,10 +26,7 @@ pub(crate) async fn send_create_or_update_pm(
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
-  let id = generate_activity_id(
-    kind.clone(),
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(kind.clone(), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
     actor: actor.id().into(),
