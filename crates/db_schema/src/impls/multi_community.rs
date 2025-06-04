@@ -120,7 +120,7 @@ impl MultiCommunity {
       ))
       .execute(conn)
       .await?;
-    Self::update_local_follows(pool, id, new_community, false).await?;
+    Self::update_follows_to_local_community(pool, id, new_community, false).await?;
     Ok(())
   }
 
@@ -137,7 +137,7 @@ impl MultiCommunity {
     )
     .execute(conn)
     .await?;
-    Self::update_local_follows(pool, id, old_community, true).await?;
+    Self::update_follows_to_local_community(pool, id, old_community, true).await?;
     Ok(())
   }
 
@@ -195,7 +195,7 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn update_local_follows(
+  pub async fn update_follows_to_local_community(
     pool: &mut DbPool<'_>,
     multi_community_id: MultiCommunityId,
     community: &Community,
@@ -222,7 +222,7 @@ impl MultiCommunity {
       .into_boxed();
     if is_removed_from_multi {
       // Remove: only in case it was a multi-comm follow (not manually by user)
-      query = query.filter(community_actions::is_multi_community_follow.is_not_null());
+      query = query.filter(community_actions::is_multi_community_follow.is_distinct_from(false));
     } else {
       // Add: only commns which the user isnt following already
       query = query.filter(community_actions::followed.is_null());
@@ -302,7 +302,8 @@ impl MultiCommunity {
       .distinct()
       .load(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .optional()?
+      .ok_or(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -369,11 +370,10 @@ impl MultiCommunityApub {
 
     // get all local users who follow the multi-comm
     let local_followers: Vec<Person> = multi_community_follow::table
-      .left_join(person::table)
+      .inner_join(person::table)
       .inner_join(multi_community::table)
-      .filter(person::id.is_not_null())
       .filter(person::local)
-      .select(person::all_columns.nullable().assume_not_null())
+      .select(person::all_columns)
       .get_results(conn)
       .await?;
 

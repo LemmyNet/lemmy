@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::FollowMultiCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{community_follow_many, community_unfollow_many},
+  utils::{check_local_user_valid, community_follow_many, community_unfollow_many},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -22,6 +22,7 @@ pub async fn follow_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let multi_community_id = data.multi_community_id;
   let person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;
