@@ -29,7 +29,7 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
-  traits::Crud,
+  traits::{ApubActor, Crud},
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
@@ -443,7 +443,7 @@ async fn create_person(
   conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
   is_valid_actor_name(&username, site_view.local_site.actor_name_max_length)?;
-  let ap_id = Person::local_url(&username, context.settings())?;
+  let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
 
   // Register the new person
   let person_form = PersonInsertForm {

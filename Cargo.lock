@@ -3860,6 +3860,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_modlog_combined",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_site",
