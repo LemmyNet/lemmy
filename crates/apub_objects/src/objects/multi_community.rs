@@ -9,7 +9,7 @@ use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
-    multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
+    multi_community::{MultiCommunity, MultiCommunityInsertForm},
     person::Person,
   },
   traits::Crud,
@@ -106,7 +106,7 @@ impl Object for ApubMultiCommunity {
       last_refreshed_at: Some(Utc::now()),
     };
 
-    let multi = MultiCommunityApub::upsert(&mut context.pool(), &form)
+    let multi = MultiCommunity::upsert(&mut context.pool(), &form)
       .await?
       .into();
     json.following.dereference(&multi, context).await?;

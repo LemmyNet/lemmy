@@ -10,7 +10,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{community_follow_many, community_unfollow_many},
 };
-use lemmy_db_schema::{newtypes::CommunityId, source::multi_community::MultiCommunityApub};
+use lemmy_db_schema::{newtypes::CommunityId, source::multi_community::MultiCommunity};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
 use url::Url;
@@ -28,13 +28,12 @@ impl Collection for ApubFeedCollection {
     owner: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> Result<Self::Kind, Self::Error> {
-    // TODO: this only needs to return entries
-    let multi = MultiCommunityApub::read_local(&mut context.pool(), &owner.name).await?;
+    let entries = MultiCommunity::read_entry_ap_ids(&mut context.pool(), &owner.name).await?;
     Ok(Self::Kind {
       r#type: Default::default(),
       id: owner.following_url.clone().into(),
-      total_items: multi.entries.len().try_into()?,
-      items: multi.entries.into_iter().map(Into::into).collect(),
+      total_items: entries.len().try_into()?,
+      items: entries.into_iter().map(Into::into).collect(),
     })
   }
 
@@ -70,7 +69,7 @@ impl Collection for ApubFeedCollection {
     .collect();
 
     let (added, removed, local_followers) =
-      MultiCommunityApub::update_entries(&mut context.pool(), owner.id, &communities).await?;
+      MultiCommunity::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
     for p in &local_followers {
       community_follow_many(p, &added, context).await?;

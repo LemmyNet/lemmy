@@ -100,9 +100,3 @@ pub struct MultiCommunityFollowForm {
   pub person_id: PersonId,
   pub follow_state: CommunityFollowerState,
 }
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct MultiCommunityApub {
-  pub multi: MultiCommunity,
-  pub entries: Vec<DbUrl>,
-}

@@ -5,7 +5,6 @@ use crate::{
     community::{Community, CommunityActions, CommunityFollowerForm},
     multi_community::{
       MultiCommunity,
-      MultiCommunityApub,
       MultiCommunityFollow,
       MultiCommunityFollowForm,
       MultiCommunityInsertForm,
@@ -18,10 +17,8 @@ use crate::{
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{count, delete, exists, insert_into, sql},
-  pg::sql_types::Array,
+  dsl::{count, delete, exists, insert_into},
   select,
-  sql_types::Text,
   update,
   ExpressionMethods,
   JoinOnDsl,
@@ -305,9 +302,7 @@ impl MultiCommunity {
       .optional()?
       .ok_or(LemmyErrorType::NotFound.into())
   }
-}
 
-impl MultiCommunityApub {
   pub async fn upsert(
     pool: &mut DbPool<'_>,
     form: &MultiCommunityInsertForm,
@@ -380,16 +375,14 @@ impl MultiCommunityApub {
     Ok((added, removed, local_followers))
   }
 
-  // TODO: not needed?
-  pub async fn read_local(
+  pub async fn read_entry_ap_ids(
     pool: &mut DbPool<'_>,
     multi_name: &str,
-  ) -> LemmyResult<MultiCommunityApub> {
+  ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
-    let (multi, entries) = multi_community::table
+    let entries = multi_community::table
+      .inner_join(multi_community_entry::table.inner_join(community::table))
       .left_join(person::table)
-      .left_join(multi_community_entry::table.inner_join(community::table))
-      .group_by(multi_community::id)
       .filter(
         community::removed
           .or(community::deleted)
@@ -397,15 +390,10 @@ impl MultiCommunityApub {
       )
       .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
-      .select((
-        multi_community::all_columns,
-        // Get vec of community.ap_id. If no row exists for multi_community_entry this returns
-        // [null] so we need to filter that with array_remove.
-        sql::<Array<Text>>("array_remove(array_agg(community.ap_id), null)"),
-      ))
-      .first(conn)
+      .select(community::ap_id)
+      .get_results(conn)
       .await?;
-    Ok(MultiCommunityApub { multi, entries })
+    Ok(entries)
   }
 }
 
@@ -470,15 +458,14 @@ mod tests {
     let pool = &mut pool.into();
     let data = setup(pool).await?;
 
-    let multi_read_apub_empty = MultiCommunityApub::read_local(pool, &data.multi.name).await?;
-    assert!(multi_read_apub_empty.entries.is_empty());
+    let multi_read_apub_empty = MultiCommunity::read_entry_ap_ids(pool, &data.multi.name).await?;
+    assert!(multi_read_apub_empty.is_empty());
 
     let multi_entries = vec![data.community.id];
-    MultiCommunityApub::update_entries(pool, data.multi.id, &multi_entries).await?;
+    MultiCommunity::update_entries(pool, data.multi.id, &multi_entries).await?;
 
-    let multi_read_apub = MultiCommunityApub::read_local(pool, &data.multi.name).await?;
-    assert_eq!(multi_read_apub.multi.creator_id, data.multi.creator_id);
-    assert_eq!(vec![data.community.ap_id], multi_read_apub.entries);
+    let multi_read_apub = MultiCommunity::read_entry_ap_ids(pool, &data.multi.name).await?;
+    assert_eq!(vec![data.community.ap_id], multi_read_apub);
 
     Instance::delete(pool, data.instance.id).await?;
 

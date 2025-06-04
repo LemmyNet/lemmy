@@ -576,7 +576,7 @@ mod tests {
       language::Language,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      multi_community::{MultiCommunity, MultiCommunityApub, MultiCommunityInsertForm},
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{
         Post,
@@ -2251,8 +2251,7 @@ mod tests {
       String::new(),
     );
     let multi = MultiCommunity::create(pool, &form).await?;
-    MultiCommunityApub::update_entries(pool, multi.id, &vec![community_1.id, community_2.id])
-      .await?;
+    MultiCommunity::update_entries(pool, multi.id, &vec![community_1.id, community_2.id]).await?;
 
     let listing = PostQuery {
       multi_community_id: Some(multi.id),
