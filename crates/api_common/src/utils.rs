@@ -1009,12 +1009,12 @@ pub fn send_webmention(post: Post, community: &Community) {
 }
 
 pub fn community_follower_state(community: &Community) -> CommunityFollowerState {
-  if community.local {
-    // Local follow is accepted immediately
-    CommunityFollowerState::Accepted
-  } else if community.visibility == CommunityVisibility::Private {
+  if community.visibility == CommunityVisibility::Private {
     // Private communities require manual approval
     CommunityFollowerState::ApprovalRequired
+  } else if community.local {
+    // Local follow is accepted immediately
+    CommunityFollowerState::Accepted
   } else {
     // remote follow needs to be federated first
     CommunityFollowerState::Pending

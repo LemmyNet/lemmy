@@ -424,7 +424,7 @@ pub struct GetMultiCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetMultiCommunityResponse {
   pub multi: MultiCommunity,
-  pub entries: Vec<CommunityView>,
+  pub communities: Vec<CommunityView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

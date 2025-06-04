@@ -15,11 +15,11 @@ pub async fn get_multi_community(
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
   let multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
-  let entries = CommunityQuery {
+  let communities = CommunityQuery {
     multi_community_id: Some(multi.id),
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await?;
-  Ok(Json(GetMultiCommunityResponse { multi, entries }))
+  Ok(Json(GetMultiCommunityResponse { multi, communities }))
 }
