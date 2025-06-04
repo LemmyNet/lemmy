@@ -202,7 +202,9 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = community_actions_keys))]
 pub struct CommunityActions {
+  #[serde(skip)]
   pub community_id: CommunityId,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was followed.
@@ -210,8 +212,8 @@ pub struct CommunityActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// The state of the community follow.
   pub follow_state: Option<CommunityFollowerState>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// The approver of the community follow.
+  #[serde(skip)]
   pub follow_approver_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was blocked.

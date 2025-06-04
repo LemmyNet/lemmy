@@ -139,7 +139,9 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
 pub struct CommentActions {
+  #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
   pub comment_id: CommentId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The like / score for the comment.
