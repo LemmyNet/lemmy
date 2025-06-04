@@ -19,6 +19,7 @@ workspace = true
 lemmy_db_views_post = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }

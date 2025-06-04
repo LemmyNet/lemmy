@@ -58,7 +58,9 @@ pub struct InstanceForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct InstanceActions {
+  #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
   pub instance_id: InstanceId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the instance was blocked.

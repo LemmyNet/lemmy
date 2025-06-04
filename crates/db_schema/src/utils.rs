@@ -35,7 +35,7 @@ use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
 use regex::Regex;
@@ -622,6 +622,22 @@ pub fn paginate<Q, C>(
   }
 
   query
+}
+
+pub(crate) fn format_actor_url(
+  name: &str,
+  domain: &str,
+  prefix: char,
+  settings: &Settings,
+) -> LemmyResult<Url> {
+  let local_protocol_and_hostname = settings.get_protocol_and_hostname();
+  let local_hostname = &settings.hostname;
+  let url = if domain != local_hostname {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}@{domain}",)
+  } else {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}")
+  };
+  Ok(Url::parse(&url)?)
 }
 
 #[cfg(test)]

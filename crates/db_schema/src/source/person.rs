@@ -140,7 +140,9 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PersonActions {
+  #[serde(skip)]
   pub target_id: PersonId,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub followed: Option<DateTime<Utc>>,

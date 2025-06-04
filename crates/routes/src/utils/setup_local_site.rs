@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     site::{Site, SiteInsertForm},
   },
-  traits::Crud,
+  traits::{ApubActor, Crud},
   utils::DbPool,
 };
 use lemmy_db_views_site::SiteView;
@@ -37,7 +37,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
-    let person_ap_id = Person::local_url(&setup.admin_username, settings)?;
+    let person_ap_id = Person::generate_local_actor_url(&setup.admin_username, settings)?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
