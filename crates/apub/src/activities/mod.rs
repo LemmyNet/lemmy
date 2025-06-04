@@ -29,7 +29,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use following::send_accept_or_reject_follow;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,

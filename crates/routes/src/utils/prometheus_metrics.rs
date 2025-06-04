@@ -1,7 +1,10 @@
 use actix_web::{rt::System, web, App, HttpServer};
 use actix_web_prom::{PrometheusMetrics, PrometheusMetricsBuilder};
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_utils::{error::LemmyResult, settings::structs::PrometheusConfig};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::PrometheusConfig,
+};
 use prometheus::{default_registry, Encoder, Gauge, Opts, TextEncoder};
 use std::{sync::Arc, thread};
 use tracing::error;

@@ -7,10 +7,11 @@ use activitypub_federation::{
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
+  federate_retry_sleep_duration,
   FEDERATION_CONTEXT,
 };
 use reqwest::Url;

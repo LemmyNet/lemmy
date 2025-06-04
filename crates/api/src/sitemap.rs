@@ -3,7 +3,7 @@ use actix_web::{
   web::Data,
   HttpResponse,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::DbUrl, source::post::Post};
 use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};

@@ -3,7 +3,7 @@ use activitypub_federation::{
   error::Error as ActivityPubError,
 };
 use async_trait::async_trait;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::{source::activity::ReceivedActivity, utils::ActualDbPool};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};

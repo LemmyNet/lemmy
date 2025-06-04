@@ -15,7 +15,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},

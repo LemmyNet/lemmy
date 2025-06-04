@@ -8,17 +8,15 @@ use crate::{
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{GetPosts, GetPostsResponse},
-  utils::check_private_instance,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::{PaginationCursorBuilder, Readable},
 };
+use lemmy_db_views_get_posts::GetPosts;
+use lemmy_db_views_get_posts_response::GetPostsResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;

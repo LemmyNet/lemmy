@@ -2,11 +2,7 @@ use super::comment_sort_type_with_default;
 use crate::{api::listing_type_with_default, fetcher::resolve_ap_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  comment::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
-  context::LemmyContext,
-  utils::check_private_instance,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
@@ -14,6 +10,9 @@ use lemmy_db_schema::{
   traits::{Crud, PaginationCursorBuilder},
 };
 use lemmy_db_views_comment::{impls::CommentQuery, CommentView};
+use lemmy_db_views_get_comments::GetComments;
+use lemmy_db_views_get_comments_response::GetCommentsResponse;
+use lemmy_db_views_get_comments_slim_response::GetCommentsSlimResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

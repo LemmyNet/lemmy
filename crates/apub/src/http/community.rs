@@ -20,7 +20,7 @@ use actix_web::{
   HttpRequest,
   HttpResponse,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, SiteOrCommunityOrUser};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_schema_file::enums::CommunityVisibility;

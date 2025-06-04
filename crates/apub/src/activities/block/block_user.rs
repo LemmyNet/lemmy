@@ -17,7 +17,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };

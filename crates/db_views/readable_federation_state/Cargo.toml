@@ -1,0 +1,26 @@
+[package]
+name = "lemmy_db_views_readable_federation_state"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = ["ts-rs", "lemmy_db_schema/full", "lemmy_utils/full"]
+
+[dependencies]
+lemmy_db_schema = { workspace = true }
+lemmy_utils = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
+ts-rs = { workspace = true, optional = true }
+chrono = { workspace = true }

@@ -1,10 +1,8 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{AdminListUsers, AdminListUsersResponse},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
+use lemmy_db_views_admin_list_users::AdminListUsers;
+use lemmy_db_views_admin_list_users_response::AdminListUsersResponse;
 use lemmy_db_views_local_user::{impls::LocalUserQuery, LocalUserView};
 use lemmy_db_views_person::PersonView;
 use lemmy_utils::error::LemmyResult;

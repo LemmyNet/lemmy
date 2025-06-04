@@ -4,7 +4,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, protocol::context::WithContext, traits::Object};
 use assert_json_diff::assert_json_include;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{collections::HashMap, fs::File, io::BufReader};

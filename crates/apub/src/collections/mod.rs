@@ -6,7 +6,7 @@ use community_featured::ApubCommunityFeatured;
 use community_follower::ApubCommunityFollower;
 use community_moderators::ApubCommunityModerators;
 use community_outbox::ApubCommunityOutbox;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::group::Group,

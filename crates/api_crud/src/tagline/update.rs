@@ -1,9 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  tagline::{TaglineResponse, UpdateTagline},
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
@@ -11,6 +10,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_tagline_response::TaglineResponse;
+use lemmy_db_views_update_tagline::UpdateTagline;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(

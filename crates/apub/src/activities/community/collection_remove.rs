@@ -10,7 +10,7 @@ use activitypub_federation::{
   kinds::activity::RemoveType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
 };

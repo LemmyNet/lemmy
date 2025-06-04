@@ -6,7 +6,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::Collection,
 };
-use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
+use lemmy_api_utils::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::functions::handle_community_moderators,

@@ -2,9 +2,8 @@ use crate::check_report_reason;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use either::Either;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  reports::community::{CommunityReportResponse, CreateCommunityReport},
   send_activity::{ActivityChannel, SendActivityData},
   utils::slur_regex,
 };
@@ -16,6 +15,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_views_community_report_response::CommunityReportResponse;
+use lemmy_db_views_create_community_report::CreateCommunityReport;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_reports::CommunityReportView;
 use lemmy_db_views_site::SiteView;

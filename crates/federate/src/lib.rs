@@ -1,11 +1,8 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
-use lemmy_api_common::{
-  context::LemmyContext,
-  lemmy_utils::settings::structs::FederationWorkerConfig,
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, settings::structs::FederationWorkerConfig};
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{

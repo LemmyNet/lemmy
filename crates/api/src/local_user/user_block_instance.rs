@@ -1,11 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{context::LemmyContext, site::UserBlockInstanceParams, SuccessResponse};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::instance::{InstanceActions, InstanceBlockForm},
   traits::Blockable,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_success_response::SuccessResponse;
+use lemmy_db_views_user_block_instance_params::UserBlockInstanceParams;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_instance(

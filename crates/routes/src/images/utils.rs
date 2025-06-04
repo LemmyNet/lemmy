@@ -9,7 +9,7 @@ use actix_web::{
 use diesel::NotFound;
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
-use lemmy_api_common::{context::LemmyContext, request::delete_image_alias};
+use lemmy_api_utils::{context::LemmyContext, request::delete_image_alias};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
 use reqwest_middleware::RequestBuilder;

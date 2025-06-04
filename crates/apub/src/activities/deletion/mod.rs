@@ -15,7 +15,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{Actor, Object},
 };
-use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_api_utils::{context::LemmyContext, utils::purge_user_account};
 use lemmy_apub_objects::{
   objects::{
     comment::ApubComment,
