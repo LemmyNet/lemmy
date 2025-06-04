@@ -106,6 +106,7 @@ pub struct GetPosts {
   pub community_name: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub multi_community_id: Option<MultiCommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
   #[cfg_attr(feature = "full", ts(optional))]
