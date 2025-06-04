@@ -48,6 +48,8 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    // Workaround for https://github.com/LemmyNet/lemmy/issues/5742
+    .http1_only()
     .redirect(Policy::none())
 }
 
