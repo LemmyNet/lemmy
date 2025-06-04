@@ -640,9 +640,8 @@ mod tests {
 
     MultiCommunity::delete_entry(pool, data.multi.id, &data.community).await?;
 
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await?;
-    assert!(actions.followed.is_some());
-    assert_eq!(actions.is_multi_community_follow, None);
+    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await;
+    assert!(actions.is_err());
 
     Instance::delete(pool, data.instance.id).await?;
     Ok(())
