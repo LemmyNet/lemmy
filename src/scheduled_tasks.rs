@@ -36,9 +36,8 @@ use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
-  // Setup the connections
-  let mut scheduler = AsyncScheduler::new();
-  startup_jobs(&mut context.pool()).await;
+  // https://github.com/mdsherry/clokwerk/issues/38
+  let mut scheduler = AsyncScheduler::with_tz(Utc);
 
   let context_1 = context.clone();
   // Update active counts every hour
@@ -72,16 +71,6 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
   });
 
   let context_1 = context.clone();
-  // Clear old activities every week
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      clear_old_activities(&mut context.pool()).await;
-    }
-  });
-
-  let context_1 = context.clone();
   // Daily tasks:
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
@@ -96,6 +85,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
         .await
         .map_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
+      clear_old_activities(&mut context.pool()).await;
     }
   });
 
@@ -104,16 +94,6 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     scheduler.run_pending().await;
     tokio::time::sleep(Duration::from_millis(1000)).await;
   }
-}
-
-/// Run these on server startup
-async fn startup_jobs(pool: &mut DbPool<'_>) {
-  active_counts(pool).await;
-  update_hot_ranks(pool).await;
-  update_banned_when_expired(pool).await;
-  clear_old_activities(pool).await;
-  overwrite_deleted_posts_and_comments(pool).await;
-  delete_old_denied_users(pool).await;
 }
 
 /// Update the hot_rank columns for the aggregates tables
