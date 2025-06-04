@@ -35,7 +35,7 @@ use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
 use regex::Regex;
