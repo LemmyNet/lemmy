@@ -24,7 +24,6 @@ pub async fn search(
 ) -> LemmyResult<Json<SearchResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
-  let local_instance_id = site_view.site.instance_id;
 
   check_private_instance(&local_user_view, &local_site)?;
   check_conflicting_like_filters(data.liked_only, data.disliked_only)?;
@@ -57,11 +56,12 @@ pub async fn search(
     post_url_only: data.post_url_only,
     liked_only: data.liked_only,
     disliked_only: data.disliked_only,
+    show_nsfw: data.show_nsfw,
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
   }
-  .list(&mut context.pool(), &local_user_view, local_instance_id)
+  .list(&mut context.pool(), &local_user_view, &site_view.site)
   .await?;
 
   let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
