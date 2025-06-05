@@ -13,9 +13,8 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
-    community::{Community, CommunityActions, CommunityFollowerForm},
+    community::{CommunityActions, CommunityFollowerForm},
     multi_community::MultiCommunity,
-    person::Person,
   },
   traits::Followable,
 };
@@ -78,54 +77,37 @@ impl Collection for ApubFeedCollection {
     })
     .collect();
 
-    let (added, removed, has_local_followers) =
+    let (remote_added, remote_removed, has_local_followers) =
       MultiCommunity::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
+    // Have multi-comm follower bot follow all communities which were added to multi-comm,
+    // and unfollow those that were removed.
+    // If the multi-comm has no local followers its ignored.
+    // TODO: This means there will be posts missing in multi-comm without local followers.
     let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
     if has_local_followers {
-      community_follow_many(&multicomm_follower, &added, context).await?;
-      community_unfollow_many(&multicomm_follower, &removed, context).await?;
+      for community in remote_added {
+        let form = CommunityFollowerForm::new(
+          community.id,
+          multicomm_follower.id,
+          CommunityFollowerState::Pending,
+        );
+        CommunityActions::follow(&mut context.pool(), &form).await?;
+        ActivityChannel::submit_activity(
+          SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), true),
+          context,
+        )?;
+      }
+      for community in remote_removed {
+        CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id)
+          .await?;
+        ActivityChannel::submit_activity(
+          SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), false),
+          context,
+        )?;
+      }
     }
 
     Ok(ApubFeedCollection)
   }
-}
-
-async fn community_follow_many(
-  multicomm_follower: &Person,
-  to_follow: &Vec<Community>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  for community in to_follow {
-    if !community.local {
-      let form = CommunityFollowerForm::new(
-        community.id,
-        multicomm_follower.id,
-        CommunityFollowerState::Pending,
-      );
-      CommunityActions::follow(&mut context.pool(), &form).await?;
-      ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), true),
-        context,
-      )?;
-    }
-  }
-  Ok(())
-}
-
-async fn community_unfollow_many(
-  multicomm_follower: &Person,
-  to_unfollow: &Vec<Community>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  for community in to_unfollow {
-    if !community.local {
-      CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
-      ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), false),
-        context,
-      )?;
-    }
-  }
-  Ok(())
 }

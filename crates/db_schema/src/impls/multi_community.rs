@@ -15,7 +15,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{
-  dsl::{count, delete, exists, insert_into},
+  dsl::{count, delete, exists, insert_into, not},
   select,
   update,
   ExpressionMethods,
@@ -236,6 +236,7 @@ impl MultiCommunity {
     .await?;
     let removed: Vec<Community> = community::table
       .filter(community::id.eq_any(removed))
+      .filter(not(community::local))
       .get_results(conn)
       .await?;
 
@@ -256,6 +257,7 @@ impl MultiCommunity {
       .await?;
     let added: Vec<Community> = community::table
       .filter(community::id.eq_any(added))
+      .filter(not(community::local))
       .get_results(conn)
       .await?;
 
