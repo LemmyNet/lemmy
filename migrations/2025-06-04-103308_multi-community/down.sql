@@ -38,12 +38,10 @@ ALTER TABLE local_site
     ALTER COLUMN default_post_listing_type DROP DEFAULT,
     ALTER COLUMN default_post_listing_type TYPE listing_type_enum_tmp
     USING (default_post_listing_type::text::listing_type_enum_tmp),
-    ALTER COLUMN default_post_listing_type SET DEFAULT 'Local';
+    ALTER COLUMN default_post_listing_type SET DEFAULT 'Local',
+    DROP COLUMN multi_comm_follower;
 
 DROP TYPE listing_type_enum;
 
 ALTER TYPE listing_type_enum_tmp RENAME TO listing_type_enum;
-
-ALTER TABLE community_actions
-    DROP COLUMN is_multi_community_follow;
 

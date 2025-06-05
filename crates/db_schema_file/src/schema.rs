@@ -249,7 +249,6 @@ diesel::table! {
         became_moderator -> Nullable<Timestamptz>,
         received_ban -> Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
-        is_multi_community_follow -> Nullable<Bool>,
     }
 }
 
@@ -453,6 +452,7 @@ diesel::table! {
         users_active_half_year -> Int8,
         disable_email_notifications -> Bool,
         suggested_communities -> Nullable<Int4>,
+        multi_comm_follower -> Int4,
     }
 }
 
@@ -1174,6 +1174,7 @@ diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> person (person_id));
 diesel::joinable!(local_image -> post (thumbnail_for_post_id));
 diesel::joinable!(local_site -> multi_community (suggested_communities));
+diesel::joinable!(local_site -> person (multi_comm_follower));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));

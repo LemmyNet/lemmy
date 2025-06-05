@@ -1,4 +1,4 @@
-use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
+use crate::newtypes::{LocalSiteId, MultiCommunityId, PersonId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{
   CommentSortType,
@@ -102,6 +102,7 @@ pub struct LocalSite {
   pub disable_email_notifications: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub suggested_communities: Option<MultiCommunityId>,
+  pub multi_comm_follower: PersonId,
 }
 
 #[derive(Clone, derive_new::new)]

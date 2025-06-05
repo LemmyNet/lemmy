@@ -31,13 +31,49 @@ CREATE TABLE multi_community_follow (
 );
 
 ALTER TABLE local_site
-    ADD COLUMN suggested_communities int REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN suggested_communities int REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD COLUMN multi_comm_follower int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE;
+
+-- generate new account with randomized name (max 20 chars) and set it
+-- as local_site.multi_comm_follower
+WITH x AS (
+INSERT INTO person (name, public_key, private_key, instance_id, inbox_url, bot_account)
+    SELECT
+        'multicomm' || substr(gen_random_uuid ()::text, 0, 11),
+        public_key,
+        private_key,
+        instance_id,
+        inbox_url,
+        TRUE
+    FROM
+        site,
+        local_site
+    WHERE
+        site.id = local_site.id
+    RETURNING
+        person.id)
+UPDATE
+    local_site
+SET
+    multi_comm_follower = x.id
+FROM
+    x;
+
+ALTER TABLE local_site
+    ALTER COLUMN multi_comm_follower SET NOT NULL;
+
+-- set ap_id for multicomm follower account (should use r.local_url but thats not defined here)
+UPDATE
+    person
+SET
+    ap_id = current_setting('lemmy.protocol_and_hostname') || '/u/' || person.name
+FROM
+    local_site
+WHERE
+    person.id = local_site.multi_comm_follower;
 
 ALTER TYPE listing_type_enum
     ADD VALUE 'Suggested';
-
-ALTER TABLE community_actions
-    ADD COLUMN is_multi_community_follow bool;
 
 CREATE INDEX idx_multi_community_read_from_name ON multi_community (local, deleted, name);
 
