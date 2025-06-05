@@ -12,9 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views_community::impls::CommunityQuery;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_multi_community(
@@ -26,14 +24,6 @@ pub async fn follow_multi_community(
   let multi_community_id = data.multi_community_id;
   let person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;
-  let site = SiteView::read_local(&mut context.pool()).await?;
-  let communities = CommunityQuery {
-    local_user: Some(&local_user_view.local_user),
-    multi_community_id: Some(multi_community_id),
-    ..Default::default()
-  }
-  .list(&site.site, &mut context.pool())
-  .await?;
 
   let follow_state = if multi.local {
     CommunityFollowerState::Accepted

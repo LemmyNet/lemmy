@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_deleted_removed, check_local_user_valid, community_follower_state},
+  utils::{check_community_deleted_removed, check_local_user_valid},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable},
 };
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -36,7 +37,16 @@ pub async fn follow_community(
       CommunityPersonBanView::check(&mut context.pool(), person_id, community.id).await?;
     }
 
-    let follow_state = community_follower_state(&community);
+    let follow_state = if community.visibility == CommunityVisibility::Private {
+      // Private communities require manual approval
+      CommunityFollowerState::ApprovalRequired
+    } else if community.local {
+      // Local follow is accepted immediately
+      CommunityFollowerState::Accepted
+    } else {
+      // remote follow needs to be federated first
+      CommunityFollowerState::Pending
+    };
     let form = CommunityFollowerForm::new(community.id, person_id, follow_state);
 
     // Write to db

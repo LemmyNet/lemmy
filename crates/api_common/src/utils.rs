@@ -1,12 +1,9 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  lemmy_db_schema::traits::Followable,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
-  send_activity::{ActivityChannel, SendActivityData},
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use activitypub_federation::config::Data;
 use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -15,7 +12,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions},
-    community::{Community, CommunityActions, CommunityFollowerForm, CommunityUpdateForm},
+    community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
@@ -37,12 +34,7 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
 };
-use lemmy_db_schema_file::enums::{
-  CommunityFollowerState,
-  CommunityVisibility,
-  FederationMode,
-  RegistrationMode,
-};
+use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
@@ -1006,69 +998,6 @@ pub fn send_webmention(post: Post, community: &Community) {
       });
     }
   };
-}
-
-// TODO: unused?
-pub fn community_follower_state(community: &Community) -> CommunityFollowerState {
-  if community.visibility == CommunityVisibility::Private {
-    // Private communities require manual approval
-    CommunityFollowerState::ApprovalRequired
-  } else if community.local {
-    // Local follow is accepted immediately
-    CommunityFollowerState::Accepted
-  } else {
-    // remote follow needs to be federated first
-    CommunityFollowerState::Pending
-  }
-}
-
-pub async fn community_follow_many(
-  to_follow: &Vec<Community>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let multicomm_follower = Person::read(
-    &mut context.pool(),
-    site_view.local_site.multi_comm_follower,
-  )
-  .await?;
-  for community in to_follow {
-    if !community.local {
-      let form = CommunityFollowerForm::new(
-        community.id,
-        multicomm_follower.id,
-        CommunityFollowerState::Pending,
-      );
-      CommunityActions::follow(&mut context.pool(), &form).await?;
-      ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), true),
-        context,
-      )?;
-    }
-  }
-  Ok(())
-}
-
-pub async fn community_unfollow_many(
-  to_unfollow: &Vec<Community>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let multicomm_follower = Person::read(
-    &mut context.pool(),
-    site_view.local_site.multi_comm_follower,
-  )
-  .await?;
-  for community in to_unfollow {
-    if !community.local {
-      CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
-      ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), false),
-        context,
-      )?;
-    }
-  }
-  Ok(())
 }
 
 #[cfg(test)]

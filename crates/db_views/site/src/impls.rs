@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     instance::Instance,
     local_site::{LocalSite, LocalSiteInsertForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+    person::Person,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -41,6 +42,11 @@ impl SiteView {
       })
       .await
       .map_err(|_e: Arc<LemmyError>| LemmyErrorType::LocalSiteNotSetup.into())
+  }
+
+  pub async fn read_multicomm_follower(pool: &mut DbPool<'_>) -> LemmyResult<Person> {
+    let site_view = SiteView::read_local(pool).await?;
+    Person::read(pool, site_view.local_site.multi_comm_follower).await
   }
 }
 

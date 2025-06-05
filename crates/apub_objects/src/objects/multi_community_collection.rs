@@ -8,9 +8,19 @@ use activitypub_federation::{
 use futures::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{community_follow_many, community_unfollow_many},
+  send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::{newtypes::CommunityId, source::multi_community::MultiCommunity};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{
+    community::{Community, CommunityActions, CommunityFollowerForm},
+    multi_community::MultiCommunity,
+    person::Person,
+  },
+  traits::Followable,
+};
+use lemmy_db_schema_file::enums::CommunityFollowerState;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;
 use url::Url;
@@ -71,11 +81,51 @@ impl Collection for ApubFeedCollection {
     let (added, removed, has_local_followers) =
       MultiCommunity::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
+    let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
     if has_local_followers {
-      community_follow_many(&added, context).await?;
-      community_unfollow_many(&removed, context).await?;
+      community_follow_many(&multicomm_follower, &added, context).await?;
+      community_unfollow_many(&multicomm_follower, &removed, context).await?;
     }
 
     Ok(ApubFeedCollection)
   }
+}
+
+async fn community_follow_many(
+  multicomm_follower: &Person,
+  to_follow: &Vec<Community>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  for community in to_follow {
+    if !community.local {
+      let form = CommunityFollowerForm::new(
+        community.id,
+        multicomm_follower.id,
+        CommunityFollowerState::Pending,
+      );
+      CommunityActions::follow(&mut context.pool(), &form).await?;
+      ActivityChannel::submit_activity(
+        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), true),
+        context,
+      )?;
+    }
+  }
+  Ok(())
+}
+
+async fn community_unfollow_many(
+  multicomm_follower: &Person,
+  to_unfollow: &Vec<Community>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  for community in to_unfollow {
+    if !community.local {
+      CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
+      ActivityChannel::submit_activity(
+        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), false),
+        context,
+      )?;
+    }
+  }
+  Ok(())
 }

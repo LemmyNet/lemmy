@@ -4,14 +4,20 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   community::CreateOrDeleteMultiCommunityEntry,
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_deleted_removed,
   SuccessResponse,
 };
 use lemmy_db_schema::{
-  source::{community::Community, multi_community::MultiCommunity},
-  traits::Crud,
+  source::{
+    community::{Community, CommunityActions, CommunityFollowerForm},
+    multi_community::MultiCommunity,
+  },
+  traits::{Crud, Followable},
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_multi_community_entry(
@@ -25,6 +31,27 @@ pub async fn create_multi_community_entry(
   check_community_deleted_removed(&community)?;
 
   MultiCommunity::create_entry(&mut context.pool(), data.id, &community).await?;
+
+  if !community.local {
+    let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
+    let actions = CommunityActions::read(&mut context.pool(), community.id, multicomm_follower.id)
+      .await
+      .unwrap_or_default();
+
+    // follow the community if not already followed
+    if actions.followed.is_none() {
+      let form = CommunityFollowerForm::new(
+        community.id,
+        multicomm_follower.id,
+        CommunityFollowerState::Pending,
+      );
+      CommunityActions::follow(&mut context.pool(), &form).await?;
+      ActivityChannel::submit_activity(
+        SendActivityData::FollowCommunity(community, local_user_view.person.clone(), true),
+        &context,
+      )?;
+    }
+  }
 
   send_federation_update(multi, local_user_view, &context).await?;
 

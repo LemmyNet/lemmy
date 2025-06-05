@@ -259,7 +259,7 @@ impl MultiCommunity {
       .get_results(conn)
       .await?;
 
-    // get all local users who follow the multi-comm
+    // check if any local user follows the multi-comm
     let has_local_followers: bool = select(exists(
       multi_community_follow::table
         .inner_join(person::table)
@@ -291,6 +291,24 @@ impl MultiCommunity {
       .get_results(conn)
       .await?;
     Ok(entries)
+  }
+
+  pub async fn community_used_in_multiple(
+    pool: &mut DbPool<'_>,
+    multi_id: MultiCommunityId,
+    community_id: CommunityId,
+  ) -> LemmyResult<bool> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      select(exists(
+        multi_community::table
+          .inner_join(multi_community_entry::table)
+          .filter(multi_community::id.ne(multi_id))
+          .filter(multi_community_entry::community_id.eq(community_id)),
+      ))
+      .get_result(conn)
+      .await?,
+    )
   }
 }
 
