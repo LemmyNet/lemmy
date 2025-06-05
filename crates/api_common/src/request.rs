@@ -218,7 +218,7 @@ pub async fn generate_post_link_metadata(
 
   // Proxy the post url itself if it is an image
   let url = if let (true, Some(url)) = (is_image_post, post.url.clone()) {
-    Some(Some(proxy_image_link(url.into(), false, &context).await?))
+    Some(Some(proxy_image_link(url.into(), &context).await?))
   } else {
     None
   };
@@ -232,7 +232,7 @@ pub async fn generate_post_link_metadata(
   // Attempt to generate a thumbnail depending on the instance settings. Either by proxying,
   // storing image persistently in pict-rs or returning the remote url directly as thumbnail.
   let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
-    proxy_image_link(url.clone(), true, &context)
+    proxy_image_link(url.clone(), &context)
       .await
       .map_err(|e| warn!("Failed to proxy thumbnail: {e}"))
       .ok()
@@ -430,11 +430,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   match pictrs_config.image_mode() {
     PictrsImageMode::None => return Ok(image_url.clone()),
     PictrsImageMode::ProxyAllImages => {
-      return Ok(
-        proxy_image_link(image_url.clone(), true, context)
-          .await?
-          .into(),
-      )
+      return Ok(proxy_image_link(image_url.clone(), context).await?.into())
     }
     _ => {}
   };
