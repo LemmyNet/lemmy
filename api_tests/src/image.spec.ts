@@ -206,8 +206,8 @@ test("Images in remote image post are proxied if setting enabled", async () => {
     post.body?.startsWith("![](http://lemmy-gamma:8561/api/v3/image_proxy?url"),
   ).toBeTruthy();
 
-  // Make sure that it contains `jpg`, to be sure its an image
-  expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
+  // Make sure that it ends with jpg, to be sure its an image
+  expect(post.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes.post).toBeDefined();
@@ -231,8 +231,8 @@ test("Images in remote image post are proxied if setting enabled", async () => {
     ),
   ).toBeTruthy();
 
-  // Make sure that it contains `jpg`, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
+  // Make sure that it ends with jpg, to be sure its an image
+  expect(epsilonPost.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
@@ -253,8 +253,8 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
     ),
   ).toBeTruthy();
 
-  // Make sure that it contains `png`, to be sure its an image
-  expect(post.thumbnail_url?.includes(".png")).toBeTruthy();
+  // Make sure that it ends with png, to be sure its an image
+  expect(post.thumbnail_url?.endsWith(".png")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes.post).toBeDefined();
@@ -271,8 +271,8 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
     ),
   ).toBeTruthy();
 
-  // Make sure that it contains `png`, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.includes(".png")).toBeTruthy();
+  // Make sure that it ends with png, to be sure its an image
+  expect(epsilonPost.thumbnail_url?.endsWith(".png")).toBeTruthy();
 });
 
 test("No image proxying if setting is disabled", async () => {
