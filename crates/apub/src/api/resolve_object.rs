@@ -1,12 +1,13 @@
 use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
+use either::Either::*;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
+use lemmy_apub_objects::objects::SearchableObjects;
 use lemmy_db_schema::utils::DbPool;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
@@ -23,16 +24,27 @@ pub async fn resolve_object(
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
+
+  Ok(Json(
+    resolve_object_internal(&data.q, &local_user_view, &context).await?,
+  ))
+}
+
+pub(super) async fn resolve_object_internal(
+  query: &str,
+  local_user_view: &Option<LocalUserView>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<ResolveObjectResponse> {
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.
   let is_authenticated = local_user_view.is_some();
 
   let res = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
-    search_query_to_object_id(data.q.clone(), &context).await
+    search_query_to_object_id(query.to_string(), &context).await
   } else {
     // user isn't authenticated only allow a local search.
-    search_query_to_object_id_local(&data.q, &context).await
+    search_query_to_object_id_local(query, &context).await
   }
   .with_lemmy_type(LemmyErrorType::NotFound)?;
 
@@ -43,42 +55,33 @@ pub async fn resolve_object(
 
 async fn convert_response(
   object: SearchableObjects,
-  local_user_view: Option<LocalUserView>,
+  local_user_view: &Option<LocalUserView>,
   pool: &mut DbPool<'_>,
-) -> LemmyResult<Json<ResolveObjectResponse>> {
-  let mut res = ResolveObjectResponse::default();
-  let local_user = local_user_view.map(|l| l.local_user);
-  let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
+) -> LemmyResult<ResolveObjectResponse> {
+  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
+  let is_admin = local_user.as_ref().map(|l| l.admin).unwrap_or_default();
 
   let site_view = SiteView::read_local(pool).await?;
   let local_instance_id = site_view.site.instance_id;
 
-  match object {
-    SearchableObjects::Left(pc) => match pc {
-      PostOrComment::Left(p) => {
-        res.post =
-          Some(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
-      }
-      PostOrComment::Right(c) => {
-        res.comment =
-          Some(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
-      }
-    },
-    SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(u) => {
-        res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
-      }
-      UserOrCommunity::Right(c) => {
-        res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
-      }
-    },
-  };
-
-  Ok(Json(res))
+  use ResolveObjectResponse::*;
+  Ok(match object {
+    Left(Left(p)) => {
+      Post(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
+    }
+    Left(Right(c)) => {
+      Comment(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
+    }
+    Right(Left(u)) => Person(PersonView::read(pool, u.id, local_instance_id, is_admin).await?),
+    Right(Right(c)) => {
+      Community(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
+    }
+  })
 }
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::api::resolve_object::resolve_object;
   use actix_web::web::Query;
   use lemmy_api_common::{context::LemmyContext, site::ResolveObject};
@@ -130,7 +133,7 @@ mod tests {
 
     // Objects should be resolvable without authentication
     let res = resolve_object(query.clone(), context.reset_request_count(), None).await?;
-    assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
+    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
     // Objects should be resolvable by regular users
     let res = resolve_object(
       query.clone(),
@@ -138,7 +141,7 @@ mod tests {
       Some(regular_user.clone()),
     )
     .await?;
-    assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
+    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
     // Objects should be resolvable by admins
     let res = resolve_object(
       query.clone(),
@@ -146,7 +149,7 @@ mod tests {
       Some(admin_user.clone()),
     )
     .await?;
-    assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
+    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
 
     Post::update(
       pool,
@@ -176,7 +179,7 @@ mod tests {
       Some(admin_user.clone()),
     )
     .await?;
-    assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
+    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
 
     LocalSite::delete(pool).await?;
     Instance::delete(pool, instance.id).await?;

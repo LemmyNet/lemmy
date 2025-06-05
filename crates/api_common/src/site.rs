@@ -55,21 +55,14 @@ pub struct ResolveObject {
   pub q: String,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-// TODO Change this to an enum
-/// The response of an apub object fetch.
-pub struct ResolveObjectResponse {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub comment: Option<CommentView>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub post: Option<PostView>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community: Option<CommunityView>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub person: Option<PersonView>,
+pub enum ResolveObjectResponse {
+  Comment(CommentView),
+  Post(PostView),
+  Community(CommunityView),
+  Person(PersonView),
 }
 
 #[skip_serializing_none]
