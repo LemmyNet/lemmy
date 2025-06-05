@@ -41,10 +41,10 @@ pub(super) async fn resolve_object_internal(
 
   let res = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
-    search_query_to_object_id(query.to_string(), &context).await
+    search_query_to_object_id(query.to_string(), context).await
   } else {
     // user isn't authenticated only allow a local search.
-    search_query_to_object_id_local(query, &context).await
+    search_query_to_object_id_local(query, context).await
   }
   .with_lemmy_type(LemmyErrorType::NotFound)?;
 
@@ -58,13 +58,12 @@ async fn convert_response(
   local_user_view: &Option<LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<ResolveObjectResponse> {
+  use ResolveObjectResponse::*;
+
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
   let is_admin = local_user.as_ref().map(|l| l.admin).unwrap_or_default();
+  let local_instance_id = SiteView::read_local(pool).await?.site.instance_id;
 
-  let site_view = SiteView::read_local(pool).await?;
-  let local_instance_id = site_view.site.instance_id;
-
-  use ResolveObjectResponse::*;
   Ok(match object {
     Left(Left(p)) => {
       Post(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
@@ -101,7 +100,6 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  #[expect(clippy::unwrap_used)]
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

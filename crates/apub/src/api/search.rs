@@ -69,12 +69,11 @@ pub async fn search(
   let results = if let Some(q) = &data.search_term {
     let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
     let (mut search, resolve) = try_join(search_fut, resolve_fut).await?;
-    use ResolveObjectResponse::*;
     let conv = match resolve {
-      Comment(c) => SearchCombinedView::Comment(c),
-      Post(p) => SearchCombinedView::Post(p),
-      Person(p) => SearchCombinedView::Person(p),
-      Community(c) => SearchCombinedView::Community(c),
+      ResolveObjectResponse::Comment(c) => SearchCombinedView::Comment(c),
+      ResolveObjectResponse::Post(p) => SearchCombinedView::Post(p),
+      ResolveObjectResponse::Person(p) => SearchCombinedView::Person(p),
+      ResolveObjectResponse::Community(c) => SearchCombinedView::Community(c),
     };
     search.push(conv);
     search

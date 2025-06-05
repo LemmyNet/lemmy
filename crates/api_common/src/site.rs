@@ -58,6 +58,7 @@ pub struct ResolveObject {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+#[serde(untagged)]
 pub enum ResolveObjectResponse {
   Comment(CommentView),
   Post(PostView),
