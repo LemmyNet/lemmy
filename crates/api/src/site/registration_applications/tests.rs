@@ -64,6 +64,7 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
     application_question: Some(".".to_string()),
     registration_mode: Some(RegistrationMode::RequireApplication),
     site_setup: Some(true),
+    multi_comm_follower: Some(admin_person.id),
     ..LocalSiteInsertForm::new(site.id)
   };
   let local_site = LocalSite::create(pool, &local_site_form).await?;

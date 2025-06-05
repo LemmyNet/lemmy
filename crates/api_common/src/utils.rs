@@ -1008,6 +1008,7 @@ pub fn send_webmention(post: Post, community: &Community) {
   };
 }
 
+// TODO: unused?
 pub fn community_follower_state(community: &Community) -> CommunityFollowerState {
   if community.visibility == CommunityVisibility::Private {
     // Private communities require manual approval
@@ -1022,18 +1023,25 @@ pub fn community_follower_state(community: &Community) -> CommunityFollowerState
 }
 
 pub async fn community_follow_many(
-  person: &Person,
   to_follow: &Vec<Community>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let multicomm_follower = Person::read(
+    &mut context.pool(),
+    site_view.local_site.multi_comm_follower,
+  )
+  .await?;
   for community in to_follow {
-    let state = community_follower_state(community);
-    let mut form = CommunityFollowerForm::new(community.id, person.id, state);
-    form.is_multi_community_follow = Some(true);
-    CommunityActions::follow(&mut context.pool(), &form).await?;
     if !community.local {
+      let form = CommunityFollowerForm::new(
+        community.id,
+        multicomm_follower.id,
+        CommunityFollowerState::Pending,
+      );
+      CommunityActions::follow(&mut context.pool(), &form).await?;
       ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), person.clone(), true),
+        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), true),
         context,
       )?;
     }
@@ -1042,15 +1050,20 @@ pub async fn community_follow_many(
 }
 
 pub async fn community_unfollow_many(
-  person: &Person,
   to_unfollow: &Vec<Community>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let multicomm_follower = Person::read(
+    &mut context.pool(),
+    site_view.local_site.multi_comm_follower,
+  )
+  .await?;
   for community in to_unfollow {
-    CommunityActions::unfollow(&mut context.pool(), person.id, community.id).await?;
     if !community.local {
+      CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
       ActivityChannel::submit_activity(
-        SendActivityData::FollowCommunity(community.clone(), person.clone(), false),
+        SendActivityData::FollowCommunity(community.clone(), multicomm_follower.clone(), false),
         context,
       )?;
     }

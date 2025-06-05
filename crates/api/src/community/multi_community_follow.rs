@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::FollowMultiCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_local_user_valid, community_follow_many, community_unfollow_many},
+  utils::check_local_user_valid,
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -48,36 +48,8 @@ pub async fn follow_multi_community(
 
   if data.follow {
     MultiCommunity::follow(&mut context.pool(), &form).await?;
-
-    // Get all communities which are part of the multi and not yet followed by current user
-    let to_follow: Vec<_> = communities
-      .into_iter()
-      .filter(|c| {
-        let actions = c.community_actions.clone().unwrap_or_default();
-        actions.followed.is_none()
-      })
-      .map(|c| c.community)
-      .collect();
-
-    // Then follow them
-    community_follow_many(&local_user_view.person, &to_follow, &context).await?;
   } else {
     MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
-
-    // Unfollow all communities which were followed as part of multi-comm
-    // (is_multi_community_follow=true)
-    // TODO: what if a user follows more than one multi-comm
-    // containing the same community? then it would get wrongly removed here. so it needs a
-    // separate db query to check that.
-    let to_unfollow: Vec<_> = communities
-      .into_iter()
-      .filter(|c| {
-        let actions = c.community_actions.clone().unwrap_or_default();
-        actions.followed.is_some() && actions.is_multi_community_follow.unwrap_or_default()
-      })
-      .map(|c| c.community)
-      .collect();
-    community_unfollow_many(&local_user_view.person, &to_unfollow, &context).await?;
   }
 
   if !multi.local {

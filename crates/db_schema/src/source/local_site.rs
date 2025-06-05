@@ -168,6 +168,8 @@ pub struct LocalSiteInsertForm {
   pub disable_email_notifications: bool,
   #[new(default)]
   pub suggested_communities: Option<MultiCommunityId>,
+  #[new(default)]
+  pub multi_comm_follower: Option<PersonId>,
 }
 
 #[derive(Clone, Default)]

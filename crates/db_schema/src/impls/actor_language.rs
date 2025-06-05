@@ -434,7 +434,15 @@ mod tests {
     let site = Site::create(pool, &site_form).await?;
 
     // Create a local site, since this is necessary for local languages
-    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::test_form(inserted_instance.id, "langs"),
+    )
+    .await?;
+    let local_site_form = LocalSiteInsertForm {
+      multi_comm_follower: Some(person.id),
+      ..LocalSiteInsertForm::new(site.id)
+    };
     LocalSite::create(pool, &local_site_form).await?;
 
     Ok((site, inserted_instance))

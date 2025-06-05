@@ -75,7 +75,13 @@ mod tests {
     let site_form = SiteInsertForm::new("test_site".into(), inserted_instance.id);
     let inserted_site = Site::create(pool, &site_form).await?;
 
-    let local_site_form = LocalSiteInsertForm::new(inserted_site.id);
+    let multi_comm_follower_form =
+      PersonInsertForm::test_form(inserted_instance.id, "thommy_site_agg");
+    let multi_comm_follower = Person::create(pool, &multi_comm_follower_form).await?;
+    let local_site_form = LocalSiteInsertForm {
+      multi_comm_follower: Some(multi_comm_follower.id),
+      ..LocalSiteInsertForm::new(inserted_site.id)
+    };
     LocalSite::create(pool, &local_site_form).await?;
 
     let new_community = CommunityInsertForm::new(

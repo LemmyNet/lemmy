@@ -68,12 +68,12 @@ impl Collection for ApubFeedCollection {
     })
     .collect();
 
-    let (added, removed, local_followers) =
+    let (added, removed, has_local_followers) =
       MultiCommunity::update_entries(&mut context.pool(), owner.id, &communities).await?;
 
-    for p in &local_followers {
-      community_follow_many(p, &added, context).await?;
-      community_unfollow_many(p, &removed, context).await?;
+    if has_local_followers {
+      community_follow_many(&added, context).await?;
+      community_unfollow_many(&removed, context).await?;
     }
 
     Ok(ApubFeedCollection)

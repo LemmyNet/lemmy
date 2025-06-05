@@ -2,7 +2,7 @@ use crate::{
   diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods},
   newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
   source::{
-    community::{Community, CommunityActions, CommunityFollowerForm},
+    community::Community,
     multi_community::{
       MultiCommunity,
       MultiCommunityFollow,
@@ -10,32 +10,25 @@ use crate::{
       MultiCommunityInsertForm,
       MultiCommunityUpdateForm,
     },
-    person::Person,
   },
-  traits::{Crud, Followable},
-  utils::{functions::lower, get_conn, uplete, DbConn, DbPool},
+  traits::Crud,
+  utils::{functions::lower, get_conn, DbPool},
 };
-use chrono::Utc;
 use diesel::{
   dsl::{count, delete, exists, insert_into},
   select,
   update,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{
-  enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{
-    community,
-    community_actions,
-    multi_community,
-    multi_community_entry,
-    multi_community_follow,
-    person,
-  },
+use lemmy_db_schema_file::schema::{
+  community,
+  multi_community,
+  multi_community_entry,
+  multi_community_follow,
+  person,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -117,7 +110,6 @@ impl MultiCommunity {
       ))
       .execute(conn)
       .await?;
-    Self::update_follows_to_local_community(pool, id, new_community, false).await?;
     Ok(())
   }
 
@@ -134,7 +126,6 @@ impl MultiCommunity {
     )
     .execute(conn)
     .await?;
-    Self::update_follows_to_local_community(pool, id, old_community, true).await?;
     Ok(())
   }
 
@@ -192,101 +183,6 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn update_follows_to_local_community(
-    pool: &mut DbPool<'_>,
-    multi_community_id: MultiCommunityId,
-    community: &Community,
-    is_removed_from_multi: bool,
-  ) -> LemmyResult<()> {
-    if !community.local {
-      return Ok(());
-    }
-
-    let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community_follow::table
-      .inner_join(
-        person::table.left_join(
-          community_actions::table.on(
-            person::id
-              .eq(community_actions::person_id)
-              .and(community_actions::community_id.eq(community.id)),
-          ),
-        ),
-      )
-      .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
-      .filter(person::local)
-      .select(person::id)
-      .into_boxed();
-    if is_removed_from_multi {
-      // Remove: only in case it was a multi-comm follow (not manually by user)
-      query = query.filter(community_actions::is_multi_community_follow.is_distinct_from(false));
-    } else {
-      // Add: only commns which the user isnt following already
-      query = query.filter(community_actions::followed.is_null());
-    }
-    let local_follows: Vec<PersonId> = query.get_results(conn).await?;
-
-    for person_id in local_follows {
-      if !is_removed_from_multi {
-        let follow_state = if community.visibility == CommunityVisibility::Private {
-          CommunityFollowerState::ApprovalRequired
-        } else {
-          CommunityFollowerState::Accepted
-        };
-        let form = CommunityFollowerForm {
-          community_id: community.id,
-          person_id,
-          follow_state,
-          follow_approver_id: None,
-          followed: Utc::now(),
-          is_multi_community_follow: Some(true),
-        };
-        CommunityActions::follow(&mut DbPool::Conn(conn), &form).await?;
-      } else {
-        Self::delete_follow_in_multi_comm(conn, multi_community_id, person_id, community.id)
-          .await?;
-      }
-    }
-    Ok(())
-  }
-
-  /// Unlike CommunityActions::unfollow this checks `is_multi_community_follow`
-  async fn delete_follow_in_multi_comm(
-    conn: &mut DbConn<'_>,
-    multi_community_id: MultiCommunityId,
-    person_id: PersonId,
-    community_id: CommunityId,
-  ) -> LemmyResult<()> {
-    // True if the user also follows this community via other multi-comms, in this case dont delete
-    let community_has_other_multi_follows = select(exists(
-      multi_community::table
-        .inner_join(multi_community_follow::table)
-        .inner_join(
-          multi_community_entry::table.inner_join(
-            community_actions::table
-              .on(multi_community_entry::community_id.eq(community_actions::community_id)),
-          ),
-        )
-        .filter(multi_community::id.ne(multi_community_id))
-        .filter(multi_community_follow::person_id.eq(person_id))
-        .filter(multi_community_entry::community_id.eq(community_id))
-        .filter(community_actions::is_multi_community_follow.eq(true)),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
-
-    if !community_has_other_multi_follows {
-      // delete the community follow
-      uplete::new(community_actions::table.find((person_id, community_id)))
-        .set_null(community_actions::followed)
-        .set_null(community_actions::follow_state)
-        .set_null(community_actions::follow_approver_id)
-        .set_null(community_actions::is_multi_community_follow)
-        .get_result::<uplete::Count>(conn)
-        .await?;
-    }
-    Ok(())
-  }
   pub async fn follower_inboxes(
     pool: &mut DbPool<'_>,
     multi_community_id: MultiCommunityId,
@@ -324,7 +220,7 @@ impl MultiCommunity {
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
     new_communities: &Vec<CommunityId>,
-  ) -> LemmyResult<(Vec<Community>, Vec<Community>, Vec<Person>)> {
+  ) -> LemmyResult<(Vec<Community>, Vec<Community>, bool)> {
     let conn = &mut get_conn(pool).await?;
     if new_communities.len() >= usize::try_from(MULTI_COMMUNITY_ENTRY_LIMIT)? {
       return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
@@ -364,15 +260,16 @@ impl MultiCommunity {
       .await?;
 
     // get all local users who follow the multi-comm
-    let local_followers: Vec<Person> = multi_community_follow::table
-      .inner_join(person::table)
-      .inner_join(multi_community::table)
-      .filter(person::local)
-      .select(person::all_columns)
-      .get_results(conn)
-      .await?;
+    let has_local_followers: bool = select(exists(
+      multi_community_follow::table
+        .inner_join(person::table)
+        .inner_join(multi_community::table)
+        .filter(person::local),
+    ))
+    .get_result(conn)
+    .await?;
 
-    Ok((added, removed, local_followers))
+    Ok((added, removed, has_local_followers))
   }
 
   pub async fn read_entry_ap_ids(
@@ -411,6 +308,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -474,39 +372,6 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_multi_community_follow() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = setup(pool).await?;
-
-    let form = MultiCommunityFollowForm {
-      multi_community_id: data.multi.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-
-    // add community to multi-comm
-    MultiCommunity::create_entry(pool, data.multi.id, &data.community).await?;
-
-    // user should be following the community now
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await?;
-    assert_eq!(actions.is_multi_community_follow, Some(true));
-
-    // remove community from multi-comm
-    MultiCommunity::delete_entry(pool, data.multi.id, &data.community).await?;
-
-    // follow is also removed
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await;
-    assert!(actions.is_err());
-
-    Instance::delete(pool, data.instance.id).await?;
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
   async fn test_multi_community_list() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
@@ -547,103 +412,12 @@ mod tests {
     assert_eq!(list_followed.len(), 1);
     assert_eq!(list_followed[0].id, multi2.id);
 
-    Instance::delete(pool, data.instance.id).await?;
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_overlapping_multi_follows() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = setup(pool).await?;
-
-    // create another multi
-    let form = MultiCommunityInsertForm::new(
-      data.person.id,
-      data.person.instance_id,
-      "multi2".to_string(),
-      String::new(),
-    );
-    let multi2 = MultiCommunity::create(pool, &form).await?;
-
-    // follow both of them
-    let form = MultiCommunityFollowForm {
-      multi_community_id: data.multi.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-    let form = MultiCommunityFollowForm {
-      multi_community_id: multi2.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-
-    // add the same community to both multis
-    MultiCommunity::create_entry(pool, data.multi.id, &data.community).await?;
-    MultiCommunity::create_entry(pool, multi2.id, &data.community).await?;
-
-    // user should be following community
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await?;
-    assert_eq!(actions.is_multi_community_follow, Some(true));
-
-    // delete entry from one multi, user should still follow community
-    MultiCommunity::delete_entry(pool, data.multi.id, &data.community).await?;
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await?;
-    assert_eq!(actions.is_multi_community_follow, Some(true));
-
-    // delete entry from one multi, user should not follow community anymore
-    MultiCommunity::delete_entry(pool, multi2.id, &data.community).await?;
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await;
-    assert!(actions.is_err());
+    MultiCommunity::unfollow(pool, data.person.id, multi2.id).await?;
+    let list_followed = MultiCommunity::list(pool, None, Some(data.person.id)).await?;
+    assert_eq!(list_followed.len(), 0);
 
     Instance::delete(pool, data.instance.id).await?;
 
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_multi_with_manual_follow() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = setup(pool).await?;
-
-    let form = CommunityFollowerForm::new(
-      data.community.id,
-      data.person.id,
-      CommunityFollowerState::Accepted,
-    );
-    CommunityActions::follow(pool, &form).await?;
-
-    let form = MultiCommunityFollowForm {
-      multi_community_id: data.multi.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-    let form = MultiCommunityFollowForm {
-      multi_community_id: data.multi.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-
-    MultiCommunity::create_entry(pool, data.multi.id, &data.community).await?;
-
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await?;
-    assert!(actions.followed.is_some());
-    assert_eq!(actions.is_multi_community_follow, None);
-
-    MultiCommunity::delete_entry(pool, data.multi.id, &data.community).await?;
-
-    let actions = CommunityActions::read(pool, data.community.id, data.person.id).await;
-    assert!(actions.is_err());
-
-    Instance::delete(pool, data.instance.id).await?;
     Ok(())
   }
 }
