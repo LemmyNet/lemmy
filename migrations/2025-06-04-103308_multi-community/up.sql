@@ -27,7 +27,7 @@ CREATE TABLE multi_community_follow (
     multi_community_id int NOT NULL REFERENCES multi_community ON UPDATE CASCADE ON DELETE CASCADE,
     person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     follow_state community_follower_state NOT NULL,
-    PRIMARY KEY (multi_community_id, person_id)
+    PRIMARY KEY (person_id, multi_community_id)
 );
 
 ALTER TABLE local_site
@@ -75,11 +75,15 @@ WHERE
 ALTER TYPE listing_type_enum
     ADD VALUE 'Suggested';
 
-CREATE INDEX idx_multi_community_read_from_name ON multi_community (local, deleted, name);
+CREATE INDEX idx_multi_community_read_from_name ON multi_community (local)
+WHERE
+    local AND NOT deleted;
 
 CREATE INDEX idx_multi_community_ap_id ON multi_community (ap_id);
 
 CREATE INDEX idx_multi_creator_id ON multi_community (creator_id);
 
 CREATE INDEX idx_multi_followed_by ON multi_community_follow (person_id);
+
+CREATE INDEX idx_multi_community_entry_community_id ON multi_community_entry (community_id);
 

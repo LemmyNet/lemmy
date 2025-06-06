@@ -538,7 +538,7 @@ mod tests {
 
   use super::*;
   use lemmy_api_common::request::client_builder;
-  use lemmy_db_views_site::impls::create_test_instance;
+  use lemmy_db_schema::test_data::TestData;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
@@ -571,7 +571,7 @@ mod tests {
   #[serial]
   async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
+    let data = TestData::create(&mut context.pool()).await?;
 
     active_counts(&mut context.pool()).await?;
     update_hot_ranks(&mut context.pool()).await?;
@@ -583,7 +583,7 @@ mod tests {
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

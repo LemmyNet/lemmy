@@ -574,7 +574,7 @@ mod tests {
       instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
       keyword_block::LocalUserKeywordBlock,
       language::Language,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::{LocalSite, LocalSiteUpdateForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
@@ -588,9 +588,10 @@ mod tests {
         PostUpdateForm,
       },
       post_tag::{PostTag, PostTagForm},
-      site::{Site, SiteInsertForm},
+      site::Site,
       tag::{Tag, TagInsertForm},
     },
+    test_data::TestData,
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
   };
@@ -649,9 +650,9 @@ mod tests {
     async fn setup() -> LemmyResult<Data> {
       let actual_pool = build_db_pool()?;
       let pool = &mut (&actual_pool).into();
-      let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+      let data = TestData::create(pool).await?;
 
-      let tegan_person_form = PersonInsertForm::test_form(instance.id, "tegan");
+      let tegan_person_form = PersonInsertForm::test_form(data.instance.id, "tegan");
       let inserted_tegan_person = Person::create(pool, &tegan_person_form).await?;
       let tegan_local_user_form = LocalUserInsertForm {
         admin: Some(true),
@@ -662,7 +663,7 @@ mod tests {
 
       let bot_person_form = PersonInsertForm {
         bot_account: Some(true),
-        ..PersonInsertForm::test_form(instance.id, "mybot")
+        ..PersonInsertForm::test_form(data.instance.id, "mybot")
       };
       let inserted_bot_person = Person::create(pool, &bot_person_form).await?;
       let inserted_bot_local_user = LocalUser::create(
@@ -673,7 +674,7 @@ mod tests {
       .await?;
 
       let new_community = CommunityInsertForm::new(
-        instance.id,
+        data.instance.id,
         "test_community_3".to_string(),
         "nada".to_owned(),
         "pubkey".to_string(),
@@ -681,7 +682,7 @@ mod tests {
       let community = Community::create(pool, &new_community).await?;
 
       // Test a person block, make sure the post query doesn't include their post
-      let john_person_form = PersonInsertForm::test_form(instance.id, "john");
+      let john_person_form = PersonInsertForm::test_form(data.instance.id, "john");
       let inserted_john_person = Person::create(pool, &john_person_form).await?;
       let inserted_john_local_user = LocalUser::create(
         pool,
@@ -786,27 +787,9 @@ mod tests {
         instance_actions: None,
       };
 
-      let site = Site {
-        id: Default::default(),
-        name: String::new(),
-        sidebar: None,
-        published: Default::default(),
-        updated: None,
-        icon: None,
-        banner: None,
-        description: None,
-        ap_id: Url::parse("http://example.com")?.into(),
-        last_refreshed_at: Default::default(),
-        inbox_url: Url::parse("http://example.com")?.into(),
-        private_key: None,
-        public_key: String::new(),
-        instance_id: Default::default(),
-        content_warning: None,
-      };
-
       Ok(Data {
         pool: actual_pool,
-        instance,
+        instance: data.instance,
         tegan: tegan_local_user_view,
         john_local_user_view,
         bot_local_user_view,
@@ -816,7 +799,7 @@ mod tests {
         post_with_tags,
         tag_1,
         tag_2,
-        site,
+        site: data.site,
       })
     }
     async fn teardown(data: Data) -> LemmyResult<()> {
@@ -827,6 +810,7 @@ mod tests {
       Person::delete(pool, data.tegan.person.id).await?;
       Person::delete(pool, data.bot_local_user_view.person.id).await?;
       Person::delete(pool, data.john_local_user_view.person.id).await?;
+      Site::delete(pool, data.site.id).await?;
       Instance::delete(pool, data.instance.id).await?;
       assert_eq!(1, num_deleted);
 
@@ -2272,9 +2256,6 @@ mod tests {
     let listing_posts = listing.iter().map(|l| l.post.id).collect::<HashSet<_>>();
     assert_eq!(HashSet::from([post_1.id, post_2.id]), listing_posts);
 
-    let site_form = SiteInsertForm::new("test_site".into(), data.instance.id);
-    let site = Site::create(pool, &site_form).await?;
-
     let suggested = PostQuery {
       listing_type: Some(ListingType::Suggested),
       ..Default::default()
@@ -2283,11 +2264,11 @@ mod tests {
     .await?;
     assert!(suggested.is_empty());
 
-    let form = LocalSiteInsertForm {
+    let form = LocalSiteUpdateForm {
       suggested_communities: Some(multi.id),
-      ..LocalSiteInsertForm::new(site.id)
+      ..Default::default()
     };
-    LocalSite::create(pool, &form).await?;
+    LocalSite::update(pool, &form).await?;
 
     let suggested = PostQuery {
       listing_type: Some(ListingType::Suggested),

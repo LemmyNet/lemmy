@@ -9,6 +9,7 @@ extern crate diesel_derive_newtype;
 pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
+pub mod test_data;
 #[cfg(feature = "full")]
 pub mod aliases {
   use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};

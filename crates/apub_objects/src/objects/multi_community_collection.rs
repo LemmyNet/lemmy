@@ -84,8 +84,8 @@ impl Collection for ApubFeedCollection {
     // and unfollow those that were removed.
     // If the multi-comm has no local followers its ignored.
     // TODO: This means there will be posts missing in multi-comm without local followers.
-    let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
     if has_local_followers {
+      let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
       for community in remote_added {
         let form = CommunityFollowerForm::new(
           community.id,

@@ -92,14 +92,13 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
-      instance::Instance,
       local_site::LocalSite,
       post::{Post, PostInsertForm, PostUpdateForm},
     },
+    test_data::TestData,
     traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
 
@@ -109,7 +108,7 @@ mod tests {
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-    let instance = create_test_instance(pool).await?;
+    let data = TestData::create(pool).await?;
 
     let name = "test_local_user_name";
     let bio = "test_local_user_bio";
@@ -121,7 +120,7 @@ mod tests {
     let community = Community::create(
       pool,
       &CommunityInsertForm::new(
-        instance.id,
+        data.instance.id,
         "test".to_string(),
         "test".to_string(),
         "pubkey".to_string(),
@@ -186,7 +185,7 @@ mod tests {
     assert_eq!(res.post.as_ref().unwrap().post.ap_id, post.ap_id);
 
     LocalSite::delete(pool).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

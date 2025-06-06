@@ -201,16 +201,12 @@ pub(crate) mod tests {
   use actix_web::{body::to_bytes, test::TestRequest};
   use lemmy_apub_objects::protocol::{group::Group, tombstone::Tombstone};
   use lemmy_db_schema::{
-    newtypes::InstanceId,
     source::{
       community::CommunityInsertForm,
-      instance::Instance,
-      local_site::{LocalSite, LocalSiteInsertForm},
-      local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
-      site::{Site, SiteInsertForm},
     },
+    test_data::TestData,
     traits::Crud,
   };
   use serde::de::DeserializeOwned;
@@ -220,16 +216,14 @@ pub(crate) mod tests {
     deleted: bool,
     visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<(Instance, Community, Path<CommunityPath>)> {
-    let instance =
-      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
-    create_local_site(context, instance.id).await?;
+  ) -> LemmyResult<(TestData, Community, Path<CommunityPath>)> {
+    let data = TestData::create(&mut context.pool()).await?;
 
     let community_form = CommunityInsertForm {
       deleted: Some(deleted),
       visibility: Some(visibility),
       ..CommunityInsertForm::new(
-        instance.id,
+        data.instance.id,
         "testcom6".to_string(),
         "nada".to_owned(),
         "pubkey".to_string(),
@@ -240,24 +234,7 @@ pub(crate) mod tests {
       community_name: community.name.clone(),
     }
     .into();
-    Ok((instance, community, path))
-  }
-
-  /// Necessary for the community outbox fetching
-  async fn create_local_site(
-    context: &Data<LemmyContext>,
-    instance_id: InstanceId,
-  ) -> LemmyResult<()> {
-    // Create a local site, since this is necessary for community fetching.
-    let site_form = SiteInsertForm::new("test site".to_string(), instance_id);
-    let site = Site::create(&mut context.pool(), &site_form).await?;
-
-    let local_site_form = LocalSiteInsertForm::new(site.id);
-    let local_site = LocalSite::create(&mut context.pool(), &local_site_form).await?;
-
-    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
-    LocalSiteRateLimit::create(&mut context.pool(), &local_site_rate_limit_form).await?;
-    Ok(())
+    Ok((data, community, path))
   }
 
   async fn decode_response<T: DeserializeOwned>(res: HttpResponse) -> LemmyResult<T> {
@@ -270,7 +247,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community, path) = init(false, CommunityVisibility::Public, &context).await?;
+    let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     // fetch invalid community
@@ -310,7 +287,7 @@ pub(crate) mod tests {
     let res = get_apub_community_outbox(path, context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -318,7 +295,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, _, path) = init(true, CommunityVisibility::Public, &context).await?;
+    let (data, _, path) = init(true, CommunityVisibility::Public, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     // should return tombstone
@@ -350,7 +327,7 @@ pub(crate) mod tests {
     assert!(res.is_err());
 
     //Community::delete(&mut context.pool(), community.id).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -358,7 +335,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, _, path) = init(false, CommunityVisibility::LocalOnlyPrivate, &context).await?;
+    let (data, _, path) = init(false, CommunityVisibility::LocalOnlyPrivate, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await;
@@ -385,7 +362,7 @@ pub(crate) mod tests {
     let res = get_apub_community_outbox(path, context.reset_request_count(), request).await;
     assert!(res.is_err());
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -393,11 +370,11 @@ pub(crate) mod tests {
   #[serial]
   async fn test_outbox_deleted_user() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (instance, community, path) = init(false, CommunityVisibility::Public, &context).await?;
+    let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
     let request = TestRequest::default().to_http_request();
 
     // post from deleted user shouldnt break outbox
-    let mut form = PersonInsertForm::new("jerry".to_string(), String::new(), instance.id);
+    let mut form = PersonInsertForm::new("jerry".to_string(), String::new(), data.instance.id);
     form.deleted = Some(true);
     let person = Person::create(&mut context.pool(), &form).await?;
 
@@ -407,7 +384,7 @@ pub(crate) mod tests {
     let res = get_apub_community_outbox(path, context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

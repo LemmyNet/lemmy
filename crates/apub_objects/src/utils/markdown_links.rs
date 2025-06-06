@@ -100,10 +100,10 @@ mod tests {
       community::{Community, CommunityInsertForm},
       post::{Post, PostInsertForm},
     },
+    test_data::TestData,
     traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_site::impls::create_test_instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -111,11 +111,11 @@ mod tests {
   #[tokio::test]
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
+    let data = TestData::create(&mut context.pool()).await?;
     let community = Community::create(
       &mut context.pool(),
       &CommunityInsertForm::new(
-        instance.id,
+        data.instance.id,
         "my_community".to_string(),
         "My Community".to_string(),
         "pubkey".to_string(),
@@ -142,7 +142,7 @@ mod tests {
       (
         "rewrite community link",
         format!("[link]({})", community.ap_id),
-        "[link](https://lemmy-alpha/c/my_community@example.com)",
+        "[link](https://lemmy-alpha/c/my_community@my_domain.tld)",
       ),
       (
         "dont rewrite local post link",
@@ -177,7 +177,7 @@ mod tests {
       );
     }
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
 
     Ok(())
   }
