@@ -67,17 +67,14 @@ CREATE FUNCTION r.parent_comment_ids (path ltree)
     RETURNS SETOF int
     LANGUAGE sql
     IMMUTABLE parallel safe
-BEGIN
-    ATOMIC
+BEGIN ATOMIC
     SELECT
         comment_id::int
     FROM
         string_to_table (ltree2text (path), '.') AS comment_id
     -- Skip first and last
 LIMIT (nlevel (path) - 2) OFFSET 1;
-
 END;
-
 CALL r.create_triggers ('comment', $$
 BEGIN
     -- Prevent infinite recursion
@@ -86,9 +83,7 @@ BEGIN
             count(*)
     FROM select_old_and_new_rows AS old_and_new_rows) = 0 THEN
         RETURN NULL;
-
 END IF;
-
 UPDATE
     person AS a
 SET
@@ -106,7 +101,6 @@ FROM (
 WHERE
     a.id = diff.creator_id
     AND diff.comment_count != 0;
-
 UPDATE
     comment AS a
 SET
@@ -144,7 +138,6 @@ FROM (
 WHERE
     a.id = diff.parent_id
     AND diff.child_count != 0;
-
 UPDATE
     post AS a
 SET
@@ -176,7 +169,6 @@ WHERE
         GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
         a.newest_comment_time,
         a.newest_comment_time_necro);
-
 UPDATE
     local_site AS a
 SET
@@ -191,13 +183,9 @@ FROM (
         AND (comment).local) AS diff
 WHERE
     diff.comments != 0;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('post', $$
 BEGIN
     UPDATE
@@ -214,7 +202,6 @@ BEGIN
 WHERE
     a.id = diff.creator_id
         AND diff.post_count != 0;
-
 UPDATE
     community AS a
 SET
@@ -236,7 +223,6 @@ WHERE
     AND (diff.posts,
         diff.comments) != (0,
         0);
-
 UPDATE
     local_site AS a
 SET
@@ -251,13 +237,9 @@ FROM (
         AND (post).local) AS diff
 WHERE
     diff.posts != 0;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('community', $$
 BEGIN
     UPDATE
@@ -273,13 +255,9 @@ BEGIN
             AND (community).local) AS diff
 WHERE
     diff.communities != 0;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('local_user', $$
 BEGIN
     UPDATE
@@ -293,13 +271,9 @@ BEGIN
         WHERE (local_user).accepted_application) AS diff
 WHERE
     diff.users != 0;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
@@ -319,13 +293,9 @@ BEGIN
 WHERE
     a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('post_report', $$
 BEGIN
     UPDATE
@@ -339,13 +309,9 @@ BEGIN
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
 AND a.id = diff.post_id;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('comment_report', $$
 BEGIN
     UPDATE
@@ -359,13 +325,9 @@ BEGIN
 FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
 AND a.id = diff.comment_id;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 CALL r.create_triggers ('community_report', $$
 BEGIN
     UPDATE
@@ -378,13 +340,9 @@ BEGIN
     FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
 WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
     AND a.id = diff.community_id;
-
 RETURN NULL;
-
 END;
-
 $$);
-
 -- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
 CREATE FUNCTION r.delete_follow_before_person ()
     RETURNS TRIGGER
@@ -396,12 +354,10 @@ BEGIN
     RETURN OLD;
 END;
 $$;
-
 CREATE TRIGGER delete_follow
     BEFORE DELETE ON person
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_follow_before_person ();
-
 -- Triggers that change values before insert or update
 CREATE FUNCTION r.comment_change_values ()
     RETURNS TRIGGER
@@ -421,12 +377,10 @@ BEGIN
     RETURN NEW;
 END
 $$;
-
 CREATE TRIGGER change_values
     BEFORE INSERT OR UPDATE ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
-
 CREATE FUNCTION r.post_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -442,12 +396,10 @@ BEGIN
     RETURN NEW;
 END
 $$;
-
 CREATE TRIGGER change_values
     BEFORE INSERT ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.post_change_values ();
-
 CREATE FUNCTION r.private_message_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -460,12 +412,10 @@ BEGIN
     RETURN NEW;
 END
 $$;
-
 CREATE TRIGGER change_values
     BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
-
 -- Combined tables triggers
 -- These insert (published, item_id) into X_combined tables
 -- Reports (comment_report, post_report, private_message_report)
@@ -491,15 +441,10 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_report_combined_trigger ('post_report');
-
 CALL r.create_report_combined_trigger ('comment_report');
-
 CALL r.create_report_combined_trigger ('private_message_report');
-
 CALL r.create_report_combined_trigger ('community_report');
-
 -- person_content (comment, post)
 CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -523,14 +468,13 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_person_content_combined_trigger ('post');
-
 CALL r.create_person_content_combined_trigger ('comment');
-
 -- person_saved (comment, post)
 -- This one is a little different, because it triggers using x_actions.saved,
 -- Rather than any row insert
+-- TODO a hack because local is not currently on the post_view table
+-- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
 CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -571,11 +515,67 @@ BEGIN
     table_name);
 END;
 $a$;
-
 CALL r.create_person_saved_combined_trigger ('post');
-
 CALL r.create_person_saved_combined_trigger ('comment');
-
+-- person_liked (comment, post)
+-- This one is a little different, because it triggers using x_actions.liked,
+-- Rather than any row insert
+-- TODO a hack because local is not currently on the post_view table
+-- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
+CREATE PROCEDURE r.create_person_liked_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.person_liked_combined_change_values_thing ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF (TG_OP = 'DELETE') THEN
+                    DELETE FROM person_liked_combined AS p
+                    WHERE p.person_id = OLD.person_id
+                        AND p.thing_id = OLD.thing_id;
+                ELSIF (TG_OP = 'INSERT') THEN
+                    IF NEW.liked IS NOT NULL AND (
+                        SELECT
+                            local
+                        FROM
+                            person
+                        WHERE
+                            id = NEW.person_id) = TRUE THEN
+                        INSERT INTO person_liked_combined (liked, like_score, person_id, thing_id)
+                            VALUES (NEW.liked, NEW.like_score, NEW.person_id, NEW.thing_id);
+                    END IF;
+                ELSIF (TG_OP = 'UPDATE') THEN
+                    IF NEW.liked IS NOT NULL AND (
+                        SELECT
+                            local
+                        FROM
+                            person
+                        WHERE
+                            id = NEW.person_id) = TRUE THEN
+                        INSERT INTO person_liked_combined (liked, like_score, person_id, thing_id)
+                            VALUES (NEW.liked, NEW.like_score, NEW.person_id, NEW.thing_id);
+                        -- If liked gets set as null, delete the row
+                    ELSE
+                        DELETE FROM person_liked_combined AS p
+                        WHERE p.person_id = NEW.person_id
+                            AND p.thing_id = NEW.thing_id;
+                    END IF;
+                END IF;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER person_liked_combined
+        AFTER INSERT OR DELETE OR UPDATE OF liked ON thing_actions
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
+    $b$,
+    'thing',
+    table_name);
+END;
+$a$;
+CALL r.create_person_liked_combined_trigger ('post');
+CALL r.create_person_liked_combined_trigger ('comment');
 -- modlog: (17 tables)
 -- admin_allow_instance
 -- admin_block_instance
@@ -616,41 +616,23 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_modlog_combined_trigger ('admin_allow_instance');
-
 CALL r.create_modlog_combined_trigger ('admin_block_instance');
-
 CALL r.create_modlog_combined_trigger ('admin_purge_comment');
-
 CALL r.create_modlog_combined_trigger ('admin_purge_community');
-
 CALL r.create_modlog_combined_trigger ('admin_purge_person');
-
 CALL r.create_modlog_combined_trigger ('admin_purge_post');
-
 CALL r.create_modlog_combined_trigger ('mod_add');
-
 CALL r.create_modlog_combined_trigger ('mod_add_community');
-
 CALL r.create_modlog_combined_trigger ('mod_ban');
-
 CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
-
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
-
 CALL r.create_modlog_combined_trigger ('mod_change_community_visibility');
-
 CALL r.create_modlog_combined_trigger ('mod_lock_post');
-
 CALL r.create_modlog_combined_trigger ('mod_remove_comment');
-
 CALL r.create_modlog_combined_trigger ('mod_remove_community');
-
 CALL r.create_modlog_combined_trigger ('mod_remove_post');
-
 CALL r.create_modlog_combined_trigger ('mod_transfer_community');
-
 -- Inbox: (replies, comment mentions, post mentions, and private_messages)
 CREATE PROCEDURE r.create_inbox_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -674,15 +656,10 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_inbox_combined_trigger ('comment_reply');
-
 CALL r.create_inbox_combined_trigger ('person_comment_mention');
-
 CALL r.create_inbox_combined_trigger ('person_post_mention');
-
 CALL r.create_inbox_combined_trigger ('private_message');
-
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()
     RETURNS TRIGGER
@@ -695,32 +672,26 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
 CREATE TRIGGER require_uplete
     BEFORE DELETE ON comment_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
-
 CREATE TRIGGER require_uplete
     BEFORE DELETE ON community_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
-
 CREATE TRIGGER require_uplete
     BEFORE DELETE ON instance_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
-
 CREATE TRIGGER require_uplete
     BEFORE DELETE ON person_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
-
 CREATE TRIGGER require_uplete
     BEFORE DELETE ON post_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
-
 -- search: (post, comment, community, person)
 CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -745,15 +716,10 @@ BEGIN
         table_name);
 END;
 $a$;
-
 CALL r.create_search_combined_trigger ('post');
-
 CALL r.create_search_combined_trigger ('comment');
-
 CALL r.create_search_combined_trigger ('community');
-
 CALL r.create_search_combined_trigger ('person');
-
 -- You also need to triggers to update the `score` column.
 -- post | post::score
 -- comment | comment_aggregates::score
@@ -775,12 +741,10 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
 CREATE TRIGGER search_combined_post_score
     AFTER UPDATE OF score ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_post_score_update ();
-
 -- Comment score
 CREATE FUNCTION r.search_combined_comment_score_update ()
     RETURNS TRIGGER
@@ -796,12 +760,10 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
 CREATE TRIGGER search_combined_comment_score
     AFTER UPDATE OF score ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_comment_score_update ();
-
 -- Person score
 CREATE FUNCTION r.search_combined_person_score_update ()
     RETURNS TRIGGER
@@ -817,12 +779,10 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
 CREATE TRIGGER search_combined_person_score
     AFTER UPDATE OF post_score ON person
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_person_score_update ();
-
 -- Community score
 CREATE FUNCTION r.search_combined_community_score_update ()
     RETURNS TRIGGER
@@ -838,9 +798,7 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
 CREATE TRIGGER search_combined_community_score
     AFTER UPDATE OF users_active_month ON community
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_community_score_update ();
-

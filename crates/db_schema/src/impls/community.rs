@@ -17,6 +17,7 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable, Joinable},
   utils::{
+    format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     uplete,
@@ -275,11 +276,6 @@ impl Community {
       Err(LemmyErrorType::InvalidUrl)?
     }
     Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
-  }
-
-  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 
   pub async fn update_federated_followers(
@@ -650,6 +646,21 @@ impl ApubActor for Community {
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'c', settings)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 

@@ -1,11 +1,8 @@
 use crate::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
-};
+use lemmy_db_schema::traits::ApubActor;
+use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
 use url::Url;
 
 pub async fn markdown_rewrite_remote_links_opt(
@@ -51,7 +48,8 @@ pub async fn markdown_rewrite_remote_links(
 pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Option<Url> {
   let local_domain = &context.settings().get_protocol_and_hostname();
   let object_id = ObjectId::<SearchableObjects>::parse(url).ok()?;
-  if object_id.inner().domain() == Some(local_domain) {
+  let object_domain = object_id.inner().domain();
+  if object_domain == Some(local_domain) {
     return None;
   }
   let dereferenced = object_id.dereference_local(context).await.ok()?;
@@ -63,35 +61,11 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
     .ok()
     .map(Into::into),
     SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(user) => {
-        format_actor_url(&user.name, "u", user.instance_id, context).await
-      }
-      UserOrCommunity::Right(community) => {
-        format_actor_url(&community.name, "c", community.instance_id, context).await
-      }
+      UserOrCommunity::Left(user) => user.actor_url(context.settings()),
+      UserOrCommunity::Right(community) => community.actor_url(context.settings()),
     }
     .ok(),
   }
-}
-
-async fn format_actor_url(
-  name: &str,
-  kind: &str,
-  instance_id: InstanceId,
-  context: &LemmyContext,
-) -> LemmyResult<Url> {
-  let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let local_hostname = &context.settings().hostname;
-  let instance = Instance::read(&mut context.pool(), instance_id).await?;
-  let url = if &instance.domain != local_hostname {
-    format!(
-      "{local_protocol_and_hostname}/{kind}/{name}@{}",
-      instance.domain
-    )
-  } else {
-    format!("{local_protocol_and_hostname}/{kind}/{name}")
-  };
-  Ok(Url::parse(&url)?)
 }
 
 #[cfg(test)]
@@ -100,12 +74,14 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
+      instance::Instance,
       post::{Post, PostInsertForm},
     },
     traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_site::impls::create_test_instance;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -114,16 +90,16 @@ mod tests {
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let instance = create_test_instance(&mut context.pool()).await?;
-    let community = Community::create(
-      &mut context.pool(),
-      &CommunityInsertForm::new(
+    let community_form = CommunityInsertForm {
+      ap_id: Some(Url::parse("https://example.com/c/my_community")?.into()),
+      ..CommunityInsertForm::new(
         instance.id,
         "my_community".to_string(),
         "My Community".to_string(),
         "pubkey".to_string(),
-      ),
-    )
-    .await?;
+      )
+    };
+    let community = Community::create(&mut context.pool(), &community_form).await?;
     let user =
       LocalUserView::create_test_user(&mut context.pool(), "garda", "garda bio", false).await?;
 

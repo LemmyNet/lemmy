@@ -165,6 +165,9 @@ pub struct Search {
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]

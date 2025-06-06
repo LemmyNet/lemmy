@@ -11,7 +11,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_conflicting_like_filters, check_private_instance},
+  utils::check_private_instance,
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
@@ -50,10 +50,6 @@ pub async fn list_posts(
   let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
 
-  let liked_only = data.liked_only;
-  let disliked_only = data.disliked_only;
-  check_conflicting_like_filters(liked_only, disliked_only)?;
-
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
@@ -91,8 +87,6 @@ pub async fn list_posts(
     sort,
     time_range_seconds,
     community_id,
-    liked_only,
-    disliked_only,
     limit,
     show_hidden,
     show_read,
