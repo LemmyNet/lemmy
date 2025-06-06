@@ -22,12 +22,14 @@ full = [
   "ts-rs",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_report_combined/full",
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_report_combined = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }

@@ -10,9 +10,10 @@ use lemmy_db_schema::{
   traits::{Blockable, Followable},
   utils::get_conn,
 };
-use lemmy_db_views_block_community::BlockCommunity;
-use lemmy_db_views_block_community_response::BlockCommunityResponse;
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{
+  api::{BlockCommunity, BlockCommunityResponse},
+  CommunityView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

@@ -13,10 +13,11 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_views_create_private_message::CreatePrivateMessage;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_private_message::PrivateMessageView;
-use lemmy_db_views_private_message_response::PrivateMessageResponse;
+use lemmy_db_views_private_message::{
+  api::{CreatePrivateMessage, PrivateMessageResponse},
+  PrivateMessageView,
+};
 use lemmy_email::notifications::send_private_message_email;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 

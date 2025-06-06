@@ -28,8 +28,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views_community_response::CommunityResponse;
-use lemmy_db_views_create_community::CreateCommunity;
+use lemmy_db_views_community::api::{CommunityResponse, CreateCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{

@@ -12,10 +12,11 @@ use lemmy_db_schema::{
   SearchType,
 };
 use lemmy_db_views_community::CommunityView;
-use lemmy_db_views_get_post::GetPost;
-use lemmy_db_views_get_post_response::GetPostResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{GetPost, GetPostResponse},
+  PostView,
+};
 use lemmy_db_views_search_combined::impls::SearchCombinedQuery;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

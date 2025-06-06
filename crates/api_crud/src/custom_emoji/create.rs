@@ -8,9 +8,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_create_custom_emoji::CreateCustomEmoji;
-use lemmy_db_views_custom_emoji::CustomEmojiView;
-use lemmy_db_views_custom_emoji_response::CustomEmojiResponse;
+use lemmy_db_views_custom_emoji::{
+  api::{CreateCustomEmoji, CustomEmojiResponse},
+  CustomEmojiView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

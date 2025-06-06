@@ -14,9 +14,10 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_lock_post::LockPost;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_post_response::PostResponse;
+use lemmy_db_views_post::{
+  api::{LockPost, PostResponse},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(

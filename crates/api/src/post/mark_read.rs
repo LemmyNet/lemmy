@@ -5,9 +5,10 @@ use lemmy_db_schema::{
   traits::Readable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_mark_post_as_read::MarkPostAsRead;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_post_response::PostResponse;
+use lemmy_db_views_post::{
+  api::{MarkPostAsRead, PostResponse},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn mark_post_as_read(

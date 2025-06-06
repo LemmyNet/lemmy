@@ -15,8 +15,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_link_metadata::LinkMetadata;
-use lemmy_db_views_open_graph_data::OpenGraphData;
+use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},

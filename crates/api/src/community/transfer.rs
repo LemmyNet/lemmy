@@ -13,11 +13,12 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
   utils::get_conn,
 };
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{
+  api::{GetCommunityResponse, TransferCommunity},
+  CommunityView,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_get_community_response::GetCommunityResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_transfer_community::TransferCommunity;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   location_info,

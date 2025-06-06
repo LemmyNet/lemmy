@@ -12,10 +12,11 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_comment_report_response::CommentReportResponse;
-use lemmy_db_views_create_comment_report::CreateCommentReport;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::CommentReportView;
+use lemmy_db_views_reports::{
+  api::{CommentReportResponse, CreateCommentReport},
+  CommentReportView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;

@@ -7,10 +7,11 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_add_admin::AddAdmin;
-use lemmy_db_views_add_admin_response::AddAdminResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_person::{
+  api::{AddAdmin, AddAdminResponse},
+  impls::PersonQuery,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn add_admin(

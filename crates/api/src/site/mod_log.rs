@@ -4,11 +4,10 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_get_modlog::GetModlog;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog_combined::{
+  api::{GetModlog, GetModlogResponse},
   impls::ModlogCombinedQuery,
-  GetModlogResponse,
   ModlogCombinedView,
 };
 use lemmy_db_views_site::SiteView;

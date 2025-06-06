@@ -17,8 +17,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post_response::PostResponse;
-use lemmy_db_views_remove_post::RemovePost;
+use lemmy_db_views_post::api::{PostResponse, RemovePost};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_post(

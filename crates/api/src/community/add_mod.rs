@@ -15,8 +15,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
   utils::get_conn,
 };
-use lemmy_db_views_add_mod_to_community::AddModToCommunity;
-use lemmy_db_views_add_mod_to_community_response::AddModToCommunityResponse;
+use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

@@ -28,9 +28,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_create_post::CreatePost;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post_response::PostResponse;
+use lemmy_db_views_post::api::{CreatePost, PostResponse};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,

@@ -13,10 +13,11 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
-use lemmy_db_views_ban_person::BanPerson;
-use lemmy_db_views_ban_person_response::BanPersonResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person::{
+  api::{BanPerson, BanPersonResponse},
+  PersonView,
+};
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_site(

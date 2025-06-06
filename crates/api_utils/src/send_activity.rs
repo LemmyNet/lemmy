@@ -13,8 +13,8 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use lemmy_db_views_ban_from_community::BanFromCommunity;
-use lemmy_db_views_delete_post::DeletePost;
+use lemmy_db_views_community::api::BanFromCommunity;
+use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
 use std::sync::{LazyLock, OnceLock};

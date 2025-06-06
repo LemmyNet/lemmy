@@ -16,7 +16,10 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
+lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
@@ -24,12 +27,6 @@ lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
-lemmy_db_views_upload_image_response = { workspace = true, features = ["full"] }
-lemmy_db_views_community_id_query = { workspace = true, features = ["full"] }
-lemmy_db_views_success_response = { workspace = true, features = ["full"] }
-lemmy_db_views_image_proxy_params = { workspace = true, features = ["full"] }
-lemmy_db_views_image_get_params = { workspace = true, features = ["full"] }
-lemmy_db_views_delete_image_params = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true }
 lemmy_api_utils = { workspace = true, features = ["full"] }

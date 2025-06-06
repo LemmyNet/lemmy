@@ -15,10 +15,11 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_views_community_report_response::CommunityReportResponse;
-use lemmy_db_views_create_community_report::CreateCommunityReport;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::CommunityReportView;
+use lemmy_db_views_reports::{
+  api::{CommunityReportResponse, CreateCommunityReport},
+  CommunityReportView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;

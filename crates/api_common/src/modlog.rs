@@ -47,15 +47,14 @@ pub use lemmy_db_schema::{
   },
   ModlogActionType,
 };
-pub use lemmy_db_views_get_modlog::GetModlog;
 pub use lemmy_db_views_modlog_combined::{
+  api::{GetModlog, GetModlogResponse},
   AdminAllowInstanceView,
   AdminBlockInstanceView,
   AdminPurgeCommentView,
   AdminPurgeCommunityView,
   AdminPurgePersonView,
   AdminPurgePostView,
-  GetModlogResponse,
   ModAddCommunityView,
   ModAddView,
   ModBanFromCommunityView,

@@ -5,8 +5,8 @@ use lemmy_db_schema::{
   source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm},
   traits::Crud,
 };
-use lemmy_db_views_create_oauth_provider::CreateOAuthProvider;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::CreateOAuthProvider;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

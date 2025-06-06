@@ -4,10 +4,11 @@ use lemmy_db_schema::{
   source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views_block_person::BlockPerson;
-use lemmy_db_views_block_person_response::BlockPersonResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person::{
+  api::{BlockPerson, BlockPersonResponse},
+  PersonView,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_person(

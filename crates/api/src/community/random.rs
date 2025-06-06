@@ -5,9 +5,10 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
-use lemmy_db_views_community::CommunityView;
-use lemmy_db_views_community_response::CommunityResponse;
-use lemmy_db_views_get_random_community::GetRandomCommunity;
+use lemmy_db_views_community::{
+  api::{CommunityResponse, GetRandomCommunity},
+  CommunityView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

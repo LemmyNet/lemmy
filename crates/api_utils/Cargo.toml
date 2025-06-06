@@ -23,27 +23,18 @@ full = [
   "tracing",
   "extism",
   "extism-convert",
-  "lemmy_db_views_plugin_metadata/full",
-  "lemmy_db_views_link_metadata/full",
-  "lemmy_db_views_open_graph_data/full",
+  "lemmy_db_views_api_misc/full",
   "lemmy_db_views_community/full",
   "lemmy_db_views_community_follower/full",
   "lemmy_db_views_community_moderator/full",
   "lemmy_db_views_community_person_ban/full",
-  "lemmy_db_views_community_response/full",
   "lemmy_db_views_local_image/full",
   "lemmy_db_views_local_user/full",
   "lemmy_db_views_person/full",
   "lemmy_db_views_site/full",
-  "lemmy_db_views_ban_from_community/full",
-  "lemmy_db_views_delete_post/full",
   "lemmy_db_views_private_message/full",
-  "lemmy_db_views_federated_instances/full",
-  "lemmy_db_views_instance_with_federation_state/full",
   "lemmy_db_views_comment/full",
-  "lemmy_db_views_comment_response/full",
   "lemmy_db_views_post/full",
-  "lemmy_db_views_post_response/full",
   "serde_json",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
@@ -64,27 +55,18 @@ full = [
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_db_views_plugin_metadata = { workspace = true }
-lemmy_db_views_link_metadata = { workspace = true }
-lemmy_db_views_open_graph_data = { workspace = true }
+lemmy_db_views_api_misc = { workspace = true }
 lemmy_db_views_community = { workspace = true }
 lemmy_db_views_community_follower = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
 lemmy_db_views_community_person_ban = { workspace = true }
-lemmy_db_views_community_response = { workspace = true }
-lemmy_db_views_ban_from_community = { workspace = true }
 lemmy_db_views_local_image = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_person = { workspace = true }
 lemmy_db_views_site = { workspace = true }
-lemmy_db_views_delete_post = { workspace = true }
 lemmy_db_views_private_message = { workspace = true }
-lemmy_db_views_federated_instances = { workspace = true }
-lemmy_db_views_instance_with_federation_state = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
-lemmy_db_views_comment_response = { workspace = true }
 lemmy_db_views_post = { workspace = true }
-lemmy_db_views_post_response = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

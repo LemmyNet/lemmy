@@ -13,10 +13,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_api_misc::SuccessResponse;
+use lemmy_db_views_comment::{api::PurgeComment, CommentView};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_purge_comment::PurgeComment;
-use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_comment(

@@ -11,10 +11,11 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views_edit_private_message::EditPrivateMessage;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_private_message::PrivateMessageView;
-use lemmy_db_views_private_message_response::PrivateMessageResponse;
+use lemmy_db_views_private_message::{
+  api::{EditPrivateMessage, PrivateMessageResponse},
+  PrivateMessageView,
+};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,

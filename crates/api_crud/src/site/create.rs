@@ -24,10 +24,11 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views_create_site::CreateSite;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
-use lemmy_db_views_site_response::SiteResponse;
+use lemmy_db_views_site::{
+  api::{CreateSite, SiteResponse},
+  SiteView,
+};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -183,7 +184,7 @@ mod tests {
   use crate::site::create::validate_create_payload;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
-  use lemmy_db_views_create_site::CreateSite;
+  use lemmy_db_views_site::api::CreateSite;
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]

@@ -1,8 +1,9 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin};
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_list_comment_likes::ListCommentLikes;
-use lemmy_db_views_list_comment_likes_response::ListCommentLikesResponse;
+use lemmy_db_views_comment::{
+  api::{ListCommentLikes, ListCommentLikesResponse},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_vote::VoteView;
 use lemmy_utils::error::LemmyResult;

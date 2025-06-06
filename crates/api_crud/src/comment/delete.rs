@@ -11,9 +11,10 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_comment_response::CommentResponse;
-use lemmy_db_views_delete_comment::DeleteComment;
+use lemmy_db_views_comment::{
+  api::{CommentResponse, DeleteComment},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

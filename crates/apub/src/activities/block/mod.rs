@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_db_views_ban_from_community::BanFromCommunity;
+use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;

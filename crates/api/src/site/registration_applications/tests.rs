@@ -22,11 +22,13 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views_approve_registration_application::ApproveRegistrationApplication;
-use lemmy_db_views_edit_site::EditSite;
-use lemmy_db_views_get_unread_registration_application_count_response::GetUnreadRegistrationApplicationCountResponse;
-use lemmy_db_views_list_registration_applications_response::ListRegistrationApplicationsResponse;
+use lemmy_db_views_inbox_combined::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_registration_applications::api::{
+  ApproveRegistrationApplication,
+  ListRegistrationApplicationsResponse,
+};
+use lemmy_db_views_site::api::EditSite;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   CACHE_DURATION_API,

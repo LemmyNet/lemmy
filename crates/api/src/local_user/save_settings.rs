@@ -14,10 +14,9 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_opt_number_update, diesel_string_update},
 };
+use lemmy_db_views_api_misc::{SaveUserSettings, SuccessResponse};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_save_user_settings::SaveUserSettings;
 use lemmy_db_views_site::SiteView;
-use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

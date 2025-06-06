@@ -12,10 +12,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_get_site_response::GetSiteResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{api::GetSiteResponse, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   VERSION,

@@ -26,8 +26,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views_comment_response::CommentResponse;
-use lemmy_db_views_create_comment::CreateComment;
+use lemmy_db_views_comment::api::{CommentResponse, CreateComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;

@@ -1,9 +1,8 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::context::LemmyContext;
+use lemmy_db_views_api_misc::{ResendVerificationEmail, SuccessResponse};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_resend_verification_email::ResendVerificationEmail;
 use lemmy_db_views_site::SiteView;
-use lemmy_db_views_success_response::SuccessResponse;
 use lemmy_email::account::send_verification_email_if_required;
 use lemmy_utils::error::LemmyResult;
 

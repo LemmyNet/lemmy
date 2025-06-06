@@ -18,139 +18,17 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
-lemmy_db_views_comment_response = { workspace = true, features = ["full"] }
-lemmy_db_views_distinguish_comment = { workspace = true, features = ["full"] }
-lemmy_db_views_save_comment = { workspace = true, features = ["full"] }
-lemmy_db_views_list_comment_likes = { workspace = true, features = ["full"] }
-lemmy_db_views_list_comment_likes_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_create_comment_like = { workspace = true, features = ["full"] }
-lemmy_db_views_add_mod_to_community = { workspace = true, features = ["full"] }
-lemmy_db_views_add_mod_to_community_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_ban_from_community = { workspace = true, features = ["full"] }
-lemmy_db_views_ban_from_community_response = { workspace = true, features = [
-  "full",
-] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
-lemmy_db_views_block_community = { workspace = true, features = ["full"] }
-lemmy_db_views_block_community_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_follow_community = { workspace = true, features = ["full"] }
-lemmy_db_views_transfer_community = { workspace = true, features = ["full"] }
-lemmy_db_views_community_response = { workspace = true, features = ["full"] }
-lemmy_db_views_get_random_community = { workspace = true, features = ["full"] }
-lemmy_db_views_get_community_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_community_pending_follows_count = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_community_pending_follows_count_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_create_community_tag = { workspace = true, features = ["full"] }
-lemmy_db_views_delete_community_tag = { workspace = true, features = ["full"] }
-lemmy_db_views_update_community_tag = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
 lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
-lemmy_db_views_list_community_pending_follows = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_community_pending_follows_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_approve_community_pending_follower = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_purge_comment = { workspace = true, features = ["full"] }
-lemmy_db_views_purge_community = { workspace = true, features = ["full"] }
-lemmy_db_views_purge_post = { workspace = true, features = ["full"] }
-lemmy_db_views_purge_person = { workspace = true, features = ["full"] }
-lemmy_db_views_create_post_like = { workspace = true, features = ["full"] }
-lemmy_db_views_mark_post_as_read = { workspace = true, features = ["full"] }
-lemmy_db_views_mark_many_posts_as_read = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_hide_post = { workspace = true, features = ["full"] }
-lemmy_db_views_lock_post = { workspace = true, features = ["full"] }
-lemmy_db_views_feature_post = { workspace = true, features = ["full"] }
-lemmy_db_views_save_post = { workspace = true, features = ["full"] }
-lemmy_db_views_list_post_likes = { workspace = true, features = ["full"] }
-lemmy_db_views_list_post_likes_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_site_metadata = { workspace = true, features = ["full"] }
-lemmy_db_views_get_site_metadata_response = { workspace = true, features = [
-  "full",
-] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
-lemmy_db_views_post_response = { workspace = true, features = ["full"] }
 lemmy_db_views_vote = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
-lemmy_db_views_get_unread_count_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_report_count = { workspace = true, features = ["full"] }
-lemmy_db_views_get_report_count_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_add_admin = { workspace = true, features = ["full"] }
-lemmy_db_views_add_admin_response = { workspace = true, features = ["full"] }
-lemmy_db_views_ban_person = { workspace = true, features = ["full"] }
-lemmy_db_views_ban_person_response = { workspace = true, features = ["full"] }
-lemmy_db_views_block_person = { workspace = true, features = ["full"] }
-lemmy_db_views_block_person_response = { workspace = true, features = ["full"] }
-lemmy_db_views_mark_person_comment_mention_as_read = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_mark_person_post_mention_as_read = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_mark_comment_reply_as_read = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_person_hidden = { workspace = true, features = ["full"] }
-lemmy_db_views_list_person_hidden_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_person_read = { workspace = true, features = ["full"] }
-lemmy_db_views_list_person_read_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_modlog = { workspace = true, features = ["full"] }
-lemmy_db_views_login = { workspace = true, features = ["full"] }
-lemmy_db_views_verify_email = { workspace = true, features = ["full"] }
-lemmy_db_views_generate_totp_secret_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_update_totp = { workspace = true, features = ["full"] }
-lemmy_db_views_update_totp_response = { workspace = true, features = ["full"] }
-lemmy_db_views_mark_private_message_as_read = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_media = { workspace = true, features = ["full"] }
-lemmy_db_views_list_media_response = { workspace = true, features = ["full"] }
-lemmy_db_views_list_logins_response = { workspace = true, features = ["full"] }
-lemmy_db_views_resend_verification_email = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_password_reset = { workspace = true, features = ["full"] }
-lemmy_db_views_password_change_after_reset = { workspace = true, features = [
-  "full",
-] }
 lemmy_db_views_reports = { workspace = true, features = ["full"] }
-lemmy_db_views_captcha_response = { workspace = true, features = ["full"] }
-lemmy_db_views_get_captcha_response = { workspace = true, features = ["full"] }
-lemmy_db_views_save_user_settings = { workspace = true, features = ["full"] }
-lemmy_db_views_change_password = { workspace = true, features = ["full"] }
-lemmy_db_views_login_response = { workspace = true, features = ["full"] }
 lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
@@ -158,74 +36,7 @@ lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
-lemmy_db_views_edit_site = { workspace = true, features = ["full"] }
-lemmy_db_views_get_site_response = { workspace = true, features = ["full"] }
 lemmy_db_views_registration_applications = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_federated_instances_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_admin_list_users = { workspace = true, features = ["full"] }
-lemmy_db_views_admin_list_users_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_admin_allow_instance_params = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_admin_block_instance_params = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_get_unread_registration_application_count_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_approve_registration_application = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_registration_applications = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_registration_applications_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_list_reports = { workspace = true, features = ["full"] }
-lemmy_db_views_list_reports_response = { workspace = true, features = ["full"] }
-lemmy_db_views_get_registration_application = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_registration_application_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_success_response = { workspace = true, features = ["full"] }
-lemmy_db_views_create_private_message_report = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_resolve_private_message_report = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_private_message_report_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_post_report_response = { workspace = true, features = ["full"] }
-lemmy_db_views_create_post_report = { workspace = true, features = ["full"] }
-lemmy_db_views_resolve_post_report = { workspace = true, features = ["full"] }
-lemmy_db_views_create_community_report = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_resolve_community_report = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_community_report_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_comment_report_response = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_create_comment_report = { workspace = true, features = ["full"] }
-lemmy_db_views_resolve_comment_report = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_user_block_instance_params = { workspace = true, features = [
   "full",
 ] }
 lemmy_utils = { workspace = true }

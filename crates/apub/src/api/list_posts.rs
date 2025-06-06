@@ -15,10 +15,12 @@ use lemmy_db_schema::{
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::{PaginationCursorBuilder, Readable},
 };
-use lemmy_db_views_get_posts::GetPosts;
-use lemmy_db_views_get_posts_response::GetPostsResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{impls::PostQuery, PostView};
+use lemmy_db_views_post::{
+  api::{GetPosts, GetPostsResponse},
+  impls::PostQuery,
+  PostView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 

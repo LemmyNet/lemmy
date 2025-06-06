@@ -15,9 +15,8 @@ use lemmy_db_schema::{
   traits::Crud,
   PostFeatureType,
 };
-use lemmy_db_views_feature_post::FeaturePost;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post_response::PostResponse;
+use lemmy_db_views_post::api::{FeaturePost, PostResponse};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn feature_post(

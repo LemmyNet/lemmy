@@ -7,10 +7,9 @@ use lemmy_db_schema::source::{
   oauth_provider::OAuthProvider,
   tagline::Tagline,
 };
-use lemmy_db_views_get_site_response::GetSiteResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{api::GetSiteResponse, SiteView};
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 

@@ -4,8 +4,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::check_private_instance,
 };
-use lemmy_db_views_comment_response::CommentResponse;
-use lemmy_db_views_get_comment::GetComment;
+use lemmy_db_views_comment::api::{CommentResponse, GetComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

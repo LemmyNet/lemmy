@@ -14,9 +14,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_community_id_query::CommunityIdQuery;
+use lemmy_db_views_community::api::CommunityIdQuery;
+use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_upload_image_response::UploadImageResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;

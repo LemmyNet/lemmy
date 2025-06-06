@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {diesel::Queryable, ts_rs::TS};
 
+pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 

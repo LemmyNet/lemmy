@@ -5,9 +5,10 @@ use lemmy_db_schema::{
   traits::{Readable, Saveable},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_post_response::PostResponse;
-use lemmy_db_views_save_post::SavePost;
+use lemmy_db_views_post::{
+  api::{PostResponse, SavePost},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(

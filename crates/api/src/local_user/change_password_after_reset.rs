@@ -5,8 +5,7 @@ use lemmy_db_schema::source::{
   login_token::LoginToken,
   password_reset_request::PasswordResetRequest,
 };
-use lemmy_db_views_password_change_after_reset::PasswordChangeAfterReset;
-use lemmy_db_views_success_response::SuccessResponse;
+use lemmy_db_views_api_misc::{PasswordChangeAfterReset, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password_after_reset(

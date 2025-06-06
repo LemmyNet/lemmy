@@ -9,10 +9,11 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
   traits::{Crud, PaginationCursorBuilder},
 };
-use lemmy_db_views_comment::{impls::CommentQuery, CommentView};
-use lemmy_db_views_get_comments::GetComments;
-use lemmy_db_views_get_comments_response::GetCommentsResponse;
-use lemmy_db_views_get_comments_slim_response::GetCommentsSlimResponse;
+use lemmy_db_views_comment::{
+  api::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
+  impls::CommentQuery,
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

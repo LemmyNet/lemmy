@@ -18,388 +18,60 @@ workspace = true
 
 [features]
 full = [
+  "lemmy_utils/full",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
-  "lemmy_db_views_vote/full",
-  "lemmy_db_views_post/full",
-  "lemmy_db_views_create_post/full",
-  "lemmy_db_views_create_post_like/full",
-  "lemmy_db_views_delete_post/full",
-  "lemmy_db_views_edit_post/full",
-  "lemmy_db_views_feature_post/full",
-  "lemmy_db_views_get_post/full",
-  "lemmy_db_views_get_post_response/full",
-  "lemmy_db_views_get_posts/full",
-  "lemmy_db_views_get_posts_response/full",
-  "lemmy_db_views_get_site_metadata/full",
-  "lemmy_db_views_get_site_metadata_response/full",
-  "lemmy_db_views_hide_post/full",
-  "lemmy_db_views_link_metadata/full",
-  "lemmy_db_views_list_post_likes/full",
-  "lemmy_db_views_list_post_likes_response/full",
-  "lemmy_db_views_lock_post/full",
-  "lemmy_db_views_mark_post_as_read/full",
-  "lemmy_db_views_mark_many_posts_as_read/full",
-  "lemmy_db_views_open_graph_data/full",
-  "lemmy_db_views_post_response/full",
-  "lemmy_db_views_remove_post/full",
-  "lemmy_db_views_save_post/full",
-  "lemmy_db_views_create_post_report/full",
-  "lemmy_db_views_resolve_post_report/full",
-  "lemmy_db_views_post_report_response/full",
+  "lemmy_db_views_api_misc/full",
   "lemmy_db_views_comment/full",
-  "lemmy_db_views_comment_response/full",
-  "lemmy_db_views_create_comment/full",
-  "lemmy_db_views_create_comment_like/full",
-  "lemmy_db_views_mark_comment_reply_as_read/full",
-  "lemmy_db_views_delete_comment/full",
-  "lemmy_db_views_distinguish_comment/full",
-  "lemmy_db_views_edit_comment/full",
-  "lemmy_db_views_get_comment/full",
-  "lemmy_db_views_get_comments/full",
-  "lemmy_db_views_get_comments_response/full",
-  "lemmy_db_views_get_comments_slim_response/full",
-  "lemmy_db_views_list_comment_likes/full",
-  "lemmy_db_views_list_comment_likes_response/full",
-  "lemmy_db_views_remove_comment/full",
-  "lemmy_db_views_save_comment/full",
-  "lemmy_db_views_create_comment_report/full",
-  "lemmy_db_views_resolve_comment_report/full",
-  "lemmy_db_views_comment_report_response/full",
   "lemmy_db_views_community/full",
+  "lemmy_db_views_community_follower/full",
   "lemmy_db_views_community_moderator/full",
-  "lemmy_db_views_add_mod_to_community/full",
-  "lemmy_db_views_add_mod_to_community_response/full",
-  "lemmy_db_views_ban_from_community/full",
-  "lemmy_db_views_ban_from_community_response/full",
-  "lemmy_db_views_block_community/full",
-  "lemmy_db_views_block_community_response/full",
-  "lemmy_db_views_community_response/full",
-  "lemmy_db_views_create_community/full",
-  "lemmy_db_views_delete_community/full",
-  "lemmy_db_views_edit_community/full",
-  "lemmy_db_views_follow_community/full",
-  "lemmy_db_views_create_community_report/full",
-  "lemmy_db_views_resolve_community_report/full",
-  "lemmy_db_views_community_report_response/full",
-  "lemmy_db_views_get_community/full",
-  "lemmy_db_views_get_community_response/full",
-  "lemmy_db_views_hide_community/full",
-  "lemmy_db_views_list_communities/full",
-  "lemmy_db_views_list_communities_response/full",
-  "lemmy_db_views_remove_community/full",
-  "lemmy_db_views_transfer_community/full",
-  "lemmy_db_views_community_id_query/full",
-  "lemmy_db_views_get_community_pending_follows_count/full",
-  "lemmy_db_views_get_community_pending_follows_count_response/full",
-  "lemmy_db_views_list_community_pending_follows/full",
-  "lemmy_db_views_list_community_pending_follows_response/full",
-  "lemmy_db_views_approve_community_pending_follower/full",
-  "lemmy_db_views_person/full",
-  "lemmy_db_views_add_admin/full",
-  "lemmy_db_views_add_admin_response/full",
-  "lemmy_db_views_ban_person/full",
-  "lemmy_db_views_ban_person_response/full",
-  "lemmy_db_views_block_person/full",
-  "lemmy_db_views_block_person_response/full",
-  "lemmy_db_views_captcha_response/full",
-  "lemmy_db_views_change_password/full",
-  "lemmy_db_views_delete_account/full",
-  "lemmy_db_views_generate_totp_secret_response/full",
-  "lemmy_db_views_get_captcha_response/full",
-  "lemmy_db_views_get_person_details/full",
-  "lemmy_db_views_get_person_details_response/full",
-  "lemmy_db_views_list_media/full",
-  "lemmy_db_views_list_media_response/full",
-  "lemmy_db_views_login/full",
-  "lemmy_db_views_login_response/full",
-  "lemmy_db_views_password_change_after_reset/full",
-  "lemmy_db_views_password_reset/full",
-  "lemmy_db_views_register/full",
-  "lemmy_db_views_update_totp/full",
-  "lemmy_db_views_update_totp_response/full",
-  "lemmy_db_views_verify_email/full",
-  "lemmy_db_views_resend_verification_email/full",
+  "lemmy_db_views_community_person_ban/full",
   "lemmy_db_views_custom_emoji/full",
-  "lemmy_db_views_custom_emoji_response/full",
-  "lemmy_db_views_create_custom_emoji/full",
-  "lemmy_db_views_delete_custom_emoji/full",
-  "lemmy_db_views_edit_custom_emoji/full",
-  "lemmy_db_views_list_custom_emojis/full",
-  "lemmy_db_views_list_custom_emojis_response/full",
-  "lemmy_db_views_private_message/full",
-  "lemmy_db_views_private_message_response/full",
-  "lemmy_db_views_create_private_message/full",
-  "lemmy_db_views_delete_private_message/full",
-  "lemmy_db_views_edit_private_message/full",
-  "lemmy_db_views_mark_private_message_as_read/full",
-  "lemmy_db_views_create_private_message_report/full",
-  "lemmy_db_views_resolve_private_message_report/full",
-  "lemmy_db_views_private_message_report_response/full",
-  "lemmy_db_views_site/full",
-  "lemmy_db_views_site_response/full",
-  "lemmy_db_views_create_site/full",
-  "lemmy_db_views_edit_site/full",
-  "lemmy_db_views_upload_image_response/full",
-  "lemmy_db_views_delete_image_params/full",
-  "lemmy_db_views_get_modlog/full",
-  "lemmy_db_views_modlog_combined/full",
-  "lemmy_db_views_search_combined/full",
-  "lemmy_db_views_resolve_object/full",
-  "lemmy_db_views_resolve_object_response/full",
-  "lemmy_db_views_get_random_community/full",
-  "lemmy_db_views_success_response/full",
-  "lemmy_db_views_create_community_tag/full",
-  "lemmy_db_views_delete_community_tag/full",
-  "lemmy_db_views_update_community_tag/full",
-  "lemmy_db_views_get_federated_instances_response/full",
-  "lemmy_db_views_list_reports/full",
-  "lemmy_db_views_list_reports_response/full",
-  "lemmy_db_views_my_user_info/full",
   "lemmy_db_views_inbox_combined/full",
-  "lemmy_db_views_report_combined/full",
-  "lemmy_db_views_mark_person_comment_mention_as_read/full",
-  "lemmy_db_views_mark_person_post_mention_as_read/full",
-  "lemmy_db_views_get_report_count/full",
-  "lemmy_db_views_get_report_count_response/full",
-  "lemmy_db_views_get_unread_count_response/full",
-  "lemmy_db_views_list_logins_response/full",
-  "lemmy_db_views_instance_with_federation_state/full",
-  "lemmy_db_views_readable_federation_state/full",
-  "lemmy_db_views_user_block_instance_params/full",
-  "lemmy_db_views_admin_block_instance_params/full",
-  "lemmy_db_views_admin_allow_instance_params/full",
-  "lemmy_db_views_person_saved_combined/full",
-  "lemmy_db_views_list_person_read/full",
-  "lemmy_db_views_list_person_read_response/full",
-  "lemmy_db_views_list_person_hidden/full",
-  "lemmy_db_views_list_person_hidden_response/full",
-  "lemmy_db_views_save_user_settings/full",
-  "lemmy_db_views_person_content_combined/full",
-  "lemmy_db_views_get_unread_registration_application_count_response/full",
-  "lemmy_db_views_list_registration_applications/full",
-  "lemmy_db_views_list_registration_applications_response/full",
-  "lemmy_db_views_registration_applications/full",
-  "lemmy_db_views_get_registration_application/full",
-  "lemmy_db_views_approve_registration_application/full",
-  "lemmy_db_views_registration_application_response/full",
-  "lemmy_db_views_purge_community/full",
-  "lemmy_db_views_purge_comment/full",
-  "lemmy_db_views_purge_person/full",
-  "lemmy_db_views_purge_post/full",
-  "lemmy_db_views_create_tagline/full",
-  "lemmy_db_views_delete_tagline/full",
-  "lemmy_db_views_update_tagline/full",
-  "lemmy_db_views_tagline_response/full",
-  "lemmy_db_views_list_taglines/full",
-  "lemmy_db_views_list_taglines_response/full",
-  "lemmy_db_views_admin_list_users/full",
-  "lemmy_db_views_admin_list_users_response/full",
-  "lemmy_db_views_get_site_response/full",
-  "lemmy_db_views_create_oauth_provider/full",
-  "lemmy_db_views_delete_oauth_provider/full",
-  "lemmy_db_views_edit_oauth_provider/full",
-  "lemmy_db_views_authenticate_with_oauth/full",
-  "lemmy_db_views_image_proxy_params/full",
-  "lemmy_db_views_image_get_params/full",
   "lemmy_db_views_local_image/full",
   "lemmy_db_views_local_user/full",
+  "lemmy_db_views_modlog_combined/full",
+  "lemmy_db_views_person/full",
+  "lemmy_db_views_person_content_combined/full",
+  "lemmy_db_views_person_liked_combined/full",
+  "lemmy_db_views_person_saved_combined/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_private_message/full",
+  "lemmy_db_views_readable_federation_state/full",
+  "lemmy_db_views_registration_applications/full",
+  "lemmy_db_views_report_combined/full",
   "lemmy_db_views_reports/full",
-  "lemmy_db_views_community_follower/full",
-  "lemmy_db_views_federated_instances/full",
-  "lemmy_db_views_plugin_metadata/full",
-  "lemmy_utils/full",
+  "lemmy_db_views_search_combined/full",
+  "lemmy_db_views_site/full",
+  "lemmy_db_views_vote/full",
 ]
 
 [dependencies]
+lemmy_utils.workspace = true
 lemmy_db_schema.workspace = true
 lemmy_db_schema_file.workspace = true
-lemmy_db_views_vote.workspace = true
-lemmy_db_views_post.workspace = true
-lemmy_db_views_create_post.workspace = true
-lemmy_db_views_create_post_like.workspace = true
-lemmy_db_views_delete_post.workspace = true
-lemmy_db_views_edit_post.workspace = true
-lemmy_db_views_feature_post.workspace = true
-lemmy_db_views_get_post.workspace = true
-lemmy_db_views_get_post_response.workspace = true
-lemmy_db_views_get_posts.workspace = true
-lemmy_db_views_get_posts_response.workspace = true
-lemmy_db_views_get_site_metadata.workspace = true
-lemmy_db_views_get_site_metadata_response.workspace = true
-lemmy_db_views_hide_post.workspace = true
-lemmy_db_views_link_metadata.workspace = true
-lemmy_db_views_list_post_likes.workspace = true
-lemmy_db_views_list_post_likes_response.workspace = true
-lemmy_db_views_lock_post.workspace = true
-lemmy_db_views_mark_post_as_read.workspace = true
-lemmy_db_views_mark_many_posts_as_read.workspace = true
-lemmy_db_views_open_graph_data.workspace = true
-lemmy_db_views_post_response.workspace = true
-lemmy_db_views_remove_post.workspace = true
-lemmy_db_views_save_post.workspace = true
-lemmy_db_views_create_post_report.workspace = true
-lemmy_db_views_resolve_post_report.workspace = true
-lemmy_db_views_post_report_response.workspace = true
+lemmy_db_views_api_misc.workspace = true
 lemmy_db_views_comment.workspace = true
-lemmy_db_views_comment_response.workspace = true
-lemmy_db_views_create_comment.workspace = true
-lemmy_db_views_create_comment_like.workspace = true
-lemmy_db_views_mark_comment_reply_as_read.workspace = true
-lemmy_db_views_delete_comment.workspace = true
-lemmy_db_views_distinguish_comment.workspace = true
-lemmy_db_views_edit_comment.workspace = true
-lemmy_db_views_get_comment.workspace = true
-lemmy_db_views_get_comments.workspace = true
-lemmy_db_views_get_comments_response.workspace = true
-lemmy_db_views_get_comments_slim_response.workspace = true
-lemmy_db_views_list_comment_likes.workspace = true
-lemmy_db_views_list_comment_likes_response.workspace = true
-lemmy_db_views_remove_comment.workspace = true
-lemmy_db_views_save_comment.workspace = true
-lemmy_db_views_create_comment_report.workspace = true
-lemmy_db_views_resolve_comment_report.workspace = true
-lemmy_db_views_comment_report_response.workspace = true
 lemmy_db_views_community.workspace = true
+lemmy_db_views_community_follower.workspace = true
 lemmy_db_views_community_moderator.workspace = true
-lemmy_db_views_add_mod_to_community.workspace = true
-lemmy_db_views_add_mod_to_community_response.workspace = true
-lemmy_db_views_ban_from_community.workspace = true
-lemmy_db_views_ban_from_community_response.workspace = true
-lemmy_db_views_block_community.workspace = true
-lemmy_db_views_block_community_response.workspace = true
-lemmy_db_views_community_response.workspace = true
-lemmy_db_views_create_community.workspace = true
-lemmy_db_views_delete_community.workspace = true
-lemmy_db_views_edit_community.workspace = true
-lemmy_db_views_follow_community.workspace = true
-lemmy_db_views_create_community_report.workspace = true
-lemmy_db_views_resolve_community_report.workspace = true
-lemmy_db_views_community_report_response.workspace = true
-lemmy_db_views_get_community.workspace = true
-lemmy_db_views_get_community_response.workspace = true
-lemmy_db_views_hide_community.workspace = true
-lemmy_db_views_list_communities.workspace = true
-lemmy_db_views_list_communities_response.workspace = true
-lemmy_db_views_remove_community.workspace = true
-lemmy_db_views_transfer_community.workspace = true
-lemmy_db_views_community_id_query.workspace = true
-lemmy_db_views_get_community_pending_follows_count.workspace = true
-lemmy_db_views_get_community_pending_follows_count_response.workspace = true
-lemmy_db_views_list_community_pending_follows.workspace = true
-lemmy_db_views_list_community_pending_follows_response.workspace = true
-lemmy_db_views_approve_community_pending_follower.workspace = true
-lemmy_db_views_person.workspace = true
-lemmy_db_views_add_admin.workspace = true
-lemmy_db_views_add_admin_response.workspace = true
-lemmy_db_views_ban_person.workspace = true
-lemmy_db_views_ban_person_response.workspace = true
-lemmy_db_views_block_person.workspace = true
-lemmy_db_views_block_person_response.workspace = true
-lemmy_db_views_captcha_response.workspace = true
-lemmy_db_views_change_password.workspace = true
-lemmy_db_views_delete_account.workspace = true
-lemmy_db_views_generate_totp_secret_response.workspace = true
-lemmy_db_views_get_captcha_response.workspace = true
-lemmy_db_views_get_person_details.workspace = true
-lemmy_db_views_get_person_details_response.workspace = true
-lemmy_db_views_list_media.workspace = true
-lemmy_db_views_list_media_response.workspace = true
-lemmy_db_views_login.workspace = true
-lemmy_db_views_login_response.workspace = true
-lemmy_db_views_password_change_after_reset.workspace = true
-lemmy_db_views_password_reset.workspace = true
-lemmy_db_views_register.workspace = true
-lemmy_db_views_update_totp.workspace = true
-lemmy_db_views_update_totp_response.workspace = true
-lemmy_db_views_verify_email.workspace = true
-lemmy_db_views_resend_verification_email.workspace = true
+lemmy_db_views_community_person_ban.workspace = true
 lemmy_db_views_custom_emoji.workspace = true
-lemmy_db_views_custom_emoji_response.workspace = true
-lemmy_db_views_create_custom_emoji.workspace = true
-lemmy_db_views_delete_custom_emoji.workspace = true
-lemmy_db_views_edit_custom_emoji.workspace = true
-lemmy_db_views_list_custom_emojis.workspace = true
-lemmy_db_views_list_custom_emojis_response.workspace = true
-lemmy_db_views_private_message.workspace = true
-lemmy_db_views_private_message_response.workspace = true
-lemmy_db_views_create_private_message.workspace = true
-lemmy_db_views_delete_private_message.workspace = true
-lemmy_db_views_edit_private_message.workspace = true
-lemmy_db_views_mark_private_message_as_read.workspace = true
-lemmy_db_views_create_private_message_report.workspace = true
-lemmy_db_views_resolve_private_message_report.workspace = true
-lemmy_db_views_private_message_report_response.workspace = true
-lemmy_db_views_site.workspace = true
-lemmy_db_views_site_response.workspace = true
-lemmy_db_views_create_site.workspace = true
-lemmy_db_views_edit_site.workspace = true
-lemmy_db_views_upload_image_response.workspace = true
-lemmy_db_views_delete_image_params.workspace = true
-lemmy_db_views_get_modlog.workspace = true
-lemmy_db_views_modlog_combined.workspace = true
-lemmy_db_views_search_combined.workspace = true
-lemmy_db_views_resolve_object.workspace = true
-lemmy_db_views_resolve_object_response.workspace = true
-lemmy_db_views_get_random_community.workspace = true
-lemmy_db_views_success_response.workspace = true
-lemmy_db_views_create_community_tag.workspace = true
-lemmy_db_views_delete_community_tag.workspace = true
-lemmy_db_views_update_community_tag.workspace = true
-lemmy_db_views_get_federated_instances_response.workspace = true
-lemmy_db_views_list_reports.workspace = true
-lemmy_db_views_list_reports_response.workspace = true
-lemmy_db_views_my_user_info.workspace = true
 lemmy_db_views_inbox_combined.workspace = true
-lemmy_db_views_report_combined.workspace = true
-lemmy_db_views_mark_person_comment_mention_as_read.workspace = true
-lemmy_db_views_mark_person_post_mention_as_read.workspace = true
-lemmy_db_views_get_report_count.workspace = true
-lemmy_db_views_get_report_count_response.workspace = true
-lemmy_db_views_get_unread_count_response.workspace = true
-lemmy_db_views_list_logins_response.workspace = true
-lemmy_db_views_instance_with_federation_state.workspace = true
-lemmy_db_views_readable_federation_state.workspace = true
-lemmy_db_views_user_block_instance_params.workspace = true
-lemmy_db_views_admin_block_instance_params.workspace = true
-lemmy_db_views_admin_allow_instance_params.workspace = true
-lemmy_db_views_person_saved_combined.workspace = true
-lemmy_db_views_list_person_read.workspace = true
-lemmy_db_views_list_person_read_response.workspace = true
-lemmy_db_views_list_person_hidden.workspace = true
-lemmy_db_views_list_person_hidden_response.workspace = true
-lemmy_db_views_save_user_settings.workspace = true
-lemmy_db_views_person_content_combined.workspace = true
-lemmy_db_views_get_unread_registration_application_count_response.workspace = true
-lemmy_db_views_list_registration_applications.workspace = true
-lemmy_db_views_list_registration_applications_response.workspace = true
-lemmy_db_views_registration_applications.workspace = true
-lemmy_db_views_get_registration_application.workspace = true
-lemmy_db_views_approve_registration_application.workspace = true
-lemmy_db_views_registration_application_response.workspace = true
-lemmy_db_views_purge_community.workspace = true
-lemmy_db_views_purge_comment.workspace = true
-lemmy_db_views_purge_person.workspace = true
-lemmy_db_views_purge_post.workspace = true
-lemmy_db_views_create_tagline.workspace = true
-lemmy_db_views_delete_tagline.workspace = true
-lemmy_db_views_update_tagline.workspace = true
-lemmy_db_views_tagline_response.workspace = true
-lemmy_db_views_list_taglines.workspace = true
-lemmy_db_views_list_taglines_response.workspace = true
-lemmy_db_views_admin_list_users.workspace = true
-lemmy_db_views_admin_list_users_response.workspace = true
-lemmy_db_views_get_site_response.workspace = true
-lemmy_db_views_create_oauth_provider.workspace = true
-lemmy_db_views_delete_oauth_provider.workspace = true
-lemmy_db_views_edit_oauth_provider.workspace = true
-lemmy_db_views_authenticate_with_oauth.workspace = true
-lemmy_db_views_image_proxy_params.workspace = true
-lemmy_db_views_image_get_params.workspace = true
 lemmy_db_views_local_image.workspace = true
 lemmy_db_views_local_user.workspace = true
+lemmy_db_views_modlog_combined.workspace = true
+lemmy_db_views_person.workspace = true
+lemmy_db_views_person_content_combined.workspace = true
+lemmy_db_views_person_liked_combined.workspace = true
+lemmy_db_views_person_saved_combined.workspace = true
+lemmy_db_views_post.workspace = true
+lemmy_db_views_private_message.workspace = true
+lemmy_db_views_readable_federation_state.workspace = true
+lemmy_db_views_registration_applications.workspace = true
+lemmy_db_views_report_combined.workspace = true
 lemmy_db_views_reports.workspace = true
-lemmy_db_views_community_follower.workspace = true
-lemmy_db_views_federated_instances.workspace = true
-lemmy_db_views_plugin_metadata.workspace = true
-lemmy_utils.workspace = true
+lemmy_db_views_search_combined.workspace = true
+lemmy_db_views_site.workspace = true
+lemmy_db_views_vote.workspace = true

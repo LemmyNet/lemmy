@@ -9,10 +9,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_create_community_tag::CreateCommunityTag;
-use lemmy_db_views_delete_community_tag::DeleteCommunityTag;
+use lemmy_db_views_community::api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_update_community_tag::UpdateCommunityTag;
 use lemmy_utils::{error::LemmyResult, utils::validation::tag_name_length_check};
 
 pub async fn create_community_tag(

@@ -8,9 +8,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post_report_response::PostReportResponse;
-use lemmy_db_views_reports::PostReportView;
-use lemmy_db_views_resolve_post_report::ResolvePostReport;
+use lemmy_db_views_reports::{
+  api::{PostReportResponse, ResolvePostReport},
+  PostReportView,
+};
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community

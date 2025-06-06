@@ -4,10 +4,11 @@ use lemmy_db_schema::{
   source::comment::{CommentActions, CommentSavedForm},
   traits::Saveable,
 };
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_comment_response::CommentResponse;
+use lemmy_db_views_comment::{
+  api::{CommentResponse, SaveComment},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_save_comment::SaveComment;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_comment(
