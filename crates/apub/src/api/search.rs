@@ -1,6 +1,7 @@
-use crate::fetcher::resolve_ap_identifier;
+use crate::{api::resolve_object::resolve_object_internal, fetcher::resolve_ap_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
+use futures::future::try_join;
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
@@ -44,7 +45,8 @@ pub async fn search(
     None
   };
 
-  let results = SearchCombinedQuery {
+  let pool = &mut context.pool();
+  let search_fut = SearchCombinedQuery {
     search_term: data.search_term.clone(),
     community_id,
     creator_id: data.creator_id,
@@ -61,8 +63,16 @@ pub async fn search(
     page_back: data.page_back,
     limit: data.limit,
   }
-  .list(&mut context.pool(), &local_user_view, &site_view.site)
-  .await?;
+  .list(pool, &local_user_view, &site_view.site);
+
+  let results = if let Some(q) = &data.search_term {
+    let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
+    let (mut search, resolve) = try_join(search_fut, resolve_fut).await?;
+    search.push(resolve);
+    search
+  } else {
+    search_fut.await?
+  };
 
   let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
   let prev_page = results.first().map(PaginationCursorBuilder::to_cursor);
