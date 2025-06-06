@@ -2,18 +2,13 @@ use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_i
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use either::Either::*;
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{ResolveObject, ResolveObjectResponse},
-  utils::check_private_instance,
-};
-use lemmy_apub_objects::objects::SearchableObjects;
-use lemmy_db_schema::utils::DbPool;
+use lemmy_api_common::{context::LemmyContext, site::ResolveObject, utils::check_private_instance};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
@@ -21,25 +16,29 @@ pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<ResolveObjectResponse>> {
+) -> LemmyResult<Json<SearchResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
 
-  Ok(Json(
-    resolve_object_internal(&data.q, &local_user_view, &context).await?,
-  ))
+  let res = resolve_object_internal(&data.q, &local_user_view, &context).await?;
+  Ok(Json(SearchResponse {
+    results: vec![res],
+    ..Default::default()
+  }))
 }
 
 pub(super) async fn resolve_object_internal(
   query: &str,
   local_user_view: &Option<LocalUserView>,
   context: &Data<LemmyContext>,
-) -> LemmyResult<ResolveObjectResponse> {
+) -> LemmyResult<SearchCombinedView> {
+  use SearchCombinedView::*;
+
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.
   let is_authenticated = local_user_view.is_some();
 
-  let res = if is_authenticated || cfg!(debug_assertions) {
+  let object = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
     search_query_to_object_id(query.to_string(), context).await
   } else {
@@ -48,20 +47,9 @@ pub(super) async fn resolve_object_internal(
   }
   .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-  convert_response(res, local_user_view, &mut context.pool())
-    .await
-    .with_lemmy_type(LemmyErrorType::NotFound)
-}
-
-async fn convert_response(
-  object: SearchableObjects,
-  local_user_view: &Option<LocalUserView>,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<ResolveObjectResponse> {
-  use ResolveObjectResponse::*;
-
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
   let is_admin = local_user.as_ref().map(|l| l.admin).unwrap_or_default();
+  let pool = &mut context.pool();
   let local_instance_id = SiteView::read_local(pool).await?.site.instance_id;
 
   Ok(match object {
@@ -81,9 +69,6 @@ async fn convert_response(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::api::resolve_object::resolve_object;
-  use actix_web::web::Query;
-  use lemmy_api_common::{context::LemmyContext, site::ResolveObject};
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
@@ -93,9 +78,7 @@ mod tests {
     },
     traits::Crud,
   };
-  use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_site::impls::create_test_instance;
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
 
   #[tokio::test]
@@ -126,28 +109,17 @@ mod tests {
     let post_insert_form = PostInsertForm::new("Test".to_string(), creator.person.id, community.id);
     let post = Post::create(pool, &post_insert_form).await?;
 
-    let query = format!("q={}", post.ap_id).to_string();
-    let query: Query<ResolveObject> = Query::from_query(&query)?;
+    let query = post.ap_id.to_string();
 
     // Objects should be resolvable without authentication
-    let res = resolve_object(query.clone(), context.reset_request_count(), None).await?;
-    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
+    let res = resolve_object_internal(&query, &None, &context).await?;
+    assert_response(res, &post);
     // Objects should be resolvable by regular users
-    let res = resolve_object(
-      query.clone(),
-      context.reset_request_count(),
-      Some(regular_user.clone()),
-    )
-    .await?;
-    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
+    let res = resolve_object_internal(&query, &Some(regular_user.clone()), &context).await?;
+    assert_response(res, &post);
     // Objects should be resolvable by admins
-    let res = resolve_object(
-      query.clone(),
-      context.reset_request_count(),
-      Some(admin_user.clone()),
-    )
-    .await?;
-    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
+    let res = resolve_object_internal(&query, &Some(admin_user.clone()), &context).await?;
+    assert_response(res, &post);
 
     Post::update(
       pool,
@@ -160,28 +132,26 @@ mod tests {
     .await?;
 
     // Deleted objects should not be resolvable without authentication
-    let res = resolve_object(query.clone(), context.reset_request_count(), None).await;
+    let res = resolve_object_internal(&query, &None, &context).await;
     assert!(res.is_err_and(|e| e.error_type == LemmyErrorType::NotFound));
     // Deleted objects should not be resolvable by regular users
-    let res = resolve_object(
-      query.clone(),
-      context.reset_request_count(),
-      Some(regular_user.clone()),
-    )
-    .await;
+    let res = resolve_object_internal(&query, &Some(regular_user.clone()), &context).await;
     assert!(res.is_err_and(|e| e.error_type == LemmyErrorType::NotFound));
     // Deleted objects should be resolvable by admins
-    let res = resolve_object(
-      query.clone(),
-      context.reset_request_count(),
-      Some(admin_user.clone()),
-    )
-    .await?;
-    assert!(matches!(res.0, ResolveObjectResponse::Post { .. }));
+    let res = resolve_object_internal(&query, &Some(admin_user.clone()), &context).await?;
+    assert_response(res, &post);
 
     LocalSite::delete(pool).await?;
     Instance::delete(pool, instance.id).await?;
 
     Ok(())
+  }
+
+  fn assert_response(res: SearchCombinedView, expected_post: &Post) {
+    if let SearchCombinedView::Post(v) = res {
+      assert_eq!(expected_post.ap_id, v.post.ap_id);
+    } else {
+      panic!("invalid resolve object response");
+    }
   }
 }

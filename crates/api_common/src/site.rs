@@ -31,13 +31,10 @@ use lemmy_db_schema_file::enums::{
   PostSortType,
   RegistrationMode,
 };
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
 use lemmy_db_views_registration_applications::RegistrationApplicationView;
 use lemmy_db_views_site::SiteView;
 use serde::{Deserialize, Serialize};
@@ -53,17 +50,6 @@ use {extism::FromBytes, extism_convert::encoding, extism_convert::Json, ts_rs::T
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-#[serde(untagged)]
-pub enum ResolveObjectResponse {
-  Comment(CommentView),
-  Post(PostView),
-  Community(CommunityView),
-  Person(PersonView),
 }
 
 #[skip_serializing_none]

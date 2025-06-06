@@ -4,7 +4,6 @@ use actix_web::web::{Json, Query};
 use futures::future::try_join;
 use lemmy_api_common::{
   context::LemmyContext,
-  site::ResolveObjectResponse,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
@@ -69,13 +68,7 @@ pub async fn search(
   let results = if let Some(q) = &data.search_term {
     let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
     let (mut search, resolve) = try_join(search_fut, resolve_fut).await?;
-    let conv = match resolve {
-      ResolveObjectResponse::Comment(c) => SearchCombinedView::Comment(c),
-      ResolveObjectResponse::Post(p) => SearchCombinedView::Post(p),
-      ResolveObjectResponse::Person(p) => SearchCombinedView::Person(p),
-      ResolveObjectResponse::Community(c) => SearchCombinedView::Community(c),
-    };
-    search.push(conv);
+    search.push(resolve);
     search
   } else {
     search_fut.await?
