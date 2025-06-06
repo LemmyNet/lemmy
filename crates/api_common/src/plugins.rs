@@ -16,7 +16,6 @@ use std::{
   io::BufReader,
   ops::Deref,
   path::PathBuf,
-  thread::available_parallelism,
   time::Duration,
 };
 use tokio::task::spawn_blocking;
@@ -120,7 +119,7 @@ impl LemmyPlugin {
     manifest
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
-    let plugin_pool: Pool<()> = Pool::new(available_parallelism()?.into());
+    let plugin_pool: Pool<()> = Pool::new();
     let builder = PluginBuilder::new(manifest).with_wasi(true);
     let metadata: PluginMetadata = builder.clone().build()?.call("metadata", 0)?;
     plugin_pool.add_builder((), builder);
