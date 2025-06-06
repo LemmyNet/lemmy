@@ -5,7 +5,7 @@ ansible/passwords/
 # docker build files
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
-volumes
+docker/volumes
 
 # ide config
 .idea
