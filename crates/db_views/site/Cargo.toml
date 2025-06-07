@@ -22,6 +22,7 @@ full = [
   "ts-rs",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "anyhow",
 ]
 
 [dependencies]
