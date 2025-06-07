@@ -454,6 +454,7 @@ mod test {
     protocol::context::WithContext,
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
+  use futures::future::try_join_all;
   use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
@@ -622,10 +623,9 @@ mod test {
     assert_eq!(data.instance.id, rcv.state.instance_id);
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
-    let mut sent = Vec::new();
-    for _ in 0..40 {
-      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-    }
+    let sent =
+      try_join_all((0..40).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+        .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
     compare_sent_with_receive(data, sent).await?;
@@ -651,10 +651,10 @@ mod test {
     let counts = vec![15, 20, 35];
     for count in counts {
       tracing::debug!("sending {} activities", count);
-      let mut sent = Vec::new();
-      for _ in 0..count {
-        sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-      }
+      let sent = try_join_all(
+        (0..count).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)),
+      )
+      .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
       compare_sent_with_receive(data, sent).await?;
@@ -697,31 +697,36 @@ mod test {
     *data.respond_with_error.write().unwrap() = true;
 
     // send a few activities
-    send_activity(data.person.ap_id.clone(), &data.context, false).await?;
-    send_activity(data.person.ap_id.clone(), &data.context, false).await?;
-    send_activity(data.person.ap_id.clone(), &data.context, false).await?;
-    send_activity(data.person.ap_id.clone(), &data.context, false).await?;
+    try_join_all((0..5).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+      .await?;
 
     // it immediately performs first retry giving us 2 failures
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    assert_eq!(2, rcv.state.fail_count);
+    wait_receive(2, &mut data.stats_receiver).await;
 
-    // another automatic retry after short sleep
-    sleep(Duration::try_from_secs_f64(1.25)?).await;
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    assert_eq!(3, rcv.state.fail_count);
+    // another automatic retry after short wait
+    wait_receive(3, &mut data.stats_receiver).await;
 
-    // now make sends successfu
+    // now make sends successful
     *data.respond_with_error.write().unwrap() = false;
 
-    // give it time for retry and to deliver activities
-    sleep(Duration::from_secs(5)).await;
-
     // fail count goes back to 0
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    assert_eq!(0, rcv.state.fail_count);
+    wait_receive(0, &mut data.stats_receiver).await;
 
     Ok(())
+  }
+
+  async fn wait_receive(
+    expected_fail_count: i32,
+    rec: &mut UnboundedReceiver<FederationQueueStateWithDomain>,
+  ) {
+    // loop until we get the latest event
+    for _ in 0..5 {
+      let rcv = rec.recv().await.unwrap();
+      if expected_fail_count == rcv.state.fail_count {
+        return;
+      }
+    }
+    panic!();
   }
 
   fn listen_activities(
@@ -797,6 +802,7 @@ mod test {
     Ok(sent)
   }
   async fn compare_sent_with_receive(data: &mut Data, mut sent: Vec<SentActivity>) -> Result<()> {
+    assert!(!sent.is_empty());
     let check_order = !data.is_concurrent; // allow out-of order receiving when running parallel
     let mut received = Vec::new();
     for _ in 0..sent.len() {

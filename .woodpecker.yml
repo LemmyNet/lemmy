@@ -75,7 +75,7 @@ steps:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
     commands:
-      - rustup component add rustfmt
+      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     when:
       - event: pull_request
