@@ -1,156 +1,214 @@
-alter table admin_allow_instance rename published_at to published;
+ALTER TABLE admin_allow_instance RENAME published_at TO published;
 
-alter table admin_block_instance rename column expires_at to expires;
-alter table admin_block_instance rename column published_at to published;
+ALTER TABLE admin_block_instance RENAME COLUMN expires_at TO expires;
 
-alter table admin_purge_comment rename column published_at to published;
-alter table admin_purge_community rename column published_at to published;
-alter table admin_purge_person rename column published_at to published;
-alter table admin_purge_post rename column published_at to published;
-alter table captcha_answer rename column published_at to published;
+ALTER TABLE admin_block_instance RENAME COLUMN published_at TO published;
 
-alter table comment rename column published_at to published;
-alter table comment rename column updated_at to updated;
-alter table comment_actions rename column liked_at to liked;
-alter table comment_actions rename column saved_at to saved;
-alter table comment_reply rename column published_at to published;
-alter table comment_report rename column published_at to published;
-alter table comment_report rename column updated_at to updated;
-alter table community rename column published_at to published;
-alter table community rename column updated_at to updated;
+ALTER TABLE admin_purge_comment RENAME COLUMN published_at TO published;
 
-alter table community_actions rename column followed_at to followed;
-alter table community_actions rename column blocked_at to blocked;
-alter table community_actions rename column became_moderator_at to became_moderator;
-alter table community_actions rename column received_ban_at to received_ban;
-alter table community_actions rename column ban_expires_at to ban_expires;
+ALTER TABLE admin_purge_community RENAME COLUMN published_at TO published;
 
+ALTER TABLE admin_purge_person RENAME COLUMN published_at TO published;
 
-alter table community_report rename column published_at to published;
-alter table community_report rename column updated_at to updated;
+ALTER TABLE admin_purge_post RENAME COLUMN published_at TO published;
 
-alter table custom_emoji rename column published_at to published;
-alter table custom_emoji rename column updated_at to updated;
-alter table email_verification rename column published_at to published;
+ALTER TABLE captcha_answer RENAME COLUMN published_at TO published;
 
+ALTER TABLE comment RENAME COLUMN published_at TO published;
 
-alter table federation_allowlist rename column published_at to published;
-alter table federation_allowlist rename column updated_at to updated;
+ALTER TABLE comment RENAME COLUMN updated_at TO updated;
 
-alter table federation_blocklist rename column published_at to published;
-alter table federation_blocklist rename column updated_at to updated;
-alter table federation_blocklist rename column expires_at to expires;
+ALTER TABLE comment_actions RENAME COLUMN liked_at TO liked;
 
-alter table federation_queue_state rename column last_retry_at to last_retry;
-alter table federation_queue_state rename column last_successful_published_time_at to last_successful_published_time;
+ALTER TABLE comment_actions RENAME COLUMN saved_at TO saved;
 
-alter table inbox_combined rename column published_at to published;
+ALTER TABLE comment_reply RENAME COLUMN published_at TO published;
 
-alter table instance rename column published_at to published;
-alter table instance rename column updated_at to updated;
+ALTER TABLE comment_report RENAME COLUMN published_at TO published;
 
-alter table instance_actions rename column blocked_at to blocked;
-alter table instance_actions rename column received_ban_at to received_ban;
-alter table instance_actions rename column ban_expires_at to ban_expires;
-alter table local_image rename column published_at to published;
+ALTER TABLE comment_report RENAME COLUMN updated_at TO updated;
 
-alter table local_site rename column published_at to published;
-alter table local_site rename column updated_at to updated;
+ALTER TABLE community RENAME COLUMN published_at TO published;
 
-alter table local_site_rate_limit rename column published_at to published;
-alter table local_site_rate_limit rename column updated_at to updated;
+ALTER TABLE community RENAME COLUMN updated_at TO updated;
 
-alter table local_site_url_blocklist rename column published_at to published;
-alter table local_site_url_blocklist rename column updated_at to updated;
+ALTER TABLE community_actions RENAME COLUMN followed_at TO followed;
 
-alter table local_user rename column last_donation_notification_at to last_donation_notification;
+ALTER TABLE community_actions RENAME COLUMN blocked_at TO blocked;
 
-alter table login_token rename column published_at to published;
+ALTER TABLE community_actions RENAME COLUMN became_moderator_at TO became_moderator;
 
-alter table mod_add rename column published_at to published;
-alter table mod_add_community rename column published_at to published;
+ALTER TABLE community_actions RENAME COLUMN received_ban_at TO received_ban;
 
-alter table mod_ban rename column published_at to published;
-alter table mod_ban rename column expires_at to expires;
+ALTER TABLE community_actions RENAME COLUMN ban_expires_at TO ban_expires;
 
-alter table mod_ban_from_community rename column published_at to published;
-alter table mod_ban_from_community rename column expires_at to expires;
+ALTER TABLE community_report RENAME COLUMN published_at TO published;
 
-alter table mod_change_community_visibility rename column published_at to published;
-alter table mod_feature_post rename column published_at to published;
-alter table mod_lock_post rename column published_at to published;
+ALTER TABLE community_report RENAME COLUMN updated_at TO updated;
 
-alter table mod_remove_comment rename column published_at to published;
-alter table mod_remove_community rename column published_at to published;
-alter table mod_remove_post rename column published_at to published;
-alter table mod_transfer_community rename column published_at to published;
+ALTER TABLE custom_emoji RENAME COLUMN published_at TO published;
 
-alter table modlog_combined rename column published_at to published;
+ALTER TABLE custom_emoji RENAME COLUMN updated_at TO updated;
 
-alter table oauth_account rename column published_at to published;
-alter table oauth_account rename column updated_at to updated;
+ALTER TABLE email_verification RENAME COLUMN published_at TO published;
 
-alter table oauth_provider rename column published_at to published;
-alter table oauth_provider rename column updated_at to updated;
+ALTER TABLE federation_allowlist RENAME COLUMN published_at TO published;
 
-alter table password_reset_request rename column published_at to published;
+ALTER TABLE federation_allowlist RENAME COLUMN updated_at TO updated;
 
-alter table person rename column published_at to published;
-alter table person rename column updated_at to updated;
+ALTER TABLE federation_blocklist RENAME COLUMN published_at TO published;
 
-alter table person_actions rename column followed_at to followed;
-alter table person_actions rename column blocked_at to blocked;
+ALTER TABLE federation_blocklist RENAME COLUMN updated_at TO updated;
 
-alter table person_ban rename column published_at to published;
+ALTER TABLE federation_blocklist RENAME COLUMN expires_at TO expires;
 
-alter table person_comment_mention rename column published_at to published;
+ALTER TABLE federation_queue_state RENAME COLUMN last_retry_at TO last_retry;
 
-alter table person_content_combined rename column published_at to published;
+ALTER TABLE federation_queue_state RENAME COLUMN last_successful_published_time_at TO last_successful_published_time;
 
-alter table person_liked_combined rename column liked_at to liked;
+ALTER TABLE inbox_combined RENAME COLUMN published_at TO published;
 
-alter table person_post_mention rename column published_at to published;
+ALTER TABLE instance RENAME COLUMN published_at TO published;
 
-alter table person_saved_combined rename column saved_at to saved;
+ALTER TABLE instance RENAME COLUMN updated_at TO updated;
 
-alter table post rename column published_at to published;
-alter table post rename column updated_at to updated;
-alter table post rename column scheduled_publish_time_at to scheduled_publish_time;
-alter table post rename column newest_comment_time_at to newest_comment_time;
-alter table post rename column newest_comment_time_necro_at to newest_comment_time_necro;
+ALTER TABLE instance_actions RENAME COLUMN blocked_at TO blocked;
 
-alter table post_actions rename column read_at to read;
-alter table post_actions rename column read_comments_at to read_comments;
-alter table post_actions rename column saved_at to saved;
-alter table post_actions rename column liked_at to liked;
-alter table post_actions rename column hidden_at to hidden;
+ALTER TABLE instance_actions RENAME COLUMN received_ban_at TO received_ban;
 
-alter table post_report rename column published_at to published;
-alter table post_report rename column updated_at to updated;
+ALTER TABLE instance_actions RENAME COLUMN ban_expires_at TO ban_expires;
 
-alter table post_tag rename column published_at to published;
+ALTER TABLE local_image RENAME COLUMN published_at TO published;
 
-alter table private_message rename column published_at to published;
-alter table private_message rename column updated_at to updated;
+ALTER TABLE local_site RENAME COLUMN published_at TO published;
 
-alter table private_message_report rename column published_at to published;
-alter table private_message_report rename column updated_at to updated;
+ALTER TABLE local_site RENAME COLUMN updated_at TO updated;
 
-alter table received_activity rename column published_at to published;
+ALTER TABLE local_site_rate_limit RENAME COLUMN published_at TO published;
 
-alter table registration_application rename column published_at to published;
-alter table remote_image rename column published_at to published;
+ALTER TABLE local_site_rate_limit RENAME COLUMN updated_at TO updated;
 
-alter table report_combined rename column published_at to published;
-alter table search_combined rename column published_at to published;
+ALTER TABLE local_site_url_blocklist RENAME COLUMN published_at TO published;
 
-alter table sent_activity rename column published_at to published;
+ALTER TABLE local_site_url_blocklist RENAME COLUMN updated_at TO updated;
 
-alter table site rename column published_at to published;
-alter table site rename column updated_at to updated;
+ALTER TABLE local_user RENAME COLUMN last_donation_notification_at TO last_donation_notification;
 
-alter table tag rename column published_at to published;
-alter table tag rename column updated_at to updated;
+ALTER TABLE login_token RENAME COLUMN published_at TO published;
 
-alter table tagline rename column published_at to published;
-alter table tagline rename column updated_at to updated;
+ALTER TABLE mod_add RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_add_community RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_ban RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_ban RENAME COLUMN expires_at TO expires;
+
+ALTER TABLE mod_ban_from_community RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_ban_from_community RENAME COLUMN expires_at TO expires;
+
+ALTER TABLE mod_change_community_visibility RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_feature_post RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_lock_post RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_remove_comment RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_remove_community RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_remove_post RENAME COLUMN published_at TO published;
+
+ALTER TABLE mod_transfer_community RENAME COLUMN published_at TO published;
+
+ALTER TABLE modlog_combined RENAME COLUMN published_at TO published;
+
+ALTER TABLE oauth_account RENAME COLUMN published_at TO published;
+
+ALTER TABLE oauth_account RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE oauth_provider RENAME COLUMN published_at TO published;
+
+ALTER TABLE oauth_provider RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE password_reset_request RENAME COLUMN published_at TO published;
+
+ALTER TABLE person RENAME COLUMN published_at TO published;
+
+ALTER TABLE person RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE person_actions RENAME COLUMN followed_at TO followed;
+
+ALTER TABLE person_actions RENAME COLUMN blocked_at TO blocked;
+
+ALTER TABLE person_ban RENAME COLUMN published_at TO published;
+
+ALTER TABLE person_comment_mention RENAME COLUMN published_at TO published;
+
+ALTER TABLE person_content_combined RENAME COLUMN published_at TO published;
+
+ALTER TABLE person_liked_combined RENAME COLUMN liked_at TO liked;
+
+ALTER TABLE person_post_mention RENAME COLUMN published_at TO published;
+
+ALTER TABLE person_saved_combined RENAME COLUMN saved_at TO saved;
+
+ALTER TABLE post RENAME COLUMN published_at TO published;
+
+ALTER TABLE post RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE post RENAME COLUMN scheduled_publish_time_at TO scheduled_publish_time;
+
+ALTER TABLE post RENAME COLUMN newest_comment_time_at TO newest_comment_time;
+
+ALTER TABLE post RENAME COLUMN newest_comment_time_necro_at TO newest_comment_time_necro;
+
+ALTER TABLE post_actions RENAME COLUMN read_at TO read;
+
+ALTER TABLE post_actions RENAME COLUMN read_comments_at TO read_comments;
+
+ALTER TABLE post_actions RENAME COLUMN saved_at TO saved;
+
+ALTER TABLE post_actions RENAME COLUMN liked_at TO liked;
+
+ALTER TABLE post_actions RENAME COLUMN hidden_at TO hidden;
+
+ALTER TABLE post_report RENAME COLUMN published_at TO published;
+
+ALTER TABLE post_report RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE post_tag RENAME COLUMN published_at TO published;
+
+ALTER TABLE private_message RENAME COLUMN published_at TO published;
+
+ALTER TABLE private_message RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE private_message_report RENAME COLUMN published_at TO published;
+
+ALTER TABLE private_message_report RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE received_activity RENAME COLUMN published_at TO published;
+
+ALTER TABLE registration_application RENAME COLUMN published_at TO published;
+
+ALTER TABLE remote_image RENAME COLUMN published_at TO published;
+
+ALTER TABLE report_combined RENAME COLUMN published_at TO published;
+
+ALTER TABLE search_combined RENAME COLUMN published_at TO published;
+
+ALTER TABLE sent_activity RENAME COLUMN published_at TO published;
+
+ALTER TABLE site RENAME COLUMN published_at TO published;
+
+ALTER TABLE site RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE tag RENAME COLUMN published_at TO published;
+
+ALTER TABLE tag RENAME COLUMN updated_at TO updated;
+
+ALTER TABLE tagline RENAME COLUMN published_at TO published;
+
+ALTER TABLE tagline RENAME COLUMN updated_at TO updated;
+
