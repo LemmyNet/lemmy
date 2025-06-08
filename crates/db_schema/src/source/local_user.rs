@@ -76,7 +76,7 @@ pub struct LocalUser {
   pub auto_mark_fetched_posts_as_read: bool,
   /// The last time a donation request was shown to this user. If this is more than a year ago,
   /// a new notification request should be shown.
-  pub last_donation_notification: DateTime<Utc>,
+  pub last_donation_notification_at: DateTime<Utc>,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -145,7 +145,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   #[new(default)]
-  pub last_donation_notification: Option<DateTime<Utc>>,
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub hide_media: Option<bool>,
   #[new(default)]
@@ -190,7 +190,7 @@ pub struct LocalUserUpdateForm {
   pub collapse_bot_comments: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  pub last_donation_notification: Option<DateTime<Utc>>,
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
   pub hide_media: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub show_score: Option<bool>,

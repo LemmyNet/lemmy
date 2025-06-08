@@ -122,7 +122,7 @@ impl LocalUser {
     // - The accepted_application is false
     let old_denied_registrations = registration_application::table
       .filter(registration_application::admin_id.is_not_null())
-      .filter(registration_application::published.lt(now() - 1.week()))
+      .filter(registration_application::published_at.lt(now() - 1.week()))
       .select(registration_application::local_user_id);
 
     // Delete based on join logic is here:
@@ -172,7 +172,7 @@ impl LocalUser {
     let conn = &mut get_conn(pool).await?;
 
     let followed_communities = community_actions::table
-      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
       .select(community::ap_id)
@@ -180,7 +180,7 @@ impl LocalUser {
       .await?;
 
     let saved_posts = post_actions::table
-      .filter(post_actions::saved.is_not_null())
+      .filter(post_actions::saved_at.is_not_null())
       .filter(post_actions::person_id.eq(person_id_))
       .inner_join(post::table)
       .select(post::ap_id)
@@ -188,7 +188,7 @@ impl LocalUser {
       .await?;
 
     let saved_comments = comment_actions::table
-      .filter(comment_actions::saved.is_not_null())
+      .filter(comment_actions::saved_at.is_not_null())
       .filter(comment_actions::person_id.eq(person_id_))
       .inner_join(comment::table)
       .select(comment::ap_id)
@@ -196,7 +196,7 @@ impl LocalUser {
       .await?;
 
     let blocked_communities = community_actions::table
-      .filter(community_actions::blocked.is_not_null())
+      .filter(community_actions::blocked_at.is_not_null())
       .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
       .select(community::ap_id)
@@ -204,7 +204,7 @@ impl LocalUser {
       .await?;
 
     let blocked_users = person_actions::table
-      .filter(person_actions::blocked.is_not_null())
+      .filter(person_actions::blocked_at.is_not_null())
       .filter(person_actions::person_id.eq(person_id_))
       .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
       .select(person::ap_id)
@@ -212,7 +212,7 @@ impl LocalUser {
       .await?;
 
     let blocked_instances = instance_actions::table
-      .filter(instance_actions::blocked.is_not_null())
+      .filter(instance_actions::blocked_at.is_not_null())
       .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
@@ -281,10 +281,10 @@ impl LocalUser {
       .select(local_user::person_id);
 
     let mods = community_actions::table
-      .filter(community_actions::became_moderator.is_not_null())
+      .filter(community_actions::became_moderator_at.is_not_null())
       .filter(community_actions::community_id.eq(for_community_id))
       .filter(community_actions::person_id.eq_any(&persons))
-      .order_by(community_actions::became_moderator)
+      .order_by(community_actions::became_moderator_at)
       .select(community_actions::person_id);
 
     let res = admins.union_all(mods).get_results::<PersonId>(conn).await?;

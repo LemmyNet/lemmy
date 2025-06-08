@@ -81,7 +81,7 @@ impl VoteView {
       .select((
         person::all_columns,
         creator_community_actions
-          .field(community_actions::received_ban)
+          .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
         post_actions::like_score.assume_not_null(),
@@ -93,7 +93,7 @@ impl VoteView {
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::like_score)
       // Tie breaker
-      .then_order_by(key::liked);
+      .then_order_by(key::liked_at);
 
     paginated_query
       .load::<Self>(conn)
@@ -155,7 +155,7 @@ impl VoteView {
       .select((
         person::all_columns,
         creator_community_actions
-          .field(community_actions::received_ban)
+          .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
         comment_actions::like_score.assume_not_null(),
@@ -167,7 +167,7 @@ impl VoteView {
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::like_score)
       // Tie breaker
-      .then_order_by(key::liked);
+      .then_order_by(key::liked_at);
 
     paginated_query
       .load::<Self>(conn)

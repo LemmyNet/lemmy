@@ -174,8 +174,8 @@ impl InboxCombinedViewInternal {
       // Filter unreads
       .filter(unread_filter)
       // Don't count replies from blocked users
-      .filter(person_actions::blocked.is_null())
-      .filter(instance_actions::blocked.is_null())
+      .filter(person_actions::blocked_at.is_null())
+      .filter(instance_actions::blocked_at.is_null())
       .select(count(inbox_combined::id))
       .into_boxed();
 
@@ -306,8 +306,8 @@ impl InboxCombinedQuery {
 
     // Dont show replies from blocked users or instances
     query = query
-      .filter(person_actions::blocked.is_null())
-      .filter(instance_actions::blocked.is_null());
+      .filter(person_actions::blocked_at.is_null())
+      .filter(instance_actions::blocked_at.is_null());
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -333,7 +333,7 @@ impl InboxCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::published)
+    .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
@@ -830,7 +830,7 @@ mod tests {
       (
         inserted_block.person_id,
         inserted_block.target_id,
-        inserted_block.blocked.is_some()
+        inserted_block.blocked_at.is_some()
       )
     );
 
@@ -873,7 +873,7 @@ mod tests {
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,
-        inserted_instance_block.blocked.is_some()
+        inserted_instance_block.blocked_at.is_some()
       )
     );
 

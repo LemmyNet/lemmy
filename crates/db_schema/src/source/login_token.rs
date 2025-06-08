@@ -21,7 +21,7 @@ pub struct LoginToken {
   pub token: SensitiveString,
   pub user_id: LocalUserId,
   /// Time of login
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   /// IP address where login was made from, allows invalidating logins by IP address.
   /// Could be stored in truncated format, or store derived information for better privacy.
   #[cfg_attr(feature = "full", ts(optional))]

@@ -262,7 +262,7 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
+    captcha_answer::table.filter(captcha_answer::published_at.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(&mut conn)
   .await?;
@@ -277,13 +277,14 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    sent_activity::table.filter(sent_activity::published.lt(now() - IntervalDsl::days(7))),
+    sent_activity::table.filter(sent_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
   .execute(&mut conn)
   .await?;
 
   diesel::delete(
-    received_activity::table.filter(received_activity::published.lt(now() - IntervalDsl::days(7))),
+    received_activity::table
+      .filter(received_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
   .execute(&mut conn)
   .await?;
@@ -305,7 +306,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   diesel::update(
     post::table
       .filter(post::deleted.eq(true))
-      .filter(post::updated.lt(now().nullable() - 1.months()))
+      .filter(post::updated_at.lt(now().nullable() - 1.months()))
       .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set((
@@ -319,7 +320,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
-      .filter(comment::updated.lt(now().nullable() - 1.months()))
+      .filter(comment::updated_at.lt(now().nullable() - 1.months()))
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
@@ -367,19 +368,23 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
-    .set_null(community_actions::received_ban)
-    .set_null(community_actions::ban_expires)
-    .as_query()
-    .execute(&mut conn)
-    .await?;
+  uplete::new(
+    community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())),
+  )
+  .set_null(community_actions::received_ban_at)
+  .set_null(community_actions::ban_expires_at)
+  .as_query()
+  .execute(&mut conn)
+  .await?;
 
-  uplete::new(instance_actions::table.filter(instance_actions::ban_expires.lt(now().nullable())))
-    .set_null(instance_actions::received_ban)
-    .set_null(instance_actions::ban_expires)
-    .as_query()
-    .execute(&mut conn)
-    .await?;
+  uplete::new(
+    instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())),
+  )
+  .set_null(instance_actions::received_ban_at)
+  .set_null(instance_actions::ban_expires_at)
+  .as_query()
+  .execute(&mut conn)
+  .await?;
   Ok(())
 }
 
@@ -389,7 +394,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
+    federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
   )
   .execute(&mut conn)
   .await?;
@@ -404,18 +409,18 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let not_community_banned_action = community_actions::table
     .find((person::id, community::id))
-    .filter(community_actions::received_ban.is_not_null());
+    .filter(community_actions::received_ban_at.is_not_null());
 
   let not_local_banned_action = instance_actions::table
     .find((person::id, local_instance_id))
-    .filter(instance_actions::received_ban.is_not_null());
+    .filter(instance_actions::received_ban_at.is_not_null());
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
     .inner_join(person::table)
     // find all posts which have scheduled_publish_time that is in the  past
-    .filter(post::scheduled_publish_time.is_not_null())
-    .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+    .filter(post::scheduled_publish_time_at.is_not_null())
+    .filter(coalesce(post::scheduled_publish_time_at, now()).lt(now()))
     // make sure the post, person and community are still around
     .filter(not(post::deleted.or(post::removed)))
     .filter(not(person::deleted))
@@ -431,7 +436,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
   for (post, community) in scheduled_posts {
     // mark post as published in db
     let form = PostUpdateForm {
-      scheduled_publish_time: Some(None),
+      scheduled_publish_time_at: Some(None),
       ..Default::default()
     };
     Post::update(&mut context.pool(), post.id, &form).await?;
@@ -481,7 +486,7 @@ async fn build_update_instance_form(
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
   let mut instance_form = InstanceForm {
-    updated: Some(Utc::now()),
+    updated_at: Some(Utc::now()),
     ..InstanceForm::new(domain.to_string())
   };
 

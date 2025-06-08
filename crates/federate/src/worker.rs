@@ -201,7 +201,7 @@ impl InstanceWorker {
     if self.state.fail_count > 0 {
       let last_retry = self
         .state
-        .last_retry
+        .last_retry_at
         .context("impossible: if fail count set last retry also set")?;
       let elapsed = (Utc::now() - last_retry).to_std()?;
       let required = federate_retry_sleep_duration(self.state.fail_count);
@@ -280,7 +280,7 @@ impl InstanceWorker {
             // only count as one failure.
 
             self.state.fail_count = fail_count;
-            self.state.last_retry = Some(Utc::now());
+            self.state.last_retry_at = Some(Utc::now());
             force_write = true;
           }
         }
@@ -291,12 +291,15 @@ impl InstanceWorker {
   }
   async fn mark_instance_alive(&mut self) -> Result<()> {
     // Activity send successful, mark instance as alive if it hasn't been updated in a while.
-    let updated = self.instance.updated.unwrap_or(self.instance.published);
+    let updated = self
+      .instance
+      .updated_at
+      .unwrap_or(self.instance.published_at);
     if updated.add(Days::new(1)) < Utc::now() {
-      self.instance.updated = Some(Utc::now());
+      self.instance.updated_at = Some(Utc::now());
 
       let form = InstanceForm {
-        updated: Some(Utc::now()),
+        updated_at: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
       Instance::update(&mut self.pool(), self.instance.id, form)
@@ -335,7 +338,7 @@ impl InstanceWorker {
         .context("peek above ensures pop has value")?;
       last_id = next.activity_id;
       self.state.last_successful_id = Some(next.activity_id);
-      self.state.last_successful_published_time = next.published;
+      self.state.last_successful_published_time_at = next.published_at;
     }
 
     let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME)?;
@@ -358,7 +361,7 @@ impl InstanceWorker {
         .report_send_result
         .send(SendActivityResult::Success(SendSuccessInfo {
           activity_id,
-          published: None,
+          published_at: None,
           was_skipped: true,
         }))?;
       return Ok(());
@@ -379,7 +382,7 @@ impl InstanceWorker {
           // large to a small instance that's only subscribed to a few small communities,
           // then it will show the last published time as a days ago even though
           // federation is up to date.
-          published: Some(activity.published),
+          published_at: Some(activity.published_at),
           was_skipped: true,
         }))?;
       return Ok(());
@@ -416,7 +419,7 @@ impl InstanceWorker {
         report
           .send(SendActivityResult::Success(SendSuccessInfo {
             activity_id,
-            published: None,
+            published_at: None,
             was_skipped: true,
           }))
           .ok();
@@ -676,7 +679,7 @@ mod test {
     let instance =
       Instance::read_or_create(&mut data.context.pool(), data.instance.domain.clone()).await?;
 
-    assert!(instance.updated.is_some());
+    assert!(instance.updated_at.is_some());
 
     Ok(())
   }

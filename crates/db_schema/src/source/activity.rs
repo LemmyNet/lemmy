@@ -61,7 +61,7 @@ pub struct SentActivity {
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub send_inboxes: Vec<Option<DbUrl>>,
   pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
@@ -89,5 +89,5 @@ pub struct SentActivityForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct ReceivedActivity {
   pub ap_id: DbUrl,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }

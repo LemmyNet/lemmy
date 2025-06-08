@@ -22,10 +22,10 @@ pub struct FederationQueueState {
   #[cfg_attr(feature = "full", ts(optional))]
   pub last_successful_id: Option<ActivityId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub last_successful_published_time: Option<DateTime<Utc>>,
+  pub last_successful_published_time_at: Option<DateTime<Utc>>,
   /// how many failed attempts have been made to send the next activity
   pub fail_count: i32,
   /// timestamp of the last retry attempt (when the last failing activity was resent)
   #[cfg_attr(feature = "full", ts(optional))]
-  pub last_retry: Option<DateTime<Utc>>,
+  pub last_retry_at: Option<DateTime<Utc>>,
 }

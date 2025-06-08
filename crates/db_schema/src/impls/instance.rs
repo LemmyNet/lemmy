@@ -55,7 +55,7 @@ impl Instance {
       None => {
         // Instance not in database yet, insert it
         let form = InstanceForm {
-          updated: Some(Utc::now()),
+          updated_at: Some(Utc::now()),
           ..InstanceForm::new(domain_)
         };
         insert_into(instance::table)
@@ -148,7 +148,7 @@ impl Instance {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Vec<(Self, bool, bool)>> {
     let conn = &mut get_conn(pool).await?;
-    let is_dead_expr = coalesce(instance::updated, instance::published).lt(now() - 3.days());
+    let is_dead_expr = coalesce(instance::updated_at, instance::published_at).lt(now() - 3.days());
     // this needs to be done in two steps because the meaning of the "blocked" column depends on the
     // existence of any value at all in the allowlist. (so a normal join wouldn't work)
     let use_allowlist = federation_allowlist::table
@@ -227,7 +227,7 @@ impl Blockable for InstanceActions {
   async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
-      .set_null(instance_actions::blocked)
+      .set_null(instance_actions::blocked_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
@@ -241,7 +241,7 @@ impl Blockable for InstanceActions {
     let conn = &mut get_conn(pool).await?;
     let find_action = instance_actions::table
       .find((person_id, instance_id))
-      .filter(instance_actions::blocked.is_not_null());
+      .filter(instance_actions::blocked_at.is_not_null());
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
       .await?
@@ -255,11 +255,11 @@ impl Blockable for InstanceActions {
   ) -> LemmyResult<Vec<Self::ObjectType>> {
     let conn = &mut get_conn(pool).await?;
     instance_actions::table
-      .filter(instance_actions::blocked.is_not_null())
+      .filter(instance_actions::blocked_at.is_not_null())
       .inner_join(instance::table)
       .select(instance::all_columns)
       .filter(instance_actions::person_id.eq(person_id))
-      .order_by(instance_actions::blocked)
+      .order_by(instance_actions::blocked_at)
       .load::<Instance>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -277,7 +277,7 @@ impl InstanceActions {
       instance_actions::table
         .filter(instance_actions::person_id.eq(person_id))
         .filter(instance_actions::instance_id.eq(instance_id))
-        .filter(instance_actions::received_ban.is_not_null()),
+        .filter(instance_actions::received_ban_at.is_not_null()),
     ))
     .get_result::<bool>(conn)
     .await?;
@@ -308,8 +308,8 @@ impl Bannable for InstanceActions {
     let conn = &mut get_conn(pool).await?;
     Ok(
       uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
-        .set_null(instance_actions::received_ban)
-        .set_null(instance_actions::ban_expires)
+        .set_null(instance_actions::received_ban_at)
+        .set_null(instance_actions::ban_expires_at)
         .get_result(conn)
         .await?,
     )

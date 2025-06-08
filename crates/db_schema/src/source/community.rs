@@ -35,9 +35,9 @@ pub struct Community {
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// Whether the community has been deleted by its creator.
   pub deleted: bool,
   /// Whether its an NSFW community.
@@ -114,9 +114,9 @@ pub struct CommunityInsertForm {
   #[new(default)]
   pub removed: Option<bool>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
@@ -158,8 +158,8 @@ pub struct CommunityUpdateForm {
   pub title: Option<String>,
   pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
   pub ap_id: Option<DbUrl>,
@@ -208,7 +208,7 @@ pub struct CommunityActions {
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was followed.
-  pub followed: Option<DateTime<Utc>>,
+  pub followed_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The state of the community follow.
   pub follow_state: Option<CommunityFollowerState>,
@@ -217,16 +217,16 @@ pub struct CommunityActions {
   pub follow_approver_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was blocked.
-  pub blocked: Option<DateTime<Utc>>,
+  pub blocked_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When this user became a moderator.
-  pub became_moderator: Option<DateTime<Utc>>,
+  pub became_moderator_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When this user received a ban.
-  pub received_ban: Option<DateTime<Utc>>,
+  pub received_ban_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When their ban expires.
-  pub ban_expires: Option<DateTime<Utc>>,
+  pub ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -236,7 +236,7 @@ pub struct CommunityModeratorForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub became_moderator: DateTime<Utc>,
+  pub became_moderator_at: DateTime<Utc>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -246,9 +246,9 @@ pub struct CommunityPersonBanForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[new(default)]
-  pub ban_expires: Option<Option<DateTime<Utc>>>,
+  pub ban_expires_at: Option<Option<DateTime<Utc>>>,
   #[new(value = "Utc::now()")]
-  pub received_ban: DateTime<Utc>,
+  pub received_ban_at: DateTime<Utc>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -261,7 +261,7 @@ pub struct CommunityFollowerForm {
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,
   #[new(value = "Utc::now()")]
-  pub followed: DateTime<Utc>,
+  pub followed_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -271,5 +271,5 @@ pub struct CommunityBlockForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub blocked: DateTime<Utc>,
+  pub blocked_at: DateTime<Utc>,
 }

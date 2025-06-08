@@ -19,10 +19,10 @@ use ts_rs::TS;
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the instance was updated.
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The software of the instance.
   pub software: Option<String>,
@@ -41,7 +41,7 @@ pub struct InstanceForm {
   #[new(default)]
   pub version: Option<String>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -64,13 +64,13 @@ pub struct InstanceActions {
   pub instance_id: InstanceId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the instance was blocked.
-  pub blocked: Option<DateTime<Utc>>,
+  pub blocked_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When this user received a site ban.
-  pub received_ban: Option<DateTime<Utc>>,
+  pub received_ban_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When their ban expires.
-  pub ban_expires: Option<DateTime<Utc>>,
+  pub ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(derive_new::new)]
@@ -80,7 +80,7 @@ pub struct InstanceBlockForm {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
   #[new(value = "Utc::now()")]
-  pub blocked: DateTime<Utc>,
+  pub blocked_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -90,6 +90,6 @@ pub struct InstanceBanForm {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
   #[new(value = "Utc::now()")]
-  pub received_ban: DateTime<Utc>,
-  pub ban_expires: Option<DateTime<Utc>>,
+  pub received_ban_at: DateTime<Utc>,
+  pub ban_expires_at: Option<DateTime<Utc>>,
 }

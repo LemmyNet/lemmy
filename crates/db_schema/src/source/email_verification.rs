@@ -12,7 +12,7 @@ pub struct EmailVerification {
   pub local_user_id: LocalUserId,
   pub email: String,
   pub verification_token: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

@@ -33,9 +33,9 @@ pub struct LocalSiteRateLimit {
   pub comment_per_second: i32,
   pub search: i32,
   pub search_per_second: i32,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub import_user_settings: i32,
   pub import_user_settings_per_second: i32,
 }
@@ -93,5 +93,5 @@ pub struct LocalSiteRateLimitUpdateForm {
   pub search_per_second: Option<i32>,
   pub import_user_settings: Option<i32>,
   pub import_user_settings_per_second: Option<i32>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
 }

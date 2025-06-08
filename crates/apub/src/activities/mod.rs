@@ -300,7 +300,7 @@ pub async fn match_outgoing_activities(
         reason,
         remove_or_restore_data,
         ban,
-        expires,
+        expires_at,
       } => {
         send_ban_from_site(
           moderator,
@@ -308,7 +308,7 @@ pub async fn match_outgoing_activities(
           reason,
           remove_or_restore_data,
           ban,
-          expires,
+          expires_at,
           context,
         )
         .await

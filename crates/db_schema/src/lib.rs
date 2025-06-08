@@ -187,8 +187,8 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::name>,
   AliasedField<aliases::Person1, person::display_name>,
   AliasedField<aliases::Person1, person::avatar>,
-  AliasedField<aliases::Person1, person::published>,
-  AliasedField<aliases::Person1, person::updated>,
+  AliasedField<aliases::Person1, person::published_at>,
+  AliasedField<aliases::Person1, person::updated_at>,
   AliasedField<aliases::Person1, person::ap_id>,
   AliasedField<aliases::Person1, person::bio>,
   AliasedField<aliases::Person1, person::local>,
@@ -214,8 +214,8 @@ pub type Person2AliasAllColumnsTuple = (
   AliasedField<aliases::Person2, person::name>,
   AliasedField<aliases::Person2, person::display_name>,
   AliasedField<aliases::Person2, person::avatar>,
-  AliasedField<aliases::Person2, person::published>,
-  AliasedField<aliases::Person2, person::updated>,
+  AliasedField<aliases::Person2, person::published_at>,
+  AliasedField<aliases::Person2, person::updated_at>,
   AliasedField<aliases::Person2, person::ap_id>,
   AliasedField<aliases::Person2, person::bio>,
   AliasedField<aliases::Person2, person::local>,
@@ -239,13 +239,13 @@ pub type Person2AliasAllColumnsTuple = (
 pub type CreatorCommunityActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorCommunityActions, community_actions::community_id>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::followed>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::followed_at>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::follow_state>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::follow_approver_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires_at>,
 );
 
 #[cfg(feature = "full")]
@@ -253,9 +253,9 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
 pub type CreatorHomeInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
 );
 
 #[cfg(feature = "full")]
@@ -263,7 +263,7 @@ pub type CreatorHomeInstanceActionsAllColumnsTuple = (
 pub type CreatorLocalInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
 );

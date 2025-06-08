@@ -59,9 +59,9 @@ pub struct OAuthProvider {
   pub account_linking_enabled: bool,
   /// switch to enable or disable an oauth provider
   pub enabled: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// switch to enable or disable PKCE
   pub use_pkce: bool,
 }
@@ -124,5 +124,5 @@ pub struct OAuthProviderUpdateForm {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
 }

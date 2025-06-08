@@ -105,7 +105,7 @@ impl PersonQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::published)
+    .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 

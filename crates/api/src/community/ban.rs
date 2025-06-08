@@ -30,7 +30,7 @@ pub async fn ban_from_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
-  let expires = check_expire_time(data.expires)?;
+  let expires_at = check_expire_time(data.expires_at)?;
   let local_instance_id = local_user_view.person.instance_id;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
@@ -50,7 +50,7 @@ pub async fn ban_from_community(
   }
 
   let community_user_ban_form = CommunityPersonBanForm {
-    ban_expires: Some(expires),
+    ban_expires_at: Some(expires_at),
     ..CommunityPersonBanForm::new(data.community_id, data.person_id)
   };
 
@@ -92,7 +92,7 @@ pub async fn ban_from_community(
           community_id: tx_data.community_id,
           reason: tx_data.reason.clone(),
           banned: Some(tx_data.ban),
-          expires,
+          expires_at,
         };
 
         ModBanFromCommunity::create(&mut conn.into(), &form).await?;

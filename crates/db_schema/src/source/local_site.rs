@@ -56,9 +56,9 @@ pub struct LocalSite {
   pub captcha_enabled: bool,
   /// The captcha difficulty.
   pub captcha_difficulty: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub registration_mode: RegistrationMode,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
@@ -185,7 +185,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
   pub default_post_sort_type: Option<PostSortType>,

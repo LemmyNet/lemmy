@@ -419,7 +419,7 @@ pub struct ReadableFederationState {
 impl From<FederationQueueState> for ReadableFederationState {
   fn from(internal_state: FederationQueueState) -> Self {
     ReadableFederationState {
-      next_retry: internal_state.last_retry.map(|r| {
+      next_retry: internal_state.last_retry_at.map(|r| {
         r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
           .expect("sleep duration longer than 2**63 ms (262 million years)")
       }),
@@ -570,7 +570,7 @@ pub struct AdminBlockInstanceParams {
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub expires: Option<DateTime<Utc>>,
+  pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

@@ -132,15 +132,15 @@ impl CommunityQuery<'_> {
           .filter(community::local.eq(true))
           .filter(filter_not_unlisted_or_is_subscribed()),
         ListingType::ModeratorView => {
-          query.filter(community_actions::became_moderator.is_not_null())
+          query.filter(community_actions::became_moderator_at.is_not_null())
         }
       };
     }
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    query = query.filter(instance_actions::blocked.is_null());
-    query = query.filter(community_actions::blocked.is_null());
+    query = query.filter(instance_actions::blocked_at.is_null());
+    query = query.filter(community_actions::blocked_at.is_null());
     if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));
     }
@@ -149,8 +149,8 @@ impl CommunityQuery<'_> {
 
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query =
-        query.filter(community::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+      query = query
+        .filter(community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // Only sort by ascending for Old or NameAsc sorts.
@@ -163,8 +163,8 @@ impl CommunityQuery<'_> {
       Hot => pq.then_order_by(key::hot_rank),
       Comments => pq.then_order_by(key::comments),
       Posts => pq.then_order_by(key::posts),
-      New => pq.then_order_by(key::published),
-      Old => pq.then_order_by(key::published),
+      New => pq.then_order_by(key::published_at),
+      Old => pq.then_order_by(key::published_at),
       Subscribers => pq.then_order_by(key::subscribers),
       SubscribersLocal => pq.then_order_by(key::subscribers_local),
       ActiveSixMonths => pq.then_order_by(key::users_active_half_year),
@@ -270,8 +270,8 @@ mod tests {
       id: Default::default(),
       name: String::new(),
       sidebar: None,
-      published: Default::default(),
-      updated: None,
+      published_at: Default::default(),
+      updated_at: None,
       icon: None,
       banner: None,
       description: None,

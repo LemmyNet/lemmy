@@ -20,11 +20,11 @@ use {lemmy_db_schema_file::schema::federation_blocklist, ts_rs::TS};
 #[cfg_attr(feature = "full", ts(export))]
 pub struct FederationBlockList {
   pub instance_id: InstanceId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub expires: Option<DateTime<Utc>>,
+  pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -32,6 +32,6 @@ pub struct FederationBlockList {
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
 pub struct FederationBlockListForm {
   pub instance_id: InstanceId,
-  pub updated: Option<DateTime<Utc>>,
-  pub expires: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
+  pub expires_at: Option<DateTime<Utc>>,
 }

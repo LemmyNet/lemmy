@@ -33,9 +33,9 @@ pub struct Person {
   /// A URL for an avatar.
   #[cfg_attr(feature = "full", ts(optional))]
   pub avatar: Option<DbUrl>,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// The federated ap_id.
   pub ap_id: DbUrl,
   /// An optional bio, in markdown.
@@ -83,9 +83,9 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub avatar: Option<DbUrl>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub ap_id: Option<DbUrl>,
   #[new(default)]
@@ -114,7 +114,7 @@ pub struct PersonInsertForm {
 pub struct PersonUpdateForm {
   pub display_name: Option<Option<String>>,
   pub avatar: Option<Option<DbUrl>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub bio: Option<Option<String>>,
   pub local: Option<bool>,
@@ -145,12 +145,12 @@ pub struct PersonActions {
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
-  pub followed: Option<DateTime<Utc>>,
+  pub followed_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub follow_pending: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the person was blocked.
-  pub blocked: Option<DateTime<Utc>>,
+  pub blocked_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -161,7 +161,7 @@ pub struct PersonFollowerForm {
   pub person_id: PersonId,
   pub follow_pending: bool,
   #[new(value = "Utc::now()")]
-  pub followed: DateTime<Utc>,
+  pub followed_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -172,5 +172,5 @@ pub struct PersonBlockForm {
   pub person_id: PersonId,
   pub target_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub blocked: DateTime<Utc>,
+  pub blocked_at: DateTime<Utc>,
 }

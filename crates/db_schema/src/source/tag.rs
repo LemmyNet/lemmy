@@ -33,9 +33,9 @@ pub struct Tag {
   pub display_name: String,
   /// the community that owns this tag
   pub community_id: CommunityId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub deleted: bool,
 }
 
@@ -55,8 +55,8 @@ pub struct TagUpdateForm {
   pub ap_id: Option<DbUrl>,
   pub display_name: Option<String>,
   pub community_id: Option<CommunityId>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
 }
 
