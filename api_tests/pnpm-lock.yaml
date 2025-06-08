@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-local-image-user.3
-        version: 1.0.0-local-image-user.3
+        specifier: 1.0.0-rename-timestamp-to-at.2
+        version: 1.0.0-rename-timestamp-to-at.2
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1594,8 +1594,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@1.0.0-local-image-user.3:
-    resolution: {integrity: sha512-h7bW7lZ+8EQzmgk4fSUYo/+3doSx/dlC9rxM4omLKayS/Hwp/pe2TD785RS8ZJUiOtFfX1Ui0P8991N9a50beQ==}
+  lemmy-js-client@1.0.0-rename-timestamp-to-at.2:
+    resolution: {integrity: sha512-nKECpzy9fYYMDzGSougUVAaebmJWPrxK/HZZ3BZLxmrlhd9Y3KVEhKE7KspnSYfbdoa3KN2S6pt9NuQozuOJmg==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4408,7 +4408,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@1.0.0-local-image-user.3:
+  lemmy-js-client@1.0.0-rename-timestamp-to-at.2:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

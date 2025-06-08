@@ -62,8 +62,8 @@ function assertCommunityFederation(
   );
   expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
   expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
-  expect(communityOne?.community.published).toBe(
-    communityTwo?.community.published,
+  expect(communityOne?.community.published_at).toBe(
+    communityTwo?.community.published_at,
   );
   expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
   expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
@@ -82,7 +82,7 @@ test("Create community", async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let searchShort = `!${prevName}@lemmy-alpha:8541`;
-  let betaCommunity = (await resolveCommunity(beta, searchShort)).community;
+  let betaCommunity = await resolveCommunity(beta, searchShort);
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
@@ -91,7 +91,7 @@ test("Delete community", async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = await resolveCommunity(alpha, searchShort);
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
@@ -143,7 +143,7 @@ test("Remove community", async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = await resolveCommunity(alpha, searchShort);
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
@@ -196,11 +196,12 @@ test("Report a community", async () => {
   expect(alphaCommunity.community_view.community).toBeDefined();
 
   // Send report from beta
-  let betaCommunity = (
-    await resolveCommunity(beta, alphaCommunity.community_view.community.ap_id)
-  ).community!;
+  let betaCommunity = await resolveCommunity(
+    beta,
+    alphaCommunity.community_view.community.ap_id,
+  );
   let betaReport = (
-    await reportCommunity(beta, betaCommunity.community.id, randomString(10))
+    await reportCommunity(beta, betaCommunity!.community.id, randomString(10))
   ).community_report_view.community_report;
   expect(betaReport).toBeDefined();
 
@@ -269,7 +270,7 @@ test("Search for beta community", async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
 
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = await resolveCommunity(alpha, searchShort);
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 });
 
@@ -279,19 +280,18 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(communityRes.community.name).toBeDefined();
 
   // gamma follows community and posts in it
-  let gammaCommunity = (
-    await resolveCommunity(gamma, communityRes.community.ap_id)
-  ).community;
+  let gammaCommunity = await resolveCommunity(
+    gamma,
+    communityRes.community.ap_id,
+  );
   if (!gammaCommunity) {
     throw "Missing gamma community";
   }
   await followCommunity(gamma, true, gammaCommunity.community.id);
-  gammaCommunity = (
-    await waitUntil(
-      () => resolveCommunity(gamma, communityRes.community.ap_id),
-      g => g.community?.community_actions?.follow_state == "Accepted",
-    )
-  ).community;
+  gammaCommunity = await waitUntil(
+    () => resolveCommunity(gamma, communityRes.community.ap_id),
+    g => g?.community_actions?.follow_state == "Accepted",
+  );
   if (!gammaCommunity) {
     throw "Missing gamma community";
   }
@@ -299,12 +299,13 @@ test("Admin actions in remote community are not federated to origin", async () =
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();
-  expect(gammaPost.creator_community_actions?.received_ban).toBeUndefined();
+  expect(gammaPost.creator_community_actions?.received_ban_at).toBeUndefined();
 
   // admin of beta decides to ban gamma from community
-  let betaCommunity = (
-    await resolveCommunity(beta, communityRes.community.ap_id)
-  ).community;
+  let betaCommunity = await resolveCommunity(
+    beta,
+    communityRes.community.ap_id,
+  );
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -312,8 +313,8 @@ test("Admin actions in remote community are not federated to origin", async () =
   if (!bannedUserInfo1) {
     throw "Missing banned user 1";
   }
-  let bannedUserInfo2 = (await resolvePerson(beta, bannedUserInfo1.ap_id))
-    .person;
+  let bannedUserInfo2 = await resolvePerson(beta, bannedUserInfo1.ap_id);
+
   if (!bannedUserInfo2) {
     throw "Missing banned user 2";
   }
@@ -327,13 +328,13 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(banRes.banned).toBe(true);
 
   // ban doesn't federate to community's origin instance alpha
-  let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
-  expect(alphaPost?.creator_community_actions?.received_ban).toBeUndefined();
+  let alphaPost = await resolvePost(alpha, gammaPost.post);
+  expect(alphaPost?.creator_community_actions?.received_ban_at).toBeUndefined();
 
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);
   expect(
-    gammaPost2.post_view.creator_community_actions?.received_ban,
+    gammaPost2.post_view.creator_community_actions?.received_ban_at,
   ).toBeUndefined();
 });
 
@@ -438,8 +439,8 @@ test("User blocks instance, communities are hidden", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
 
   // fetch post to alpha
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post!;
-  expect(alphaPost.post).toBeDefined();
+  let alphaPost = await resolvePost(alpha, postRes.post_view.post);
+  expect(alphaPost?.post).toBeDefined();
 
   // post should be included in listing
   let listing = await getPosts(alpha, "All");
@@ -447,7 +448,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await userBlockInstance(alpha, alphaPost.community.instance_id, true);
+  await userBlockInstance(alpha, alphaPost!.community.instance_id, true);
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -455,7 +456,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await userBlockInstance(alpha, alphaPost.community.instance_id, false);
+  await userBlockInstance(alpha, alphaPost!.community.instance_id, false);
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
@@ -469,51 +470,45 @@ test.skip("Community follower count is federated", async () => {
   let community = await createCommunity(beta);
   let communityActorId = community.community_view.community.ap_id;
   let resolved = await resolveCommunity(alpha, communityActorId);
-  if (!resolved.community) {
+  if (!resolved?.community) {
     throw "Missing beta community";
   }
 
-  await followCommunity(alpha, true, resolved.community.community.id);
-  let followed = (
-    await waitUntil(
-      () => resolveCommunity(alpha, communityActorId),
-      c => c.community?.community_actions?.follow_state == "Accepted",
-    )
-  ).community;
+  await followCommunity(alpha, true, resolved.community.id);
+  let followed = await waitUntil(
+    () => resolveCommunity(alpha, communityActorId),
+    c => c?.community_actions?.follow_state == "Accepted",
+  );
 
   // Make sure there is 1 subscriber
   expect(followed?.community.subscribers).toBe(1);
 
   // Follow the community from gamma
   resolved = await resolveCommunity(gamma, communityActorId);
-  if (!resolved.community) {
+  if (!resolved?.community) {
     throw "Missing beta community";
   }
 
-  await followCommunity(gamma, true, resolved.community.community.id);
-  followed = (
-    await waitUntil(
-      () => resolveCommunity(gamma, communityActorId),
-      c => c.community?.community_actions?.follow_state == "Accepted",
-    )
-  ).community;
+  await followCommunity(gamma, true, resolved.community.id);
+  followed = await waitUntil(
+    () => resolveCommunity(gamma, communityActorId),
+    c => c?.community_actions?.follow_state == "Accepted",
+  );
 
   // Make sure there are 2 subscribers
   expect(followed?.community?.subscribers).toBe(2);
 
   // Follow the community from delta
   resolved = await resolveCommunity(delta, communityActorId);
-  if (!resolved.community) {
+  if (!resolved?.community) {
     throw "Missing beta community";
   }
 
-  await followCommunity(delta, true, resolved.community.community.id);
-  followed = (
-    await waitUntil(
-      () => resolveCommunity(delta, communityActorId),
-      c => c.community?.community_actions?.follow_state == "Accepted",
-    )
-  ).community;
+  await followCommunity(delta, true, resolved.community.id);
+  followed = await waitUntil(
+    () => resolveCommunity(delta, communityActorId),
+    c => c?.community_actions?.follow_state == "Accepted",
+  );
 
   // Make sure there are 3 subscribers
   expect(followed?.community?.subscribers).toBe(3);
@@ -524,9 +519,10 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
   expect(communityRes.community_view.community.subscribers).toBe(1);
 
-  let betaCommunity = (
-    await resolveCommunity(beta, communityRes.community_view.community.ap_id)
-  ).community;
+  let betaCommunity = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.ap_id,
+  );
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 
   // follow alpha community from beta
@@ -588,9 +584,9 @@ test("Fetch community, includes posts", async () => {
 
   let resolvedCommunity = await waitUntil(
     () => resolveCommunity(beta, communityRes.community_view.community.ap_id),
-    c => c.community?.community.id != undefined,
+    c => c?.community.id != undefined,
   );
-  let betaCommunity = resolvedCommunity.community;
+  let betaCommunity = resolvedCommunity;
   expect(betaCommunity?.community.ap_id).toBe(
     communityRes.community_view.community.ap_id,
   );
@@ -630,20 +626,20 @@ test("Remote mods can edit communities", async () => {
     beta,
     communityRes.community_view.community.ap_id,
   );
-  if (!betaCommunity.community) {
+  if (!betaCommunity?.community) {
     throw "Missing beta community";
   }
   let betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
 
   let form: AddModToCommunity = {
     community_id: communityRes.community_view.community.id,
-    person_id: betaOnAlpha.person?.person.id as number,
+    person_id: betaOnAlpha?.person.id as number,
     added: true,
   };
   alpha.addModToCommunity(form);
 
   let form2: EditCommunity = {
-    community_id: betaCommunity.community?.community.id as number,
+    community_id: betaCommunity.community.id as number,
     description: "Example description",
   };
 
@@ -669,7 +665,7 @@ test("Community name with non-ascii chars", async () => {
     beta,
     communityRes.community_view.community.ap_id,
   );
-  expect(betaCommunity1.community!.community.name).toBe(name);
+  expect(betaCommunity1?.community.name).toBe(name);
 
   let alphaCommunity2 = await getCommunityByName(alpha, name);
   expect(alphaCommunity2.community_view.community.name).toBe(name);
@@ -678,7 +674,7 @@ test("Community name with non-ascii chars", async () => {
   let betaCommunity2 = await getCommunityByName(beta, fediName);
   expect(betaCommunity2.community_view.community.name).toBe(name);
 
-  let postRes = await createPost(beta, betaCommunity1.community!.community.id);
+  let postRes = await createPost(beta, betaCommunity1!.community.id);
 
   let form: GetPosts = {
     community_name: fediName,
