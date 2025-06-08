@@ -142,19 +142,19 @@ UPDATE
     post AS a
 SET
     comments = a.comments + diff.comments,
-    newest_comment_time = GREATEST (a.newest_comment_time, diff.newest_comment_time),
-    newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)
+    newest_comment_time_at = GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+    newest_comment_time_necro_at = GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)
 FROM (
     SELECT
         post.id AS post_id,
         coalesce(sum(count_diff), 0) AS comments,
         -- Old rows are excluded using `count_diff = 1`
-        max((comment).published_at) FILTER (WHERE count_diff = 1) AS newest_comment_time,
+        max((comment).published_at) FILTER (WHERE count_diff = 1) AS newest_comment_time_at,
         max((comment).published_at) FILTER (WHERE count_diff = 1
             -- Ignore comments from the post's creator
             AND post.creator_id != (comment).creator_id
         -- Ignore comments on old posts
-        AND post.published_at > ((comment).published_at - '2 days'::interval)) AS newest_comment_time_necro
+        AND post.published_at > ((comment).published_at - '2 days'::interval)) AS newest_comment_time_necro_at
 FROM
     select_old_and_new_rows AS old_and_new_rows
     LEFT JOIN post ON post.id = (comment).post_id
@@ -165,10 +165,10 @@ GROUP BY
 WHERE
     a.id = diff.post_id
     AND (diff.comments,
-        GREATEST (a.newest_comment_time, diff.newest_comment_time),
-        GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
-        a.newest_comment_time,
-        a.newest_comment_time_necro);
+        GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+        GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
+        a.newest_comment_time_at,
+        a.newest_comment_time_necro_at);
 UPDATE
     local_site AS a
 SET
@@ -289,7 +289,7 @@ BEGIN
         FROM select_old_and_new_rows AS old_and_new_rows
     LEFT JOIN community ON community.id = (community_actions).community_id
     LEFT JOIN person ON person.id = (community_actions).person_id
-    WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
+    WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
@@ -391,8 +391,8 @@ BEGIN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
     -- Set aggregates
-    NEW.newest_comment_time = NEW.published_at;
-    NEW.newest_comment_time_necro = NEW.published_at;
+    NEW.newest_comment_time_at = NEW.published_at;
+    NEW.newest_comment_time_necro_at = NEW.published_at;
     RETURN NEW;
 END
 $$;
