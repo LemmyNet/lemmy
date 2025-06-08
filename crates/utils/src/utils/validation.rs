@@ -486,6 +486,8 @@ Line3",
     .is_ok());
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃").is_ok());
     assert!(is_valid_post_title("\n \n \n \n    		").is_err()); // tabs/spaces/newlines
+    assert!(is_valid_post_title("\u{206a}").is_err()); // invisible chars
+    assert!(is_valid_post_title("\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}").is_ok());
   }
 
   #[test]
