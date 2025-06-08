@@ -61,10 +61,10 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: debian:bookworm
+    image: alpine:3
     commands:
-      - apt-get update
-      - apt-get --yes --no-install-recommends --no-install-suggests install pgformatter
+      - apk add perl make bash
+      - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
@@ -75,7 +75,7 @@ steps:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
     commands:
-      - rustup component add rustfmt
+      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     when:
       - event: pull_request
@@ -261,7 +261,7 @@ steps:
         from_secret: docker_password
       platforms: linux/amd64, linux/arm64
       build_args:
-        - RUST_RELEASE_MODE=release
+        RUST_RELEASE_MODE: release
       tag: ${CI_COMMIT_TAG}
     when:
       - event: tag
@@ -304,22 +304,6 @@ steps:
     when:
       - event: tag
 
-  nightly_build:
-    image: woodpeckerci/plugin-docker-buildx
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      platforms: linux/amd64,linux/arm64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      tag: dev
-    when:
-      - event: cron
-
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
@@ -328,8 +312,8 @@ steps:
         from_secret: cargo_api_token
     commands:
       - *install_binstall
-      # Install cargo-workspaces
-      - cargo binstall -y cargo-workspaces
+      # Install cargo-workspaces, need pinned version for Rust 1.81 compat
+      - cargo binstall -y cargo-workspaces@0.3.6
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     when:

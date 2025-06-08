@@ -7,6 +7,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_api_common"
@@ -111,6 +112,7 @@ webmention = { version = "0.6.0", optional = true }
 extism = { git = "https://github.com/extism/extism.git", branch = "pool", optional = true }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "pool", optional = true }
 once_cell = { version = "1.21.3", optional = true }
+either = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

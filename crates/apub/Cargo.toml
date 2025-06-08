@@ -8,6 +8,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_apub"
@@ -54,7 +55,7 @@ async-trait = { workspace = true }
 anyhow = { workspace = true }
 serde_with.workspace = true
 enum_delegate = "0.2.0"
-either = "1.15.0"
+either = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

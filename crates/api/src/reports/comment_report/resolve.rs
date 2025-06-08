@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use either::Either;
 use lemmy_api_common::{
   context::LemmyContext,
   reports::comment::{CommentReportResponse, ResolveCommentReport},
@@ -45,7 +46,7 @@ pub async fn resolve_comment_report(
       object_id: comment_report_view.comment.ap_id.inner().clone(),
       actor: local_user_view.person,
       report_creator: report.creator,
-      community: comment_report_view.community.clone(),
+      receiver: Either::Right(comment_report_view.community.clone()),
     },
     &context,
   )?;

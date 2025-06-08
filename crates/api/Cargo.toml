@@ -8,6 +8,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_api"
@@ -32,6 +33,7 @@ lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_db_views_registration_applications = { workspace = true, features = [
@@ -56,6 +58,7 @@ hound = "3.5.1"
 sitemap-rs = "0.2.2"
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+either = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

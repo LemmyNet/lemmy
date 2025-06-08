@@ -93,7 +93,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub local: Option<bool>,
   #[new(default)]
-  pub private_key: Option<String>,
+  pub private_key: Option<SensitiveString>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -140,7 +140,9 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PersonActions {
+  #[serde(skip)]
   pub target_id: PersonId,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub followed: Option<DateTime<Utc>>,

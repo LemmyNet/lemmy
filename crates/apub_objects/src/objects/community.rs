@@ -2,7 +2,12 @@ use crate::{
   objects::instance::fetch_instance_actor_for_object,
   protocol::group::Group,
   utils::{
-    functions::{read_from_string_or_source_opt, GetActorType},
+    functions::{
+      check_apub_id_valid_with_strictness,
+      community_visibility,
+      read_from_string_or_source_opt,
+      GetActorType,
+    },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
   },
@@ -10,7 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
-  protocol::values::MediaTypeHtml,
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -39,7 +44,11 @@ use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, validation::truncate_description},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::{check_slurs, check_slurs_opt},
+    validation::truncate_description,
+  },
 };
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
@@ -137,7 +146,15 @@ impl Object for ApubCommunity {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    group.verify(expected_domain, context).await
+    check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
+    verify_domains_match(expected_domain, group.id.inner())?;
+
+    let slur_regex = slur_regex(context).await?;
+
+    check_slurs(&group.preferred_username, &slur_regex)?;
+    check_slurs_opt(&group.name, &slur_regex)?;
+    check_slurs_opt(&group.summary, &slur_regex)?;
+    Ok(())
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
@@ -155,13 +172,7 @@ impl Object for ApubCommunity {
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
-    let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
-      CommunityVisibility::Private
-    } else if !group.discoverable.unwrap_or(true) {
-      CommunityVisibility::Unlisted
-    } else {
-      CommunityVisibility::Public
-    });
+    let visibility = Some(community_visibility(&group));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())

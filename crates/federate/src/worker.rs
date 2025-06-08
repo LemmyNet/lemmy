@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_utils::error::LemmyResult;
-use std::{collections::BinaryHeap, ops::Add, time::Duration};
+use std::{cmp::max, collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
   time::sleep,
@@ -265,7 +265,7 @@ impl InstanceWorker {
         SendActivityResult::Success(s) => {
           self.in_flight -= 1;
           if !s.was_skipped {
-            self.state.fail_count = 0;
+            self.state.fail_count = max(0, self.state.fail_count - 1);
             self.mark_instance_alive().await?;
           }
           self.successfuls.push(s);
@@ -454,6 +454,7 @@ mod test {
     protocol::context::WithContext,
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
+  use futures::future::try_join_all;
   use lemmy_api_common::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
@@ -467,6 +468,7 @@ mod test {
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
   use serial_test::serial;
+  use std::sync::{Arc, RwLock};
   use test_context::{test_context, AsyncTestContext};
   use tokio::{
     spawn,
@@ -485,6 +487,7 @@ mod test {
     cleaned_up: bool,
     wait_stop_server: ServerHandle,
     is_concurrent: bool,
+    respond_with_error: Arc<RwLock<bool>>,
   }
 
   impl Data {
@@ -496,7 +499,7 @@ mod test {
       let ap_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
       let person_form = PersonInsertForm {
         ap_id: Some(ap_id.clone()),
-        private_key: (Some(actor_keypair.private_key)),
+        private_key: (Some(actor_keypair.private_key.into())),
         inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
       };
@@ -507,7 +510,8 @@ mod test {
       let (inbox_sender, inbox_receiver) = unbounded_channel();
 
       // listen for received activities in background
-      let wait_stop_server = listen_activities(inbox_sender)?;
+      let respond_with_error = Arc::new(RwLock::new(false));
+      let wait_stop_server = listen_activities(inbox_sender, respond_with_error.clone())?;
 
       let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
         .ok()
@@ -537,6 +541,7 @@ mod test {
         wait_stop_server,
         cleaned_up: false,
         is_concurrent: concurrent_sends_per_instance > 1,
+        respond_with_error,
       })
     }
 
@@ -618,10 +623,9 @@ mod test {
     assert_eq!(data.instance.id, rcv.state.instance_id);
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
-    let mut sent = Vec::new();
-    for _ in 0..40 {
-      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-    }
+    let sent =
+      try_join_all((0..40).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+        .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
     compare_sent_with_receive(data, sent).await?;
@@ -647,10 +651,10 @@ mod test {
     let counts = vec![15, 20, 35];
     for count in counts {
       tracing::debug!("sending {} activities", count);
-      let mut sent = Vec::new();
-      for _ in 0..count {
-        sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-      }
+      let sent = try_join_all(
+        (0..count).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)),
+      )
+      .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
       compare_sent_with_receive(data, sent).await?;
@@ -674,22 +678,78 @@ mod test {
 
     assert!(instance.updated.is_some());
 
-    data.cleanup().await?;
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn test_errors(data: &mut Data) -> LemmyResult<()> {
+    let form = InstanceForm::new(data.instance.domain.clone());
+    Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
+
+    // check initial state
+    let rcv = data.stats_receiver.recv().await.unwrap();
+    assert_eq!(0, rcv.state.fail_count);
+    assert_eq!(data.instance.id, rcv.state.instance_id);
+
+    // set receiver to return error for all inbox requests
+    *data.respond_with_error.write().unwrap() = true;
+
+    // send a few activities
+    try_join_all((0..5).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+      .await?;
+
+    // it immediately performs first retry giving us 2 failures
+    wait_receive(2, &mut data.stats_receiver).await;
+
+    // another automatic retry after short wait
+    wait_receive(3, &mut data.stats_receiver).await;
+
+    // now make sends successful
+    *data.respond_with_error.write().unwrap() = false;
+
+    // fail count goes back to 0
+    wait_receive(0, &mut data.stats_receiver).await;
 
     Ok(())
   }
 
-  fn listen_activities(inbox_sender: UnboundedSender<String>) -> LemmyResult<ServerHandle> {
+  async fn wait_receive(
+    expected_fail_count: i32,
+    rec: &mut UnboundedReceiver<FederationQueueStateWithDomain>,
+  ) {
+    // loop until we get the latest event
+    for _ in 0..5 {
+      let rcv = rec.recv().await.unwrap();
+      if expected_fail_count == rcv.state.fail_count {
+        return;
+      }
+    }
+    panic!();
+  }
+
+  fn listen_activities(
+    inbox_sender: UnboundedSender<String>,
+    respond_with_error: Arc<RwLock<bool>>,
+  ) -> LemmyResult<ServerHandle> {
     let run = HttpServer::new(move || {
       App::new()
         .app_data(actix_web::web::Data::new(inbox_sender.clone()))
+        .app_data(actix_web::web::Data::new(respond_with_error.clone()))
         .route(
           "/inbox",
           web::post().to(
-            |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
+            move |inbox_sender: actix_web::web::Data<UnboundedSender<String>>,
+                  respond_with_error: actix_web::web::Data<Arc<RwLock<bool>>>,
+                  body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(actix_web::http::StatusCode::OK)
+              if *respond_with_error.read().unwrap() {
+                HttpResponse::new(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR)
+              } else {
+                HttpResponse::new(actix_web::http::StatusCode::OK)
+              }
             },
           ),
         )
@@ -713,18 +773,18 @@ mod test {
     wait: bool,
   ) -> LemmyResult<SentActivity> {
     // create outgoing activity
+    let id = format!(
+      "http://ds9.lemmy.ml/activities/like/{}",
+      uuid::Uuid::new_v4()
+    );
     let data = json!({
       "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
       "object": "http://ds9.lemmy.ml/comment/1",
       "type": "Like",
-      "id": format!("http://ds9.lemmy.ml/activities/like/{}", uuid::Uuid::new_v4()),
+      "id": id,
     });
     let form = SentActivityForm {
-      ap_id: Url::parse(&format!(
-        "http://local.com/activity/{}",
-        uuid::Uuid::new_v4()
-      ))?
-      .into(),
+      ap_id: Url::parse(&id)?.into(),
       data,
       sensitive: false,
       send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
@@ -742,6 +802,7 @@ mod test {
     Ok(sent)
   }
   async fn compare_sent_with_receive(data: &mut Data, mut sent: Vec<SentActivity>) -> Result<()> {
+    assert!(!sent.is_empty());
     let check_order = !data.is_concurrent; // allow out-of order receiving when running parallel
     let mut received = Vec::new();
     for _ in 0..sent.len() {

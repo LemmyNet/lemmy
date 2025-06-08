@@ -1,5 +1,5 @@
 use super::check_community_visibility_allowed;
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_community_response,
@@ -82,21 +82,18 @@ pub async fn create_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
-  let community_ap_id = Community::local_url(&data.name, context.settings())?;
+  let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
   let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
     Err(LemmyErrorType::CommunityAlreadyExists)?
   }
-
-  // When you create a community, make sure the user becomes a moderator and a follower
-  let keypair = generate_actor_keypair()?;
 
   let community_form = CommunityInsertForm {
     sidebar,
     description,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),
-    private_key: Some(keypair.private_key),
+    private_key: site_view.site.private_key,
     followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
@@ -105,7 +102,7 @@ pub async fn create_community(
       site_view.site.instance_id,
       data.name.clone(),
       data.title.clone(),
-      keypair.public_key,
+      site_view.site.public_key,
     )
   };
 

@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::GetModlog,
-  utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
+  utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
@@ -23,15 +23,26 @@ pub async fn get_mod_log(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let is_mod_or_admin = if let Some(local_user_view) = &local_user_view {
-    check_community_mod_of_any_or_admin_action(local_user_view, &mut context.pool())
-      .await
-      .is_ok()
+  // Only show the modlog names if:
+  // You're an admin or
+  // You're fetching the modlog for a single community, and you're a mod
+  // (Alternatively !admin/mod)
+  let hide_modlog_names = if let Some(community_id) = data.community_id {
+    is_mod_or_admin_opt(
+      &mut context.pool(),
+      local_user_view.as_ref(),
+      Some(community_id),
+    )
+    .await
+    .is_err()
   } else {
-    false
+    !local_user_view
+      .as_ref()
+      .map(|l| l.local_user.admin)
+      .unwrap_or_default()
   };
-  let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_or_admin;
 
+  // Only allow mod person id filters if its not hidden
   let mod_person_id = if hide_modlog_names {
     None
   } else {
