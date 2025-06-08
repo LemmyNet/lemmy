@@ -193,7 +193,7 @@ BEGIN
             INNER JOIN post p ON pa.post_id = p.id
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pa.liked_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -205,7 +205,7 @@ BEGIN
             INNER JOIN post p ON c.post_id = p.id
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            ca.liked_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
@@ -270,7 +270,7 @@ BEGIN
             post_actions pa
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pa.liked_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
@@ -280,7 +280,7 @@ BEGIN
             comment_actions ca
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            ca.liked_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;

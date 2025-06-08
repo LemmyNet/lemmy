@@ -144,7 +144,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     &mut conn,
     "comment",
     "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.score, a.published)",
+    "SET hot_rank = r.hot_rank(a.score, a.published_at)",
   )
   .await?;
 
@@ -152,7 +152,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     &mut conn,
     "community",
     "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.subscribers, a.published)",
+    "SET hot_rank = r.hot_rank(a.subscribers, a.published_at)",
   )
   .await?;
 
@@ -163,7 +163,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
   #[diesel(sql_type = Timestamptz)]
-  published: DateTime<Utc>,
+  published_at: DateTime<Utc>,
 }
 
 /// Runs the hot rank update query in batches until all rows have been processed.
@@ -187,12 +187,12 @@ async fn process_ranks_in_batches(
     let updated_rows = sql_query(format!(
       r#"WITH batch AS (SELECT a.id
                FROM {table_name} a
-               WHERE a.published > $1 AND ({where_clause})
-               ORDER BY a.published
+               WHERE a.published_at > $1 AND ({where_clause})
+               ORDER BY a.published_at
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
          UPDATE {table_name} a {set_clause}
-             FROM batch WHERE a.id = batch.id RETURNING a.published;
+             FROM batch WHERE a.id = batch.id RETURNING a.published_at;
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
@@ -204,7 +204,7 @@ async fn process_ranks_in_batches(
     })?;
 
     processed_rows_count += updated_rows.len();
-    previous_batch_result = updated_rows.last().map(|row| row.published);
+    previous_batch_result = updated_rows.last().map(|row| row.published_at);
   }
   info!(
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
@@ -225,19 +225,19 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     let updated_rows = sql_query(
       r#"WITH batch AS (SELECT pa.id
            FROM post pa
-           WHERE pa.published > $1
+           WHERE pa.published_at > $1
            AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
-           ORDER BY pa.published
+           ORDER BY pa.published_at
            LIMIT $2
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
-      SET hot_rank = r.hot_rank(pa.score, pa.published),
-          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
-          scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
+      SET hot_rank = r.hot_rank(pa.score, pa.published_at),
+          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro_at),
+          scaled_rank = r.scaled_rank(pa.score, pa.published_at, ca.interactions_month)
       FROM batch, community ca
       WHERE pa.id = batch.id
       AND pa.community_id = ca.id
-      RETURNING pa.published;
+      RETURNING pa.published_at;
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
@@ -249,7 +249,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     })?;
 
     processed_rows_count += updated_rows.len();
-    previous_batch_result = updated_rows.last().map(|row| row.published);
+    previous_batch_result = updated_rows.last().map(|row| row.published_at);
   }
   info!(
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
