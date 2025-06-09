@@ -785,6 +785,8 @@ diesel::table! {
         followed -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
         blocked -> Nullable<Timestamptz>,
+        noted_at -> Nullable<Timestamptz>,
+        note -> Nullable<Text>,
     }
 }
 

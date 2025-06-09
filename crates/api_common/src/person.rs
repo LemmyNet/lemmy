@@ -371,6 +371,17 @@ pub struct BlockPersonResponse {
   pub blocked: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a note for a person.
+///
+/// An empty string deletes the note.
+pub struct NotePerson {
+  pub person_id: PersonId,
+  pub note: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

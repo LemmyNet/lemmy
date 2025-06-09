@@ -37,6 +37,7 @@ use lemmy_api::{
     list_saved::list_person_saved,
     login::login,
     logout::logout,
+    note_person::user_note_person,
     notifications::{
       list_inbox::list_inbox,
       mark_all_read::mark_all_notifications_read,
@@ -369,6 +370,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
           )
+          .route("/note/person", post().to(user_note_person))
           .route("/saved", get().to(list_person_saved))
           .route("/read", get().to(list_person_read))
           .route("/hidden", get().to(list_person_hidden))

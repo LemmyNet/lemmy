@@ -14,6 +14,7 @@ pub mod list_read;
 pub mod list_saved;
 pub mod login;
 pub mod logout;
+pub mod note_person;
 pub mod notifications;
 pub mod report_count;
 pub mod resend_verification_email;

@@ -7,9 +7,10 @@ use crate::{
     PersonBlockForm,
     PersonFollowerForm,
     PersonInsertForm,
+    PersonNoteForm,
     PersonUpdateForm,
   },
-  traits::{ApubActor, Blockable, Crud, Followable},
+  traits::{ApubActor, Blockable, Crud, Followable, Notable},
   utils::{format_actor_url, functions::lower, get_conn, uplete, DbPool},
 };
 use chrono::Utc;
@@ -323,6 +324,39 @@ impl Blockable for PersonActions {
       .load::<Person>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+impl Notable for PersonActions {
+  type Form = PersonNoteForm;
+  type ObjectIdType = PersonId;
+  type ObjectType = Person;
+
+  async fn note(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(person_actions::table)
+      .values(form)
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set(form)
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::PersonNoteAlreadyExists)
+  }
+
+  async fn delete_note(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: Self::ObjectIdType,
+  ) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+    uplete::new(person_actions::table.find((person_id, target_id)))
+      .set_null(person_actions::note)
+      .set_null(person_actions::noted_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::PersonNoteAlreadyExists)
   }
 }
 
