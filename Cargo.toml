@@ -114,7 +114,6 @@ lemmy_apub_objects = { version = "=1.0.0-alpha.5", path = "./crates/apub_objects
 lemmy_utils = { version = "=1.0.0-alpha.5", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.5", path = "./crates/db_schema" }
 lemmy_db_schema_file = { version = "=1.0.0-alpha.5", path = "./crates/db_schema_file" }
-lemmy_api_common = { version = "=1.0.0-alpha.5", path = "./crates/api_common" }
 lemmy_api_utils = { version = "=1.0.0-alpha.5", path = "./crates/api_utils" }
 lemmy_routes = { version = "=1.0.0-alpha.5", path = "./crates/routes" }
 lemmy_federate = { version = "=1.0.0-alpha.5", path = "./crates/federate" }

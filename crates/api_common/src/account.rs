@@ -7,6 +7,11 @@ pub use lemmy_db_views_api_misc::{
   MyUserInfo,
   SaveUserSettings,
 };
+pub use lemmy_db_views_person_liked_combined::{
+  ListPersonLiked,
+  ListPersonLikedResponse,
+  PersonLikedCombinedView,
+};
 pub use lemmy_db_views_person_saved_combined::{
   ListPersonSaved,
   ListPersonSavedResponse,
