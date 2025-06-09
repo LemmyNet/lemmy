@@ -47,6 +47,7 @@ async fn convert_response(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
   let mut res = ResolveObjectResponse::default();
+  let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
   let local_user = local_user_view.map(|l| l.local_user);
   let is_admin = local_user.clone().map(|l| l.admin).unwrap_or_default();
 
@@ -66,7 +67,8 @@ async fn convert_response(
     },
     SearchableObjects::Right(pc) => match pc {
       UserOrCommunity::Left(u) => {
-        res.person = Some(PersonView::read(pool, u.id, local_instance_id, is_admin).await?)
+        res.person =
+          Some(PersonView::read(pool, u.id, my_person_id, local_instance_id, is_admin).await?)
       }
       UserOrCommunity::Right(c) => {
         res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
