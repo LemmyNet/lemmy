@@ -14,10 +14,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::{delete_image_from_pictrs, PictrsResponse},
 };
-use lemmy_db_schema::source::{
-  images::{LocalImage, LocalImageForm, RemoteImage},
-  local_site::LocalSite,
-};
+use lemmy_db_schema::source::images::{LocalImage, LocalImageForm, RemoteImage};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
@@ -175,13 +172,7 @@ async fn full_res(
   req: HttpRequest,
   client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
-  local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<HttpResponse> {
-  // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  if local_site.private_instance && local_user_view.is_none() {
-    return Ok(HttpResponse::Unauthorized().finish());
-  }
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
