@@ -139,7 +139,7 @@ bcrypt = "0.15.1"
 chrono = { version = "0.4.41", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.140", features = ["preserve_order"] }
 base64 = "0.22.1"
-uuid = { version = "1.10.0", features = ["serde", "v4"] }
+uuid = { version = "1.10.0", features = ["serde", "v4", "js"] }
 async-trait = "0.1.88"
 captcha = "0.0.9"
 anyhow = { version = "1.0.86", features = [
