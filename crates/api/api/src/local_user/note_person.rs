@@ -3,10 +3,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
-use lemmy_db_schema::{
-  source::person::{PersonActions, PersonNoteForm},
-  traits::Notable,
-};
+use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
 use lemmy_db_views_api_misc::{NotePerson, SuccessResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{

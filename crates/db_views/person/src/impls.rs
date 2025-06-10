@@ -134,7 +134,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
-    traits::{Crud, Notable},
+    traits::Crud,
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;

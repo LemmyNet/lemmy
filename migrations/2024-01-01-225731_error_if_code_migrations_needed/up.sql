@@ -11,7 +11,7 @@ BEGIN
                 FROM
                     person
                 WHERE
-                    ap_id LIKE 'http://changeme%'
+                    actor_id LIKE 'http://changeme%'
                     OR (local
                         AND public_key = ''))
             UNION ALL (
@@ -20,7 +20,7 @@ BEGIN
                 FROM
                     community
                 WHERE
-                    ap_id LIKE 'http://changeme%'
+                    actor_id LIKE 'http://changeme%'
                     OR (local
                         AND public_key = ''))
             UNION ALL (

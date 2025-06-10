@@ -266,25 +266,6 @@ pub trait Blockable {
     Self: Sized;
 }
 
-pub trait Notable {
-  type Form;
-  type ObjectIdType;
-  type ObjectType;
-  fn note(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn delete_note(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    target_id: Self::ObjectIdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
-  where
-    Self: Sized;
-}
-
 pub trait Reportable {
   type Form;
   type IdType;

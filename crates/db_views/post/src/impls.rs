@@ -560,17 +560,7 @@ mod tests {
       site::Site,
       tag::{Tag, TagInsertForm},
     },
-    traits::{
-      Bannable,
-      Blockable,
-      Crud,
-      Followable,
-      Hideable,
-      Joinable,
-      Likeable,
-      Notable,
-      Readable,
-    },
+    traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
