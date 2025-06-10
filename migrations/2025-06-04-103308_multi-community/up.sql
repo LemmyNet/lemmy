@@ -83,6 +83,8 @@ CREATE INDEX idx_multi_community_ap_id ON multi_community (ap_id);
 
 CREATE INDEX idx_multi_creator_id ON multi_community (creator_id);
 
+CREATE INDEX idx_multi_community_follow_multi_id ON multi_community_follow (multi_community_id);
+
 CREATE INDEX idx_multi_followed_by ON multi_community_follow (person_id);
 
 CREATE INDEX idx_multi_community_entry_community_id ON multi_community_entry (community_id);
