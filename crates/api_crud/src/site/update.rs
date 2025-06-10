@@ -3,9 +3,8 @@ use crate::site::{application_question_check, site_default_post_listing_type_che
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  site::{EditSite, SiteResponse},
   utils::{
     get_url_blocklist,
     is_admin,
@@ -28,7 +27,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{
+  api::{EditSite, SiteResponse},
+  SiteView,
+};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -222,9 +224,9 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
 mod tests {
 
   use crate::site::update::validate_update_payload;
-  use lemmy_api_common::site::EditSite;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
+  use lemmy_db_views_site::api::EditSite;
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]

@@ -1,9 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::{build_comment_response, send_local_notifs},
-  comment::{CommentResponse, EditComment},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
@@ -15,7 +14,10 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment::{
+  api::{CommentResponse, EditComment},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

@@ -19,6 +19,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
@@ -41,7 +42,7 @@ lemmy_db_views_registration_applications = { workspace = true, features = [
 ] }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }

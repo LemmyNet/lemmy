@@ -1,11 +1,12 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, SuccessResponse};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   comment_reply::CommentReply,
   person_comment_mention::PersonCommentMention,
   person_post_mention::PersonPostMention,
   private_message::PrivateMessage,
 };
+use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

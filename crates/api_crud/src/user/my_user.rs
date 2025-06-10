@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   },
   traits::Blockable,
 };
+use lemmy_db_views_api_misc::MyUserInfo;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;

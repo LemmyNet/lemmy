@@ -1,12 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use bcrypt::verify;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
   utils::purge_user_account,
-  SuccessResponse,
 };
 use lemmy_db_schema::source::{
   community::CommunityActions,
@@ -14,6 +12,7 @@ use lemmy_db_schema::source::{
   oauth_account::OAuthAccount,
   person::Person,
 };
+use lemmy_db_views_api_misc::{DeleteAccount, SuccessResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

@@ -1,11 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
@@ -15,7 +11,10 @@ use lemmy_db_schema::{
   utils::{diesel_string_update, get_conn},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_db_views_registration_applications::{
+  api::{ApproveRegistrationApplication, RegistrationApplicationResponse},
+  RegistrationApplicationView,
+};
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::LemmyResult;
 

@@ -1,8 +1,7 @@
 use actix_web::web::{Data, Json};
 use anyhow::Context;
 use diesel_async::scoped_futures::ScopedFutureExt;
-use lemmy_api_common::{
-  community::{GetCommunityResponse, TransferCommunity},
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
@@ -14,7 +13,10 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
   utils::get_conn,
 };
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{
+  api::{GetCommunityResponse, TransferCommunity},
+  CommunityView,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
@@ -22,7 +24,7 @@ use lemmy_utils::{
   location_info,
 };
 
-// TODO: we dont do anything for federation here, it should be updated the next time the community
+// TODO: we don't do anything for federation here, it should be updated the next time the community
 //       gets fetched. i hope we can get rid of the community creator role soon.
 
 pub async fn transfer_community(
