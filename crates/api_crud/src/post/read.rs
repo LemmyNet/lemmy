@@ -1,7 +1,6 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  post::{GetPost, GetPostResponse},
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
 use lemmy_db_schema::{
@@ -14,7 +13,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{GetPost, GetPostResponse},
+  PostView,
+};
 use lemmy_db_views_search_combined::impls::SearchCombinedQuery;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

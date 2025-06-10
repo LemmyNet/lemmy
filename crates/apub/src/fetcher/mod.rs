@@ -5,11 +5,11 @@ use activitypub_federation::{
 };
 use diesel::NotFound;
 use itertools::Itertools;
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
 pub mod search;
 

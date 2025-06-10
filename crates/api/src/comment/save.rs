@@ -1,13 +1,13 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  comment::{CommentResponse, SaveComment},
-  context::LemmyContext,
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::comment::{CommentActions, CommentSavedForm},
   traits::Saveable,
 };
-use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment::{
+  api::{CommentResponse, SaveComment},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

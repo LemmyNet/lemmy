@@ -7,7 +7,7 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{local_user_view_from_jwt, read_auth_token},
 };
@@ -101,7 +101,7 @@ where
 mod tests {
 
   use actix_web::test::TestRequest;
-  use lemmy_api_common::{claims::Claims, context::LemmyContext};
+  use lemmy_api_utils::{claims::Claims, context::LemmyContext};
   use lemmy_db_schema::{
     source::{
       instance::Instance,

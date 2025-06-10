@@ -2,9 +2,8 @@ use crate::check_report_reason;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use either::Either;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  reports::post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, check_post_deleted_or_removed, slur_regex},
 };
@@ -14,7 +13,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_reports::PostReportView;
+use lemmy_db_views_reports::{
+  api::{CreatePostReport, PostReportResponse},
+  PostReportView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;

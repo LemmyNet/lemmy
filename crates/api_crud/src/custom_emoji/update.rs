@@ -1,10 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  context::LemmyContext,
-  custom_emoji::{CustomEmojiResponse, EditCustomEmoji},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiUpdateForm},
@@ -12,7 +8,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_custom_emoji::CustomEmojiView;
+use lemmy_db_views_custom_emoji::{
+  api::{CustomEmojiResponse, EditCustomEmoji},
+  CustomEmojiView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

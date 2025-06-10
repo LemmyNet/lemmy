@@ -1,8 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
-use lemmy_api_common::{
-  community::{BlockCommunity, BlockCommunityResponse},
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
@@ -11,7 +10,10 @@ use lemmy_db_schema::{
   traits::{Blockable, Followable},
   utils::get_conn,
 };
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{
+  api::{BlockCommunity, BlockCommunityResponse},
+  CommunityView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

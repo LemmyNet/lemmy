@@ -1,11 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{read_auth_token, AUTH_COOKIE_NAME},
-  SuccessResponse,
 };
 use lemmy_db_schema::source::login_token::LoginToken;
+use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

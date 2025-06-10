@@ -1,13 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  community::ApproveCommunityPendingFollower,
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::is_mod_or_admin,
-  SuccessResponse,
 };
 use lemmy_db_schema::{source::community::CommunityActions, traits::Followable};
+use lemmy_db_views_api_misc::SuccessResponse;
+use lemmy_db_views_community::api::ApproveCommunityPendingFollower;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

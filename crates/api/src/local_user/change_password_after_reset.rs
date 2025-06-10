@@ -1,15 +1,11 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::PasswordChangeAfterReset,
-  utils::password_length_check,
-  SuccessResponse,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::password_length_check};
 use lemmy_db_schema::source::{
   local_user::LocalUser,
   login_token::LoginToken,
   password_reset_request::PasswordResetRequest,
 };
+use lemmy_db_views_api_misc::{PasswordChangeAfterReset, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password_after_reset(

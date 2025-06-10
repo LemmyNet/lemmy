@@ -1,9 +1,9 @@
-use crate::{site::PluginMetadata, LemmyErrorType};
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
+use lemmy_db_views_api_misc::PluginMetadata;
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
   VERSION,
 };

@@ -1,4 +1,4 @@
-use lemmy_api_common::utils::is_admin;
+use lemmy_api_utils::utils::is_admin;
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

@@ -1,11 +1,9 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  site::PurgePost,
   utils::{is_admin, purge_post_images},
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +13,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::api::PurgePost;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_post(
