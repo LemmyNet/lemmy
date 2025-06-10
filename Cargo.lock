@@ -121,7 +121,7 @@ dependencies = [
  "mime",
  "percent-encoding",
  "pin-project-lite",
- "rand 0.9.0",
+ "rand 0.9.1",
  "sha1",
  "smallvec",
  "tokio",
@@ -823,7 +823,7 @@ dependencies = [
  "hound",
  "image",
  "lodepng",
- "rand 0.9.0",
+ "rand 0.9.1",
  "serde_json",
 ]
 
@@ -3870,6 +3870,7 @@ dependencies = [
  "lemmy_utils",
  "pretty_assertions",
  "prometheus",
+ "rand 0.9.1",
  "reqwest 0.12.18",
  "reqwest-middleware",
  "rss",
@@ -3987,7 +3988,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4865,7 +4866,7 @@ dependencies = [
  "hmac",
  "md-5",
  "memchr",
- "rand 0.9.0",
+ "rand 0.9.1",
  "sha2",
  "stringprep",
 ]
@@ -5159,13 +5160,12 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3779b94aeb87e8bd4e834cee3650289ee9e0d5677f976ecdb6d219e5f4f6cd94"
+checksum = "9fbfd9d094a40bf3ae768db9361049ace4c0e04a4fd6b359518bd7b73a73dd97"
 dependencies = [
  "rand_chacha 0.9.0",
  "rand_core 0.9.0",
- "zerocopy 0.8.17",
 ]
 
 [[package]]
@@ -6495,7 +6495,7 @@ dependencies = [
  "pin-project-lite",
  "postgres-protocol",
  "postgres-types",
- "rand 0.9.0",
+ "rand 0.9.1",
  "socket2",
  "tokio",
  "tokio-util",
@@ -6593,7 +6593,7 @@ dependencies = [
  "base32",
  "constant_time_eq",
  "hmac",
- "rand 0.9.0",
+ "rand 0.9.1",
  "sha1",
  "sha2",
  "url",
@@ -7599,7 +7599,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
