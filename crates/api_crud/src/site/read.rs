@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, plugins::plugin_metadata, site::GetSiteResponse};
+use lemmy_api_utils::{context::LemmyContext, plugins::plugin_metadata};
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
@@ -9,7 +9,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{api::GetSiteResponse, SiteView};
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 

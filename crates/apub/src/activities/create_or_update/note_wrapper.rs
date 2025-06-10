@@ -4,7 +4,7 @@ use crate::protocol::activities::create_or_update::{
   private_message::CreateOrUpdatePrivateMessage,
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{objects::community::ApubCommunity, utils::protocol::InCommunity};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};

@@ -1,9 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
@@ -15,7 +14,10 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_private_message::{
+  api::{CreatePrivateMessage, PrivateMessageResponse},
+  PrivateMessageView,
+};
 use lemmy_email::notifications::send_private_message_email;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 

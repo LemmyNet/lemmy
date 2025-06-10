@@ -2,7 +2,8 @@ use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_i
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use either::Either::*;
-use lemmy_api_common::{context::LemmyContext, site::ResolveObject, utils::check_private_instance};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_db_views_api_misc::ResolveObject;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;

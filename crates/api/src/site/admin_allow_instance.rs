@@ -1,12 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::AdminAllowInstanceParams,
-  utils::is_admin,
-  LemmyErrorType,
-  SuccessResponse,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
@@ -15,8 +9,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_db_views_site::api::AdminAllowInstanceParams;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_allow_instance(
   data: Json<AdminAllowInstanceParams>,

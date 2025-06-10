@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{AsExpression, FromSqlRow},
+  diesel::{sql_types::Nullable, AsExpression, FromSqlRow},
   lemmy_db_schema_file::schema::tag,
   ts_rs::TS,
 };

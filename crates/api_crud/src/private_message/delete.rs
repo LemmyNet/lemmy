@@ -1,8 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  private_message::{DeletePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_db_schema::{
@@ -10,7 +9,10 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_private_message::{
+  api::{DeletePrivateMessage, PrivateMessageResponse},
+  PrivateMessageView,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_private_message(

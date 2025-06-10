@@ -2,11 +2,10 @@ use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   tags::update_post_tags,
@@ -31,7 +30,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{EditPost, PostResponse},
+  PostView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

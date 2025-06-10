@@ -1,14 +1,14 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{PostResponse, SavePost},
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::post::{PostActions, PostReadForm, PostSavedForm},
   traits::{Readable, Saveable},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{PostResponse, SavePost},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(

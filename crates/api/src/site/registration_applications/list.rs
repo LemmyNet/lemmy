@@ -1,13 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
+  api::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   impls::RegistrationApplicationQuery,
   RegistrationApplicationView,
 };
