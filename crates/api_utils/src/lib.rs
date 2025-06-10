@@ -1,16 +1,8 @@
-#[cfg(feature = "full")]
 pub mod build_response;
-#[cfg(feature = "full")]
 pub mod claims;
-#[cfg(feature = "full")]
 pub mod context;
-#[cfg(feature = "full")]
 pub mod plugins;
-#[cfg(feature = "full")]
 pub mod request;
-#[cfg(feature = "full")]
 pub mod send_activity;
-#[cfg(feature = "full")]
 pub mod tags;
-#[cfg(feature = "full")]
 pub mod utils;
