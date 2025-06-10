@@ -1,10 +1,10 @@
 use crate::newtypes::{CommunityId, DbUrl, TagId};
 use chrono::{DateTime, Utc};
-use diesel::sql_types::Nullable;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
+  diesel::sql_types::Nullable,
   diesel::{AsExpression, FromSqlRow},
   lemmy_db_schema_file::schema::tag,
   ts_rs::TS,
