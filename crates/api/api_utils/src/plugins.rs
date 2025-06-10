@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool};
+use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
 use lemmy_db_views_api_misc::PluginMetadata;
 use lemmy_utils::{
@@ -16,7 +16,6 @@ use std::{
   io::BufReader,
   ops::Deref,
   path::PathBuf,
-  thread::available_parallelism,
   time::Duration,
 };
 use tokio::task::spawn_blocking;
@@ -46,15 +45,10 @@ where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
   for p in plugins.0 {
-    // TODO: add helper method (requires PoolPlugin to be public)
-    // https://github.com/extism/extism/pull/696/files#r2003467812
-    let p = p
-      .plugin_pool
-      .get(&(), GET_PLUGIN_TIMEOUT)?
-      .ok_or(anyhow!("plugin timeout"))?;
-    if p.plugin().function_exists(name) {
+    if let Some(plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();
-      p.call::<Json<T>, ()>(name, params)
+      plugin
+        .call::<Json<T>, ()>(name, params)
         .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
     }
   }
@@ -74,12 +68,7 @@ where
   spawn_blocking(move || {
     let mut res: Json<T> = data.into();
     for p in plugins.0 {
-      // TODO: add helper method (see above)
-      let plugin = p
-        .plugin_pool
-        .get(&(), GET_PLUGIN_TIMEOUT)?
-        .ok_or(anyhow!("plugin timeout"))?;
-      if plugin.plugin().function_exists(name) {
+      if let Some(plugin) = p.get(name)? {
         let r = plugin
           .call(name, res)
           .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
@@ -120,13 +109,26 @@ impl LemmyPlugin {
     manifest
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
-    let plugin_pool: Pool<()> = Pool::new(available_parallelism()?.into());
+    let plugin_pool: Pool<()> = Pool::new();
     let builder = PluginBuilder::new(manifest).with_wasi(true);
     let metadata: PluginMetadata = builder.clone().build()?.call("metadata", 0)?;
     plugin_pool.add_builder((), builder);
     Ok(LemmyPlugin {
       plugin_pool,
       metadata,
+    })
+  }
+
+  fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
+    let p = self
+      .plugin_pool
+      .get(&(), GET_PLUGIN_TIMEOUT)?
+      .ok_or(anyhow!("plugin timeout"))?;
+
+    Ok(if p.plugin().function_exists(name) {
+      Some(p)
+    } else {
+      None
     })
   }
 }

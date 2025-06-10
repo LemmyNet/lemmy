@@ -40,8 +40,8 @@ once_cell = { version = "1.21.3" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
-extism = { git = "https://github.com/extism/extism.git", branch = "pool" }
-extism-convert = { git = "https://github.com/extism/extism.git", branch = "pool" }
+extism = { workspace = true }
+extism-convert = { workspace = true }
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }
