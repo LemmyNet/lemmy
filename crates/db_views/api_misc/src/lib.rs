@@ -359,12 +359,18 @@ pub struct SaveUserSettings {
   pub hide_media: Option<bool>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A response that completes successfully.
 pub struct SuccessResponse {
   pub success: bool,
+}
+
+impl Default for SuccessResponse {
+  fn default() -> Self {
+    SuccessResponse { success: true }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
