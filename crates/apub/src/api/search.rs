@@ -1,7 +1,7 @@
 use crate::{api::resolve_object::resolve_object_internal, fetcher::resolve_ap_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use futures::future::try_join;
+use futures::future::join;
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
@@ -67,8 +67,12 @@ pub async fn search(
 
   let results = if let Some(q) = &data.search_term {
     let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
-    let (mut search, resolve) = try_join(search_fut, resolve_fut).await?;
-    search.push(resolve);
+    let (search, resolve) = join(search_fut, resolve_fut).await;
+    let mut search = search?;
+    // Ignore resolve errors as query may not be Activitypub object
+    if let Ok(resolve) = resolve {
+      search.push(resolve);
+    }
     search
   } else {
     search_fut.await?
