@@ -27,7 +27,6 @@ import {
   waitUntil,
   alphaUrl,
   delta,
-  searchPostLocal,
   longDelay,
   editCommunity,
   unfollows,
@@ -43,8 +42,10 @@ import {
   CommunityReportView,
   EditCommunity,
   GetPosts,
+  LemmyError,
   ReportCombinedView,
   ResolveCommunityReport,
+  Search,
 } from "lemmy-js-client";
 
 beforeAll(setupLogins);
@@ -77,7 +78,7 @@ test("Create community", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    Error("community_already_exists"),
+    new LemmyError("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -418,7 +419,7 @@ test("Get community for different casing on domain", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    Error("community_already_exists"),
+    new LemmyError("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -509,9 +510,6 @@ test.skip("Community follower count is federated", async () => {
     () => resolveCommunity(delta, communityActorId),
     c => c?.community_actions?.follow_state == "Accepted",
   );
-
-  // Make sure there are 3 subscribers
-  expect(followed?.community?.subscribers).toBe(3);
 });
 
 test("Dont receive community activities after unsubscribe", async () => {
@@ -567,8 +565,14 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
   // await longDelay();
 
-  let postResBeta = searchPostLocal(beta, postRes.post_view.post);
-  expect((await postResBeta).results.length).toBe(0);
+  let form: Search = {
+    search_term: postRes.post_view.post.name,
+    type_: "Posts",
+    listing_type: "All",
+  };
+
+  let res = await beta.search(form);
+  expect(res.results.length).toBe(0);
 });
 
 test("Fetch community, includes posts", async () => {
@@ -610,12 +614,12 @@ test("Content in local-only community doesn't federate", async () => {
   // cant resolve the community from another instance
   await expect(
     resolveCommunity(beta, communityRes.ap_id),
-  ).rejects.toStrictEqual(Error("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found"));
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
   await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
 });
 

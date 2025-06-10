@@ -42,9 +42,10 @@ default = []
 
 [workspace]
 members = [
-  "crates/api",
-  "crates/api_crud",
-  "crates/api_common",
+  "crates/api/api",
+  "crates/api/api_crud",
+  "crates/api/api_common",
+  "crates/api/api_utils",
   "crates/apub",
   "crates/apub_objects",
   "crates/utils",
@@ -107,14 +108,14 @@ expect_used = "deny"
 as_conversions = "deny"
 
 [workspace.dependencies]
-lemmy_api = { version = "=1.0.0-alpha.5", path = "./crates/api" }
-lemmy_api_crud = { version = "=1.0.0-alpha.5", path = "./crates/api_crud" }
+lemmy_api = { version = "=1.0.0-alpha.5", path = "./crates/api/api" }
+lemmy_api_crud = { version = "=1.0.0-alpha.5", path = "./crates/api/api_crud" }
 lemmy_apub = { version = "=1.0.0-alpha.5", path = "./crates/apub" }
 lemmy_apub_objects = { version = "=1.0.0-alpha.5", path = "./crates/apub_objects" }
 lemmy_utils = { version = "=1.0.0-alpha.5", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.5", path = "./crates/db_schema" }
 lemmy_db_schema_file = { version = "=1.0.0-alpha.5", path = "./crates/db_schema_file" }
-lemmy_api_utils = { version = "=1.0.0-alpha.5", path = "./crates/api_utils" }
+lemmy_api_utils = { version = "=1.0.0-alpha.5", path = "./crates/api/api_utils" }
 lemmy_routes = { version = "=1.0.0-alpha.5", path = "./crates/routes" }
 lemmy_federate = { version = "=1.0.0-alpha.5", path = "./crates/federate" }
 lemmy_email = { version = "=1.0.0-alpha.5", path = "./crates/email" }
@@ -219,6 +220,8 @@ tuplex = "0.1.2"
 html2text = "0.14.0"
 async-trait = "0.1.88"
 either = "1.15.0"
+extism = { git = "https://github.com/extism/extism.git", branch = "main" }
+extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 
 [dependencies]
 lemmy_api = { workspace = true }

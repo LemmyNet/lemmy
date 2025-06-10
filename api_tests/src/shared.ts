@@ -50,7 +50,6 @@ import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
 import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
 import { Search } from "lemmy-js-client/dist/types/Search";
-import { SearchResponse } from "lemmy-js-client/dist/types/SearchResponse";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
 import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
@@ -317,19 +316,24 @@ export async function resolvePost(
   let form: ResolveObject = {
     q: post.ap_id,
   };
-  return api.resolveObject(form).then(a => a.post);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Post" ? a : undefined));
 }
 
 export async function searchPostLocal(
   api: LemmyHttp,
   post: Post,
-): Promise<SearchResponse> {
+): Promise<PostView | undefined> {
   let form: Search = {
     search_term: post.name,
     type_: "Posts",
     listing_type: "All",
   };
-  return api.search(form);
+  let res = await api.search(form);
+  let first = res.results.at(0);
+  return first?.type_ == "Post" ? first : undefined;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -338,10 +342,10 @@ export async function waitForPost(
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
+  return waitUntil(
+    () => searchPostLocal(api, post),
     checker,
-  );
+  ) as Promise<PostView>;
 }
 
 export async function getPost(
@@ -393,7 +397,10 @@ export async function resolveComment(
   let form: ResolveObject = {
     q: comment.ap_id,
   };
-  return api.resolveObject(form).then(a => a.comment);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Comment" ? a : undefined));
 }
 
 export async function resolveBetaCommunity(
@@ -403,7 +410,10 @@ export async function resolveBetaCommunity(
   let form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
-  return api.resolveObject(form).then(a => a.community);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Community" ? a : undefined));
 }
 
 export async function resolveCommunity(
@@ -413,7 +423,10 @@ export async function resolveCommunity(
   let form: ResolveObject = {
     q,
   };
-  return api.resolveObject(form).then(a => a.community);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Community" ? a : undefined));
 }
 
 export async function resolvePerson(
@@ -423,7 +436,10 @@ export async function resolvePerson(
   let form: ResolveObject = {
     q: apShortname,
   };
-  return api.resolveObject(form).then(a => a.person);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Person" ? a : undefined));
 }
 
 export async function banPersonFromSite(

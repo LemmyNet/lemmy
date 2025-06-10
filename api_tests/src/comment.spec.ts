@@ -44,6 +44,7 @@ import {
   CommentView,
   CommunityView,
   DistinguishComment,
+  LemmyError,
   PersonCommentMentionView,
   ReportCombinedView,
   SaveUserSettings,
@@ -100,7 +101,7 @@ test("Create a comment", async () => {
 
 test("Create a comment in a non-existent post", async () => {
   await expect(createComment(alpha, -1)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
 });
 

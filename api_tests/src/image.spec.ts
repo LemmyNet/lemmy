@@ -283,11 +283,10 @@ test("No image proxying if setting is disabled", async () => {
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
-  let betaPost = await waitForPost(
-    beta,
-    post.post_view.post,
-    res => res?.post.alt_text != null,
-  );
+  let betaPost = await waitForPost(beta, post.post_view.post, res => {
+    console.log(res?.post.alt_text);
+    return res?.post.alt_text != null;
+  });
   expect(betaPost.post).toBeDefined();
 
   // remote image doesn't get proxied after federation
