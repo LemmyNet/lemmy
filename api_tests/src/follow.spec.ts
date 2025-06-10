@@ -21,7 +21,7 @@ afterAll(unfollows);
 test("Follow local community", async () => {
   let user = await registerUser(beta, betaUrl);
 
-  let community = (await resolveBetaCommunity(user)).community!;
+  let community = await resolveBetaCommunity(user)!;
   let follow = await followCommunity(user, true, community.community.id);
 
   // Make sure the follow response went through
@@ -52,12 +52,10 @@ test("Follow local community", async () => {
 test("Follow federated community", async () => {
   // It takes about 1 second for the community aggregates to federate
   await delay(2000); // if this is the second test run, we don't have a way to wait for the correct number of subscribers
-  const betaCommunityInitial = (
-    await waitUntil(
-      () => resolveBetaCommunity(alpha),
-      c => !!c.community && c.community?.community.subscribers >= 1,
-    )
-  ).community;
+  const betaCommunityInitial = await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => !!c.community && c.community?.subscribers >= 1,
+  );
   if (!betaCommunityInitial) {
     throw "Missing beta community";
   }
@@ -67,12 +65,10 @@ test("Follow federated community", async () => {
     betaCommunityInitial.community.id,
   );
   expect(follow.community_view.community_actions?.follow_state).toBe("Pending");
-  const betaCommunity = (
-    await waitUntil(
-      () => resolveBetaCommunity(alpha),
-      c => c.community?.community_actions?.follow_state === "Accepted",
-    )
-  ).community;
+  const betaCommunity = await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => c.community_actions?.follow_state === "Accepted",
+  );
 
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);
@@ -84,7 +80,7 @@ test("Follow federated community", async () => {
 
   // check that unfollow was federated
   let communityOnBeta1 = await resolveBetaCommunity(beta);
-  expect(communityOnBeta1.community?.community.subscribers).toBe(
+  expect(communityOnBeta1.community.subscribers).toBe(
     betaCommunityInitial.community.subscribers + 1,
   );
 
@@ -118,12 +114,10 @@ test("Follow federated community", async () => {
   // check that unfollow was federated
   let communityOnBeta2 = await waitUntil(
     () => resolveBetaCommunity(beta),
-    c =>
-      c.community?.community.subscribers ===
-      betaCommunityInitial.community.subscribers,
+    c => c.community.subscribers === betaCommunityInitial.community.subscribers,
   );
-  expect(communityOnBeta2.community?.community.subscribers).toBe(
+  expect(communityOnBeta2.community.subscribers).toBe(
     betaCommunityInitial.community.subscribers,
   );
-  expect(communityOnBeta2.community?.community.subscribers_local).toBe(1);
+  expect(communityOnBeta2.community.subscribers_local).toBe(1);
 });
