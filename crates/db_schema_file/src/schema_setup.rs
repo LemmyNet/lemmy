@@ -51,7 +51,7 @@ const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
 struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
   #[cfg(test)]
-  diff_checker: Option<&'a diff_check::DiffChecker>,
+  enable_diff_check: bool,
   options: &'a Options,
 }
 
@@ -80,7 +80,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     #[cfg(test)]
-    if let Some(diff_checker) = self.diff_checker {
+    if self.enable_diff_check {
       let before = diff_check::get_dump();
 
       self.run_migration_inner(migration)?;
@@ -88,7 +88,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
 
       let after = diff_check::get_dump();
 
-      diff_checker.check_dump_diff(
+      diff_check::check_dump_diff(
         [&after, &before],
         &format!(
           "These changes need to be applied in migrations/{}/down.sql:",
@@ -180,8 +180,6 @@ pub enum Branch {
 
 pub fn run(options: Options) -> LemmyResult<Branch> {
   let db_url = SETTINGS.get_database_url();
-  #[cfg(test)]
-  let diff_checker = options.enable_diff_check.then(diff_check::DiffChecker::new);
 
   // Migrations don't support async connection, and this function doesn't need to be async
   let mut conn = PgConnection::establish(&db_url)?;
@@ -218,13 +216,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
   // it existing
   revert_replaceable_schema(&mut conn)?;
 
-  run_selected_migrations(
-    &mut conn,
-    &options,
-    #[cfg(test)]
-    diff_checker.as_ref(),
-  )
-  .map_err(convert_err)?;
+  run_selected_migrations(&mut conn, &options).map_err(convert_err)?;
 
   // Only run replaceable_schema if newest migration was applied
   let output = if (options.run && options.limit.is_none())
@@ -233,7 +225,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
       .map_err(convert_err)?
   {
     #[cfg(test)]
-    if let Some(diff_checker) = diff_checker {
+    if options.enable_diff_check {
       let before = diff_check::get_dump();
 
       run_replaceable_schema(&mut conn)?;
@@ -241,7 +233,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
       let after = diff_check::get_dump();
 
-      diff_checker.check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
     }
 
     run_replaceable_schema(&mut conn)?;
@@ -286,13 +278,12 @@ fn revert_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
 fn run_selected_migrations(
   conn: &mut PgConnection,
   options: &Options,
-  #[cfg(test)] diff_checker: Option<&diff_check::DiffChecker>,
 ) -> diesel::migration::Result<()> {
   let mut wrapper = MigrationHarnessWrapper {
     conn,
     options,
     #[cfg(test)]
-    diff_checker,
+    enable_diff_check: options.enable_diff_check,
   };
 
   if options.revert {

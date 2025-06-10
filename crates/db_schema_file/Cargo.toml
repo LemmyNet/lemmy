@@ -46,4 +46,3 @@ tracing = { workspace = true, optional = true }
 serial_test = { workspace = true }
 diff = "0.1.13"
 itertools = { workspace = true }
-aho-corasick = "1.1.3"
