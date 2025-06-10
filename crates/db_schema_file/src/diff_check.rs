@@ -90,6 +90,12 @@ impl DiffChecker {
   }
 
   pub fn check_dump_diff(&self, mut dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
+    // Performance optimizations
+    if dumps[0] == dumps[1] {
+      return;
+    }
+    dumps = trim_matching_chunks_at_beginning_and_end(dumps);
+
     let [before_chunks, after_chunks] = dumps.map(|dump| {
       dump
         .split("\n\n")
