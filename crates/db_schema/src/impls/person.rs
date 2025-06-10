@@ -342,7 +342,7 @@ impl Notable for PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonNoteAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   async fn delete_note(
@@ -356,7 +356,7 @@ impl Notable for PersonActions {
       .set_null(person_actions::noted_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonNoteAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

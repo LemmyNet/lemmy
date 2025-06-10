@@ -101,7 +101,6 @@ pub enum LemmyErrorType {
   CommunityBlockAlreadyExists,
   CommunityFollowerAlreadyExists,
   PersonBlockAlreadyExists,
-  PersonNoteAlreadyExists,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
