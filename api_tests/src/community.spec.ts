@@ -27,7 +27,6 @@ import {
   waitUntil,
   alphaUrl,
   delta,
-  searchPostLocal,
   longDelay,
   editCommunity,
   unfollows,
@@ -45,6 +44,7 @@ import {
   GetPosts,
   ReportCombinedView,
   ResolveCommunityReport,
+  Search,
 } from "lemmy-js-client";
 
 beforeAll(setupLogins);
@@ -566,9 +566,14 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
   // await longDelay();
 
-  expect(
-    await searchPostLocal(beta, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("not_found"));
+  let form: Search = {
+    search_term: postRes.post_view.post.name,
+    type_: "Posts",
+    listing_type: "All",
+  };
+
+  let res = await beta.search(form);
+  expect(res.results.length).toBe(0);
 });
 
 test("Fetch community, includes posts", async () => {
