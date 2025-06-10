@@ -1,4 +1,4 @@
-use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
+use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
 use futures::future::BoxFuture;
@@ -13,6 +13,8 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
+use lemmy_db_views_community::api::BanFromCommunity;
+use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
 use std::sync::{LazyLock, OnceLock};

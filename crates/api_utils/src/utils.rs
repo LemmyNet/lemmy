@@ -2,7 +2,6 @@ use crate::{
   claims::Claims,
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
-  site::{FederatedInstances, InstanceWithFederationState},
 };
 use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
@@ -41,7 +40,10 @@ use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{
+  api::{FederatedInstances, InstanceWithFederationState},
+  SiteView,
+};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},

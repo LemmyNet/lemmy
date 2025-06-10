@@ -1,10 +1,6 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::GetFederatedInstancesResponse,
-  utils::build_federated_instances,
-};
-use lemmy_db_views_site::SiteView;
+use lemmy_api_utils::{context::LemmyContext, utils::build_federated_instances};
+use lemmy_db_views_site::{api::GetFederatedInstancesResponse, SiteView};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_federated_instances(

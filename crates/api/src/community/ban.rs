@@ -1,8 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
-use lemmy_api_common::{
-  community::{BanFromCommunity, BanFromCommunityResponse},
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
+use lemmy_db_views_community::api::{BanFromCommunity, BanFromCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};

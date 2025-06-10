@@ -1,11 +1,10 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{GetRegistrationApplication, RegistrationApplicationResponse},
-  utils::is_admin,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_registration_applications::RegistrationApplicationView;
+use lemmy_db_views_registration_applications::{
+  api::{GetRegistrationApplication, RegistrationApplicationResponse},
+  RegistrationApplicationView,
+};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.

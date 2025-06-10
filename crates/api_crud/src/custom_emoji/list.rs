@@ -1,9 +1,9 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  custom_emoji::{ListCustomEmojis, ListCustomEmojisResponse},
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_db_views_custom_emoji::{
+  api::{ListCustomEmojis, ListCustomEmojisResponse},
+  CustomEmojiView,
 };
-use lemmy_db_views_custom_emoji::CustomEmojiView;
 use lemmy_utils::error::LemmyError;
 
 pub async fn list_custom_emojis(
