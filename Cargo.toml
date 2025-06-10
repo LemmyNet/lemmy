@@ -6,6 +6,7 @@ license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
+rust-version = "1.81"
 
 [package]
 name = "lemmy_server"
@@ -16,6 +17,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 publish = false
 
 [lib]
