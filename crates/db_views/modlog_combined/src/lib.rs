@@ -1,35 +1,32 @@
-use lemmy_db_schema::{
-  newtypes::PaginationCursor,
-  source::{
-    comment::Comment,
-    community::Community,
-    instance::Instance,
-    mod_log::{
-      admin::{
-        AdminAllowInstance,
-        AdminBlockInstance,
-        AdminPurgeComment,
-        AdminPurgeCommunity,
-        AdminPurgePerson,
-        AdminPurgePost,
-      },
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModBan,
-        ModBanFromCommunity,
-        ModChangeCommunityVisibility,
-        ModFeaturePost,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemoveCommunity,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  instance::Instance,
+  mod_log::{
+    admin::{
+      AdminAllowInstance,
+      AdminBlockInstance,
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
     },
-    person::Person,
-    post::Post,
+    moderator::{
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModChangeCommunityVisibility,
+      ModFeaturePost,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModTransferCommunity,
+    },
   },
+  person::Person,
+  post::Post,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -40,6 +37,7 @@ use {
   ts_rs::TS,
 };
 
+pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 
@@ -359,17 +357,4 @@ pub enum ModlogCombinedView {
   ModRemoveCommunity(ModRemoveCommunityView),
   ModRemovePost(ModRemovePostView),
   ModTransferCommunity(ModTransferCommunityView),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The modlog fetch response.
-pub struct GetModlogResponse {
-  pub modlog: Vec<ModlogCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub prev_page: Option<PaginationCursor>,
 }

@@ -1,13 +1,10 @@
 use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{ResolveObject, ResolveObjectResponse},
-  utils::check_private_instance,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
 use lemmy_db_schema::utils::DbPool;
+use lemmy_db_views_api_misc::{ResolveObject, ResolveObjectResponse};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -81,7 +78,7 @@ async fn convert_response(
 mod tests {
   use crate::api::resolve_object::resolve_object;
   use actix_web::web::Query;
-  use lemmy_api_common::{context::LemmyContext, site::ResolveObject};
+  use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
@@ -91,6 +88,7 @@ mod tests {
     },
     traits::Crud,
   };
+  use lemmy_db_views_api_misc::ResolveObject;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};

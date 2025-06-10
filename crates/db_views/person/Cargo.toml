@@ -24,15 +24,18 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_community_moderator/full",
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
+serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 

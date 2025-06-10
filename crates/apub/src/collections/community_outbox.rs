@@ -16,7 +16,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Collection},
 };
 use futures::future::join_all;
-use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
+use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX};
 use lemmy_db_schema_file::enums::PostSortType;

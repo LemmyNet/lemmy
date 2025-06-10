@@ -6,7 +6,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use either::Either;
-use lemmy_api_common::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_apub_objects::objects::{
   community::ApubCommunity,
   instance::ApubSite,

@@ -11,11 +11,7 @@ use crate::{
 use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  federate_retry_sleep_duration,
-  lemmy_utils::settings::structs::FederationWorkerConfig,
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
@@ -24,7 +20,11 @@ use lemmy_db_schema::{
   },
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{
+  error::LemmyResult,
+  federate_retry_sleep_duration,
+  settings::structs::FederationWorkerConfig,
+};
 use std::{cmp::max, collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
@@ -455,7 +455,7 @@ mod test {
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
   use futures::future::try_join_all;
-  use lemmy_api_common::utils::generate_inbox_url;
+  use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{

@@ -1,6 +1,6 @@
 use crate::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::traits::ApubActor;
 use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
 use url::Url;

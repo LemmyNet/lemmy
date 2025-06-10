@@ -14,7 +14,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::send_local_notifs,
   context::LemmyContext,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},

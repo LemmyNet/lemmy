@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::AddType,
   protocol::helpers::deserialize_one_or_many,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::protocol::InCommunity,

@@ -1,0 +1,68 @@
+[package]
+name = "lemmy_api_utils"
+publish = false
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_api_utils"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_db_schema = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_api_misc = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_community_moderator = { workspace = true }
+lemmy_db_views_community_person_ban = { workspace = true }
+lemmy_db_views_local_image = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+lemmy_db_views_person = { workspace = true }
+lemmy_db_views_site = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_email = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+once_cell = { version = "1.21.3" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+lemmy_utils = { workspace = true }
+extism = { workspace = true }
+extism-convert = { workspace = true }
+reqwest-middleware = { workspace = true }
+activitypub_federation = { workspace = true }
+mime = { version = "0.3.17" }
+mime_guess = "2.0.5"
+infer = "0.19.0"
+chrono = { workspace = true }
+encoding_rs = { version = "0.8.35" }
+futures = { workspace = true }
+reqwest = { workspace = true }
+actix-web = { workspace = true }
+actix-web-httpauth = { version = "0.8.2" }
+enum-map = { workspace = true }
+url = { workspace = true }
+moka = { workspace = true }
+webmention = { version = "0.6.0" }
+urlencoding = { workspace = true }
+webpage = { version = "2.0", default-features = false, features = ["serde"] }
+regex = { workspace = true }
+jsonwebtoken = { version = "9.3.1" }
+either.workspace = true
+
+[dev-dependencies]
+serial_test = { workspace = true }
+pretty_assertions = { workspace = true }

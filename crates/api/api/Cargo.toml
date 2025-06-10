@@ -1,0 +1,69 @@
+[package]
+name = "lemmy_api"
+publish = false
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "lemmy_api"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
+lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_community = { workspace = true, features = ["full"] }
+lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
+lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
+lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_vote = { workspace = true, features = ["full"] }
+lemmy_db_views_local_user = { workspace = true, features = ["full"] }
+lemmy_db_views_person = { workspace = true, features = ["full"] }
+lemmy_db_views_reports = { workspace = true, features = ["full"] }
+lemmy_db_views_local_image = { workspace = true, features = ["full"] }
+lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_site = { workspace = true, features = ["full"] }
+lemmy_db_views_registration_applications = { workspace = true, features = [
+  "full",
+] }
+lemmy_utils = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
+lemmy_email = { workspace = true }
+activitypub_federation = { workspace = true }
+tracing = { workspace = true }
+bcrypt = { workspace = true }
+actix-web = { workspace = true }
+base64 = { workspace = true }
+captcha = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+url = { workspace = true }
+regex = { workspace = true }
+hound = "3.5.1"
+sitemap-rs = "0.2.2"
+totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+either = { workspace = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+tokio = { workspace = true }
+elementtree = "1.2.3"
+pretty_assertions = { workspace = true }
+lemmy_api_crud = { workspace = true }
