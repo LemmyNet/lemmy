@@ -1,5 +1,6 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 use clearurls::UrlCleaner;
+use invisible_characters::INVISIBLE_CHARS;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
@@ -30,62 +31,6 @@ const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const TAG_NAME_MIN_LENGTH: usize = 3;
 const TAG_NAME_MAX_LENGTH: usize = 100;
-//Invisible unicode characters, taken from https://invisible-characters.com/
-const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
-  '\u{0009}',
-  '\u{00a0}',
-  '\u{00ad}',
-  '\u{034f}',
-  '\u{061c}',
-  '\u{115f}',
-  '\u{1160}',
-  '\u{17b4}',
-  '\u{17b5}',
-  '\u{180e}',
-  '\u{2000}',
-  '\u{2001}',
-  '\u{2002}',
-  '\u{2003}',
-  '\u{2004}',
-  '\u{2005}',
-  '\u{2006}',
-  '\u{2007}',
-  '\u{2008}',
-  '\u{2009}',
-  '\u{200a}',
-  '\u{200b}',
-  '\u{200c}',
-  '\u{200d}',
-  '\u{200e}',
-  '\u{200f}',
-  '\u{202f}',
-  '\u{205f}',
-  '\u{2060}',
-  '\u{2061}',
-  '\u{2062}',
-  '\u{2063}',
-  '\u{2064}',
-  '\u{206a}',
-  '\u{206b}',
-  '\u{206c}',
-  '\u{206d}',
-  '\u{206e}',
-  '\u{206f}',
-  '\u{3000}',
-  '\u{2800}',
-  '\u{3164}',
-  '\u{feff}',
-  '\u{ffa0}',
-  '\u{1d159}',
-  '\u{1d173}',
-  '\u{1d174}',
-  '\u{1d175}',
-  '\u{1d176}',
-  '\u{1d177}',
-  '\u{1d178}',
-  '\u{1d179}',
-  '\u{1d17a}',
-];
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -113,7 +58,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResul
 fn has_3_permitted_display_chars(name: &str) -> bool {
   let mut num_non_fdc: i8 = 0;
   for c in name.chars() {
-    if !FORBIDDEN_DISPLAY_CHARS.contains(&c) {
+    if !INVISIBLE_CHARS.contains(&c) {
       num_non_fdc += 1;
       if num_non_fdc >= 3 {
         break;
@@ -130,7 +75,7 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
   let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   let check = !name.starts_with('@')
-    && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
+    && !name.starts_with(INVISIBLE_CHARS)
     && name.chars().count() <= actor_name_max_length
     && !has_newline(name)
     && has_3_permitted_display_chars(name);
@@ -152,7 +97,8 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let length = title.trim().chars().count();
-  let check = (3..=200).contains(&length) && !has_newline(title);
+  let check =
+    (3..=200).contains(&length) && !has_newline(title) && has_3_permitted_display_chars(title);
   if !check {
     Err(LemmyErrorType::InvalidPostTitle.into())
   } else {
@@ -540,6 +486,8 @@ Line3",
     .is_ok());
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃").is_ok());
     assert!(is_valid_post_title("\n \n \n \n    		").is_err()); // tabs/spaces/newlines
+    assert!(is_valid_post_title("\u{206a}").is_err()); // invisible chars
+    assert!(is_valid_post_title("\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}").is_ok());
   }
 
   #[test]

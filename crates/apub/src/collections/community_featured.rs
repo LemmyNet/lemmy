@@ -6,7 +6,7 @@ use activitypub_federation::{
   traits::{Collection, Object},
 };
 use futures::future::{join_all, try_join_all};
-use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
+use lemmy_api_utils::{context::LemmyContext, utils::generate_featured_url};
 use lemmy_apub_objects::objects::{community::ApubCommunity, post::ApubPost};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
