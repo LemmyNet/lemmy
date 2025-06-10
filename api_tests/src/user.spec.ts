@@ -58,8 +58,8 @@ test("Create user", async () => {
 
 test("Set some user settings, check that they are federated", async () => {
   await saveUserSettingsFederated(alpha);
-  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
-  let betaPerson = (await resolvePerson(beta, apShortname)).person;
+  let alphaPerson = await resolvePerson(alpha, apShortname);
+  let betaPerson = await resolvePerson(beta, apShortname);
   assertUserFederation(alphaPerson, betaPerson);
 
   // Catches a bug where when only the person or local_user changed
@@ -78,8 +78,7 @@ test("Delete user", async () => {
   let person_id = user_profile.local_user_view.person.id;
 
   // make a local post and comment
-  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
-    .community;
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
@@ -91,7 +90,7 @@ test("Delete user", async () => {
   expect(localComment).toBeDefined();
 
   // make a remote post and comment
-  let betaCommunity = (await resolveBetaCommunity(user)).community;
+  let betaCommunity = await resolveBetaCommunity(user);
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -154,7 +153,7 @@ test("Create user with Arabic name", async () => {
   expect(my_user).toBeDefined();
   apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
-  let betaPerson1 = (await resolvePerson(beta, apShortname)).person;
+  let betaPerson1 = await resolvePerson(beta, apShortname);
   expect(betaPerson1!.person.name).toBe(name);
 
   let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id);
@@ -230,8 +229,7 @@ test("Make sure banned user can delete their account", async () => {
   let myUser = await getMyUser(user);
 
   // make a local post
-  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
-    .community;
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }

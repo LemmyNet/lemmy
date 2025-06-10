@@ -29,6 +29,9 @@ import {
   InboxDataType,
   GetModlogResponse,
   GetModlog,
+  CommentView,
+  CommunityView,
+  PersonView,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -46,9 +49,7 @@ import { Post } from "lemmy-js-client/dist/types/Post";
 import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
 import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
-import { ResolveObjectResponse } from "lemmy-js-client/dist/types/ResolveObjectResponse";
 import { Search } from "lemmy-js-client/dist/types/Search";
-import { SearchResponse } from "lemmy-js-client/dist/types/SearchResponse";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
 import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
@@ -311,23 +312,25 @@ export async function lockPost(
 export async function resolvePost(
   api: LemmyHttp,
   post: Post,
-): Promise<ResolveObjectResponse> {
+): Promise<PostView> {
   let form: ResolveObject = {
     q: post.ap_id,
   };
-  return api.resolveObject(form);
+  let res = await api.resolveObject(form);
+  return res.results[0] as PostView;
 }
 
 export async function searchPostLocal(
   api: LemmyHttp,
   post: Post,
-): Promise<SearchResponse> {
+): Promise<PostView> {
   let form: Search = {
     search_term: post.name,
     type_: "Posts",
     listing_type: "All",
   };
-  return api.search(form);
+  let res = await api.search(form);
+  return res.results[0] as PostView;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -336,10 +339,7 @@ export async function waitForPost(
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
-    checker,
-  );
+  return waitUntil<PostView>(() => searchPostLocal(api, post), checker);
 }
 
 export async function getPost(
@@ -387,41 +387,45 @@ export async function listInbox(
 export async function resolveComment(
   api: LemmyHttp,
   comment: Comment,
-): Promise<ResolveObjectResponse> {
+): Promise<CommentView> {
   let form: ResolveObject = {
     q: comment.ap_id,
   };
-  return api.resolveObject(form);
+  let res = await api.resolveObject(form);
+  return res.results[0] as CommentView;
 }
 
 export async function resolveBetaCommunity(
   api: LemmyHttp,
-): Promise<ResolveObjectResponse> {
+): Promise<CommunityView> {
   // Use short-hand search url
   let form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
-  return api.resolveObject(form);
+  let res = await api.resolveObject(form);
+  return res.results[0] as CommunityView;
 }
 
 export async function resolveCommunity(
   api: LemmyHttp,
   q: string,
-): Promise<ResolveObjectResponse> {
+): Promise<CommunityView> {
   let form: ResolveObject = {
     q,
   };
-  return api.resolveObject(form);
+  let res = await api.resolveObject(form);
+  return res.results[0] as CommunityView;
 }
 
 export async function resolvePerson(
   api: LemmyHttp,
   apShortname: string,
-): Promise<ResolveObjectResponse> {
+): Promise<PersonView> {
   let form: ResolveObject = {
     q: apShortname,
   };
-  return api.resolveObject(form);
+  let res = await api.resolveObject(form);
+  return res.results[0] as PersonView;
 }
 
 export async function banPersonFromSite(
@@ -778,7 +782,7 @@ export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
 }
 
 export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
-  let betaCommunity = (await resolveBetaCommunity(api)).community;
+  let betaCommunity = await resolveBetaCommunity(api);
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
     return follow;
