@@ -9,7 +9,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions, person::PersonActions},

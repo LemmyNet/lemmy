@@ -1,9 +1,10 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, person::VerifyEmail, SuccessResponse};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   email_verification::EmailVerification,
   local_user::{LocalUser, LocalUserUpdateForm},
 };
+use lemmy_db_views_api_misc::{SuccessResponse, VerifyEmail};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_email_to_admins};

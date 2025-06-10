@@ -14,7 +14,7 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
@@ -537,7 +537,7 @@ async fn build_update_instance_form(
 mod tests {
 
   use super::*;
-  use lemmy_api_common::request::client_builder;
+  use lemmy_api_utils::request::client_builder;
   use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},

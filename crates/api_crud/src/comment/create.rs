@@ -1,9 +1,8 @@
 use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::{build_comment_response, send_local_notifs},
-  comment::{CommentResponse, CreateComment},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
@@ -27,6 +26,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views_comment::api::{CommentResponse, CreateComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;

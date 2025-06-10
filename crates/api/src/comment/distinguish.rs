@@ -1,7 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  comment::{CommentResponse, DistinguishComment},
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_community_user_action},
@@ -10,7 +9,10 @@ use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment::{
+  api::{CommentResponse, DistinguishComment},
+  CommentView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

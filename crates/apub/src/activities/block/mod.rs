@@ -6,11 +6,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  community::BanFromCommunity,
-  context::LemmyContext,
-  utils::check_expire_time,
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_expire_time};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite},
   protocol::{group::Group, instance::Instance},
@@ -22,6 +18,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
+use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;

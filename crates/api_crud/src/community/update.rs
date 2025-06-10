@@ -2,9 +2,8 @@ use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_community_response,
-  community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -24,6 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
+use lemmy_db_views_community::api::{CommunityResponse, EditCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{

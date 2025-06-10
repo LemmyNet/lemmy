@@ -1,14 +1,14 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{HidePost, PostResponse},
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::post::{PostActions, PostHideForm},
   traits::Hideable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{HidePost, PostResponse},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn hide_post(

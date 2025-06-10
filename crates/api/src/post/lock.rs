@@ -1,9 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
-  post::{LockPost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -15,7 +14,10 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{
+  api::{LockPost, PostResponse},
+  PostView,
+};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(
