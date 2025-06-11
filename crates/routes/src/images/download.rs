@@ -11,6 +11,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
 use lemmy_utils::error::LemmyResult;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use url::Url;
 
 pub async fn get_image(
@@ -44,6 +45,7 @@ pub async fn image_proxy(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
   let url = Url::parse(&params.url)?;
+  let encoded_url = utf8_percent_encode(&params.url, NON_ALPHANUMERIC).to_string();
 
   // Check that url corresponds to a federated image so that this can't be abused as a proxy
   // for arbitrary purposes.
@@ -51,12 +53,12 @@ pub async fn image_proxy(
 
   let pictrs_config = context.settings().pictrs()?;
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
-    format!("{}image/original?proxy={}", pictrs_config.url, params.url)
+    format!("{}image/original?proxy={}", pictrs_config.url, encoded_url)
   } else {
-    let file_type = file_type(params.file_type, url.as_str());
+    let file_type = file_type(params.file_type, url.path());
     let mut url = format!(
       "{}image/process.{}?proxy={}",
-      pictrs_config.url, file_type, url
+      pictrs_config.url, file_type, encoded_url
     );
 
     if let Some(size) = params.max_size {
