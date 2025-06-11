@@ -45,6 +45,7 @@ import {
   FollowMultiCommunity,
   GetPosts,
   LemmyError,
+  MultiCommunity,
   ReportCombinedView,
   ResolveCommunityReport,
   Search,
@@ -708,14 +709,14 @@ test("Multi-community", async () => {
 
   // resolve over federation
   let betaMulti = (await beta.resolveObject({ q: alphaMulti.ap_id }))
-    .multi_community!;
+    .results[0] as MultiCommunity;
   expect(betaMulti.ap_id).toBe(alphaMulti.ap_id);
 
   var getBetaMulti = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.id }),
-    m => m.entries.length == 1,
+    m => m.communities.length == 1,
   );
-  expect(getBetaMulti.entries[0].community.ap_id).toBe(community1.ap_id);
+  expect(getBetaMulti.communities[0].community.ap_id).toBe(community1.ap_id);
 
   // follow multi over federation
   let form: FollowMultiCommunity = {
@@ -735,20 +736,20 @@ test("Multi-community", async () => {
   let community2 = await resolveBetaCommunity(alpha);
   let success2 = await alpha.createMultiCommunityEntry({
     id: alphaMulti.id,
-    community_id: community2.community!.community.id,
+    community_id: community2!.community.id,
   });
   expect(success2.success).toBeTruthy();
 
   // federated to beta
   getBetaMulti = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.id }),
-    m => m.entries.length == 2,
+    m => m.communities.length == 2,
   );
-  expect(getBetaMulti.entries[1].community.ap_id).toBe(
-    community2.community?.community.ap_id,
+  expect(getBetaMulti.communities[1].community.ap_id).toBe(
+    community2!.community.ap_id,
   );
 
-  let post = await createPost(alpha, community2.community!.community.id);
+  let post = await createPost(alpha, community2!.community.id);
 
   let multi_post_listing = await waitUntil(
     () => beta.getPosts({ multi_community_id: getBetaMulti.multi.id }),

@@ -108,7 +108,7 @@ impl ActivityHandler for Update {
         verify_visibility(&self.to, &self.cc, &community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
-        ApubCommunity::verify(c, &self.id, context).await?
+        ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }
       Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,
     }

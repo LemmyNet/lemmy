@@ -637,7 +637,7 @@ pub(crate) fn format_actor_url(
   } else {
     format!("{local_protocol_and_hostname}/{prefix}/{name}")
   };
-  Ok(Url::parse(&url)?.into())
+  Ok(Url::parse(&url)?)
 }
 
 #[cfg(test)]
