@@ -327,7 +327,7 @@ export async function searchPostLocal(
   post: Post,
 ): Promise<PostView | undefined> {
   let form: Search = {
-    search_term: post.name,
+    q: post.name,
     type_: "Posts",
     listing_type: "All",
   };
