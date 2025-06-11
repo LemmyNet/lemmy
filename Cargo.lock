@@ -3921,6 +3921,7 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_site",
  "lemmy_utils",
+ "percent-encoding",
  "pretty_assertions",
  "prometheus",
  "reqwest 0.12.19",
