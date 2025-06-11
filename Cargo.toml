@@ -80,6 +80,7 @@ members = [
   "crates/email",
   "crates/workspace-hack",
 ]
+resolver = "2"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
