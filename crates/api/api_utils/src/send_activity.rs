@@ -91,7 +91,7 @@ pub enum SendActivityData {
     reason: Option<String>,
     remove_or_restore_data: Option<bool>,
     ban: bool,
-    expires: Option<i64>,
+    expires_at: Option<i64>,
   },
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),

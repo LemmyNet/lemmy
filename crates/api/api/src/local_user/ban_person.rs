@@ -42,9 +42,13 @@ pub async fn ban_from_site(
     is_valid_body_field(reason, false)?;
   }
 
-  let expires = check_expire_time(data.expires)?;
+  let expires_at = check_expire_time(data.expires_at)?;
 
-  let form = InstanceBanForm::new(data.person_id, local_user_view.person.instance_id, expires);
+  let form = InstanceBanForm::new(
+    data.person_id,
+    local_user_view.person.instance_id,
+    expires_at,
+  );
   if data.ban {
     InstanceActions::ban(&mut context.pool(), &form).await?;
   } else {
@@ -70,7 +74,7 @@ pub async fn ban_from_site(
     other_person_id: data.person_id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
-    expires,
+    expires_at,
     instance_id: local_user_view.person.instance_id,
   };
 
@@ -91,7 +95,7 @@ pub async fn ban_from_site(
       reason: data.reason.clone(),
       remove_or_restore_data: data.remove_or_restore_data,
       ban: data.ban,
-      expires: data.expires,
+      expires_at: data.expires_at,
     },
     &context,
   )?;

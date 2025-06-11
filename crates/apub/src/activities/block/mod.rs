@@ -168,7 +168,7 @@ pub(crate) async fn send_ban_from_community(
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
     .into();
-  let expires = check_expire_time(data.expires)?;
+  let expires_at = check_expire_time(data.expires_at)?;
 
   if data.ban {
     BlockUser::send(
@@ -177,7 +177,7 @@ pub(crate) async fn send_ban_from_community(
       &mod_.into(),
       data.remove_or_restore_data.unwrap_or(false),
       data.reason.clone(),
-      expires,
+      expires_at,
       &context,
     )
     .await

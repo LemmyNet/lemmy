@@ -31,7 +31,7 @@ pub async fn admin_allow_instance(
     .id;
   let form = FederationAllowListForm {
     instance_id,
-    updated: None,
+    updated_at: None,
   };
   if data.allow {
     FederationAllowList::allow(&mut context.pool(), &form).await?;

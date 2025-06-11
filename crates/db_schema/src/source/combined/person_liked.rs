@@ -19,7 +19,7 @@ use serde_with::skip_serializing_none;
 /// A combined person_liked table.
 pub struct PersonLikedCombined {
   pub id: PersonLikedCombinedId,
-  pub liked: DateTime<Utc>,
+  pub liked_at: DateTime<Utc>,
   pub like_score: i16,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,

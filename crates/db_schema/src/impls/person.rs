@@ -106,7 +106,7 @@ impl Person {
     let not_banned_local_user_id = local_user::table
       .left_join(instance_actions_join)
       .filter(local_user::person_id.eq(person_id))
-      .filter(instance_actions::received_ban.nullable().is_null())
+      .filter(instance_actions::received_ban_at.nullable().is_null())
       .select(local_user::id)
       .first::<LocalUserId>(conn)
       .await
@@ -127,7 +127,7 @@ impl Person {
         person::bio.eq::<Option<String>>(None),
         person::matrix_user_id.eq::<Option<String>>(None),
         person::deleted.eq(true),
-        person::updated.eq(Utc::now()),
+        person::updated_at.eq(Utc::now()),
       ))
       .get_result::<Self>(conn)
       .await
@@ -251,7 +251,7 @@ impl Followable for PersonActions {
   ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(person_actions::table.find((person_id, target_id)))
-      .set_null(person_actions::followed)
+      .set_null(person_actions::followed_at)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
       .await
@@ -280,7 +280,7 @@ impl Blockable for PersonActions {
   async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(person_actions::table.find((form.person_id, form.target_id)))
-      .set_null(person_actions::blocked)
+      .set_null(person_actions::blocked_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
@@ -294,7 +294,7 @@ impl Blockable for PersonActions {
     let conn = &mut get_conn(pool).await?;
     let find_action = person_actions::table
       .find((person_id, recipient_id))
-      .filter(person_actions::blocked.is_not_null());
+      .filter(person_actions::blocked_at.is_not_null());
 
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
@@ -311,7 +311,7 @@ impl Blockable for PersonActions {
     let target_person_alias = diesel::alias!(person as person1);
 
     person_actions::table
-      .filter(person_actions::blocked.is_not_null())
+      .filter(person_actions::blocked_at.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .inner_join(
         target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
@@ -319,7 +319,7 @@ impl Blockable for PersonActions {
       .select(target_person_alias.fields(person::all_columns))
       .filter(person_actions::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
-      .order_by(person_actions::blocked)
+      .order_by(person_actions::blocked_at)
       .load::<Person>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -333,7 +333,7 @@ impl PersonActions {
   ) -> LemmyResult<Vec<Person>> {
     let conn = &mut get_conn(pool).await?;
     person_actions::table
-      .filter(person_actions::followed.is_not_null())
+      .filter(person_actions::followed_at.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)
@@ -380,15 +380,15 @@ mod tests {
       avatar: None,
       banner: None,
       deleted: false,
-      published: inserted_person.published,
-      updated: None,
+      published_at: inserted_person.published_at,
+      updated_at: None,
       ap_id: inserted_person.ap_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
       private_key: None,
       public_key: "pubkey".to_owned(),
-      last_refreshed_at: inserted_person.published,
+      last_refreshed_at: inserted_person.published_at,
       inbox_url: inserted_person.inbox_url.clone(),
       matrix_user_id: None,
       instance_id: inserted_instance.id,

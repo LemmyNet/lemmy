@@ -19,9 +19,9 @@ use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::tagline, ts_r
 pub struct Tagline {
   pub id: TaglineId,
   pub content: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -36,5 +36,5 @@ pub struct TaglineInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineUpdateForm {
   pub content: String,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
 }

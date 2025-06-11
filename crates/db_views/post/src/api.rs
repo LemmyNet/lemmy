@@ -41,7 +41,7 @@ pub struct CreatePost {
   pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
-  pub scheduled_publish_time: Option<i64>,
+  pub scheduled_publish_time_at: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -89,7 +89,7 @@ pub struct EditPost {
   pub custom_thumbnail: Option<String>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
-  pub scheduled_publish_time: Option<i64>,
+  pub scheduled_publish_time_at: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub tags: Option<Vec<TagId>>,
 }

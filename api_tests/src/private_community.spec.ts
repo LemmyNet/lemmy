@@ -1,6 +1,6 @@
 jest.setTimeout(120000);
 
-import { FollowCommunity, LemmyHttp } from "lemmy-js-client";
+import { FollowCommunity, LemmyError, LemmyHttp } from "lemmy-js-client";
 import {
   alpha,
   setupLogins,
@@ -140,20 +140,20 @@ test("Only followers can view and interact with private community content", asyn
   const user = await registerUser(beta, betaUrl);
   const betaCommunity = (
     await resolveCommunity(user, community.community_view.community.ap_id)
-  ).community;
+  )?.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
   await expect(
     resolveComment(user, comment.comment_view.comment),
-  ).rejects.toStrictEqual(Error("not_found"));
-  await expect(createPost(user, betaCommunity.id)).rejects.toStrictEqual(
-    Error("not_found"),
+  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  await expect(createPost(user, betaCommunity!.id)).rejects.toStrictEqual(
+    new LemmyError("not_found"),
   );
 
   // follow the community and approve
   const follow_form: FollowCommunity = {
-    community_id: betaCommunity.id,
+    community_id: betaCommunity!.id,
     follow: true,
   };
   await user.followCommunity(follow_form);
@@ -170,7 +170,7 @@ test("Only followers can view and interact with private community content", asyn
   );
   expect(resolvedComment?.comment.id).toBeDefined();
 
-  const post1 = await createPost(user, betaCommunity.id);
+  const post1 = await createPost(user, betaCommunity!.id);
   expect(post1.post_view).toBeDefined();
   const like = await likeComment(user, 1, resolvedComment!.comment);
   expect(like.comment_view.comment_actions?.like_score).toBe(1);
@@ -186,11 +186,11 @@ test("Reject follower", async () => {
   const user = await registerUser(beta, betaUrl);
   const betaCommunity1 = (
     await resolveCommunity(user, community.community_view.community.ap_id)
-  ).community;
+  )?.community;
 
   // follow the community and reject
   const follow_form: FollowCommunity = {
-    community_id: betaCommunity1.id,
+    community_id: betaCommunity1!.id,
     follow: true,
   };
   const follow = await user.followCommunity(follow_form);
@@ -211,7 +211,7 @@ test("Reject follower", async () => {
   expect(approve.success).toBe(true);
 
   await waitUntil(
-    () => getCommunity(user, betaCommunity1.id),
+    () => getCommunity(user, betaCommunity1!.id),
     c => c.community_view.community_actions?.follow_state === undefined,
   );
 });
@@ -236,9 +236,10 @@ test("Follow a private community and receive activities", async () => {
   await beta.followCommunity(follow_form_beta);
   await approveFollower(alpha, alphaCommunityId);
 
-  const gammaCommunityId = (
-    await resolveCommunity(gamma, community.community_view.community.ap_id)
-  ).community.id;
+  const gammaCommunityId = (await resolveCommunity(
+    gamma,
+    community.community_view.community.ap_id,
+  ))!.community.id;
   const follow_form_gamma: FollowCommunity = {
     community_id: gammaCommunityId,
     follow: true,
@@ -289,9 +290,10 @@ test("Fetch remote content in private community", async () => {
   expect(community.community_view.community.visibility).toBe("Private");
   const alphaCommunityId = community.community_view.community.id;
 
-  const betaCommunityId = (
-    await resolveCommunity(beta, community.community_view.community.ap_id)
-  ).community.id;
+  const betaCommunityId = (await resolveCommunity(
+    beta,
+    community.community_view.community.ap_id,
+  ))!.community.id;
   const follow_form_beta: FollowCommunity = {
     community_id: betaCommunityId,
     follow: true,
@@ -320,9 +322,10 @@ test("Fetch remote content in private community", async () => {
   );
 
   // create gamma user
-  const gammaCommunityId = (
-    await resolveCommunity(gamma, community.community_view.community.ap_id)
-  ).community.id;
+  const gammaCommunityId = (await resolveCommunity(
+    gamma,
+    community.community_view.community.ap_id,
+  ))!.community.id;
   const follow_form: FollowCommunity = {
     community_id: gammaCommunityId,
     follow: true,
@@ -330,7 +333,7 @@ test("Fetch remote content in private community", async () => {
 
   // cannot fetch post yet
   await expect(resolvePost(gamma, post.post_view.post)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
   // follow community and approve
   await gamma.followCommunity(follow_form);
@@ -342,7 +345,7 @@ test("Fetch remote content in private community", async () => {
     () => resolvePost(gamma, post.post_view.post),
     p => p?.post.id != undefined,
   );
-  expect(resolvedPost.post.ap_id).toBe(post.post_view.post.ap_id);
+  expect(resolvedPost?.post.ap_id).toBe(post.post_view.post.ap_id);
   const resolvedComment = await waitUntil(
     () => resolveComment(gamma, comment.comment_view.comment),
     p => p?.comment.id != undefined,

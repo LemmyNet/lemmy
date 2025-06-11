@@ -70,7 +70,7 @@ pub async fn update_comment(
   let mut form = CommentUpdateForm {
     content,
     language_id: Some(language_id),
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
   form = plugin_hook_before("before_update_local_comment", form).await?;

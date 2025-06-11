@@ -28,9 +28,9 @@ pub struct PrivateMessage {
   pub content: String,
   pub deleted: bool,
   pub read: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub local: bool,
   pub removed: bool,
@@ -51,9 +51,9 @@ pub struct PrivateMessageInsertForm {
   #[new(default)]
   pub read: Option<bool>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub ap_id: Option<DbUrl>,
   #[new(default)]
@@ -67,8 +67,8 @@ pub struct PrivateMessageUpdateForm {
   pub content: Option<String>,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub removed: Option<bool>,

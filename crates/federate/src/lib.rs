@@ -324,8 +324,8 @@ mod test {
     let person = Person::create(&mut data.context.pool(), &form).await?;
     let form = FederationBlockListForm {
       instance_id,
-      updated: None,
-      expires: None,
+      updated_at: None,
+      expires_at: None,
     };
     FederationBlockList::block(&mut data.context.pool(), &form).await?;
     data.run().await?;
@@ -350,7 +350,7 @@ mod test {
     let person = Person::create(&mut data.context.pool(), &form).await?;
     let form = FederationAllowListForm {
       instance_id: data.instances[0].id,
-      updated: None,
+      updated_at: None,
     };
     FederationAllowList::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
@@ -371,7 +371,7 @@ mod test {
 
     let instance = &data.instances[0];
     let form = InstanceForm {
-      updated: DateTime::from_timestamp(0, 0),
+      updated_at: DateTime::from_timestamp(0, 0),
       ..InstanceForm::new(instance.domain.clone())
     };
     Instance::update(&mut data.context.pool(), instance.id, form).await?;

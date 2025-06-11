@@ -116,9 +116,9 @@ impl RegistrationApplicationQuery {
     if o.unread_only.unwrap_or_default() {
       query = query
         .filter(RegistrationApplication::is_unread())
-        .order_by(registration_application::published.asc());
+        .order_by(registration_application::published_at.asc());
     } else {
-      query = query.order_by(registration_application::published.desc());
+      query = query.order_by(registration_application::published_at.desc());
     }
 
     if o.verified_email_only.unwrap_or_default() {
@@ -239,7 +239,7 @@ mod tests {
         enable_animated_images: sara_local_user.enable_animated_images,
         enable_private_messages: sara_local_user.enable_private_messages,
         collapse_bot_comments: sara_local_user.collapse_bot_comments,
-        last_donation_notification: sara_local_user.last_donation_notification,
+        last_donation_notification_at: sara_local_user.last_donation_notification_at,
         show_upvotes: sara_local_user.show_upvotes,
         show_downvotes: sara_local_user.show_downvotes,
         ..Default::default()
@@ -248,7 +248,7 @@ mod tests {
         id: sara_person.id,
         name: sara_person.name.clone(),
         display_name: None,
-        published: sara_person.published,
+        published_at: sara_person.published_at,
         avatar: None,
         ap_id: sara_person.ap_id.clone(),
         local: true,
@@ -256,7 +256,7 @@ mod tests {
         bot_account: false,
         bio: None,
         banner: None,
-        updated: None,
+        updated_at: None,
         inbox_url: sara_person.inbox_url.clone(),
         matrix_user_id: None,
         instance_id: instance.id,
@@ -319,7 +319,7 @@ mod tests {
       id: timmy_person.id,
       name: timmy_person.name.clone(),
       display_name: None,
-      published: timmy_person.published,
+      published_at: timmy_person.published_at,
       avatar: None,
       ap_id: timmy_person.ap_id.clone(),
       local: true,
@@ -327,7 +327,7 @@ mod tests {
       bot_account: false,
       bio: None,
       banner: None,
-      updated: None,
+      updated_at: None,
       inbox_url: timmy_person.inbox_url.clone(),
       matrix_user_id: None,
       instance_id: instance.id,

@@ -183,7 +183,7 @@ impl PersonSavedCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::saved)
+    .then_order_by(key::saved_at)
     // Tie breaker
     .then_order_by(key::id);
 

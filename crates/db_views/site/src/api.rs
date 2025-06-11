@@ -46,7 +46,7 @@ pub struct AdminBlockInstanceParams {
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub expires: Option<DateTime<Utc>>,
+  pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -131,8 +131,6 @@ pub struct CreateSite {
   pub legal_information: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub hide_modlog_mod_names: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -286,9 +284,6 @@ pub struct EditSite {
   /// Whether to email admins when receiving a new application.
   #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
-  /// Whether to hide moderator names from the modlog.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub hide_modlog_mod_names: Option<bool>,
   /// A list of allowed discussion languages.
   #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,

@@ -396,7 +396,7 @@ fn create_reply_and_mention_items(
         let reply_url = v.comment.local_url(context.settings())?;
         build_item(
           &v.creator,
-          &v.comment.published,
+          &v.comment.published_at,
           reply_url.as_str(),
           &v.comment.content,
           context.settings(),
@@ -406,7 +406,7 @@ fn create_reply_and_mention_items(
         let mention_url = v.comment.local_url(context.settings())?;
         build_item(
           &v.creator,
-          &v.comment.published,
+          &v.comment.published_at,
           mention_url.as_str(),
           &v.comment.content,
           context.settings(),
@@ -416,7 +416,7 @@ fn create_reply_and_mention_items(
         let mention_url = v.post.local_url(context.settings())?;
         build_item(
           &v.creator,
-          &v.post.published,
+          &v.post.published_at,
           mention_url.as_str(),
           &v.post.body.clone().unwrap_or_default(),
           context.settings(),
@@ -426,7 +426,7 @@ fn create_reply_and_mention_items(
         let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
         build_item(
           &v.creator,
-          &v.private_message.published,
+          &v.private_message.published_at,
           &inbox_url,
           &v.private_message.content,
           context.settings(),
@@ -453,7 +453,7 @@ fn create_modlog_items(
     .map(|r| match r {
       ModlogCombinedView::AdminAllowInstance(v) => build_modlog_item(
         &v.admin,
-        &v.admin_allow_instance.published,
+        &v.admin_allow_instance.published_at,
         &modlog_url,
         &format!(
           "Admin {} instance - {}",
@@ -469,7 +469,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::AdminBlockInstance(v) => build_modlog_item(
         &v.admin,
-        &v.admin_block_instance.published,
+        &v.admin_block_instance.published_at,
         &modlog_url,
         &format!(
           "Admin {} instance - {}",
@@ -485,7 +485,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::AdminPurgeComment(v) => build_modlog_item(
         &v.admin,
-        &v.admin_purge_comment.published,
+        &v.admin_purge_comment.published_at,
         &modlog_url,
         "Admin purged comment",
         &v.admin_purge_comment.reason,
@@ -493,7 +493,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::AdminPurgeCommunity(v) => build_modlog_item(
         &v.admin,
-        &v.admin_purge_community.published,
+        &v.admin_purge_community.published_at,
         &modlog_url,
         "Admin purged community",
         &v.admin_purge_community.reason,
@@ -501,7 +501,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::AdminPurgePerson(v) => build_modlog_item(
         &v.admin,
-        &v.admin_purge_person.published,
+        &v.admin_purge_person.published_at,
         &modlog_url,
         "Admin purged person",
         &v.admin_purge_person.reason,
@@ -509,7 +509,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::AdminPurgePost(v) => build_modlog_item(
         &v.admin,
-        &v.admin_purge_post.published,
+        &v.admin_purge_post.published_at,
         &modlog_url,
         "Admin purged post",
         &v.admin_purge_post.reason,
@@ -517,7 +517,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModAdd(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_add.published,
+        &v.mod_add.published_at,
         &modlog_url,
         &format!(
           "{} admin {}",
@@ -529,7 +529,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModAddCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_add_community.published,
+        &v.mod_add_community.published_at,
         &modlog_url,
         &format!(
           "{} mod {} to /c/{}",
@@ -542,7 +542,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModBan(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_ban.published,
+        &v.mod_ban.published_at,
         &modlog_url,
         &format!(
           "{} {}",
@@ -554,7 +554,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_ban_from_community.published,
+        &v.mod_ban_from_community.published_at,
         &modlog_url,
         &format!(
           "{} {} from /c/{}",
@@ -567,7 +567,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModFeaturePost(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_feature_post.published,
+        &v.mod_feature_post.published_at,
         &modlog_url,
         &format!(
           "{} post {}",
@@ -583,7 +583,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModChangeCommunityVisibility(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_change_community_visibility.published,
+        &v.mod_change_community_visibility.published_at,
         &modlog_url,
         &format!(
           "Changed /c/{} visibility to {}",
@@ -594,7 +594,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModLockPost(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_lock_post.published,
+        &v.mod_lock_post.published_at,
         &modlog_url,
         &format!(
           "{} post {}",
@@ -610,7 +610,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModRemoveComment(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_remove_comment.published,
+        &v.mod_remove_comment.published_at,
         &modlog_url,
         &format!(
           "{} comment {}",
@@ -622,7 +622,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModRemoveCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_remove_community.published,
+        &v.mod_remove_community.published_at,
         &modlog_url,
         &format!(
           "{} community /c/{}",
@@ -634,7 +634,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModRemovePost(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_remove_post.published,
+        &v.mod_remove_post.published_at,
         &modlog_url,
         &format!(
           "{} post {}",
@@ -646,7 +646,7 @@ fn create_modlog_items(
       ),
       ModlogCombinedView::ModTransferCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_transfer_community.published,
+        &v.mod_transfer_community.published_at,
         &modlog_url,
         &format!(
           "Tranferred /c/{} to /u/{}",
@@ -823,7 +823,7 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
 
     let i = Item {
       title: Some(p.post.name),
-      pub_date: Some(p.post.published.to_rfc2822()),
+      pub_date: Some(p.post.published_at.to_rfc2822()),
       comments: Some(post_url.to_string()),
       guid,
       description: Some(description),

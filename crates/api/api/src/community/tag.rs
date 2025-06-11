@@ -51,7 +51,7 @@ pub async fn update_community_tag(
   // Update the tag
   let tag_form = TagUpdateForm {
     display_name: Some(data.display_name.clone()),
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
 
@@ -73,7 +73,7 @@ pub async fn delete_community_tag(
 
   // Soft delete the tag
   let tag_form = TagUpdateForm {
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     deleted: Some(true),
     ..Default::default()
   };

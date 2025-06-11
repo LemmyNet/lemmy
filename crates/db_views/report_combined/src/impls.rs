@@ -314,7 +314,7 @@ impl ReportCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::published)
+    .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
@@ -336,7 +336,7 @@ impl ReportCombinedQuery {
 /// and which have `violates_instance_rules == false`.
 #[diesel::dsl::auto_type]
 fn filter_mod_reports() -> _ {
-  community_actions::became_moderator
+  community_actions::became_moderator_at
     .is_not_null()
     // Reporting a community or private message must go to admins
     .and(report_combined::community_report_id.is_null())
@@ -349,9 +349,9 @@ fn filter_mod_reports() -> _ {
 #[diesel::dsl::auto_type]
 fn filter_admin_reports(interval: DateTime<Utc>) -> _ {
   filter_violates_instance_rules()
-    .or(report_combined::published.lt(interval))
+    .or(report_combined::published_at.lt(interval))
     // Also show community reports where the admin is a community mod
-    .or(community_actions::became_moderator.is_not_null())
+    .or(community_actions::became_moderator_at.is_not_null())
 }
 
 /// Filter reports which are only for admins (either post/comment report with
@@ -1219,7 +1219,7 @@ mod tests {
     update(
       report_combined::table.filter(report_combined::dsl::comment_report_id.eq(comment_report.id)),
     )
-    .set(report_combined::published.eq(Utc::now() - Days::new(3)))
+    .set(report_combined::published_at.eq(Utc::now() - Days::new(3)))
     .execute(&mut get_conn(pool).await?)
     .await?;
     let admin_reports = ReportCombinedQuery::default()

@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 /// A combined modlog table.
 pub struct ModlogCombined {
   pub id: ModlogCombinedId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub admin_allow_instance_id: Option<AdminAllowInstanceId>,
   pub admin_block_instance_id: Option<AdminBlockInstanceId>,
   pub admin_purge_comment_id: Option<AdminPurgeCommentId>,

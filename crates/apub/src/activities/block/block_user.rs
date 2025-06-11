@@ -128,7 +128,7 @@ impl ActivityHandler for BlockUser {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.end_time;
+    let expires_at = self.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
@@ -136,7 +136,7 @@ impl ActivityHandler for BlockUser {
     let pool = &mut context.pool();
     match target {
       SiteOrCommunity::Site(site) => {
-        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::ban(pool, &form).await?;
 
         if self.remove_data.unwrap_or(false) {
@@ -155,14 +155,14 @@ impl ActivityHandler for BlockUser {
           other_person_id: blocked_person.id,
           reason,
           banned: Some(true),
-          expires,
+          expires_at,
           instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
-          ban_expires: Some(expires),
+          ban_expires_at: Some(expires_at),
           ..CommunityPersonBanForm::new(community.id, blocked_person.id)
         };
         CommunityActions::ban(&mut context.pool(), &community_user_ban_form).await?;
@@ -190,7 +190,7 @@ impl ActivityHandler for BlockUser {
           community_id: community.id,
           reason,
           banned: Some(true),
-          expires,
+          expires_at,
         };
         ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }

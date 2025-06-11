@@ -132,14 +132,14 @@ pub async fn update_post(
   .await?;
 
   // handle changes to scheduled_publish_time
-  let scheduled_publish_time = match (
-    orig_post.post.scheduled_publish_time,
-    data.scheduled_publish_time,
+  let scheduled_publish_time_at = match (
+    orig_post.post.scheduled_publish_time_at,
+    data.scheduled_publish_time_at,
   ) {
     // schedule time can be changed if post is still scheduled (and not published yet)
-    (Some(_), Some(_)) => {
-      Some(convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?)
-    }
+    (Some(_), Some(_)) => Some(
+      convert_published_time(data.scheduled_publish_time_at, &local_user_view, &context).await?,
+    ),
     // post was scheduled, gets changed to publish immediately
     (Some(_), None) => Some(None),
     // unchanged
@@ -153,8 +153,8 @@ pub async fn update_post(
     alt_text,
     nsfw: data.nsfw,
     language_id: Some(language_id),
-    updated: Some(Some(Utc::now())),
-    scheduled_publish_time,
+    updated_at: Some(Some(Utc::now())),
+    scheduled_publish_time_at,
     ..Default::default()
   };
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
@@ -178,8 +178,8 @@ pub async fn update_post(
 
   // send out federation/webmention if necessary
   match (
-    orig_post.post.scheduled_publish_time,
-    data.scheduled_publish_time,
+    orig_post.post.scheduled_publish_time_at,
+    data.scheduled_publish_time_at,
   ) {
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
