@@ -10,7 +10,7 @@ ALTER TABLE admin_purge_community RENAME COLUMN published TO published_at;
 
 ALTER TABLE admin_purge_person RENAME COLUMN published TO published_at;
 
-ALTER TABLE admin_purge_post RENAME COLUMN published TO published_at;
+ALTER table admin_purge_post RENAME COLUMN published TO published_at;
 
 ALTER TABLE captcha_answer RENAME COLUMN published TO published_at;
 
