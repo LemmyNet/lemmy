@@ -745,9 +745,8 @@ test("Multi-community", async () => {
     () => beta.getMultiCommunity({ id: betaMulti.id }),
     m => m.communities.length == 2,
   );
-  expect(getBetaMulti.communities[1].community.ap_id).toBe(
-    community2!.community.ap_id,
-  );
+  let ap_ids = getBetaMulti.communities.map(c => c.community.ap_id);
+  expect(ap_ids.includes(community2!.community.ap_id)).toBeTruthy();
 
   let post = await createPost(alpha, community2!.community.id);
 
