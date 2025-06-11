@@ -1,18 +1,20 @@
+#[cfg(feature = "full")]
+use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
-#[cfg(feature = "full")]
-use {diesel_derive_enum::DbEnum, ts_rs::TS};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::PostSortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 // TODO add the controversial and scaled rankings to the doc below
 /// The post sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum PostSortType {
@@ -31,13 +33,15 @@ pub enum PostSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::CommentSortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum CommentSortType {
   #[default]
@@ -51,13 +55,15 @@ pub enum CommentSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A listing type for post and comment list fetches.
 pub enum ListingType {
   /// Content from your own site, as well as all connected / federated sites.
@@ -74,13 +80,15 @@ pub enum ListingType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The registration mode for your site. Determines what happens after a user signs up.
 pub enum RegistrationMode {
   /// Closed to public.
@@ -95,13 +103,15 @@ pub enum RegistrationMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A post-view mode that changes how multiple post listings look.
 pub enum PostListingMode {
   /// A compact, list-type view.
@@ -116,13 +126,15 @@ pub enum PostListingMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::CommunityVisibility"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// Defines who can browse and interact with content in a community.
 pub enum CommunityVisibility {
   /// Public community, any local or federated user can interact.
@@ -153,13 +165,15 @@ impl CommunityVisibility {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::FederationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The federation mode for an item
 pub enum FederationMode {
   #[default]
@@ -184,13 +198,15 @@ pub enum ActorType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunityFollowerState {
   Accepted,
   Pending,
@@ -200,13 +216,15 @@ pub enum CommunityFollowerState {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS, DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::VoteShowEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// Lets you show votes for others only, show all votes, or hide all votes.
 pub enum VoteShow {
   #[default]

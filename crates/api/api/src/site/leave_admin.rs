@@ -85,7 +85,6 @@ pub async fn leave_admin(
     admin_oauth_providers: vec![],
     blocked_urls,
     tagline,
-    my_user: None,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
     active_plugins: vec![],
   }))
