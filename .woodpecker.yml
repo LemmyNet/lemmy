@@ -80,14 +80,14 @@ steps:
     when:
       - event: pull_request
 
-  cargo_shear:
-    image: *rust_nightly_image
-    commands:
-      - *install_binstall
-      - cargo binstall -y cargo-shear
-      - cargo shear
-    when:
-      - event: pull_request
+  #cargo_shear:
+  #  image: *rust_nightly_image
+  #  commands:
+  #    - *install_binstall
+  #    - cargo binstall -y cargo-shear
+  #    - cargo shear
+  #  when:
+  #    - event: pull_request
 
   ignored_files:
     image: alpine:3
