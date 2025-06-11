@@ -78,6 +78,7 @@ members = [
   "crates/routes",
   "crates/federate",
   "crates/email",
+  "crates/workspace-hack",
 ]
 
 [workspace.lints.clippy]
@@ -246,6 +247,7 @@ rustls = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
 mimalloc = "0.1.46"
+workspace-hack = { version = "0.1", path = "crates/workspace-hack" }
 
 # Speedup RSA key generation
 # https://github.com/RustCrypto/RSA/blob/master/README.md#example

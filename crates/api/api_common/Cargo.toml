@@ -74,3 +74,4 @@ lemmy_db_views_reports.workspace = true
 lemmy_db_views_search_combined.workspace = true
 lemmy_db_views_site.workspace = true
 lemmy_db_views_vote.workspace = true
+workspace-hack = { version = "0.1", path = "../../workspace-hack" }

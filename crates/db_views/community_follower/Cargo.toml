@@ -37,6 +37,7 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
+workspace-hack = { version = "0.1", path = "../../workspace-hack" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

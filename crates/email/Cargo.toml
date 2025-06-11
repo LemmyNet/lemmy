@@ -33,6 +33,7 @@ lettre = { version = "0.11.17", default-features = false, features = [
   "tokio1-rustls-tls",
   "pool",
 ] }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 

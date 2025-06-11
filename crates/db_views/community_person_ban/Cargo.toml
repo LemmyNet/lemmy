@@ -31,3 +31,4 @@ lemmy_db_schema_file = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
+workspace-hack = { version = "0.1", path = "../../workspace-hack" }

@@ -25,3 +25,4 @@ lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }

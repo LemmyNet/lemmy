@@ -37,6 +37,7 @@ serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.15"
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

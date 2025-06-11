@@ -3130,6 +3130,7 @@ dependencies = [
  "totp-rs",
  "tracing",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3162,6 +3163,7 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_utils",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3201,6 +3203,7 @@ dependencies = [
  "serde_with",
  "url",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3253,6 +3256,7 @@ dependencies = [
  "urlencoding",
  "webmention",
  "webpage",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3297,6 +3301,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3334,6 +3339,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3350,6 +3356,7 @@ dependencies = [
  "lemmy_utils",
  "tokio",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3386,6 +3393,7 @@ dependencies = [
  "tuplex",
  "url",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3405,6 +3413,7 @@ dependencies = [
  "strum",
  "tracing",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3423,6 +3432,7 @@ dependencies = [
  "serde_with",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3444,6 +3454,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3464,6 +3475,7 @@ dependencies = [
  "tokio",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3482,6 +3494,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3495,6 +3508,7 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3507,6 +3521,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_utils",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3522,6 +3537,7 @@ dependencies = [
  "serde_with",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3541,6 +3557,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3557,6 +3574,7 @@ dependencies = [
  "serde_with",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3576,6 +3594,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3594,6 +3613,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3613,6 +3633,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3635,6 +3656,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3656,6 +3678,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3677,6 +3700,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3702,6 +3726,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3715,6 +3740,7 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3727,6 +3753,7 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3745,6 +3772,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3766,6 +3794,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3780,6 +3809,7 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3804,6 +3834,7 @@ dependencies = [
  "tokio",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3823,6 +3854,7 @@ dependencies = [
  "serde_with",
  "ts-rs",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3841,6 +3873,7 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3857,6 +3890,7 @@ dependencies = [
  "rosetta-i18n",
  "tracing",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3890,6 +3924,7 @@ dependencies = [
  "tracing-test",
  "url",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3931,6 +3966,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3959,6 +3995,7 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "tracing-subscriber",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -3998,6 +4035,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "urlencoding",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -8181,6 +8219,66 @@ dependencies = [
  "log",
  "thiserror 1.0.69",
  "wast 35.0.2",
+]
+
+[[package]]
+name = "workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "actix-router",
+ "anyhow",
+ "bytemuck",
+ "bytes",
+ "cc",
+ "chrono",
+ "const-oid",
+ "diesel",
+ "digest",
+ "either",
+ "foldhash",
+ "form_urlencoded",
+ "futures",
+ "futures-channel",
+ "futures-core",
+ "futures-io",
+ "futures-sink",
+ "futures-util",
+ "hashbrown 0.14.5",
+ "hashbrown 0.15.4",
+ "idna 1.0.3",
+ "indexmap 2.9.0",
+ "lazy_static",
+ "log",
+ "markdown-it",
+ "memchr",
+ "miniz_oxide",
+ "mio",
+ "num-traits",
+ "once_cell",
+ "parking_lot",
+ "percent-encoding",
+ "phf_shared 0.10.0",
+ "phf_shared 0.11.3",
+ "rand 0.8.5",
+ "reqwest 0.12.19",
+ "rustls 0.23.27",
+ "rustls-webpki 0.103.3",
+ "semver",
+ "serde",
+ "serde_json",
+ "simd-adler32",
+ "smallvec",
+ "syn 1.0.109",
+ "syn 2.0.102",
+ "time",
+ "tokio",
+ "tokio-rustls 0.26.2",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "wasmparser 0.221.3",
 ]
 
 [[package]]

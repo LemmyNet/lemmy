@@ -49,6 +49,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 diesel-async = { workspace = true }
+workspace-hack = { version = "0.1", path = "../../workspace-hack" }
 
 [package.metadata.cargo-shear]
 ignored = ["futures", "futures-util"]

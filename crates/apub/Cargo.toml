@@ -57,6 +57,7 @@ anyhow = { workspace = true }
 serde_with.workspace = true
 enum_delegate = "0.2.0"
 either = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

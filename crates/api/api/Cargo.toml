@@ -60,6 +60,7 @@ sitemap-rs = "0.2.2"
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 either = { workspace = true }
+workspace-hack = { version = "0.1", path = "../../workspace-hack" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

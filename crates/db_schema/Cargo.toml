@@ -73,6 +73,7 @@ i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
 moka = { workspace = true, optional = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 serial_test = { workspace = true }
