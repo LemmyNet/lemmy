@@ -6,7 +6,7 @@ use activitypub_federation::{
   traits::Collection,
 };
 use futures::future::join_all;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };

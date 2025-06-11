@@ -16,7 +16,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
@@ -94,14 +94,14 @@ impl ActivityHandler for UndoBlockUser {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.object.end_time;
+    let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::unban(pool, &form).await?;
 
         if self.restore_data.unwrap_or(false) {
@@ -120,7 +120,7 @@ impl ActivityHandler for UndoBlockUser {
           other_person_id: blocked_person.id,
           reason: self.object.summary,
           banned: Some(false),
-          expires,
+          expires_at,
           instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
@@ -149,7 +149,7 @@ impl ActivityHandler for UndoBlockUser {
           community_id: community.id,
           reason: self.object.summary,
           banned: Some(false),
-          expires,
+          expires_at,
         };
         ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }

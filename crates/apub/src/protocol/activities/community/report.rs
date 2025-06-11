@@ -5,7 +5,7 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one,
 };
 use either::Either;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson, ReportableObjects},
   utils::protocol::InCommunity,

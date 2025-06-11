@@ -1,11 +1,9 @@
 use super::utils::delete_old_image;
 use actix_web::web::*;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  image::{CommunityIdQuery, DeleteImageParams},
   request::{delete_image_alias, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -16,6 +14,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_api_misc::SuccessResponse;
+use lemmy_db_views_community::api::CommunityIdQuery;
+use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 

@@ -15,7 +15,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use either::Either;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, multi_community::ApubMultiCommunity, person::ApubPerson},
   utils::{

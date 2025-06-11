@@ -31,7 +31,7 @@ use {
 #[cfg_attr(feature = "full", cursor_keys_module(name = local_image_keys))]
 pub struct LocalImage {
   pub pictrs_alias: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// This means the image is an auto-generated thumbnail, for a post.
@@ -57,7 +57,7 @@ pub struct LocalImageForm {
 #[cfg_attr(feature = "full", diesel(primary_key(link)))]
 pub struct RemoteImage {
   pub link: DbUrl,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[skip_serializing_none]

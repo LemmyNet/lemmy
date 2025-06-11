@@ -142,19 +142,19 @@ UPDATE
     post AS a
 SET
     comments = a.comments + diff.comments,
-    newest_comment_time = GREATEST (a.newest_comment_time, diff.newest_comment_time),
-    newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)
+    newest_comment_time_at = GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+    newest_comment_time_necro_at = GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)
 FROM (
     SELECT
         post.id AS post_id,
         coalesce(sum(count_diff), 0) AS comments,
         -- Old rows are excluded using `count_diff = 1`
-        max((comment).published) FILTER (WHERE count_diff = 1) AS newest_comment_time,
-        max((comment).published) FILTER (WHERE count_diff = 1
+        max((comment).published_at) FILTER (WHERE count_diff = 1) AS newest_comment_time_at,
+        max((comment).published_at) FILTER (WHERE count_diff = 1
             -- Ignore comments from the post's creator
             AND post.creator_id != (comment).creator_id
         -- Ignore comments on old posts
-        AND post.published > ((comment).published - '2 days'::interval)) AS newest_comment_time_necro
+        AND post.published_at > ((comment).published_at - '2 days'::interval)) AS newest_comment_time_necro_at
 FROM
     select_old_and_new_rows AS old_and_new_rows
     LEFT JOIN post ON post.id = (comment).post_id
@@ -165,10 +165,10 @@ GROUP BY
 WHERE
     a.id = diff.post_id
     AND (diff.comments,
-        GREATEST (a.newest_comment_time, diff.newest_comment_time),
-        GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
-        a.newest_comment_time,
-        a.newest_comment_time_necro);
+        GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+        GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
+        a.newest_comment_time_at,
+        a.newest_comment_time_necro_at);
 UPDATE
     local_site AS a
 SET
@@ -289,7 +289,7 @@ BEGIN
         FROM select_old_and_new_rows AS old_and_new_rows
     LEFT JOIN community ON community.id = (community_actions).community_id
     LEFT JOIN person ON person.id = (community_actions).person_id
-    WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
+    WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
@@ -391,8 +391,8 @@ BEGIN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
     -- Set aggregates
-    NEW.newest_comment_time = NEW.published;
-    NEW.newest_comment_time_necro = NEW.published;
+    NEW.newest_comment_time_at = NEW.published_at;
+    NEW.newest_comment_time_necro_at = NEW.published_at;
     RETURN NEW;
 END
 $$;
@@ -417,7 +417,7 @@ CREATE TRIGGER change_values
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
 -- Combined tables triggers
--- These insert (published, item_id) into X_combined tables
+-- These insert (published_at, item_id) into X_combined tables
 -- Reports (comment_report, post_report, private_message_report)
 CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -428,8 +428,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO report_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                INSERT INTO report_combined (published_at, thing_id)
+                    VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER report_combined
@@ -455,8 +455,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO person_content_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                INSERT INTO person_content_combined (published_at, thing_id)
+                    VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER person_content_combined
@@ -489,14 +489,14 @@ BEGIN
                     WHERE p.person_id = OLD.person_id
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
-                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                    IF NEW.saved_at IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id)
+                            VALUES (NEW.saved_at, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
-                    IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
-                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                    IF NEW.saved_at IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id)
+                            VALUES (NEW.saved_at, NEW.person_id, NEW.thing_id);
                         -- If saved gets set as null, delete the row
                     ELSE
                         DELETE FROM person_saved_combined AS p
@@ -507,7 +507,7 @@ BEGIN
                 RETURN NULL;
             END $$;
     CREATE TRIGGER person_saved_combined
-        AFTER INSERT OR DELETE OR UPDATE OF saved ON thing_actions
+        AFTER INSERT OR DELETE OR UPDATE OF saved_at ON thing_actions
         FOR EACH ROW
         EXECUTE FUNCTION r.person_saved_combined_change_values_thing ( );
     $b$,
@@ -536,26 +536,26 @@ BEGIN
                     WHERE p.person_id = OLD.person_id
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.liked IS NOT NULL AND (
+                    IF NEW.liked_at IS NOT NULL AND (
                         SELECT
                             local
                         FROM
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked, like_score, person_id, thing_id)
-                            VALUES (NEW.liked, NEW.like_score, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_liked_combined (liked_at, like_score, person_id, thing_id)
+                            VALUES (NEW.liked_at, NEW.like_score, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
-                    IF NEW.liked IS NOT NULL AND (
+                    IF NEW.liked_at IS NOT NULL AND (
                         SELECT
                             local
                         FROM
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked, like_score, person_id, thing_id)
-                            VALUES (NEW.liked, NEW.like_score, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_liked_combined (liked_at, like_score, person_id, thing_id)
+                            VALUES (NEW.liked_at, NEW.like_score, NEW.person_id, NEW.thing_id);
                         -- If liked gets set as null, delete the row
                     ELSE
                         DELETE FROM person_liked_combined AS p
@@ -566,7 +566,7 @@ BEGIN
                 RETURN NULL;
             END $$;
     CREATE TRIGGER person_liked_combined
-        AFTER INSERT OR DELETE OR UPDATE OF liked ON thing_actions
+        AFTER INSERT OR DELETE OR UPDATE OF liked_at ON thing_actions
         FOR EACH ROW
         EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
     $b$,
@@ -603,8 +603,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO modlog_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                INSERT INTO modlog_combined (published_at, thing_id)
+                    VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER modlog_combined
@@ -643,8 +643,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO inbox_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                INSERT INTO inbox_combined (published_at, thing_id)
+                    VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER inbox_combined
@@ -703,8 +703,8 @@ BEGIN
             AS $$
             BEGIN
                 -- TODO need to figure out how to do the other columns here
-                INSERT INTO search_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                INSERT INTO search_combined (published_at, thing_id)
+                    VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER search_combined

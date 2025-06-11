@@ -118,7 +118,7 @@ async fn try_main() -> LemmyResult<()> {
           post::creator_id,
           post::community_id,
           post::featured_community,
-          post::published,
+          post::published_at,
         ))
         .execute(conn)
         .await?;
@@ -184,8 +184,8 @@ fn site() -> LemmyResult<Site> {
     id: Default::default(),
     name: String::new(),
     sidebar: None,
-    published: Default::default(),
-    updated: None,
+    published_at: Default::default(),
+    updated_at: None,
     icon: None,
     banner: None,
     description: None,

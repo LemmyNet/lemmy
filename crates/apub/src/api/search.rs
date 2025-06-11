@@ -1,7 +1,8 @@
-use crate::fetcher::resolve_ap_identifier;
+use crate::{api::resolve_object::resolve_object_internal, fetcher::resolve_ap_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
+use futures::future::join;
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
@@ -24,7 +25,6 @@ pub async fn search(
 ) -> LemmyResult<Json<SearchResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
-  let local_instance_id = site_view.site.instance_id;
 
   check_private_instance(&local_user_view, &local_site)?;
   check_conflicting_like_filters(data.liked_only, data.disliked_only)?;
@@ -45,7 +45,8 @@ pub async fn search(
     None
   };
 
-  let results = SearchCombinedQuery {
+  let pool = &mut context.pool();
+  let search_fut = SearchCombinedQuery {
     search_term: data.search_term.clone(),
     community_id,
     creator_id: data.creator_id,
@@ -57,12 +58,25 @@ pub async fn search(
     post_url_only: data.post_url_only,
     liked_only: data.liked_only,
     disliked_only: data.disliked_only,
+    show_nsfw: data.show_nsfw,
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
   }
-  .list(&mut context.pool(), &local_user_view, local_instance_id)
-  .await?;
+  .list(pool, &local_user_view, &site_view.site);
+
+  let results = if let Some(q) = &data.search_term {
+    let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
+    let (search, resolve) = join(search_fut, resolve_fut).await;
+    let mut search = search?;
+    // Ignore resolve errors as query may not be Activitypub object
+    if let Ok(resolve) = resolve {
+      search.push(resolve);
+    }
+    search
+  } else {
+    search_fut.await?
+  };
 
   let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
   let prev_page = results.first().map(PaginationCursorBuilder::to_cursor);

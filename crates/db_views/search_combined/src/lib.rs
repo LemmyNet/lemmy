@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
+    multi_community::MultiCommunity,
     person::{Person, PersonActions},
     post::{Post, PostActions},
     tag::TagsView,
@@ -131,6 +132,7 @@ pub enum SearchCombinedView {
   Comment(CommentView),
   Community(CommunityView),
   Person(PersonView),
+  MultiCommunity(MultiCommunity),
 }
 
 #[skip_serializing_none]
@@ -165,6 +167,9 @@ pub struct Search {
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -173,7 +178,7 @@ pub struct Search {
   pub limit: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The search response, containing lists of the return type possibilities

@@ -11,7 +11,7 @@ use actix_web::{
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},

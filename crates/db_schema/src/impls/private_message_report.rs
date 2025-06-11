@@ -11,12 +11,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::private_message_report::dsl::{
-  private_message_report,
-  resolved,
-  resolver_id,
-  updated,
-};
+use lemmy_db_schema_file::schema::private_message_report;
 use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
@@ -26,7 +21,7 @@ impl Reportable for PrivateMessageReport {
 
   async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(private_message_report)
+    insert_into(private_message_report::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -39,11 +34,11 @@ impl Reportable for PrivateMessageReport {
     by_resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    update(private_message_report.find(report_id))
+    update(private_message_report::table.find(report_id))
       .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        private_message_report::resolved.eq(true),
+        private_message_report::resolver_id.eq(by_resolver_id),
+        private_message_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -73,11 +68,11 @@ impl Reportable for PrivateMessageReport {
     by_resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    update(private_message_report.find(report_id))
+    update(private_message_report::table.find(report_id))
       .set((
-        resolved.eq(false),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        private_message_report::resolved.eq(false),
+        private_message_report::resolver_id.eq(by_resolver_id),
+        private_message_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await

@@ -35,9 +35,9 @@ pub struct Post {
   pub removed: bool,
   /// Whether the post is locked.
   pub locked: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// Whether the post is deleted.
   pub deleted: bool,
   /// Whether the post is NSFW.
@@ -70,16 +70,16 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
-  pub scheduled_publish_time: Option<DateTime<Utc>>,
+  pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   pub comments: i64,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
   #[serde(skip)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time_necro: DateTime<Utc>,
+  pub newest_comment_time_necro_at: DateTime<Utc>,
   /// The time of the newest comment in the post.
-  pub newest_comment_time: DateTime<Utc>,
+  pub newest_comment_time_at: DateTime<Utc>,
   #[serde(skip)]
   pub hot_rank: f64,
   #[serde(skip)]
@@ -118,9 +118,9 @@ pub struct PostInsertForm {
   #[new(default)]
   pub locked: Option<bool>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
@@ -146,7 +146,7 @@ pub struct PostInsertForm {
   #[new(default)]
   pub alt_text: Option<String>,
   #[new(default)]
-  pub scheduled_publish_time: Option<DateTime<Utc>>,
+  pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub federation_pending: Option<bool>,
 }
@@ -161,8 +161,8 @@ pub struct PostUpdateForm {
   pub body: Option<Option<String>>,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub embed_title: Option<Option<String>>,
   pub embed_description: Option<Option<String>>,
@@ -175,7 +175,7 @@ pub struct PostUpdateForm {
   pub featured_local: Option<bool>,
   pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
-  pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
+  pub scheduled_publish_time_at: Option<Option<DateTime<Utc>>>,
   pub federation_pending: Option<bool>,
 }
 
@@ -204,26 +204,26 @@ pub struct PostActions {
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was read.
-  pub read: Option<DateTime<Utc>>,
+  pub read_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When was the last time you read the comments.
-  pub read_comments: Option<DateTime<Utc>>,
+  pub read_comments_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
   pub read_comments_amount: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was saved.
-  pub saved: Option<DateTime<Utc>>,
+  pub saved_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was liked.
-  pub liked: Option<DateTime<Utc>>,
+  pub liked_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// The like / score of the post.
   pub like_score: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the post was hidden.
-  pub hidden: Option<DateTime<Utc>>,
+  pub hidden_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -237,7 +237,7 @@ pub struct PostLikeForm {
   pub person_id: PersonId,
   pub like_score: i16,
   #[new(value = "Utc::now()")]
-  pub liked: DateTime<Utc>,
+  pub liked_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -247,7 +247,7 @@ pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub saved: DateTime<Utc>,
+  pub saved_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new, Clone)]
@@ -257,7 +257,7 @@ pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub read: DateTime<Utc>,
+  pub read_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -268,7 +268,7 @@ pub struct PostReadCommentsForm {
   pub person_id: PersonId,
   pub read_comments_amount: i64,
   #[new(value = "Utc::now()")]
-  pub read_comments: DateTime<Utc>,
+  pub read_comments_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -278,5 +278,5 @@ pub struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
-  pub hidden: DateTime<Utc>,
+  pub hidden_at: DateTime<Utc>,
 }

@@ -22,7 +22,7 @@ pub struct RegistrationApplication {
   pub admin_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub deny_reason: Option<String>,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]

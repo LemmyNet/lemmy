@@ -22,9 +22,9 @@ impl FederationQueueState {
         .unwrap_or(FederationQueueState {
           instance_id,
           fail_count: 0,
-          last_retry: None,
+          last_retry_at: None,
           last_successful_id: None, // this value is set to the most current id for new instances
-          last_successful_published_time: None,
+          last_successful_published_time_at: None,
         }),
     )
   }

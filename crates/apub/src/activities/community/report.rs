@@ -15,7 +15,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use either::Either;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_comment_deleted_or_removed,

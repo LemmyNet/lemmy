@@ -53,7 +53,7 @@ diesel::table! {
         admin_person_id -> Int4,
         allowed -> Bool,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -64,8 +64,8 @@ diesel::table! {
         admin_person_id -> Int4,
         blocked -> Bool,
         reason -> Nullable<Text>,
-        expires -> Nullable<Timestamptz>,
-        published -> Timestamptz,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
     }
 }
 
@@ -75,7 +75,7 @@ diesel::table! {
         admin_person_id -> Int4,
         post_id -> Int4,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -84,7 +84,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -93,7 +93,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -103,7 +103,7 @@ diesel::table! {
         admin_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -111,7 +111,7 @@ diesel::table! {
     captcha_answer (uuid) {
         uuid -> Uuid,
         answer -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -125,8 +125,8 @@ diesel::table! {
         post_id -> Int4,
         content -> Text,
         removed -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         deleted -> Bool,
         #[max_length = 255]
         ap_id -> Varchar,
@@ -151,8 +151,8 @@ diesel::table! {
         person_id -> Int4,
         comment_id -> Int4,
         like_score -> Nullable<Int2>,
-        liked -> Nullable<Timestamptz>,
-        saved -> Nullable<Timestamptz>,
+        liked_at -> Nullable<Timestamptz>,
+        saved_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -162,7 +162,7 @@ diesel::table! {
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -175,8 +175,8 @@ diesel::table! {
         reason -> Text,
         resolved -> Bool,
         resolver_id -> Nullable<Int4>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
     }
 }
@@ -193,8 +193,8 @@ diesel::table! {
         title -> Varchar,
         sidebar -> Nullable<Text>,
         removed -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         deleted -> Bool,
         nsfw -> Bool,
         #[max_length = 255]
@@ -242,13 +242,13 @@ diesel::table! {
     community_actions (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
-        followed -> Nullable<Timestamptz>,
+        followed_at -> Nullable<Timestamptz>,
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
-        blocked -> Nullable<Timestamptz>,
-        became_moderator -> Nullable<Timestamptz>,
-        received_ban -> Nullable<Timestamptz>,
-        ban_expires -> Nullable<Timestamptz>,
+        blocked_at -> Nullable<Timestamptz>,
+        became_moderator_at -> Nullable<Timestamptz>,
+        received_ban_at -> Nullable<Timestamptz>,
+        ban_expires_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -273,8 +273,8 @@ diesel::table! {
         reason -> Text,
         resolved -> Bool,
         resolver_id -> Nullable<Int4>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -286,8 +286,8 @@ diesel::table! {
         image_url -> Text,
         alt_text -> Text,
         category -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -305,24 +305,24 @@ diesel::table! {
         local_user_id -> Int4,
         email -> Text,
         verification_token -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     federation_allowlist (instance_id) {
         instance_id -> Int4,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     federation_blocklist (instance_id) {
         instance_id -> Int4,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
-        expires -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
+        expires_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -331,8 +331,8 @@ diesel::table! {
         instance_id -> Int4,
         last_successful_id -> Nullable<Int8>,
         fail_count -> Int4,
-        last_retry -> Nullable<Timestamptz>,
-        last_successful_published_time -> Nullable<Timestamptz>,
+        last_retry_at -> Nullable<Timestamptz>,
+        last_successful_published_time_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -350,7 +350,7 @@ diesel::table! {
 diesel::table! {
     inbox_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         comment_reply_id -> Nullable<Int4>,
         person_comment_mention_id -> Nullable<Int4>,
         person_post_mention_id -> Nullable<Int4>,
@@ -363,8 +363,8 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         domain -> Varchar,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         #[max_length = 255]
         software -> Nullable<Varchar>,
         #[max_length = 255]
@@ -376,9 +376,9 @@ diesel::table! {
     instance_actions (person_id, instance_id) {
         person_id -> Int4,
         instance_id -> Int4,
-        blocked -> Nullable<Timestamptz>,
-        received_ban -> Nullable<Timestamptz>,
-        ban_expires -> Nullable<Timestamptz>,
+        blocked_at -> Nullable<Timestamptz>,
+        received_ban_at -> Nullable<Timestamptz>,
+        ban_expires_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -394,7 +394,7 @@ diesel::table! {
 diesel::table! {
     local_image (pictrs_alias) {
         pictrs_alias -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         person_id -> Int4,
         thumbnail_for_post_id -> Nullable<Int4>,
     }
@@ -427,8 +427,8 @@ diesel::table! {
         captcha_enabled -> Bool,
         #[max_length = 255]
         captcha_difficulty -> Varchar,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
@@ -471,8 +471,8 @@ diesel::table! {
         comment_per_second -> Int4,
         search -> Int4,
         search_per_second -> Int4,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         import_user_settings -> Int4,
         import_user_settings_per_second -> Int4,
     }
@@ -482,8 +482,8 @@ diesel::table! {
     local_site_url_blocklist (id) {
         id -> Int4,
         url -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -525,7 +525,7 @@ diesel::table! {
         collapse_bot_comments -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
-        last_donation_notification -> Timestamptz,
+        last_donation_notification_at -> Timestamptz,
         hide_media -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
@@ -554,7 +554,7 @@ diesel::table! {
     login_token (token) {
         token -> Text,
         user_id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         ip -> Nullable<Text>,
         user_agent -> Nullable<Text>,
     }
@@ -566,7 +566,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         removed -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -577,7 +577,7 @@ diesel::table! {
         other_person_id -> Int4,
         community_id -> Int4,
         removed -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -588,8 +588,8 @@ diesel::table! {
         other_person_id -> Int4,
         reason -> Nullable<Text>,
         banned -> Bool,
-        expires -> Nullable<Timestamptz>,
-        published -> Timestamptz,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
         instance_id -> Int4,
     }
 }
@@ -602,8 +602,8 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         banned -> Bool,
-        expires -> Nullable<Timestamptz>,
-        published -> Timestamptz,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
     }
 }
 
@@ -615,7 +615,7 @@ diesel::table! {
         id -> Int4,
         community_id -> Int4,
         mod_person_id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         visibility -> CommunityVisibility,
     }
 }
@@ -626,7 +626,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         featured -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         is_featured_community -> Bool,
     }
 }
@@ -637,7 +637,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         locked -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         reason -> Nullable<Text>,
     }
 }
@@ -649,7 +649,7 @@ diesel::table! {
         comment_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -660,7 +660,7 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -671,7 +671,7 @@ diesel::table! {
         post_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -681,14 +681,14 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         community_id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     modlog_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         admin_allow_instance_id -> Nullable<Int4>,
         admin_block_instance_id -> Nullable<Int4>,
         admin_purge_comment_id -> Nullable<Int4>,
@@ -756,8 +756,8 @@ diesel::table! {
         local_user_id -> Int4,
         oauth_provider_id -> Int4,
         oauth_user_id -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -776,8 +776,8 @@ diesel::table! {
         auto_verify_email -> Bool,
         account_linking_enabled -> Bool,
         enabled -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         use_pkce -> Bool,
     }
 }
@@ -786,7 +786,7 @@ diesel::table! {
     password_reset_request (id) {
         id -> Int4,
         token -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         local_user_id -> Int4,
     }
 }
@@ -799,8 +799,8 @@ diesel::table! {
         #[max_length = 255]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         #[max_length = 255]
         ap_id -> Varchar,
         bio -> Nullable<Text>,
@@ -826,16 +826,16 @@ diesel::table! {
     person_actions (person_id, target_id) {
         target_id -> Int4,
         person_id -> Int4,
-        followed -> Nullable<Timestamptz>,
+        followed_at -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
-        blocked -> Nullable<Timestamptz>,
+        blocked_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     person_ban (person_id) {
         person_id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -845,14 +845,14 @@ diesel::table! {
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     person_content_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
     }
@@ -861,7 +861,7 @@ diesel::table! {
 diesel::table! {
     person_liked_combined (id) {
         id -> Int4,
-        liked -> Timestamptz,
+        liked_at -> Timestamptz,
         like_score -> Int2,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
@@ -875,14 +875,14 @@ diesel::table! {
         recipient_id -> Int4,
         post_id -> Int4,
         read -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
-        saved -> Timestamptz,
+        saved_at -> Timestamptz,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
@@ -901,8 +901,8 @@ diesel::table! {
         community_id -> Int4,
         removed -> Bool,
         locked -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         deleted -> Bool,
         nsfw -> Bool,
         embed_title -> Nullable<Text>,
@@ -917,13 +917,13 @@ diesel::table! {
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
-        scheduled_publish_time -> Nullable<Timestamptz>,
+        scheduled_publish_time_at -> Nullable<Timestamptz>,
         comments -> Int8,
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
-        newest_comment_time_necro -> Timestamptz,
-        newest_comment_time -> Timestamptz,
+        newest_comment_time_necro_at -> Timestamptz,
+        newest_comment_time_at -> Timestamptz,
         hot_rank -> Float8,
         hot_rank_active -> Float8,
         controversy_rank -> Float8,
@@ -938,13 +938,13 @@ diesel::table! {
     post_actions (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
-        read -> Nullable<Timestamptz>,
-        read_comments -> Nullable<Timestamptz>,
+        read_at -> Nullable<Timestamptz>,
+        read_comments_at -> Nullable<Timestamptz>,
         read_comments_amount -> Nullable<Int8>,
-        saved -> Nullable<Timestamptz>,
-        liked -> Nullable<Timestamptz>,
+        saved_at -> Nullable<Timestamptz>,
+        liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
-        hidden -> Nullable<Timestamptz>,
+        hidden_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -960,8 +960,8 @@ diesel::table! {
         reason -> Text,
         resolved -> Bool,
         resolver_id -> Nullable<Int4>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
     }
 }
@@ -970,7 +970,7 @@ diesel::table! {
     post_tag (post_id, tag_id) {
         post_id -> Int4,
         tag_id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -989,8 +989,8 @@ diesel::table! {
         content -> Text,
         deleted -> Bool,
         read -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
@@ -1007,15 +1007,15 @@ diesel::table! {
         reason -> Text,
         resolved -> Bool,
         resolver_id -> Nullable<Int4>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     received_activity (ap_id) {
         ap_id -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
@@ -1026,21 +1026,21 @@ diesel::table! {
         answer -> Text,
         admin_id -> Nullable<Int4>,
         deny_reason -> Nullable<Text>,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     remote_image (link) {
         link -> Text,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     report_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         post_report_id -> Nullable<Int4>,
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
@@ -1051,7 +1051,7 @@ diesel::table! {
 diesel::table! {
     search_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         score -> Int8,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
@@ -1076,7 +1076,7 @@ diesel::table! {
         ap_id -> Text,
         data -> Json,
         sensitive -> Bool,
-        published -> Timestamptz,
+        published_at -> Timestamptz,
         send_inboxes -> Array<Nullable<Text>>,
         send_community_followers_of -> Nullable<Int4>,
         send_all_instances -> Bool,
@@ -1091,8 +1091,8 @@ diesel::table! {
         #[max_length = 20]
         name -> Varchar,
         sidebar -> Nullable<Text>,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
         #[max_length = 150]
@@ -1122,8 +1122,8 @@ diesel::table! {
         ap_id -> Text,
         display_name -> Text,
         community_id -> Int4,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
         deleted -> Bool,
     }
 }
@@ -1132,8 +1132,8 @@ diesel::table! {
     tagline (id) {
         id -> Int4,
         content -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 

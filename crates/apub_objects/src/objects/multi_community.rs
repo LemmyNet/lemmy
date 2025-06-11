@@ -5,7 +5,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
@@ -16,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 use url::Url;
 

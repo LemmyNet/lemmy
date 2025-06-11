@@ -5,13 +5,13 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use either::Either;
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{group::Group, multi_community::Feed},
   utils::protocol::InCommunity,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

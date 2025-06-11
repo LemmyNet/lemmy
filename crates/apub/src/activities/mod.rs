@@ -4,6 +4,7 @@ use crate::{
     community::{
       collection_add::{send_add_mod_to_community, send_feature_post},
       lock_page::send_lock_post,
+      update::{send_update_community, send_update_multi_community},
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
@@ -12,6 +13,7 @@ use crate::{
       send_apub_delete_user,
       DeletableObjects,
     },
+    following::send_follow,
     voting::send_like_activity,
   },
   protocol::activities::{
@@ -26,10 +28,9 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
-use community::update::{send_update_community, send_update_multi_community};
 use either::Either;
-use following::{send_accept_or_reject_follow, send_follow};
-use lemmy_api_common::{
+use following::send_accept_or_reject_follow;
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,
@@ -303,7 +304,7 @@ pub async fn match_outgoing_activities(
         reason,
         remove_or_restore_data,
         ban,
-        expires,
+        expires_at,
       } => {
         send_ban_from_site(
           moderator,
@@ -311,7 +312,7 @@ pub async fn match_outgoing_activities(
           reason,
           remove_or_restore_data,
           ban,
-          expires,
+          expires_at,
           context,
         )
         .await

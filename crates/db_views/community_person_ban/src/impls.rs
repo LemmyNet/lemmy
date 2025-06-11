@@ -22,7 +22,7 @@ impl CommunityPersonBanView {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
       .find((from_person_id, from_community_id))
-      .filter(community_actions::received_ban.is_not_null());
+      .filter(community_actions::received_ban_at.is_not_null());
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
       .await?

@@ -12,7 +12,7 @@ use crate::{
     },
   },
   traits::Crud,
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use diesel::{
   dsl::{count, delete, exists, insert_into, not},
@@ -30,7 +30,11 @@ use lemmy_db_schema_file::schema::{
   multi_community_follow,
   person,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
+use url::Url;
 
 const MULTI_COMMUNITY_ENTRY_LIMIT: i8 = 50;
 
@@ -311,6 +315,16 @@ impl MultiCommunity {
       .get_result(conn)
       .await?,
     )
+  }
+
+  pub fn format_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'u', settings)
   }
 }
 

@@ -1,15 +1,9 @@
 use crate::objects::SearchableObjects;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use either::Either::*;
-use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::{DbUrl, InstanceId},
-  source::instance::Instance,
-};
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
-};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_db_schema::traits::ApubActor;
+use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
 use url::Url;
 
 pub async fn markdown_rewrite_remote_links_opt(
@@ -55,41 +49,20 @@ pub async fn markdown_rewrite_remote_links(
 pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Option<Url> {
   let local_domain = &context.settings().get_protocol_and_hostname();
   let object_id = ObjectId::<SearchableObjects>::parse(url).ok()?;
-  if object_id.inner().domain() == Some(local_domain) {
+  let object_domain = object_id.inner().domain();
+  if object_domain == Some(local_domain) {
     return None;
   }
   let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
     Left(Left(Left(post))) => post.local_url(context.settings()),
     Left(Left(Right(comment))) => comment.local_url(context.settings()),
-    Left(Right(Left(user))) => format_actor_url(&user.name, "u", user.instance_id, context).await,
-    Left(Right(Right(community))) => {
-      format_actor_url(&community.name, "c", community.instance_id, context).await
-    }
-    Right(multi) => format_actor_url(&multi.name, "m", multi.instance_id, context).await,
+    Left(Right(Left(user))) => user.actor_url(context.settings()),
+    Left(Right(Right(community))) => community.actor_url(context.settings()),
+    Right(multi) => multi.format_url(context.settings()),
   }
   .ok()
   .map(Into::into)
-}
-
-async fn format_actor_url(
-  name: &str,
-  kind: &str,
-  instance_id: InstanceId,
-  context: &LemmyContext,
-) -> LemmyResult<DbUrl> {
-  let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let local_hostname = &context.settings().hostname;
-  let instance = Instance::read(&mut context.pool(), instance_id).await?;
-  let url = if &instance.domain != local_hostname {
-    format!(
-      "{local_protocol_and_hostname}/{kind}/{name}@{}",
-      instance.domain
-    )
-  } else {
-    format!("{local_protocol_and_hostname}/{kind}/{name}")
-  };
-  Ok(Url::parse(&url)?.into())
 }
 
 #[cfg(test)]
@@ -104,6 +77,7 @@ mod tests {
     traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -142,7 +116,7 @@ mod tests {
       (
         "rewrite community link",
         format!("[link]({})", community.ap_id),
-        "[link](https://lemmy-alpha/c/my_community@my_domain.tld)",
+        "[link](https://lemmy-alpha/c/my_community@changeme.invalid)",
       ),
       (
         "dont rewrite local post link",

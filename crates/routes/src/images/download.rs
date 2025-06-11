@@ -7,13 +7,9 @@ use actix_web::{
   HttpResponse,
   Responder,
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  image::{ImageGetParams, ImageProxyParams},
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
-use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 
@@ -21,16 +17,8 @@ pub async fn get_image(
   filename: Path<String>,
   Query(params): Query<ImageGetParams>,
   req: HttpRequest,
-  local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  // block access to images if instance is private
-  if local_user_view.is_none() {
-    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
-    if local_site.private_instance {
-      return Ok(HttpResponse::Unauthorized().finish());
-    }
-  }
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
