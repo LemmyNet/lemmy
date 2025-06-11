@@ -13,7 +13,7 @@ cp -a migrations/. $TMP_DIR/migrations
 cp -a crates/db_schema_file/replaceable_schema/. $TMP_DIR/replaceable_schema
 
 # Format the new files
-find $TMP_DIR -type f -name '*.sql' -exec pg_format -i {} +
+find $TMP_DIR -type f -name '*.sql' -print0 | xargs -0 -P 10 -L 10 pg_format -i
 
 # Diff the directories
 diff -r migrations $TMP_DIR/migrations
