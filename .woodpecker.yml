@@ -61,9 +61,9 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: alpine:3
+    image: *rust_image
     commands:
-      - apk add perl make bash
+      - apt-get install perl make bash
       - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
     when:
