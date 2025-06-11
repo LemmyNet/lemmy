@@ -42,7 +42,7 @@ pub async fn update_private_message(
   let private_message_id = data.private_message_id;
   let mut form = PrivateMessageUpdateForm {
     content: Some(content),
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
   form = plugin_hook_before("before_update_local_private_message", form).await?;

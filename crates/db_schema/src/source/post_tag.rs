@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 pub struct PostTag {
   pub post_id: PostId,
   pub tag_id: TagId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug)]

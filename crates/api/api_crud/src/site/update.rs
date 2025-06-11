@@ -78,7 +78,7 @@ pub async fn update_site(
     sidebar,
     description: diesel_string_update(data.description.as_deref()),
     content_warning: diesel_string_update(data.content_warning.as_deref()),
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
 
@@ -101,7 +101,7 @@ pub async fn update_site(
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,

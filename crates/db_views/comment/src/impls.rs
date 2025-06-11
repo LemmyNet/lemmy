@@ -186,7 +186,7 @@ impl CommentQuery<'_> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    let is_subscribed = community_actions::followed.is_not_null();
+    let is_subscribed = community_actions::followed_at.is_not_null();
 
     // For posts, we only show hidden if its subscribed, but for comments,
     // we ignore hidden.
@@ -194,7 +194,9 @@ impl CommentQuery<'_> {
       ListingType::Subscribed => query.filter(is_subscribed),
       ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::All => query,
-      ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+      ListingType::ModeratorView => {
+        query.filter(community_actions::became_moderator_at.is_not_null())
+      }
     };
 
     if !o.local_user.show_bot_accounts() {
@@ -242,7 +244,7 @@ impl CommentQuery<'_> {
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
       query =
-        query.filter(comment::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+        query.filter(comment::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // A Max depth given means its a tree fetch
@@ -296,7 +298,7 @@ impl CommentQuery<'_> {
     pq = match sort {
       Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
       Controversial => pq.then_order_by(key::controversy_rank),
-      Old | New => pq.then_order_by(key::published),
+      Old | New => pq.then_order_by(key::published_at),
       Top => pq.then_order_by(key::score),
     };
 
@@ -443,7 +445,7 @@ mod tests {
       (
         inserted_block.person_id,
         inserted_block.target_id,
-        inserted_block.blocked.is_some()
+        inserted_block.blocked_at.is_some()
       )
     );
 
@@ -519,7 +521,7 @@ mod tests {
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person
       .person_actions
-      .is_some_and(|x| x.blocked.is_some()));
+      .is_some_and(|x| x.blocked_at.is_some()));
 
     cleanup(data, pool).await
   }
@@ -710,7 +712,7 @@ mod tests {
     assert!(comments[1]
       .creator_community_actions
       .as_ref()
-      .is_some_and(|x| x.became_moderator.is_some()));
+      .is_some_and(|x| x.became_moderator_at.is_some()));
 
     assert!(comments[0].creator_community_actions.is_none());
 
@@ -845,7 +847,7 @@ mod tests {
 
     assert!(comment_view
       .community_actions
-      .is_some_and(|x| x.received_ban.is_some()));
+      .is_some_and(|x| x.received_ban_at.is_some()));
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await

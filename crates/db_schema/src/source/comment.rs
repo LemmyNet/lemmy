@@ -37,9 +37,9 @@ pub struct Comment {
   pub content: String,
   /// Whether the comment has been removed.
   pub removed: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
   /// The federated activity id / ap_id.
@@ -86,9 +86,9 @@ pub struct CommentInsertForm {
   #[new(default)]
   pub removed: Option<bool>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
@@ -110,7 +110,7 @@ pub struct CommentUpdateForm {
   pub content: Option<String>,
   pub removed: Option<bool>,
   // Don't use a default Utc::now here, because the create function does a lot of comment updates
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
@@ -148,10 +148,10 @@ pub struct CommentActions {
   pub like_score: Option<i16>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the comment was liked.
-  pub liked: Option<DateTime<Utc>>,
+  pub liked_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the comment was saved.
-  pub saved: Option<DateTime<Utc>>,
+  pub saved_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -165,7 +165,7 @@ pub struct CommentLikeForm {
   pub comment_id: CommentId,
   pub like_score: i16,
   #[new(value = "Utc::now()")]
-  pub liked: DateTime<Utc>,
+  pub liked_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -175,5 +175,5 @@ pub struct CommentSavedForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
   #[new(value = "Utc::now()")]
-  pub saved: DateTime<Utc>,
+  pub saved_at: DateTime<Utc>,
 }

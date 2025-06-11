@@ -146,7 +146,7 @@ test("Purge post, linked image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   let community = await resolveBetaCommunity(user);
-  let post = await createPost(user, community.community.id, upload.image_url);
+  let post = await createPost(user, community!.community.id, upload.image_url);
   expect(post.post_view.post.url).toBe(upload.image_url);
   expect(post.post_view.image_details).toBeDefined();
 
@@ -191,12 +191,12 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
-  expect(epsilonPostRes.post).toBeDefined();
+  expect(epsilonPostRes?.post).toBeDefined();
 
   // Fetch the post again, the metadata should be backgrounded now
   // Wait for the metadata to get fetched, since this is backgrounded now
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -238,10 +238,10 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   expect(post.thumbnail_url?.includes(".png")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
-  expect(epsilonPostRes.post).toBeDefined();
+  expect(epsilonPostRes?.post).toBeDefined();
 
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -263,7 +263,7 @@ test("No image proxying if setting is disabled", async () => {
     beta,
     community.community_view.community.ap_id,
   );
-  await followCommunity(beta, true, betaCommunity.community.id);
+  await followCommunity(beta, true, betaCommunity!.community.id);
 
   const upload_form: UploadImage = {
     image: Buffer.from("test"),

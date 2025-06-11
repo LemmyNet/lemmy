@@ -323,14 +323,15 @@ impl SearchCombinedQuery {
         )
       }
       ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator.is_not_null());
+        query = query.filter(community_actions::became_moderator_at.is_not_null());
       }
     }
 
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
-      query = query
-        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+      query = query.filter(
+        search_combined::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
     }
 
     // NSFW
@@ -370,7 +371,7 @@ impl SearchCombinedQuery {
     );
 
     paginated_query = match sort {
-      New | Old => paginated_query.then_order_by(key::published),
+      New | Old => paginated_query.then_order_by(key::published_at),
       Top => paginated_query.then_order_by(key::score),
     }
     // finally use unique id as tie breaker

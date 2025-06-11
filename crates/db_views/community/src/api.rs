@@ -58,7 +58,7 @@ pub struct BanFromCommunity {
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
   #[cfg_attr(feature = "full", ts(optional))]
-  pub expires: Option<i64>,
+  pub expires_at: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

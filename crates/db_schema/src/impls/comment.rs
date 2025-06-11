@@ -47,7 +47,7 @@ impl Comment {
       .set((
         comment::content.eq(DELETED_REPLACEMENT_TEXT),
         comment::deleted.eq(true),
-        comment::updated.eq(Utc::now()),
+        comment::updated_at.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -63,7 +63,7 @@ impl Comment {
     diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::removed.eq(removed),
-        comment::updated.eq(Utc::now()),
+        comment::updated_at.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -153,7 +153,7 @@ impl Comment {
       insert_into(comment::table)
         .values(comment_form)
         .on_conflict(comment::ap_id)
-        .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
+        .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
         .set(comment_form)
         .get_result::<Self>(conn)
@@ -196,7 +196,7 @@ impl Comment {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(comment::table.find(comment_id))
-      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published)))
+      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published_at)))
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
@@ -268,7 +268,7 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
     uplete::new(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
-      .set_null(comment_actions::liked)
+      .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
@@ -292,7 +292,7 @@ impl Saveable for CommentActions {
   async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(comment_actions::table.find((form.person_id, form.comment_id)))
-      .set_null(comment_actions::saved)
+      .set_null(comment_actions::saved_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
@@ -378,8 +378,8 @@ mod tests {
       removed: false,
       deleted: false,
       path: Ltree(format!("0.{}", inserted_comment.id)),
-      published: inserted_comment.published,
-      updated: None,
+      published_at: inserted_comment.published_at,
+      updated_at: None,
       ap_id: Url::parse(&format!(
         "https://lemmy-alpha/comment/{}",
         inserted_comment.id
@@ -416,7 +416,7 @@ mod tests {
     // Comment Saved
     let comment_saved_form = CommentSavedForm::new(inserted_person.id, inserted_comment.id);
     let inserted_comment_saved = CommentActions::save(pool, &comment_saved_form).await?;
-    assert!(inserted_comment_saved.saved.is_some());
+    assert!(inserted_comment_saved.saved_at.is_some());
 
     let comment_update_form = CommentUpdateForm {
       content: Some("A test comment".into()),

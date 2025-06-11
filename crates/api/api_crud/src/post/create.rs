@@ -117,8 +117,8 @@ pub async fn create_post(
   )
   .await?;
 
-  let scheduled_publish_time =
-    convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
+  let scheduled_publish_time_at =
+    convert_published_time(data.scheduled_publish_time_at, &local_user_view, &context).await?;
   let mut post_form = PostInsertForm {
     url,
     body,
@@ -126,7 +126,7 @@ pub async fn create_post(
     nsfw,
     language_id: Some(language_id),
     federation_pending: Some(community_use_pending(community, &context).await),
-    scheduled_publish_time,
+    scheduled_publish_time_at,
     ..PostInsertForm::new(
       data.name.trim().to_string(),
       local_user_view.person.id,
@@ -152,7 +152,7 @@ pub async fn create_post(
   }
 
   let community_id = community.id;
-  let federate_post = if scheduled_publish_time.is_none() {
+  let federate_post = if scheduled_publish_time_at.is_none() {
     send_webmention(inserted_post.clone(), community);
     |post| Some(SendActivityData::CreatePost(post))
   } else {

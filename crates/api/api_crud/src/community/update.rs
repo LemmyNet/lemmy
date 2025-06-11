@@ -80,7 +80,7 @@ pub async fn update_community(
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
 

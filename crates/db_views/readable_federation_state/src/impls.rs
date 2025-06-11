@@ -6,7 +6,7 @@ use lemmy_utils::federate_retry_sleep_duration;
 impl From<FederationQueueState> for ReadableFederationState {
   fn from(internal_state: FederationQueueState) -> Self {
     ReadableFederationState {
-      next_retry: internal_state.last_retry.map(|r| {
+      next_retry: internal_state.last_retry_at.map(|r| {
         r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
           .expect("sleep duration longer than 2**63 ms (262 million years)")
       }),

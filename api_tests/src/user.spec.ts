@@ -27,6 +27,7 @@ import {
 } from "./shared";
 import {
   EditSite,
+  LemmyError,
   LemmyHttp,
   SaveUserSettings,
   UploadImage,
@@ -45,7 +46,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.ap_id).toBe(userTwo?.person.ap_id);
   expect(userOne?.person.avatar).toBe(userTwo?.person.avatar);
   expect(userOne?.person.banner).toBe(userTwo?.person.banner);
-  expect(userOne?.person.published).toBe(userTwo?.person.published);
+  expect(userOne?.person.published_at).toBe(userTwo?.person.published_at);
 }
 
 test("Create user", async () => {
@@ -102,9 +103,11 @@ test("Delete user", async () => {
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
-  await expect(getMyUser(user)).rejects.toStrictEqual(Error("incorrect_login"));
+  await expect(getMyUser(user)).rejects.toStrictEqual(
+    new LemmyError("incorrect_login"),
+  );
   await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
 
   // check that posts and comments are marked as deleted on other instances.
@@ -125,7 +128,7 @@ test("Delete user", async () => {
   ).toBe(true);
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
-  ).rejects.toStrictEqual(Error("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found"));
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
@@ -134,7 +137,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     fetchFunction,
   });
   await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
-    Error("incorrect_login"),
+    new LemmyError("incorrect_login"),
   );
   let site = await getSite(invalid_auth);
   expect(site.site_view).toBeDefined();

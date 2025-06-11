@@ -31,9 +31,9 @@ pub struct PrivateMessageReport {
   pub resolved: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]

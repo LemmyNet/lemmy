@@ -20,9 +20,9 @@ pub struct CustomEmoji {
   pub image_url: DbUrl,
   pub alt_text: String,
   pub category: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

@@ -21,7 +21,7 @@ pub struct PersonCommentMention {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
   pub read: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

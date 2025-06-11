@@ -11,7 +11,7 @@ pub async fn donation_dialog_shown(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let form = LocalUserUpdateForm {
-    last_donation_notification: Some(Utc::now()),
+    last_donation_notification_at: Some(Utc::now()),
     ..Default::default()
   };
   LocalUser::update(&mut context.pool(), local_user_view.local_user.id, &form).await?;

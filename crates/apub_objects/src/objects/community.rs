@@ -129,8 +129,8 @@ impl Object for ApubCommunity {
       endpoints: None,
       public_key: self.public_key(),
       language,
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(AttributedTo::Lemmy(
         generate_moderators_url(&self.ap_id)?.into(),
@@ -180,8 +180,8 @@ impl Object for ApubCommunity {
       .map(|_| true);
 
     let form = CommunityInsertForm {
-      published: group.published,
-      updated: group.updated,
+      published_at: group.published,
+      updated_at: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),

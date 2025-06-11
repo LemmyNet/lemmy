@@ -48,7 +48,7 @@ mod tests {
       .iter()
       .map(|i| FederationAllowListForm {
         instance_id: i.id,
-        updated: None,
+        updated_at: None,
       })
       .collect();
 

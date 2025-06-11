@@ -105,8 +105,8 @@ impl Object for ApubPrivateMessage {
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
     };
     Ok(note)
   }
@@ -151,8 +151,8 @@ impl Object for ApubPrivateMessage {
       creator_id: creator.id,
       recipient_id: recipient.id,
       content,
-      published: note.published,
-      updated: note.updated,
+      published_at: note.published,
+      updated_at: note.updated,
       deleted: Some(false),
       read: None,
       ap_id: Some(note.id.into()),

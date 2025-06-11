@@ -31,8 +31,8 @@ pub async fn admin_block_instance(
     .id;
   let form = FederationBlockListForm {
     instance_id,
-    expires: data.expires,
-    updated: None,
+    expires_at: data.expires_at,
+    updated_at: None,
   };
 
   if data.block {

@@ -34,7 +34,7 @@ pub async fn update_oauth_provider(
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
     use_pkce: data.use_pkce,
-    updated: Some(Some(Utc::now())),
+    updated_at: Some(Some(Utc::now())),
   };
 
   let update_result =

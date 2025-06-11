@@ -46,7 +46,7 @@ pub async fn purge_person(
       reason: data.reason.clone(),
       remove_or_restore_data: Some(true),
       ban: true,
-      expires: None,
+      expires_at: None,
     },
     &context,
   )?;

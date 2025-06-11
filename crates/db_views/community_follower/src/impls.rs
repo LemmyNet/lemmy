@@ -31,7 +31,7 @@ impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     community_actions::table
-      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
   }
@@ -55,7 +55,7 @@ impl CommunityFollowerView {
       .filter(community::local) // this should be a no-op since community_followers table only has
       // local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
-      .filter(community_actions::followed.gt(published_since.naive_utc()))
+      .filter(community_actions::followed_at.gt(published_since.naive_utc()))
       .select((community::id, person::inbox_url))
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
@@ -162,7 +162,7 @@ impl CommunityFollowerView {
     if all_communities {
       // if param is false, only return items for communities where user is a mod
       query = query
-        .filter(community_actions::became_moderator.is_not_null())
+        .filter(community_actions::became_moderator_at.is_not_null())
         .filter(community_actions::person_id.eq(person_id));
     }
     if pending_only {
@@ -172,7 +172,7 @@ impl CommunityFollowerView {
 
     // Sorting by published
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
-      .then_order_by(key::followed);
+      .then_order_by(key::followed_at);
 
     let res = paginated_query
       .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
