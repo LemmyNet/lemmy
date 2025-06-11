@@ -39,7 +39,6 @@ use {
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The search sort types.
 pub enum SearchSortType {
@@ -52,7 +51,6 @@ pub enum SearchSortType {
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunitySortType {
   ActiveSixMonths,
@@ -75,7 +73,6 @@ pub enum CommunitySortType {
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
@@ -89,7 +86,6 @@ pub enum SearchType {
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the various modlog actions.
 pub enum ModlogActionType {
@@ -115,7 +111,6 @@ pub enum ModlogActionType {
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
 pub enum InboxDataType {
@@ -128,7 +123,6 @@ pub enum InboxDataType {
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for a person's content.
 pub enum PersonContentType {
@@ -139,7 +133,6 @@ pub enum PersonContentType {
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for reports.
 pub enum ReportType {
@@ -154,7 +147,6 @@ pub enum ReportType {
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The feature type for a post.
 pub enum PostFeatureType {
@@ -169,7 +161,6 @@ pub enum PostFeatureType {
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The like_type for a persons liked content.
 pub enum LikeType {

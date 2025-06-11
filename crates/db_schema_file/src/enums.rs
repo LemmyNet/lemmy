@@ -13,7 +13,6 @@ use strum::{Display, EnumString};
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 // TODO add the controversial and scaled rankings to the doc below
 /// The post sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
@@ -40,7 +39,6 @@ pub enum PostSortType {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum CommentSortType {
@@ -62,7 +60,6 @@ pub enum CommentSortType {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A listing type for post and comment list fetches.
 pub enum ListingType {
@@ -87,7 +84,6 @@ pub enum ListingType {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The registration mode for your site. Determines what happens after a user signs up.
 pub enum RegistrationMode {
@@ -110,7 +106,6 @@ pub enum RegistrationMode {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A post-view mode that changes how multiple post listings look.
 pub enum PostListingMode {
@@ -133,7 +128,6 @@ pub enum PostListingMode {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Defines who can browse and interact with content in a community.
 pub enum CommunityVisibility {
@@ -172,7 +166,6 @@ impl CommunityVisibility {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The federation mode for an item
 pub enum FederationMode {
@@ -205,7 +198,6 @@ pub enum ActorType {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunityFollowerState {
   Accepted,
@@ -223,7 +215,6 @@ pub enum CommunityFollowerState {
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Lets you show votes for others only, show all votes, or hide all votes.
 pub enum VoteShow {
