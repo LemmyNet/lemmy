@@ -42,7 +42,6 @@ pub struct PersonView {
   )]
   pub is_admin: bool,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,

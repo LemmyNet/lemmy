@@ -144,10 +144,8 @@ pub struct PersonActions {
   pub follow_pending: Option<bool>,
   /// When the person was blocked.
   pub blocked_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When the person was noted.
   pub noted_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// A note about the person.
   pub note: Option<String>,
 }
