@@ -62,6 +62,7 @@ use lemmy_db_schema_file::{
     comment_actions,
     community,
     community_actions,
+    multi_community,
     person,
     post,
     post_actions,
@@ -115,6 +116,12 @@ impl SearchCombinedViewInternal {
         .and(not(community::deleted)),
     );
 
+    let multi_community_join = multi_community::table.on(
+      search_combined::multi_community_id
+        .eq(multi_community::id.nullable())
+        .and(not(multi_community::deleted)),
+    );
+
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
@@ -131,6 +138,7 @@ impl SearchCombinedViewInternal {
       .left_join(post_join)
       .left_join(item_creator_join)
       .left_join(community_join)
+      .left_join(multi_community_join)
       .left_join(creator_community_actions_join())
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
@@ -165,8 +173,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
-      // TODO: not implemented
-      SearchCombinedView::MultiCommunity(_) => ('M', 0),
+      SearchCombinedView::MultiCommunity(v) => ('M', v.id.0),
     };
     PaginationCursor::new_single(prefix, id)
   }
@@ -191,6 +198,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       'C' => query.filter(search_combined::comment_id.eq(id)),
       'O' => query.filter(search_combined::community_id.eq(id)),
       'E' => query.filter(search_combined::person_id.eq(id)),
+      'M' => query.filter(search_combined::multi_community_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
     let token = query.first(conn).await?;
@@ -251,7 +259,8 @@ impl SearchCombinedQuery {
           .or(community::name.ilike(searcher.clone()))
           .or(community::title.ilike(searcher.clone()))
           .or(person::name.ilike(searcher.clone()))
-          .or(person::display_name.ilike(searcher.clone()));
+          .or(person::display_name.ilike(searcher.clone()))
+          .or(multi_community::name.ilike(searcher.clone()));
 
         let body_or_description_filter = post::body
           .ilike(searcher.clone())
@@ -307,6 +316,9 @@ impl SearchCombinedQuery {
       SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
       SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
       SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
+      SearchType::MultiCommunities => {
+        query.filter(search_combined::multi_community_id.is_not_null())
+      }
     };
 
     // Listing type
@@ -316,17 +328,19 @@ impl SearchCombinedQuery {
         community::local
           .eq(true)
           .and(filter_not_unlisted_or_is_subscribed())
-          .or(search_combined::person_id.is_not_null().and(person::local)),
+          .or(search_combined::person_id.is_not_null().and(person::local))
+          .or(multi_community::local),
       ),
       ListingType::All => query.filter(
-        filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
+        filter_not_unlisted_or_is_subscribed()
+          .or(search_combined::person_id.is_not_null())
+          .or(search_combined::multi_community_id.is_not_null()),
       ),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
       ListingType::Suggested => query.filter(suggested_communities()),
     };
-
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
       query = query.filter(
@@ -354,7 +368,8 @@ impl SearchCombinedQuery {
               .is_not_null()
               .and(safe_post_and_community),
           )
-          .or(search_combined::person_id.is_not_null()),
+          .or(search_combined::person_id.is_not_null())
+          .or(search_combined::multi_community_id.is_not_null()),
       );
     };
 
@@ -457,6 +472,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,
       }))
+    } else if let Some(multi) = v.multi_community {
+      Some(SearchCombinedView::MultiCommunity(multi))
     } else {
       None
     }
@@ -474,6 +491,7 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
@@ -1248,6 +1266,58 @@ mod tests {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.timmy_post_2.id, v.post.id);
       assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn multi_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = MultiCommunityInsertForm::new(
+      data.timmy_view.person.id,
+      data.instance.id,
+      "multi".to_string(),
+      String::new(),
+    );
+    let multi = MultiCommunity::create(pool, &form).await?;
+
+    // Multi-community search
+    let search = SearchCombinedQuery {
+      type_: Some(SearchType::MultiCommunities),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(1, search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::MultiCommunity(v) = &search[0] {
+      assert_eq!(multi.id, v.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Using a term
+    let search_by_name = SearchCombinedQuery {
+      search_term: Some("multi".into()),
+      type_: Some(SearchType::MultiCommunities),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, search_by_name);
+    if let SearchCombinedView::MultiCommunity(v) = &search_by_name[0] {
+      assert_eq!(multi.id, v.id);
     } else {
       panic!("wrong type");
     }

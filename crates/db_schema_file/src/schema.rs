@@ -728,8 +728,8 @@ diesel::table! {
         inbox_url -> Text,
         last_refreshed_at -> Timestamptz,
         following_url -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -1057,6 +1057,7 @@ diesel::table! {
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
+        multi_community_id -> Nullable<Int4>
     }
 }
 

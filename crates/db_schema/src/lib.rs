@@ -85,6 +85,7 @@ pub enum SearchType {
   Posts,
   Communities,
   Users,
+  MultiCommunities,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

@@ -61,6 +61,8 @@ pub(crate) struct SearchCombinedViewInternal {
   pub item_creator: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub multi_community: Option<MultiCommunity>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,

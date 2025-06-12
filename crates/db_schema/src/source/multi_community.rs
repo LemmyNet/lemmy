@@ -40,9 +40,9 @@ pub struct MultiCommunity {
   pub last_refreshed_at: DateTime<Utc>,
   #[serde(skip, default = "placeholder_apub_url")]
   pub following_url: DbUrl,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -78,7 +78,7 @@ pub struct MultiCommunityUpdateForm {
   pub title: Option<Option<String>>,
   pub description: Option<Option<String>>,
   pub deleted: Option<bool>,
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
