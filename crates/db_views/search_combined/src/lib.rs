@@ -139,8 +139,7 @@ pub enum SearchCombinedView {
 #[cfg_attr(feature = "full", ts(export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub search_term: Option<String>,
+  pub q: String,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
