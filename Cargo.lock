@@ -3337,22 +3337,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_perf"
-version = "1.0.0-alpha.5"
-dependencies = [
- "anyhow",
- "clap",
- "diesel",
- "diesel-async",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_post",
- "lemmy_utils",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "lemmy_db_schema"
 version = "1.0.0-alpha.5"
 dependencies = [
