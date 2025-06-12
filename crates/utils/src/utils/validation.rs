@@ -106,7 +106,7 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   }
 }
 
-/// This could be post bodies, comments, or any description field
+/// This could be post bodies, comments, notes, or any description field
 pub fn is_valid_body_field(body: &str, post: bool) -> LemmyResult<()> {
   if post {
     max_length_check(body, POST_BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;

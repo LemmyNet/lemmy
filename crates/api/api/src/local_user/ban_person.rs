@@ -26,17 +26,13 @@ pub async fn ban_from_site(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BanPersonResponse>> {
   let local_instance_id = local_user_view.person.instance_id;
+  let my_person_id = local_user_view.person.id;
 
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   // Also make sure you're a higher admin than the target
-  LocalUser::is_higher_admin_check(
-    &mut context.pool(),
-    local_user_view.person.id,
-    vec![data.person_id],
-  )
-  .await?;
+  LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id]).await?;
 
   if let Some(reason) = &data.reason {
     is_valid_body_field(reason, false)?;
@@ -59,7 +55,7 @@ pub async fn ban_from_site(
   if data.remove_or_restore_data.unwrap_or(false) {
     let removed = data.ban;
     remove_or_restore_user_data(
-      local_user_view.person.id,
+      my_person_id,
       data.person_id,
       removed,
       &data.reason,
@@ -70,7 +66,7 @@ pub async fn ban_from_site(
 
   // Mod tables
   let form = ModBanForm {
-    mod_person_id: local_user_view.person.id,
+    mod_person_id: my_person_id,
     other_person_id: data.person_id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
@@ -83,6 +79,7 @@ pub async fn ban_from_site(
   let person_view = PersonView::read(
     &mut context.pool(),
     data.person_id,
+    Some(my_person_id),
     local_instance_id,
     false,
   )

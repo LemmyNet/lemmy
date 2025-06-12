@@ -22,6 +22,7 @@ pub async fn read_person(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let local_instance_id = site_view.site.instance_id;
+  let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -43,6 +44,7 @@ pub async fn read_person(
   let person_view = PersonView::read(
     &mut context.pool(),
     person_details_id,
+    my_person_id,
     local_instance_id,
     is_admin,
   )

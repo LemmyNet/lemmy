@@ -151,6 +151,12 @@ pub struct PersonActions {
   #[cfg_attr(feature = "full", ts(optional))]
   /// When the person was blocked.
   pub blocked_at: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// When the person was noted.
+  pub noted_at: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// A note about the person.
+  pub note: Option<String>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -168,9 +174,19 @@ pub struct PersonFollowerForm {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 pub struct PersonBlockForm {
-  // This order is switched so blocks can work the same.
   pub person_id: PersonId,
   pub target_id: PersonId,
   #[new(value = "Utc::now()")]
   pub blocked_at: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_actions))]
+pub struct PersonNoteForm {
+  pub person_id: PersonId,
+  pub target_id: PersonId,
+  pub note: String,
+  #[new(value = "Utc::now()")]
+  pub noted_at: DateTime<Utc>,
 }

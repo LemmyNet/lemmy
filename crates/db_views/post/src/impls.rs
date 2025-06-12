@@ -547,7 +547,7 @@ mod tests {
       keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
       post::{
         Post,
         PostActions,
@@ -1001,6 +1001,58 @@ mod tests {
     let like_removed =
       PostActions::remove_like(pool, data.tegan_local_user_view.person.id, data.post.id).await?;
     assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn person_note(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let note_str = "Tegan loves cats.";
+
+    let note_form = PersonNoteForm::new(
+      data.john_local_user_view.person.id,
+      data.tegan_local_user_view.person.id,
+      note_str.to_string(),
+    );
+    let inserted_note = PersonActions::note(pool, &note_form).await?;
+    assert_eq!(Some(note_str.to_string()), inserted_note.note);
+
+    let post_listing = PostView::read(
+      pool,
+      data.post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert!(post_listing
+      .person_actions
+      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
+
+    let note_removed = PersonActions::delete_note(
+      pool,
+      data.john_local_user_view.person.id,
+      data.tegan_local_user_view.person.id,
+    )
+    .await?;
+
+    let post_listing = PostView::read(
+      pool,
+      data.post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert_eq!(uplete::Count::only_deleted(1), note_removed);
+    assert!(post_listing.person_actions.is_none());
+
     Ok(())
   }
 

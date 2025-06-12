@@ -48,6 +48,7 @@ pub(super) async fn resolve_object_internal(
   }
   .with_lemmy_type(LemmyErrorType::NotFound)?;
 
+  let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
   let is_admin = local_user.as_ref().map(|l| l.admin).unwrap_or_default();
   let pool = &mut context.pool();
@@ -60,7 +61,9 @@ pub(super) async fn resolve_object_internal(
     Left(Right(c)) => {
       Comment(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
     }
-    Right(Left(u)) => Person(PersonView::read(pool, u.id, local_instance_id, is_admin).await?),
+    Right(Left(u)) => {
+      Person(PersonView::read(pool, u.id, my_person_id, local_instance_id, is_admin).await?)
+    }
     Right(Right(c)) => {
       Community(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
     }

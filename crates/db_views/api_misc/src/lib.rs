@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{InstanceId, LanguageId, PaginationCursor},
+  newtypes::{InstanceId, LanguageId, PaginationCursor, PersonId},
   sensitive::SensitiveString,
   source::{community::Community, instance::Instance, login_token::LoginToken, person::Person},
 };
@@ -175,6 +175,17 @@ pub struct LoginResponse {
   pub registration_created: bool,
   /// If email verifications are required, this will return true for a signup response.
   pub verify_email_sent: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Make a note for a person.
+///
+/// An empty string deletes the note.
+pub struct NotePerson {
+  pub person_id: PersonId,
+  pub note: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

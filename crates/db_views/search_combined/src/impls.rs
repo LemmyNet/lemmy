@@ -453,6 +453,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Person(PersonView {
         person,
         is_admin: v.item_creator_is_admin,
+        person_actions: v.person_actions,
         home_instance_actions: v.creator_home_instance_actions,
         local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,

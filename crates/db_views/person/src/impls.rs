@@ -10,7 +10,11 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+    queries::{
+      creator_home_instance_actions_join,
+      creator_local_instance_actions_join,
+      my_person_actions_join,
+    },
     DbPool,
   },
 };
@@ -35,12 +39,14 @@ impl PaginationCursorBuilder for PersonView {
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(local_instance_id: InstanceId) -> _ {
+  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
 
     person::table
       .left_join(local_user::table)
+      .left_join(my_person_actions_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
   }
@@ -48,11 +54,12 @@ impl PersonView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
+    my_person_id: Option<PersonId>,
     local_instance_id: InstanceId,
     is_admin: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = Self::joins(local_instance_id)
+    let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .into_boxed();
@@ -79,11 +86,12 @@ pub struct PersonQuery {
 impl PersonQuery {
   pub async fn list(
     self,
+    my_person_id: Option<PersonId>,
     local_instance_id: InstanceId,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Vec<PersonView>> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = PersonView::joins(local_instance_id)
+    let mut query = PersonView::joins(my_person_id, local_instance_id)
       .filter(person::deleted.eq(false))
       .select(PersonView::as_select())
       .into_boxed();
@@ -124,7 +132,7 @@ mod tests {
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm, PersonUpdateForm},
+      person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
     traits::Crud,
     utils::build_db_pool_for_tests,
@@ -194,11 +202,11 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id, data.alice.instance_id, false).await;
+    let read = PersonView::read(pool, data.alice.id, None, data.alice.instance_id, false).await;
     assert!(read.is_err());
 
     // only admin can view deleted users
-    let read = PersonView::read(pool, data.alice.id, data.alice.instance_id, true).await;
+    let read = PersonView::read(pool, data.alice.id, None, data.alice.instance_id, true).await;
     assert!(read.is_ok());
 
     cleanup(data, pool).await
@@ -225,20 +233,49 @@ mod tests {
       admins_only: Some(true),
       ..Default::default()
     }
-    .list(data.alice.instance_id, pool)
+    .list(None, data.alice.instance_id, pool)
     .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id, data.alice.instance_id, false)
+    let is_admin = PersonView::read(pool, data.alice.id, None, data.alice.instance_id, false)
       .await?
       .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id, data.alice.instance_id, false)
+    let is_admin = PersonView::read(pool, data.bob.id, None, data.alice.instance_id, false)
       .await?
       .is_admin;
     assert!(!is_admin);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn note() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let note_str = "Bob hates cats.";
+
+    let note_form = PersonNoteForm::new(data.alice.id, data.bob.id, note_str.to_string());
+    let inserted_note = PersonActions::note(pool, &note_form).await?;
+    assert_eq!(Some(note_str.to_string()), inserted_note.note);
+
+    let read = PersonView::read(
+      pool,
+      data.bob.id,
+      Some(data.alice.id),
+      data.alice.instance_id,
+      false,
+    )
+    .await?;
+
+    assert!(read
+      .person_actions
+      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
 
     cleanup(data, pool).await
   }

@@ -1,4 +1,7 @@
-use lemmy_db_schema::source::{instance::InstanceActions, person::Person};
+use lemmy_db_schema::source::{
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
@@ -38,6 +41,9 @@ pub struct PersonView {
     )
   )]
   pub is_admin: bool,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
