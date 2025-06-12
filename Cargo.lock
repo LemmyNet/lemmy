@@ -3925,6 +3925,7 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_site",
  "lemmy_utils",
+ "percent-encoding",
  "pretty_assertions",
  "prometheus",
  "rand 0.9.1",
