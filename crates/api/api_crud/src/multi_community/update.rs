@@ -24,7 +24,7 @@ pub async fn update_multi_community(
     title: diesel_string_update(data.title.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
     deleted: data.deleted,
-    updated: Some(Utc::now()),
+    updated_at: Some(Utc::now()),
   };
   let multi = MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
 

@@ -1,3 +1,12 @@
+ALTER TABLE search_combined
+    DROP CONSTRAINT search_combined_check;
+
+ALTER TABLE search_combined
+    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1);
+
+ALTER TABLE search_combined
+    DROP COLUMN multi_community_id;
+
 ALTER TABLE local_site
     DROP COLUMN suggested_communities;
 

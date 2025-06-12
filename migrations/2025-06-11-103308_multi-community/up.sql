@@ -13,8 +13,8 @@ CREATE TABLE multi_community (
     inbox_url text NOT NULL DEFAULT generate_unique_changeme (),
     last_refreshed_at timestamptz NOT NULL DEFAULT now(),
     following_url text NOT NULL DEFAULT generate_unique_changeme (),
-    published timestamptz NOT NULL DEFAULT now(),
-    updated timestamptz
+    published_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz
 );
 
 CREATE TABLE multi_community_entry (
@@ -86,4 +86,13 @@ CREATE INDEX idx_multi_creator_id ON multi_community (creator_id);
 CREATE INDEX idx_multi_community_follow_multi_id ON multi_community_follow (multi_community_id);
 
 CREATE INDEX idx_multi_community_entry_community_id ON multi_community_entry (community_id);
+
+ALTER TABLE search_combined
+    ADD COLUMN multi_community_id int REFERENCES multi_community (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE search_combined
+    DROP CONSTRAINT search_combined_check;
+
+ALTER TABLE search_combined
+    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id, multi_community_id) = 1);
 
