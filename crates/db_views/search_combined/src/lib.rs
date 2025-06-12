@@ -39,7 +39,6 @@ use {
     CreatorLocalInstanceActionsAllColumnsTuple,
   },
   lemmy_db_views_local_user::LocalUserView,
-  ts_rs::TS,
 };
 
 #[cfg(feature = "full")]
@@ -122,8 +121,8 @@ pub(crate) struct SearchCombinedViewInternal {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum SearchCombinedView {
@@ -135,55 +134,38 @@ pub enum SearchCombinedView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
   pub q: String,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<SearchSortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
-  #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   pub results: Vec<SearchCombinedView>,
   /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub prev_page: Option<PaginationCursor>,
 }

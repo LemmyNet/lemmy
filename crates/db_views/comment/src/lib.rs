@@ -26,7 +26,6 @@ use {
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
   },
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -35,9 +34,10 @@ pub mod impls;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment view.
 pub struct CommentView {
   #[cfg_attr(feature = "full",
@@ -53,28 +53,21 @@ pub struct CommentView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
       select_expression = creator_local_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
@@ -110,24 +103,19 @@ pub struct CommentView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A slimmer comment view, without the post, or community.
 pub struct CommentSlimView {
   pub comment: Comment,
   pub creator: Person,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,

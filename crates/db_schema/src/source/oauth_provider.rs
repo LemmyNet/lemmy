@@ -11,34 +11,33 @@ use serde::{
   Serialize,
 };
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// oauth provider with client_secret - should never be sent to the client
 pub struct OAuthProvider {
   pub id: OAuthProviderId,
   /// The OAuth 2.0 provider name displayed to the user on the Login page
   pub display_name: String,
   /// The issuer url of the OAUTH provider.
-  #[cfg_attr(feature = "full", ts(type = "string"))]
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   pub issuer: DbUrl,
   /// The authorization endpoint is used to interact with the resource owner and obtain an
   /// authorization grant. This is usually provided by the OAUTH provider.
-  #[cfg_attr(feature = "full", ts(type = "string"))]
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   pub authorization_endpoint: DbUrl,
   /// The token endpoint is used by the client to obtain an access token by presenting its
   /// authorization grant or refresh token. This is usually provided by the OAUTH provider.
-  #[cfg_attr(feature = "full", ts(type = "string"))]
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   pub token_endpoint: DbUrl,
   /// The UserInfo Endpoint is an OAuth 2.0 Protected Resource that returns Claims about the
   /// authenticated End-User. This is defined in the OIDC specification.
-  #[cfg_attr(feature = "full", ts(type = "string"))]
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   pub userinfo_endpoint: DbUrl,
   /// The OAuth 2.0 claim containing the unique user ID returned by the provider. Usually this
   /// should be set to "sub".
@@ -60,7 +59,6 @@ pub struct OAuthProvider {
   /// switch to enable or disable an oauth provider
   pub enabled: bool,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
   /// switch to enable or disable PKCE
   pub use_pkce: bool,
@@ -68,8 +66,8 @@ pub struct OAuthProvider {
 
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize)]
 #[serde(transparent)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 // A subset of OAuthProvider used for public requests, for example to display the OAUTH buttons on
 // the login page
 pub struct PublicOAuthProvider(pub OAuthProvider);

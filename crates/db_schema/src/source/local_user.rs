@@ -14,15 +14,14 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 #[serde(default)]
 /// A local user.
 pub struct LocalUser {
@@ -31,7 +30,6 @@ pub struct LocalUser {
   pub person_id: PersonId,
   #[serde(skip)]
   pub password_encrypted: Option<SensitiveString>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
@@ -79,7 +77,6 @@ pub struct LocalUser {
   pub last_donation_notification_at: DateTime<Utc>,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   pub show_score: bool,

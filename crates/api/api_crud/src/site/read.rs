@@ -54,7 +54,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     site_view,
     admins,
     version: VERSION.to_string(),
-    my_user: None,
     all_languages,
     discussion_languages,
     blocked_urls,

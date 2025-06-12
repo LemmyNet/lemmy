@@ -22,13 +22,13 @@ full = [
   "diesel",
   "diesel_ltree",
   "diesel-derive-enum",
-  "ts-rs",
   "lemmy_utils",
   "anyhow",
   "chrono",
   "tracing",
   "diesel_migrations",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 serde = { workspace = true }

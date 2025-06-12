@@ -25,8 +25,8 @@ full = [
   "lemmy_db_views_post/full",
   "extism",
   "extism-convert",
-  "ts-rs",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 lemmy_db_schema.workspace = true

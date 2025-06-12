@@ -11,19 +11,19 @@ use serde_with::skip_serializing_none;
 use {
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{community, community_actions},
-  ts_rs::TS,
 };
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule, TS)
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A community.
 pub struct Community {
   pub id: CommunityId,
@@ -31,12 +31,10 @@ pub struct Community {
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
   /// A sidebar for the community in markdown.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
   /// Whether the community has been deleted by its creator.
   pub deleted: bool,
@@ -53,15 +51,13 @@ pub struct Community {
   #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for an icon.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(skip))]
+  #[cfg_attr(feature = "ts-rs", ts(skip))]
   #[serde(skip)]
   pub followers_url: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(skip))]
+  #[cfg_attr(feature = "ts-rs", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   /// Whether posting is restricted to mods only.
@@ -75,7 +71,6 @@ pub struct Community {
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
   /// A shorter, one-line description of the site.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
@@ -183,14 +178,7 @@ pub struct CommunityUpdateForm {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(
-    Identifiable,
-    Queryable,
-    Selectable,
-    Associations,
-    TS,
-    CursorKeysModule
-  )
+  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
 )]
 #[cfg_attr(
   feature = "full",
@@ -199,32 +187,27 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = community_actions_keys))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommunityActions {
   #[serde(skip)]
   pub community_id: CommunityId,
   #[serde(skip)]
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was followed.
   pub followed_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// The state of the community follow.
   pub follow_state: Option<CommunityFollowerState>,
   /// The approver of the community follow.
   #[serde(skip)]
   pub follow_approver_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When the community was blocked.
   pub blocked_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When this user became a moderator.
   pub became_moderator_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When this user received a ban.
   pub received_ban_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When their ban expires.
   pub ban_expires_at: Option<DateTime<Utc>>,
 }

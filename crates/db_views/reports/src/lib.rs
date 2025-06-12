@@ -26,7 +26,6 @@ use {
     Person1AliasAllColumnsTuple,
     Person2AliasAllColumnsTuple,
   },
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -44,9 +43,10 @@ pub mod private_message_report_view;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A private message report view.
 pub struct PrivateMessageReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -62,7 +62,6 @@ pub struct PrivateMessageReportView {
     )
   )]
   pub private_message_creator: Person,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
@@ -74,9 +73,10 @@ pub struct PrivateMessageReportView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment report view.
 pub struct CommentReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -97,9 +97,7 @@ pub struct CommentReportView {
   )]
   pub comment_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
@@ -107,7 +105,6 @@ pub struct CommentReportView {
     )
   )]
   pub resolver: Option<Person>,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full", diesel(embed))]
   #[cfg_attr(feature = "full",
     diesel(
@@ -117,10 +114,8 @@ pub struct CommentReportView {
   )]
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full",
     diesel(
@@ -132,9 +127,10 @@ pub struct CommentReportView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A community report view.
 pub struct CommunityReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -143,7 +139,6 @@ pub struct CommunityReportView {
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
@@ -152,11 +147,13 @@ pub struct CommunityReportView {
   )]
   pub resolver: Option<Person>,
 }
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post report view.
 pub struct PostReportView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -174,7 +171,6 @@ pub struct PostReportView {
     )
   )]
   pub post_creator: Person,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
@@ -183,15 +179,11 @@ pub struct PostReportView {
   )]
   pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,

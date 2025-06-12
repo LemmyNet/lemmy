@@ -32,7 +32,6 @@ use {
     Person2AliasAllColumnsTuple,
   },
   lemmy_db_views_local_user::LocalUserView,
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -102,8 +101,8 @@ pub struct ReportCombinedViewInternal {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum ReportCombinedView {

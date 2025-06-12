@@ -24,7 +24,6 @@ workspace = true
 
 [features]
 full = [
-  "ts-rs",
   "diesel",
   "actix-web",
   "reqwest-middleware",
@@ -46,6 +45,7 @@ full = [
   "markdown-it",
   "moka",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [package.metadata.cargo-shear]
 ignored = ["http"]
