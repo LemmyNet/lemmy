@@ -7,6 +7,8 @@ use lemmy_db_schema::source::{
   tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
+pub mod db_perf;
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {

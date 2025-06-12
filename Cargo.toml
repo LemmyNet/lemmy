@@ -49,7 +49,6 @@ members = [
   "crates/apub",
   "crates/apub_objects",
   "crates/utils",
-  "crates/db_perf",
   "crates/db_schema",
   "crates/db_schema_file",
   "crates/db_views/api_misc",
