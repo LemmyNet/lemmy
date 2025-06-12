@@ -165,4 +165,96 @@ wasmparser = { version = "0.221", default-features = false, features = [
   "validate",
 ] }
 
+[target.x86_64-unknown-linux-gnu.dependencies]
+bitflags = { version = "2", default-features = false, features = ["std"] }
+crc32fast = { version = "1" }
+getrandom = { version = "0.3", default-features = false, features = ["std"] }
+gimli = { version = "0.31", default-features = false, features = [
+  "read",
+  "std",
+  "write",
+] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = [
+  "elf",
+  "errno",
+  "general",
+  "ioctl",
+  "no_std",
+  "prctl",
+] }
+linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", default-features = false, features = [
+  "elf",
+  "errno",
+  "general",
+  "if_ether",
+  "ioctl",
+  "net",
+  "netlink",
+  "no_std",
+  "prctl",
+  "system",
+  "xdp",
+] }
+object = { version = "0.36", default-features = false, features = [
+  "archive",
+  "read_core",
+  "unaligned",
+  "write",
+] }
+ring = { version = "0.17", features = ["std"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = [
+  "event",
+  "mm",
+  "net",
+  "param",
+  "process",
+  "system",
+  "thread",
+  "time",
+] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = [
+  "fs",
+  "process",
+  "termios",
+  "time",
+] }
+smallvec = { version = "1", default-features = false, features = ["const_new"] }
+tokio-rustls = { version = "0.26", default-features = false, features = [
+  "ring",
+] }
+tokio-util = { version = "0.7", features = ["codec", "io"] }
+
+[target.x86_64-unknown-linux-gnu.build-dependencies]
+bitflags = { version = "2", default-features = false, features = ["std"] }
+crc32fast = { version = "1" }
+getrandom = { version = "0.3", default-features = false, features = ["std"] }
+gimli = { version = "0.31", default-features = false, features = [
+  "read",
+  "std",
+  "write",
+] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = [
+  "elf",
+  "errno",
+  "general",
+  "ioctl",
+  "no_std",
+  "prctl",
+] }
+miniz_oxide = { version = "0.8", features = ["simd"] }
+object = { version = "0.36", default-features = false, features = [
+  "archive",
+  "read_core",
+  "unaligned",
+  "write",
+] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = [
+  "fs",
+  "process",
+  "termios",
+  "time",
+] }
+simd-adler32 = { version = "0.3" }
+smallvec = { version = "1", default-features = false, features = ["const_new"] }
+
 ### END HAKARI SECTION
