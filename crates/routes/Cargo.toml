@@ -53,6 +53,7 @@ rss = "2.0.12"
 actix-web-prom = "0.10.0"
 actix-cors = "0.7.1"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+percent-encoding = "2.3.1"
 
 [dev-dependencies]
 pretty_assertions.workspace = true
