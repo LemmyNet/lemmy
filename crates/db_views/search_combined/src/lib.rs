@@ -139,7 +139,7 @@ pub enum SearchCombinedView {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
-  pub search_term: Option<String>,
+  pub q: String,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub creator_id: Option<PersonId>,
