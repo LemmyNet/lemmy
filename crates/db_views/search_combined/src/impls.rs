@@ -472,10 +472,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,
       }))
-    } else if let Some(multi) = v.multi_community {
-      Some(SearchCombinedView::MultiCommunity(multi))
     } else {
-      None
+      v.multi_community.map(SearchCombinedView::MultiCommunity)
     }
   }
 }
