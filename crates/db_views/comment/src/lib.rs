@@ -37,8 +37,7 @@ pub mod impls;
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment view.
 pub struct CommentView {
   #[cfg_attr(feature = "full",
@@ -107,8 +106,7 @@ pub struct CommentView {
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A slimmer comment view, without the post, or community.
 pub struct CommentSlimView {
   pub comment: Comment,

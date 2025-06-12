@@ -15,8 +15,7 @@ use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::tagline};
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = tagline_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A tagline, shown at the top of your site.
 pub struct Tagline {
   pub id: TaglineId,

@@ -5,8 +5,7 @@ use std::{fmt::Debug, ops::Deref};
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct SensitiveString(String);
 
 impl SensitiveString {

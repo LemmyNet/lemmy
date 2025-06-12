@@ -14,8 +14,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Additional data for federated instances. This may be missing for other platforms which are not
 /// fully compatible. Basic data is guaranteed to be available via [[Instance]].
 pub struct Site {

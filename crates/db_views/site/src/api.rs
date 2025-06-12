@@ -27,8 +27,7 @@ use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct AdminAllowInstanceParams {
   pub instance: String,
   pub allow: bool,
@@ -37,8 +36,7 @@ pub struct AdminAllowInstanceParams {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
@@ -49,8 +47,7 @@ pub struct AdminBlockInstanceParams {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Logging in with an OAuth 2.0 authorization
 pub struct AuthenticateWithOauth {
   pub code: String,
@@ -67,8 +64,7 @@ pub struct AuthenticateWithOauth {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Create an external auth method.
 pub struct CreateOAuthProvider {
   pub display_name: String,
@@ -89,8 +85,7 @@ pub struct CreateOAuthProvider {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Creates a site. Should be done after first running lemmy.
 pub struct CreateSite {
   pub name: String,
@@ -139,8 +134,7 @@ pub struct CreateSite {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete an external auth method.
 pub struct DeleteOAuthProvider {
   pub id: OAuthProviderId,
@@ -148,8 +142,7 @@ pub struct DeleteOAuthProvider {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete a tagline
 pub struct DeleteTagline {
   pub id: TaglineId,
@@ -158,8 +151,7 @@ pub struct DeleteTagline {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit an external auth method.
 pub struct EditOAuthProvider {
   pub id: OAuthProviderId,
@@ -179,8 +171,7 @@ pub struct EditOAuthProvider {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edits a site.
 pub struct EditSite {
   pub name: Option<String>,
@@ -268,8 +259,7 @@ pub struct EditSite {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A list of federated instances.
 pub struct FederatedInstances {
   pub linked: Vec<InstanceWithFederationState>,
@@ -280,8 +270,7 @@ pub struct FederatedInstances {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
   /// Optional, because federation may be disabled.
@@ -291,8 +280,7 @@ pub struct GetFederatedInstancesResponse {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// An expanded response for a site.
 pub struct GetSiteResponse {
   pub site_view: SiteView,
@@ -315,8 +303,7 @@ pub struct GetSiteResponse {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct InstanceWithFederationState {
   #[serde(flatten)]
   pub instance: Instance,
@@ -328,8 +315,7 @@ pub struct InstanceWithFederationState {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Fetches a list of taglines.
 pub struct ListTaglines {
   pub page_cursor: Option<PaginationCursor>,
@@ -339,8 +325,7 @@ pub struct ListTaglines {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response for taglines.
 pub struct ListTaglinesResponse {
   pub taglines: Vec<Tagline>,
@@ -351,8 +336,7 @@ pub struct ListTaglinesResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
@@ -360,16 +344,14 @@ pub struct SiteResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct TaglineResponse {
   pub tagline: Tagline,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Update a tagline
 pub struct UpdateTagline {
   pub id: TaglineId,

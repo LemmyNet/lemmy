@@ -14,8 +14,7 @@ use {
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A tag that can be assigned to a post within a community.
 /// The tag object is created by the community moderators.
 /// The assignment happens by the post creator and can be updated by the community moderators.
@@ -65,7 +64,6 @@ pub struct TagUpdateForm {
 #[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// we wrap this in a struct so we can implement FromSqlRow<Json> for it
 pub struct TagsView(pub Vec<Tag>);

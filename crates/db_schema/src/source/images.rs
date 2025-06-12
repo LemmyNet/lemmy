@@ -21,8 +21,7 @@ use {
 #[cfg_attr(feature = "full", diesel(primary_key(pictrs_alias)))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = local_image_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct LocalImage {
   pub pictrs_alias: String,
   pub published_at: DateTime<Utc>,
@@ -60,8 +59,7 @@ pub struct RemoteImage {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(link)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ImageDetails {
   pub link: DbUrl,
   pub width: i32,

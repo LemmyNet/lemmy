@@ -120,8 +120,7 @@ pub enum PersonSavedCombinedView {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets your saved posts and comments
 pub struct ListPersonSaved {
   pub type_: Option<PersonContentType>,
@@ -133,8 +132,7 @@ pub struct ListPersonSaved {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person's saved content response.
 pub struct ListPersonSavedResponse {
   pub saved: Vec<PersonSavedCombinedView>,

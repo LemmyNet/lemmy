@@ -5,16 +5,14 @@ use serde_with::skip_serializing_none;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetCommunityPendingFollowsCount {
   pub community_id: CommunityId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetCommunityPendingFollowsCountResponse {
   pub count: i64,
 }
@@ -22,8 +20,7 @@ pub struct GetCommunityPendingFollowsCountResponse {
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListCommunityPendingFollows {
   /// Only shows the unapproved applications
   pub pending_only: Option<bool>,
@@ -36,8 +33,7 @@ pub struct ListCommunityPendingFollows {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListCommunityPendingFollowsResponse {
   pub items: Vec<PendingFollow>,
   /// the pagination cursor to use to fetch the next page

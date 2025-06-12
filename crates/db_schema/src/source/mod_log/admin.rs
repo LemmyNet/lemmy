@@ -29,8 +29,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_person))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a person.
 pub struct AdminPurgePerson {
   pub id: AdminPurgePersonId,
@@ -52,8 +51,7 @@ pub struct AdminPurgePersonForm {
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a community.
 pub struct AdminPurgeCommunity {
   pub id: AdminPurgeCommunityId,
@@ -75,8 +73,7 @@ pub struct AdminPurgeCommunityForm {
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a post.
 pub struct AdminPurgePost {
   pub id: AdminPurgePostId,
@@ -100,8 +97,7 @@ pub struct AdminPurgePostForm {
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_comment))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a comment.
 pub struct AdminPurgeComment {
   pub id: AdminPurgeCommentId,
@@ -132,8 +128,7 @@ pub struct AdminPurgeCommentForm {
 #[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct AdminAllowInstance {
   pub id: AdminAllowInstanceId,
   pub instance_id: InstanceId,
@@ -166,8 +161,7 @@ pub struct AdminAllowInstanceForm {
 #[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct AdminBlockInstance {
   pub id: AdminBlockInstanceId,
   pub instance_id: InstanceId,

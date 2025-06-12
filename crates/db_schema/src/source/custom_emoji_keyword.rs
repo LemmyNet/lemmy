@@ -16,8 +16,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "full", diesel(primary_key(custom_emoji_id, keyword)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A custom keyword for an emoji.
 pub struct CustomEmojiKeyword {
   pub custom_emoji_id: CustomEmojiId,

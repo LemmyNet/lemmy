@@ -18,8 +18,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// oauth provider with client_secret - should never be sent to the client
 pub struct OAuthProvider {
   pub id: OAuthProviderId,
@@ -68,8 +67,7 @@ pub struct OAuthProvider {
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 // A subset of OAuthProvider used for public requests, for example to display the OAUTH buttons on
 // the login page
 pub struct PublicOAuthProvider(pub OAuthProvider);

@@ -16,8 +16,7 @@ use serde_with::skip_serializing_none;
 )]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Rate limits for your site. Given in count / length of time.
 pub struct LocalSiteRateLimit {
   pub local_site_id: LocalSiteId,
