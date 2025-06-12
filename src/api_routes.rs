@@ -370,7 +370,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
           )
-          .route("/note/person", post().to(user_note_person))
           .route("/saved", get().to(list_person_saved))
           .route("/read", get().to(list_person_read))
           .route("/hidden", get().to(list_person_hidden))
@@ -388,7 +387,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         scope("/person")
           .route("", get().to(read_person))
-          .route("/content", get().to(list_person_content)),
+          .route("/content", get().to(list_person_content))
+          .route("/note", post().to(user_note_person)),
       )
       // Admin Actions
       .service(
