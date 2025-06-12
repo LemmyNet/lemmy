@@ -47,7 +47,7 @@ pub async fn search(
 
   let pool = &mut context.pool();
   let search_fut = SearchCombinedQuery {
-    search_term: data.search_term.clone(),
+    search_term: Some(data.q.clone()),
     community_id,
     creator_id: data.creator_id,
     type_: data.type_,
@@ -65,24 +65,19 @@ pub async fn search(
   }
   .list(pool, &local_user_view, &site_view.site);
 
-  let results = if let Some(q) = &data.search_term {
-    let resolve_fut = resolve_object_internal(q, &local_user_view, &context);
-    let (search, resolve) = join(search_fut, resolve_fut).await;
-    let mut search = search?;
-    // Ignore resolve errors as query may not be Activitypub object
-    if let Ok(resolve) = resolve {
-      search.push(resolve);
-    }
-    search
-  } else {
-    search_fut.await?
-  };
+  let resolve_fut = resolve_object_internal(&data.q, &local_user_view, &context);
+  let (search, resolve) = join(search_fut, resolve_fut).await;
+  let mut search = search?;
+  // Ignore resolve errors as query may not be Activitypub object
+  if let Ok(resolve) = resolve {
+    search.push(resolve);
+  }
 
-  let next_page = results.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = results.first().map(PaginationCursorBuilder::to_cursor);
+  let next_page = search.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = search.first().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(SearchResponse {
-    results,
+    results: search,
     next_page,
     prev_page,
   }))
