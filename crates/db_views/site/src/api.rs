@@ -1,7 +1,7 @@
 use crate::SiteView;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{LanguageId, OAuthProviderId, PaginationCursor, TaglineId},
+  newtypes::{LanguageId, OAuthProviderId},
   source::{
     instance::Instance,
     language::Language,
@@ -138,14 +138,6 @@ pub struct CreateSite {
 /// Delete an external auth method.
 pub struct DeleteOAuthProvider {
   pub id: OAuthProviderId,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Delete a tagline
-pub struct DeleteTagline {
-  pub id: TaglineId,
 }
 
 #[skip_serializing_none]
@@ -312,48 +304,10 @@ pub struct InstanceWithFederationState {
   pub federation_state: Option<ReadableFederationState>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Fetches a list of taglines.
-pub struct ListTaglines {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response for taglines.
-pub struct ListTaglinesResponse {
-  pub taglines: Vec<Tagline>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct TaglineResponse {
-  pub tagline: Tagline,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Update a tagline
-pub struct UpdateTagline {
-  pub id: TaglineId,
-  pub content: String,
 }
