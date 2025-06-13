@@ -20,7 +20,6 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
-  UserBlockInstanceParams,
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
@@ -32,6 +31,7 @@ import {
   CommunityView,
   CommentView,
   PersonView,
+  UserBlockInstanceCommunitiesParams,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -874,16 +874,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function userBlockInstance(
+export function userBlockInstanceCommunities(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
 ): Promise<SuccessResponse> {
-  let form: UserBlockInstanceParams = {
+  let form: UserBlockInstanceCommunitiesParams = {
     instance_id,
     block,
   };
-  return api.userBlockInstance(form);
+  return api.userBlockInstanceCommunities(form);
 }
 
 export function blockCommunity(
