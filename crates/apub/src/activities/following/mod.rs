@@ -6,8 +6,9 @@ use crate::protocol::activities::following::{
   undo_follow::UndoFollow,
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::ActivityHandler};
+use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
+use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunityOrMulti};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{activity::ActivitySendTargets, community::Community, person::Person},
@@ -21,18 +22,17 @@ pub(crate) mod follow;
 pub(crate) mod reject;
 pub(crate) mod undo_follow;
 
-pub async fn send_follow_community(
-  community: Community,
+pub async fn send_follow(
+  target: CommunityOrMulti,
   person: Person,
   follow: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let community: ApubCommunity = community.into();
   let actor: ApubPerson = person.into();
   if follow {
-    Follow::send(&actor, &community, context).await
+    Follow::send(&actor, &target, context).await
   } else {
-    UndoFollow::send(&actor, &community, context).await
+    UndoFollow::send(&actor, &target, context).await
   }
 }
 
@@ -50,10 +50,7 @@ pub async fn send_accept_or_reject_follow(
     to: Some([community.ap_id.clone().into()]),
     object: community.ap_id.into(),
     kind: FollowType::Follow,
-    id: generate_activity_id(
-      FollowType::Follow,
-      &context.settings().get_protocol_and_hostname(),
-    )?,
+    id: generate_activity_id(FollowType::Follow, context)?,
   };
   if accepted {
     AcceptFollow::send(follow, context).await
@@ -63,21 +60,20 @@ pub async fn send_accept_or_reject_follow(
 }
 
 /// Wrapper type which is needed because we cant implement ActorT for Either.
-async fn send_activity_from_user_or_community<Activity>(
+async fn send_activity_from_user_or_community_or_multi<Activity>(
   context: &Data<LemmyContext>,
   activity: Activity,
-  user_or_community: UserOrCommunity,
+  target: UserOrCommunityOrMulti,
   send_targets: ActivitySendTargets,
 ) -> LemmyResult<()>
 where
   Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
 {
-  match user_or_community {
-    UserOrCommunity::Left(user) => {
-      send_lemmy_activity(context, activity, &user, send_targets, true).await
-    }
-    UserOrCommunity::Right(community) => {
+  match target {
+    Left(user) => send_lemmy_activity(context, activity, &user, send_targets, true).await,
+    Right(Left(community)) => {
       send_lemmy_activity(context, activity, &community, send_targets, true).await
     }
+    Right(Right(multi)) => send_lemmy_activity(context, activity, &multi, send_targets, true).await,
   }
 }

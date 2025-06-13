@@ -35,6 +35,7 @@ use lemmy_db_schema::{
       my_instance_actions_community_join,
       my_local_user_admin_join,
       my_person_actions_join,
+      suggested_communities,
     },
     seconds_to_pg_interval,
     DbPool,
@@ -197,6 +198,7 @@ impl CommentQuery<'_> {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
+      ListingType::Suggested => query.filter(suggested_communities()),
     };
 
     if !o.local_user.show_bot_accounts() {

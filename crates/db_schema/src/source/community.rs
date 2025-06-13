@@ -175,7 +175,7 @@ pub struct CommunityUpdateForm {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(
   feature = "full",
   derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)

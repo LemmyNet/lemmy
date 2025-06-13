@@ -270,9 +270,9 @@ impl Post {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
-  pub fn local_url(&self, settings: &Settings) -> LemmyResult<DbUrl> {
+  pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/post/{}", self.id))?.into())
+    Ok(Url::parse(&format!("{domain}/post/{}", self.id))?)
   }
 
   /// The comment was created locally and sent back, indicating that the community accepted it

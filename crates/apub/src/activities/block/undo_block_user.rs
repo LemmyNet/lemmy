@@ -48,10 +48,7 @@ impl UndoBlockUser {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let to = to(target)?;
 
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo, context)?;
     let undo = UndoBlockUser {
       actor: mod_.id().into(),
       to,

@@ -189,6 +189,15 @@ pub trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
 
+impl<L: GetActorType, R: GetActorType> GetActorType for either::Either<L, R> {
+  fn actor_type(&self) -> ActorType {
+    match self {
+      Either::Right(r) => r.actor_type(),
+      Either::Left(l) => l.actor_type(),
+    }
+  }
+}
+
 pub async fn handle_community_moderators(
   new_mods: &Vec<ObjectId<ApubPerson>>,
   community: &ApubCommunity,

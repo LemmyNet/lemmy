@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
+    multi_community::MultiCommunity,
     person::{Person, PersonActions},
     post::{Post, PostActions},
     tag::TagsView,
@@ -15,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::ListingType;
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
@@ -59,6 +60,8 @@ pub(crate) struct SearchCombinedViewInternal {
   pub item_creator: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub multi_community: Option<MultiCommunity>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
@@ -130,6 +133,7 @@ pub enum SearchCombinedView {
   Comment(CommentView),
   Community(CommunityView),
   Person(PersonView),
+  MultiCommunity(MultiCommunityView),
 }
 
 #[skip_serializing_none]

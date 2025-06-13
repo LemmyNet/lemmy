@@ -46,10 +46,7 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
       to: generate_to(community)?,

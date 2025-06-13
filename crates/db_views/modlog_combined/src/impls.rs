@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+    queries::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed, suggested_communities},
     DbPool,
   },
   ModlogActionType,
@@ -382,6 +382,7 @@ impl ModlogCombinedQuery<'_> {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
+      ListingType::Suggested => query.filter(suggested_communities()),
     };
 
     // Sorting by published

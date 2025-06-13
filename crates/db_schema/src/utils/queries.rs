@@ -35,7 +35,10 @@ use lemmy_db_schema_file::{
     community_actions,
     image_details,
     instance_actions,
+    local_site,
     local_user,
+    multi_community,
+    multi_community_entry,
     person,
     person_actions,
     post,
@@ -390,5 +393,15 @@ pub fn creator_community_actions_join() -> _ {
           .field(community_actions::person_id)
           .eq(person::id),
       ),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub fn suggested_communities() -> _ {
+  community::id.eq_any(
+    local_site::table
+      .left_join(multi_community::table.inner_join(multi_community_entry::table))
+      .filter(multi_community_entry::community_id.is_not_null())
+      .select(multi_community_entry::community_id.assume_not_null()),
   )
 }

@@ -25,8 +25,9 @@ use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
+  error::LemmyResult,
   spawn_try_task,
+  utils::validation::check_api_elements_count,
 };
 use serde::{Deserialize, Serialize};
 use std::future::Future;
@@ -145,9 +146,7 @@ pub async fn import_settings(
     + data.blocked_instances.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
-  if url_count > MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?;
-  }
+  check_api_elements_count(url_count)?;
 
   spawn_try_task(async move {
     let person_id = local_user_view.person.id;
@@ -280,14 +279,13 @@ pub(crate) mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
-      instance::Instance,
       person::Person,
     },
+    test_data::TestData,
     traits::{Crud, Followable},
   };
   use lemmy_db_views_community_follower::CommunityFollowerView;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
@@ -298,7 +296,7 @@ pub(crate) mod tests {
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-    let instance = create_test_instance(pool).await?;
+    let data = TestData::create(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "hanna", "my bio", false).await?;
 
@@ -340,7 +338,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -349,7 +347,7 @@ pub(crate) mod tests {
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-    let instance = create_test_instance(pool).await?;
+    let data = TestData::create(pool).await?;
 
     let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
@@ -378,7 +376,7 @@ pub(crate) mod tests {
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -387,7 +385,7 @@ pub(crate) mod tests {
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-    let instance = create_test_instance(pool).await?;
+    let data = TestData::create(pool).await?;
 
     let import_user = LocalUserView::create_test_user(pool, "larry", "larry bio", false).await?;
 
@@ -408,7 +406,7 @@ pub(crate) mod tests {
     // local_user can be deserialized without id/person_id fields
     assert_eq!("my_theme", import_user_updated.local_user.theme);
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

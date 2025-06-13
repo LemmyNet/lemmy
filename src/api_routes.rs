@@ -11,6 +11,7 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
+    multi_community_follow::follow_multi_community,
     pending_follows::{
       approve::post_pending_follows_approve,
       count::get_pending_follows_count,
@@ -116,6 +117,14 @@ use lemmy_api_crud::{
     delete::delete_custom_emoji,
     list::list_custom_emojis,
     update::update_custom_emoji,
+  },
+  multi_community::{
+    create::create_multi_community,
+    create_entry::create_multi_community_entry,
+    delete_entry::delete_multi_community_entry,
+    get::get_multi_community,
+    list::list_multi_communities,
+    update::update_multi_community,
   },
   oauth_provider::{
     create::create_oauth_provider,
@@ -243,6 +252,16 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
+      )
+      .service(
+        scope("/multi_community")
+          .route("", post().to(create_multi_community))
+          .route("", put().to(update_multi_community))
+          .route("", get().to(get_multi_community))
+          .route("/entry", post().to(create_multi_community_entry))
+          .route("/entry", delete().to(delete_multi_community_entry))
+          .route("/list", get().to(list_multi_communities))
+          .route("/follow", post().to(follow_multi_community)),
       )
       .route("/federated_instances", get().to(get_federated_instances))
       // Post

@@ -284,7 +284,6 @@ test("No image proxying if setting is disabled", async () => {
   expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
   let betaPost = await waitForPost(beta, post.post_view.post, res => {
-    console.log(res?.post.alt_text);
     return res?.post.alt_text != null;
   });
   expect(betaPost.post).toBeDefined();

@@ -200,7 +200,7 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &comment_content_or_post_body,
           person,
-          link,
+          link.into(),
           context.settings(),
         )
         .await;

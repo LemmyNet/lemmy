@@ -1,5 +1,6 @@
-use crate::objects::{PostOrComment, SearchableObjects, UserOrCommunity};
+use crate::objects::SearchableObjects;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::traits::ApubActor;
 use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
@@ -54,18 +55,14 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   }
   let dereferenced = object_id.dereference_local(context).await.ok()?;
   match dereferenced {
-    SearchableObjects::Left(pc) => match pc {
-      PostOrComment::Left(post) => post.local_url(context.settings()),
-      PostOrComment::Right(comment) => comment.local_url(context.settings()),
-    }
-    .ok()
-    .map(Into::into),
-    SearchableObjects::Right(pc) => match pc {
-      UserOrCommunity::Left(user) => user.actor_url(context.settings()),
-      UserOrCommunity::Right(community) => community.actor_url(context.settings()),
-    }
-    .ok(),
+    Left(Left(Left(post))) => post.local_url(context.settings()),
+    Left(Left(Right(comment))) => comment.local_url(context.settings()),
+    Left(Right(Left(user))) => user.actor_url(context.settings()),
+    Left(Right(Right(community))) => community.actor_url(context.settings()),
+    Right(multi) => multi.format_url(context.settings()),
   }
+  .ok()
+  .map(Into::into)
 }
 
 #[cfg(test)]
@@ -74,13 +71,12 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
-      instance::Instance,
       post::{Post, PostInsertForm},
     },
+    test_data::TestData,
     traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_site::impls::create_test_instance;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -89,17 +85,17 @@ mod tests {
   #[tokio::test]
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
-    let community_form = CommunityInsertForm {
-      ap_id: Some(Url::parse("https://example.com/c/my_community")?.into()),
-      ..CommunityInsertForm::new(
-        instance.id,
+    let data = TestData::create(&mut context.pool()).await?;
+    let community = Community::create(
+      &mut context.pool(),
+      &CommunityInsertForm::new(
+        data.instance.id,
         "my_community".to_string(),
         "My Community".to_string(),
         "pubkey".to_string(),
-      )
-    };
-    let community = Community::create(&mut context.pool(), &community_form).await?;
+      ),
+    )
+    .await?;
     let user =
       LocalUserView::create_test_user(&mut context.pool(), "garda", "garda bio", false).await?;
 
@@ -120,7 +116,7 @@ mod tests {
       (
         "rewrite community link",
         format!("[link]({})", community.ap_id),
-        "[link](https://lemmy-alpha/c/my_community@example.com)",
+        "[link](https://lemmy-alpha/c/my_community@changeme.invalid)",
       ),
       (
         "dont rewrite local post link",
@@ -155,7 +151,7 @@ mod tests {
       );
     }
 
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
 
     Ok(())
   }

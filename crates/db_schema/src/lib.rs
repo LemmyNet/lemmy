@@ -10,6 +10,8 @@ pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
 #[cfg(feature = "full")]
+pub mod test_data;
+#[cfg(feature = "full")]
 pub mod aliases {
   use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
   diesel::alias!(
@@ -82,6 +84,7 @@ pub enum SearchType {
   Posts,
   Communities,
   Users,
+  MultiCommunities,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

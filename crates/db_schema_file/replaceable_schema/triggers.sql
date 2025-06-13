@@ -692,7 +692,7 @@ CREATE TRIGGER require_uplete
     BEFORE DELETE ON post_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
--- search: (post, comment, community, person)
+-- search: (post, comment, community, person, multi_community)
 CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -720,6 +720,7 @@ CALL r.create_search_combined_trigger ('post');
 CALL r.create_search_combined_trigger ('comment');
 CALL r.create_search_combined_trigger ('community');
 CALL r.create_search_combined_trigger ('person');
+CALL r.create_search_combined_trigger ('multi_community');
 -- You also need to triggers to update the `score` column.
 -- post | post::score
 -- comment | comment_aggregates::score

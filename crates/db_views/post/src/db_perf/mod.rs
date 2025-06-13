@@ -140,7 +140,7 @@ async fn db_perf() -> LemmyResult<()> {
 
     // TODO: include local_user
     let post_views = PostQuery {
-      community_id: community_ids.as_slice().first().cloned(),
+      community_id: community_ids.as_slice().first().cloned().map(Into::into),
       sort: Some(PostSortType::New),
       limit: Some(20),
       cursor_data,
