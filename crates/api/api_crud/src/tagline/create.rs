@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_tagline::{CreateTagline, TaglineResponse};
+use lemmy_db_views_site::api::{CreateTagline, TaglineResponse};
 use lemmy_utils::error::LemmyError;
 
 pub async fn create_tagline(

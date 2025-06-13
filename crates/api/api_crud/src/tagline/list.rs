@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::tagline::Tagline;
-use lemmy_db_views_tagline::{ListTaglines, ListTaglinesResponse};
+use lemmy_db_views_site::api::{ListTaglines, ListTaglinesResponse};
 use lemmy_utils::error::LemmyError;
 
 pub async fn list_taglines(

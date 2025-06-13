@@ -22,7 +22,6 @@ ts-rs = [
   "lemmy_utils/ts-rs",
   "lemmy_db_schema/ts-rs",
   "lemmy_db_schema_file/ts-rs",
-  "lemmy_db_views_api_misc/ts-rs",
   "lemmy_db_views_comment/ts-rs",
   "lemmy_db_views_community/ts-rs",
   "lemmy_db_views_community_follower/ts-rs",
@@ -51,8 +50,6 @@ ts-rs = [
 lemmy_utils.workspace = true
 lemmy_db_schema.workspace = true
 lemmy_db_schema_file.workspace = true
-lemmy_db_views_account_management.workspace = true
-lemmy_db_views_api_misc.workspace = true
 lemmy_db_views_comment.workspace = true
 lemmy_db_views_community.workspace = true
 lemmy_db_views_community_follower.workspace = true
@@ -74,5 +71,4 @@ lemmy_db_views_report_combined.workspace = true
 lemmy_db_views_reports.workspace = true
 lemmy_db_views_search_combined.workspace = true
 lemmy_db_views_site.workspace = true
-lemmy_db_views_tagline.workspace = true
 lemmy_db_views_vote.workspace = true

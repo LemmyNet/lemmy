@@ -9,9 +9,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::AdminBlockInstanceParams;
+use lemmy_db_views_site::api::{AdminBlockInstanceParams, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_block_instance(

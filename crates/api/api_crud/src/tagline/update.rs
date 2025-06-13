@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_tagline::{TaglineResponse, UpdateTagline};
+use lemmy_db_views_site::api::{TaglineResponse, UpdateTagline};
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(
