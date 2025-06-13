@@ -1,10 +1,10 @@
 # This script is meant to be run with `source` so it can set environment variables.
 
-export PGDATA="$PWD/dev_pgdata"
-export PGHOST=$PWD
+export PGDATA="$PWD/target/dev_pgdata"
+export PGHOST="$PWD/target"
 
 # Necessary to encode the dev db path into proper URL params
-export ENCODED_HOST=$(printf $PWD | jq -sRr @uri)
+export ENCODED_HOST=$(printf $PGHOST | jq -sRr @uri)
 
 export PGUSER=postgres
 export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/lemmy"
@@ -28,7 +28,7 @@ fi
 config_args=(
   # Only listen to socket in current directory
   -c listen_addresses=
-  -c unix_socket_directories=$PWD
+  -c unix_socket_directories=$PGHOST
 
   # Write logs to a file in $PGDATA/log
   -c logging_collector=on

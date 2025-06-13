@@ -5,7 +5,7 @@ ansible/passwords/
 # docker build files
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
-volumes
+docker/volumes
 
 # ide config
 .idea
@@ -27,10 +27,6 @@ pictrs/
 
 # The generated typescript bindings
 bindings
-
-# Database cluster and sockets for testing
-dev_pgdata/
-*.PGSQL.*
 
 # database dumps
 *.sqldump

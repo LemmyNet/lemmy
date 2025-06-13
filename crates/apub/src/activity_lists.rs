@@ -20,7 +20,7 @@ use crate::protocol::activities::{
   voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::community::ApubCommunity,
   protocol::page::Page,
@@ -80,18 +80,18 @@ impl InCommunity for AnnouncableActivities {
       CreateOrUpdateNoteWrapper(a) => a.community(context).await,
       CreateOrUpdatePost(a) => a.community(context).await,
       Vote(a) => a.community(context).await,
-      UndoVote(a) => a.community(context).await,
+      UndoVote(a) => a.object.community(context).await,
       Delete(a) => a.community(context).await,
-      UndoDelete(a) => a.community(context).await,
+      UndoDelete(a) => a.object.community(context).await,
       UpdateCommunity(a) => a.community(context).await,
       BlockUser(a) => a.community(context).await,
-      UndoBlockUser(a) => a.community(context).await,
+      UndoBlockUser(a) => a.object.community(context).await,
       CollectionAdd(a) => a.community(context).await,
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
-      UndoLockPost(a) => a.community(context).await,
+      UndoLockPost(a) => a.object.community(context).await,
       Report(a) => a.community(context).await,
-      ResolveReport(a) => a.community(context).await,
+      ResolveReport(a) => a.object.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }

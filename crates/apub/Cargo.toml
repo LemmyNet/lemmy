@@ -8,6 +8,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_apub"
@@ -18,6 +19,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
@@ -33,7 +35,7 @@ lemmy_db_views_person_content_combined = { workspace = true, features = [
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true }
 lemmy_apub_objects = { workspace = true }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
@@ -54,7 +56,7 @@ async-trait = { workspace = true }
 anyhow = { workspace = true }
 serde_with.workspace = true
 enum_delegate = "0.2.0"
-either = "1.15.0"
+either = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

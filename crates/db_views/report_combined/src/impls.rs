@@ -165,13 +165,7 @@ impl ReportCombinedViewInternal {
     let my_person_id = user.local_user.person_id;
 
     let mut query = Self::joins(my_person_id)
-      .filter(
-        post_report::resolved
-          .or(comment_report::resolved)
-          .or(private_message_report::resolved)
-          .or(community_report::resolved)
-          .is_distinct_from(true),
-      )
+      .filter(report_is_not_resolved())
       .select(count(report_combined::id))
       .into_boxed();
 
@@ -309,13 +303,7 @@ impl ReportCombinedQuery {
     let sort_direction = asc_if(unresolved_only);
 
     if unresolved_only {
-      query = query.filter(
-        post_report::resolved
-          .or(comment_report::resolved)
-          .or(private_message_report::resolved)
-          .or(community_report::resolved)
-          .is_distinct_from(true),
-      )
+      query = query.filter(report_is_not_resolved())
     };
 
     // Sorting by published
@@ -326,7 +314,7 @@ impl ReportCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::published)
+    .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
@@ -348,7 +336,7 @@ impl ReportCombinedQuery {
 /// and which have `violates_instance_rules == false`.
 #[diesel::dsl::auto_type]
 fn filter_mod_reports() -> _ {
-  community_actions::became_moderator
+  community_actions::became_moderator_at
     .is_not_null()
     // Reporting a community or private message must go to admins
     .and(report_combined::community_report_id.is_null())
@@ -361,9 +349,9 @@ fn filter_mod_reports() -> _ {
 #[diesel::dsl::auto_type]
 fn filter_admin_reports(interval: DateTime<Utc>) -> _ {
   filter_violates_instance_rules()
-    .or(report_combined::published.lt(interval))
+    .or(report_combined::published_at.lt(interval))
     // Also show community reports where the admin is a community mod
-    .or(community_actions::became_moderator.is_not_null())
+    .or(community_actions::became_moderator_at.is_not_null())
 }
 
 /// Filter reports which are only for admins (either post/comment report with
@@ -374,6 +362,15 @@ fn filter_violates_instance_rules() -> _ {
     .or(comment_report::violates_instance_rules)
     .or(report_combined::community_report_id.is_not_null())
     .or(report_combined::private_message_report_id.is_not_null())
+}
+
+#[diesel::dsl::auto_type]
+fn report_is_not_resolved() -> _ {
+  post_report::resolved
+    .or(comment_report::resolved)
+    .or(private_message_report::resolved)
+    .or(community_report::resolved)
+    .is_distinct_from(true)
 }
 
 impl InternalToCombinedView for ReportCombinedViewInternal {
@@ -1222,7 +1219,7 @@ mod tests {
     update(
       report_combined::table.filter(report_combined::dsl::comment_report_id.eq(comment_report.id)),
     )
-    .set(report_combined::published.eq(Utc::now() - Days::new(3)))
+    .set(report_combined::published_at.eq(Utc::now() - Days::new(3)))
     .execute(&mut get_conn(pool).await?)
     .await?;
     let admin_reports = ReportCombinedQuery::default()

@@ -1,14 +1,16 @@
 use crate::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  community::{GetCommunity, GetCommunityResponse},
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, read_site_for_actor},
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{
+  api::{GetCommunity, GetCommunityResponse},
+  CommunityView,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

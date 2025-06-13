@@ -1,14 +1,16 @@
 use super::resolve_person_id_from_id_or_username;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person::{
+  api::{GetPersonDetails, GetPersonDetailsResponse},
+  PersonView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
@@ -20,6 +22,7 @@ pub async fn read_person(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let local_instance_id = site_view.site.instance_id;
+  let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -41,6 +44,7 @@ pub async fn read_person(
   let person_view = PersonView::read(
     &mut context.pool(),
     person_details_id,
+    my_person_id,
     local_instance_id,
     is_admin,
   )

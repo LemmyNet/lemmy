@@ -21,7 +21,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
 };
@@ -106,8 +106,8 @@ impl Object for ApubSite {
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),
-      published: self.published,
-      updated: self.updated,
+      published: self.published_at,
+      updated: self.updated_at,
     };
     Ok(instance)
   }
@@ -147,7 +147,7 @@ impl Object for ApubSite {
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar,
-      updated: apub.updated,
+      updated_at: apub.updated,
       icon,
       banner,
       description: apub.summary,

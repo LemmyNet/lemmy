@@ -7,6 +7,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 doctest = false
@@ -19,16 +20,20 @@ full = [
   "lemmy_utils",
   "diesel",
   "diesel-async",
-  "ts-rs",
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_community/full",
+  "lemmy_db_views_vote/full",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+lemmy_db_views_vote = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }

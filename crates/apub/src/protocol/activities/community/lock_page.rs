@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::UndoType,
   protocol::helpers::deserialize_one_or_many,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::protocol::InCommunity,
@@ -57,12 +57,5 @@ impl InCommunity for LockPage {
     let post = self.object.dereference(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     Ok(community.into())
-  }
-}
-
-impl InCommunity for UndoLockPage {
-  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let community = self.object.community(context).await?;
-    Ok(community)
   }
 }

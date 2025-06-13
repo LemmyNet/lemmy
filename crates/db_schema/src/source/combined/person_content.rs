@@ -19,7 +19,7 @@ use serde_with::skip_serializing_none;
 /// A combined table for a persons contents (posts and comments)
 pub struct PersonContentCombined {
   pub id: PersonContentCombinedId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
 }

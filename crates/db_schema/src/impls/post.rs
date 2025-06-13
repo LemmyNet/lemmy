@@ -91,7 +91,7 @@ impl Post {
     insert_into(post::table)
       .values(form)
       .on_conflict(post::ap_id)
-      .filter_target(coalesce(post::updated, post::published).lt(timestamp))
+      .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -109,7 +109,7 @@ impl Post {
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
       .filter(post::featured_community.eq(true))
-      .then_order_by(post::published.desc())
+      .then_order_by(post::published_at.desc())
       .limit(FETCH_LIMIT_MAX.try_into()?)
       .load::<Self>(conn)
       .await
@@ -121,12 +121,12 @@ impl Post {
   ) -> LemmyResult<Vec<(DbUrl, chrono::DateTime<Utc>)>> {
     let conn = &mut get_conn(pool).await?;
     post::table
-      .select((post::ap_id, coalesce(post::updated, post::published)))
+      .select((post::ap_id, coalesce(post::updated_at, post::published_at)))
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
-      .filter(post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
-      .order(post::published.desc())
+      .filter(post::published_at.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
+      .order(post::published_at.desc())
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
@@ -145,7 +145,7 @@ impl Post {
         post::url.eq(Option::<&str>::None),
         post::body.eq(DELETED_REPLACEMENT_TEXT),
         post::deleted.eq(true),
-        post::updated.eq(Utc::now()),
+        post::updated_at.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -180,7 +180,7 @@ impl Post {
 
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
-      .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
+      .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
@@ -198,7 +198,7 @@ impl Post {
     let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
-      .filter(post::scheduled_publish_time.is_null())
+      .filter(post::scheduled_publish_time_at.is_null())
       .first(conn)
       .await
       .optional()
@@ -229,8 +229,8 @@ impl Post {
       .inner_join(person::table)
       .inner_join(community::table)
       // find all posts which have scheduled_publish_time that is in the  future
-      .filter(post::scheduled_publish_time.is_not_null())
-      .filter(coalesce(post::scheduled_publish_time, now()).gt(now()))
+      .filter(post::scheduled_publish_time_at.is_not_null())
+      .filter(coalesce(post::scheduled_publish_time_at, now()).gt(now()))
       // make sure the post and community are still around
       .filter(not(post::deleted.or(post::removed)))
       .filter(not(community::removed.or(community::deleted)))
@@ -258,11 +258,11 @@ impl Post {
 
     diesel::update(post::table.find(post_id))
       .set((
-        post::hot_rank.eq(hot_rank(post::score, post::published)),
-        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro)),
+        post::hot_rank.eq(hot_rank(post::score, post::published_at)),
+        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro_at)),
         post::scaled_rank.eq(scaled_rank(
           post::score,
-          post::published,
+          post::published_at,
           interactions_month,
         )),
       ))
@@ -312,7 +312,7 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
     uplete::new(post_actions::table.find((person_id, post_id)))
       .set_null(post_actions::like_score)
-      .set_null(post_actions::liked)
+      .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)
@@ -336,7 +336,7 @@ impl Saveable for PostActions {
   async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(post_actions::table.find((form.person_id, form.post_id)))
-      .set_null(post_actions::saved)
+      .set_null(post_actions::saved_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntSavePost)
@@ -358,7 +358,7 @@ impl Readable for PostActions {
         .filter(post_actions::post_id.eq(form.post_id))
         .filter(post_actions::person_id.eq(form.person_id)),
     )
-    .set_null(post_actions::read)
+    .set_null(post_actions::read_at)
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
@@ -371,7 +371,7 @@ impl Readable for PostActions {
       .values(forms)
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
-      .set(post_actions::read.eq(now().nullable()))
+      .set(post_actions::read_at.eq(now().nullable()))
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
@@ -401,7 +401,7 @@ impl Hideable for PostActions {
         .filter(post_actions::post_id.eq(form.post_id))
         .filter(post_actions::person_id.eq(form.person_id)),
     )
-    .set_null(post_actions::hidden)
+    .set_null(post_actions::hidden_at)
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntHidePost)
@@ -438,7 +438,7 @@ impl ReadComments for PostActions {
         .filter(post_actions::person_id.eq(person_id)),
     )
     .set_null(post_actions::read_comments_amount)
-    .set_null(post_actions::read_comments)
+    .set_null(post_actions::read_comments_at)
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
@@ -545,7 +545,7 @@ mod tests {
     let inserted_post2 = Post::create(pool, &new_post2).await?;
 
     let new_scheduled_post = PostInsertForm {
-      scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
+      scheduled_publish_time_at: Some(DateTime::from_timestamp_nanos(i64::MAX)),
       ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
     };
     let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await?;
@@ -558,12 +558,12 @@ mod tests {
       alt_text: None,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      published: inserted_post.published,
+      published_at: inserted_post.published_at,
       removed: false,
       locked: false,
       nsfw: false,
       deleted: false,
-      updated: None,
+      updated_at: None,
       embed_title: None,
       embed_description: None,
       embed_video_url: None,
@@ -574,7 +574,7 @@ mod tests {
       featured_community: false,
       featured_local: false,
       url_content_type: None,
-      scheduled_publish_time: None,
+      scheduled_publish_time_at: None,
       comments: 0,
       controversy_rank: 0.0,
       downvotes: 0,
@@ -582,8 +582,8 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      newest_comment_time: inserted_post.published,
-      newest_comment_time_necro: inserted_post.published,
+      newest_comment_time_at: inserted_post.published_at,
+      newest_comment_time_necro_at: inserted_post.published_at,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
@@ -600,7 +600,7 @@ mod tests {
     let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id);
 
     let inserted_post_saved = PostActions::save(pool, &post_saved_form).await?;
-    assert!(inserted_post_saved.saved.is_some());
+    assert!(inserted_post_saved.saved_at.is_some());
 
     // Mark 2 posts as read
     let post_read_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);

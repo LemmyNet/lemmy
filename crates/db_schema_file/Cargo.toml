@@ -7,6 +7,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_db_schema_file"
@@ -21,13 +22,13 @@ full = [
   "diesel",
   "diesel_ltree",
   "diesel-derive-enum",
-  "ts-rs",
   "lemmy_utils",
   "anyhow",
   "chrono",
   "tracing",
   "diesel_migrations",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 serde = { workspace = true }

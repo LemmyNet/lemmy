@@ -29,6 +29,9 @@ import {
   InboxDataType,
   GetModlogResponse,
   GetModlog,
+  CommunityView,
+  CommentView,
+  PersonView,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -46,9 +49,7 @@ import { Post } from "lemmy-js-client/dist/types/Post";
 import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
 import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
-import { ResolveObjectResponse } from "lemmy-js-client/dist/types/ResolveObjectResponse";
 import { Search } from "lemmy-js-client/dist/types/Search";
-import { SearchResponse } from "lemmy-js-client/dist/types/SearchResponse";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
 import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
@@ -80,6 +81,8 @@ import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportRespons
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
+import { CommunityReportResponse } from "lemmy-js-client/dist/types/CommunityReportResponse";
+import { CreateCommunityReport } from "lemmy-js-client/dist/types/CreateCommunityReport";
 import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
@@ -309,23 +312,28 @@ export async function lockPost(
 export async function resolvePost(
   api: LemmyHttp,
   post: Post,
-): Promise<ResolveObjectResponse> {
+): Promise<PostView | undefined> {
   let form: ResolveObject = {
     q: post.ap_id,
   };
-  return api.resolveObject(form);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Post" ? a : undefined));
 }
 
 export async function searchPostLocal(
   api: LemmyHttp,
   post: Post,
-): Promise<SearchResponse> {
+): Promise<PostView | undefined> {
   let form: Search = {
-    search_term: post.name,
+    q: post.name,
     type_: "Posts",
     listing_type: "All",
   };
-  return api.search(form);
+  let res = await api.search(form);
+  let first = res.results.at(0);
+  return first?.type_ == "Post" ? first : undefined;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -334,10 +342,10 @@ export async function waitForPost(
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
+  return waitUntil(
+    () => searchPostLocal(api, post),
     checker,
-  );
+  ) as Promise<PostView>;
 }
 
 export async function getPost(
@@ -385,41 +393,53 @@ export async function listInbox(
 export async function resolveComment(
   api: LemmyHttp,
   comment: Comment,
-): Promise<ResolveObjectResponse> {
+): Promise<CommentView | undefined> {
   let form: ResolveObject = {
     q: comment.ap_id,
   };
-  return api.resolveObject(form);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Comment" ? a : undefined));
 }
 
 export async function resolveBetaCommunity(
   api: LemmyHttp,
-): Promise<ResolveObjectResponse> {
+): Promise<CommunityView | undefined> {
   // Use short-hand search url
   let form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
-  return api.resolveObject(form);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Community" ? a : undefined));
 }
 
 export async function resolveCommunity(
   api: LemmyHttp,
   q: string,
-): Promise<ResolveObjectResponse> {
+): Promise<CommunityView | undefined> {
   let form: ResolveObject = {
     q,
   };
-  return api.resolveObject(form);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Community" ? a : undefined));
 }
 
 export async function resolvePerson(
   api: LemmyHttp,
   apShortname: string,
-): Promise<ResolveObjectResponse> {
+): Promise<PersonView | undefined> {
   let form: ResolveObject = {
     q: apShortname,
   };
-  return api.resolveObject(form);
+  return api
+    .resolveObject(form)
+    .then(a => a.results.at(0))
+    .then(a => (a?.type_ == "Person" ? a : undefined));
 }
 
 export async function banPersonFromSite(
@@ -776,7 +796,7 @@ export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
 }
 
 export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
-  let betaCommunity = (await resolveBetaCommunity(api)).community;
+  let betaCommunity = await resolveBetaCommunity(api);
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
     return follow;
@@ -795,6 +815,18 @@ export async function reportPost(
     reason,
   };
   return api.createPostReport(form);
+}
+
+export async function reportCommunity(
+  api: LemmyHttp,
+  community_id: number,
+  reason: string,
+): Promise<CommunityReportResponse> {
+  let form: CreateCommunityReport = {
+    community_id,
+    reason,
+  };
+  return api.createCommunityReport(form);
 }
 
 export async function listReports(

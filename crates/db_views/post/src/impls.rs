@@ -177,7 +177,7 @@ impl PostView {
 
     let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
-      .filter(post_actions::read.is_not_null())
+      .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
       .limit(limit)
@@ -185,7 +185,7 @@ impl PostView {
 
     // Sorting by the read date
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
-      .then_order_by(pa_key::read)
+      .then_order_by(pa_key::read_at)
       // Tie breaker
       .then_order_by(pa_key::post_id);
 
@@ -208,7 +208,7 @@ impl PostView {
 
     let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
-      .filter(post_actions::hidden.is_not_null())
+      .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
       .limit(limit)
@@ -216,7 +216,7 @@ impl PostView {
 
     // Sorting by the hidden date
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
-      .then_order_by(pa_key::hidden)
+      .then_order_by(pa_key::hidden_at)
       // Tie breaker
       .then_order_by(pa_key::post_id);
 
@@ -241,8 +241,6 @@ pub struct PostQuery<'a> {
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
   pub local_user: Option<&'a LocalUser>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
@@ -335,14 +333,14 @@ impl PostQuery<'_> {
     if let Some(person_id) = my_person_id {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
-        post::scheduled_publish_time
+        post::scheduled_publish_time_at
           .is_null()
           .or(post::creator_id.eq(person_id)),
       );
     } else {
       query = query
         .filter(post::deleted.eq(false))
-        .filter(post::scheduled_publish_time.is_null());
+        .filter(post::scheduled_publish_time_at.is_null());
     }
 
     if let Some(community_id) = o.community_id.or(largest_subscribed_for_prefetch) {
@@ -358,7 +356,7 @@ impl PostQuery<'_> {
       }
       ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
       ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator.is_not_null());
+        query = query.filter(community_actions::became_moderator_at.is_not_null());
       }
     }
 
@@ -378,12 +376,12 @@ impl PostQuery<'_> {
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
-      query = query.filter(post_actions::read.is_null());
+      query = query.filter(post_actions::read_at.is_null());
     }
 
     // Hide the hidden posts
     if !o.show_hidden.unwrap_or_default() {
-      query = query.filter(post_actions::hidden.is_null());
+      query = query.filter(post_actions::hidden_at.is_null());
     }
 
     if o.hide_media.unwrap_or(o.local_user.hide_media()) {
@@ -395,20 +393,6 @@ impl PostQuery<'_> {
         ),
       ));
     }
-
-    // TODO move liked only elsewhere
-    if let Some(my_id) = my_person_id {
-      let not_creator_filter = post::creator_id.ne(my_id);
-      if o.liked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(post_actions::like_score.eq(1));
-      } else if o.disliked_only.unwrap_or_default() {
-        query = query
-          .filter(not_creator_filter)
-          .filter(post_actions::like_score.eq(-1));
-      }
-    };
 
     query = o.local_user.visible_communities_only(query);
     query = query.filter(
@@ -463,7 +447,8 @@ impl PostQuery<'_> {
 
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
-      query = query.filter(post::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+      query =
+        query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // Only sort by ascending for Old
@@ -494,8 +479,8 @@ impl PostQuery<'_> {
       Hot => pq.then_order_by(key::hot_rank),
       Scaled => pq.then_order_by(key::scaled_rank),
       Controversial => pq.then_order_by(key::controversy_rank),
-      New | Old => pq.then_order_by(key::published),
-      NewComments => pq.then_order_by(key::newest_comment_time),
+      New | Old => pq.then_order_by(key::published_at),
+      NewComments => pq.then_order_by(key::newest_comment_time_at),
       MostComments => pq.then_order_by(key::comments),
       Top => pq.then_order_by(key::score),
     };
@@ -505,7 +490,7 @@ impl PostQuery<'_> {
     pq = match sort {
       // A second time-based sort would not be very useful
       New | Old | NewComments => pq,
-      _ => pq.then_order_by(key::published),
+      _ => pq.then_order_by(key::published_at),
     };
 
     // finally use unique post id as tie breaker
@@ -562,7 +547,7 @@ mod tests {
       keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
       post::{
         Post,
         PostActions,
@@ -772,8 +757,8 @@ mod tests {
         id: Default::default(),
         name: String::new(),
         sidebar: None,
-        published: Default::default(),
-        updated: None,
+        published_at: Default::default(),
+        updated_at: None,
         icon: None,
         banner: None,
         description: None,
@@ -1022,41 +1007,51 @@ mod tests {
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_liked_only(data: &mut Data) -> LemmyResult<()> {
+  async fn person_note(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    // Like both the bot post, and your own
-    // The liked_only should not show your own post
-    let post_like_form = PostLikeForm::new(data.post.id, data.tegan_local_user_view.person.id, 1);
-    PostActions::like(pool, &post_like_form).await?;
+    let note_str = "Tegan loves cats.";
 
-    let bot_post_like_form =
-      PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, 1);
-    PostActions::like(pool, &bot_post_like_form).await?;
+    let note_form = PersonNoteForm::new(
+      data.john_local_user_view.person.id,
+      data.tegan_local_user_view.person.id,
+      note_str.to_string(),
+    );
+    let inserted_note = PersonActions::note(pool, &note_form).await?;
+    assert_eq!(Some(note_str.to_string()), inserted_note.note);
 
-    // Read the liked only
-    let read_liked_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      liked_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
+    let post_listing = PostView::read(
+      pool,
+      data.post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
     .await?;
 
-    // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
+    assert!(post_listing
+      .person_actions
+      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
 
-    let read_disliked_post_listing = PostQuery {
-      community_id: Some(data.community.id),
-      disliked_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
+    let note_removed = PersonActions::delete_note(
+      pool,
+      data.john_local_user_view.person.id,
+      data.tegan_local_user_view.person.id,
+    )
     .await?;
 
-    // Should be no posts
-    assert_eq!(read_disliked_post_listing, vec![]);
+    let post_listing = PostView::read(
+      pool,
+      data.post.id,
+      Some(&data.john_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert_eq!(uplete::Count::only_deleted(1), note_removed);
+    assert!(post_listing.person_actions.is_none());
 
     Ok(())
   }
@@ -1108,7 +1103,7 @@ mod tests {
       (
         p.creator.name,
         p.creator_community_actions
-          .map(|x| x.became_moderator.is_some())
+          .map(|x| x.became_moderator_at.is_some())
           .unwrap_or(false),
         p.can_mod,
       )
@@ -1144,7 +1139,7 @@ mod tests {
       (
         p.creator.name,
         p.creator_community_actions
-          .map(|x| x.became_moderator.is_some())
+          .map(|x| x.became_moderator_at.is_some())
           .unwrap_or(false),
         p.can_mod,
       )
@@ -1173,7 +1168,7 @@ mod tests {
       (
         p.creator.name,
         p.creator_community_actions
-          .map(|x| x.became_moderator.is_some())
+          .map(|x| x.became_moderator_at.is_some())
           .unwrap_or(false),
         p.can_mod,
       )
@@ -1203,7 +1198,7 @@ mod tests {
       (
         p.creator.name,
         p.creator_community_actions
-          .map(|x| x.became_moderator.is_some())
+          .map(|x| x.became_moderator_at.is_some())
           .unwrap_or(false),
         p.can_mod,
       )
@@ -1235,7 +1230,7 @@ mod tests {
       (
         p.creator.name,
         p.creator_community_actions
-          .map(|x| x.became_moderator.is_some())
+          .map(|x| x.became_moderator_at.is_some())
           .unwrap_or(false),
         p.can_mod,
       )
@@ -1541,7 +1536,7 @@ mod tests {
         let post_form = PostInsertForm {
           featured_local: Some((comments % 2) == 0),
           featured_community: Some((comments % 2) == 0),
-          published: Some(Utc::now() - Duration::from_secs(comments % 3)),
+          published_at: Some(Utc::now() - Duration::from_secs(comments % 3)),
           ..PostInsertForm::new(
             "keep Christ in Christmas".to_owned(),
             data.tegan_local_user_view.person.id,
@@ -1713,9 +1708,10 @@ mod tests {
     );
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden
-      .get(1)
-      .is_some_and(|p| p.post_actions.as_ref().is_some_and(|a| a.hidden.is_some())));
+    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| p
+      .post_actions
+      .as_ref()
+      .is_some_and(|a| a.hidden_at.is_some())));
 
     // Make sure only that one comes back for list_hidden
     let list_hidden =
@@ -1855,7 +1851,7 @@ mod tests {
 
     assert!(post_view
       .community_actions
-      .is_some_and(|x| x.received_ban.is_some()));
+      .is_some_and(|x| x.received_ban_at.is_some()));
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     Ok(())
@@ -1921,11 +1917,11 @@ mod tests {
 
     assert!(post_view
       .creator_local_instance_actions
-      .is_some_and(|x| x.received_ban.is_some()));
+      .is_some_and(|x| x.received_ban_at.is_some()));
 
     assert!(post_view
       .creator_home_instance_actions
-      .is_some_and(|x| x.received_ban.is_some()));
+      .is_some_and(|x| x.received_ban_at.is_some()));
 
     // This should be none, since john wasn't banned, only the creator.
     assert!(post_view.instance_actions.is_none());

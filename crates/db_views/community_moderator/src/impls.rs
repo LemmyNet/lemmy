@@ -14,7 +14,7 @@ impl CommunityModeratorView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     community_actions::table
-      .filter(community_actions::became_moderator.is_not_null())
+      .filter(community_actions::became_moderator_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
   }
@@ -58,7 +58,7 @@ impl CommunityModeratorView {
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
       .select(Self::as_select())
-      .order_by(community_actions::became_moderator)
+      .order_by(community_actions::became_moderator_at)
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -106,7 +106,7 @@ impl CommunityModeratorView {
       .distinct_on(community_actions::community_id)
       .order_by((
         community_actions::community_id,
-        community_actions::became_moderator,
+        community_actions::became_moderator_at,
       ))
       .load::<Self>(conn)
       .await

@@ -36,7 +36,7 @@ impl PasswordResetRequest {
     let conn = &mut get_conn(pool).await?;
     delete(password_reset_request::table)
       .filter(password_reset_request::token.eq(token_))
-      .filter(password_reset_request::published.gt(now.into_sql::<Timestamptz>() - 1.days()))
+      .filter(password_reset_request::published_at.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::Deleted)
@@ -93,8 +93,8 @@ mod tests {
       read_password_reset_request.token
     );
     assert_eq!(
-      inserted_password_reset_request.published,
-      read_password_reset_request.published
+      inserted_password_reset_request.published_at,
+      read_password_reset_request.published_at
     );
 
     // Cannot reuse same token again

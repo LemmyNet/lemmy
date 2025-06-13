@@ -29,7 +29,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use following::send_accept_or_reject_follow;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,
@@ -300,7 +300,7 @@ pub async fn match_outgoing_activities(
         reason,
         remove_or_restore_data,
         ban,
-        expires,
+        expires_at,
       } => {
         send_ban_from_site(
           moderator,
@@ -308,7 +308,7 @@ pub async fn match_outgoing_activities(
           reason,
           remove_or_restore_data,
           ban,
-          expires,
+          expires_at,
           context,
         )
         .await
@@ -326,13 +326,13 @@ pub async fn match_outgoing_activities(
       CreateReport {
         object_id,
         actor,
-        community,
+        receiver,
         reason,
       } => {
         Report::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &community.into(),
+          &receiver.map_either(Into::into, Into::into),
           reason,
           context,
         )
@@ -342,13 +342,13 @@ pub async fn match_outgoing_activities(
         object_id,
         actor,
         report_creator,
-        community,
+        receiver,
       } => {
         ResolveReport::send(
           ObjectId::from(object_id),
           &actor.into(),
           &report_creator.into(),
-          &community.into(),
+          &receiver.map_either(Into::into, Into::into),
           context,
         )
         .await

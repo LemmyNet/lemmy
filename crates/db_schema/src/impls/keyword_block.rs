@@ -3,8 +3,8 @@ use crate::{
   source::keyword_block::{LocalUserKeywordBlock, LocalUserKeywordBlockForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{delete, insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
+use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::local_user_keyword_block;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -30,13 +30,14 @@ impl LocalUserKeywordBlock {
     let conn = &mut get_conn(pool).await?;
     // No need to update if keywords unchanged
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
           delete(local_user_keyword_block::table)
             .filter(local_user_keyword_block::local_user_id.eq(for_local_user_id))
             .filter(local_user_keyword_block::keyword.ne_all(&blocking_keywords))
             .execute(conn)
-            .await?;
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateKeywords)?;
           let forms = blocking_keywords
             .into_iter()
             .map(|k| LocalUserKeywordBlockForm {
@@ -49,10 +50,10 @@ impl LocalUserKeywordBlock {
             .on_conflict_do_nothing()
             .execute(conn)
             .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateKeywords)
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateKeywords)
   }
 }

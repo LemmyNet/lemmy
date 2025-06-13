@@ -152,7 +152,7 @@ impl LocalUserView {
     self
       .instance_actions
       .as_ref()
-      .is_some_and(|i| i.received_ban.is_some())
+      .is_some_and(|i| i.received_ban_at.is_some())
   }
 }
 
@@ -178,14 +178,17 @@ impl LocalUserQuery {
 
       query = query.filter(
         actions
-          .field(instance_actions::received_ban)
+          .field(instance_actions::received_ban_at)
           .is_not_null()
           .and(
-            actions.field(instance_actions::ban_expires).is_null().or(
-              actions
-                .field(instance_actions::ban_expires)
-                .gt(now().nullable()),
-            ),
+            actions
+              .field(instance_actions::ban_expires_at)
+              .is_null()
+              .or(
+                actions
+                  .field(instance_actions::ban_expires_at)
+                  .gt(now().nullable()),
+              ),
           ),
       );
     }
@@ -197,7 +200,7 @@ impl LocalUserQuery {
       None,
       self.page_back,
     )
-    .then_order_by(person_keys::published)
+    .then_order_by(person_keys::published_at)
     // Tie breaker
     .then_order_by(person_keys::id);
 
