@@ -24,7 +24,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
@@ -122,8 +122,8 @@ impl Object for ApubComment {
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: Some(Source::new(self.content.clone())),
       in_reply_to,
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
@@ -208,8 +208,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published,
-      updated: note.updated,
+      published_at: note.published,
+      updated_at: note.updated,
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,

@@ -49,11 +49,11 @@ use lemmy_db_schema_file::{
 /// hidden, unless the user followed the community explicitly.
 #[diesel::dsl::auto_type]
 pub fn filter_blocked() -> _ {
-  instance_actions::blocked
+  instance_actions::blocked_at
     .is_null()
-    .or(community_actions::followed.is_not_null())
-    .and(community_actions::blocked.is_null())
-    .and(person_actions::blocked.is_null())
+    .or(community_actions::followed_at.is_not_null())
+    .and(community_actions::blocked_at.is_null())
+    .and(person_actions::blocked_at.is_null())
 }
 
 /// Checks that the creator_local_user is an admin.
@@ -100,11 +100,11 @@ pub fn post_creator_is_admin() -> _ {
 /// - The local instance
 pub fn creator_banned() -> _ {
   let local_ban = creator_local_instance_actions
-    .field(instance_actions::received_ban)
+    .field(instance_actions::received_ban_at)
     .nullable()
     .is_not_null();
   let home_ban = creator_home_instance_actions
-    .field(instance_actions::received_ban)
+    .field(instance_actions::received_ban_at)
     .nullable()
     .is_not_null();
   local_ban.or(home_ban)
@@ -121,10 +121,10 @@ pub fn creator_local_user_admin_join() -> _ {
 
 #[diesel::dsl::auto_type]
 fn am_higher_mod() -> _ {
-  let i_became_moderator = community_actions::became_moderator.nullable();
+  let i_became_moderator = community_actions::became_moderator_at.nullable();
 
   let creator_became_moderator = creator_community_actions
-    .field(community_actions::became_moderator)
+    .field(community_actions::became_moderator_at)
     .nullable();
 
   i_became_moderator.is_not_null().and(
@@ -161,7 +161,9 @@ pub fn local_user_can_mod_comment() -> _ {
 #[diesel::dsl::auto_type]
 pub fn local_user_community_can_mod() -> _ {
   let am_admin = local_user::admin.nullable();
-  let am_moderator = community_actions::became_moderator.nullable().is_not_null();
+  let am_moderator = community_actions::became_moderator_at
+    .nullable()
+    .is_not_null();
   am_admin.or(am_moderator).is_not_distinct_from(true)
 }
 
@@ -181,8 +183,8 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::post_id,
     content,
     comment::removed,
-    comment::published,
-    comment::updated,
+    comment::published_at,
+    comment::updated_at,
     comment::deleted,
     comment::ap_id,
     comment::local,

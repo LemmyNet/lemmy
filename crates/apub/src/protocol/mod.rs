@@ -1,5 +1,5 @@
 use activitypub_federation::{config::Data, fetch::fetch_object_http};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::protocol::Id;
 use lemmy_utils::error::LemmyResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

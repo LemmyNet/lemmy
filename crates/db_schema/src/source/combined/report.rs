@@ -25,7 +25,7 @@ use serde_with::skip_serializing_none;
 /// A combined reports table.
 pub struct ReportCombined {
   pub id: ReportCombinedId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub post_report_id: Option<PostReportId>,
   pub comment_report_id: Option<CommentReportId>,
   pub private_message_report_id: Option<PrivateMessageReportId>,

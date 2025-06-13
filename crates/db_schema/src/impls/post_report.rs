@@ -39,7 +39,7 @@ impl Reportable for PostReport {
       .set((
         post_report::resolved.eq(true),
         post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated.eq(Utc::now()),
+        post_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -63,7 +63,7 @@ impl Reportable for PostReport {
     .set((
       post_report::resolved.eq(true),
       post_report::resolver_id.eq(resolver_id),
-      post_report::updated.eq(Utc::now()),
+      post_report::updated_at.eq(Utc::now()),
     ))
     .execute(conn)
     .await
@@ -80,7 +80,7 @@ impl Reportable for PostReport {
       .set((
         post_report::resolved.eq(true),
         post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated.eq(Utc::now()),
+        post_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -97,7 +97,7 @@ impl Reportable for PostReport {
       .set((
         post_report::resolved.eq(false),
         post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated.eq(Utc::now()),
+        post_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await

@@ -1,5 +1,5 @@
 use actix_web::{web, Error, HttpResponse, Result};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{

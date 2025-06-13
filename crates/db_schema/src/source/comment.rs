@@ -8,27 +8,20 @@ use {
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{comment, comment_actions},
-  ts_rs::TS,
 };
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(
-    Queryable,
-    Selectable,
-    Associations,
-    Identifiable,
-    TS,
-    CursorKeysModule
-  )
+  derive(Queryable, Selectable, Associations, Identifiable, CursorKeysModule)
 )]
-#[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = comment_keys))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment.
 pub struct Comment {
   pub id: CommentId,
@@ -37,9 +30,8 @@ pub struct Comment {
   pub content: String,
   /// Whether the comment has been removed.
   pub removed: bool,
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub published_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
   /// The federated activity id / ap_id.
@@ -48,7 +40,7 @@ pub struct Comment {
   pub local: bool,
   #[cfg(feature = "full")]
   #[cfg_attr(feature = "full", serde(with = "LtreeDef"))]
-  #[cfg_attr(feature = "full", ts(type = "string"))]
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex:
   /// 0.24.27
   pub path: Ltree,
@@ -86,9 +78,9 @@ pub struct CommentInsertForm {
   #[new(default)]
   pub removed: Option<bool>,
   #[new(default)]
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
@@ -110,7 +102,7 @@ pub struct CommentUpdateForm {
   pub content: Option<String>,
   pub removed: Option<bool>,
   // Don't use a default Utc::now here, because the create function does a lot of comment updates
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
@@ -123,35 +115,26 @@ pub struct CommentUpdateForm {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(
-    Identifiable,
-    Queryable,
-    Selectable,
-    Associations,
-    TS,
-    CursorKeysModule
-  )
+  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// The like / score for the comment.
   pub like_score: Option<i16>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When the comment was liked.
-  pub liked: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full", ts(optional))]
+  pub liked_at: Option<DateTime<Utc>>,
   /// When the comment was saved.
-  pub saved: Option<DateTime<Utc>>,
+  pub saved_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -165,7 +148,7 @@ pub struct CommentLikeForm {
   pub comment_id: CommentId,
   pub like_score: i16,
   #[new(value = "Utc::now()")]
-  pub liked: DateTime<Utc>,
+  pub liked_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]
@@ -175,5 +158,5 @@ pub struct CommentSavedForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
   #[new(value = "Utc::now()")]
-  pub saved: DateTime<Utc>,
+  pub saved_at: DateTime<Utc>,
 }

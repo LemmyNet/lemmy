@@ -18,7 +18,10 @@ impl LocalSiteUrlBlocklist {
 
           let forms = url_blocklist
             .into_iter()
-            .map(|url| LocalSiteUrlBlocklistForm { url, updated: None })
+            .map(|url| LocalSiteUrlBlocklistForm {
+              url,
+              updated_at: None,
+            })
             .collect::<Vec<_>>();
 
           insert_into(local_site_url_blocklist::table)

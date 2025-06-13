@@ -7,6 +7,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 doctest = false
@@ -19,7 +20,6 @@ full = [
   "lemmy_utils",
   "diesel",
   "diesel-async",
-  "ts-rs",
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
@@ -28,6 +28,7 @@ full = [
   "lemmy_db_views_community/full",
   "lemmy_db_views_person/full",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 lemmy_db_views_post = { workspace = true }

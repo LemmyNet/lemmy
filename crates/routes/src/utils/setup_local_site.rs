@@ -5,7 +5,7 @@ use diesel::{
   query_builder::AsQuery,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
-use lemmy_api_common::utils::generate_inbox_url;
+use lemmy_api_utils::utils::generate_inbox_url;
 use lemmy_db_schema::{
   source::{
     instance::Instance,
