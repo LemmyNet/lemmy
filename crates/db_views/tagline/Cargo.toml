@@ -16,7 +16,6 @@ doctest = false
 workspace = true
 
 [features]
-full = ["lemmy_db_schema/full"]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
 [dependencies]

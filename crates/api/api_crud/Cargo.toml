@@ -30,7 +30,7 @@ lemmy_db_views_registration_applications = { workspace = true, features = [
 ] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
-lemmy_db_views_tagline = { workspace = true, features = ["full"] }
+lemmy_db_views_tagline = { workspace = true }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_api_utils = { workspace = true }
