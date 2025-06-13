@@ -43,8 +43,7 @@ use lemmy_db_schema::{
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_actions_community_join,
-      my_instance_actions_person_join_1,
+      my_instance_actions_person_join,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -120,10 +119,8 @@ impl SearchCombinedViewInternal {
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(my_person_id);
-    let my_instance_actions_person_join_1: my_instance_actions_person_join_1 =
-      my_instance_actions_person_join_1(my_person_id);
+    let my_instance_actions_person_join: my_instance_actions_person_join =
+      my_instance_actions_person_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -137,8 +134,7 @@ impl SearchCombinedViewInternal {
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_community_join)
-      .left_join(my_instance_actions_person_join_1)
+      .left_join(my_instance_actions_person_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_post_actions_join)
@@ -414,7 +410,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         creator,
         community_actions: v.community_actions,
-        instance_communities_actions: v.instance_communities_actions,
+        instance_communities_actions: None,
         instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
@@ -436,7 +432,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_is_admin: v.item_creator_is_admin,
         image_details: v.image_details,
         community_actions: v.community_actions,
-        instance_communities_actions: v.instance_communities_actions,
+        instance_communities_actions: None,
         instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
@@ -451,7 +447,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Community(CommunityView {
         community,
         community_actions: v.community_actions,
-        instance_actions: v.instance_communities_actions,
+        instance_actions: v.instance_persons_actions,
         can_mod: v.can_mod,
         post_tags: v.community_post_tags,
       }))
