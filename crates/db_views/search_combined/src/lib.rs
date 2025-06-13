@@ -1,4 +1,3 @@
-use lemmy_db_schema::utils::queries::instance_actions1_select;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PaginationCursor, PersonId},
   source::{
@@ -11,6 +10,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
+  utils::queries::instance_actions1_select,
   InstanceActions1AliasAllColumnsTuple,
   SearchSortType,
   SearchType,
