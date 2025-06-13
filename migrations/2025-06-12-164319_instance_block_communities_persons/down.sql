@@ -1,4 +1,5 @@
-alter table instance_actions rename column blocked_communities_at to blocked_at;
+ALTER TABLE instance_actions RENAME COLUMN blocked_communities_at TO blocked_at;
 
-alter table instance_actions drop column blocked_persons_at;
+ALTER TABLE instance_actions
+    DROP COLUMN blocked_persons_at;
 
