@@ -16,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::ListingType;
 use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
@@ -133,7 +133,7 @@ pub enum SearchCombinedView {
   Comment(CommentView),
   Community(CommunityView),
   Person(PersonView),
-  MultiCommunity(MultiCommunity),
+  MultiCommunity(MultiCommunityView),
 }
 
 #[skip_serializing_none]

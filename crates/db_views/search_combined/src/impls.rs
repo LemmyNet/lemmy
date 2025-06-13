@@ -69,6 +69,7 @@ use lemmy_db_schema_file::{
     search_combined,
   },
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SearchCombinedViewInternal {
@@ -88,6 +89,11 @@ impl SearchCombinedViewInternal {
           search_combined::post_id
             .is_not_null()
             .and(post::creator_id.eq(item_creator)),
+        )
+        .or(
+          search_combined::multi_community_id
+            .is_not_null()
+            .and(multi_community::creator_id.eq(item_creator)),
         )
         .and(not(person::deleted)),
     );
@@ -136,9 +142,9 @@ impl SearchCombinedViewInternal {
     search_combined::table
       .left_join(comment_join)
       .left_join(post_join)
+      .left_join(multi_community_join)
       .left_join(item_creator_join)
       .left_join(community_join)
-      .left_join(multi_community_join)
       .left_join(creator_community_actions_join())
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
@@ -173,7 +179,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
-      SearchCombinedView::MultiCommunity(v) => ('M', v.id.0),
+      SearchCombinedView::MultiCommunity(v) => ('M', v.multi.id.0),
     };
     PaginationCursor::new_single(prefix, id)
   }
@@ -465,6 +471,11 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         can_mod: v.can_mod,
         post_tags: v.community_post_tags,
       }))
+    } else if let (Some(multi), Some(creator)) = (v.multi_community, &v.item_creator) {
+      Some(SearchCombinedView::MultiCommunity(MultiCommunityView {
+        multi,
+        owner: creator.clone(),
+      }))
     } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {
         person,
@@ -475,7 +486,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_banned: v.creator_banned,
       }))
     } else {
-      v.multi_community.map(SearchCombinedView::MultiCommunity)
+      None
     }
   }
 }
@@ -1301,7 +1312,7 @@ mod tests {
 
     // Make sure the types are correct
     if let SearchCombinedView::MultiCommunity(v) = &search[0] {
-      assert_eq!(multi.id, v.id);
+      assert_eq!(multi.id, v.multi.id);
     } else {
       panic!("wrong type");
     }
@@ -1317,7 +1328,7 @@ mod tests {
 
     assert_length!(1, search_by_name);
     if let SearchCombinedView::MultiCommunity(v) = &search_by_name[0] {
-      assert_eq!(multi.id, v.id);
+      assert_eq!(multi.id, v.multi.id);
     } else {
       panic!("wrong type");
     }

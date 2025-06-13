@@ -133,25 +133,6 @@ impl MultiCommunity {
     Ok(())
   }
 
-  pub async fn list(
-    pool: &mut DbPool<'_>,
-    owner_id: Option<PersonId>,
-    followed_by: Option<PersonId>,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community::table
-      .left_join(multi_community_follow::table)
-      .select(multi_community::all_columns)
-      .into_boxed();
-    if let Some(owner_id) = owner_id {
-      query = query.filter(multi_community::creator_id.eq(owner_id));
-    }
-    if let Some(followed_by) = followed_by {
-      query = query.filter(multi_community_follow::person_id.eq(followed_by));
-    }
-    Ok(query.get_results(conn).await?)
-  }
-
   pub async fn follow(
     pool: &mut DbPool<'_>,
     form: &MultiCommunityFollowForm,
@@ -342,16 +323,13 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::collections::HashSet;
 
   struct Data {
     multi: MultiCommunity,
     instance: Instance,
-    person: Person,
     community: Community,
   }
 
@@ -378,7 +356,6 @@ mod tests {
     Ok(Data {
       multi,
       instance,
-      person,
       community,
     })
   }
@@ -398,57 +375,6 @@ mod tests {
 
     let multi_read_apub = MultiCommunity::read_entry_ap_ids(pool, &data.multi.name).await?;
     assert_eq!(vec![data.community.ap_id], multi_read_apub);
-
-    Instance::delete(pool, data.instance.id).await?;
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_multi_community_list() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = setup(pool).await?;
-
-    let form = PersonInsertForm::test_form(data.instance.id, "tom");
-    let person2 = Person::create(pool, &form).await?;
-
-    let form = MultiCommunityInsertForm::new(
-      person2.id,
-      person2.instance_id,
-      "multi2".to_string(),
-      String::new(),
-    );
-    let multi2 = MultiCommunity::create(pool, &form).await?;
-
-    // list all multis
-    let list_all = MultiCommunity::list(pool, None, None)
-      .await?
-      .iter()
-      .map(|m| m.id)
-      .collect::<HashSet<_>>();
-    assert_eq!(list_all, HashSet::from([data.multi.id, multi2.id]));
-
-    // list multis by owner
-    let list_owner = MultiCommunity::list(pool, Some(data.person.id), None).await?;
-    assert_eq!(list_owner.len(), 1);
-    assert_eq!(list_owner[0].id, data.multi.id);
-
-    // list multis followed by user
-    let form = MultiCommunityFollowForm {
-      multi_community_id: multi2.id,
-      person_id: data.person.id,
-      follow_state: CommunityFollowerState::Accepted,
-    };
-    MultiCommunity::follow(pool, &form).await?;
-    let list_followed = MultiCommunity::list(pool, None, Some(data.person.id)).await?;
-    assert_eq!(list_followed.len(), 1);
-    assert_eq!(list_followed[0].id, multi2.id);
-
-    MultiCommunity::unfollow(pool, data.person.id, multi2.id).await?;
-    let list_followed = MultiCommunity::list(pool, None, Some(data.person.id)).await?;
-    assert_eq!(list_followed.len(), 0);
 
     Instance::delete(pool, data.instance.id).await?;
 

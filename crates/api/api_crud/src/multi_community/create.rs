@@ -1,3 +1,4 @@
+use crate::multi_community::get_multi;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
@@ -5,7 +6,7 @@ use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
   traits::Crud,
 };
-use lemmy_db_views_community::api::CreateMultiCommunity;
+use lemmy_db_views_community::api::{CreateMultiCommunity, GetMultiCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
@@ -18,7 +19,7 @@ pub async fn create_multi_community(
   data: Json<CreateMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<MultiCommunity>> {
+) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   is_valid_display_name(&data.name, site_view.local_site.actor_name_max_length)?;
 
@@ -45,6 +46,6 @@ pub async fn create_multi_community(
       site_view.site.public_key,
     )
   };
-  let res = MultiCommunity::create(&mut context.pool(), &form).await?;
-  Ok(Json(res))
+  let multi = MultiCommunity::create(&mut context.pool(), &form).await?;
+  get_multi(multi.id, context).await
 }
