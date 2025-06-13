@@ -30,7 +30,6 @@ full = [
   "diesel_ltree",
   "diesel-async",
   "deadpool",
-  "ts-rs",
   "tokio",
   "tokio-postgres",
   "tokio-postgres-rustls",
@@ -40,6 +39,7 @@ full = [
   "moka",
   "lemmy_db_schema_file/full",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 chrono = { workspace = true }

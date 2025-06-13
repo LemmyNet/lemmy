@@ -2,13 +2,11 @@ use crate::newtypes::CustomEmojiId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::custom_emoji_keyword;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(Queryable, Selectable, Associations, Identifiable)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji_keyword))]
 #[cfg_attr(
@@ -17,7 +15,8 @@ use ts_rs::TS;
 )]
 #[cfg_attr(feature = "full", diesel(primary_key(custom_emoji_id, keyword)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A custom keyword for an emoji.
 pub struct CustomEmojiKeyword {
   pub custom_emoji_id: CustomEmojiId,

@@ -3340,22 +3340,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_perf"
-version = "1.0.0-alpha.5"
-dependencies = [
- "anyhow",
- "clap",
- "diesel",
- "diesel-async",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_post",
- "lemmy_utils",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "lemmy_db_schema"
 version = "1.0.0-alpha.5"
 dependencies = [
@@ -6899,12 +6883,11 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "ts-rs"
-version = "10.1.0"
+version = "11.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e640d9b0964e9d39df633548591090ab92f7a4567bc31d3891af23471a3365c6"
+checksum = "6ef1b7a6d914a34127ed8e1fa927eb7088903787bcded4fa3eef8f85ee1568be"
 dependencies = [
  "chrono",
- "lazy_static",
  "thiserror 2.0.12",
  "ts-rs-macros",
  "url",
@@ -6912,9 +6895,9 @@ dependencies = [
 
 [[package]]
 name = "ts-rs-macros"
-version = "10.1.0"
+version = "11.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e9d8656589772eeec2cf7a8264d9cda40fb28b9bc53118ceb9e8c07f8f38730"
+checksum = "e9d4ed7b4c18cc150a6a0a1e9ea1ecfa688791220781af6e119f9599a8502a0a"
 dependencies = [
  "proc-macro2",
  "quote",

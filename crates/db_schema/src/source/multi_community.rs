@@ -9,23 +9,20 @@ use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_schema_file::schema::{multi_community, multi_community_follow};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct MultiCommunity {
   pub id: MultiCommunityId,
   pub creator_id: PersonId,
   pub instance_id: InstanceId,
   pub name: String,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   pub local: bool,
   pub deleted: bool,
@@ -41,7 +38,6 @@ pub struct MultiCommunity {
   #[serde(skip, default = "placeholder_apub_url")]
   pub following_url: DbUrl,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
 }
 
@@ -82,10 +78,11 @@ pub struct MultiCommunityUpdateForm {
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community_follow))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct MultiCommunityFollow {
   pub multi_community_id: MultiCommunityId,
   pub person_id: PersonId,

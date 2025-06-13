@@ -41,7 +41,7 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(site_view.instance.id, &mut context.pool())
+  .list(None, site_view.instance.id, &mut context.pool())
   .await?;
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
@@ -54,7 +54,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     site_view,
     admins,
     version: VERSION.to_string(),
-    my_user: None,
     all_languages,
     discussion_languages,
     blocked_urls,

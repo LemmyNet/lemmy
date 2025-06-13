@@ -7,6 +7,8 @@ use lemmy_db_schema::source::{
   tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
+pub mod db_perf;
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
@@ -25,7 +27,6 @@ use {
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
   },
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -34,9 +35,9 @@ pub mod impls;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post view.
 pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -46,31 +47,23 @@ pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
       select_expression = creator_local_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,

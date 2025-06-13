@@ -10,36 +10,31 @@ use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::schema::{person, person_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, TS, CursorKeysModule)
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = person_keys))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person.
 pub struct Person {
   pub id: PersonId,
   pub name: String,
   /// A shorter display name.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub display_name: Option<String>,
   /// A URL for an avatar.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub avatar: Option<DbUrl>,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
   /// The federated ap_id.
   pub ap_id: DbUrl,
   /// An optional bio, in markdown.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub bio: Option<String>,
   /// Whether the person is local to our site.
   pub local: bool,
@@ -50,15 +45,13 @@ pub struct Person {
   #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for a banner.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(skip))]
+  #[cfg_attr(feature = "ts-rs", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   /// A matrix id, usually given an @person:matrix.org
-  #[cfg_attr(feature = "full", ts(optional))]
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
   pub bot_account: bool,
@@ -132,13 +125,14 @@ pub struct PersonUpdateForm {
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, target_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PersonActions {
   #[serde(skip)]
   pub target_id: PersonId,
@@ -148,9 +142,12 @@ pub struct PersonActions {
   pub followed_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub follow_pending: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// When the person was blocked.
   pub blocked_at: Option<DateTime<Utc>>,
+  /// When the person was noted.
+  pub noted_at: Option<DateTime<Utc>>,
+  /// A note about the person.
+  pub note: Option<String>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -168,9 +165,19 @@ pub struct PersonFollowerForm {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 pub struct PersonBlockForm {
-  // This order is switched so blocks can work the same.
   pub person_id: PersonId,
   pub target_id: PersonId,
   #[new(value = "Utc::now()")]
   pub blocked_at: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_actions))]
+pub struct PersonNoteForm {
+  pub person_id: PersonId,
+  pub target_id: PersonId,
+  pub note: String,
+  #[new(value = "Utc::now()")]
+  pub noted_at: DateTime<Utc>,
 }

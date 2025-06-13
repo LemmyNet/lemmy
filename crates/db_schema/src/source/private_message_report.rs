@@ -4,14 +4,12 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::private_message_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(Queryable, Selectable, Associations, Identifiable)
 )]
 #[cfg_attr(
   feature = "full",
@@ -19,7 +17,8 @@ use ts_rs::TS;
 )]
 #[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The private message report.
 pub struct PrivateMessageReport {
   pub id: PrivateMessageReportId,
@@ -29,10 +28,8 @@ pub struct PrivateMessageReport {
   pub original_pm_text: String,
   pub reason: String,
   pub resolved: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
 }
 

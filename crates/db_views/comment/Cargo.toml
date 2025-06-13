@@ -21,12 +21,12 @@ full = [
   "diesel",
   "diesel-async",
   "diesel_ltree",
-  "ts-rs",
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
   "lemmy_db_views_vote/full",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }

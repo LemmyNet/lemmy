@@ -30,6 +30,7 @@ pub async fn ban_from_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
+  let my_person_id = local_user_view.person.id;
   let expires_at = check_expire_time(data.expires_at)?;
   let local_instance_id = local_user_view.person.instance_id;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
@@ -40,7 +41,7 @@ pub async fn ban_from_community(
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
     data.community_id,
-    local_user_view.person.id,
+    my_person_id,
     vec![data.person_id],
   )
   .await?;
@@ -76,7 +77,7 @@ pub async fn ban_from_community(
           let remove_data = tx_data.ban;
           remove_or_restore_user_data_in_community(
             tx_data.community_id,
-            local_user_view.person.id,
+            my_person_id,
             banned_person_id,
             remove_data,
             &tx_data.reason,
@@ -87,7 +88,7 @@ pub async fn ban_from_community(
 
         // Mod tables
         let form = ModBanFromCommunityForm {
-          mod_person_id: local_user_view.person.id,
+          mod_person_id: my_person_id,
           other_person_id: tx_data.person_id,
           community_id: tx_data.community_id,
           reason: tx_data.reason.clone(),
@@ -106,6 +107,7 @@ pub async fn ban_from_community(
   let person_view = PersonView::read(
     &mut context.pool(),
     data.person_id,
+    Some(my_person_id),
     local_instance_id,
     false,
   )

@@ -4,19 +4,18 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::post_report;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, TS)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post report.
 pub struct PostReport {
   pub id: PostReportId,
@@ -25,17 +24,13 @@ pub struct PostReport {
   /// The original post title.
   pub original_post_name: String,
   /// The original post url.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub original_post_url: Option<DbUrl>,
   /// The original post body.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub original_post_body: Option<String>,
   pub reason: String,
   pub resolved: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
 }

@@ -1,8 +1,6 @@
 mod series;
 
-use crate::series::ValuesFromSeries;
-use anyhow::Context;
-use clap::Parser;
+use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery, PostView};
 use diesel::{
   dsl::{self, sql},
   sql_types,
@@ -21,38 +19,30 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_conn, now},
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
-use lemmy_db_views_post::{impls::PostQuery, PostView};
-use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
+use lemmy_utils::error::LemmyResult;
+use serial_test::serial;
 use std::num::NonZeroU32;
 use url::Url;
 
-#[derive(Parser, Debug)]
+#[derive(Debug)]
 struct CmdArgs {
-  #[arg(long, default_value_t = 3.try_into().unwrap())]
   communities: NonZeroU32,
-  #[arg(long, default_value_t = 3.try_into().unwrap())]
   people: NonZeroU32,
-  #[arg(long, default_value_t = 100000.try_into().unwrap())]
   posts: NonZeroU32,
-  #[arg(long, default_value_t = 0)]
   read_post_pages: u32,
-  #[arg(long)]
   explain_insertions: bool,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-  let mut result = try_main().await.into_anyhow();
-  if let Ok(path) = std::env::var("PGDATA") {
-    result = result.with_context(|| {
-      format!("Failed to run lemmy_db_perf (more details might be available in {path}/log)")
-    });
-  }
-  result
-}
-
-async fn try_main() -> LemmyResult<()> {
-  let args = CmdArgs::parse();
+#[tokio::test]
+#[serial]
+async fn db_perf() -> LemmyResult<()> {
+  let args = CmdArgs {
+    communities: 3.try_into()?,
+    people: 3.try_into()?,
+    posts: 100000.try_into()?,
+    read_post_pages: 0,
+    explain_insertions: false,
+  };
   let pool = &build_db_pool()?;
   let pool = &mut pool.into();
   let conn = &mut get_conn(pool).await?;

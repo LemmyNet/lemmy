@@ -1,4 +1,7 @@
-use lemmy_db_schema::source::{instance::InstanceActions, person::Person};
+use lemmy_db_schema::source::{
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
@@ -16,7 +19,6 @@ use {
     CreatorLocalInstanceActionsAllColumnsTuple,
   },
   lemmy_db_schema_file::schema::local_user,
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -24,9 +26,10 @@ pub mod api;
 pub mod impls;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person view.
 pub struct PersonView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -38,15 +41,15 @@ pub struct PersonView {
     )
   )]
   pub is_admin: bool,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub home_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
       select_expression = creator_local_instance_actions_select()))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(

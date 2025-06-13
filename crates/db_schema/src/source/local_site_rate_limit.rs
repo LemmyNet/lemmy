@@ -4,12 +4,10 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::local_site_rate_limit;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
 #[cfg_attr(feature = "full", diesel(primary_key(local_site_id)))]
 #[cfg_attr(
@@ -17,7 +15,8 @@ use ts_rs::TS;
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Rate limits for your site. Given in count / length of time.
 pub struct LocalSiteRateLimit {
   pub local_site_id: LocalSiteId,
@@ -34,7 +33,6 @@ pub struct LocalSiteRateLimit {
   pub search: i32,
   pub search_per_second: i32,
   pub published_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub updated_at: Option<DateTime<Utc>>,
   pub import_user_settings: i32,
   pub import_user_settings_per_second: i32,

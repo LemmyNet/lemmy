@@ -38,7 +38,6 @@ use {
     CreatorLocalInstanceActionsAllColumnsTuple,
     Person1AliasAllColumnsTuple,
   },
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -129,8 +128,8 @@ pub struct InboxCombinedViewInternal {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum InboxCombinedView {
@@ -141,9 +140,10 @@ pub enum InboxCombinedView {
 }
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person comment mention view.
 pub struct PersonCommentMentionView {
   pub person_comment_mention: PersonCommentMention,
@@ -152,19 +152,12 @@ pub struct PersonCommentMentionView {
   pub creator: Person,
   pub post: Post,
   pub community: Community,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
@@ -173,9 +166,10 @@ pub struct PersonCommentMentionView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person post mention view.
 pub struct PersonPostMentionView {
   pub person_post_mention: PersonPostMention,
@@ -183,21 +177,13 @@ pub struct PersonPostMentionView {
   pub post: Post,
   pub creator: Person,
   pub community: Community,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub post_tags: TagsView,
   pub creator_is_admin: bool,
@@ -207,9 +193,10 @@ pub struct PersonPostMentionView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment reply view.
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
@@ -218,20 +205,13 @@ pub struct CommentReplyView {
   pub creator: Person,
   pub post: Post,
   pub community: Community,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full", ts(optional))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_local_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
   pub post_tags: TagsView,
@@ -241,31 +221,24 @@ pub struct CommentReplyView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListInbox {
-  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<InboxDataType>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListInboxResponse {
   pub inbox: Vec<InboxCombinedView>,
   /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub prev_page: Option<PaginationCursor>,
 }

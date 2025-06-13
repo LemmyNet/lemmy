@@ -24,6 +24,8 @@ pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetSiteResponse>> {
+  let my_person_id = local_user_view.person.id;
+
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
@@ -31,7 +33,11 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(local_user_view.person.instance_id, &mut context.pool())
+  .list(
+    Some(my_person_id),
+    local_user_view.person.instance_id,
+    &mut context.pool(),
+  )
   .await?;
   if admins.len() == 1 {
     Err(LemmyErrorType::CannotLeaveAdmin)?
@@ -51,10 +57,9 @@ pub async fn leave_admin(
   .await?;
 
   // Mod tables
-  let person_id = local_user_view.person.id;
   let form = ModAddForm {
-    mod_person_id: person_id,
-    other_person_id: person_id,
+    mod_person_id: my_person_id,
+    other_person_id: my_person_id,
     removed: Some(true),
   };
 
@@ -66,7 +71,11 @@ pub async fn leave_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(site_view.instance.id, &mut context.pool())
+  .list(
+    Some(my_person_id),
+    site_view.instance.id,
+    &mut context.pool(),
+  )
   .await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
@@ -85,7 +94,6 @@ pub async fn leave_admin(
     admin_oauth_providers: vec![],
     blocked_urls,
     tagline,
-    my_user: None,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
     active_plugins: vec![],
   }))

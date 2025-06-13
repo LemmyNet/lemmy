@@ -9,7 +9,6 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::{utils::queries::person1_select, Person1AliasAllColumnsTuple},
-  ts_rs::TS,
 };
 
 pub mod api;
@@ -18,9 +17,10 @@ pub mod impls;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A registration application view.
 pub struct RegistrationApplicationView {
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -29,7 +29,6 @@ pub struct RegistrationApplicationView {
   pub creator_local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person1AliasAllColumnsTuple>,

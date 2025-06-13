@@ -19,17 +19,15 @@ pub async fn add_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AddAdminResponse>> {
+  let my_person_id = local_user_view.person.id;
+
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   // If its an admin removal, also check that you're a higher admin
   if !data.added {
-    LocalUser::is_higher_admin_check(
-      &mut context.pool(),
-      local_user_view.person.id,
-      vec![data.person_id],
-    )
-    .await?;
+    LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id])
+      .await?;
   }
 
   // Make sure that the person_id added is local
@@ -47,7 +45,7 @@ pub async fn add_admin(
 
   // Mod tables
   let form = ModAddForm {
-    mod_person_id: local_user_view.person.id,
+    mod_person_id: my_person_id,
     other_person_id: added_local_user.person.id,
     removed: Some(!data.added),
   };
@@ -58,7 +56,11 @@ pub async fn add_admin(
     admins_only: Some(true),
     ..Default::default()
   }
-  .list(local_user_view.person.instance_id, &mut context.pool())
+  .list(
+    Some(my_person_id),
+    local_user_view.person.instance_id,
+    &mut context.pool(),
+  )
   .await?;
 
   Ok(Json(AddAdminResponse { admins }))
