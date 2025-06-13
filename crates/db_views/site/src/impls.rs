@@ -40,7 +40,7 @@ impl SiteView {
         Ok(local_site)
       })
       .await
-      .map_err(|_e: Arc<LemmyError>| LemmyErrorType::LocalSiteNotSetup.into())
+      .map_err(|e: Arc<LemmyError>| anyhow::anyhow!("err getting local site: {e:?}").into())
   }
 }
 
