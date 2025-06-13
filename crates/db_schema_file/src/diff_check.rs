@@ -62,7 +62,7 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
   let [sorted_statements_in_0, sorted_statements_in_1] = dumps.map(|dump| {
     dump
       .split("\n\n")
-      .map(|chunk| chunk.trim_start())
+      .map(str::trim_start)
       .filter(|&chunk| !(is_ignored_trigger(chunk) || is_view(chunk) || is_comment(chunk)))
       .map(remove_ignored_uniqueness_from_statement)
       .sorted_unstable()
@@ -166,7 +166,7 @@ fn select_pairs<'a>([a, b]: [&'a [&'a str]; 2]) -> impl Iterator<Item = [&'a str
   let get_candidate_pair_at =
     |(row, column)| [a.get(row), b.get(column)].map(|item| *item.unwrap_or(&""));
   let difference_amounts = Matrix::from_fn(len, len, |position| {
-    amount_of_difference_between(get_candidate_pair_at(position)) as isize
+    amount_of_difference_between(get_candidate_pair_at(position))
   });
   pathfinding::kuhn_munkres::kuhn_munkres_min(&difference_amounts)
     .1
@@ -177,11 +177,11 @@ fn select_pairs<'a>([a, b]: [&'a [&'a str]; 2]) -> impl Iterator<Item = [&'a str
 
 /// Computes string distance, using the already required [`diff`] crate to avoid adding another
 /// dependency.
-fn amount_of_difference_between([a, b]: [&str; 2]) -> usize {
+fn amount_of_difference_between([a, b]: [&str; 2]) -> isize {
   diff::chars(a, b)
     .into_iter()
     .filter(|i| !matches!(i, diff::Result::Both(_, _)))
-    .count()
+    .fold(0, |count, _| count.saturating_add(1))
 }
 
 /// Returns a string representation of the change from string 0 to string 1.
