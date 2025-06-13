@@ -1,11 +1,9 @@
+pub use lemmy_db_views_account_management::{DeleteAccount, MyUserInfo, SaveUserSettings};
 pub use lemmy_db_views_api_misc::{
-  DeleteAccount,
   ListPersonHidden,
   ListPersonHiddenResponse,
   ListPersonRead,
   ListPersonReadResponse,
-  MyUserInfo,
-  SaveUserSettings,
 };
 pub use lemmy_db_views_person_liked_combined::{
   ListPersonLiked,
@@ -20,7 +18,7 @@ pub use lemmy_db_views_person_saved_combined::{
 
 pub mod auth {
   pub use lemmy_db_schema::source::login_token::LoginToken;
-  pub use lemmy_db_views_api_misc::{
+  pub use lemmy_db_views_account_management::{
     CaptchaResponse,
     ChangePassword,
     GenerateTotpSecretResponse,

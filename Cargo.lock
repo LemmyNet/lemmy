@@ -3101,6 +3101,7 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_account_management",
  "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3138,6 +3139,7 @@ version = "1.0.0-alpha.5"
 dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_account_management",
  "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3181,6 +3183,7 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_account_management",
  "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3394,16 +3397,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_views_account_management"
+version = "1.0.0-alpha.5"
+dependencies = [
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_local_user",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
 name = "lemmy_db_views_api_misc"
 version = "1.0.0-alpha.5"
 dependencies = [
  "extism",
  "extism-convert",
  "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_community_follower",
- "lemmy_db_views_community_moderator",
- "lemmy_db_views_local_user",
  "lemmy_db_views_post",
  "serde",
  "serde_with",

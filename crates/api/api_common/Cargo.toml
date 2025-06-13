@@ -51,6 +51,7 @@ full = [
 lemmy_utils.workspace = true
 lemmy_db_schema.workspace = true
 lemmy_db_schema_file.workspace = true
+lemmy_db_views_account_management.workspace = true
 lemmy_db_views_api_misc.workspace = true
 lemmy_db_views_comment.workspace = true
 lemmy_db_views_community.workspace = true

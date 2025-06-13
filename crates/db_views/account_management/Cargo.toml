@@ -1,0 +1,35 @@
+[package]
+name = "lemmy_db_views_account_management"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+ts-rs = [
+  "dep:ts-rs",
+  "lemmy_db_schema/ts-rs",
+  "lemmy_db_schema_file/ts-rs",
+  "lemmy_db_views_community_follower/ts-rs",
+  "lemmy_db_views_community_moderator/ts-rs",
+  "lemmy_db_views_local_user/ts-rs",
+]
+
+[dependencies]
+lemmy_db_schema.workspace = true
+lemmy_db_schema_file.workspace = true
+lemmy_db_views_community_follower.workspace = true
+lemmy_db_views_community_moderator.workspace = true
+lemmy_db_views_local_user.workspace = true
+serde.workspace = true
+serde_with.workspace = true
+ts-rs = { workspace = true, optional = true }

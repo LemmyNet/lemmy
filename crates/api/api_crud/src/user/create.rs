@@ -31,7 +31,7 @@ use lemmy_db_schema::{
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views_api_misc::LoginResponse;
+use lemmy_db_views_account_management::LoginResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{api::AuthenticateWithOauth, SiteView};
