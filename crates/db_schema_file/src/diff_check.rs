@@ -2,15 +2,17 @@
 #![expect(clippy::expect_used)]
 use itertools::Itertools;
 use lemmy_utils::settings::SETTINGS;
+use pathfinding::matrix::Matrix;
 use std::{
   borrow::Cow,
-  collections::{btree_set::BTreeSet, HashSet},
   process::{Command, Stdio},
 };
 
 // It's not possible to call `export_snapshot()` for each dump and run the dumps in parallel with
 // the `--snapshot` flag. Don't waste your time!!!!
 
+/// Returns almost all things currently in the database, represented as SQL statements that would
+/// recreate them.
 pub fn get_dump() -> String {
   let db_url = SETTINGS.get_database_url();
   let output = Command::new("pg_dump")
@@ -45,139 +47,92 @@ pub fn get_dump() -> String {
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
-pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_dump_0_to_dump_1: &str) {
-  let [before_chunks, after_chunks] = dumps.map(|dump| {
+/// Checks dumps returned by [`get_dump`] and panics if they differ in a way that indicates a
+/// mistake in whatever was run in between the dumps.
+///
+/// The panic message shows `label_of_change_from_0_to_1` and a diff from `dumps[0]` to `dumps[1]`.
+/// For example, if something only exists in `dumps[1]`, then the diff represents the addition of
+/// that thing.
+///
+/// `label_of_change_from_0_to_1` must say something about the change from `dumps[0]` to `dumps[1]`,
+/// not `dumps[1]` to `dumps[0]`. This requires the two `dumps` elements being in an order that fits
+/// with `label_of_change_from_0_to_1`. This does not necessarily match the order in which the dumps
+/// were created.
+pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
+  let [sorted_statements_in_0, sorted_statements_in_1] = dumps.map(|dump| {
     dump
       .split("\n\n")
-      .filter_map(remove_ignored_details_from_chunk)
+      .map(|chunk| chunk.trim_start())
+      .filter(|&chunk| !(is_ignored_trigger(chunk) || is_view(chunk) || is_comment(chunk)))
+      .map(remove_ignored_uniqueness_from_statement)
       .sorted_unstable()
       .collect::<Vec<_>>()
   });
-  let diff_results = diff::slice(&before_chunks, &after_chunks);
-  let mut only_in_before = HashSet::new();
-  let mut only_in_after = HashSet::new();
-  for res in diff_results {
-    match res {
-      diff::Result::Left(chunk) => only_in_before.insert(&**chunk),
-      diff::Result::Right(chunk) => only_in_after.insert(&**chunk),
-      diff::Result::Both(_, _) => continue,
-    };
+  let mut statements_only_in_0 = Vec::new();
+  let mut statements_only_in_1 = Vec::new();
+  for diff in diff::slice(&sorted_statements_in_0, &sorted_statements_in_1) {
+    match diff {
+      diff::Result::Left(statement) => statements_only_in_0.push(&**statement),
+      diff::Result::Right(statement) => statements_only_in_1.push(&**statement),
+      diff::Result::Both(_, _) => {}
+    }
   }
 
-  if !(only_in_before.is_empty() && only_in_after.is_empty()) {
+  if !(statements_only_in_0.is_empty() && statements_only_in_1.is_empty()) {
     panic!(
-      "{label_of_change_from_dump_0_to_dump_1}\n\n{}",
-      display_diffs(only_in_before, only_in_after)
+      "{label_of_change_from_0_to_1}\n\n{}",
+      select_pairs([&statements_only_in_0, &statements_only_in_1])
+        .flat_map(|pair| {
+          display_change(pair).chain(["\n"]) // Blank line after each chunk diff
+        })
+        .collect::<String>()
     );
   }
 }
 
-fn display_diffs<'a>(
-  mut only_in_before: HashSet<&'a str>,
-  mut only_in_after: HashSet<&'a str>,
-) -> String {
-  // All possible pairs of an item in only_in_before and an item in only_in_after
-  let mut maybe_in_both = only_in_before
-    .iter()
-    .flat_map(|&a| {
-      only_in_after
-        .iter()
-        .map(move |&b| (chunk_difference_amount(a, b), a, b))
-    })
-    .collect::<BTreeSet<_>>();
-
-  // Determine which item in only_in_before corresponds with which item in only_in_after, kinda like
-  // what git does to detect which old file corresponds to which new file if it was renamed
-  #[expect(clippy::needless_collect)]
-  let in_both = std::iter::from_fn(|| {
-    // Get the pair with minimum difference amount
-    let (_, item_in_before, item_in_after) = maybe_in_both.pop_first()?;
-
-    // Remove alternative pairings of these chunks
-    maybe_in_both.retain(|&(_, other_in_before, other_in_after)| {
-      other_in_before != item_in_before && other_in_after != item_in_after
-    });
-
-    // Remove these chunks from only_in_before and only_in_after
-    only_in_before.remove(item_in_before);
-    only_in_after.remove(item_in_after);
-
-    Some((item_in_before, item_in_after))
+fn is_ignored_trigger(chunk: &str) -> bool {
+  [
+    "refresh_comment_like",
+    "refresh_comment",
+    "refresh_community_follower",
+    "refresh_community_user_ban",
+    "refresh_community",
+    "refresh_post_like",
+    "refresh_post",
+    "refresh_private_message",
+    "refresh_user",
+  ]
+  .into_iter()
+  .any(|trigger_name| {
+    [("CREATE FUNCTION public.", '('), ("CREATE TRIGGER ", ' ')]
+      .into_iter()
+      .any(|(before, after)| {
+        chunk
+          .strip_prefix(before)
+          .and_then(|s| s.strip_prefix(trigger_name))
+          .is_some_and(|s| s.starts_with(after))
+      })
   })
-  // Finish all changes to only_in_before and only_in_after before using the iterators
-  .collect::<Vec<_>>();
-
-  in_both
-    .into_iter()
-    .chain(only_in_before.into_iter().map(|i| (i, "")))
-    .chain(only_in_after.into_iter().map(|i| ("", i)))
-    .flat_map(|(before, after)| {
-      diff::lines(before, after)
-        .into_iter()
-        .flat_map(|line| match line {
-          diff::Result::Left(s) => ["- ", s, "\n"],
-          diff::Result::Right(s) => ["+ ", s, "\n"],
-          diff::Result::Both(s, _) => ["  ", s, "\n"],
-        })
-        .chain(["\n"]) // Blank line after each chunk diff
-    })
-    .collect()
 }
 
-fn chunk_difference_amount(a: &str, b: &str) -> Vec<usize> {
-  // Prioritize similarity of specific parts by returning the difference amount in each
-  // part, starting with higher priority
-  chunk_parts_for_pair_selection(a)
-    .into_iter()
-    .zip(chunk_parts_for_pair_selection(b))
-    .map(|(a, b)| count_inserted_or_deleted_chars_in_diff(a, b))
-    .collect::<Vec<_>>()
+fn is_view(chunk: &str) -> bool {
+  [
+    "CREATE VIEW ",
+    "CREATE OR REPLACE VIEW ",
+    "CREATE MATERIALIZED VIEW ",
+  ]
+  .into_iter()
+  .any(|prefix| chunk.starts_with(prefix))
 }
 
-fn chunk_parts_for_pair_selection(chunk: &str) -> [&str; 3] {
-  let (command_name, after_command_name) = chunk
-    .split_once(|c: char| c.is_lowercase())
-    .unwrap_or(("", chunk));
-  // First line typically includes the name of a table, function, etc.
-  let (remainder_of_first_line, after_first_line) = after_command_name
-    .split_once('\n')
-    .unwrap_or(("", after_command_name));
-  [command_name, remainder_of_first_line, after_first_line]
+fn is_comment(s: &str) -> bool {
+  s.lines().all(|line| line.starts_with("--"))
 }
 
-fn count_inserted_or_deleted_chars_in_diff(a: &str, b: &str) -> usize {
-  diff::chars(a, b)
-    .into_iter()
-    .filter(|i| !matches!(i, diff::Result::Both(_, _)))
-    .count()
-}
-
-fn remove_ignored_details_from_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
-  while let Some(s) = trim_start_of_chunk(chunk) {
-    chunk = s;
-  }
-  if chunk.is_empty() ||
-  // Skip old views and fast table triggers
-  chunk.strip_prefix("CREATE ").is_some_and(|c| {
-    c
-      .starts_with("VIEW ")
-      || c.starts_with("OR REPLACE VIEW ")
-      || c.starts_with("MATERIALIZED VIEW ")
-      || c.strip_prefix("FUNCTION public.")
-          .and_then(after_skipped_trigger_name)
-          .is_some_and(|a| a.starts_with('('))
-      ||
-        c.strip_prefix("TRIGGER ")
-          .and_then(after_skipped_trigger_name)
-          .is_some_and(|a| a.starts_with(' '))
-  }) {
-    return None;
-  }
-  let mut chunk = Cow::Borrowed(chunk);
-
+fn remove_ignored_uniqueness_from_statement(statement: &str) -> Cow<'_, str> {
   // Sort column names, so differences in column order are ignored
-  if chunk.starts_with("CREATE TABLE ") {
-    let mut lines = chunk
+  if statement.starts_with("CREATE TABLE ") {
+    let mut lines = statement
       .lines()
       .map(|line| line.strip_suffix(',').unwrap_or(line))
       .collect::<Vec<_>>();
@@ -188,46 +143,70 @@ fn remove_ignored_details_from_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
         Some('C') => 0,
         // Indented column name
         Some(' ') => 1,
-        // End
+        // End of column list
         Some(')') => 2,
         _ => panic!("unrecognized part of `CREATE TABLE` statement: {line}"),
       }
     });
 
-    chunk = Cow::Owned(lines.join("\n"));
+    Cow::Owned(lines.join("\n"))
+  } else {
+    Cow::Borrowed(statement)
   }
-
-  Some(chunk)
 }
 
 fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut(&T) -> u8) {
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
-fn trim_start_of_chunk(s: &str) -> Option<&str> {
-  if let Some(after) = s.strip_prefix("--") {
-    // Skip commented line
-    Some(after_first_occurence(after, "\n"))
-  } else if let Some(after) = s.strip_prefix(char::is_whitespace) {
-    // Skip whitespace
-    Some(after.trim_start())
-  } else {
-    None
+/// For each string in list 0, makes a guess of which string in list 1 is a variant of it (or vice
+/// versa).
+fn select_pairs<'a>([a, b]: [&'a [&'a str]; 2]) -> impl Iterator<Item = [&'a str; 2]> {
+  let len = std::cmp::max(a.len(), b.len());
+  let get_candidate_pair_at =
+    |(row, column)| [a.get(row), b.get(column)].map(|item| *item.unwrap_or(&""));
+  let difference_amounts = Matrix::from_fn(len, len, |position| {
+    amount_of_difference_between(get_candidate_pair_at(position)) as isize
+  });
+  pathfinding::kuhn_munkres::kuhn_munkres_min(&difference_amounts)
+    .1
+    .into_iter()
+    .enumerate()
+    .map(get_candidate_pair_at)
+}
+
+/// Computes string distance, using the already required [`diff`] crate to avoid adding another
+/// dependency.
+fn amount_of_difference_between([a, b]: [&str; 2]) -> usize {
+  diff::chars(a, b)
+    .into_iter()
+    .filter(|i| !matches!(i, diff::Result::Both(_, _)))
+    .count()
+}
+
+/// Returns a string representation of the change from string 0 to string 1.
+fn display_change([before, after]: [&str; 2]) -> impl Iterator<Item = &str> {
+  diff::lines(before, after)
+    .into_iter()
+    .flat_map(|line| match line {
+      diff::Result::Left(s) => ["- ", s, "\n"],
+      diff::Result::Right(s) => ["+ ", s, "\n"],
+      diff::Result::Both(s, _) => ["  ", s, "\n"],
+    })
+}
+
+// `#[cfg(test)]` would be redundant here
+mod tests {
+  #[test]
+  fn test_select_pairs() {
+    let x = "Cupcake";
+    let x_variant = "Cupcaaaaake";
+    let y = "eee";
+    let y_variant = "ee";
+    let z = "bruh";
+    assert_eq!(
+      super::select_pairs([&[x, y, z], &[y_variant, x_variant]]).collect::<Vec<_>>(),
+      vec![[x, x_variant], [y, y_variant], [z, ""]]
+    );
   }
-}
-
-fn after_first_occurence<'a>(s: &'a str, pat: &str) -> &'a str {
-  s.split_once(pat).unwrap_or_default().1
-}
-
-fn after_skipped_trigger_name(s: &str) -> Option<&str> {
-  s.strip_prefix("refresh_comment_like")
-    .or_else(|| s.strip_prefix("refresh_comment"))
-    .or_else(|| s.strip_prefix("refresh_community_follower"))
-    .or_else(|| s.strip_prefix("refresh_community_user_ban"))
-    .or_else(|| s.strip_prefix("refresh_community"))
-    .or_else(|| s.strip_prefix("refresh_post_like"))
-    .or_else(|| s.strip_prefix("refresh_post"))
-    .or_else(|| s.strip_prefix("refresh_private_message"))
-    .or_else(|| s.strip_prefix("refresh_user"))
 }
