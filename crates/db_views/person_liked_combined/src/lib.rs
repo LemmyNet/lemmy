@@ -10,8 +10,6 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  utils::queries::instance_actions1_select,
-  InstanceActions1AliasAllColumnsTuple,
   LikeType,
   PersonContentType,
 };
@@ -29,12 +27,14 @@ use {
       creator_home_instance_actions_select,
       creator_is_admin,
       creator_local_instance_actions_select,
+      instance_actions1_select,
       local_user_can_mod,
       post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
+    InstanceActions1AliasAllColumnsTuple,
   },
   lemmy_db_views_local_user::LocalUserView,
 };
