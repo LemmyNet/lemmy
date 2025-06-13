@@ -252,9 +252,10 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
 pub type CreatorHomeInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_persons_at>,
 );
 
 #[cfg(feature = "full")]
@@ -262,7 +263,8 @@ pub type CreatorHomeInstanceActionsAllColumnsTuple = (
 pub type CreatorLocalInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_persons_at>,
 );

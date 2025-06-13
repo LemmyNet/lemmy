@@ -543,7 +543,13 @@ mod tests {
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
+      instance::{
+        Instance,
+        InstanceActions,
+        InstanceBanForm,
+        InstanceCommunitiesBlockForm,
+        InstancePersonsBlockForm,
+      },
       keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -1432,10 +1438,11 @@ mod tests {
     Ok(())
   }
 
+  // TODO test to make sure a comment on a diffe
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_instance_block(data: &mut Data) -> LemmyResult<()> {
+  async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
     const POST_LISTING_WITH_BLOCKED: [&str; 4] = [
       POST_FROM_BLOCKED_INSTANCE,
@@ -1471,10 +1478,10 @@ mod tests {
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
-    // block the instance
+    // block the instance communities
     let block_form =
-      InstanceBlockForm::new(data.tegan_local_user_view.person.id, blocked_instance.id);
-    InstanceActions::block(pool, &block_form).await?;
+      InstanceCommunitiesBlockForm::new(data.tegan_local_user_view.person.id, blocked_instance.id);
+    InstanceActions::block_communities(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
@@ -1503,7 +1510,7 @@ mod tests {
     .await?;
 
     // after unblocking it should return all posts again
-    InstanceActions::unblock(pool, &block_form).await?;
+    InstanceActions::unblock_persons(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 

@@ -183,7 +183,8 @@ pub struct MyUserInfo {
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<Community>,
-  pub instance_blocks: Vec<Instance>,
+  pub instance_communities_blocks: Vec<Instance>,
+  pub instance_persons_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
   pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
@@ -337,8 +338,17 @@ pub struct UpdateTotpResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Block an instance as user
-pub struct UserBlockInstanceParams {
+/// Block an instance's communities.
+pub struct UserBlockInstanceCommunitiesParams {
+  pub instance_id: InstanceId,
+  pub block: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Block an instance's persons.
+pub struct UserBlockInstancePersonsParams {
   pub instance_id: InstanceId,
   pub block: bool,
 }

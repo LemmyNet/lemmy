@@ -49,11 +49,12 @@ use lemmy_db_schema_file::{
 /// hidden, unless the user followed the community explicitly.
 #[diesel::dsl::auto_type]
 pub fn filter_blocked() -> _ {
-  instance_actions::blocked_at
+  instance_actions::blocked_communities_at
     .is_null()
     .or(community_actions::followed_at.is_not_null())
     .and(community_actions::blocked_at.is_null())
     .and(person_actions::blocked_at.is_null())
+  // TODO add instance person block here?
 }
 
 /// Checks that the creator_local_user is an admin.

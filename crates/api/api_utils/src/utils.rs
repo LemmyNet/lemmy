@@ -320,15 +320,19 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
+/// Checks to see if a potential blocker can receive my message.
 pub async fn check_person_instance_community_block(
-  my_id: PersonId,
-  potential_blocker_id: PersonId,
-  community_instance_id: InstanceId,
-  community_id: CommunityId,
   pool: &mut DbPool<'_>,
+  my_id: PersonId,
+  my_instance_id: InstanceId,
+  potential_blocker_id: PersonId,
+  community_id: CommunityId,
+  community_instance_id: InstanceId,
 ) -> LemmyResult<()> {
   PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
-  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
+  InstanceActions::read_communities_block(pool, potential_blocker_id, community_instance_id)
+    .await?;
+  InstanceActions::read_persons_block(pool, potential_blocker_id, my_instance_id).await?;
   CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
