@@ -32,7 +32,8 @@ use lemmy_db_schema::{
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_actions_person_join,
+      my_instance_actions_community_join,
+      my_instance_actions_person_join_1,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -122,8 +123,10 @@ impl PersonSavedCombinedViewInternal {
       my_comment_actions_join(Some(my_person_id));
     let my_local_user_admin_join: my_local_user_admin_join =
       my_local_user_admin_join(Some(my_person_id));
-    let my_instance_actions_person_join: my_instance_actions_person_join =
-      my_instance_actions_person_join(Some(my_person_id));
+    let my_instance_actions_community_join: my_instance_actions_community_join =
+      my_instance_actions_community_join(Some(my_person_id));
+    let my_instance_actions_person_join_1: my_instance_actions_person_join_1 =
+      my_instance_actions_person_join_1(Some(my_person_id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -137,7 +140,8 @@ impl PersonSavedCombinedViewInternal {
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_person_join)
+      .left_join(my_instance_actions_community_join)
+      .left_join(my_instance_actions_person_join_1)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_post_actions_join)
@@ -217,7 +221,8 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         community_actions: v.community_actions,
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
+        instance_communities_actions: v.instance_communities_actions,
+        instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
@@ -235,7 +240,8 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
         community_actions: v.community_actions,
         post_actions: v.post_actions,
         person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
+        instance_communities_actions: v.instance_communities_actions,
+        instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,

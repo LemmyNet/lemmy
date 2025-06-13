@@ -10,6 +10,8 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
+  utils::queries::instance_actions1_select,
+  InstanceActions1AliasAllColumnsTuple,
   PersonContentType,
 };
 use lemmy_db_views_comment::CommentView;
@@ -64,7 +66,11 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
+  pub instance_communities_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<InstanceActions1AliasAllColumnsTuple>,
+      select_expression = instance_actions1_select()))]
+  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]

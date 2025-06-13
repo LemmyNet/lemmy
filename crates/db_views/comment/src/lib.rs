@@ -19,12 +19,14 @@ use {
       creator_community_actions_select,
       creator_home_instance_actions_select,
       creator_local_instance_actions_select,
+      instance_actions1_select,
       local_user_can_mod_comment,
       post_tags_fragment,
     },
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
+    InstanceActions1AliasAllColumnsTuple,
   },
 };
 
@@ -59,7 +61,11 @@ pub struct CommentView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
+  pub instance_communities_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<InstanceActions1AliasAllColumnsTuple>,
+      select_expression = instance_actions1_select()))]
+  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
@@ -114,7 +120,8 @@ pub struct CommentSlimView {
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
   pub creator_community_actions: Option<CommunityActions>,
-  pub instance_actions: Option<InstanceActions>,
+  pub instance_communities_actions: Option<InstanceActions>,
+  pub instance_persons_actions: Option<InstanceActions>,
   pub creator_home_instance_actions: Option<InstanceActions>,
   pub creator_local_instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,

@@ -4,6 +4,7 @@ use crate::{
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
+    instance_actions1,
     person1,
     person2,
   },
@@ -11,6 +12,7 @@ use crate::{
   CreatorCommunityActionsAllColumnsTuple,
   CreatorHomeInstanceActionsAllColumnsTuple,
   CreatorLocalInstanceActionsAllColumnsTuple,
+  InstanceActions1AliasAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -54,7 +56,11 @@ pub fn filter_blocked() -> _ {
     .or(community_actions::followed_at.is_not_null())
     .and(community_actions::blocked_at.is_null())
     .and(person_actions::blocked_at.is_null())
-  // TODO add instance person block here?
+    .and(
+      instance_actions1
+        .field(instance_actions::blocked_persons_at)
+        .is_null(),
+    )
 }
 
 /// Checks that the creator_local_user is an admin.
@@ -242,6 +248,13 @@ pub fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTu
   creator_community_actions.fields(community_actions::all_columns)
 }
 
+/// The select for the instance_actions1 alias
+pub fn instance_actions1_select() -> Nullable<InstanceActions1AliasAllColumnsTuple> {
+  instance_actions1
+    .fields(instance_actions::all_columns)
+    .nullable()
+}
+
 pub fn creator_home_instance_actions_select() -> Nullable<CreatorHomeInstanceActionsAllColumnsTuple>
 {
   creator_home_instance_actions
@@ -329,6 +342,22 @@ pub fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
   )
 }
 
+/// Your instance actions for the person's instance.
+/// A dupe of the above function, but aliased
+#[diesel::dsl::auto_type]
+pub fn my_instance_actions_person_join_1(my_person_id: Option<PersonId>) -> _ {
+  instance_actions1.on(
+    instance_actions1
+      .field(instance_actions::instance_id)
+      .eq(person::instance_id)
+      .and(
+        instance_actions1
+          .field(instance_actions::person_id)
+          .nullable()
+          .eq(my_person_id),
+      ),
+  )
+}
 #[diesel::dsl::auto_type]
 pub fn image_details_join() -> _ {
   image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()))
