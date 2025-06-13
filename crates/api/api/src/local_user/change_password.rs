@@ -5,8 +5,8 @@ use actix_web::{
 use bcrypt::verify;
 use lemmy_api_utils::{claims::Claims, context::LemmyContext, utils::password_length_check};
 use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
-use lemmy_db_views_api_misc::{ChangePassword, LoginResponse};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::{ChangePassword, LoginResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password(

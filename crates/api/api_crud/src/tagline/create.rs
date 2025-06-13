@@ -8,9 +8,8 @@ use lemmy_db_schema::{
   source::tagline::{Tagline, TaglineInsertForm},
   traits::Crud,
 };
-use lemmy_db_views_api_misc::CreateTagline;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::TaglineResponse;
+use lemmy_db_views_site::api::{CreateTagline, TaglineResponse};
 use lemmy_utils::error::LemmyError;
 
 pub async fn create_tagline(

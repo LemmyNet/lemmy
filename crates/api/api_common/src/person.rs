@@ -14,7 +14,7 @@ pub use lemmy_db_views_person::{
 
 pub mod actions {
   pub use lemmy_db_schema::newtypes::PersonContentCombinedId;
-  pub use lemmy_db_views_person::api::{BlockPerson, BlockPersonResponse};
+  pub use lemmy_db_views_person::api::{BlockPerson, BlockPersonResponse, NotePerson};
   pub use lemmy_db_views_person_content_combined::{
     ListPersonContent,
     ListPersonContentResponse,

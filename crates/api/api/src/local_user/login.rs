@@ -9,9 +9,11 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_email_verified, check_local_user_deleted, check_registration_application},
 };
-use lemmy_db_views_api_misc::{Login, LoginResponse};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{
+  api::{Login, LoginResponse},
+  SiteView,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn login(

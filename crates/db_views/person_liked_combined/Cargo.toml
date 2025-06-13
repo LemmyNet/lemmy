@@ -26,7 +26,12 @@ full = [
   "lemmy_db_views_comment/full",
   "lemmy_db_views_post/full",
 ]
-ts-rs = ["dep:ts-rs"]
+ts-rs = [
+  "dep:ts-rs",
+  "lemmy_db_schema/ts-rs",
+  "lemmy_db_views_comment/ts-rs",
+  "lemmy_db_views_post/ts-rs",
+]
 
 [dependencies]
 lemmy_db_views_post = { workspace = true }

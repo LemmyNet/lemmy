@@ -1,6 +1,6 @@
 use actix_web::web::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_views_api_misc::SuccessResponse;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub mod delete;

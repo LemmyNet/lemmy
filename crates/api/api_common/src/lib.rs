@@ -20,5 +20,5 @@ pub mod tagline;
 
 pub use lemmy_db_schema::{newtypes::DbUrl, sensitive::SensitiveString};
 pub use lemmy_db_schema_file::enums::VoteShow;
-pub use lemmy_db_views_api_misc::SuccessResponse;
+pub use lemmy_db_views_site::api::SuccessResponse;
 pub use lemmy_db_views_vote::VoteView;

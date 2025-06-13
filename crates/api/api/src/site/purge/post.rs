@@ -13,9 +13,9 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::PurgePost;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_post(

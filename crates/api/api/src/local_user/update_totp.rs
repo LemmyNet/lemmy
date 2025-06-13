@@ -2,8 +2,8 @@ use crate::check_totp_2fa_valid;
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
-use lemmy_db_views_api_misc::{UpdateTotp, UpdateTotpResponse};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::{UpdateTotp, UpdateTotpResponse};
 use lemmy_utils::error::LemmyResult;
 
 /// Enable or disable two-factor-authentication. The current setting is determined from

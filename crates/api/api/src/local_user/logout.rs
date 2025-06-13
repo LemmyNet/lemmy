@@ -5,8 +5,8 @@ use lemmy_api_utils::{
   utils::{read_auth_token, AUTH_COOKIE_NAME},
 };
 use lemmy_db_schema::source::login_token::LoginToken;
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn logout(

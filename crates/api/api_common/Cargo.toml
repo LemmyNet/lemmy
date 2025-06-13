@@ -18,40 +18,38 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "lemmy_utils/full",
-  "lemmy_db_schema/full",
-  "lemmy_db_schema_file/full",
-  "lemmy_db_views_api_misc/full",
-  "lemmy_db_views_comment/full",
-  "lemmy_db_views_community/full",
-  "lemmy_db_views_community_follower/full",
-  "lemmy_db_views_community_moderator/full",
-  "lemmy_db_views_custom_emoji/full",
-  "lemmy_db_views_inbox_combined/full",
-  "lemmy_db_views_local_image/full",
-  "lemmy_db_views_local_user/full",
-  "lemmy_db_views_modlog_combined/full",
-  "lemmy_db_views_person/full",
-  "lemmy_db_views_person_content_combined/full",
-  "lemmy_db_views_person_liked_combined/full",
-  "lemmy_db_views_person_saved_combined/full",
-  "lemmy_db_views_post/full",
-  "lemmy_db_views_private_message/full",
-  "lemmy_db_views_readable_federation_state/full",
-  "lemmy_db_views_registration_applications/full",
-  "lemmy_db_views_report_combined/full",
-  "lemmy_db_views_reports/full",
-  "lemmy_db_views_search_combined/full",
-  "lemmy_db_views_site/full",
-  "lemmy_db_views_vote/full",
+ts-rs = [
+  "lemmy_utils/ts-rs",
+  "lemmy_db_schema/ts-rs",
+  "lemmy_db_schema_file/ts-rs",
+  "lemmy_db_views_comment/ts-rs",
+  "lemmy_db_views_community/ts-rs",
+  "lemmy_db_views_community_follower/ts-rs",
+  "lemmy_db_views_community_moderator/ts-rs",
+  "lemmy_db_views_custom_emoji/ts-rs",
+  "lemmy_db_views_inbox_combined/ts-rs",
+  "lemmy_db_views_local_image/ts-rs",
+  "lemmy_db_views_local_user/ts-rs",
+  "lemmy_db_views_modlog_combined/ts-rs",
+  "lemmy_db_views_person/ts-rs",
+  "lemmy_db_views_person_content_combined/ts-rs",
+  "lemmy_db_views_person_liked_combined/ts-rs",
+  "lemmy_db_views_person_saved_combined/ts-rs",
+  "lemmy_db_views_post/ts-rs",
+  "lemmy_db_views_private_message/ts-rs",
+  "lemmy_db_views_readable_federation_state/ts-rs",
+  "lemmy_db_views_registration_applications/ts-rs",
+  "lemmy_db_views_report_combined/ts-rs",
+  "lemmy_db_views_reports/ts-rs",
+  "lemmy_db_views_search_combined/ts-rs",
+  "lemmy_db_views_site/ts-rs",
+  "lemmy_db_views_vote/ts-rs",
 ]
 
 [dependencies]
 lemmy_utils.workspace = true
 lemmy_db_schema.workspace = true
 lemmy_db_schema_file.workspace = true
-lemmy_db_views_api_misc.workspace = true
 lemmy_db_views_comment.workspace = true
 lemmy_db_views_community.workspace = true
 lemmy_db_views_community_follower.workspace = true

@@ -26,7 +26,13 @@ full = [
   "lemmy_db_views_community_moderator/full",
   "lemmy_db_views_person/full",
 ]
-ts-rs = ["dep:ts-rs"]
+ts-rs = [
+  "dep:ts-rs",
+  "lemmy_db_schema/ts-rs",
+  "lemmy_db_schema_file/ts-rs",
+  "lemmy_db_views_community_moderator/ts-rs",
+  "lemmy_db_views_person/ts-rs",
+]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }

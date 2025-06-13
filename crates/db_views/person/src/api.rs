@@ -99,3 +99,14 @@ pub struct PurgePerson {
   pub person_id: PersonId,
   pub reason: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Make a note for a person.
+///
+/// An empty string deletes the note.
+pub struct NotePerson {
+  pub person_id: PersonId,
+  pub note: String,
+}
