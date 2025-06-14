@@ -1,5 +1,5 @@
 jest.setTimeout(120000);
-import { PrivateMessageView } from "lemmy-js-client";
+import { LemmyError, PrivateMessageView } from "lemmy-js-client";
 import {
   alpha,
   beta,
@@ -132,7 +132,7 @@ test("Create a private message report", async () => {
       pmRes.private_message_view.private_message.id,
       "a reason",
     ),
-  ).rejects.toStrictEqual(Error("couldnt_create_report"));
+  ).rejects.toStrictEqual(new LemmyError("couldnt_create_report"));
 
   // This one should pass
   let reason = "another reason";

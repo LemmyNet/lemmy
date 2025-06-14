@@ -19,7 +19,7 @@ use serde_with::skip_serializing_none;
 /// A combined person_saved table.
 pub struct PersonSavedCombined {
   pub id: PersonSavedCombinedId,
-  pub saved: DateTime<Utc>,
+  pub saved_at: DateTime<Utc>,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,

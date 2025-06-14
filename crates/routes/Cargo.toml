@@ -8,6 +8,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 doctest = false
@@ -16,16 +17,20 @@ doctest = false
 workspace = true
 
 [dependencies]
+lemmy_db_views_api_misc = { workspace = true, features = ["full"] }
+lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",
 ] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true }
-lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true, features = ["cookies"] }
@@ -43,10 +48,11 @@ http.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 clokwerk = "0.4.0"
-prometheus = { version = "0.13.4", features = ["process"] }
+prometheus = { version = "0.14.0", features = ["process"] }
 rss = "2.0.12"
-actix-web-prom = "0.9.0"
+actix-web-prom = "0.10.0"
 actix-cors = "0.7.1"
+percent-encoding = "2.3.1"
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -1,3 +1,3 @@
 ALTER TABLE activity
-    ADD COLUMN ap_id TEXT;
+    ADD COLUMN ap_id text;
 

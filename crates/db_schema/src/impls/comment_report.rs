@@ -47,7 +47,7 @@ impl Reportable for CommentReport {
       .set((
         comment_report::resolved.eq(true),
         comment_report::resolver_id.eq(by_resolver_id),
-        comment_report::updated.eq(Utc::now()),
+        comment_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -71,7 +71,7 @@ impl Reportable for CommentReport {
     .set((
       comment_report::resolved.eq(true),
       comment_report::resolver_id.eq(resolver_id),
-      comment_report::updated.eq(Utc::now()),
+      comment_report::updated_at.eq(Utc::now()),
     ))
     .execute(conn)
     .await
@@ -88,7 +88,7 @@ impl Reportable for CommentReport {
       .set((
         comment_report::resolved.eq(true),
         comment_report::resolver_id.eq(by_resolver_id),
-        comment_report::updated.eq(Utc::now()),
+        comment_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -110,7 +110,7 @@ impl Reportable for CommentReport {
       .set((
         comment_report::resolved.eq(false),
         comment_report::resolver_id.eq(by_resolver_id),
-        comment_report::updated.eq(Utc::now()),
+        comment_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await

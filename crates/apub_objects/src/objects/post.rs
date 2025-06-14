@@ -29,7 +29,7 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
@@ -149,8 +149,8 @@ impl Object for ApubPost {
       image: self.thumbnail_url.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
       language,
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
       in_reply_to: None,
       tag: vec![hashtag],
     };
@@ -284,8 +284,8 @@ impl Object for ApubPost {
       url: url.map(Into::into),
       body,
       alt_text,
-      published: page.published,
-      updated: page.updated,
+      published_at: page.published,
+      updated_at: page.updated,
       deleted: Some(false),
       nsfw,
       ap_id: Some(page.id.clone().into()),

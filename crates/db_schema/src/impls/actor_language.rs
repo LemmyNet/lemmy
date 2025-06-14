@@ -19,17 +19,11 @@ use diesel::{
   delete,
   dsl::{count, exists},
   insert_into,
-  result::Error,
   select,
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{
-  scoped_futures::ScopedFutureExt,
-  AsyncConnection,
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{
   community_language,
   local_site,
@@ -76,14 +70,15 @@ impl LocalUserLanguage {
     }
 
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
           // Delete old languages, not including new languages
           delete(local_user_language::table)
             .filter(local_user_language::local_user_id.eq(for_local_user_id))
             .filter(local_user_language::language_id.ne_all(&lang_ids))
             .execute(conn)
-            .await?;
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
 
           let forms = lang_ids
             .iter()
@@ -103,11 +98,11 @@ impl LocalUserLanguage {
             .do_nothing()
             .execute(conn)
             .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -153,14 +148,15 @@ impl SiteLanguage {
     }
 
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
           // Delete old languages, not including new languages
           delete(site_language::table)
             .filter(site_language::site_id.eq(for_site_id))
             .filter(site_language::language_id.ne_all(&lang_ids))
             .execute(conn)
-            .await?;
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
 
           let forms = lang_ids
             .iter()
@@ -176,18 +172,16 @@ impl SiteLanguage {
             .on_conflict((site_language::site_id, site_language::language_id))
             .do_nothing()
             .execute(conn)
-            .await?;
-
-          CommunityLanguage::limit_languages(conn, instance_id)
             .await
-            .map_err(|_e| diesel::result::Error::NotFound)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
+
+          CommunityLanguage::limit_languages(conn, instance_id).await?;
 
           Ok(())
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 
@@ -289,14 +283,15 @@ impl CommunityLanguage {
       .collect::<Vec<_>>();
 
     conn
-      .transaction::<_, Error, _>(|conn| {
+      .run_transaction(|conn| {
         async move {
           // Delete old languages, not including new languages
           delete(community_language::table)
             .filter(community_language::community_id.eq(for_community_id))
             .filter(community_language::language_id.ne_all(&lang_ids))
             .execute(conn)
-            .await?;
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
 
           // Insert new languages
           insert_into(community_language::table)
@@ -308,11 +303,11 @@ impl CommunityLanguage {
             .do_nothing()
             .execute(conn)
             .await
+            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
         }
         .scope_boxed()
       })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
   }
 }
 

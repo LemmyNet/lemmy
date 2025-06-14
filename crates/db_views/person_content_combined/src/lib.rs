@@ -34,7 +34,6 @@ use {
     CreatorLocalInstanceActionsAllColumnsTuple,
   },
   lemmy_db_views_local_user::LocalUserView,
-  ts_rs::TS,
 };
 
 #[cfg(feature = "full")]
@@ -109,8 +108,8 @@ pub(crate) struct PersonContentCombinedViewInternal {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum PersonContentCombinedView {
@@ -120,37 +119,29 @@ pub enum PersonContentCombinedView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets a person's content (posts and comments)
 ///
 /// Either person_id, or username are required.
 pub struct ListPersonContent {
-  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<PersonContentType>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
-  #[cfg_attr(feature = "full", ts(optional))]
   pub username: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person's content response.
 pub struct ListPersonContentResponse {
   pub content: Vec<PersonContentCombinedView>,
   /// the pagination cursor to use to fetch the next page
-  #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub prev_page: Option<PaginationCursor>,
 }

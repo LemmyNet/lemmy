@@ -10,7 +10,7 @@ use lemmy_db_schema_file::schema::password_reset_request;
 pub struct PasswordResetRequest {
   pub id: i32,
   pub token: SensitiveString,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub local_user_id: LocalUserId,
 }
 

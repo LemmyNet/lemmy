@@ -4,8 +4,8 @@ use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
@@ -18,6 +18,7 @@ pub enum LemmyErrorType {
   NotAModerator,
   NotAnAdmin,
   CantBlockYourself,
+  CantNoteYourself,
   CantBlockAdmin,
   CouldntUpdateUser,
   PasswordsDoNotMatch,
@@ -118,7 +119,7 @@ pub enum LemmyErrorType {
   EmailSendFailed,
   Slurs,
   RegistrationDenied {
-    #[cfg_attr(feature = "full", ts(optional))]
+    #[cfg_attr(feature = "ts-rs", ts(optional))]
     reason: Option<String>,
   },
   SiteNameRequired,
@@ -154,7 +155,7 @@ pub enum LemmyErrorType {
   TooManyScheduledPosts,
   CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
-    #[cfg_attr(feature = "full", ts(optional))]
+    #[cfg_attr(feature = "ts-rs", ts(optional))]
     error: Option<FederationError>,
   },
   CouldntParsePaginationToken,
@@ -196,8 +197,8 @@ pub enum LemmyErrorType {
 
 /// Federation related errors, these dont need to be translated.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 #[non_exhaustive]
 pub enum FederationError {
   InvalidCommunity,
