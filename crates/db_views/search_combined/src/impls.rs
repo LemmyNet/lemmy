@@ -410,7 +410,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         creator,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
+        instance_communities_actions: None,
+        instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
@@ -431,7 +432,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_is_admin: v.item_creator_is_admin,
         image_details: v.image_details,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
+        instance_communities_actions: None,
+        instance_persons_actions: v.instance_persons_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
         creator_community_actions: v.creator_community_actions,
@@ -445,7 +447,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::Community(CommunityView {
         community,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
+        instance_actions: v.instance_persons_actions,
         can_mod: v.can_mod,
         post_tags: v.community_post_tags,
       }))

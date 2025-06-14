@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::{
     comment::{CommentActions, CommentSavedForm},
     community::{CommunityActions, CommunityBlockForm, CommunityFollowerForm},
-    instance::{Instance, InstanceActions, InstanceBlockForm},
+    instance::{Instance, InstanceActions, InstanceCommunitiesBlockForm, InstancePersonsBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
     post::{PostActions, PostSavedForm},
@@ -64,7 +64,9 @@ pub struct UserSettingsBackup {
   #[serde(default)]
   pub blocked_users: Vec<ObjectId<ApubPerson>>,
   #[serde(default)]
-  pub blocked_instances: Vec<String>,
+  pub blocked_instances_communities: Vec<String>,
+  #[serde(default)]
+  pub blocked_instances_persons: Vec<String>,
 }
 
 pub async fn export_settings(
@@ -84,7 +86,8 @@ pub async fn export_settings(
     settings: Some(local_user_view.local_user),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
-    blocked_instances: lists.blocked_instances,
+    blocked_instances_communities: lists.blocked_instances_communities,
+    blocked_instances_persons: lists.blocked_instances_persons,
     blocked_users: lists.blocked_users.into_iter().map(Into::into).collect(),
     saved_posts: lists.saved_posts.into_iter().map(Into::into).collect(),
     saved_comments: lists.saved_comments.into_iter().map(Into::into).collect(),
@@ -142,7 +145,8 @@ pub async fn import_settings(
   let url_count = data.followed_communities.len()
     + data.blocked_communities.len()
     + data.blocked_users.len()
-    + data.blocked_instances.len()
+    + data.blocked_instances_communities.len()
+    + data.blocked_instances_persons.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
   if url_count > MAX_API_PARAM_ELEMENTS {
@@ -219,10 +223,23 @@ pub async fn import_settings(
     )
     .await?;
 
-    try_join_all(data.blocked_instances.iter().map(|domain| async {
+    try_join_all(
+      data
+        .blocked_instances_communities
+        .iter()
+        .map(|domain| async {
+          let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
+          let form = InstanceCommunitiesBlockForm::new(person_id, instance.id);
+          InstanceActions::block_communities(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .await?;
+
+    try_join_all(data.blocked_instances_persons.iter().map(|domain| async {
       let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
-      let form = InstanceBlockForm::new(person_id, instance.id);
-      InstanceActions::block(&mut context.pool(), &form).await?;
+      let form = InstancePersonsBlockForm::new(person_id, instance.id);
+      InstanceActions::block_persons(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;

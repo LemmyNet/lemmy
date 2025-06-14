@@ -33,6 +33,7 @@ use lemmy_db_schema::{
       my_comment_actions_join,
       my_community_actions_join,
       my_instance_actions_community_join,
+      my_instance_actions_person_join_1,
       my_local_user_admin_join,
       my_person_actions_join,
     },
@@ -78,6 +79,8 @@ impl CommentView {
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
     let my_instance_actions_community_join: my_instance_actions_community_join =
       my_instance_actions_community_join(my_person_id);
+    let my_instance_actions_person_join_1: my_instance_actions_person_join_1 =
+      my_instance_actions_person_join_1(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -91,6 +94,7 @@ impl CommentView {
       .left_join(my_person_actions_join)
       .left_join(my_local_user_admin_join)
       .left_join(my_instance_actions_community_join)
+      .left_join(my_instance_actions_person_join_1)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
@@ -136,7 +140,8 @@ impl CommentView {
       comment_actions: self.comment_actions,
       creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
-      instance_actions: self.instance_actions,
+      instance_communities_actions: self.instance_communities_actions,
+      instance_persons_actions: self.instance_persons_actions,
       creator_home_instance_actions: self.creator_home_instance_actions,
       creator_local_instance_actions: self.creator_local_instance_actions,
       creator_is_admin: self.creator_is_admin,

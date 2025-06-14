@@ -69,7 +69,7 @@ pub(crate) struct SearchCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
+  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]

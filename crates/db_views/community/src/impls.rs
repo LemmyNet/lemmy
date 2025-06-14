@@ -139,7 +139,7 @@ impl CommunityQuery<'_> {
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    query = query.filter(instance_actions::blocked_at.is_null());
+    query = query.filter(instance_actions::blocked_communities_at.is_null());
     query = query.filter(community_actions::blocked_at.is_null());
     if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));

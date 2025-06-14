@@ -16,6 +16,7 @@ pub mod aliases {
     community_actions as creator_community_actions: CreatorCommunityActions,
     instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
     instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
+    instance_actions as instance_actions1: InstanceActions1,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
@@ -248,13 +249,25 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
 );
 
 #[cfg(feature = "full")]
+/// A helper tuple for more instance actions
+pub type InstanceActions1AliasAllColumnsTuple = (
+  AliasedField<aliases::InstanceActions1, instance_actions::person_id>,
+  AliasedField<aliases::InstanceActions1, instance_actions::instance_id>,
+  AliasedField<aliases::InstanceActions1, instance_actions::blocked_communities_at>,
+  AliasedField<aliases::InstanceActions1, instance_actions::received_ban_at>,
+  AliasedField<aliases::InstanceActions1, instance_actions::ban_expires_at>,
+  AliasedField<aliases::InstanceActions1, instance_actions::blocked_persons_at>,
+);
+
+#[cfg(feature = "full")]
 /// A helper tuple for creator home instance actions.
 pub type CreatorHomeInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_persons_at>,
 );
 
 #[cfg(feature = "full")]
@@ -262,7 +275,8 @@ pub type CreatorHomeInstanceActionsAllColumnsTuple = (
 pub type CreatorLocalInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_persons_at>,
 );

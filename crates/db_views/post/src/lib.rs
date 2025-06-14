@@ -19,6 +19,7 @@ use {
       creator_community_actions_select,
       creator_home_instance_actions_select,
       creator_local_instance_actions_select,
+      instance_actions1_select,
       local_user_can_mod_post,
       post_creator_is_admin,
       post_tags_fragment,
@@ -26,6 +27,7 @@ use {
     CreatorCommunityActionsAllColumnsTuple,
     CreatorHomeInstanceActionsAllColumnsTuple,
     CreatorLocalInstanceActionsAllColumnsTuple,
+    InstanceActions1AliasAllColumnsTuple,
   },
 };
 
@@ -55,7 +57,11 @@ pub struct PostView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
+  pub instance_communities_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full", diesel(
+      select_expression_type = Nullable<InstanceActions1AliasAllColumnsTuple>,
+      select_expression = instance_actions1_select()))]
+  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(
       select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
       select_expression = creator_home_instance_actions_select()))]
