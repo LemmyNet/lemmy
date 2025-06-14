@@ -25,6 +25,7 @@ full = [
   "lemmy_db_views_api_misc/full",
   "lemmy_db_views_person/full",
   "lemmy_db_views_readable_federation_state/full",
+  "anyhow",
 ]
 ts-rs = ["dep:ts-rs"]
 
@@ -42,3 +43,4 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 url = { workspace = true }
+anyhow = { workspace = true, optional = true }
