@@ -3771,6 +3771,7 @@ dependencies = [
 name = "lemmy_db_views_site"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "anyhow",
  "chrono",
  "diesel",
  "diesel-async",
