@@ -963,11 +963,13 @@ mod tests {
     .await?;
 
     assert_eq!(
-      (true, 1, 1, 1),
+      (true, true, 1, 1, 1),
       (
         post_listing_single_with_person
           .post_actions
           .is_some_and(|t| t.like_score == Some(1)),
+        // Make sure person actions is none so you don't get a voted_at for your own user
+        post_listing_single_with_person.person_actions.is_none(),
         post_listing_single_with_person.post.score,
         post_listing_single_with_person.post.upvotes,
         post_listing_single_with_person.creator.post_score,
@@ -1052,6 +1054,207 @@ mod tests {
 
     assert_eq!(uplete::Count::only_deleted(1), note_removed);
     assert!(post_listing.person_actions.is_none());
+
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    // Create a 2nd bot post, to do multiple votes
+    let bot_post_2 = PostInsertForm::new(
+      "Bot post 2".to_string(),
+      data.bot_local_user_view.person.id,
+      data.community.id,
+    );
+    let bot_post_2 = Post::create(pool, &bot_post_2).await?;
+
+    let post_like_form =
+      PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, 1);
+    let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
+
+    assert_eq!(
+      (
+        data.bot_post.id,
+        data.tegan_local_user_view.person.id,
+        Some(1)
+      ),
+      (
+        inserted_post_like.post_id,
+        inserted_post_like.person_id,
+        inserted_post_like.like_score,
+      )
+    );
+
+    let inserted_person_like = PersonActions::like(
+      pool,
+      data.tegan_local_user_view.person.id,
+      data.bot_local_user_view.person.id,
+      1,
+    )
+    .await?;
+
+    assert_eq!(
+      (
+        data.tegan_local_user_view.person.id,
+        data.bot_local_user_view.person.id,
+        Some(1),
+        Some(0),
+      ),
+      (
+        inserted_person_like.person_id,
+        inserted_person_like.target_id,
+        inserted_person_like.upvotes,
+        inserted_person_like.downvotes,
+      )
+    );
+
+    let post_listing = PostView::read(
+      pool,
+      data.bot_post.id,
+      Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert_eq!(
+      (true, true, true, 1, 1, 1),
+      (
+        post_listing
+          .post_actions
+          .is_some_and(|t| t.like_score == Some(1)),
+        post_listing
+          .person_actions
+          .as_ref()
+          .is_some_and(|t| t.upvotes == Some(1)),
+        post_listing
+          .person_actions
+          .as_ref()
+          .is_some_and(|t| t.downvotes == Some(0)),
+        post_listing.post.score,
+        post_listing.post.upvotes,
+        post_listing.creator.post_score,
+      )
+    );
+
+    // Do a 2nd like to another post
+    let post_2_like_form =
+      PostLikeForm::new(bot_post_2.id, data.tegan_local_user_view.person.id, 1);
+    let _inserted_post_2_like = PostActions::like(pool, &post_2_like_form).await?;
+    let inserted_person_like_2 = PersonActions::like(
+      pool,
+      data.tegan_local_user_view.person.id,
+      data.bot_local_user_view.person.id,
+      1,
+    )
+    .await?;
+    assert_eq!(
+      (
+        data.tegan_local_user_view.person.id,
+        data.bot_local_user_view.person.id,
+        Some(2),
+        Some(0),
+      ),
+      (
+        inserted_person_like_2.person_id,
+        inserted_person_like_2.target_id,
+        inserted_person_like_2.upvotes,
+        inserted_person_like_2.downvotes,
+      )
+    );
+
+    // Remove the like
+    let like_removed =
+      PostActions::remove_like(pool, data.tegan_local_user_view.person.id, data.bot_post.id)
+        .await?;
+    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+
+    let person_like_removed = PersonActions::remove_like(
+      pool,
+      data.tegan_local_user_view.person.id,
+      data.bot_local_user_view.person.id,
+      1,
+    )
+    .await?;
+    assert_eq!(
+      (
+        data.tegan_local_user_view.person.id,
+        data.bot_local_user_view.person.id,
+        Some(1),
+        Some(0),
+      ),
+      (
+        person_like_removed.person_id,
+        person_like_removed.target_id,
+        person_like_removed.upvotes,
+        person_like_removed.downvotes,
+      )
+    );
+
+    // Now do a downvote
+    let post_like_form =
+      PostLikeForm::new(data.bot_post.id, data.tegan_local_user_view.person.id, -1);
+    let _inserted_post_dislike = PostActions::like(pool, &post_like_form).await?;
+    let inserted_person_dislike = PersonActions::like(
+      pool,
+      data.tegan_local_user_view.person.id,
+      data.bot_local_user_view.person.id,
+      -1,
+    )
+    .await?;
+    assert_eq!(
+      (
+        data.tegan_local_user_view.person.id,
+        data.bot_local_user_view.person.id,
+        Some(1),
+        Some(1),
+      ),
+      (
+        inserted_person_dislike.person_id,
+        inserted_person_dislike.target_id,
+        inserted_person_dislike.upvotes,
+        inserted_person_dislike.downvotes,
+      )
+    );
+
+    let post_listing = PostView::read(
+      pool,
+      data.bot_post.id,
+      Some(&data.tegan_local_user_view.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert_eq!(
+      (true, true, true, -1, 1, 0),
+      (
+        post_listing
+          .post_actions
+          .is_some_and(|t| t.like_score == Some(-1)),
+        post_listing
+          .person_actions
+          .as_ref()
+          .is_some_and(|t| t.upvotes == Some(1)),
+        post_listing
+          .person_actions
+          .as_ref()
+          .is_some_and(|t| t.downvotes == Some(1)),
+        post_listing.post.score,
+        post_listing.post.downvotes,
+        post_listing.creator.post_score,
+      )
+    );
+
+    let like_removed =
+      PostActions::remove_like(pool, data.tegan_local_user_view.person.id, data.bot_post.id)
+        .await?;
+    assert_eq!(uplete::Count::only_deleted(1), like_removed);
 
     Ok(())
   }

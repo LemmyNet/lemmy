@@ -369,6 +369,78 @@ impl PersonActions {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub async fn like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: PersonId,
+    like_score: i16,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    let (upvotes_inc, downvotes_inc) = if like_score == 1 { (1, 0) } else { (0, 1) };
+    let voted_at = Utc::now();
+
+    insert_into(person_actions::table)
+      .values((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(upvotes_inc),
+        person_actions::downvotes.eq(downvotes_inc),
+      ))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
+        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
+      ))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn remove_like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: PersonId,
+    previous_like_score: i16,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    let (upvotes_inc, downvotes_inc) = if previous_like_score == 1 {
+      (-1, 0)
+    } else if previous_like_score == -1 {
+      (0, -1)
+    } else {
+      (0, 0)
+    };
+    let voted_at = Utc::now();
+
+    insert_into(person_actions::table)
+      .values((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(upvotes_inc),
+        person_actions::downvotes.eq(downvotes_inc),
+      ))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
+        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
+      ))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 #[cfg(test)]

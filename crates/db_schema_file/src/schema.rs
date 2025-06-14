@@ -530,6 +530,7 @@ diesel::table! {
         show_upvotes -> Bool,
         show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
+        show_person_votes -> Bool,
     }
 }
 
@@ -787,6 +788,9 @@ diesel::table! {
         blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
         note -> Nullable<Text>,
+        voted_at -> Nullable<Timestamptz>,
+        upvotes -> Nullable<Int8>,
+        downvotes -> Nullable<Int8>,
     }
 }
 

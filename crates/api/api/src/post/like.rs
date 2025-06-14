@@ -9,7 +9,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,
-  source::post::{PostActions, PostLikeForm, PostReadForm},
+  source::{
+    person::PersonActions,
+    post::{PostActions, PostLikeForm, PostReadForm},
+  },
   traits::{Likeable, Readable},
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -29,28 +32,37 @@ pub async fn like_post(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
+  let my_person_id = local_user_view.person.id;
 
   check_local_vote_mode(
     data.score,
     PostOrCommentId::Post(post_id),
     &local_site,
-    local_user_view.person.id,
+    my_person_id,
     &mut context.pool(),
   )
   .await?;
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post = PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  let mut like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
+  let mut like_form = PostLikeForm::new(data.post_id, my_person_id, data.score);
 
   // Remove any likes first
-  let person_id = local_user_view.person.id;
-
-  PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
+  PostActions::remove_like(&mut context.pool(), my_person_id, post_id).await?;
+  if let Some(previous_like_score) = orig_post.post_actions.map(|p| p.like_score).flatten() {
+    PersonActions::remove_like(
+      &mut context.pool(),
+      my_person_id,
+      orig_post.creator.id,
+      previous_like_score,
+    )
+    .await?;
+  }
 
   // Only add the like if the score isnt 0
   let do_add =
@@ -58,22 +70,36 @@ pub async fn like_post(
   if do_add {
     like_form = plugin_hook_before("before_post_vote", like_form).await?;
     let like = PostActions::like(&mut context.pool(), &like_form).await?;
+    PersonActions::like(
+      &mut context.pool(),
+      my_person_id,
+      orig_post.creator.id,
+      like_form.like_score,
+    )
+    .await?;
+
     plugin_hook_after("after_post_vote", &like)?;
   }
 
   // Mark Post Read
-  let read_form = PostReadForm::new(post_id, person_id);
+  let read_form = PostReadForm::new(post_id, my_person_id);
   PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
-      object_id: post.post.ap_id,
+      object_id: orig_post.post.ap_id,
       actor: local_user_view.person.clone(),
-      community: post.community.clone(),
+      community: orig_post.community.clone(),
       score: data.score,
     },
     &context,
   )?;
 
-  build_post_response(context.deref(), post.community.id, local_user_view, post_id).await
+  build_post_response(
+    context.deref(),
+    orig_post.community.id,
+    local_user_view,
+    post_id,
+  )
+  .await
 }
