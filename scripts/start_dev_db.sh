@@ -41,6 +41,9 @@ config_args=(
 
   # Don't log parameter values
   -c auto_explain.log_parameter_max_length=0
+
+  # Disable fsync, a feature that prevents corruption on crash (doesn't matter on a temporary test database) and slows things down, especially migration tests
+  -c fsync=off
 )
 
 # Create cluster
