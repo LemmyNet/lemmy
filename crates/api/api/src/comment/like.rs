@@ -76,7 +76,7 @@ pub async fn like_comment(
 
   // Remove any likes first
   CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_like_score) = orig_comment.comment_actions.map(|p| p.like_score).flatten() {
+  if let Some(previous_like_score) = orig_comment.comment_actions.and_then(|p| p.like_score) {
     PersonActions::remove_like(
       &mut context.pool(),
       my_person_id,

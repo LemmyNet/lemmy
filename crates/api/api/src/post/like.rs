@@ -54,7 +54,7 @@ pub async fn like_post(
 
   // Remove any likes first
   PostActions::remove_like(&mut context.pool(), my_person_id, post_id).await?;
-  if let Some(previous_like_score) = orig_post.post_actions.map(|p| p.like_score).flatten() {
+  if let Some(previous_like_score) = orig_post.post_actions.and_then(|p| p.like_score) {
     PersonActions::remove_like(
       &mut context.pool(),
       my_person_id,
