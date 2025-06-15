@@ -70,16 +70,27 @@ impl Note {
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // We use recursion here to fetch the entire comment chain up to the top-level parent. This is
     // necessary because we need to know the post and parent comment in order to insert a new
-    // comment. However it can also lead to stack overflow when fetching many comments recursively.
-    // To avoid this we check the request count against max comment depth, which based on testing
-    // can be handled without risking stack overflow. This is not a perfect solution, because in
-    // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
-    // or so.
-    // A cleaner solution would be converting the recursion into a loop, but that is tricky.
+    // comment. However it can also lead to too much resource consumption when fetching many
+    // comments recursively. To avoid this we check the request count against max comment depth.
+    // Stack overflow is prevented by spawning a separate task for building and polling the nested
+    // `Future`.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
-    let parent = self.in_reply_to.dereference(context).await?;
+    let parent = tokio::spawn({
+      let in_reply_to = self.in_reply_to.clone();
+      let context = context.clone();
+      async move {
+        // `lazy` is called for complete certainty that:
+        // - Nothing in `dereference` is evaluated while the `get_parents` call that spawned this
+        //   `async` block is still part of the current call stack.
+        // - The surrounding `async` block is not seen as redundant, possibly by the
+        //   `clippy::redundant_async_block` lint.
+        futures_util::future::lazy(|_| ()).await;
+        in_reply_to.dereference(&context).await
+      }
+    })
+    .await??;
     match parent {
       PostOrComment::Left(p) => Ok((p.clone(), None)),
       PostOrComment::Right(c) => {
