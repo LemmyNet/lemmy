@@ -14,18 +14,18 @@ ALTER TABLE local_user
 -- handles conflicts using the `excluded` magic column.
 INSERT INTO person_actions (person_id, target_id, voted_at, upvotes, downvotes)
 SELECT
-    person_id,
-    creator_id,
+    votes.person_id,
+    votes.creator_id,
     now(),
     sum(
-        CASE like_score
+        CASE votes.like_score
         WHEN 1 THEN
             1
         ELSE
             0
         END) AS upvotes,
     sum(
-        CASE like_score
+        CASE votes.like_score
         WHEN -1 THEN
             1
         ELSE
@@ -48,10 +48,10 @@ SELECT
 FROM
     comment_actions ca
     INNER JOIN comment c ON ca.comment_id = c.id
-    INNER JOIN local_user lu ON ca.person_id = lu.person_id)
+    INNER JOIN local_user lu ON ca.person_id = lu.person_id) AS votes
 GROUP BY
-    person_id,
-    creator_id
+    votes.person_id,
+    votes.creator_id
 ON CONFLICT (person_id,
     target_id)
     DO UPDATE SET
