@@ -230,11 +230,7 @@ impl Object for ApubCommunity {
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {
-      fetch_fn(
-        community.clone(),
-        group.clone(),
-        context.reset_request_count(),
-      );
+      fetch_fn(community.clone(), group.clone(), context.clone());
     }
 
     Ok(community)

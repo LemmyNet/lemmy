@@ -251,7 +251,7 @@ pub(crate) mod tests {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPerson, ApubCommunity, ApubPost, ApubSite)> {
     // use separate counter so this doesn't affect tests
-    let context2 = context.reset_request_count();
+    let context2 = context.clone();
     let (person, site) = parse_lemmy_person(&context2).await?;
     let community = parse_lemmy_community(&context2).await?;
     let post_json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
