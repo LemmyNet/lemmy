@@ -114,18 +114,18 @@ async fn get_application_statuses(
   Json<ListRegistrationApplicationsResponse>,
 )> {
   let application_count =
-    get_unread_registration_application_count(context.reset_request_count(), admin.clone()).await?;
+    get_unread_registration_application_count(context.clone(), admin.clone()).await?;
 
   let unread_applications = list_registration_applications(
     Query::from_query("unread_only=true")?,
-    context.reset_request_count(),
+    context.clone(),
     admin.clone(),
   )
   .await?;
 
   let all_applications = list_registration_applications(
     Query::from_query("unread_only=false")?,
-    context.reset_request_count(),
+    context.clone(),
     admin,
   )
   .await?;
@@ -209,7 +209,7 @@ async fn test_application_approval() -> LemmyResult<()> {
       approve: true,
       deny_reason: None,
     }),
-    context.reset_request_count(),
+    context.clone(),
     admin_local_user_view.clone(),
   )
   .await;
@@ -269,7 +269,7 @@ async fn test_application_approval() -> LemmyResult<()> {
       require_email_verification: Some(false),
       ..Default::default()
     }),
-    context.reset_request_count(),
+    context.clone(),
     admin_local_user_view.clone(),
   )
   .await?;
@@ -303,7 +303,7 @@ async fn test_application_approval() -> LemmyResult<()> {
       approve: false,
       deny_reason: None,
     }),
-    context.reset_request_count(),
+    context.clone(),
     admin_local_user_view.clone(),
   )
   .await;
@@ -377,7 +377,7 @@ async fn test_application_approval() -> LemmyResult<()> {
       registration_mode: Some(RegistrationMode::Open),
       ..Default::default()
     }),
-    context.reset_request_count(),
+    context.clone(),
     admin_local_user_view.clone(),
   )
   .await?;

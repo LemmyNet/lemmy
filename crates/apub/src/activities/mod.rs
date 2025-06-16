@@ -170,7 +170,7 @@ where
 
 pub async fn handle_outgoing_activities(context: Data<LemmyContext>) {
   while let Some(data) = ActivityChannel::retrieve_activity().await {
-    if let Err(e) = match_outgoing_activities(data, &context.reset_request_count()).await {
+    if let Err(e) = match_outgoing_activities(data, &context).await {
       tracing::warn!("error while saving outgoing activity to db: {e}");
     }
   }
@@ -180,7 +180,7 @@ pub async fn match_outgoing_activities(
   data: SendActivityData,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let context = context.reset_request_count();
+  let context = context.clone();
   let fed_task = async {
     use SendActivityData::*;
     match data {

@@ -6,3 +6,5 @@ DROP INDEX idx_person_trigram;
 
 DROP INDEX idx_community_trigram;
 
+DROP EXTENSION pg_trgm;
+

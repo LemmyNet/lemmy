@@ -22,8 +22,8 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud, Followable, Saveable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
@@ -214,7 +214,6 @@ pub async fn import_settings(
       data.blocked_users.clone(),
       &context,
       |(blocked, context)| async move {
-        let context = context.reset_request_count();
         let target = blocked.dereference(&context).await?;
         let form = PersonBlockForm::new(person_id, target.id);
         PersonActions::block(&mut context.pool(), &form).await?;
@@ -333,12 +332,12 @@ pub(crate) mod tests {
     );
     CommunityActions::follow(pool, &follower_form).await?;
 
-    let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
+    let backup = export_settings(export_user.clone(), context.clone()).await?;
 
     let import_user =
       LocalUserView::create_test_user(pool, "charles", "charles bio", false).await?;
 
-    import_settings(backup, import_user.clone(), context.reset_request_count()).await?;
+    import_settings(backup, import_user.clone(), context.clone()).await?;
 
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
@@ -370,7 +369,7 @@ pub(crate) mod tests {
 
     let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
-    let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
+    let mut backup = export_settings(export_user.clone(), context.clone()).await?;
 
     for _ in 0..2501 {
       backup
@@ -385,8 +384,7 @@ pub(crate) mod tests {
 
     let import_user = LocalUserView::create_test_user(pool, "sally", "sally bio", false).await?;
 
-    let imported =
-      import_settings(backup, import_user.clone(), context.reset_request_count()).await;
+    let imported = import_settings(backup, import_user.clone(), context.clone()).await;
 
     assert_eq!(
       imported.err().map(|e| e.error_type),
@@ -410,12 +408,7 @@ pub(crate) mod tests {
 
     let backup =
       serde_json::from_str("{\"bot_account\": true, \"settings\": {\"theme\": \"my_theme\"}}")?;
-    import_settings(
-      Json(backup),
-      import_user.clone(),
-      context.reset_request_count(),
-    )
-    .await?;
+    import_settings(Json(backup), import_user.clone(), context.clone()).await?;
 
     let import_user_updated = LocalUserView::read(pool, import_user.local_user.id).await?;
     // mark as bot account

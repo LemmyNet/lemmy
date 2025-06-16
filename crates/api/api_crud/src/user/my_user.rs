@@ -10,10 +10,10 @@ use lemmy_db_schema::{
   },
   traits::Blockable,
 };
-use lemmy_db_views_api_misc::MyUserInfo;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::MyUserInfo;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_my_user(

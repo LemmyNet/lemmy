@@ -183,7 +183,7 @@ mod tests {
     url: &Url,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPerson, ApubPerson, ApubSite)> {
-    let context2 = context.reset_request_count();
+    let context2 = context.clone();
     let lemmy_person = file_to_json_object("../apub/assets/lemmy/objects/person.json")?;
     let site = parse_lemmy_instance(&context2).await?;
     ApubPerson::verify(&lemmy_person, url, &context2).await?;

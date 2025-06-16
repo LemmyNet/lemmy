@@ -16,7 +16,7 @@ workspace = true
 
 [features]
 full = ["lemmy_db_schema/full", "lemmy_utils/full"]
-ts-rs = ["dep:ts-rs"]
+ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }

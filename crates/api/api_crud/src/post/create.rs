@@ -162,7 +162,7 @@ pub async fn create_post(
     inserted_post.clone(),
     custom_thumbnail.map(Into::into),
     federate_post,
-    context.reset_request_count(),
+    context.clone(),
   )
   .await?;
 

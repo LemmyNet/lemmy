@@ -6,7 +6,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{local_user_view_from_jwt, read_auth_token},
 };
-use lemmy_db_views_api_misc::SuccessResponse;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Returns an error message if the auth token is invalid for any reason. Necessary because other

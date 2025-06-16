@@ -12,6 +12,7 @@ use lemmy_db_views_api_misc::{
   UserBlockInstancePersonsParams,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::{SuccessResponse, UserBlockInstanceParams};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_instance_communities(
