@@ -320,7 +320,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-/// Checks to see if a potential blocker can receive my message.
+/// Checks to see if a user can receive comment reply notification
 pub async fn check_person_instance_community_block(
   pool: &mut DbPool<'_>,
   my_id: PersonId,
