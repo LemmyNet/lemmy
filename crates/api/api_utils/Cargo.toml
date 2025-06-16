@@ -20,7 +20,6 @@ workspace = true
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_db_views_api_misc = { workspace = true }
 lemmy_db_views_community = { workspace = true }
 lemmy_db_views_community_follower = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
