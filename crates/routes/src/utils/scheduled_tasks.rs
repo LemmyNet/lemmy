@@ -53,10 +53,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
-  let context_1 = context.reset_request_count();
+  let context_1 = context.clone();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.reset_request_count();
+    let context = context_1.clone();
 
     async move {
       update_hot_ranks(&mut context.pool())

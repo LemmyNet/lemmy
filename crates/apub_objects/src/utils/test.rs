@@ -58,7 +58,7 @@ pub async fn parse_lemmy_person(
 
 pub async fn parse_lemmy_community(context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
   // use separate counter so this doesn't affect tests
-  let context2 = context.reset_request_count();
+  let context2 = context.clone();
   let mut json: Group = file_to_json_object("../apub/assets/lemmy/objects/group.json")?;
   // change these links so they dont fetch over the network
   json.attributed_to = None;

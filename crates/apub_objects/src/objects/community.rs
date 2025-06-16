@@ -228,7 +228,8 @@ impl Object for ApubCommunity {
 
     let community: ApubCommunity = community.into();
 
-    // These collections are not necessary for Lemmy to work, so ignore errors.
+    // These collections are not necessary for Lemmy to work, so ignore errors. Reset request count
+    // to avoid fetch errors, as it needs to fetch a lot of extra data.
     if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {
       fetch_fn(
         community.clone(),

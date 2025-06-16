@@ -227,7 +227,7 @@ mod test {
       };
       let federation_config = FederationConfig::builder()
         .domain("local.com")
-        .app_data(context.clone())
+        .app_data(context.app_data().clone())
         .build()
         .await?;
       let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
