@@ -2,6 +2,7 @@ pub use lemmy_db_schema::{
   newtypes::{PaginationCursor, SearchCombinedId},
   source::combined::search::SearchCombined,
   CommunitySortType,
+  LikeType,
   PersonContentType,
   SearchSortType,
   SearchType,
