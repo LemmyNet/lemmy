@@ -15,11 +15,18 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+full = [
+  "lemmy_db_views_community_follower/full",
+  "lemmy_db_schema/full",
+  "lemmy_api_utils/full",
+]
+
 [dependencies]
-lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower = { workspace = true }
 lemmy_api_utils.workspace = true
 lemmy_apub_objects.workspace = true
-lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_schema = { workspace = true }
 lemmy_utils.workspace = true
 lemmy_db_schema_file = { workspace = true }
 
