@@ -1,9 +1,13 @@
-use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
+use crate::{
+  activity_lists::SharedInboxActivities,
+  fetcher::get_instance_id,
+  insert_received_activity,
+};
 use activitypub_federation::{
   actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
   protocol::context::WithContext,
-  traits::Actor,
+  traits::{ActivityHandler, Actor},
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
@@ -41,8 +45,12 @@ pub async fn shared_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let receive_fut =
-    receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data);
+  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(
+    request,
+    body,
+    inbox_activity_hook,
+    &data,
+  );
   // Set a timeout shorter than `REQWEST_TIMEOUT` for processing incoming activities. This is to
   // avoid taking a long time to process an incoming activity when a required data fetch times out.
   // In this case our own instance would timeout and be marked as dead by the sender. Better to
@@ -50,6 +58,20 @@ pub async fn shared_inbox(
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
     .with_lemmy_type(FederationError::InboxTimeout.into())?
+}
+
+fn inbox_activity_hook<Activity: ActivityHandler + Send + Sync, ActorT>(
+  activity: &Activity,
+  _actor: &ActorT,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let id = activity.id().clone();
+  let context = context.clone();
+  // TODO: must be async fn to return error
+  tokio::spawn(async move {
+    insert_received_activity(&id, &context).await.unwrap();
+  });
+  Ok(())
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
