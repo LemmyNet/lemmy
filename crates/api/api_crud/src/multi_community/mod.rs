@@ -58,12 +58,15 @@ async fn get_multi(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
-  let multi = MultiCommunityView::read(&mut context.pool(), id).await?;
+  let multi_community_view = MultiCommunityView::read(&mut context.pool(), id).await?;
   let communities = CommunityQuery {
-    multi_community_id: Some(multi.multi.id),
+    multi_community_id: Some(multi_community_view.multi.id),
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await?;
-  Ok(Json(GetMultiCommunityResponse { multi, communities }))
+  Ok(Json(GetMultiCommunityResponse {
+    multi_community_view,
+    communities,
+  }))
 }

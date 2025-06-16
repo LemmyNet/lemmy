@@ -353,8 +353,7 @@ pub struct GetMultiCommunity {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunityResponse {
-  #[serde(flatten)]
-  pub multi: MultiCommunityView,
+  pub multi_community_view: MultiCommunityView,
   pub communities: Vec<CommunityView>,
 }
 
