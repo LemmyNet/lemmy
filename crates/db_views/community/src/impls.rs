@@ -20,7 +20,7 @@ use lemmy_db_schema::{
       filter_is_subscribed,
       filter_not_unlisted_or_is_subscribed,
       my_community_actions_join,
-      my_instance_actions_community_join,
+      my_instance_communities_actions_join,
       my_local_user_admin_join,
     },
     seconds_to_pg_interval,
@@ -39,8 +39,8 @@ impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
     let community_actions_join: my_community_actions_join = my_community_actions_join(person_id);
-    let instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(person_id);
+    let instance_actions_community_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(person_id);
 
     community::table

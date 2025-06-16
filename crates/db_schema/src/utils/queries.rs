@@ -4,7 +4,7 @@ use crate::{
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
-    instance_actions1,
+    my_instance_persons_actions,
     person1,
     person2,
   },
@@ -12,7 +12,7 @@ use crate::{
   CreatorCommunityActionsAllColumnsTuple,
   CreatorHomeInstanceActionsAllColumnsTuple,
   CreatorLocalInstanceActionsAllColumnsTuple,
-  InstanceActions1AliasAllColumnsTuple,
+  MyInstancePersonsActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -57,7 +57,7 @@ pub fn filter_blocked() -> _ {
     .and(community_actions::blocked_at.is_null())
     .and(person_actions::blocked_at.is_null())
     .and(
-      instance_actions1
+      my_instance_persons_actions
         .field(instance_actions::blocked_persons_at)
         .is_null(),
     )
@@ -248,9 +248,9 @@ pub fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTu
   creator_community_actions.fields(community_actions::all_columns)
 }
 
-/// The select for the instance_actions1 alias
-pub fn instance_actions1_select() -> Nullable<InstanceActions1AliasAllColumnsTuple> {
-  instance_actions1
+/// The select for the my_instance_persons_actions alias
+pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
+  my_instance_persons_actions
     .fields(instance_actions::all_columns)
     .nullable()
 }
@@ -324,7 +324,7 @@ pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
 
 /// Your instance actions for the community's instance.
 #[diesel::dsl::auto_type]
-pub fn my_instance_actions_community_join(my_person_id: Option<PersonId>) -> _ {
+pub fn my_instance_communities_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
     instance_actions::instance_id
       .eq(community::instance_id)
@@ -334,7 +334,7 @@ pub fn my_instance_actions_community_join(my_person_id: Option<PersonId>) -> _ {
 
 /// Your instance actions for the person's instance.
 #[diesel::dsl::auto_type]
-pub fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
+pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
     instance_actions::instance_id
       .eq(person::instance_id)
@@ -345,13 +345,13 @@ pub fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
 /// Your instance actions for the person's instance.
 /// A dupe of the above function, but aliased
 #[diesel::dsl::auto_type]
-pub fn my_instance_actions_person_join_1(my_person_id: Option<PersonId>) -> _ {
-  instance_actions1.on(
-    instance_actions1
+pub fn my_instance_persons_actions_join_1(my_person_id: Option<PersonId>) -> _ {
+  my_instance_persons_actions.on(
+    my_instance_persons_actions
       .field(instance_actions::instance_id)
       .eq(person::instance_id)
       .and(
-        instance_actions1
+        my_instance_persons_actions
           .field(instance_actions::person_id)
           .nullable()
           .eq(my_person_id),

@@ -32,8 +32,8 @@ use lemmy_db_schema::{
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_actions_community_join,
-      my_instance_actions_person_join_1,
+      my_instance_communities_actions_join,
+      my_instance_persons_actions_join_1,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -125,10 +125,10 @@ impl PersonLikedCombinedViewInternal {
       my_comment_actions_join(Some(my_person_id));
     let my_local_user_admin_join: my_local_user_admin_join =
       my_local_user_admin_join(Some(my_person_id));
-    let my_instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(Some(my_person_id));
-    let my_instance_actions_person_join_1: my_instance_actions_person_join_1 =
-      my_instance_actions_person_join_1(Some(my_person_id));
+    let my_instance_communities_actions_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(Some(my_person_id));
+    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+      my_instance_persons_actions_join_1(Some(my_person_id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -142,8 +142,8 @@ impl PersonLikedCombinedViewInternal {
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_community_join)
-      .left_join(my_instance_actions_person_join_1)
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_post_actions_join)
