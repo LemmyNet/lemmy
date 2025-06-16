@@ -11,7 +11,7 @@ use activitypub_federation::{
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
 use lemmy_apub_objects::{
   objects::{SiteOrCommunityOrUser, UserOrCommunity},
   protocol::tombstone::Tombstone,
@@ -45,7 +45,7 @@ pub async fn shared_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(
+  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext, _, _>(
     request,
     body,
     inbox_activity_hook,
@@ -60,17 +60,17 @@ pub async fn shared_inbox(
     .with_lemmy_type(FederationError::InboxTimeout.into())?
 }
 
-fn inbox_activity_hook<Activity: ActivityHandler + Send + Sync, ActorT>(
-  activity: &Activity,
-  _actor: &ActorT,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let id = activity.id().clone();
-  let context = context.clone();
-  // TODO: must be async fn to return error
-  tokio::spawn(async move {
-    insert_received_activity(&id, &context).await.unwrap();
-  });
+async fn inbox_activity_hook<Activity, ActorT>(
+  activity: Activity,
+  actor: ActorT,
+  context: Data<LemmyContext>,
+) -> LemmyResult<()>
+where
+  Activity: ActivityHandler + Send + Sync + Clone + Serialize + for<'b> Deserialize<'b> + 'static,
+{
+  insert_received_activity(activity.id(), &context).await?;
+  // TODO: also include actor with data?!
+  plugin_hook_after("activity_received", &(activity))?;
   Ok(())
 }
 

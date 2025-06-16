@@ -140,7 +140,7 @@ lemmy_db_views_reports = { version = "=1.0.0-alpha.5", path = "./crates/db_views
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vote" }
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", branch = "incoming-activity-hook", default-features = false, features = [
+activitypub_federation = { path = "../activitypub-federation-rust", default-features = false, features = [
   "actix-web",
 ] }
 diesel = { version = "2.2.10", features = [
@@ -216,7 +216,7 @@ derive-new = "0.7.0"
 tuplex = "0.1.2"
 html2text = "0.15.1"
 async-trait = "0.1.88"
-either = "1.15.0"
+either = { version = "1.15.0", features = ["serde"] }
 extism = { git = "https://github.com/extism/extism.git", branch = "main" }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 
