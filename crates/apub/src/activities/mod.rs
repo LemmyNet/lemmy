@@ -180,7 +180,7 @@ pub async fn match_outgoing_activities(
   data: SendActivityData,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let context = context.reset_request_count();
+  let context = context.clone();
   let fed_task = async {
     use SendActivityData::*;
     match data {
