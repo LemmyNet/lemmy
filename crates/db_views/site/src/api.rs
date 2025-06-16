@@ -541,8 +541,17 @@ pub struct UpdateTotpResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Block an instance as user
-pub struct UserBlockInstanceParams {
+/// Block an instance's persons.
+pub struct UserBlockInstancePersonsParams {
+  pub instance_id: InstanceId,
+  pub block: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Block an instance's communities.
+pub struct UserBlockInstanceCommunitiesParams {
   pub instance_id: InstanceId,
   pub block: bool,
 }

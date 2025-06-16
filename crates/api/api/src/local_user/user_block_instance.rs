@@ -6,13 +6,12 @@ use lemmy_db_schema::source::instance::{
   InstanceCommunitiesBlockForm,
   InstancePersonsBlockForm,
 };
-use lemmy_db_views_api_misc::{
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::{
   SuccessResponse,
   UserBlockInstanceCommunitiesParams,
   UserBlockInstancePersonsParams,
 };
-use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{SuccessResponse, UserBlockInstanceParams};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_instance_communities(
