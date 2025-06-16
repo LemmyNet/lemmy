@@ -45,7 +45,7 @@ pub async fn shared_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext, _, _>(
+  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext, _>(
     request,
     body,
     inbox_activity_hook,
