@@ -5,6 +5,8 @@ ALTER TABLE user_
     ADD COLUMN fedi_name varchar(40) NOT NULL DEFAULT 'http://fake.com';
 
 ALTER TABLE user_
+-- Default is only for existing rows
+    ALTER COLUMN fedi_name DROP DEFAULT,
     ADD CONSTRAINT user__name_fedi_name_key UNIQUE (name, fedi_name);
 
 -- Community
