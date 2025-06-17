@@ -4,9 +4,10 @@ use actix_extensible_rate_limit::{
   RateLimiter,
 };
 use actix_web::dev::ServiceRequest;
-use enum_map::EnumMap;
+use enum_map::{enum_map, EnumMap};
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct RateLimit {
   configs: EnumMap<ActionType, BucketConfig>,
   backends: EnumMap<ActionType, InMemoryBackend>,
@@ -18,6 +19,43 @@ impl RateLimit {
       configs,
       backends: EnumMap::from_fn(|_| InMemoryBackend::builder().build()),
     }
+  }
+
+  pub fn with_test_config() -> Self {
+    Self::new(enum_map! {
+      ActionType::Message => BucketConfig {
+        capacity: 180,
+        secs_to_refill: 60,
+      },
+      ActionType::Post => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 300,
+      },
+      ActionType::Register => BucketConfig {
+        capacity: 3,
+        secs_to_refill: 3600,
+      },
+      ActionType::Image => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 3600,
+      },
+      ActionType::Comment => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 600,
+      },
+      ActionType::Search => BucketConfig {
+        capacity: 60,
+        secs_to_refill: 600,
+      },
+      ActionType::ImportUserSettings => BucketConfig {
+        capacity: 1,
+        secs_to_refill: 24 * 60 * 60,
+      },
+    })
+  }
+
+  pub fn set_config(&self, configs: EnumMap<ActionType, BucketConfig>) {
+    todo!()
   }
 
   fn build_rate_limiter(
