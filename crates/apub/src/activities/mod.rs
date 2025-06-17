@@ -1,11 +1,10 @@
-use self::following::send_follow_community;
 use crate::{
   activities::{
     block::{send_ban_from_community, send_ban_from_site},
     community::{
       collection_add::{send_add_mod_to_community, send_feature_post},
       lock_page::send_lock_post,
-      update::send_update_community,
+      update::{send_update_community, send_update_multi_community},
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
@@ -14,6 +13,7 @@ use crate::{
       send_apub_delete_user,
       DeletableObjects,
     },
+    following::send_follow,
     voting::send_like_activity,
   },
   protocol::activities::{
@@ -28,8 +28,9 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
+use either::Either;
 use following::send_accept_or_reject_follow;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_is_mod_or_admin,
@@ -108,13 +109,13 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
 
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(kind: T, protocol_and_hostname: &str) -> Result<Url, ParseError>
+fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> Result<Url, ParseError>
 where
   T: ToString,
 {
   let id = format!(
     "{}/activities/{}/{}",
-    protocol_and_hostname,
+    &context.settings().get_protocol_and_hostname(),
     kind.to_string().to_lowercase(),
     Uuid::new_v4()
   );
@@ -170,7 +171,7 @@ where
 
 pub async fn handle_outgoing_activities(context: Data<LemmyContext>) {
   while let Some(data) = ActivityChannel::retrieve_activity().await {
-    if let Err(e) = match_outgoing_activities(data, &context.reset_request_count()).await {
+    if let Err(e) = match_outgoing_activities(data, &context).await {
       tracing::warn!("error while saving outgoing activity to db: {e}");
     }
   }
@@ -180,7 +181,7 @@ pub async fn match_outgoing_activities(
   data: SendActivityData,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let context = context.reset_request_count();
+  let context = context.clone();
   let fed_task = async {
     use SendActivityData::*;
     match data {
@@ -258,7 +259,10 @@ pub async fn match_outgoing_activities(
         score,
       } => send_like_activity(object_id, actor, community, score, context).await,
       FollowCommunity(community, person, follow) => {
-        send_follow_community(community, person, follow, &context).await
+        send_follow(Either::Left(community.into()), person, follow, &context).await
+      }
+      FollowMultiCommunity(multi, person, follow) => {
+        send_follow(Either::Right(multi.into()), person, follow, &context).await
       }
       UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
       DeleteCommunity(actor, community, removed) => {
@@ -300,7 +304,7 @@ pub async fn match_outgoing_activities(
         reason,
         remove_or_restore_data,
         ban,
-        expires,
+        expires_at,
       } => {
         send_ban_from_site(
           moderator,
@@ -308,7 +312,7 @@ pub async fn match_outgoing_activities(
           reason,
           remove_or_restore_data,
           ban,
-          expires,
+          expires_at,
           context,
         )
         .await
@@ -358,6 +362,9 @@ pub async fn match_outgoing_activities(
       }
       RejectFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      }
+      UpdateMultiCommunity(multi, actor) => {
+        send_update_multi_community(multi, actor, context).await
       }
     }
   };

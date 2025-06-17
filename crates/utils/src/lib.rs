@@ -1,4 +1,5 @@
 use cfg_if::cfg_if;
+use std::cmp::min;
 
 cfg_if! {
   if #[cfg(feature = "full")] {
@@ -29,6 +30,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+// TODO: use from_days once stabilized
+// https://github.com/rust-lang/rust/issues/120301
+const DAY: Duration = Duration::from_secs(24 * 60 * 60);
+
 #[cfg(debug_assertions)]
 pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_millis(500);
 #[cfg(not(debug_assertions))]
@@ -42,7 +47,7 @@ pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 #[cfg(debug_assertions)]
 pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_secs(0);
 #[cfg(not(debug_assertions))]
-pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_days(1);
+pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = DAY;
 
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 
@@ -105,5 +110,38 @@ where
 #[cfg(feature = "full")]
 pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
 
+  }
+}
+
+/// Calculate how long to sleep until next federation send based on how many
+/// retries have already happened. Uses exponential backoff with maximum of one day. The first
+/// error is ignored.
+pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
+  debug_assert!(retry_count != 0);
+  if retry_count == 1 {
+    return Duration::from_secs(0);
+  }
+  let retry_count = retry_count - 1;
+  let pow = 1.25_f64.powf(retry_count.into());
+  let pow = Duration::try_from_secs_f64(pow).unwrap_or(DAY);
+  min(DAY, pow)
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+  use super::*;
+
+  #[test]
+  fn test_federate_retry_sleep_duration() {
+    assert_eq!(Duration::from_secs(0), federate_retry_sleep_duration(1));
+    assert_eq!(
+      Duration::new(1, 250000000),
+      federate_retry_sleep_duration(2)
+    );
+    assert_eq!(
+      Duration::new(2, 441406250),
+      federate_retry_sleep_duration(5)
+    );
+    assert_eq!(DAY, federate_retry_sleep_duration(100));
   }
 }

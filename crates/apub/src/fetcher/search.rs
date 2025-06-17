@@ -2,7 +2,8 @@ use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use either::Either::*;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
@@ -24,9 +25,9 @@ pub(crate) async fn search_query_to_object_id(
       if query.starts_with('!') || query.starts_with('@') {
         query.remove(0);
       }
-      SearchableObjects::Right(
+      Left(Right(
         webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
-      )
+      ))
     }
   })
 }

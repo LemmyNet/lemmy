@@ -11,7 +11,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
 use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -26,10 +26,7 @@ pub(crate) async fn send_create_or_update_pm(
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
-  let id = generate_activity_id(
-    kind.clone(),
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(kind.clone(), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
     actor: actor.id().into(),

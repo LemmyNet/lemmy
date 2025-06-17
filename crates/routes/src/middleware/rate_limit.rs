@@ -4,7 +4,7 @@ use actix_extensible_rate_limit::{
 };
 use actix_web::dev::ServiceRequest;
 use enum_map::EnumMap;
-use lemmy_api_common::utils::local_site_rate_limit_to_rate_limit_config;
+use lemmy_api_utils::utils::local_site_rate_limit_to_rate_limit_config;
 use lemmy_db_schema::source::local_site_rate_limit::LocalSiteRateLimit;
 use lemmy_utils::rate_limit::{ActionType, BucketConfig};
 use std::time::Duration;

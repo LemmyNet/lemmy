@@ -17,6 +17,7 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable, Joinable},
   utils::{
+    format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     uplete,
@@ -103,13 +104,14 @@ impl Joinable for CommunityActions {
   async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.find((form.person_id, form.community_id)))
-      .set_null(community_actions::became_moderator)
+      .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
   }
 }
 
+#[derive(Debug)]
 pub enum CollectionType {
   Moderators,
   Featured,
@@ -131,7 +133,7 @@ impl Community {
     let community_ = insert_into(community::table)
       .values(form)
       .on_conflict(community::ap_id)
-      .filter_target(coalesce(community::updated, community::published).lt(timestamp))
+      .filter_target(coalesce(community::updated_at, community::published_at).lt(timestamp))
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -277,11 +279,6 @@ impl Community {
     Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
   }
 
-  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
-  }
-
   pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
@@ -320,7 +317,7 @@ impl CommunityActions {
     uplete::new(
       community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
     )
-    .set_null(community_actions::became_moderator)
+    .set_null(community_actions::became_moderator_at)
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::NotFound)
@@ -332,7 +329,7 @@ impl CommunityActions {
   ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
-      .set_null(community_actions::became_moderator)
+      .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -344,7 +341,7 @@ impl CommunityActions {
   ) -> LemmyResult<Vec<CommunityId>> {
     let conn = &mut get_conn(pool).await?;
     community_actions::table
-      .filter(community_actions::became_moderator.is_not_null())
+      .filter(community_actions::became_moderator_at.is_not_null())
       .filter(community_actions::person_id.eq(for_person_id))
       .select(community_actions::community_id)
       .load::<CommunityId>(conn)
@@ -367,10 +364,10 @@ impl CommunityActions {
     persons.dedup();
 
     let res = community_actions::table
-      .filter(community_actions::became_moderator.is_not_null())
+      .filter(community_actions::became_moderator_at.is_not_null())
       .filter(community_actions::community_id.eq(for_community_id))
       .filter(community_actions::person_id.eq_any(persons))
-      .order_by(community_actions::became_moderator)
+      .order_by(community_actions::became_moderator_at)
       .select(community_actions::person_id)
       // This does a limit 1 select first
       .first::<PersonId>(conn)
@@ -392,7 +389,7 @@ impl CommunityActions {
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
-      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::community_id.eq(remote_community_id));
     select(exists(find_action))
       .get_result::<bool>(conn)
@@ -410,7 +407,7 @@ impl CommunityActions {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
       .find((follower_id, community_id))
-      .filter(community_actions::followed.is_not_null());
+      .filter(community_actions::followed_at.is_not_null());
     diesel::update(find_action)
       .set((
         community_actions::follow_state.eq(CommunityFollowerState::Accepted),
@@ -435,7 +432,7 @@ impl CommunityActions {
       .try_get_with(person_id, async move {
         let conn = &mut get_conn(pool).await?;
         community_actions::table
-          .filter(community_actions::followed.is_not_null())
+          .filter(community_actions::followed_at.is_not_null())
           .filter(community_actions::person_id.eq(person_id))
           .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
           .order_by(community::users_active_month.desc())
@@ -471,8 +468,8 @@ impl Bannable for CommunityActions {
   async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.find((form.person_id, form.community_id)))
-      .set_null(community_actions::received_ban)
-      .set_null(community_actions::ban_expires)
+      .set_null(community_actions::received_ban_at)
+      .set_null(community_actions::ban_expires_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
@@ -522,7 +519,7 @@ impl Followable for CommunityActions {
   ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.find((person_id, community_id)))
-      .set_null(community_actions::followed)
+      .set_null(community_actions::followed_at)
       .set_null(community_actions::follow_state)
       .set_null(community_actions::follow_approver_id)
       .get_result(conn)
@@ -560,7 +557,7 @@ impl Blockable for CommunityActions {
       community_block_form.person_id,
       community_block_form.community_id,
     )))
-    .set_null(community_actions::blocked)
+    .set_null(community_actions::blocked_at)
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
@@ -574,7 +571,7 @@ impl Blockable for CommunityActions {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
       .find((person_id, community_id))
-      .filter(community_actions::blocked.is_not_null());
+      .filter(community_actions::blocked_at.is_not_null());
 
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
@@ -589,13 +586,13 @@ impl Blockable for CommunityActions {
   ) -> LemmyResult<Vec<Self::ObjectType>> {
     let conn = &mut get_conn(pool).await?;
     community_actions::table
-      .filter(community_actions::blocked.is_not_null())
+      .filter(community_actions::blocked_at.is_not_null())
       .inner_join(community::table)
       .select(community::all_columns)
       .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .order_by(community_actions::blocked)
+      .order_by(community_actions::blocked_at)
       .load::<Community>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -650,6 +647,21 @@ impl ApubActor for Community {
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'c', settings)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/c/{name}"))?.into())
   }
 }
 
@@ -711,13 +723,13 @@ mod tests {
       nsfw: false,
       removed: false,
       deleted: false,
-      published: inserted_community.published,
-      updated: None,
+      published_at: inserted_community.published_at,
+      updated_at: None,
       ap_id: inserted_community.ap_id.clone(),
       local: true,
       private_key: None,
       public_key: "pubkey".to_owned(),
-      last_refreshed_at: inserted_community.published,
+      last_refreshed_at: inserted_community.published_at,
       icon: None,
       banner: None,
       followers_url: inserted_community.followers_url.clone(),
@@ -761,7 +773,7 @@ mod tests {
       CommunityModeratorForm::new(inserted_community.id, inserted_bobby.id);
 
     let inserted_bobby_moderator = CommunityActions::join(pool, &bobby_moderator_form).await?;
-    assert!(inserted_bobby_moderator.became_moderator.is_some());
+    assert!(inserted_bobby_moderator.became_moderator_at.is_some());
 
     let artemis_moderator_form =
       CommunityModeratorForm::new(inserted_community.id, inserted_artemis.id);
@@ -806,8 +818,8 @@ mod tests {
     let inserted_community_person_ban =
       CommunityActions::ban(pool, &community_person_ban_form).await?;
 
-    assert!(inserted_community_person_ban.received_ban.is_some());
-    assert!(inserted_community_person_ban.ban_expires.is_none());
+    assert!(inserted_community_person_ban.received_ban_at.is_some());
+    assert!(inserted_community_person_ban.ban_expires_at.is_none());
     let read_community = Community::read(pool, inserted_community.id).await?;
 
     let update_community_form = CommunityUpdateForm {

@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed},
+    queries::{filter_is_subscribed, filter_not_unlisted_or_is_subscribed, suggested_communities},
     DbPool,
   },
   ModlogActionType,
@@ -379,7 +379,10 @@ impl ModlogCombinedQuery<'_> {
       ListingType::Local => query
         .filter(community::local.eq(true))
         .filter(filter_not_unlisted_or_is_subscribed()),
-      ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
+      ListingType::ModeratorView => {
+        query.filter(community_actions::became_moderator_at.is_not_null())
+      }
+      ListingType::Suggested => query.filter(suggested_communities()),
     };
 
     // Sorting by published
@@ -390,7 +393,7 @@ impl ModlogCombinedQuery<'_> {
       None,
       self.page_back,
     )
-    .then_order_by(key::published)
+    .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
@@ -1005,7 +1008,7 @@ mod tests {
       other_person_id: data.jessica.id,
       banned: Some(true),
       reason: None,
-      expires: None,
+      expires_at: None,
       instance_id: data.instance.id,
     };
     ModBan::create(pool, &form).await?;
@@ -1016,7 +1019,7 @@ mod tests {
       community_id: data.community.id,
       banned: Some(true),
       reason: None,
-      expires: None,
+      expires_at: None,
     };
     ModBanFromCommunity::create(pool, &form).await?;
 

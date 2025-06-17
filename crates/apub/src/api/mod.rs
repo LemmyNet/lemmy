@@ -1,6 +1,6 @@
 use crate::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -8,7 +8,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub mod list_comments;
 pub mod list_person_content;

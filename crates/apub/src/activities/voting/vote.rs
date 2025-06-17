@@ -11,7 +11,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
+use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
 use lemmy_apub_objects::{
   objects::{person::ApubPerson, PostOrComment},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
@@ -32,7 +32,7 @@ impl Vote {
       actor: actor.id().into(),
       object: object_id,
       kind: kind.clone(),
-      id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
+      id: generate_activity_id(kind, context)?,
     })
   }
 }

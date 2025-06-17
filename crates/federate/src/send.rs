@@ -7,10 +7,11 @@ use activitypub_federation::{
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
+  federate_retry_sleep_duration,
   FEDERATION_CONTEXT,
 };
 use reqwest::Url;
@@ -23,7 +24,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Debug, Eq)]
 pub(crate) struct SendSuccessInfo {
   pub activity_id: ActivityId,
-  pub published: Option<DateTime<Utc>>,
+  pub published_at: Option<DateTime<Utc>>,
   // true if the activity was skipped because the target instance is not interested in this
   // activity
   pub was_skipped: bool,
@@ -149,7 +150,7 @@ impl SendRetryTask<'_> {
     }
     report.send(SendActivityResult::Success(SendSuccessInfo {
       activity_id: activity.id,
-      published: Some(activity.published),
+      published_at: Some(activity.published_at),
       was_skipped: false,
     }))?;
     Ok(())

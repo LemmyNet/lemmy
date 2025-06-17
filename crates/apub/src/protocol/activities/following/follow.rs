@@ -3,7 +3,7 @@ use activitypub_federation::{
   kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
-use lemmy_apub_objects::objects::{person::ApubPerson, UserOrCommunity};
+use lemmy_apub_objects::objects::{person::ApubPerson, UserOrCommunityOrMulti};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -13,8 +13,8 @@ pub struct Follow {
   pub(crate) actor: ObjectId<ApubPerson>,
   /// Optional, for compatibility with platforms that always expect recipient field
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) to: Option<[ObjectId<UserOrCommunity>; 1]>,
-  pub(crate) object: ObjectId<UserOrCommunity>,
+  pub(crate) to: Option<[ObjectId<UserOrCommunityOrMulti>; 1]>,
+  pub(crate) object: ObjectId<UserOrCommunityOrMulti>,
   #[serde(rename = "type")]
   pub(crate) kind: FollowType,
   pub(crate) id: Url,

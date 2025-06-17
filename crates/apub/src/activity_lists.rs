@@ -7,7 +7,7 @@ use crate::protocol::activities::{
     lock_page::{LockPage, UndoLockPage},
     report::Report,
     resolve_report::ResolveReport,
-    update::UpdateCommunity,
+    update::Update,
   },
   create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
   deletion::{delete::Delete, undo_delete::UndoDelete},
@@ -20,7 +20,7 @@ use crate::protocol::activities::{
   voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::community::ApubCommunity,
   protocol::page::Page,
@@ -60,7 +60,7 @@ pub enum AnnouncableActivities {
   UndoVote(UndoVote),
   Delete(Delete),
   UndoDelete(UndoDelete),
-  UpdateCommunity(UpdateCommunity),
+  UpdateCommunity(Box<Update>),
   BlockUser(BlockUser),
   UndoBlockUser(UndoBlockUser),
   CollectionAdd(CollectionAdd),

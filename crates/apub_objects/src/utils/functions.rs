@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use either::Either;
 use html2md::parse_html;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
@@ -187,6 +187,15 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
 
 pub trait GetActorType {
   fn actor_type(&self) -> ActorType;
+}
+
+impl<L: GetActorType, R: GetActorType> GetActorType for either::Either<L, R> {
+  fn actor_type(&self) -> ActorType {
+    match self {
+      Either::Right(r) => r.actor_type(),
+      Either::Left(l) => l.actor_type(),
+    }
+  }
 }
 
 pub async fn handle_community_moderators(

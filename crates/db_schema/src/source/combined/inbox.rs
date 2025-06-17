@@ -25,7 +25,7 @@ use serde_with::skip_serializing_none;
 /// A combined inbox table.
 pub struct InboxCombined {
   pub id: InboxCombinedId,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub comment_reply_id: Option<CommentReplyId>,
   pub person_comment_mention_id: Option<PersonCommentMentionId>,
   pub person_post_mention_id: Option<PersonPostMentionId>,

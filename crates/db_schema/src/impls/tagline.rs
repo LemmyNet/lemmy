@@ -49,7 +49,7 @@ impl Tagline {
     let limit = limit_fetch(limit)?;
     let query = tagline::table.limit(limit).into_boxed();
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
-      .then_order_by(key::published)
+      .then_order_by(key::published_at)
       .then_order_by(key::id);
 
     paginated_query

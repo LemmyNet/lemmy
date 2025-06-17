@@ -15,25 +15,25 @@ CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     END
     END;
 
-CREATE FUNCTION r.hot_rank (score numeric, published timestamp with time zone)
+CREATE FUNCTION r.hot_rank (score numeric, published_at timestamp with time zone)
     RETURNS double precision
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
     -- after a week, it will default to 0.
     CASE WHEN (
-now() - published) > '0 days'
+now() - published_at) > '0 days'
         AND (
-now() - published) < '7 days' THEN
+now() - published_at) < '7 days' THEN
         -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
         log (
-            greatest (2, score + 2)) / power (((EXTRACT(EPOCH FROM (now() - published)) / 3600) + 2), 1.8)
+            greatest (2, score + 2)) / power (((EXTRACT(EPOCH FROM (now() - published_at)) / 3600) + 2), 1.8)
     ELSE
         -- if the post is from the future, set hot score to 0. otherwise you can game the post to
         -- always be on top even with only 1 vote by setting it to the future
         0.0
     END;
 
-CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, interactions_month numeric)
+CREATE FUNCTION r.scaled_rank (score numeric, published_at timestamp with time zone, interactions_month numeric)
     RETURNS double precision
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
@@ -42,7 +42,7 @@ CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone
     -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
     RETURN (
-        r.hot_rank (score, published) / log(2 + interactions_month)
+        r.hot_rank (score, published_at) / log(2 + interactions_month)
 );
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
@@ -172,7 +172,7 @@ BEGIN
             INNER JOIN post p ON c.post_id = p.id
             INNER JOIN person pe ON c.creator_id = pe.id
         WHERE
-            c.published > ('now'::timestamp - i::interval)
+            c.published_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -182,7 +182,7 @@ BEGIN
             post p
             INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
-            p.published > ('now'::timestamp - i::interval)
+            p.published_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -193,7 +193,7 @@ BEGIN
             INNER JOIN post p ON pa.post_id = p.id
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pa.liked_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -205,7 +205,7 @@ BEGIN
             INNER JOIN post p ON c.post_id = p.id
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            ca.liked_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
@@ -227,7 +227,7 @@ BEGIN
     FROM
         post
     WHERE
-        published >= (CURRENT_TIMESTAMP - i::interval)
+        published_at >= (CURRENT_TIMESTAMP - i::interval)
     GROUP BY
         community_id;
 END;
@@ -250,7 +250,7 @@ BEGIN
             comment c
             INNER JOIN person pe ON c.creator_id = pe.id
         WHERE
-            c.published > ('now'::timestamp - i::interval)
+            c.published_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
@@ -260,7 +260,7 @@ BEGIN
             post p
             INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
-            p.published > ('now'::timestamp - i::interval)
+            p.published_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
@@ -270,7 +270,7 @@ BEGIN
             post_actions pa
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pa.liked_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
@@ -280,7 +280,7 @@ BEGIN
             comment_actions ca
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            ca.liked_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;

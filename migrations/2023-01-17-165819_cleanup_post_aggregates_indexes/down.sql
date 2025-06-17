@@ -8,7 +8,7 @@ CREATE INDEX idx_post_aggregates_comments ON post_aggregates (comments DESC);
 
 CREATE INDEX idx_post_aggregates_hot ON post_aggregates (hot_rank (score, published) DESC, published DESC);
 
-CREATE INDEX idx_post_aggregates_active ON post_aggregates (hot_rank (score, newest_comment_time) DESC, newest_comment_time DESC);
+CREATE INDEX idx_post_aggregates_active ON post_aggregates (hot_rank (score, newest_comment_time_necro) DESC, newest_comment_time_necro DESC);
 
 CREATE INDEX idx_post_aggregates_score ON post_aggregates (score DESC);
 

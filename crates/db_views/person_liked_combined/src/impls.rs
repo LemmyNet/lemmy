@@ -193,7 +193,7 @@ impl PersonLikedCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::liked)
+    .then_order_by(key::liked_at)
     // Tie breaker
     .then_order_by(key::id);
 

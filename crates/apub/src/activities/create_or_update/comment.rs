@@ -14,7 +14,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::send_local_notifs,
   context::LemmyContext,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
@@ -62,10 +62,7 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), &context)?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
