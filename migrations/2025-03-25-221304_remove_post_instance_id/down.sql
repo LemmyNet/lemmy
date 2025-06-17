@@ -339,3 +339,4 @@ ALTER TABLE post
 
 ALTER TABLE post
     ALTER COLUMN instance_id SET NOT NULL;
+
