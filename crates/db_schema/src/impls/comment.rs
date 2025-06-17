@@ -254,7 +254,6 @@ impl Likeable for CommentActions {
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
-    //.ok_or(LemmyErrorType::CouldntLikeComment)?;
     insert_into(comment_actions::table)
       .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
