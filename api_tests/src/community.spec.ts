@@ -45,7 +45,6 @@ import {
   FollowMultiCommunity,
   GetPosts,
   LemmyError,
-  MultiCommunity,
   MultiCommunityView,
   ReportCombinedView,
   ResolveCommunityReport,

@@ -1488,10 +1488,8 @@ mod tests {
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance communities
-    let block_form = InstanceCommunitiesBlockForm::new(
-      data.tegan_local_user_view.person.id,
-      blocked_instance_comms.id,
-    );
+    let block_form =
+      InstanceCommunitiesBlockForm::new(data.tegan.person.id, blocked_instance_comms.id);
     InstanceActions::block_communities(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
@@ -1582,10 +1580,8 @@ mod tests {
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance communities
-    let block_form = InstancePersonsBlockForm::new(
-      data.tegan_local_user_view.person.id,
-      blocked_instance_persons.id,
-    );
+    let block_form =
+      InstancePersonsBlockForm::new(data.tegan.person.id, blocked_instance_persons.id);
     InstanceActions::block_persons(pool, &block_form).await?;
 
     // now posts from users on that instance should be hidden
