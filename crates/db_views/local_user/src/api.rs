@@ -23,4 +23,3 @@ pub struct AdminListUsersResponse {
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
 }
-
