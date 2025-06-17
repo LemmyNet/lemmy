@@ -4,7 +4,10 @@ use crate::{
   insert_received_activity,
 };
 use activitypub_federation::{
-  actix_web::{inbox::receive_activity, signing_actor},
+  actix_web::{
+    inbox::{receive_activity_with_hook, ReceiveActivityHook},
+    signing_actor,
+  },
   config::Data,
   protocol::context::WithContext,
   traits::{ActivityHandler, Actor},
@@ -45,12 +48,10 @@ pub async fn shared_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let receive_fut = receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext, _>(
-    request,
-    body,
-    inbox_activity_hook,
-    &data,
-  );
+  let receive_fut =
+    receive_activity_with_hook::<SharedInboxActivities, UserOrCommunity, LemmyContext>(
+      request, body, Dummy, &data,
+    );
   // Set a timeout shorter than `REQWEST_TIMEOUT` for processing incoming activities. This is to
   // avoid taking a long time to process an incoming activity when a required data fetch times out.
   // In this case our own instance would timeout and be marked as dead by the sender. Better to
@@ -60,18 +61,26 @@ pub async fn shared_inbox(
     .with_lemmy_type(FederationError::InboxTimeout.into())?
 }
 
-async fn inbox_activity_hook<Activity, ActorT>(
-  activity: Activity,
-  actor: ActorT,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()>
-where
-  Activity: ActivityHandler + Send + Sync + Clone + Serialize + for<'b> Deserialize<'b> + 'static,
-{
-  insert_received_activity(activity.id(), &context).await?;
-  // TODO: also include actor with data?!
-  plugin_hook_after("activity_received", &(activity))?;
-  Ok(())
+struct Dummy;
+
+impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> for Dummy {
+  async fn hook(
+    self,
+    activity: &SharedInboxActivities,
+    _actor: &UserOrCommunity,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    insert_received_activity(activity.id(), &context).await?;
+
+    // TODO: this could also take the actor as param, but lifetimes and serde derives are tricky
+    // TODO: this is really a before hook, but doesnt allow modifying the data. it could use a
+    // separate method so that error in plugin causes activity to be rejected.
+    plugin_hook_after("activity_received", activity)?;
+
+    // TODO: this method could also be used to check if actor is banned, instead of checking in each
+    // activity handler.
+    Ok(())
+  }
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
