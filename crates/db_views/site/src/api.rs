@@ -32,8 +32,12 @@ use lemmy_db_schema_file::enums::{
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person_content_combined::PersonContentCombinedView;
+use lemmy_db_views_person_liked_combined::PersonLikedCombinedView;
+use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_readable_federation_state::ReadableFederationState;
 use serde::{Deserialize, Serialize};
@@ -682,6 +686,28 @@ pub struct PluginMetadata {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// You read posts response.
+pub struct ExportDataResponse {
+  pub local_user_view: LocalUserView,
+  pub follows: Vec<CommunityFollowerView>,
+  pub moderates: Vec<CommunityModeratorView>,
+  pub community_blocks: Vec<Community>,
+  pub instance_blocks: Vec<Instance>,
+  pub person_blocks: Vec<Person>,
+  pub keyword_blocks: Vec<String>,
+  pub discussion_languages: Vec<LanguageId>,
+  pub inbox: Vec<InboxCombinedView>,
+  pub content: Vec<PersonContentCombinedView>,
+  pub liked: Vec<PersonLikedCombinedView>,
+  pub saved: Vec<PersonSavedCombinedView>,
+  pub read_posts: Vec<PostView>,
+  pub hidden_posts: Vec<PostView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

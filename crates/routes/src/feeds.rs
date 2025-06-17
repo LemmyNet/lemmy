@@ -216,7 +216,7 @@ async fn get_feed_user(
     page_back: None,
     limit: (Some(*limit)),
   }
-  .list(&mut context.pool(), &None, site_view.site.instance_id)
+  .list(&mut context.pool(), None, site_view.site.instance_id)
   .await?;
 
   let posts = content

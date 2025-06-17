@@ -45,7 +45,11 @@ pub async fn list_person_content(
     page_back: data.page_back,
     limit: data.limit,
   }
-  .list(&mut context.pool(), &local_user_view, local_instance_id)
+  .list(
+    &mut context.pool(),
+    local_user_view.as_ref(),
+    local_instance_id,
+  )
   .await?;
 
   let next_page = content.last().map(PaginationCursorBuilder::to_cursor);

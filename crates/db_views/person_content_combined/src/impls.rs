@@ -166,7 +166,7 @@ impl PersonContentCombinedQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    user: &Option<LocalUserView>,
+    user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<PersonContentCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
@@ -368,7 +368,7 @@ mod tests {
 
     // Do a batch read of timmy
     let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, &None, data.instance.id)
+      .list(pool, None, data.instance.id)
       .await?;
     assert_eq!(3, timmy_content.len());
 
@@ -394,7 +394,7 @@ mod tests {
 
     // Do a batch read of sara
     let sara_content = PersonContentCombinedQuery::new(data.sara.id)
-      .list(pool, &None, data.instance.id)
+      .list(pool, None, data.instance.id)
       .await?;
     assert_eq!(3, sara_content.len());
 
