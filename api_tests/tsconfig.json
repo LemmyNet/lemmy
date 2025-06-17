@@ -4,22 +4,12 @@
     "declarationDir": "./dist",
     "module": "CommonJS",
     "noImplicitAny": true,
-    "lib": [
-      "es2022",
-      "es7",
-      "es6",
-      "dom"
-    ],
+    "lib": ["es2022", "es7", "es6", "dom"],
     "outDir": "./dist",
     "target": "ES2020",
     "strictNullChecks": true,
     "moduleResolution": "Node"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
