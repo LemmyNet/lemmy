@@ -83,25 +83,22 @@ pub async fn like_comment(
       orig_comment.creator.id,
       previous_like_score,
     )
-    .await?;
+    .await
+    // Ignore errors, since a previous_like of zero throws an error
+    .ok();
   }
 
-  // Only add the like if the score isnt 0
-  let do_add =
-    like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
-  if do_add {
-    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
-    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-    PersonActions::like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      like_form.like_score,
-    )
-    .await?;
+  like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  PersonActions::like(
+    &mut context.pool(),
+    my_person_id,
+    orig_comment.creator.id,
+    like_form.like_score,
+  )
+  .await?;
 
-    plugin_hook_after("after_comment_vote", &like)?;
-  }
+  plugin_hook_after("after_comment_vote", &like)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

@@ -14,6 +14,7 @@ use crate::{
     functions::{coalesce, hot_rank},
     get_conn,
     uplete,
+    validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -31,7 +32,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
@@ -250,6 +251,10 @@ impl Likeable for CommentActions {
 
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
+
+    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+
+    //.ok_or(LemmyErrorType::CouldntLikeComment)?;
     insert_into(comment_actions::table)
       .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))

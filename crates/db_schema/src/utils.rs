@@ -640,6 +640,18 @@ pub(crate) fn format_actor_url(
   Ok(Url::parse(&url)?)
 }
 
+/// Make sure the like score is 1, or -1
+///
+/// Uses a default NotFound error, that you should map to
+/// CouldntLikeComment/CouldntLikePost.
+pub(crate) fn validate_like(like_score: i16) -> LemmyResult<()> {
+  if [-1, 1].contains(&like_score) {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotFound.into())
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

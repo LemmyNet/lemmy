@@ -61,25 +61,22 @@ pub async fn like_post(
       orig_post.creator.id,
       previous_like_score,
     )
-    .await?;
+    .await
+    // Ignore errors, since a previous_like of zero throws an error
+    .ok();
   }
 
-  // Only add the like if the score isnt 0
-  let do_add =
-    like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
-  if do_add {
-    like_form = plugin_hook_before("before_post_vote", like_form).await?;
-    let like = PostActions::like(&mut context.pool(), &like_form).await?;
-    PersonActions::like(
-      &mut context.pool(),
-      my_person_id,
-      orig_post.creator.id,
-      like_form.like_score,
-    )
-    .await?;
+  like_form = plugin_hook_before("before_post_vote", like_form).await?;
+  let like = PostActions::like(&mut context.pool(), &like_form).await?;
+  PersonActions::like(
+    &mut context.pool(),
+    my_person_id,
+    orig_post.creator.id,
+    like_form.like_score,
+  )
+  .await?;
 
-    plugin_hook_after("after_post_vote", &like)?;
-  }
+  plugin_hook_after("after_post_vote", &like)?;
 
   // Mark Post Read
   let read_form = PostReadForm::new(post_id, my_person_id);
