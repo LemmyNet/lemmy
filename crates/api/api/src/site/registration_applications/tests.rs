@@ -10,14 +10,12 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
-    instance::Instance,
-    local_site::{LocalSite, LocalSiteInsertForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+    local_site::{LocalSite, LocalSiteUpdateForm},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
-    site::{Site, SiteInsertForm},
   },
+  test_data::TestData,
   traits::Crud,
   utils::DbPool,
 };
@@ -35,14 +33,23 @@ use lemmy_utils::{
 };
 use serial_test::serial;
 
-async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance, LocalUserView)> {
+async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
   let pool = &mut context.pool();
+  let data = TestData::create(pool).await?;
 
-  let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+  // Enable some local site settings
+  let local_site_form = LocalSiteUpdateForm {
+    require_email_verification: Some(true),
+    application_question: Some(Some(".".to_string())),
+    registration_mode: Some(RegistrationMode::RequireApplication),
+    site_setup: Some(true),
+    ..Default::default()
+  };
+  LocalSite::update(pool, &local_site_form).await?;
 
   let admin_person = Person::create(
     pool,
-    &PersonInsertForm::test_form(inserted_instance.id, "admin"),
+    &PersonInsertForm::test_form(data.instance.id, "admin"),
   )
   .await?;
   LocalUser::create(
@@ -52,28 +59,9 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
   )
   .await?;
 
-  let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
-  let site = Site::create(pool, &site_form).await?;
-
-  // Create a local site, since this is necessary for determining if email verification is
-  // required
-  let local_site_form = LocalSiteInsertForm {
-    require_email_verification: Some(true),
-    application_question: Some(".".to_string()),
-    registration_mode: Some(RegistrationMode::RequireApplication),
-    site_setup: Some(true),
-    ..LocalSiteInsertForm::new(site.id)
-  };
-  let local_site = LocalSite::create(pool, &local_site_form).await?;
-
-  // Required to have a working local SiteView when updating the site to change email verification
-  // requirement or registration mode
-  let rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
-  LocalSiteRateLimit::create(pool, &rate_limit_form).await?;
-
   let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
 
-  Ok((inserted_instance, admin_local_user_view))
+  Ok((data, admin_local_user_view))
 }
 
 async fn signup(
@@ -140,14 +128,19 @@ async fn test_application_approval() -> LemmyResult<()> {
   let context = LemmyContext::init_test_context().await;
   let pool = &mut context.pool();
 
-  let (instance, admin_local_user_view) = create_test_site(&context).await?;
+  let (data, admin_local_user_view) = create_test_site(&context).await?;
 
   // Non-unread counts unfortunately are duplicated due to different types (i64 vs usize)
   let mut expected_total_applications = 0;
   let mut expected_unread_applications = 0u8;
 
-  let (local_user_with_email, app_with_email) =
-    signup(pool, instance.id, "user_w_email", Some("lemmy@localhost")).await?;
+  let (local_user_with_email, app_with_email) = signup(
+    pool,
+    data.instance.id,
+    "user_w_email",
+    Some("lemmy@localhost"),
+  )
+  .await?;
 
   let (application_count, unread_applications, all_applications) =
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
@@ -242,7 +235,7 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   let (_local_user, app_with_email_2) = signup(
     pool,
-    instance.id,
+    data.instance.id,
     "user_w_email_2",
     Some("lemmy2@localhost"),
   )
@@ -328,7 +321,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  signup(pool, instance.id, "user_wo_email", None).await?;
+  signup(pool, data.instance.id, "user_wo_email", None).await?;
 
   expected_total_applications += 1;
   expected_unread_applications += 1;
@@ -350,7 +343,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  signup(pool, instance.id, "user_w_email_3", None).await?;
+  signup(pool, data.instance.id, "user_w_email_3", None).await?;
 
   expected_total_applications += 1;
   expected_unread_applications += 1;
@@ -410,7 +403,7 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   LocalSite::delete(pool).await?;
   // Instance deletion cascades cleanup of all created persons
-  Instance::delete(pool, instance.id).await?;
+  data.delete(pool).await?;
 
   Ok(())
 }

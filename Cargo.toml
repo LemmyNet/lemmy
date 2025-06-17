@@ -216,7 +216,7 @@ derive-new = "0.7.0"
 tuplex = "0.1.2"
 html2text = "0.15.1"
 async-trait = "0.1.88"
-either = "1.15.0"
+either = { version = "1.15.0", features = ["serde"] }
 extism = { git = "https://github.com/extism/extism.git", branch = "main" }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 

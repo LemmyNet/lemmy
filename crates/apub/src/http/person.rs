@@ -3,7 +3,7 @@ use crate::{
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{config::Data, traits::Object};
-use actix_web::{web, HttpResponse};
+use actix_web::{web::Path, HttpResponse};
 use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
@@ -17,7 +17,7 @@ pub struct PersonQuery {
 
 /// Return the ActivityPub json representation of a local person over HTTP.
 pub(crate) async fn get_apub_person_http(
-  info: web::Path<PersonQuery>,
+  info: Path<PersonQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let user_name = info.into_inner().user_name;
@@ -37,7 +37,7 @@ pub(crate) async fn get_apub_person_http(
 }
 
 pub(crate) async fn get_apub_person_outbox(
-  info: web::Path<PersonQuery>,
+  info: Path<PersonQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)

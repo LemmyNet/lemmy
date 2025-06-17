@@ -35,16 +35,13 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
-  pub async fn send_remove_mod(
+  pub(super) async fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -60,16 +57,13 @@ impl CollectionRemove {
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
-  pub async fn send_remove_featured_post(
+  pub(super) async fn send_remove_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,

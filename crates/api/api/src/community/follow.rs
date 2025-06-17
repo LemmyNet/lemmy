@@ -39,17 +39,16 @@ pub async fn follow_community(
       CommunityPersonBanView::check(&mut context.pool(), person_id, community.id).await?;
     }
 
-    let follow_state = if community.local {
-      // Local follow is accepted immediately
-      CommunityFollowerState::Accepted
-    } else if community.visibility == CommunityVisibility::Private {
+    let follow_state = if community.visibility == CommunityVisibility::Private {
       // Private communities require manual approval
       CommunityFollowerState::ApprovalRequired
+    } else if community.local {
+      // Local follow is accepted immediately
+      CommunityFollowerState::Accepted
     } else {
       // remote follow needs to be federated first
       CommunityFollowerState::Pending
     };
-
     let form = CommunityFollowerForm::new(community.id, person_id, follow_state);
 
     // Write to db
