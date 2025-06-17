@@ -9,10 +9,10 @@ CREATE TABLE search_combined (
     -- For posts: score,
     -- For community: users active monthly
     score bigint NOT NULL DEFAULT 0,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
-    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
-    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     -- Make sure only one of the columns is not null
     CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1)
 );

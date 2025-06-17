@@ -6,9 +6,9 @@ CREATE TABLE person_liked_combined (
     id serial PRIMARY KEY,
     liked timestamptz NOT NULL,
     like_score smallint NOT NULL,
-    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     UNIQUE (person_id, post_id),
     UNIQUE (person_id, comment_id),
     -- Make sure only one of the columns is not null

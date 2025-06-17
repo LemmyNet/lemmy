@@ -33,6 +33,40 @@ ALTER TABLE person_actions RENAME COLUMN pending TO follow_pending;
 
 ALTER TABLE post_actions RENAME COLUMN published TO read;
 
+-- Mark all constraints of affected tables as deferrable to speed up migration
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_community_id_fkey DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_approver_id_fkey DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_person_id_fkey DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_like_comment_id_fkey DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_like_person_id_fkey DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_block_instance_id_fkey DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_block_person_id_fkey DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_follower_follower_id_fkey DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_follower_person_id_fkey DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_read_person_id_fkey DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_read_post_id_fkey DEFERRABLE;
+
 ALTER TABLE comment_actions
     ALTER COLUMN liked DROP NOT NULL,
     ALTER COLUMN liked DROP DEFAULT,
