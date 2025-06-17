@@ -24,6 +24,7 @@ pub async fn list_person_hidden(
     cursor_data,
     data.page_back,
     data.limit,
+    None,
   )
   .await?;
 

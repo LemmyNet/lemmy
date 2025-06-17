@@ -34,29 +34,43 @@ pub async fn export_data(
 
   let pool = &mut context.pool();
 
-  // TODO need to figure out how to override limits, and also what the max should be
-  // let limit =
+  let content = PersonContentCombinedQuery {
+    no_limit: Some(true),
+    ..PersonContentCombinedQuery::new(my_person_id)
+  }
+  .list(pool, Some(&local_user_view), local_instance_id)
+  .await?;
 
-  let content = PersonContentCombinedQuery::new(my_person_id)
-    .list(pool, Some(&local_user_view), local_instance_id)
-    .await?;
+  // TODO is this necessary? Maybe just the ids or not at all
+  let liked = PersonLikedCombinedQuery {
+    no_limit: Some(true),
+    ..PersonLikedCombinedQuery::default()
+  }
+  .list(pool, &local_user_view)
+  .await?;
 
-  let liked = PersonLikedCombinedQuery::default()
-    .list(pool, &local_user_view)
-    .await?;
+  // TODO is this necessary? Maybe just the ids or not at all
+  let saved = PersonSavedCombinedQuery {
+    no_limit: Some(true),
+    ..PersonSavedCombinedQuery::default()
+  }
+  .list(pool, &local_user_view)
+  .await?;
 
-  let saved = PersonSavedCombinedQuery::default()
-    .list(pool, &local_user_view)
-    .await?;
+  // TODO is this necessary? Maybe just the ids or not at all
+  let read_posts =
+    PostView::list_read(&mut context.pool(), my_person, None, None, None, Some(true)).await?;
 
-  let read_posts = PostView::list_read(&mut context.pool(), my_person, None, None, None).await?;
-
+  // TODO is this necessary? Maybe just the ids or not at all
   let hidden_posts =
-    PostView::list_hidden(&mut context.pool(), my_person, None, None, None).await?;
+    PostView::list_hidden(&mut context.pool(), my_person, None, None, None, Some(true)).await?;
 
-  let inbox = InboxCombinedQuery::default()
-    .list(&mut context.pool(), my_person_id, local_instance_id)
-    .await?;
+  let inbox = InboxCombinedQuery {
+    no_limit: Some(true),
+    ..InboxCombinedQuery::default()
+  }
+  .list(&mut context.pool(), my_person_id, local_instance_id)
+  .await?;
 
   let follows = CommunityFollowerView::for_person(pool, my_person_id).await?;
 

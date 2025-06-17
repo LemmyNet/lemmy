@@ -240,6 +240,7 @@ pub struct InboxCombinedQuery {
   pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
+  pub no_limit: Option<bool>,
 }
 
 impl InboxCombinedQuery {
@@ -250,15 +251,18 @@ impl InboxCombinedQuery {
     local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<InboxCombinedView>> {
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
 
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
     let mut query = InboxCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(InboxCombinedViewInternal::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !self.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     // Filters
     if self.unread_only.unwrap_or_default() {

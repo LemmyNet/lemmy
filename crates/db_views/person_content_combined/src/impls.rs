@@ -160,6 +160,8 @@ pub struct PersonContentCombinedQuery {
   pub page_back: Option<bool>,
   #[new(default)]
   pub limit: Option<i64>,
+  #[new(default)]
+  pub no_limit: Option<bool>,
 }
 
 impl PersonContentCombinedQuery {
@@ -173,7 +175,6 @@ impl PersonContentCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -184,8 +185,12 @@ impl PersonContentCombinedQuery {
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
       .select(PersonContentCombinedViewInternal::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !self.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     if let Some(type_) = self.type_ {
       query = match type_ {
