@@ -6,7 +6,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
 use either::Either;
-use lemmy_api_common::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_apub_objects::objects::{
   community::ApubCommunity,
   instance::ApubSite,
@@ -66,12 +66,7 @@ pub(crate) async fn send_activity_in_community(
 
   // send to user followers
   if !is_mod_action {
-    inboxes.add_inboxes(
-      PersonActions::list_followers(&mut context.pool(), actor.id)
-        .await?
-        .into_iter()
-        .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
-    );
+    inboxes.add_inboxes(PersonActions::follower_inboxes(&mut context.pool(), actor.id).await?);
   }
 
   if community.local {

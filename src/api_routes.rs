@@ -11,6 +11,7 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
+    multi_community_follow::follow_multi_community,
     pending_follows::{
       approve::post_pending_follows_approve,
       count::get_pending_follows_count,
@@ -30,12 +31,14 @@ use lemmy_api::{
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_hidden::list_person_hidden,
+    list_liked::list_person_liked,
     list_logins::list_logins,
     list_media::list_media,
     list_read::list_person_read,
     list_saved::list_person_saved,
     login::login,
     logout::logout,
+    note_person::user_note_person,
     notifications::{
       list_inbox::list_inbox,
       mark_all_read::mark_all_notifications_read,
@@ -114,6 +117,14 @@ use lemmy_api_crud::{
     delete::delete_custom_emoji,
     list::list_custom_emojis,
     update::update_custom_emoji,
+  },
+  multi_community::{
+    create::create_multi_community,
+    create_entry::create_multi_community_entry,
+    delete_entry::delete_multi_community_entry,
+    get::get_multi_community,
+    list::list_multi_communities,
+    update::update_multi_community,
   },
   oauth_provider::{
     create::create_oauth_provider,
@@ -241,6 +252,16 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
+      )
+      .service(
+        scope("/multi_community")
+          .route("", post().to(create_multi_community))
+          .route("", put().to(update_multi_community))
+          .route("", get().to(get_multi_community))
+          .route("/entry", post().to(create_multi_community_entry))
+          .route("/entry", delete().to(delete_multi_community_entry))
+          .route("/list", get().to(list_multi_communities))
+          .route("/follow", post().to(follow_multi_community)),
       )
       .route("/federated_instances", get().to(get_federated_instances))
       // Post
@@ -371,6 +392,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/saved", get().to(list_person_saved))
           .route("/read", get().to(list_person_read))
           .route("/hidden", get().to(list_person_hidden))
+          .route("/liked", get().to(list_person_liked))
           .route("/settings/save", put().to(save_user_settings))
           // Account settings import / export have a strict rate limit
           .service(
@@ -384,7 +406,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         scope("/person")
           .route("", get().to(read_person))
-          .route("/content", get().to(list_person_content)),
+          .route("/content", get().to(list_person_content))
+          .route("/note", post().to(user_note_person)),
       )
       // Admin Actions
       .service(

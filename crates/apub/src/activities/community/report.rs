@@ -15,7 +15,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use either::Either;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_comment_deleted_or_removed,
@@ -53,10 +53,7 @@ impl Report {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     let kind = FlagType::Flag;
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), context)?;
     Ok(Report {
       actor: actor.id().into(),
       to: [receiver.id().into()],

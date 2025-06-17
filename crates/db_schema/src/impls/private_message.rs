@@ -53,7 +53,9 @@ impl PrivateMessage {
     insert_into(private_message::table)
       .values(form)
       .on_conflict(private_message::ap_id)
-      .filter_target(coalesce(private_message::updated, private_message::published).lt(timestamp))
+      .filter_target(
+        coalesce(private_message::updated_at, private_message::published_at).lt(timestamp),
+      )
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -104,7 +106,7 @@ impl PrivateMessage {
     diesel::update(private_message::table.filter(private_message::creator_id.eq(for_creator_id)))
       .set((
         private_message::removed.eq(removed),
-        private_message::updated.eq(Utc::now()),
+        private_message::updated_at.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -160,8 +162,8 @@ mod tests {
       recipient_id: inserted_recipient.id,
       deleted: false,
       read: false,
-      updated: None,
-      published: inserted_private_message.published,
+      updated_at: None,
+      published_at: inserted_private_message.published_at,
       ap_id: Url::parse(&format!(
         "https://lemmy-alpha/private_message/{}",
         inserted_private_message.id

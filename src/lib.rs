@@ -11,7 +11,7 @@ use actix_web::{
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
@@ -236,14 +236,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();
-  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(
-    request_data.reset_request_count(),
-  ));
+  let outgoing_activities_task =
+    tokio::task::spawn(handle_outgoing_activities(request_data.clone()));
 
   if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
-    let _scheduled_tasks =
-      tokio::task::spawn(scheduled_tasks::setup(request_data.reset_request_count()));
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(request_data.clone()));
   }
 
   let server = if !args.disable_http_server {

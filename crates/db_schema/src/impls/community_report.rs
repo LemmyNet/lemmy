@@ -47,7 +47,7 @@ impl Reportable for CommunityReport {
       .set((
         community_report::resolved.eq(true),
         community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        community_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -71,7 +71,7 @@ impl Reportable for CommunityReport {
     .set((
       community_report::resolved.eq(true),
       community_report::resolver_id.eq(resolver_id),
-      community_report::updated.eq(Utc::now()),
+      community_report::updated_at.eq(Utc::now()),
     ))
     .execute(conn)
     .await
@@ -88,7 +88,7 @@ impl Reportable for CommunityReport {
       .set((
         community_report::resolved.eq(true),
         community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        community_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -110,7 +110,7 @@ impl Reportable for CommunityReport {
       .set((
         community_report::resolved.eq(false),
         community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        community_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await

@@ -19,7 +19,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_nsfw_allowed,
@@ -129,8 +129,8 @@ impl Object for ApubCommunity {
       endpoints: None,
       public_key: self.public_key(),
       language,
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(AttributedTo::Lemmy(
         generate_moderators_url(&self.ap_id)?.into(),
@@ -180,8 +180,8 @@ impl Object for ApubCommunity {
       .map(|_| true);
 
     let form = CommunityInsertForm {
-      published: group.published,
-      updated: group.updated,
+      published_at: group.published,
+      updated_at: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
@@ -228,7 +228,8 @@ impl Object for ApubCommunity {
 
     let community: ApubCommunity = community.into();
 
-    // These collections are not necessary for Lemmy to work, so ignore errors.
+    // These collections are not necessary for Lemmy to work, so ignore errors. Reset request count
+    // to avoid fetch errors, as it needs to fetch a lot of extra data.
     if let Some(fetch_fn) = FETCH_COMMUNITY_COLLECTIONS.get() {
       fetch_fn(
         community.clone(),

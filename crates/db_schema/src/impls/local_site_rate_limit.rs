@@ -64,6 +64,6 @@ impl LocalSiteRateLimitUpdateForm {
       && self.comment_per_second.is_none()
       && self.search.is_none()
       && self.search_per_second.is_none()
-      && self.updated.is_none()
+      && self.updated_at.is_none()
   }
 }

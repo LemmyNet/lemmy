@@ -12,7 +12,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::community::ApubCommunity,
   utils::{
@@ -115,10 +115,7 @@ impl AnnounceActivity {
       // Hack: need to convert Page into a format which can be sent as activity, which requires
       //       adding actor field.
       let announcable_page = RawAnnouncableActivities {
-        id: generate_activity_id(
-          AnnounceType::Announce,
-          &context.settings().get_protocol_and_hostname(),
-        )?,
+        id: generate_activity_id(AnnounceType::Announce, context)?,
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()

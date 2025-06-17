@@ -24,7 +24,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
@@ -122,8 +122,8 @@ impl Object for ApubComment {
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: Some(Source::new(self.content.clone())),
       in_reply_to,
-      published: Some(self.published),
-      updated: self.updated,
+      published: Some(self.published_at),
+      updated: self.updated_at,
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
@@ -208,8 +208,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published,
-      updated: note.updated,
+      published_at: note.published,
+      updated_at: note.updated,
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,
@@ -241,8 +241,10 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::source::{instance::Instance, local_site::LocalSite, site::Site};
-  use lemmy_db_views_site::impls::create_test_instance;
+  use lemmy_db_schema::{
+    source::{local_site::LocalSite, site::Site},
+    test_data::TestData,
+  };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -251,7 +253,7 @@ pub(crate) mod tests {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPerson, ApubCommunity, ApubPost, ApubSite)> {
     // use separate counter so this doesn't affect tests
-    let context2 = context.reset_request_count();
+    let context2 = context.clone();
     let (person, site) = parse_lemmy_person(&context2).await?;
     let community = parse_lemmy_community(&context2).await?;
     let post_json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
@@ -276,7 +278,7 @@ pub(crate) mod tests {
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -295,7 +297,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment_id).await?;
     cleanup(data, &context).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -303,7 +305,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
@@ -323,7 +325,7 @@ pub(crate) mod tests {
 
     Comment::delete(&mut context.pool(), comment.id).await?;
     cleanup(data, &context).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 

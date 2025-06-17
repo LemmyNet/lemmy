@@ -5,7 +5,7 @@ use activitypub_federation::{
   kinds::object::ImageType,
   protocol::values::MediaTypeMarkdown,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
   newtypes::{DbUrl, LanguageId},

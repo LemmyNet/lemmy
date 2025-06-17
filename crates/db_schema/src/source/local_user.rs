@@ -14,15 +14,14 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_schema_file::schema::local_user;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 #[serde(default)]
 /// A local user.
 pub struct LocalUser {
@@ -31,7 +30,6 @@ pub struct LocalUser {
   pub person_id: PersonId,
   #[serde(skip)]
   pub password_encrypted: Option<SensitiveString>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
@@ -76,10 +74,9 @@ pub struct LocalUser {
   pub auto_mark_fetched_posts_as_read: bool,
   /// The last time a donation request was shown to this user. If this is more than a year ago,
   /// a new notification request should be shown.
-  pub last_donation_notification: DateTime<Utc>,
+  pub last_donation_notification_at: DateTime<Utc>,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
-  #[cfg_attr(feature = "full", ts(optional))]
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   pub show_score: bool,
@@ -145,7 +142,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   #[new(default)]
-  pub last_donation_notification: Option<DateTime<Utc>>,
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub hide_media: Option<bool>,
   #[new(default)]
@@ -190,7 +187,7 @@ pub struct LocalUserUpdateForm {
   pub collapse_bot_comments: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  pub last_donation_notification: Option<DateTime<Utc>>,
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
   pub hide_media: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub show_score: Option<bool>,

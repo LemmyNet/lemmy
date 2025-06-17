@@ -90,7 +90,7 @@ CREATE TABLE person_post_aggregates (
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read_comments bigint DEFAULT 0 NOT NULL,
-    published timestamptz NOT NULL,
+    published timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (person_id, post_id)
 );
 

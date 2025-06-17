@@ -16,7 +16,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use either::Either;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{
     community::ApubCommunity,
@@ -47,10 +47,7 @@ impl ResolveReport {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
       actor: actor.id().into(),

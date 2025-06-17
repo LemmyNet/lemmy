@@ -20,8 +20,12 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
-  source::combined::search::{search_combined_keys as key, SearchCombined},
+  source::{
+    combined::search::{search_combined_keys as key, SearchCombined},
+    site::Site,
+  },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     fuzzy_search,
@@ -43,6 +47,7 @@ use lemmy_db_schema::{
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
+      suggested_communities,
     },
     seconds_to_pg_interval,
     DbPool,
@@ -57,12 +62,14 @@ use lemmy_db_schema_file::{
     comment_actions,
     community,
     community_actions,
+    multi_community,
     person,
     post,
     post_actions,
     search_combined,
   },
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SearchCombinedViewInternal {
@@ -82,6 +89,11 @@ impl SearchCombinedViewInternal {
           search_combined::post_id
             .is_not_null()
             .and(post::creator_id.eq(item_creator)),
+        )
+        .or(
+          search_combined::multi_community_id
+            .is_not_null()
+            .and(multi_community::creator_id.eq(item_creator)),
         )
         .and(not(person::deleted)),
     );
@@ -110,6 +122,12 @@ impl SearchCombinedViewInternal {
         .and(not(community::deleted)),
     );
 
+    let multi_community_join = multi_community::table.on(
+      search_combined::multi_community_id
+        .eq(multi_community::id.nullable())
+        .and(not(multi_community::deleted)),
+    );
+
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
@@ -124,6 +142,7 @@ impl SearchCombinedViewInternal {
     search_combined::table
       .left_join(comment_join)
       .left_join(post_join)
+      .left_join(multi_community_join)
       .left_join(item_creator_join)
       .left_join(community_join)
       .left_join(creator_community_actions_join())
@@ -160,6 +179,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
       SearchCombinedView::Community(v) => ('O', v.community.id.0),
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
+      SearchCombinedView::MultiCommunity(v) => ('M', v.multi.id.0),
     };
     PaginationCursor::new_single(prefix, id)
   }
@@ -184,6 +204,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
       'C' => query.filter(search_combined::comment_id.eq(id)),
       'O' => query.filter(search_combined::community_id.eq(id)),
       'E' => query.filter(search_combined::person_id.eq(id)),
+      'M' => query.filter(search_combined::multi_community_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
     let token = query.first(conn).await?;
@@ -205,6 +226,7 @@ pub struct SearchCombinedQuery {
   pub post_url_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub show_nsfw: Option<bool>,
   pub cursor_data: Option<SearchCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -215,7 +237,7 @@ impl SearchCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &Option<LocalUserView>,
-    local_instance_id: InstanceId,
+    site_local: &Site,
   ) -> LemmyResult<Vec<SearchCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
@@ -223,7 +245,7 @@ impl SearchCombinedQuery {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(self.limit)?;
 
-    let mut query = SearchCombinedViewInternal::joins(my_person_id, local_instance_id)
+    let mut query = SearchCombinedViewInternal::joins(my_person_id, site_local.instance_id)
       .select(SearchCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
@@ -243,15 +265,17 @@ impl SearchCombinedQuery {
           .or(community::name.ilike(searcher.clone()))
           .or(community::title.ilike(searcher.clone()))
           .or(person::name.ilike(searcher.clone()))
-          .or(person::display_name.ilike(searcher.clone()));
-
-        let body_or_description_filter = post::body
-          .ilike(searcher.clone())
-          .or(community::description.ilike(searcher.clone()));
+          .or(person::display_name.ilike(searcher.clone()))
+          .or(multi_community::title.ilike(searcher.clone()))
+          .or(multi_community::name.ilike(searcher.clone()));
 
         query = if self.title_only.unwrap_or_default() {
           query.filter(name_or_title_filter)
         } else {
+          let body_or_description_filter = post::body
+            .ilike(searcher.clone())
+            .or(community::description.ilike(searcher.clone()))
+            .or(multi_community::description.ilike(searcher.clone()));
           query.filter(name_or_title_filter.or(body_or_description_filter))
         }
       }
@@ -299,34 +323,62 @@ impl SearchCombinedQuery {
       SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
       SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
       SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
+      SearchType::MultiCommunities => {
+        query.filter(search_combined::multi_community_id.is_not_null())
+      }
     };
 
     // Listing type
-    match self.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
-      ListingType::Local => {
-        query = query.filter(
-          community::local
-            .eq(true)
-            .and(filter_not_unlisted_or_is_subscribed())
-            .or(search_combined::person_id.is_not_null().and(person::local)),
-        );
-      }
-      ListingType::All => {
-        query = query.filter(
-          filter_not_unlisted_or_is_subscribed().or(search_combined::person_id.is_not_null()),
-        )
-      }
+    query = match self.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
+      ListingType::Local => query.filter(
+        community::local
+          .eq(true)
+          .and(filter_not_unlisted_or_is_subscribed())
+          .or(search_combined::person_id.is_not_null().and(person::local))
+          .or(multi_community::local),
+      ),
+      ListingType::All => query.filter(
+        filter_not_unlisted_or_is_subscribed()
+          .or(search_combined::person_id.is_not_null())
+          .or(search_combined::multi_community_id.is_not_null()),
+      ),
       ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator.is_not_null());
+        query.filter(community_actions::became_moderator_at.is_not_null())
       }
-    }
-
+      ListingType::Suggested => query.filter(suggested_communities()),
+    };
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
-      query = query
-        .filter(search_combined::published.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+      query = query.filter(
+        search_combined::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
     }
+
+    // NSFW
+    let user_and_site_nsfw = user.as_ref().map(|u| &u.local_user).show_nsfw(site_local);
+    if !self.show_nsfw.unwrap_or(user_and_site_nsfw) {
+      let safe_community = community::nsfw.eq(false);
+      let safe_post_and_community = post::nsfw.eq(false).and(safe_community);
+
+      query = query.filter(
+        search_combined::community_id
+          .is_not_null()
+          .and(safe_community)
+          .or(
+            search_combined::post_id
+              .is_not_null()
+              .and(safe_post_and_community),
+          )
+          .or(
+            search_combined::comment_id
+              .is_not_null()
+              .and(safe_post_and_community),
+          )
+          .or(search_combined::person_id.is_not_null())
+          .or(search_combined::multi_community_id.is_not_null()),
+      );
+    };
 
     // Only sort by asc if old
     let sort = self.sort.unwrap_or_default();
@@ -341,7 +393,7 @@ impl SearchCombinedQuery {
     );
 
     paginated_query = match sort {
-      New | Old => paginated_query.then_order_by(key::published),
+      New | Old => paginated_query.then_order_by(key::published_at),
       Top => paginated_query.then_order_by(key::score),
     }
     // finally use unique id as tie breaker
@@ -419,10 +471,16 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         can_mod: v.can_mod,
         post_tags: v.community_post_tags,
       }))
+    } else if let (Some(multi), Some(creator)) = (v.multi_community, &v.item_creator) {
+      Some(SearchCombinedView::MultiCommunity(MultiCommunityView {
+        multi,
+        owner: creator.clone(),
+      }))
     } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {
         person,
         is_admin: v.item_creator_is_admin,
+        person_actions: v.person_actions,
         home_instance_actions: v.creator_home_instance_actions,
         local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,
@@ -444,8 +502,10 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
+      site::{Site, SiteInsertForm},
     },
     traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -459,6 +519,7 @@ mod tests {
 
   struct Data {
     instance: Instance,
+    site: Site,
     timmy: Person,
     timmy_view: LocalUserView,
     sara: Person,
@@ -467,13 +528,17 @@ mod tests {
     timmy_post: Post,
     timmy_post_2: Post,
     sara_post: Post,
+    nsfw_post: Post,
     timmy_comment: Comment,
     sara_comment: Comment,
     sara_comment_2: Comment,
+    comment_in_nsfw_post: Comment,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let site_form = SiteInsertForm::new("test_site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
     let sara = Person::create(pool, &sara_form).await?;
@@ -520,6 +585,14 @@ mod tests {
     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community_2.id);
     let sara_post = Post::create(pool, &sara_post_form).await?;
 
+    let nsfw_post_form = PostInsertForm {
+      body: Some("nsfw post inside here".into()),
+      url: Some(Url::parse("https://google.com")?.into()),
+      nsfw: Some(true),
+      ..PostInsertForm::new("nsfw post prv".into(), timmy.id, community.id)
+    };
+    let nsfw_post = Post::create(pool, &nsfw_post_form).await?;
+
     let timmy_comment_form =
       CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv gold".into());
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
@@ -531,6 +604,13 @@ mod tests {
     let sara_comment_form_2 =
       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
+
+    let comment_in_nsfw_post_form = CommentInsertForm::new(
+      sara.id,
+      nsfw_post.id,
+      "sara comment in nsfw post prv 2".into(),
+    );
+    let comment_in_nsfw_post = Comment::create(pool, &comment_in_nsfw_post_form, None).await?;
 
     // Timmy likes and dislikes a few things
     let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, 1);
@@ -553,6 +633,7 @@ mod tests {
 
     Ok(Data {
       instance,
+      site,
       timmy,
       timmy_view,
       sara,
@@ -561,9 +642,11 @@ mod tests {
       timmy_post,
       timmy_post_2,
       sara_post,
+      nsfw_post,
       timmy_comment,
       sara_comment,
       sara_comment_2,
+      comment_in_nsfw_post,
     })
   }
 
@@ -582,7 +665,7 @@ mod tests {
 
     // search
     let search = SearchCombinedQuery::default()
-      .list(pool, &None, data.instance.id)
+      .list(pool, &None, &data.site)
       .await?;
     assert_length!(10, search);
 
@@ -661,7 +744,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(5, search_by_community);
 
@@ -670,7 +753,7 @@ mod tests {
       creator_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(4, search_by_creator);
 
@@ -679,7 +762,7 @@ mod tests {
       search_term: Some("gold".into()),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(2, search_by_name);
@@ -689,7 +772,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     assert_length!(2, search_liked_only);
@@ -698,7 +781,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     assert_length!(1, search_disliked_only);
@@ -709,7 +792,7 @@ mod tests {
       sort: Some(SearchSortType::Old),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
     if let SearchCombinedView::Person(v) = &search_old_sort[0] {
       assert_eq!(data.sara.id, v.person.id);
@@ -741,7 +824,7 @@ mod tests {
 
     // 2 things got removed, but the post also has another comment which got removed
     let search = SearchCombinedQuery::default()
-      .list(pool, &None, data.instance.id)
+      .list(pool, &None, &data.site)
       .await?;
     assert_length!(7, search);
 
@@ -762,7 +845,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(2, community_search);
 
@@ -785,7 +868,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(1, community_search_by_id);
 
@@ -795,7 +878,7 @@ mod tests {
       type_: Some(SearchType::Communities),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(1, community_search_by_name);
@@ -814,7 +897,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert!(community_search_title_only.is_empty());
@@ -836,7 +919,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(2, person_search);
 
@@ -859,7 +942,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(1, person_search_by_id);
     if let SearchCombinedView::Person(v) = &person_search_by_id[0] {
@@ -874,7 +957,7 @@ mod tests {
       type_: Some(SearchType::Users),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(1, person_search_by_name);
@@ -890,7 +973,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(2, person_search_sort_top);
 
@@ -918,7 +1001,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(3, post_search);
 
@@ -950,7 +1033,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(2, post_search_by_community);
 
@@ -960,7 +1043,7 @@ mod tests {
       type_: Some(SearchType::Posts),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(1, post_search_by_name);
@@ -973,7 +1056,7 @@ mod tests {
       title_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert!(post_search_title_only.is_empty());
@@ -986,7 +1069,7 @@ mod tests {
       post_url_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(1, post_search_url_only);
@@ -997,7 +1080,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     // Should only be 1 not 2, because liked only ignores your own content
@@ -1008,7 +1091,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     // Should be zero because you disliked your own post
@@ -1020,7 +1103,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(3, post_search_sort_top);
 
@@ -1028,6 +1111,65 @@ mod tests {
     if let SearchCombinedView::Post(v) = &post_search_sort_top[2] {
       assert_eq!(data.timmy_post_2.id, v.post.id);
       assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn nsfw_post() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let nsfw_post_search = SearchCombinedQuery {
+      type_: Some(SearchType::Posts),
+      show_nsfw: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(4, nsfw_post_search);
+
+    // Make sure the first is the nsfw
+    if let SearchCombinedView::Post(v) = &nsfw_post_search[0] {
+      assert_eq!(data.nsfw_post.id, v.post.id);
+      assert!(v.post.nsfw);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn nsfw_comment() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let nsfw_comment_search = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      show_nsfw: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(4, nsfw_comment_search);
+
+    // Make sure the first is the nsfw
+    if let SearchCombinedView::Comment(v) = &nsfw_comment_search[0] {
+      assert_eq!(data.comment_in_nsfw_post.id, v.comment.id);
+      assert_eq!(data.nsfw_post.id, v.post.id);
+      assert!(v.post.nsfw);
     } else {
       panic!("wrong type");
     }
@@ -1049,7 +1191,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(3, comment_search);
 
@@ -1084,7 +1226,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(2, comment_search_by_community);
 
@@ -1094,7 +1236,7 @@ mod tests {
       type_: Some(SearchType::Comments),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
 
     assert_length!(2, comment_search_by_name);
@@ -1105,7 +1247,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     assert_length!(1, comment_search_liked_only);
@@ -1115,7 +1257,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &Some(data.timmy_view.clone()), data.instance.id)
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
     .await?;
 
     assert_length!(1, comment_search_disliked_only);
@@ -1126,7 +1268,7 @@ mod tests {
       sort: Some(SearchSortType::Top),
       ..Default::default()
     }
-    .list(pool, &None, data.instance.id)
+    .list(pool, &None, &data.site)
     .await?;
     assert_length!(3, comment_search_sort_top);
 
@@ -1135,6 +1277,58 @@ mod tests {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.timmy_post_2.id, v.post.id);
       assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn multi_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = MultiCommunityInsertForm::new(
+      data.timmy_view.person.id,
+      data.instance.id,
+      "multi".to_string(),
+      String::new(),
+    );
+    let multi = MultiCommunity::create(pool, &form).await?;
+
+    // Multi-community search
+    let search = SearchCombinedQuery {
+      type_: Some(SearchType::MultiCommunities),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(1, search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::MultiCommunity(v) = &search[0] {
+      assert_eq!(multi.id, v.multi.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Using a term
+    let search_by_name = SearchCombinedQuery {
+      search_term: Some("multi".into()),
+      type_: Some(SearchType::MultiCommunities),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, search_by_name);
+    if let SearchCombinedView::MultiCommunity(v) = &search_by_name[0] {
+      assert_eq!(multi.id, v.multi.id);
     } else {
       panic!("wrong type");
     }

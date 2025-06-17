@@ -27,14 +27,15 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
+  scoped_futures::ScopedBoxFuture,
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
 use regex::Regex;
@@ -88,6 +89,21 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
   })
+}
+
+impl DbConn<'_> {
+  pub async fn run_transaction<'a, R, F>(&mut self, callback: F) -> LemmyResult<R>
+  where
+    F: for<'r> FnOnce(&'r mut AsyncPgConnection) -> ScopedBoxFuture<'a, 'r, LemmyResult<R>>
+      + Send
+      + 'a,
+    R: Send + 'a,
+  {
+    self
+      .deref_mut()
+      .transaction::<_, LemmyError, _>(callback)
+      .await
+  }
 }
 
 impl Deref for DbConn<'_> {
@@ -608,9 +624,24 @@ pub fn paginate<Q, C>(
   query
 }
 
+pub(crate) fn format_actor_url(
+  name: &str,
+  domain: &str,
+  prefix: char,
+  settings: &Settings,
+) -> LemmyResult<Url> {
+  let local_protocol_and_hostname = settings.get_protocol_and_hostname();
+  let local_hostname = &settings.hostname;
+  let url = if domain != local_hostname {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}@{domain}",)
+  } else {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}")
+  };
+  Ok(Url::parse(&url)?)
+}
+
 #[cfg(test)]
 mod tests {
-
   use super::*;
   use pretty_assertions::assert_eq;
 

@@ -47,8 +47,8 @@ impl ActivitySendTargets {
   pub fn add_inbox(&mut self, inbox: Url) {
     self.inboxes.insert(inbox);
   }
-  pub fn add_inboxes(&mut self, inboxes: impl Iterator<Item = Url>) {
-    self.inboxes.extend(inboxes);
+  pub fn add_inboxes(&mut self, inboxes: Vec<DbUrl>) {
+    self.inboxes.extend(inboxes.into_iter().map(Into::into));
   }
 }
 
@@ -61,7 +61,7 @@ pub struct SentActivity {
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
   pub send_inboxes: Vec<Option<DbUrl>>,
   pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
@@ -89,5 +89,5 @@ pub struct SentActivityForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct ReceivedActivity {
   pub ap_id: DbUrl,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
