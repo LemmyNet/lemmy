@@ -15,7 +15,7 @@ mod tests {
     collection_remove::CollectionRemove,
     lock_page::{LockPage, UndoLockPage},
     report::Report,
-    update::UpdateCommunity,
+    update::Update,
   };
   use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
@@ -39,9 +39,7 @@ mod tests {
     test_parse_lemmy_item::<LockPage>("assets/lemmy/activities/community/lock_page.json")?;
     test_parse_lemmy_item::<UndoLockPage>("assets/lemmy/activities/community/undo_lock_page.json")?;
 
-    test_parse_lemmy_item::<UpdateCommunity>(
-      "assets/lemmy/activities/community/update_community.json",
-    )?;
+    test_parse_lemmy_item::<Update>("assets/lemmy/activities/community/update_community.json")?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
     test_parse_lemmy_item::<ResolveReport>(

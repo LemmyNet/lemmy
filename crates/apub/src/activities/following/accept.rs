@@ -1,6 +1,5 @@
-use super::send_activity_from_user_or_community;
 use crate::{
-  activities::generate_activity_id,
+  activities::{generate_activity_id, send_lemmy_activity},
   insert_received_activity,
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
@@ -20,20 +19,17 @@ use url::Url;
 
 impl AcceptFollow {
   pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let user_or_community = follow.object.dereference_local(context).await?;
+    let target = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
-      actor: user_or_community.id().into(),
+      actor: target.id().into(),
       to: Some([person.id().into()]),
       object: follow,
       kind: AcceptType::Accept,
-      id: generate_activity_id(
-        AcceptType::Accept,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(AcceptType::Accept, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_activity_from_user_or_community(context, accept, user_or_community, inbox).await
+    send_lemmy_activity(context, accept, &target, inbox, true).await
   }
 }
 

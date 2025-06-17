@@ -9,9 +9,10 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
+use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity},
+  objects::{person::ApubPerson, CommunityOrMulti},
   utils::functions::verify_person_in_community,
 };
 use lemmy_db_schema::{
@@ -19,6 +20,7 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityFollowerForm},
     instance::Instance,
+    multi_community::{MultiCommunity, MultiCommunityFollowForm},
     person::{PersonActions, PersonFollowerForm},
   },
   traits::Followable,
@@ -30,32 +32,25 @@ use url::Url;
 impl Follow {
   pub(in crate::activities::following) fn new(
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Follow> {
     Ok(Follow {
       actor: actor.id().into(),
-      object: community.id().into(),
-      to: Some([community.id().into()]),
+      object: target.id().into(),
+      to: Some([target.id().into()]),
       kind: FollowType::Follow,
-      id: generate_activity_id(
-        FollowType::Follow,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(FollowType::Follow, context)?,
     })
   }
 
   pub async fn send(
     actor: &ApubPerson,
-    community: &ApubCommunity,
+    target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let follow = Follow::new(actor, community, context)?;
-    let inbox = if community.local {
-      ActivitySendTargets::empty()
-    } else {
-      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
-    };
+    let follow = Follow::new(actor, target, context)?;
+    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
@@ -76,7 +71,7 @@ impl ActivityHandler for Follow {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_person(&self.actor, context).await?;
     let object = self.object.dereference(context).await?;
-    if let UserOrCommunity::Right(c) = object {
+    if let Right(Left(c)) = object {
       verify_person_in_community(&self.actor, &c, context).await?;
     }
     if let Some(to) = &self.to {
@@ -91,12 +86,12 @@ impl ActivityHandler for Follow {
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {
-      UserOrCommunity::Left(u) => {
+      Left(u) => {
         let form = PersonFollowerForm::new(u.id, actor.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
         AcceptFollow::send(self, context).await?;
       }
-      UserOrCommunity::Right(c) => {
+      Right(Left(c)) => {
         if c.visibility == CommunityVisibility::Private {
           let instance = Instance::read(&mut context.pool(), actor.instance_id).await?;
           if [Some("kbin"), Some("mbin")].contains(&instance.software.as_deref()) {
@@ -115,6 +110,16 @@ impl ActivityHandler for Follow {
         if c.visibility == CommunityVisibility::Public {
           AcceptFollow::send(self, context).await?;
         }
+      }
+      Right(Right(m)) => {
+        let form = MultiCommunityFollowForm {
+          multi_community_id: m.id,
+          person_id: actor.id,
+          follow_state: CommunityFollowerState::Accepted,
+        };
+
+        MultiCommunity::follow(&mut context.pool(), &form).await?;
+        AcceptFollow::send(self, context).await?;
       }
     }
     Ok(())

@@ -1,1 +1,1 @@
-pub use lemmy_db_views_api_misc::PluginMetadata;
+pub use lemmy_db_views_site::api::PluginMetadata;

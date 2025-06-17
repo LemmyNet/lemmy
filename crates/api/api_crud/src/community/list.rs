@@ -41,6 +41,7 @@ pub async fn list_communities(
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
+    ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await?;

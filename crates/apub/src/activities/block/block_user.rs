@@ -57,10 +57,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: reason,
-      id: generate_activity_id(
-        BlockType::Block,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
     })
   }

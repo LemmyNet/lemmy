@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
+    multi_community::MultiCommunity,
     person::Person,
     post::Post,
     private_message::PrivateMessage,
@@ -63,6 +64,7 @@ pub enum SendActivityData {
     score: i16,
   },
   FollowCommunity(Community, Person, bool),
+  FollowMultiCommunity(MultiCommunity, Person, bool),
   AcceptFollower(CommunityId, PersonId),
   RejectFollower(CommunityId, PersonId),
   UpdateCommunity(Person, Community),
@@ -109,6 +111,7 @@ pub enum SendActivityData {
     report_creator: Person,
     receiver: Either<Site, Community>,
   },
+  UpdateMultiCommunity(MultiCommunity, Person),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

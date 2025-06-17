@@ -9,7 +9,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{SiteOrCommunityOrUser, UserOrCommunity},
+  objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity},
   protocol::tombstone::Tombstone,
 };
 use lemmy_db_schema::{
@@ -139,7 +139,8 @@ async fn check_community_content_fetchable(
   match community.visibility {
     Public | Unlisted => Ok(()),
     Private => {
-      let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
+      let signing_actor =
+        signing_actor::<SiteOrMultiOrCommunityOrUser>(request, None, context).await?;
       if community.local {
         Ok(
           CommunityFollowerView::check_has_followers_from_instance(

@@ -6,9 +6,9 @@ use lemmy_api_utils::{
   utils::is_mod_or_admin,
 };
 use lemmy_db_schema::{source::community::CommunityActions, traits::Followable};
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_community::api::ApproveCommunityPendingFollower;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn post_pending_follows_approve(

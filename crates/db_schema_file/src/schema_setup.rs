@@ -51,7 +51,7 @@ const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
 struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
   #[cfg(test)]
-  diff_checked_migration_name: Option<String>,
+  enable_diff_check: bool,
   options: &'a Options,
 }
 
@@ -80,7 +80,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     #[cfg(test)]
-    if self.diff_checked_migration_name == Some(migration.name().to_string()) {
+    if self.enable_diff_check {
       let before = diff_check::get_dump();
 
       self.run_migration_inner(migration)?;
@@ -89,8 +89,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
       let after = diff_check::get_dump();
 
       diff_check::check_dump_diff(
-        after,
-        before,
+        [&after, &before],
         &format!(
           "These changes need to be applied in migrations/{}/down.sql:",
           migration.name()
@@ -234,7 +233,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
       let after = diff_check::get_dump();
 
-      diff_check::check_dump_diff(before, after, "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
     }
 
     run_replaceable_schema(&mut conn)?;
@@ -284,17 +283,7 @@ fn run_selected_migrations(
     conn,
     options,
     #[cfg(test)]
-    diff_checked_migration_name: options
-      .enable_diff_check
-      .then(|| diesel::migration::MigrationSource::<Pg>::migrations(&migrations()))
-      .transpose()?
-      // Get the migration with the highest version
-      .and_then(|migrations| {
-        migrations
-          .into_iter()
-          .map(|migration| migration.name().to_string())
-          .max()
-      }),
+    enable_diff_check: options.enable_diff_check,
   };
 
   if options.revert {
@@ -344,8 +333,7 @@ mod tests {
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
 
-    // Run all migrations, make sure the newest migration can be redone, and check the newest
-    // down.sql file
+    // Run all migrations, and make sure that changes can be correctly reverted
     assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
 
     // Check for early return
