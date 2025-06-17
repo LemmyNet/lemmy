@@ -45,8 +45,7 @@ use lemmy_routes::{
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  rate_limit::RateLimitCell,
-  rate_limit_new::RateLimit,
+  rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
   VERSION,
@@ -188,7 +187,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  let rate_limit_cell = RateLimitCell::new(rate_limit_config);
   let rate_limit_cell = RateLimit::new(rate_limit_config);
 
   println!(

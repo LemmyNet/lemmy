@@ -1,4 +1,3 @@
-use crate::rate_limit::{ActionType, BucketConfig};
 use actix_extensible_rate_limit::{
   backend::{memory::InMemoryBackend, SimpleInputFunctionBuilder, SimpleInputFuture, SimpleOutput},
   RateLimiter,
@@ -6,6 +5,24 @@ use actix_extensible_rate_limit::{
 use actix_web::dev::ServiceRequest;
 use enum_map::{enum_map, EnumMap};
 use std::time::Duration;
+use strum::{AsRefStr, Display};
+
+#[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
+pub enum ActionType {
+  Message,
+  Register,
+  Post,
+  Image,
+  Comment,
+  Search,
+  ImportUserSettings,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct BucketConfig {
+  pub capacity: u32,
+  pub secs_to_refill: u32,
+}
 
 #[derive(Clone)]
 pub struct RateLimit {
@@ -83,6 +100,7 @@ impl RateLimit {
 
     RateLimiter::builder(self.backends[action_type].clone(), input)
       .add_headers()
+      // TODO: should only rollback on specific errors eg wrong captcha
       .rollback_server_errors()
       .build()
   }

@@ -189,7 +189,7 @@ use lemmy_routes::images::{
     upload_user_banner,
   },
 };
-use lemmy_utils::rate_limit_new::RateLimit;
+use lemmy_utils::rate_limit::RateLimit;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(

@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
 };
 use lemmy_utils::{
-  rate_limit_new::RateLimit,
+  rate_limit::RateLimit,
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
