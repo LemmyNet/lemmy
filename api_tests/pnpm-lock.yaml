@@ -38,6 +38,10 @@ importers:
       lemmy-js-client:
         specifier: 1.0.0-instance-user-blocking.0
         version: 1.0.0-instance-user-blocking.0
+        specifier: 1.0.0-search-query-mandatory.1
+        version: 1.0.0-search-query-mandatory.1
+        specifier: 1.0.0-multi-community.20
+        version: 1.0.0-multi-community.20
       prettier:
         specifier: ^3.5.3
         version: 3.5.3

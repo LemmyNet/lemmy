@@ -1,4 +1,11 @@
-use crate::newtypes::{CommentId, CommunityId, PersonId, PostId, SearchCombinedId};
+use crate::newtypes::{
+  CommentId,
+  CommunityId,
+  MultiCommunityId,
+  PersonId,
+  PostId,
+  SearchCombinedId,
+};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -25,4 +32,5 @@ pub struct SearchCombined {
   pub comment_id: Option<CommentId>,
   pub community_id: Option<CommunityId>,
   pub person_id: Option<PersonId>,
+  pub multi_community_id: Option<MultiCommunityId>,
 }

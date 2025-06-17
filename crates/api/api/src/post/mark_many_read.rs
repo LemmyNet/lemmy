@@ -4,7 +4,7 @@ use lemmy_db_schema::{source::post::PostActions, traits::Readable};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::MarkManyPostsAsRead;
 use lemmy_db_views_site::api::SuccessResponse;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
+use lemmy_utils::{error::LemmyResult, utils::validation::check_api_elements_count};
 
 pub async fn mark_posts_as_read(
   data: Json<MarkManyPostsAsRead>,
@@ -12,9 +12,7 @@ pub async fn mark_posts_as_read(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let post_ids = &data.post_ids;
-  if post_ids.len() > MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?;
-  }
+  check_api_elements_count(post_ids.len())?;
 
   let person_id = local_user_view.person.id;
 
