@@ -14,10 +14,9 @@ use lemmy_db_schema::{
   traits::{Crud, Followable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views_api_misc::SuccessResponse;
 use lemmy_db_views_community::api::CreateOrDeleteMultiCommunityEntry;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{api::SuccessResponse, SiteView};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_multi_community_entry(

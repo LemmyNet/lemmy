@@ -1,5 +1,5 @@
 ALTER TABLE local_site
-    ADD COLUMN enable_nsfw boolean NOT NULL DEFAULT FALSE;
+    ADD COLUMN enable_nsfw boolean NOT NULL DEFAULT TRUE;
 
 UPDATE
     local_site

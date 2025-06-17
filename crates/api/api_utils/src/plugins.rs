@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
-use lemmy_db_views_api_misc::PluginMetadata;
+use lemmy_db_views_site::api::PluginMetadata;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::SETTINGS,

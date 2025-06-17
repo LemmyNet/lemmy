@@ -30,6 +30,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+// TODO: use from_days once stabilized
+// https://github.com/rust-lang/rust/issues/120301
+const DAY: Duration = Duration::from_secs(24 * 60 * 60);
+
 #[cfg(debug_assertions)]
 pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_millis(500);
 #[cfg(not(debug_assertions))]
@@ -43,7 +47,7 @@ pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 #[cfg(debug_assertions)]
 pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_secs(0);
 #[cfg(not(debug_assertions))]
-pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_days(1);
+pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = DAY;
 
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 
@@ -108,10 +112,6 @@ pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
 
   }
 }
-
-// TODO: use from_days once stabilized
-// https://github.com/rust-lang/rust/issues/120301
-const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Calculate how long to sleep until next federation send based on how many
 /// retries have already happened. Uses exponential backoff with maximum of one day. The first

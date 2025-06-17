@@ -4,8 +4,9 @@ use lemmy_api_utils::{
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
-use lemmy_db_views_api_misc::{NotePerson, SuccessResponse};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::api::NotePerson;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs, validation::is_valid_body_field},

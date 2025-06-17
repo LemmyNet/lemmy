@@ -6,8 +6,8 @@ use lemmy_db_schema::source::{
   local_user::{LocalUser, LocalUserUpdateForm},
   site::Site,
 };
-use lemmy_db_views_api_misc::GenerateTotpSecretResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::GenerateTotpSecretResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Generate a new secret for two-factor-authentication. Afterwards you need to call [toggle_totp]
