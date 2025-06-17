@@ -315,6 +315,7 @@ fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing, clippy::unwrap_used)]
 mod tests {
   use super::{
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
@@ -524,23 +525,17 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read users: {}", e))?;
 
     assert_eq!(users.len(), 2);
-    assert_eq!(users.get(0).unwrap().0, TEST_USER_ID_1);
-    assert_eq!(users.get(0).unwrap().1, USER1_NAME);
-    assert_eq!(
-      users.get(0).unwrap().2.clone().unwrap(),
-      USER1_PREFERRED_NAME
-    );
-    assert_eq!(users.get(0).unwrap().3, USER1_ACTOR_ID);
-    assert_eq!(users.get(0).unwrap().4, USER1_PUBLIC_KEY);
+    assert_eq!(users[0].0, TEST_USER_ID_1);
+    assert_eq!(users[0].1, USER1_NAME);
+    assert_eq!(users[0].2.clone().unwrap(), USER1_PREFERRED_NAME);
+    assert_eq!(users[0].3, USER1_ACTOR_ID);
+    assert_eq!(users[0].4, USER1_PUBLIC_KEY);
 
-    assert_eq!(users.get(1).unwrap().0, TEST_USER_ID_2);
-    assert_eq!(users.get(1).unwrap().1, USER2_NAME);
-    assert_eq!(
-      users.get(1).unwrap().2.clone().unwrap(),
-      USER2_PREFERRED_NAME
-    );
-    assert_eq!(users.get(1).unwrap().3, USER2_ACTOR_ID);
-    assert_eq!(users.get(1).unwrap().4, USER2_PUBLIC_KEY);
+    assert_eq!(users[1].0, TEST_USER_ID_2);
+    assert_eq!(users[1].1, USER2_NAME);
+    assert_eq!(users[1].2.clone().unwrap(), USER2_PREFERRED_NAME);
+    assert_eq!(users[1].3, USER2_ACTOR_ID);
+    assert_eq!(users[1].4, USER2_PUBLIC_KEY);
 
     // Check communities
     let communities: Vec<(i32, String, String, String)> = community::table
@@ -554,10 +549,10 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read communities: {}", e))?;
 
     assert_eq!(communities.len(), 1);
-    assert_eq!(communities.get(0).unwrap().0, TEST_COMMUNITY_ID_1);
-    assert_eq!(communities.get(0).unwrap().1, COMMUNITY_NAME);
-    assert_eq!(communities.get(0).unwrap().2, COMMUNITY_ACTOR_ID);
-    assert_eq!(communities.get(0).unwrap().3, COMMUNITY_PUBLIC_KEY);
+    assert_eq!(communities[0].0, TEST_COMMUNITY_ID_1);
+    assert_eq!(communities[0].1, COMMUNITY_NAME);
+    assert_eq!(communities[0].2, COMMUNITY_ACTOR_ID);
+    assert_eq!(communities[0].3, COMMUNITY_PUBLIC_KEY);
 
     let posts: Vec<(i32, String, String, Option<String>, i32, i32)> = post::table
       .select((
@@ -572,12 +567,12 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read posts: {}", e))?;
 
     assert_eq!(posts.len(), 1);
-    assert_eq!(posts.get(0).unwrap().0, TEST_POST_ID_1);
-    assert_eq!(posts.get(0).unwrap().1, POST_NAME);
-    assert_eq!(posts.get(0).unwrap().2, POST_AP_ID);
-    assert_eq!(posts.get(0).unwrap().3.clone().unwrap(), POST_BODY);
-    assert_eq!(posts.get(0).unwrap().4, TEST_COMMUNITY_ID_1);
-    assert_eq!(posts.get(0).unwrap().5, TEST_USER_ID_1);
+    assert_eq!(posts[0].0, TEST_POST_ID_1);
+    assert_eq!(posts[0].1, POST_NAME);
+    assert_eq!(posts[0].2, POST_AP_ID);
+    assert_eq!(posts[0].3.clone().unwrap(), POST_BODY);
+    assert_eq!(posts[0].4, TEST_COMMUNITY_ID_1);
+    assert_eq!(posts[0].5, TEST_USER_ID_1);
 
     let comments: Vec<(i32, String, String, i32, i32, Ltree, i64)> = comment::table
       .select((
@@ -594,27 +589,27 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read comments: {}", e))?;
 
     assert_eq!(comments.len(), 2);
-    assert_eq!(comments.get(0).unwrap().0, TEST_COMMENT_ID_1);
-    assert_eq!(comments.get(0).unwrap().1, COMMENT1_CONTENT);
-    assert_eq!(comments.get(0).unwrap().2, COMMENT1_AP_ID);
-    assert_eq!(comments.get(0).unwrap().3, TEST_POST_ID_1);
-    assert_eq!(comments.get(0).unwrap().4, TEST_USER_ID_2);
+    assert_eq!(comments[0].0, TEST_COMMENT_ID_1);
+    assert_eq!(comments[0].1, COMMENT1_CONTENT);
+    assert_eq!(comments[0].2, COMMENT1_AP_ID);
+    assert_eq!(comments[0].3, TEST_POST_ID_1);
+    assert_eq!(comments[0].4, TEST_USER_ID_2);
     assert_eq!(
-      comments.get(0).unwrap().5,
+      comments[0].5,
       Ltree(format!("0.{}", TEST_COMMENT_ID_1).to_string())
     );
-    assert_eq!(comments.get(0).unwrap().6, 1); // One upvote
+    assert_eq!(comments[0].6, 1); // One upvote
 
-    assert_eq!(comments.get(1).unwrap().0, TEST_COMMENT_ID_2);
-    assert_eq!(comments.get(1).unwrap().1, COMMENT2_CONTENT);
-    assert_eq!(comments.get(1).unwrap().2, COMMENT2_AP_ID);
-    assert_eq!(comments.get(1).unwrap().3, TEST_POST_ID_1);
-    assert_eq!(comments.get(1).unwrap().4, TEST_USER_ID_1);
+    assert_eq!(comments[1].0, TEST_COMMENT_ID_2);
+    assert_eq!(comments[1].1, COMMENT2_CONTENT);
+    assert_eq!(comments[1].2, COMMENT2_AP_ID);
+    assert_eq!(comments[1].3, TEST_POST_ID_1);
+    assert_eq!(comments[1].4, TEST_USER_ID_1);
     assert_eq!(
-      comments.get(1).unwrap().5,
+      comments[1].5,
       Ltree(format!("0.{}.{}", TEST_COMMENT_ID_1, TEST_COMMENT_ID_2).to_string())
     );
-    assert_eq!(comments.get(1).unwrap().6, 0); // Zero upvotes
+    assert_eq!(comments[1].6, 0); // Zero upvotes
 
     // Check comment replies
     let replies: Vec<(i32, i32)> = comment_reply::table
@@ -624,10 +619,10 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;
 
     assert_eq!(replies.len(), 2);
-    assert_eq!(replies.get(0).unwrap().0, TEST_COMMENT_ID_1);
-    assert_eq!(replies.get(0).unwrap().1, TEST_USER_ID_1);
-    assert_eq!(replies.get(1).unwrap().0, TEST_COMMENT_ID_2);
-    assert_eq!(replies.get(1).unwrap().1, TEST_USER_ID_2);
+    assert_eq!(replies[0].0, TEST_COMMENT_ID_1);
+    assert_eq!(replies[0].1, TEST_USER_ID_1);
+    assert_eq!(replies[1].0, TEST_COMMENT_ID_2);
+    assert_eq!(replies[1].1, TEST_USER_ID_2);
 
     Ok(())
   }
