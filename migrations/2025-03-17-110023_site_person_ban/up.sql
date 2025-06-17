@@ -5,7 +5,7 @@ ALTER TABLE instance_actions
     ADD COLUMN ban_expires timestamptz;
 
 ALTER TABLE mod_ban
-    ADD COLUMN instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE;
 
 UPDATE
     mod_ban

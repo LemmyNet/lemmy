@@ -3,9 +3,9 @@
 CREATE TABLE report_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE,
-    private_message_report_id int UNIQUE REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE,
+    post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    private_message_report_id int UNIQUE REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     -- Make sure only one of the columns is not null
     CHECK (num_nonnulls (post_report_id, comment_report_id, private_message_report_id) = 1)
 );
