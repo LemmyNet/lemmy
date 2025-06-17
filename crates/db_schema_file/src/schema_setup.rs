@@ -320,6 +320,7 @@ mod tests {
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
     *,
   };
+  use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
   // The number of migrations that should be run to set up some test data.
@@ -367,8 +368,6 @@ mod tests {
   const TEST_COMMENT_ID_2: i32 = 102;
   const COMMENT2_CONTENT: &str = "Reply";
   const COMMENT2_AP_ID: &str = "https://fedi.example/comment/12346";
-
-  const TEST_COMMENT_LIKE_ID: i32 = 101;
 
   #[test]
   #[serial]
@@ -462,6 +461,12 @@ mod tests {
       TEST_USER_ID_1
     ))?;
 
+    conn.batch_execute(&format!(
+      "INSERT INTO community_moderator (community_id, user_id) \
+          VALUES ({}, {})",
+      TEST_COMMUNITY_ID_1, TEST_USER_ID_1
+    ))?;
+
     // Post
     conn.batch_execute(&format!(
       "INSERT INTO post (id, name, url, body, creator_id, community_id, ap_id) \
@@ -494,34 +499,48 @@ mod tests {
     ))?;
 
     conn.batch_execute(&format!(
-      "INSERT INTO comment_like (id, user_id, comment_id, post_id, score) \
-           VALUES ({}, {}, {}, {}, {})",
-      TEST_COMMENT_LIKE_ID, TEST_USER_ID_1, TEST_COMMENT_ID_1, TEST_POST_ID_1, 1
+      "INSERT INTO comment_like (user_id, comment_id, post_id, score) \
+           VALUES ({}, {}, {}, {})",
+      TEST_USER_ID_1, TEST_COMMENT_ID_1, TEST_POST_ID_1, 1
     ))?;
 
     Ok(())
   }
 
   fn check_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
-    use crate::schema::{comment, community, person, post};
+    use crate::schema::{comment, comment_reply, community, person, post};
 
     // Check users
-    let users: Vec<(i32, String, String, String)> = person::table
-      .select((person::id, person::name, person::ap_id, person::public_key))
+    let users: Vec<(i32, String, Option<String>, String, String)> = person::table
+      .select((
+        person::id,
+        person::name,
+        person::display_name,
+        person::ap_id,
+        person::public_key,
+      ))
       .order_by(person::id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read users: {}", e))?;
 
     assert_eq!(users.len(), 2);
-    assert_eq!(users[0].0, TEST_USER_ID_1);
-    assert_eq!(users[0].1, USER1_NAME);
-    assert_eq!(users[0].2, USER1_ACTOR_ID);
-    assert_eq!(users[0].3, USER1_PUBLIC_KEY);
+    assert_eq!(users.get(0).unwrap().0, TEST_USER_ID_1);
+    assert_eq!(users.get(0).unwrap().1, USER1_NAME);
+    assert_eq!(
+      users.get(0).unwrap().2.clone().unwrap(),
+      USER1_PREFERRED_NAME
+    );
+    assert_eq!(users.get(0).unwrap().3, USER1_ACTOR_ID);
+    assert_eq!(users.get(0).unwrap().4, USER1_PUBLIC_KEY);
 
-    assert_eq!(users[1].0, TEST_USER_ID_2);
-    assert_eq!(users[1].1, USER2_NAME);
-    assert_eq!(users[1].2, USER2_ACTOR_ID);
-    assert_eq!(users[1].3, USER2_PUBLIC_KEY);
+    assert_eq!(users.get(1).unwrap().0, TEST_USER_ID_2);
+    assert_eq!(users.get(1).unwrap().1, USER2_NAME);
+    assert_eq!(
+      users.get(1).unwrap().2.clone().unwrap(),
+      USER2_PREFERRED_NAME
+    );
+    assert_eq!(users.get(1).unwrap().3, USER2_ACTOR_ID);
+    assert_eq!(users.get(1).unwrap().4, USER2_PUBLIC_KEY);
 
     // Check communities
     let communities: Vec<(i32, String, String, String)> = community::table
@@ -531,15 +550,14 @@ mod tests {
         community::ap_id,
         community::public_key,
       ))
-      .order_by(community::id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read communities: {}", e))?;
 
     assert_eq!(communities.len(), 1);
-    assert_eq!(communities[0].0, TEST_COMMUNITY_ID_1);
-    assert_eq!(communities[0].1, COMMUNITY_NAME);
-    assert_eq!(communities[0].2, COMMUNITY_ACTOR_ID);
-    assert_eq!(communities[0].3, COMMUNITY_PUBLIC_KEY);
+    assert_eq!(communities.get(0).unwrap().0, TEST_COMMUNITY_ID_1);
+    assert_eq!(communities.get(0).unwrap().1, COMMUNITY_NAME);
+    assert_eq!(communities.get(0).unwrap().2, COMMUNITY_ACTOR_ID);
+    assert_eq!(communities.get(0).unwrap().3, COMMUNITY_PUBLIC_KEY);
 
     let posts: Vec<(i32, String, String, Option<String>, i32, i32)> = post::table
       .select((
@@ -554,39 +572,62 @@ mod tests {
       .map_err(|e| anyhow!("Failed to read posts: {}", e))?;
 
     assert_eq!(posts.len(), 1);
-    assert_eq!(posts[0].0, TEST_POST_ID_1);
-    assert_eq!(posts[0].1, POST_NAME);
-    assert_eq!(posts[0].2, POST_AP_ID);
-    assert_eq!(posts[0].3.clone().unwrap(), POST_BODY);
-    assert_eq!(posts[0].4, TEST_COMMUNITY_ID_1);
-    assert_eq!(posts[0].5, TEST_USER_ID_1);
+    assert_eq!(posts.get(0).unwrap().0, TEST_POST_ID_1);
+    assert_eq!(posts.get(0).unwrap().1, POST_NAME);
+    assert_eq!(posts.get(0).unwrap().2, POST_AP_ID);
+    assert_eq!(posts.get(0).unwrap().3.clone().unwrap(), POST_BODY);
+    assert_eq!(posts.get(0).unwrap().4, TEST_COMMUNITY_ID_1);
+    assert_eq!(posts.get(0).unwrap().5, TEST_USER_ID_1);
 
-    let comments: Vec<(i32, String, String, i32, i32, i64)> = comment::table
+    let comments: Vec<(i32, String, String, i32, i32, Ltree, i64)> = comment::table
       .select((
         comment::id,
         comment::content,
         comment::ap_id,
         comment::post_id,
         comment::creator_id,
+        comment::path,
         comment::upvotes,
       ))
+      .order_by(comment::id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comments: {}", e))?;
 
     assert_eq!(comments.len(), 2);
-    assert_eq!(comments[0].0, TEST_COMMENT_ID_1);
-    assert_eq!(comments[0].1, COMMENT1_CONTENT);
-    assert_eq!(comments[0].2, COMMENT1_AP_ID);
-    assert_eq!(comments[0].3, TEST_POST_ID_1);
-    assert_eq!(comments[0].4, TEST_USER_ID_2);
-    assert_eq!(comments[0].5, 1);
+    assert_eq!(comments.get(0).unwrap().0, TEST_COMMENT_ID_1);
+    assert_eq!(comments.get(0).unwrap().1, COMMENT1_CONTENT);
+    assert_eq!(comments.get(0).unwrap().2, COMMENT1_AP_ID);
+    assert_eq!(comments.get(0).unwrap().3, TEST_POST_ID_1);
+    assert_eq!(comments.get(0).unwrap().4, TEST_USER_ID_2);
+    assert_eq!(
+      comments.get(0).unwrap().5,
+      Ltree(format!("0.{}", TEST_COMMENT_ID_1).to_string())
+    );
+    assert_eq!(comments.get(0).unwrap().6, 1); // One upvote
 
-    assert_eq!(comments[1].0, TEST_COMMENT_ID_2);
-    assert_eq!(comments[1].1, COMMENT2_CONTENT);
-    assert_eq!(comments[1].2, COMMENT2_AP_ID);
-    assert_eq!(comments[1].3, TEST_POST_ID_1);
-    assert_eq!(comments[1].4, TEST_USER_ID_1);
-    assert_eq!(comments[1].5, 0);
+    assert_eq!(comments.get(1).unwrap().0, TEST_COMMENT_ID_2);
+    assert_eq!(comments.get(1).unwrap().1, COMMENT2_CONTENT);
+    assert_eq!(comments.get(1).unwrap().2, COMMENT2_AP_ID);
+    assert_eq!(comments.get(1).unwrap().3, TEST_POST_ID_1);
+    assert_eq!(comments.get(1).unwrap().4, TEST_USER_ID_1);
+    assert_eq!(
+      comments.get(1).unwrap().5,
+      Ltree(format!("0.{}.{}", TEST_COMMENT_ID_1, TEST_COMMENT_ID_2).to_string())
+    );
+    assert_eq!(comments.get(1).unwrap().6, 0); // Zero upvotes
+
+    // Check comment replies
+    let replies: Vec<(i32, i32)> = comment_reply::table
+      .select((comment_reply::comment_id, comment_reply::recipient_id))
+      .order_by(comment_reply::comment_id)
+      .load(conn)
+      .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;
+
+    assert_eq!(replies.len(), 2);
+    assert_eq!(replies.get(0).unwrap().0, TEST_COMMENT_ID_1);
+    assert_eq!(replies.get(0).unwrap().1, TEST_USER_ID_1);
+    assert_eq!(replies.get(1).unwrap().0, TEST_COMMENT_ID_2);
+    assert_eq!(replies.get(1).unwrap().1, TEST_USER_ID_2);
 
     Ok(())
   }
