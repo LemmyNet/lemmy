@@ -410,12 +410,10 @@ impl PersonActions {
     previous_like_score: i16,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let (upvotes_inc, downvotes_inc) = if previous_like_score == 1 {
-      (-1, 0)
-    } else if previous_like_score == -1 {
-      (0, -1)
-    } else {
-      (0, 0)
+    let (upvotes_inc, downvotes_inc) = match previous_like_score {
+        1 => (-1, 0),
+        -1 => (0, -1),
+        _ => (0, 0)
     };
     let voted_at = Utc::now();
 
