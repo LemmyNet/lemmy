@@ -66,17 +66,19 @@ pub async fn like_post(
     .ok();
   }
 
-  like_form = plugin_hook_before("before_post_vote", like_form).await?;
-  let like = PostActions::like(&mut context.pool(), &like_form).await?;
-  PersonActions::like(
-    &mut context.pool(),
-    my_person_id,
-    orig_post.creator.id,
-    like_form.like_score,
-  )
-  .await?;
+  if like_form.like_score != 0 {
+    like_form = plugin_hook_before("before_post_vote", like_form).await?;
+    let like = PostActions::like(&mut context.pool(), &like_form).await?;
+    PersonActions::like(
+      &mut context.pool(),
+      my_person_id,
+      orig_post.creator.id,
+      like_form.like_score,
+    )
+    .await?;
 
-  plugin_hook_after("after_post_vote", &like)?;
+    plugin_hook_after("after_post_vote", &like)?;
+  }
 
   // Mark Post Read
   let read_form = PostReadForm::new(post_id, my_person_id);

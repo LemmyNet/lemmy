@@ -88,17 +88,19 @@ pub async fn like_comment(
     .ok();
   }
 
-  like_form = plugin_hook_before("before_comment_vote", like_form).await?;
-  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-  PersonActions::like(
-    &mut context.pool(),
-    my_person_id,
-    orig_comment.creator.id,
-    like_form.like_score,
-  )
-  .await?;
+  if like_form.like_score != 0 {
+    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+    PersonActions::like(
+      &mut context.pool(),
+      my_person_id,
+      orig_comment.creator.id,
+      like_form.like_score,
+    )
+    .await?;
 
-  plugin_hook_after("after_comment_vote", &like)?;
+    plugin_hook_after("after_comment_vote", &like)?;
+  }
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

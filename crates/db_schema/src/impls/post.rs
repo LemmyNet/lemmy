@@ -308,6 +308,7 @@ impl Likeable for PostActions {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)
   }
+
   async fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
