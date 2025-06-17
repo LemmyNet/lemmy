@@ -156,7 +156,6 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_db_schema::source::local_site_rate_limit::LocalSiteRateLimit;
 use lemmy_routes::{
   images::{
     delete::{
@@ -183,17 +182,11 @@ use lemmy_routes::{
   },
   middleware::rate_limit::RateLimit,
 };
-use lemmy_utils::rate_limit::RateLimitCell;
 
-pub fn config(
-  cfg: &mut ServiceConfig,
-  rate_limit: &RateLimitCell,
-  rate_limit_new: &LocalSiteRateLimit,
-) {
-  let rate_limit_new = RateLimit::new(rate_limit_new.clone());
+pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     scope("/api/v4")
-      .wrap(rate_limit_new.message())
+      .wrap(rate_limit.message())
       // Site
       .service(
         scope("/site")

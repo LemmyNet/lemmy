@@ -32,6 +32,7 @@ use lemmy_routes::{
   feeds,
   middleware::{
     idempotency::{IdempotencyMiddleware, IdempotencySet},
+    rate_limit::RateLimit,
     session::SessionMiddleware,
   },
   nodeinfo,
@@ -341,6 +342,7 @@ fn create_http_server(
   let server = HttpServer::new(move || {
     let context: LemmyContext = federation_config.deref().clone();
     let rate_limit_cell = federation_config.rate_limit_cell().clone();
+    let rate_limit = RateLimit::new(site_view.local_site_rate_limit.clone());
 
     let cors_config = cors_config(&settings);
     let app = App::new()
@@ -365,7 +367,7 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes::config(cfg, &rate_limit_cell, &site_view.local_site_rate_limit))
+      .configure(|cfg| api_routes::config(cfg, &rate_limit))
       .configure(|cfg| {
         if site_view.local_site.federation_enabled {
           lemmy_apub::http::routes::config(cfg);
@@ -376,7 +378,7 @@ fn create_http_server(
       .configure(nodeinfo::config)
       .service(
         scope("/sitemap.xml")
-          .wrap(rate_limit_cell.message())
+          .wrap(rate_limit.message())
           .route("", get().to(get_sitemap)),
       )
   })

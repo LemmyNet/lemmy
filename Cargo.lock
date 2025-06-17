@@ -94,8 +94,6 @@ dependencies = [
 [[package]]
 name = "actix-extensible-rate-limit"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65f69685bde52e3c1d9ec47aa42ae4eca7f27c04661774423b68b26a06757181"
 dependencies = [
  "actix-web",
  "dashmap",
@@ -3875,6 +3873,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel-async",
+ "enum-map",
  "futures",
  "futures-util",
  "http 1.2.0",
@@ -3894,6 +3893,7 @@ dependencies = [
  "rss",
  "serde",
  "serial_test",
+ "strum",
  "tokio",
  "tracing",
  "url",
