@@ -32,7 +32,6 @@ use lemmy_routes::{
   feeds,
   middleware::{
     idempotency::{IdempotencyMiddleware, IdempotencySet},
-    rate_limit::RateLimit,
     session::SessionMiddleware,
   },
   nodeinfo,
@@ -47,6 +46,7 @@ use lemmy_routes::{
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,
+  rate_limit_new::RateLimit,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
   VERSION,
@@ -189,6 +189,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
+  let rate_limit_cell = RateLimit::new(rate_limit_config);
 
   println!(
     "Starting HTTP server at {}:{}",
@@ -339,8 +340,7 @@ fn create_http_server(
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
     let context: LemmyContext = federation_config.deref().clone();
-    let rate_limit_cell = federation_config.rate_limit_cell().clone();
-    let rate_limit = RateLimit::new(site_view.local_site_rate_limit.clone());
+    let rate_limit = federation_config.rate_limit_cell().clone();
 
     let cors_config = cors_config(&settings);
     let app = App::new()

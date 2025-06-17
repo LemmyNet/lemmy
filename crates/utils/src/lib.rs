@@ -5,11 +5,11 @@ cfg_if! {
   if #[cfg(feature = "full")] {
     pub mod cache_header;
     #[allow(clippy::as_conversions)]
-    pub mod rate_limit;
+    pub mod rate_limit_new;
     pub mod request;
     pub mod response;
     pub mod settings;
-    pub mod utils;
+    pub mod utils;pub mod rate_limit;
   }
 }
 

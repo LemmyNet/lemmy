@@ -166,32 +166,30 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::{
-  images::{
-    delete::{
-      delete_community_banner,
-      delete_community_icon,
-      delete_image,
-      delete_image_admin,
-      delete_site_banner,
-      delete_site_icon,
-      delete_user_avatar,
-      delete_user_banner,
-    },
-    download::{get_image, image_proxy},
-    pictrs_health,
-    upload::{
-      upload_community_banner,
-      upload_community_icon,
-      upload_image,
-      upload_site_banner,
-      upload_site_icon,
-      upload_user_avatar,
-      upload_user_banner,
-    },
+use lemmy_routes::images::{
+  delete::{
+    delete_community_banner,
+    delete_community_icon,
+    delete_image,
+    delete_image_admin,
+    delete_site_banner,
+    delete_site_icon,
+    delete_user_avatar,
+    delete_user_banner,
   },
-  middleware::rate_limit::RateLimit,
+  download::{get_image, image_proxy},
+  pictrs_health,
+  upload::{
+    upload_community_banner,
+    upload_community_icon,
+    upload_image,
+    upload_site_banner,
+    upload_site_icon,
+    upload_user_avatar,
+    upload_user_banner,
+  },
 };
+use lemmy_utils::rate_limit_new::RateLimit;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(

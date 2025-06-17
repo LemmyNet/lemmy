@@ -3904,7 +3904,6 @@ version = "1.0.0-alpha.5"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
- "actix-extensible-rate-limit",
  "actix-web",
  "actix-web-prom",
  "anyhow",
@@ -3976,6 +3975,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "actix-extensible-rate-limit",
  "actix-web",
  "anyhow",
  "cfg-if",
