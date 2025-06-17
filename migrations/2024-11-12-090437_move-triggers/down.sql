@@ -48,8 +48,7 @@ BEGIN
             p.community_id
         FROM
             comment_like cl
-            INNER JOIN comment c ON cl.comment_id = comment.id
-            INNER JOIN post p ON comment.post_id = p.id
+            INNER JOIN post p ON cl.post_id = p.id
             INNER JOIN person pe ON cl.person_id = pe.id
         WHERE
             cl.published > ('now'::timestamp - i::interval)

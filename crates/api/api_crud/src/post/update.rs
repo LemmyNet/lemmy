@@ -189,7 +189,7 @@ pub async fn update_post(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),
         |post| Some(SendActivityData::CreatePost(post)),
-        context.reset_request_count(),
+        context.clone(),
       )
       .await?;
     }
@@ -199,7 +199,7 @@ pub async fn update_post(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),
         |post| Some(SendActivityData::UpdatePost(post)),
-        context.reset_request_count(),
+        context.clone(),
       )
       .await?
     }

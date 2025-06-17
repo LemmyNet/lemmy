@@ -32,6 +32,7 @@ import {
   unfollows,
   getMyUser,
   userBlockInstance,
+  resolveBetaCommunity,
   reportCommunity,
   randomString,
   listReports,
@@ -41,8 +42,11 @@ import {
   CommunityReport,
   CommunityReportView,
   EditCommunity,
+  FollowMultiCommunity,
   GetPosts,
   LemmyError,
+  MultiCommunity,
+  MultiCommunityView,
   ReportCombinedView,
   ResolveCommunityReport,
   Search,
@@ -684,7 +688,84 @@ test("Community name with non-ascii chars", async () => {
     community_name: fediName,
   };
   let posts = await beta.getPosts(form);
+  expect(posts.posts.length).toBe(1);
   expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
+});
+
+test("Multi-community", async () => {
+  // create multi
+  let res = await alpha.createMultiCommunity({ name: "multi-comm" });
+  let myUser = await getMyUser(alpha);
+  expect(res.multi_community_view.multi.name).toBe("multi-comm");
+  expect(res.multi_community_view.multi.ap_id).toBe(
+    "http://lemmy-alpha:8541/m/multi-comm",
+  );
+  expect(res.multi_community_view.owner.id).toBe(
+    myUser.local_user_view.person.id,
+  );
+
+  // add initial community
+  let community1 = (await createCommunity(alpha)).community_view.community;
+  let success1 = await alpha.createMultiCommunityEntry({
+    id: res.multi_community_view.multi.id,
+    community_id: community1.id,
+  });
+  expect(success1.success).toBeTruthy();
+
+  // resolve over federation
+  let betaMulti = (
+    await beta.resolveObject({ q: res.multi_community_view.multi.ap_id })
+  ).results[0] as MultiCommunityView;
+  expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
+
+  var betaRes = await waitUntil(
+    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    m => m.communities.length == 1,
+  );
+  expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
+
+  // follow multi over federation
+  let form: FollowMultiCommunity = {
+    multi_community_id: betaMulti.multi.id,
+    follow: true,
+  };
+  await beta.followMultiCommunity(form);
+
+  let followed = await waitUntil(
+    () => beta.listMultiCommunities({ followed_only: true }),
+    m => m.multi_communities.length == 1,
+  );
+  expect(followed.multi_communities[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
+  await delay();
+
+  // add community to multi
+  let community2 = await resolveBetaCommunity(alpha);
+  let success2 = await alpha.createMultiCommunityEntry({
+    id: res.multi_community_view.multi.id,
+    community_id: community2!.community.id,
+  });
+  expect(success2.success).toBeTruthy();
+
+  // federated to beta
+  betaRes = await waitUntil(
+    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    m => m.communities.length == 2,
+  );
+  let ap_ids = betaRes.communities.map(c => c.community.ap_id);
+  expect(ap_ids.includes(community2!.community.ap_id)).toBeTruthy();
+
+  let post = await createPost(alpha, community2!.community.id);
+
+  let multi_post_listing = await waitUntil(
+    () =>
+      beta.getPosts({
+        multi_community_id: betaRes.multi_community_view.multi.id,
+      }),
+    p => p.posts.length == 1,
+  );
+  expect(multi_post_listing.posts[0].post.ap_id).toBe(
+    post.post_view.post.ap_id,
+  );
 });
 
 function checkCommunityReportName(

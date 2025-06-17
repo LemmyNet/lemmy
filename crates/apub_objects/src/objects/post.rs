@@ -299,7 +299,7 @@ impl Object for ApubPost {
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
     let post_ = post.clone();
-    let context_ = context.reset_request_count();
+    let context_ = context.clone();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.

@@ -4,9 +4,10 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use diesel::NotFound;
+use either::Either::*;
 use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{SiteOrCommunityOrUser, UserOrCommunity};
+use lemmy_apub_objects::objects::SiteOrMultiOrCommunityOrUser;
 use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
@@ -65,10 +66,11 @@ where
   }
 }
 
-pub(crate) fn get_instance_id(s: &SiteOrCommunityOrUser) -> InstanceId {
+pub(crate) fn get_instance_id(s: &SiteOrMultiOrCommunityOrUser) -> InstanceId {
   match s {
-    SiteOrCommunityOrUser::Left(s) => s.instance_id,
-    SiteOrCommunityOrUser::Right(UserOrCommunity::Left(u)) => u.instance_id,
-    SiteOrCommunityOrUser::Right(UserOrCommunity::Right(c)) => c.instance_id,
+    Left(Left(s)) => s.instance_id,
+    Left(Right(m)) => m.instance_id,
+    Right(Left(u)) => u.instance_id,
+    Right(Right(c)) => c.instance_id,
   }
 }
