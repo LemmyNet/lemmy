@@ -1,8 +1,4 @@
-use crate::{
-  activity_lists::SharedInboxActivities,
-  fetcher::get_instance_id,
-  insert_received_activity,
-};
+use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
 use activitypub_federation::{
   actix_web::{
     inbox::{receive_activity_with_hook, ReceiveActivityHook},
@@ -21,7 +17,10 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
-  source::{activity::SentActivity, community::Community},
+  source::{
+    activity::{ReceivedActivity, SentActivity},
+    community::Community,
+  },
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -32,6 +31,7 @@ use lemmy_utils::{
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
+use tracing::debug;
 use url::Url;
 
 mod comment;
@@ -70,7 +70,10 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
     _actor: &UserOrCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    insert_received_activity(activity.id(), &context).await?;
+    // Store received activities in the database. This ensures that the same activity doesn't get
+    // received and processed more than once, which would be a waste of resources.
+    debug!("Received activity {}", activity.id().to_string());
+    ReceivedActivity::create(&mut context.pool(), &activity.id().clone().into()).await?;
 
     // TODO: this could also take the actor as param, but lifetimes and serde derives are tricky
     // TODO: this is really a before hook, but doesnt allow modifying the data. it could use a

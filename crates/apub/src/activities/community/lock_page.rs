@@ -6,7 +6,6 @@ use crate::{
     verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::lock_page::{LockPage, LockType, UndoLockPage},
 };
 use activitypub_federation::{
@@ -59,7 +58,6 @@ impl ActivityHandler for LockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_received_activity(&self.id, context).await?;
     let locked = Some(true);
     let reason = self.summary;
     let form = PostUpdateForm {
@@ -104,7 +102,6 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_received_activity(&self.id, context).await?;
     let locked = Some(false);
     let reason = self.summary;
     let form = PostUpdateForm {
