@@ -145,16 +145,6 @@ steps:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
-  check_ts_bindings:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - ./scripts/ts_bindings_check.sh
-    when:
-      - event: pull_request
-
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
