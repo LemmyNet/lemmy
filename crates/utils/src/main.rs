@@ -28,12 +28,13 @@ fn config_to_string() -> String {
 }
 
 #[test]
-fn test_config_defaults_updated() {
-  let current_config = std::fs::read_to_string("../../config/defaults.hjson").unwrap();
+fn test_config_defaults_updated() -> lemmy_utils::error::LemmyResult<()> {
+  let current_config = std::fs::read_to_string("../../config/defaults.hjson")?;
   let mut updated_config = config_to_string();
   updated_config.push('\n');
   let res = diffy::create_patch(&current_config, &updated_config);
   if !res.hunks().is_empty() {
-    panic!("{}", res.to_string());
+    panic!("{}", res);
   }
+  Ok(())
 }

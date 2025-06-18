@@ -69,7 +69,7 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
   });
   let patch = diffy::create_patch(&sorted_statements_in_0, &sorted_statements_in_1);
   if !patch.hunks().is_empty() {
-    panic!("{label_of_change_from_0_to_1}\n\n{}", patch.to_string());
+    panic!("{label_of_change_from_0_to_1}\n\n{}", patch);
   }
 }
 
