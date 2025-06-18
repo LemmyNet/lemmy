@@ -234,6 +234,8 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
       let after = diff_check::get_dump();
 
       diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+
+      diff_check::deferr_constraint_check(&after);
     }
 
     run_replaceable_schema(&mut conn)?;
