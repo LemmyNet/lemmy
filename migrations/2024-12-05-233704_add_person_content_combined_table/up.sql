@@ -67,3 +67,7 @@ FROM
 WHERE
     saved IS NOT NULL;
 
+ALTER TABLE person_content_combined
+    ALTER CONSTRAINT person_content_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_content_combined_comment_id_fkey NOT DEFERRABLE;
+

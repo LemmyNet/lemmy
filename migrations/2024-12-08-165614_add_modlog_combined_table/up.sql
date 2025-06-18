@@ -199,5 +199,21 @@ FROM
 
 -- Make sure only one of the columns is not null
 ALTER TABLE modlog_combined
-    ADD CONSTRAINT modlog_combined_check CHECK (num_nonnulls (admin_allow_instance_id, admin_block_instance_id, admin_purge_comment_id, admin_purge_community_id, admin_purge_person_id, admin_purge_post_id, mod_add_id, mod_add_community_id, mod_ban_id, mod_ban_from_community_id, mod_feature_post_id, mod_hide_community_id, mod_lock_post_id, mod_remove_comment_id, mod_remove_community_id, mod_remove_post_id, mod_transfer_community_id) = 1);
+    ADD CONSTRAINT modlog_combined_check CHECK (num_nonnulls (admin_allow_instance_id, admin_block_instance_id, admin_purge_comment_id, admin_purge_community_id, admin_purge_person_id, admin_purge_post_id, mod_add_id, mod_add_community_id, mod_ban_id, mod_ban_from_community_id, mod_feature_post_id, mod_hide_community_id, mod_lock_post_id, mod_remove_comment_id, mod_remove_community_id, mod_remove_post_id, mod_transfer_community_id) = 1),
+    ALTER CONSTRAINT modlog_combined_admin_allow_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_block_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_add_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_add_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_ban_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_ban_from_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_feature_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_hide_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_lock_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_transfer_community_id_fkey NOT DEFERRABLE;
 

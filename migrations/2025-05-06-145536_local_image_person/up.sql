@@ -25,3 +25,7 @@ ALTER TABLE local_image
 
 CREATE INDEX idx_image_upload_person_id ON local_image (person_id);
 
+ALTER TABLE local_image
+    ALTER CONSTRAINT local_image_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT local_image_thumbnail_for_post_id_fkey NOT DEFERRABLE;
+

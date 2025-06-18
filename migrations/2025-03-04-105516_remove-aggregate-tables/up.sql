@@ -73,7 +73,8 @@ WHERE
     post.id = pa.post_id;
 
 ALTER TABLE post
-    ALTER COLUMN instance_id SET NOT NULL;
+    ALTER COLUMN instance_id SET NOT NULL,
+    ALTER CONSTRAINT post_instance_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
 

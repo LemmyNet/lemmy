@@ -78,5 +78,9 @@ FROM
 
 -- Make sure only one of the columns is not null
 ALTER TABLE search_combined
-    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1);
+    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1),
+    ALTER CONSTRAINT search_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_person_id_fkey NOT DEFERRABLE;
 

@@ -65,7 +65,15 @@ SELECT
 FROM
     private_message;
 
+ALTER TABLE person_post_mention
+    ALTER CONSTRAINT person_post_mention_recipient_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_post_mention_post_id_fkey NOT DEFERRABLE;
+
 -- Make sure only one of the columns is not null
 ALTER TABLE inbox_combined
-    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
+    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1),
+    ALTER CONSTRAINT inbox_combined_comment_reply_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT inbox_combined_person_comment_mention_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT inbox_combined_person_post_mention_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT inbox_combined_private_message_id_fkey NOT DEFERRABLE;
 

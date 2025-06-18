@@ -47,5 +47,8 @@ WHERE
 ALTER TABLE person_liked_combined
     ADD CONSTRAINT person_liked_combined_person_id_comment_id_key UNIQUE (person_id, comment_id),
     ADD CONSTRAINT person_liked_combined_person_id_post_id_key UNIQUE (person_id, post_id),
-    ADD CONSTRAINT person_liked_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
+    ADD CONSTRAINT person_liked_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1),
+    ALTER CONSTRAINT person_liked_combined_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_liked_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_liked_combined_comment_id_fkey NOT DEFERRABLE;
 

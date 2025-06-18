@@ -40,3 +40,8 @@ SELECT
 FROM
     private_message_report;
 
+ALTER TABLE report_combined
+    ALTER CONSTRAINT report_combined_post_report_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT report_combined_comment_report_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT report_combined_private_message_report_id_fkey NOT DEFERRABLE;
+

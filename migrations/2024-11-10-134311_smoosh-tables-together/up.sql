@@ -438,3 +438,37 @@ ALTER TABLE post_actions
     ADD CONSTRAINT post_actions_check_read_comments CHECK ((read_comments IS NULL) = (read_comments_amount IS NULL)),
     ADD CONSTRAINT post_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
 
+-- Remove deferrable to restore original db schema
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_community_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_follow_approver_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_actions_comment_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_actions_instance_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_actions_target_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_actions_post_id_fkey NOT DEFERRABLE;
+
