@@ -99,7 +99,7 @@ impl RateLimit {
 
     RateLimiter::builder(self.backends[action_type].clone(), input)
       .add_headers()
-      // TODO: should only rollback on specific errors eg wrong captcha
+      // rollback rate limit on any error 500
       .rollback_server_errors()
       .build()
   }
@@ -182,10 +182,8 @@ fn new_input(
       #[allow(clippy::expect_used)]
       let config = configs.read().expect("read rwlock")[action_type];
 
-      // TODO: rename rust and db fields to be consistent
       let interval = Duration::from_secs(config.secs_to_refill.into());
       let max_requests = config.capacity.into();
-      dbg!(&key, interval, max_requests);
       Ok(SimpleInput {
         interval,
         max_requests,
