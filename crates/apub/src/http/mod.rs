@@ -1,20 +1,26 @@
 use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
 use activitypub_federation::{
-  actix_web::{inbox::receive_activity, signing_actor},
+  actix_web::{
+    inbox::{receive_activity_with_hook, ReceiveActivityHook},
+    signing_actor,
+  },
   config::Data,
   protocol::context::WithContext,
-  traits::Actor,
+  traits::{ActivityHandler, Actor},
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
 use lemmy_apub_objects::{
   objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity},
   protocol::tombstone::Tombstone,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
-  source::{activity::SentActivity, community::Community},
+  source::{
+    activity::{ReceivedActivity, SentActivity},
+    community::Community,
+  },
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -25,6 +31,7 @@ use lemmy_utils::{
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
+use tracing::debug;
 use url::Url;
 
 mod comment;
@@ -42,7 +49,9 @@ pub async fn shared_inbox(
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let receive_fut =
-    receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data);
+    receive_activity_with_hook::<SharedInboxActivities, UserOrCommunity, LemmyContext>(
+      request, body, Dummy, &data,
+    );
   // Set a timeout shorter than `REQWEST_TIMEOUT` for processing incoming activities. This is to
   // avoid taking a long time to process an incoming activity when a required data fetch times out.
   // In this case our own instance would timeout and be marked as dead by the sender. Better to
@@ -50,6 +59,31 @@ pub async fn shared_inbox(
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
     .with_lemmy_type(FederationError::InboxTimeout.into())?
+}
+
+struct Dummy;
+
+impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> for Dummy {
+  async fn hook(
+    self,
+    activity: &SharedInboxActivities,
+    _actor: &UserOrCommunity,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    // Store received activities in the database. This ensures that the same activity doesn't get
+    // received and processed more than once, which would be a waste of resources.
+    debug!("Received activity {}", activity.id().to_string());
+    ReceivedActivity::create(&mut context.pool(), &activity.id().clone().into()).await?;
+
+    // This could also take the actor as param, but lifetimes and serde derives are tricky.
+    // It is really a before hook, but doesnt allow modifying the data. It could use a
+    // separate method so that error in plugin causes activity to be rejected.
+    plugin_hook_after("activity_received", activity)?;
+
+    // This method could also be used to check if actor is banned, instead of checking in each
+    // activity handler.
+    Ok(())
+  }
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
