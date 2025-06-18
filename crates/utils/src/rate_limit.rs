@@ -76,7 +76,7 @@ impl RateLimit {
   }
 
   pub fn set_config(&self, configs: EnumMap<ActionType, BucketConfig>) {
-    *self.configs.write().unwrap() = configs;
+    *self.configs.write().expect("write rwlock") = configs;
   }
 
   fn build_rate_limiter(
@@ -172,11 +172,11 @@ fn new_input(
       let info = req.connection_info();
       let key = ip_key(info.realip_remote_addr().unwrap())?;
 
-      let config = configs.read().unwrap()[action_type];
+      let config = configs.read().expect("read rwlock")[action_type];
 
       // TODO: rename rust and db fields to be consistent
-      let interval = Duration::from_secs(config.secs_to_refill.try_into().unwrap_or(0));
-      let max_requests = config.capacity.try_into().unwrap_or(0);
+      let interval = Duration::from_secs(config.secs_to_refill.into());
+      let max_requests = config.capacity.into();
       Ok(SimpleInput {
         interval,
         max_requests,
