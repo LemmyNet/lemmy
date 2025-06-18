@@ -47,8 +47,8 @@ impl ActivitySendTargets {
   pub fn add_inbox(&mut self, inbox: Url) {
     self.inboxes.insert(inbox);
   }
-  pub fn add_inboxes(&mut self, inboxes: impl Iterator<Item = Url>) {
-    self.inboxes.extend(inboxes);
+  pub fn add_inboxes(&mut self, inboxes: Vec<DbUrl>) {
+    self.inboxes.extend(inboxes.into_iter().map(Into::into));
   }
 }
 

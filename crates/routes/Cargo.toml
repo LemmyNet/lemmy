@@ -51,6 +51,7 @@ prometheus = { version = "0.14.0", features = ["process"] }
 rss = "2.0.12"
 actix-web-prom = "0.10.0"
 actix-cors = "0.7.1"
+rand = "0.9.1"
 percent-encoding = "2.3.1"
 
 [dev-dependencies]

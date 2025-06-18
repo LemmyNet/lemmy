@@ -282,9 +282,7 @@ pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> Lem
       LemmyErrorType::BlockKeywordTooLong,
     )?;
   }
-  if blocking_keywords.len() >= MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?
-  }
+  check_api_elements_count(blocking_keywords.len())?;
   Ok(())
 }
 
@@ -356,6 +354,12 @@ pub fn truncate_description(text: &str) -> String {
   truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
 }
 
+pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
+  if len >= MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
+}
 #[cfg(test)]
 mod tests {
 

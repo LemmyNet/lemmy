@@ -29,6 +29,7 @@ lemmy_apub_objects.workspace = true
 lemmy_db_schema = { workspace = true }
 lemmy_utils.workspace = true
 lemmy_db_schema_file = { workspace = true }
+either.workspace = true
 
 activitypub_federation.workspace = true
 anyhow.workspace = true

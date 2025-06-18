@@ -24,6 +24,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use rand::{distr::Alphanumeric, Rng};
 use tracing::info;
 use url::Url;
 
@@ -89,10 +90,25 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
             ..SiteInsertForm::new(name, instance.id)
           };
           let site = Site::create(&mut conn.into(), &site_form).await?;
+          // create multi-comm follower account
+          let r: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(11)
+            .map(char::from)
+            .collect();
+          let name = format!("multicomm{}", r);
+          let form = PersonInsertForm {
+            private_key: site.private_key,
+            inbox_url: Some(site.inbox_url),
+            bot_account: Some(true),
+            ..PersonInsertForm::new(name, site.public_key, instance.id)
+          };
+          let multi_comm_follower = Person::create(&mut conn.into(), &form).await?;
 
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
             site_setup: Some(settings.setup.is_some()),
+            multi_comm_follower: Some(multi_comm_follower.id),
             ..LocalSiteInsertForm::new(site.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;
