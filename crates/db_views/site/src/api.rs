@@ -20,6 +20,7 @@ use lemmy_db_schema::{
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     post::Post,
+    private_message::PrivateMessage,
     tagline::Tagline,
   },
 };
@@ -34,7 +35,6 @@ use lemmy_db_schema_file::enums::{
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
@@ -688,9 +688,10 @@ pub struct ResolveObject {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub enum PostOrComment {
+pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),
+  PrivateMessage(PrivateMessage),
 }
 
 #[skip_serializing_none]
@@ -700,9 +701,9 @@ pub enum PostOrComment {
 /// You read posts response.
 pub struct ExportDataResponse {
   pub local_user_view: LocalUserView,
-  pub inbox: Vec<InboxCombinedView>,
-  pub content: Vec<PostOrComment>,
-  pub saved: Vec<PostOrComment>,
+  pub inbox: Vec<PostOrCommentOrPrivateMessage>,
+  pub content: Vec<PostOrCommentOrPrivateMessage>,
+  pub saved: Vec<PostOrCommentOrPrivateMessage>,
   pub read_posts: Vec<Url>,
   pub liked: Vec<Url>,
   pub follows: Vec<Url>,

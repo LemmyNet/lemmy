@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_inbox_combined::impls::InboxCombinedQuery;
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_content_combined::{
   impls::PersonContentCombinedQuery,
@@ -28,7 +28,7 @@ use lemmy_db_views_person_saved_combined::{
   PersonSavedCombinedView,
 };
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_site::api::{ExportDataResponse, PostOrComment};
+use lemmy_db_views_site::api::{ExportDataResponse, PostOrCommentOrPrivateMessage};
 use lemmy_utils::{self, error::LemmyResult};
 
 pub async fn export_data(
@@ -50,12 +50,9 @@ pub async fn export_data(
   .list(pool, Some(&local_user_view), local_instance_id)
   .await?
   .into_iter()
-  .map(|u| {
-    match u {
-      PersonContentCombinedView::Post(pv) => PostOrComment::Post(pv.post),
-      PersonContentCombinedView::Comment(cv) => PostOrComment::Comment(cv.comment),
-    }
-    .into()
+  .map(|u| match u {
+    PersonContentCombinedView::Post(pv) => PostOrCommentOrPrivateMessage::Post(pv.post),
+    PersonContentCombinedView::Comment(cv) => PostOrCommentOrPrivateMessage::Comment(cv.comment),
   })
   .collect();
 
@@ -66,12 +63,26 @@ pub async fn export_data(
   .list(pool, &local_user_view)
   .await?
   .into_iter()
-  .map(|u| {
-    match u {
-      PersonSavedCombinedView::Post(pv) => PostOrComment::Post(pv.post),
-      PersonSavedCombinedView::Comment(cv) => PostOrComment::Comment(cv.comment),
+  .map(|u| match u {
+    PersonSavedCombinedView::Post(pv) => PostOrCommentOrPrivateMessage::Post(pv.post),
+    PersonSavedCombinedView::Comment(cv) => PostOrCommentOrPrivateMessage::Comment(cv.comment),
+  })
+  .collect();
+
+  let inbox = InboxCombinedQuery {
+    no_limit: Some(true),
+    ..InboxCombinedQuery::default()
+  }
+  .list(&mut context.pool(), my_person_id, local_instance_id)
+  .await?
+  .into_iter()
+  .map(|u| match u {
+    InboxCombinedView::CommentReply(cr) => PostOrCommentOrPrivateMessage::Comment(cr.comment),
+    InboxCombinedView::CommentMention(cm) => PostOrCommentOrPrivateMessage::Comment(cm.comment),
+    InboxCombinedView::PostMention(pm) => PostOrCommentOrPrivateMessage::Post(pm.post),
+    InboxCombinedView::PrivateMessage(pm) => {
+      PostOrCommentOrPrivateMessage::PrivateMessage(pm.private_message)
     }
-    .into()
   })
   .collect();
 
@@ -90,13 +101,6 @@ pub async fn export_data(
     .into()
   })
   .collect();
-
-  let inbox = InboxCombinedQuery {
-    no_limit: Some(true),
-    ..InboxCombinedQuery::default()
-  }
-  .list(&mut context.pool(), my_person_id, local_instance_id)
-  .await?;
 
   let read_posts =
     PostView::list_read(&mut context.pool(), my_person, None, None, None, Some(true))
