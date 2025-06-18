@@ -195,7 +195,7 @@ fn display_change([before, after]: [&str; 2]) -> impl Iterator<Item = &str> {
     })
 }
 
-/// Makes sure the after dump does not contait any DEFERRABLE constraints
+/// Makes sure the after dump does not contain any DEFERRABLE constraints.
 pub(crate) fn deferr_constraint_check(dump: &str) {
   if dump.contains(" DEFERR") {
     panic!("Schema should not have DEFER constraints.")
