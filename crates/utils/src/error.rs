@@ -77,7 +77,6 @@ pub enum LemmyErrorType {
   NoEmailSetup,
   LocalSiteNotSetup,
   InvalidEmailAddress(String),
-  RateLimitError,
   InvalidName,
   InvalidCodeVerifier,
   InvalidDisplayName,
@@ -285,7 +284,6 @@ cfg_if! {
         match self.error_type {
           LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
           LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,
-          LemmyErrorType::RateLimitError => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
           _ => actix_web::http::StatusCode::BAD_REQUEST,
         }
       }
