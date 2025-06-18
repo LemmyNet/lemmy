@@ -82,6 +82,7 @@ impl RateLimit {
     })
   }
 
+  #[allow(clippy::expect_used)]
   pub fn set_config(&self, configs: EnumMap<ActionType, BucketConfig>) {
     *self.configs.write().expect("write rwlock") = configs;
   }
@@ -174,10 +175,11 @@ fn new_input(
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
 ) -> impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static {
   move |req| {
-    ready((|| {
+    ready({
       let info = req.connection_info();
       let key = raw_ip_key(info.realip_remote_addr());
 
+      #[allow(clippy::expect_used)]
       let config = configs.read().expect("read rwlock")[action_type];
 
       // TODO: rename rust and db fields to be consistent
@@ -188,6 +190,6 @@ fn new_input(
         max_requests,
         key,
       })
-    })())
+    })
   }
 }
