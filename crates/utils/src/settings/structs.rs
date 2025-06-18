@@ -51,7 +51,6 @@ pub struct Settings {
   cors_origin: Vec<String>,
   /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
   pub json_logging: bool,
-  pub x: i32,
 }
 
 impl Settings {
