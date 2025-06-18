@@ -1,5 +1,12 @@
 use actix_extensible_rate_limit::{
-  backend::{ip_key, memory::InMemoryBackend, SimpleInput, SimpleInputFuture, SimpleOutput},
+  backend::{
+    memory::InMemoryBackend,
+    raw_ip_key,
+    MyIpAddr,
+    SimpleInput,
+    SimpleInputFuture,
+    SimpleOutput,
+  },
   RateLimiter,
 };
 use actix_web::dev::ServiceRequest;
@@ -31,14 +38,14 @@ pub struct BucketConfig {
 #[derive(Clone)]
 pub struct RateLimit {
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-  backends: EnumMap<ActionType, InMemoryBackend>,
+  backends: EnumMap<ActionType, InMemoryBackend<MyIpAddr>>,
 }
 
 impl RateLimit {
   pub fn new(configs: EnumMap<ActionType, BucketConfig>) -> Self {
     Self {
       configs: Arc::new(RwLock::new(configs)),
-      backends: EnumMap::from_fn(|_| InMemoryBackend::builder().build()),
+      backends: EnumMap::from_fn(|_| InMemoryBackend::<MyIpAddr>::builder().build()),
     }
   }
 
@@ -83,9 +90,9 @@ impl RateLimit {
     &self,
     action_type: ActionType,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     let input = new_input(action_type, self.configs.clone());
 
@@ -99,9 +106,9 @@ impl RateLimit {
   pub fn message(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Message)
   }
@@ -109,68 +116,67 @@ impl RateLimit {
   pub fn search(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Search)
   }
   pub fn register(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Register)
   }
   pub fn post(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Post)
   }
   pub fn image(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Image)
   }
   pub fn comment(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::Comment)
   }
   pub fn import_user_settings(
     &self,
   ) -> RateLimiter<
-    InMemoryBackend,
+    InMemoryBackend<MyIpAddr>,
     SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static,
+    impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static,
   > {
     self.build_rate_limiter(ActionType::ImportUserSettings)
   }
 }
 
-/// https://github.com/jacob-pro/actix-extensible-rate-limit/blob/master/src/backend/input_builder.rs#L92
 fn new_input(
   action_type: ActionType,
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-) -> impl Fn(&ServiceRequest) -> SimpleInputFuture + 'static {
+) -> impl Fn(&ServiceRequest) -> SimpleInputFuture<MyIpAddr> + 'static {
   move |req| {
     ready((|| {
       let info = req.connection_info();
-      let key = ip_key(info.realip_remote_addr().unwrap())?;
+      let key = raw_ip_key(info.realip_remote_addr());
 
       let config = configs.read().expect("read rwlock")[action_type];
 
