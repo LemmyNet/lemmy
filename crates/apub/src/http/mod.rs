@@ -75,12 +75,12 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
     debug!("Received activity {}", activity.id().to_string());
     ReceivedActivity::create(&mut context.pool(), &activity.id().clone().into()).await?;
 
-    // TODO: this could also take the actor as param, but lifetimes and serde derives are tricky
-    // TODO: this is really a before hook, but doesnt allow modifying the data. it could use a
+    // This could also take the actor as param, but lifetimes and serde derives are tricky.
+    // It is really a before hook, but doesnt allow modifying the data. It could use a
     // separate method so that error in plugin causes activity to be rejected.
     plugin_hook_after("activity_received", activity)?;
 
-    // TODO: this method could also be used to check if actor is banned, instead of checking in each
+    // This method could also be used to check if actor is banned, instead of checking in each
     // activity handler.
     Ok(())
   }
