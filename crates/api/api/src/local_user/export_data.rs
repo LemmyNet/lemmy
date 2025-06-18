@@ -15,11 +15,20 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_inbox_combined::impls::InboxCombinedQuery;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
-use lemmy_db_views_person_liked_combined::impls::PersonLikedCombinedQuery;
-use lemmy_db_views_person_saved_combined::impls::PersonSavedCombinedQuery;
+use lemmy_db_views_person_content_combined::{
+  impls::PersonContentCombinedQuery,
+  PersonContentCombinedView,
+};
+use lemmy_db_views_person_liked_combined::{
+  impls::PersonLikedCombinedQuery,
+  PersonLikedCombinedView,
+};
+use lemmy_db_views_person_saved_combined::{
+  impls::PersonSavedCombinedQuery,
+  PersonSavedCombinedView,
+};
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_site::api::ExportDataResponse;
+use lemmy_db_views_site::api::{ExportDataResponse, PostOrComment};
 use lemmy_utils::{self, error::LemmyResult};
 
 pub async fn export_data(
@@ -39,31 +48,48 @@ pub async fn export_data(
     ..PersonContentCombinedQuery::new(my_person_id)
   }
   .list(pool, Some(&local_user_view), local_instance_id)
-  .await?;
+  .await?
+  .into_iter()
+  .map(|u| {
+    match u {
+      PersonContentCombinedView::Post(pv) => PostOrComment::Post(pv.post),
+      PersonContentCombinedView::Comment(cv) => PostOrComment::Comment(cv.comment),
+    }
+    .into()
+  })
+  .collect();
 
-  // TODO is this necessary? Maybe just the ids or not at all
-  let liked = PersonLikedCombinedQuery {
-    no_limit: Some(true),
-    ..PersonLikedCombinedQuery::default()
-  }
-  .list(pool, &local_user_view)
-  .await?;
-
-  // TODO is this necessary? Maybe just the ids or not at all
   let saved = PersonSavedCombinedQuery {
     no_limit: Some(true),
     ..PersonSavedCombinedQuery::default()
   }
   .list(pool, &local_user_view)
-  .await?;
+  .await?
+  .into_iter()
+  .map(|u| {
+    match u {
+      PersonSavedCombinedView::Post(pv) => PostOrComment::Post(pv.post),
+      PersonSavedCombinedView::Comment(cv) => PostOrComment::Comment(cv.comment),
+    }
+    .into()
+  })
+  .collect();
 
-  // TODO is this necessary? Maybe just the ids or not at all
-  let read_posts =
-    PostView::list_read(&mut context.pool(), my_person, None, None, None, Some(true)).await?;
-
-  // TODO is this necessary? Maybe just the ids or not at all
-  let hidden_posts =
-    PostView::list_hidden(&mut context.pool(), my_person, None, None, None, Some(true)).await?;
+  let liked = PersonLikedCombinedQuery {
+    no_limit: Some(true),
+    ..PersonLikedCombinedQuery::default()
+  }
+  .list(pool, &local_user_view)
+  .await?
+  .into_iter()
+  .map(|u| {
+    match u {
+      PersonLikedCombinedView::Post(pv) => pv.post.ap_id,
+      PersonLikedCombinedView::Comment(cv) => cv.comment.ap_id,
+    }
+    .into()
+  })
+  .collect();
 
   let inbox = InboxCombinedQuery {
     no_limit: Some(true),
@@ -72,16 +98,43 @@ pub async fn export_data(
   .list(&mut context.pool(), my_person_id, local_instance_id)
   .await?;
 
-  let follows = CommunityFollowerView::for_person(pool, my_person_id).await?;
+  let read_posts =
+    PostView::list_read(&mut context.pool(), my_person, None, None, None, Some(true))
+      .await?
+      .into_iter()
+      .map(|pv| pv.post.ap_id.into())
+      .collect();
 
-  let community_blocks = CommunityActions::read_blocks_for_person(pool, my_person_id).await?;
-
-  let instance_blocks = InstanceActions::read_blocks_for_person(pool, my_person_id).await?;
-
-  let person_blocks = PersonActions::read_blocks_for_person(pool, my_person_id).await?;
+  let follows = CommunityFollowerView::for_person(pool, my_person_id)
+    .await?
+    .into_iter()
+    .map(|cv| cv.community.ap_id.into())
+    .collect();
 
   let moderates =
-    CommunityModeratorView::for_person(&mut context.pool(), my_person_id, Some(local_user)).await?;
+    CommunityModeratorView::for_person(&mut context.pool(), my_person_id, Some(local_user))
+      .await?
+      .into_iter()
+      .map(|cv| cv.community.ap_id.into())
+      .collect();
+
+  let community_blocks = CommunityActions::read_blocks_for_person(pool, my_person_id)
+    .await?
+    .into_iter()
+    .map(|c| c.ap_id.into())
+    .collect();
+
+  let instance_blocks = InstanceActions::read_blocks_for_person(pool, my_person_id)
+    .await?
+    .into_iter()
+    .map(|i| i.domain)
+    .collect();
+
+  let person_blocks = PersonActions::read_blocks_for_person(pool, my_person_id)
+    .await?
+    .into_iter()
+    .map(|p| p.ap_id.into())
+    .collect();
 
   let keyword_blocks = LocalUserKeywordBlock::read(pool, local_user_id).await?;
 
@@ -101,6 +154,5 @@ pub async fn export_data(
     liked,
     saved,
     read_posts,
-    hidden_posts,
   }))
 }

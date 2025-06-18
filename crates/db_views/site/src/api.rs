@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{
+    comment::Comment,
     community::Community,
     instance::Instance,
     language::Language,
@@ -18,6 +19,7 @@ use lemmy_db_schema::{
     login_token::LoginToken,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
+    post::Post,
     tagline::Tagline,
   },
 };
@@ -35,9 +37,6 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_inbox_combined::InboxCombinedView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_person_content_combined::PersonContentCombinedView;
-use lemmy_db_views_person_liked_combined::PersonLikedCombinedView;
-use lemmy_db_views_person_saved_combined::PersonSavedCombinedView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_readable_federation_state::ReadableFederationState;
 use serde::{Deserialize, Serialize};
@@ -688,6 +687,12 @@ pub struct ResolveObject {
   pub q: String,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum PostOrComment {
+  Post(Post),
+  Comment(Comment),
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -695,19 +700,18 @@ pub struct ResolveObject {
 /// You read posts response.
 pub struct ExportDataResponse {
   pub local_user_view: LocalUserView,
-  pub follows: Vec<CommunityFollowerView>,
-  pub moderates: Vec<CommunityModeratorView>,
-  pub community_blocks: Vec<Community>,
-  pub instance_blocks: Vec<Instance>,
-  pub person_blocks: Vec<Person>,
+  pub inbox: Vec<InboxCombinedView>,
+  pub content: Vec<PostOrComment>,
+  pub saved: Vec<PostOrComment>,
+  pub read_posts: Vec<Url>,
+  pub liked: Vec<Url>,
+  pub follows: Vec<Url>,
+  pub moderates: Vec<Url>,
+  pub community_blocks: Vec<Url>,
+  pub person_blocks: Vec<Url>,
+  pub instance_blocks: Vec<String>,
   pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
-  pub inbox: Vec<InboxCombinedView>,
-  pub content: Vec<PersonContentCombinedView>,
-  pub liked: Vec<PersonLikedCombinedView>,
-  pub saved: Vec<PersonSavedCombinedView>,
-  pub read_posts: Vec<PostView>,
-  pub hidden_posts: Vec<PostView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
