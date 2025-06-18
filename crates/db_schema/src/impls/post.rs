@@ -352,7 +352,7 @@ impl Readable for PostActions {
   type Form = PostReadForm;
 
   async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<usize> {
-    Self::mark_many_as_read(pool, &[form.clone()]).await
+    Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
   }
 
   async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {

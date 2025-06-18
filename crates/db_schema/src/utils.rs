@@ -399,7 +399,7 @@ fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
   Ok(url.into())
 }
 
-fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
+fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
   let fut = async {
     /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
