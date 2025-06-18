@@ -172,19 +172,11 @@ fn new_input(
       let info = req.connection_info();
       let key = ip_key(info.realip_remote_addr().unwrap())?;
 
-      let mut config = configs.read().unwrap()[action_type];
-      // TODO these have to be set, because the database defaults are too low for the federation
-      // tests to pass, and there's no way to live update the rate limits without restarting the
-      // server.
-      // This can be removed once live rate limits are enabled.
-      if cfg!(debug_assertions) {
-        config.capacity = 999;
-      }
+      let config = configs.read().unwrap()[action_type];
 
       // TODO: rename rust and db fields to be consistent
       let interval = Duration::from_secs(config.secs_to_refill.try_into().unwrap_or(0));
       let max_requests = config.capacity.try_into().unwrap_or(0);
-
       Ok(SimpleInput {
         interval,
         max_requests,
