@@ -776,18 +776,18 @@ mod tests {
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
         person: inserted_tegan_person,
-        instance_actions: None,
+        banned: false,
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
         person: inserted_john_person,
-        instance_actions: None,
+        banned: false,
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
         person: inserted_bot_person,
-        instance_actions: None,
+        banned: false,
       };
 
       Ok(Data {

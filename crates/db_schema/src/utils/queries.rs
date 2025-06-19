@@ -9,14 +9,11 @@ use crate::{
     person2,
   },
   newtypes::{InstanceId, PersonId},
-  CreatorCommunityActionsAllColumnsTuple,
-  CreatorHomeInstanceActionsAllColumnsTuple,
-  CreatorLocalInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
 use diesel::{
-  dsl::{case_when, exists, not, Nullable},
+  dsl::{case_when, exists, not},
   expression::SqlLiteral,
   helper_types::{Eq, NotEq},
   sql_types::Json,
@@ -115,6 +112,14 @@ pub fn creator_banned_from_community() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+pub fn creator_home_banned() -> _ {
+  creator_home_instance_actions
+    .field(instance_actions::received_ban_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
 /// Checks to see if a user is site banned from any of these places:
 /// - Their own instance
 /// - The local instance
@@ -123,11 +128,7 @@ pub fn creator_banned() -> _ {
     .field(instance_actions::received_ban_at)
     .nullable()
     .is_not_null();
-  let home_ban = creator_home_instance_actions
-    .field(instance_actions::received_ban_at)
-    .nullable()
-    .is_not_null();
-  local_ban.or(home_ban)
+  local_ban.or(creator_home_banned())
 }
 
 /// Similar to creator_banned(), but also checks if creator was banned from instance where the
@@ -265,25 +266,6 @@ pub fn person1_select() -> Person1AliasAllColumnsTuple {
 /// The select for the person2 alias.
 pub fn person2_select() -> Person2AliasAllColumnsTuple {
   person2.fields(person::all_columns)
-}
-
-/// The select for the creator community actions alias.
-pub fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTuple {
-  creator_community_actions.fields(community_actions::all_columns)
-}
-
-pub fn creator_home_instance_actions_select() -> Nullable<CreatorHomeInstanceActionsAllColumnsTuple>
-{
-  creator_home_instance_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
-}
-
-pub fn creator_local_instance_actions_select(
-) -> Nullable<CreatorLocalInstanceActionsAllColumnsTuple> {
-  creator_local_instance_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
 }
 
 type IsSubscribedType =

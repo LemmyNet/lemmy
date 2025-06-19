@@ -459,7 +459,7 @@ mod tests {
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
       person: inserted_timmy_person.clone(),
-      instance_actions: None,
+      banned: false,
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;

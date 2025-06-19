@@ -1,12 +1,9 @@
-use lemmy_db_schema::source::{instance::InstanceActions, local_user::LocalUser, person::Person};
+use lemmy_db_schema::source::{local_user::LocalUser, person::Person};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::queries::creator_home_instance_actions_select,
-    CreatorHomeInstanceActionsAllColumnsTuple,
-  },
+  diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::creator_home_banned,
 };
 
 pub mod api;
@@ -24,8 +21,10 @@ pub struct LocalUserView {
   pub local_user: LocalUser,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person: Person,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub instance_actions: Option<InstanceActions>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_home_banned()
+    )
+  )]
+  pub banned: bool,
 }

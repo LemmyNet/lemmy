@@ -479,8 +479,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person,
         is_admin: v.item_creator_is_admin,
         person_actions: v.person_actions,
-        home_instance_actions: v.creator_home_instance_actions,
-        local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,
       }))
     } else {
@@ -548,7 +546,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: timmy.clone(),
-      instance_actions: None,
+      banned: false,
     };
 
     let community_form = CommunityInsertForm {

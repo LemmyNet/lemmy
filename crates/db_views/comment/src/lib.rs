@@ -1,17 +1,10 @@
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentActions},
-    community::{Community, CommunityActions},
-    instance::InstanceActions,
-    person::{Person, PersonActions},
-    post::Post,
-    tag::TagsView,
-  },
-  utils::queries::{
-    creator_banned_from_community,
-    creator_banned_within_community,
-    creator_is_moderator,
-  },
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentActions},
+  community::{Community, CommunityActions},
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+  post::Post,
+  tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -23,6 +16,11 @@ use {
     comment_select_remove_deletes,
     local_user_can_mod_comment,
     post_tags_fragment,
+  },
+  lemmy_db_schema::utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
   },
 };
 

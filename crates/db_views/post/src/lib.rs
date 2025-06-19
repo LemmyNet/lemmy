@@ -1,13 +1,10 @@
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityActions},
-    images::ImageDetails,
-    instance::InstanceActions,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    tag::TagsView,
-  },
-  utils::queries::{creator_banned_from_community, creator_banned_within_community},
+use lemmy_db_schema::source::{
+  community::{Community, CommunityActions},
+  images::ImageDetails,
+  instance::InstanceActions,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
@@ -16,6 +13,10 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+  },
   lemmy_db_schema::utils::queries::{
     creator_is_moderator,
     local_user_can_mod_post,
