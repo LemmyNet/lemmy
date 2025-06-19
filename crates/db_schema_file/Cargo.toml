@@ -45,5 +45,6 @@ tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
-diffy = { workspace = true }
+diff = "0.1.13"
 itertools = { workspace = true }
+pathfinding = "4.14.0"
