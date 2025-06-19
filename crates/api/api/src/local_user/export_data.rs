@@ -35,6 +35,8 @@ pub async fn export_data(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ExportDataResponse>> {
+  use PostOrCommentOrPrivateMessage::*;
+
   let local_user_id = local_user_view.local_user.id;
   let local_instance_id = local_user_view.person.instance_id;
   let my_person_id = local_user_view.person.id;
@@ -51,8 +53,8 @@ pub async fn export_data(
   .await?
   .into_iter()
   .map(|u| match u {
-    PersonContentCombinedView::Post(pv) => PostOrCommentOrPrivateMessage::Post(pv.post),
-    PersonContentCombinedView::Comment(cv) => PostOrCommentOrPrivateMessage::Comment(cv.comment),
+    PersonContentCombinedView::Post(pv) => Post(pv.post),
+    PersonContentCombinedView::Comment(cv) => Comment(cv.comment),
   })
   .collect();
 
@@ -64,8 +66,8 @@ pub async fn export_data(
   .await?
   .into_iter()
   .map(|u| match u {
-    PersonSavedCombinedView::Post(pv) => PostOrCommentOrPrivateMessage::Post(pv.post),
-    PersonSavedCombinedView::Comment(cv) => PostOrCommentOrPrivateMessage::Comment(cv.comment),
+    PersonSavedCombinedView::Post(pv) => Post(pv.post),
+    PersonSavedCombinedView::Comment(cv) => Comment(cv.comment),
   })
   .collect();
 
@@ -77,12 +79,10 @@ pub async fn export_data(
   .await?
   .into_iter()
   .map(|u| match u {
-    InboxCombinedView::CommentReply(cr) => PostOrCommentOrPrivateMessage::Comment(cr.comment),
-    InboxCombinedView::CommentMention(cm) => PostOrCommentOrPrivateMessage::Comment(cm.comment),
-    InboxCombinedView::PostMention(pm) => PostOrCommentOrPrivateMessage::Post(pm.post),
-    InboxCombinedView::PrivateMessage(pm) => {
-      PostOrCommentOrPrivateMessage::PrivateMessage(pm.private_message)
-    }
+    InboxCombinedView::CommentReply(cr) => Comment(cr.comment),
+    InboxCombinedView::CommentMention(cm) => Comment(cm.comment),
+    InboxCombinedView::PostMention(pm) => Post(pm.post),
+    InboxCombinedView::PrivateMessage(pm) => PrivateMessage(pm.private_message),
   })
   .collect();
 
