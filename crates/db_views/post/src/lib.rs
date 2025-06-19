@@ -7,7 +7,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  utils::queries::post_creator_banned_from_community,
+  utils::queries::creator_banned_from_community,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
@@ -20,10 +20,10 @@ use {
     utils::queries::{
       creator_banned,
       creator_home_instance_actions_select,
+      creator_is_moderator,
       creator_local_instance_actions_select,
       local_user_can_mod_post,
       post_creator_is_admin,
-      post_creator_is_moderator,
       post_tags_fragment,
     },
     CreatorHomeInstanceActionsAllColumnsTuple,
@@ -92,13 +92,13 @@ pub struct PostView {
   pub creator_banned: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_creator_is_moderator()
+      select_expression = creator_is_moderator()
     )
   )]
   pub creator_is_moderator: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_creator_banned_from_community()
+      select_expression = creator_banned_from_community()
     )
   )]
   pub creator_banned_from_community: bool,

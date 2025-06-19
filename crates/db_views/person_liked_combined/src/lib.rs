@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  utils::queries::{post_creator_banned_from_community, post_creator_is_moderator},
+  utils::queries::{creator_banned_from_community, creator_is_moderator},
   LikeType,
   PersonContentType,
 };
@@ -109,13 +109,13 @@ pub(crate) struct PersonLikedCombinedViewInternal {
   pub creator_banned: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_creator_is_moderator()
+      select_expression = creator_is_moderator()
     )
   )]
   pub creator_is_moderator: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_creator_banned_from_community()
+      select_expression = creator_banned_from_community()
     )
   )]
   pub creator_banned_from_community: bool,

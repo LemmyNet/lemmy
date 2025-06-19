@@ -98,7 +98,7 @@ pub fn post_creator_is_admin() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub fn post_creator_is_moderator() -> _ {
+pub fn creator_is_moderator() -> _ {
   creator_community_actions
     .field(community_actions::became_moderator_at)
     .nullable()
@@ -106,7 +106,7 @@ pub fn post_creator_is_moderator() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub fn post_creator_banned_from_community() -> _ {
+pub fn creator_banned_from_community() -> _ {
   creator_community_actions
     .field(community_actions::received_ban_at)
     .nullable()

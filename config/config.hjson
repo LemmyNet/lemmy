@@ -2,7 +2,4 @@
 # https://join-lemmy.org/docs/en/administration/configuration.html
 {
   hostname: lemmy-alpha
-  database: {
-    connection: "postgres://lemmy:password@localhost:5432/lemmy_migration"
-  }
 }
