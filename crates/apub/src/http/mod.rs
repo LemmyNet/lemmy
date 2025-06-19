@@ -9,7 +9,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
   FEDERATION_CONTENT_TYPE,
 };
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use actix_web::{
+  http::header::VARY,
+  web::{self, Bytes},
+  HttpRequest,
+  HttpResponse,
+};
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
 use lemmy_apub_objects::{
   objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity},
@@ -99,6 +104,7 @@ where
   Ok(
     HttpResponse::Ok()
       .content_type(FEDERATION_CONTENT_TYPE)
+      .insert_header((VARY, "Accept"))
       .body(json),
   )
 }
@@ -114,6 +120,7 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
       .status(actix_web::http::StatusCode::GONE)
+      .insert_header((VARY, "Accept"))
       .body(json),
   )
 }
