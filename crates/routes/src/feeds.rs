@@ -287,7 +287,7 @@ async fn get_feed_front(
   jwt: &str,
 ) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(context, jwt).await?;
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
@@ -321,7 +321,7 @@ async fn get_feed_front(
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_instance_id = site_view.site.instance_id;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(context, jwt).await?;
   let my_person_id = local_user.person.id;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
 
@@ -355,7 +355,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 /// Gets your ModeratorView modlog
 async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(context, jwt).await?;
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let modlog = ModlogCombinedQuery {

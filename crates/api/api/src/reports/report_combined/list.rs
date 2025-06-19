@@ -20,7 +20,7 @@ pub async fn list_reports(
 
   // Only check mod or admin status when not viewing my reports
   if !my_reports_only.unwrap_or_default() {
-    check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
+    check_community_mod_of_any_or_admin_action(&mut context.pool(), &local_user_view).await?;
   }
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {

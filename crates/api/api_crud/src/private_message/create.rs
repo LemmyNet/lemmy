@@ -28,7 +28,7 @@ pub async fn create_private_message(
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let content = process_markdown(&context, &data.content, &slur_regex, &url_blocklist).await?;
   is_valid_body_field(&content, false)?;
 
   PersonActions::read_block(

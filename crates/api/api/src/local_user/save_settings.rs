@@ -41,7 +41,7 @@ pub async fn save_user_settings(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let bio = diesel_string_update(
-    process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
+    process_markdown_opt(&context, &data.bio, &slur_regex, &url_blocklist)
       .await?
       .as_deref(),
   );

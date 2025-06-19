@@ -55,11 +55,11 @@ pub async fn ban_from_site(
   if data.remove_or_restore_data.unwrap_or(false) {
     let removed = data.ban;
     remove_or_restore_user_data(
+      &context,
       my_person_id,
       data.person_id,
       removed,
       &data.reason,
-      &context,
     )
     .await?;
   };

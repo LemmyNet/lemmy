@@ -35,7 +35,7 @@ pub async fn user_note_person(
     check_slurs(&data.note, &slur_regex)?;
     is_valid_body_field(&data.note, false)?;
 
-    let note = process_markdown(&data.note, &slur_regex, &url_blocklist, &context).await?;
+    let note = process_markdown(&context, &data.note, &slur_regex, &url_blocklist).await?;
     let note_form = PersonNoteForm::new(person_id, target_id, note);
 
     PersonActions::note(&mut context.pool(), &note_form).await?;

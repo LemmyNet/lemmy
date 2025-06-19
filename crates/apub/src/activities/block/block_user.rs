@@ -137,7 +137,7 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user banned from home instance, remove all content
-            remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+            remove_or_restore_user_data(context, mod_person.id, blocked_person.id, true, &reason)
               .await?;
           } else {
             update_removed_for_instance(&blocked_person, &site, true, pool).await?;
@@ -168,12 +168,12 @@ impl ActivityHandler for BlockUser {
 
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
+            &mut context.pool(),
             community.id,
             mod_person.id,
             blocked_person.id,
             true,
             &reason,
-            &mut context.pool(),
           )
           .await?;
         }

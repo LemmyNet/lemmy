@@ -196,7 +196,7 @@ impl Object for ApubComment {
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let content = append_attachments_to_comment(content, &note.attachment, context).await?;
-    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(context, &content, &slur_regex, &url_blocklist).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())

@@ -59,7 +59,7 @@ pub async fn get_community(
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
-  let site = read_site_for_actor(community_view.community.ap_id.clone(), &context).await?;
+  let site = read_site_for_actor(&context, community_view.community.ap_id.clone()).await?;
 
   let community_id = community_view.community.id;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;

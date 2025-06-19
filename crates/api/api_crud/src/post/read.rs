@@ -73,10 +73,10 @@ pub async fn get_post(
     PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
 
     update_read_comments(
+      &mut context.pool(),
       person_id,
       post_id,
       post_view.post.comments,
-      &mut context.pool(),
     )
     .await?;
   }

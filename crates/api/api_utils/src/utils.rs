@@ -140,8 +140,8 @@ pub async fn is_mod_or_admin_opt(
 ///
 /// Should only be used for read operations
 pub async fn check_community_mod_of_any_or_admin_action(
-  local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
+  local_user_view: &LocalUserView,
 ) -> LemmyResult<()> {
   let person = &local_user_view.person;
 
@@ -177,10 +177,10 @@ pub fn is_top_mod(
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
 pub async fn update_read_comments(
+  pool: &mut DbPool<'_>,
   person_id: PersonId,
   post_id: PostId,
   read_comments: i64,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
   PostActions::update_read_comments(pool, &person_post_agg_form).await?;
@@ -234,9 +234,9 @@ pub fn check_email_verified(
 }
 
 pub async fn check_registration_application(
+  pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
@@ -263,9 +263,9 @@ pub async fn check_registration_application(
 /// In particular it checks that neither the user nor community are banned or deleted, and that
 /// the user isn't banned.
 pub async fn check_community_user_action(
+  pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community: &Community,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
@@ -288,10 +288,10 @@ pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()>
 /// In particular it checks that they're an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
+  pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community: &Community,
   allow_deleted: bool,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   is_mod_or_admin(pool, local_user_view, community.id).await?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
@@ -321,11 +321,11 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
 }
 
 pub async fn check_person_instance_community_block(
+  pool: &mut DbPool<'_>,
   my_id: PersonId,
   potential_blocker_id: PersonId,
   community_instance_id: InstanceId,
   community_id: CommunityId,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
   InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
@@ -334,11 +334,11 @@ pub async fn check_person_instance_community_block(
 }
 
 pub async fn check_local_vote_mode(
+  pool: &mut DbPool<'_>,
   score: i16,
   post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let (downvote_setting, upvote_setting) = match post_or_comment_id {
     PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
@@ -390,8 +390,8 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
 }
 
 pub async fn build_federated_instances(
-  local_site: &LocalSite,
   pool: &mut DbPool<'_>,
+  local_site: &LocalSite,
 ) -> LemmyResult<Option<FederatedInstances>> {
   if local_site.federation_enabled {
     let mut linked = Vec::new();
@@ -525,8 +525,8 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
 ///
 /// Used for GetCommunityResponse and GetPersonDetails
 pub async fn read_site_for_actor(
-  ap_id: DbUrl,
   context: &LemmyContext,
+  ap_id: DbUrl,
 ) -> LemmyResult<Option<Site>> {
   let site_id = Site::instance_ap_id_from_url(ap_id.clone().into());
   let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
@@ -534,9 +534,9 @@ pub async fn read_site_for_actor(
 }
 
 pub async fn purge_post_images(
+  context: &LemmyContext,
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
-  context: &LemmyContext,
 ) {
   if let Some(url) = url {
     purge_image_from_pictrs_url(&url, context).await.ok();
@@ -549,7 +549,7 @@ pub async fn purge_post_images(
 }
 
 /// Delete local images attributed to a person
-async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
+async fn delete_local_user_images(context: &LemmyContext, person_id: PersonId) -> LemmyResult<()> {
   let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
 
   // Delete their images
@@ -563,17 +563,17 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
 
 /// Removes or restores user data.
 pub async fn remove_or_restore_user_data(
+  context: &LemmyContext,
   mod_person_id: PersonId,
   banned_person_id: PersonId,
   removed: bool,
   reason: &Option<String>,
-  context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
   // These actions are only possible when removing, not restoring
   if removed {
-    delete_local_user_images(banned_person_id, context).await?;
+    delete_local_user_images(context, banned_person_id).await?;
 
     // Update the fields to None
     Person::update(
@@ -623,11 +623,15 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
     }
+
+    // Remove post and comment votes
+    PostActions::remove_all_likes(pool, banned_person_id).await?;
+    CommentActions::remove_all_likes(pool, banned_person_id).await?;
   }
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -702,17 +706,25 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
 }
 
 pub async fn remove_or_restore_user_data_in_community(
+  pool: &mut DbPool<'_>,
   community_id: CommunityId,
   mod_person_id: PersonId,
   banned_person_id: PersonId,
   remove: bool,
   reason: &Option<String>,
-  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  // These actions are only possible when removing, not restoring
+  if remove {
+    // Remove post and comment votes
+    PostActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+    CommentActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+  }
+
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+    Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
+
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -740,15 +752,15 @@ pub async fn remove_or_restore_user_data_in_community(
 }
 
 pub async fn purge_user_account(
+  context: &LemmyContext,
   person_id: PersonId,
   local_instance_id: InstanceId,
-  context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
   // Delete their local images, if they're a local user
   // No need to update avatar and banner, those are handled in Person::delete_account
-  delete_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(context, person_id).await.ok();
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
@@ -833,10 +845,10 @@ pub fn check_conflicting_like_filters(
 }
 
 pub async fn process_markdown(
+  context: &LemmyContext,
   text: &str,
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
-  context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
   let text = clean_urls_in_text(&text);
@@ -852,7 +864,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied = build_proxied_image_url(&link, false, context)?;
+        let proxied = build_proxied_image_url(context, &link, false)?;
         let details_form = details.build_image_details_form(&proxied);
         ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
@@ -864,13 +876,13 @@ pub async fn process_markdown(
 }
 
 pub async fn process_markdown_opt(
+  context: &LemmyContext,
   text: &Option<String>,
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
-  context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
   match text {
-    Some(t) => process_markdown(t, slur_regex, url_blocklist, context)
+    Some(t) => process_markdown(context, t, slur_regex, url_blocklist)
       .await
       .map(Some),
     None => Ok(None),
@@ -882,10 +894,10 @@ pub async fn process_markdown_opt(
 /// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to
 /// pass as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
+  context: &LemmyContext,
   link: Url,
   image_mode: PictrsImageMode,
   is_thumbnail: bool,
-  context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
@@ -893,7 +905,7 @@ async fn proxy_image_link_internal(
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
 
-    let proxied = build_proxied_image_url(&link, is_thumbnail, context)?;
+    let proxied = build_proxied_image_url(context, &link, is_thumbnail)?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
@@ -911,34 +923,34 @@ async fn proxy_image_link_internal(
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub async fn proxy_image_link(
+  context: &LemmyContext,
   link: Url,
   is_thumbnail: bool,
-  context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
+    context,
     link,
     context.settings().pictrs()?.image_mode,
     is_thumbnail,
-    context,
   )
   .await
 }
 
 pub async fn proxy_image_link_opt_apub(
-  link: Option<Url>,
   context: &LemmyContext,
+  link: Option<Url>,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l, false, context).await.map(Some)
+    proxy_image_link(context, l, false).await.map(Some)
   } else {
     Ok(None)
   }
 }
 
 fn build_proxied_image_url(
+  context: &LemmyContext,
   link: &Url,
   is_thumbnail: bool,
-  context: &LemmyContext,
 ) -> LemmyResult<Url> {
   let mut url = format!(
     "{}/api/v4/image/proxy?url={}",
@@ -955,8 +967,8 @@ fn build_proxied_image_url(
 }
 
 pub async fn local_user_view_from_jwt(
-  jwt: &str,
   context: &LemmyContext,
+  jwt: &str,
 ) -> LemmyResult<LocalUserView> {
   let local_user_id = Claims::validate(jwt, context)
     .await
@@ -1050,10 +1062,10 @@ mod tests {
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png")?;
     let proxied = proxy_image_link_internal(
+      &context,
       local_url.clone(),
       PictrsImageMode::ProxyAllImages,
       false,
-      &context,
     )
     .await?;
     assert_eq!(&local_url, proxied.inner());
@@ -1061,10 +1073,10 @@ mod tests {
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png")?;
     let proxied = proxy_image_link_internal(
+      &context,
       remote_image.clone(),
       PictrsImageMode::ProxyAllImages,
       false,
-      &context,
     )
     .await?;
     assert_eq!(

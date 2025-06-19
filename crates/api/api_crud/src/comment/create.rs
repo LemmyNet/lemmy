@@ -43,7 +43,7 @@ pub async fn create_comment(
 ) -> LemmyResult<Json<CommentResponse>> {
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let content = process_markdown(&context, &data.content, &slur_regex, &url_blocklist).await?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   is_valid_body_field(&content, false)?;
 
@@ -65,7 +65,7 @@ pub async fn create_comment(
   let post = post_view.post;
   let community_id = post_view.community.id;
 
-  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
+  check_community_user_action(&mut context.pool(), &local_user_view, &post_view.community).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
@@ -141,10 +141,10 @@ pub async fn create_comment(
 
   // Update the read comments, so your own new comment doesn't appear as a +1 unread
   update_read_comments(
+    &mut context.pool(),
     local_user_view.person.id,
     post_id,
     post.comments + 1,
-    &mut context.pool(),
   )
   .await?;
 

@@ -144,7 +144,7 @@ impl Object for ApubPrivateMessage {
     let url_blocklist = get_url_blocklist(context).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
+    let content = process_markdown(context, &content, &slur_regex, &url_blocklist).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
 
     let mut form = PrivateMessageInsertForm {

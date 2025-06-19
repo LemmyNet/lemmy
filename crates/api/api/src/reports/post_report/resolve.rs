@@ -26,10 +26,10 @@ pub async fn resolve_post_report(
 
   let person_id = local_user_view.person.id;
   check_community_mod_action(
+    &mut context.pool(),
     &local_user_view,
     &report.community,
     true,
-    &mut context.pool(),
   )
   .await?;
 
