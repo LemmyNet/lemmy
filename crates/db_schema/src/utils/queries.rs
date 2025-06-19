@@ -98,6 +98,22 @@ pub fn post_creator_is_admin() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+pub fn post_creator_is_moderator() -> _ {
+  creator_community_actions
+    .field(community_actions::became_moderator_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
+pub fn post_creator_banned_from_community() -> _ {
+  creator_community_actions
+    .field(community_actions::received_ban_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
 /// Checks to see if a user is site banned from any of these places:
 /// - Their own instance
 /// - The local instance

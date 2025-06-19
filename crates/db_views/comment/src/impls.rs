@@ -135,7 +135,6 @@ impl CommentView {
       comment: self.comment,
       creator: self.creator,
       comment_actions: self.comment_actions,
-      creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
       creator_home_instance_actions: self.creator_home_instance_actions,
@@ -143,6 +142,8 @@ impl CommentView {
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
       creator_banned: self.creator_banned,
+      creator_banned_from_community: self.creator_banned_from_community,
+      creator_is_moderator: self.creator_is_moderator,
     }
   }
 }
@@ -711,12 +712,9 @@ mod tests {
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
-    assert!(comments[1]
-      .creator_community_actions
-      .as_ref()
-      .is_some_and(|x| x.became_moderator_at.is_some()));
+    assert!(comments[1].creator_is_moderator);
 
-    assert!(comments[0].creator_community_actions.is_none());
+    assert!(!comments[0].creator_is_moderator);
 
     cleanup(data, pool).await
   }

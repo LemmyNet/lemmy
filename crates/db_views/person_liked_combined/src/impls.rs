@@ -230,11 +230,12 @@ impl InternalToCombinedView for PersonLikedCombinedViewInternal {
         instance_actions: v.instance_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else {
       Some(PersonLikedCombinedView::Post(PostView {
@@ -248,11 +249,12 @@ impl InternalToCombinedView for PersonLikedCombinedViewInternal {
         instance_actions: v.instance_actions,
         creator_home_instance_actions: v.creator_home_instance_actions,
         creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     }
   }
