@@ -3397,6 +3397,7 @@ dependencies = [
  "strum",
  "tracing",
  "ts-rs",
+ "unified-diff",
 ]
 
 [[package]]

@@ -79,13 +79,18 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
   }
 
   if !(statements_only_in_0.is_empty() && statements_only_in_1.is_empty()) {
+    let (a, b): (String, String) = select_pairs([&statements_only_in_0, &statements_only_in_1])
+      .flat_map(|[a, b]| std::iter::once((a, b)).chain([("\n\n", "\n\n")]))
+      .unzip();
     panic!(
       "{label_of_change_from_0_to_1}\n\n{}",
-      select_pairs([&statements_only_in_0, &statements_only_in_1])
-        .flat_map(|pair| {
-          display_change(pair).chain(["\n"]) // Blank line after each chunk diff
-        })
-        .collect::<String>()
+      String::from_utf8_lossy(&unified_diff::diff(
+        a.as_bytes(),
+        "without change",
+        b.as_bytes(),
+        "with change",
+        10000
+      ))
     );
   }
 }
@@ -182,17 +187,6 @@ fn amount_of_difference_between([a, b]: [&str; 2]) -> isize {
     .into_iter()
     .filter(|i| !matches!(i, diff::Result::Both(_, _)))
     .fold(0, |count, _| count.saturating_add(1))
-}
-
-/// Returns a string representation of the change from string 0 to string 1.
-fn display_change([before, after]: [&str; 2]) -> impl Iterator<Item = &str> {
-  diff::lines(before, after)
-    .into_iter()
-    .flat_map(|line| match line {
-      diff::Result::Left(s) => ["- ", s, "\n"],
-      diff::Result::Right(s) => ["+ ", s, "\n"],
-      diff::Result::Both(s, _) => ["  ", s, "\n"],
-    })
 }
 
 // `#[cfg(test)]` would be redundant here
