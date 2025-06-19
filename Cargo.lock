@@ -91,6 +91,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-extensible-rate-limit"
+version = "0.4.0"
+source = "git+https://github.com/Nutomic/actix-extensible-rate-limit.git?branch=make-extensible#f15e205ec3d2ed45f4a3509c54ff5669c402e808"
+dependencies = [
+ "actix-web",
+ "dashmap",
+ "futures",
+ "log",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
 name = "actix-http"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1347,6 +1360,20 @@ dependencies = [
  "darling_core 0.20.11",
  "quote",
  "syn 2.0.102",
+]
+
+[[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -3929,6 +3956,7 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
@@ -3947,6 +3975,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "actix-extensible-rate-limit",
  "actix-web",
  "anyhow",
  "cfg-if",
