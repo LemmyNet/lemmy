@@ -86,4 +86,4 @@ invisible-characters = "0.1.3"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
-diffy = { workspace = true }
+unified-diff = { workspace = true }
