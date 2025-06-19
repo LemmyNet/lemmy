@@ -7,25 +7,22 @@ use lemmy_db_schema::{
     post::Post,
     tag::TagsView,
   },
-  utils::queries::{creator_banned_from_community, creator_is_moderator},
+  utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
+  },
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{helper_types::Nullable, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::queries::{
-      comment_creator_is_admin,
-      comment_select_remove_deletes,
-      creator_banned,
-      creator_home_instance_actions_select,
-      creator_local_instance_actions_select,
-      local_user_can_mod_comment,
-      post_tags_fragment,
-    },
-    CreatorHomeInstanceActionsAllColumnsTuple,
-    CreatorLocalInstanceActionsAllColumnsTuple,
+  diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::{
+    comment_creator_is_admin,
+    comment_select_remove_deletes,
+    local_user_can_mod_comment,
+    post_tags_fragment,
   },
 };
 
@@ -61,14 +58,6 @@ pub struct CommentView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
-      select_expression = creator_local_instance_actions_select()))]
-  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = comment_creator_is_admin()
@@ -89,7 +78,7 @@ pub struct CommentView {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_banned_within_community()
     )
   )]
   pub creator_banned: bool,
@@ -120,8 +109,6 @@ pub struct CommentSlimView {
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
   pub instance_actions: Option<InstanceActions>,
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  pub creator_local_instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,

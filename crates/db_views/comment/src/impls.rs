@@ -27,6 +27,7 @@ use lemmy_db_schema::{
     paginate,
     queries::{
       creator_community_actions_join,
+      creator_community_instance_actions_join,
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
       filter_blocked,
@@ -93,6 +94,7 @@ impl CommentView {
       .left_join(my_local_user_admin_join)
       .left_join(my_instance_actions_community_join)
       .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
   }
@@ -137,8 +139,6 @@ impl CommentView {
       comment_actions: self.comment_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
-      creator_home_instance_actions: self.creator_home_instance_actions,
-      creator_local_instance_actions: self.creator_local_instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
       creator_banned: self.creator_banned,

@@ -7,7 +7,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  utils::queries::creator_banned_from_community,
+  utils::queries::{creator_banned_from_community, creator_banned_within_community},
 };
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
@@ -15,19 +15,12 @@ pub mod db_perf;
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::queries::{
-      creator_banned,
-      creator_home_instance_actions_select,
-      creator_is_moderator,
-      creator_local_instance_actions_select,
-      local_user_can_mod_post,
-      post_creator_is_admin,
-      post_tags_fragment,
-    },
-    CreatorHomeInstanceActionsAllColumnsTuple,
-    CreatorLocalInstanceActionsAllColumnsTuple,
+  diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::{
+    creator_is_moderator,
+    local_user_can_mod_post,
+    post_creator_is_admin,
+    post_tags_fragment,
   },
 };
 
@@ -58,14 +51,6 @@ pub struct PostView {
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
-      select_expression = creator_local_instance_actions_select()))]
-  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_creator_is_admin()
@@ -86,7 +71,7 @@ pub struct PostView {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_banned_within_community()
     )
   )]
   pub creator_banned: bool,

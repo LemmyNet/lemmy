@@ -1,6 +1,7 @@
 use crate::{
   aliases::{
     creator_community_actions,
+    creator_community_instance_actions,
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
@@ -127,6 +128,17 @@ pub fn creator_banned() -> _ {
     .nullable()
     .is_not_null();
   local_ban.or(home_ban)
+}
+
+/// Similar to creator_banned(), but also checks if creator was banned from instance where the
+/// community is hosted.
+#[diesel::dsl::auto_type]
+pub fn creator_banned_within_community() -> _ {
+  let community_ban = creator_community_instance_actions
+    .field(instance_actions::received_ban_at)
+    .nullable()
+    .is_not_null();
+  creator_banned().or(community_ban)
 }
 
 #[diesel::dsl::auto_type]
@@ -304,6 +316,19 @@ pub fn creator_home_instance_actions_join() -> _ {
       .eq(person::instance_id)
       .and(
         creator_home_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
+  )
+}
+#[diesel::dsl::auto_type]
+pub fn creator_community_instance_actions_join() -> _ {
+  creator_community_instance_actions.on(
+    creator_home_instance_actions
+      .field(instance_actions::instance_id)
+      .eq(community::instance_id)
+      .and(
+        creator_community_instance_actions
           .field(instance_actions::person_id)
           .eq(person::id),
       ),
