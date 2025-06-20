@@ -5,7 +5,6 @@ use crate::{
     generate_activity_id,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
 };
 use activitypub_federation::{
@@ -135,7 +134,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_instance_id = site_view.site.instance_id;
 
-    insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();

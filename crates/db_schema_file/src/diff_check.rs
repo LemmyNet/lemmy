@@ -13,7 +13,7 @@ use std::{
 
 /// Returns almost all things currently in the database, represented as SQL statements that would
 /// recreate them.
-pub fn get_dump() -> String {
+pub(crate) fn get_dump() -> String {
   let db_url = SETTINGS.get_database_url();
   let output = Command::new("pg_dump")
     .args([
@@ -58,7 +58,7 @@ pub fn get_dump() -> String {
 /// not `dumps[1]` to `dumps[0]`. This requires the two `dumps` elements being in an order that fits
 /// with `label_of_change_from_0_to_1`. This does not necessarily match the order in which the dumps
 /// were created.
-pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
+pub(crate) fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
   let [sorted_statements_in_0, sorted_statements_in_1] = dumps.map(|dump| {
     dump
       .split("\n\n")
@@ -182,6 +182,13 @@ fn amount_of_difference_between([a, b]: [&str; 2]) -> isize {
     .into_iter()
     .filter(|i| !matches!(i, diff::Result::Both(_, _)))
     .fold(0, |count, _| count.saturating_add(1))
+}
+
+/// Makes sure the after dump does not contain any DEFERRABLE constraints.
+pub(crate) fn deferr_constraint_check(dump: &str) {
+  if dump.contains(" DEFERR") {
+    panic!("Schema should not have DEFER constraints.")
+  }
 }
 
 // `#[cfg(test)]` would be redundant here

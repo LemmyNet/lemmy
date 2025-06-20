@@ -2,7 +2,6 @@ use super::{local_community, report_inboxes};
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
@@ -99,7 +98,6 @@ impl ActivityHandler for Report {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {

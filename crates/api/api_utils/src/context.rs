@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
 };
 use lemmy_utils::{
-  rate_limit::RateLimitCell,
+  rate_limit::RateLimit,
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -19,7 +19,7 @@ pub struct LemmyContext {
   /// and not on RequestBuilder, so we need a separate client here.
   pictrs_client: Arc<ClientWithMiddleware>,
   secret: Arc<Secret>,
-  rate_limit_cell: RateLimitCell,
+  rate_limit_cell: RateLimit,
 }
 
 impl LemmyContext {
@@ -28,7 +28,7 @@ impl LemmyContext {
     client: ClientWithMiddleware,
     pictrs_client: ClientWithMiddleware,
     secret: Secret,
-    rate_limit_cell: RateLimitCell,
+    rate_limit_cell: RateLimit,
   ) -> LemmyContext {
     LemmyContext {
       pool,
@@ -56,7 +56,7 @@ impl LemmyContext {
   pub fn secret(&self) -> &Secret {
     &self.secret
   }
-  pub fn rate_limit_cell(&self) -> &RateLimitCell {
+  pub fn rate_limit_cell(&self) -> &RateLimit {
     &self.rate_limit_cell
   }
 
@@ -76,7 +76,7 @@ impl LemmyContext {
       jwt_secret: String::new().into(),
     };
 
-    let rate_limit_cell = RateLimitCell::with_test_config();
+    let rate_limit_cell = RateLimit::with_test_config();
 
     let context = LemmyContext::create(
       pool,

@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_received_activity,
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
 use activitypub_federation::{
@@ -67,7 +66,6 @@ impl ActivityHandler for UndoFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
 

@@ -6,7 +6,6 @@ use crate::{
     verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::update::Update,
 };
 use activitypub_federation::{
@@ -116,8 +115,6 @@ impl ActivityHandler for Update {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
-
     match self.object {
       Either::Left(ref c) => {
         let old_community = self.community(context).await?;
