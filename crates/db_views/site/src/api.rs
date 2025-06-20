@@ -732,7 +732,7 @@ pub struct UserSettingsBackup {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You read posts response.
+/// Your exported data.
 pub struct ExportDataResponse {
   pub inbox: Vec<PostOrCommentOrPrivateMessage>,
   pub content: Vec<PostOrCommentOrPrivateMessage>,
