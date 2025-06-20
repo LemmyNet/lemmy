@@ -2,6 +2,7 @@
 #![expect(clippy::expect_used)]
 use itertools::Itertools;
 use lemmy_utils::settings::SETTINGS;
+use pathfinding::matrix::Matrix;
 use std::{
   borrow::Cow,
   process::{Command, Stdio},
@@ -65,11 +66,27 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
       .filter(|&chunk| !(is_ignored_trigger(chunk) || is_view(chunk) || is_comment(chunk)))
       .map(remove_ignored_uniqueness_from_statement)
       .sorted_unstable()
-      .collect::<String>()
+      .collect::<Vec<_>>()
   });
-  let patch = diffy::create_patch(&sorted_statements_in_0, &sorted_statements_in_1);
-  if !patch.hunks().is_empty() {
-    panic!("{label_of_change_from_0_to_1}\n\n{}", patch);
+  let mut statements_only_in_0 = Vec::new();
+  let mut statements_only_in_1 = Vec::new();
+  for diff in diff::slice(&sorted_statements_in_0, &sorted_statements_in_1) {
+    match diff {
+      diff::Result::Left(statement) => statements_only_in_0.push(&**statement),
+      diff::Result::Right(statement) => statements_only_in_1.push(&**statement),
+      diff::Result::Both(_, _) => {}
+    }
+  }
+
+  if !(statements_only_in_0.is_empty() && statements_only_in_1.is_empty()) {
+    let (a, b): (String, String) = select_pairs([&statements_only_in_0, &statements_only_in_1])
+      .flat_map(|[a, b]| [(a, b), ("\n\n", "\n\n")])
+      .unzip();
+    let diff = unified_diff::diff(a.as_bytes(), "", b.as_bytes(), "", 10000);
+    panic!(
+      "{label_of_change_from_0_to_1}\n\n{}",
+      String::from_utf8_lossy(&diff)
+    );
   }
 }
 
@@ -140,4 +157,45 @@ fn remove_ignored_uniqueness_from_statement(statement: &str) -> Cow<'_, str> {
 
 fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut(&T) -> u8) {
   vec.sort_unstable_by_key(|&i| (section(i), i));
+}
+
+/// For each string in list 0, makes a guess of which string in list 1 is a variant of it (or vice
+/// versa).
+fn select_pairs<'a>([a, b]: [&'a [&'a str]; 2]) -> impl Iterator<Item = [&'a str; 2]> {
+  let len = std::cmp::max(a.len(), b.len());
+  let get_candidate_pair_at =
+    |(row, column)| [a.get(row), b.get(column)].map(|item| *item.unwrap_or(&""));
+  let difference_amounts = Matrix::from_fn(len, len, |position| {
+    amount_of_difference_between(get_candidate_pair_at(position))
+  });
+  pathfinding::kuhn_munkres::kuhn_munkres_min(&difference_amounts)
+    .1
+    .into_iter()
+    .enumerate()
+    .map(get_candidate_pair_at)
+}
+
+/// Computes string distance, using the already required [`diff`] crate to avoid adding another
+/// dependency.
+fn amount_of_difference_between([a, b]: [&str; 2]) -> isize {
+  diff::chars(a, b)
+    .into_iter()
+    .filter(|i| !matches!(i, diff::Result::Both(_, _)))
+    .fold(0, |count, _| count.saturating_add(1))
+}
+
+// `#[cfg(test)]` would be redundant here
+mod tests {
+  #[test]
+  fn test_select_pairs() {
+    let x = "Cupcake";
+    let x_variant = "Cupcaaaaake";
+    let y = "eee";
+    let y_variant = "ee";
+    let z = "bruh";
+    assert_eq!(
+      super::select_pairs([&[x, y, z], &[y_variant, x_variant]]).collect::<Vec<_>>(),
+      vec![[x, x_variant], [y, y_variant], [z, ""]]
+    );
+  }
 }
