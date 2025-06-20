@@ -28,6 +28,7 @@ use lemmy_api::{
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
     donation_dialog_shown::donation_dialog_shown,
+    export_data::export_data,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_hidden::list_person_hidden,
@@ -400,6 +401,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .wrap(rate_limit.import_user_settings())
               .route("/export", get().to(export_settings))
               .route("/import", post().to(import_settings)),
+          )
+          .service(
+            resource("/data/export")
+              .wrap(rate_limit.import_user_settings())
+              .route(get().to(export_data)),
           ),
       )
       // User actions

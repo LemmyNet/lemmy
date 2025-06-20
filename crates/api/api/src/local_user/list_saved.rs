@@ -32,6 +32,7 @@ pub async fn list_person_saved(
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
+    no_limit: None,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;

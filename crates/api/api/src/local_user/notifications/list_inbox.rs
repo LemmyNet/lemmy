@@ -31,6 +31,7 @@ pub async fn list_inbox(
     cursor_data,
     page_back: data.page_back,
     limit: data.limit,
+    no_limit: None,
   }
   .list(&mut context.pool(), person_id, local_instance_id)
   .await?;
