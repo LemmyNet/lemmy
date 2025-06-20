@@ -1,7 +1,6 @@
 use super::send_activity_from_user_or_community_or_multi;
 use crate::{
   activities::generate_activity_id,
-  insert_received_activity,
   protocol::activities::following::{follow::Follow, reject::RejectFollow},
 };
 use activitypub_federation::{
@@ -58,7 +57,6 @@ impl ActivityHandler for RejectFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
 

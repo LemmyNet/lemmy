@@ -5,7 +5,7 @@
 --
 -- See https://github.com/LemmyNet/lemmy/issues/5564
 ALTER TABLE local_image
-    ADD COLUMN person_id int NOT NULL DEFAULT 0 REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD COLUMN person_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     ADD COLUMN thumbnail_for_post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Update historical person_id columns
@@ -18,10 +18,6 @@ FROM
     local_user AS lu
 WHERE
     li.local_user_id = lu.id;
-
--- Remove the default
-ALTER TABLE local_image
-    ALTER COLUMN person_id DROP DEFAULT;
 
 -- Remove the local_user_id column
 ALTER TABLE local_image

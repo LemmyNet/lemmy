@@ -21,13 +21,7 @@ use serde::{Deserialize, Serialize};
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::{
-    utils::queries::{
-      creator_community_actions_select,
-      local_user_is_admin,
-      person1_select,
-      person2_select,
-    },
-    CreatorCommunityActionsAllColumnsTuple,
+    utils::queries::{local_user_is_admin, person1_select, person2_select},
     Person1AliasAllColumnsTuple,
     Person2AliasAllColumnsTuple,
   },
@@ -77,13 +71,6 @@ pub struct ReportCombinedViewInternal {
   pub resolver: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
-      select_expression = creator_community_actions_select().nullable()
-    )
-  )]
-  pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

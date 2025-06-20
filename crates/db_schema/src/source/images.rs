@@ -25,7 +25,7 @@ use {
 pub struct LocalImage {
   pub pictrs_alias: String,
   pub published_at: DateTime<Utc>,
-  pub person_id: PersonId,
+  pub person_id: Option<PersonId>,
   /// This means the image is an auto-generated thumbnail, for a post.
   pub thumbnail_for_post_id: Option<PostId>,
 }

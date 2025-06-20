@@ -1,6 +1,7 @@
 use crate::{
   aliases::{
     creator_community_actions,
+    creator_community_instance_actions,
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
@@ -8,14 +9,11 @@ use crate::{
     person2,
   },
   newtypes::{InstanceId, PersonId},
-  CreatorCommunityActionsAllColumnsTuple,
-  CreatorHomeInstanceActionsAllColumnsTuple,
-  CreatorLocalInstanceActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
 use diesel::{
-  dsl::{case_when, exists, not, Nullable},
+  dsl::{case_when, exists, not},
   expression::SqlLiteral,
   helper_types::{Eq, NotEq},
   sql_types::Json,
@@ -98,6 +96,30 @@ pub fn post_creator_is_admin() -> _ {
 }
 
 #[diesel::dsl::auto_type]
+pub fn creator_is_moderator() -> _ {
+  creator_community_actions
+    .field(community_actions::became_moderator_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
+pub fn creator_banned_from_community() -> _ {
+  creator_community_actions
+    .field(community_actions::received_ban_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
+pub fn creator_home_banned() -> _ {
+  creator_home_instance_actions
+    .field(instance_actions::received_ban_at)
+    .nullable()
+    .is_not_null()
+}
+
+#[diesel::dsl::auto_type]
 /// Checks to see if a user is site banned from any of these places:
 /// - Their own instance
 /// - The local instance
@@ -106,11 +128,18 @@ pub fn creator_banned() -> _ {
     .field(instance_actions::received_ban_at)
     .nullable()
     .is_not_null();
-  let home_ban = creator_home_instance_actions
+  local_ban.or(creator_home_banned())
+}
+
+/// Similar to creator_banned(), but also checks if creator was banned from instance where the
+/// community is hosted.
+#[diesel::dsl::auto_type]
+pub fn creator_banned_within_community() -> _ {
+  let community_ban = creator_community_instance_actions
     .field(instance_actions::received_ban_at)
     .nullable()
     .is_not_null();
-  local_ban.or(home_ban)
+  creator_banned().or(community_ban)
 }
 
 #[diesel::dsl::auto_type]
@@ -239,25 +268,6 @@ pub fn person2_select() -> Person2AliasAllColumnsTuple {
   person2.fields(person::all_columns)
 }
 
-/// The select for the creator community actions alias.
-pub fn creator_community_actions_select() -> CreatorCommunityActionsAllColumnsTuple {
-  creator_community_actions.fields(community_actions::all_columns)
-}
-
-pub fn creator_home_instance_actions_select() -> Nullable<CreatorHomeInstanceActionsAllColumnsTuple>
-{
-  creator_home_instance_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
-}
-
-pub fn creator_local_instance_actions_select(
-) -> Nullable<CreatorLocalInstanceActionsAllColumnsTuple> {
-  creator_local_instance_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
-}
-
 type IsSubscribedType =
   Eq<lemmy_db_schema_file::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
 
@@ -288,6 +298,19 @@ pub fn creator_home_instance_actions_join() -> _ {
       .eq(person::instance_id)
       .and(
         creator_home_instance_actions
+          .field(instance_actions::person_id)
+          .eq(person::id),
+      ),
+  )
+}
+#[diesel::dsl::auto_type]
+pub fn creator_community_instance_actions_join() -> _ {
+  creator_community_instance_actions.on(
+    creator_home_instance_actions
+      .field(instance_actions::instance_id)
+      .eq(community::instance_id)
+      .and(
+        creator_community_instance_actions
           .field(instance_actions::person_id)
           .eq(person::id),
       ),

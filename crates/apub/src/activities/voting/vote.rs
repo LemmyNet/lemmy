@@ -3,7 +3,6 @@ use crate::{
     generate_activity_id,
     voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
   },
-  insert_received_activity,
   protocol::activities::voting::vote::{Vote, VoteType},
 };
 use activitypub_federation::{
@@ -57,7 +56,6 @@ impl ActivityHandler for Vote {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
 

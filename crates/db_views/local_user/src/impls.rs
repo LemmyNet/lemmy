@@ -147,13 +147,6 @@ impl LocalUserView {
 
     LocalUserView::read(pool, local_user.id).await
   }
-
-  pub fn banned(&self) -> bool {
-    self
-      .instance_actions
-      .as_ref()
-      .is_some_and(|i| i.received_ban_at.is_some())
-  }
 }
 
 #[derive(Default)]

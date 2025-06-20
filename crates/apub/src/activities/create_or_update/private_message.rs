@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_received_activity,
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
@@ -63,7 +62,6 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     ApubPrivateMessage::from_json(self.object, context).await?;
     Ok(())
   }
