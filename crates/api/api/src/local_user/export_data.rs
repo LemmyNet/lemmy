@@ -1,17 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{
-    actor_language::LocalUserLanguage,
-    community::CommunityActions,
-    instance::InstanceActions,
-    keyword_block::LocalUserKeywordBlock,
-    person::PersonActions,
-  },
-  traits::Blockable,
-};
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
 use lemmy_db_views_local_user::LocalUserView;
@@ -23,12 +13,11 @@ use lemmy_db_views_person_liked_combined::{
   impls::PersonLikedCombinedQuery,
   PersonLikedCombinedView,
 };
-use lemmy_db_views_person_saved_combined::{
-  impls::PersonSavedCombinedQuery,
-  PersonSavedCombinedView,
-};
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_site::api::{ExportDataResponse, PostOrCommentOrPrivateMessage};
+use lemmy_db_views_site::{
+  api::{ExportDataResponse, PostOrCommentOrPrivateMessage},
+  impls::user_backup_list_to_user_settings_backup,
+};
 use lemmy_utils::{self, error::LemmyResult};
 
 pub async fn export_data(
@@ -37,7 +26,6 @@ pub async fn export_data(
 ) -> LemmyResult<Json<ExportDataResponse>> {
   use PostOrCommentOrPrivateMessage::*;
 
-  let local_user_id = local_user_view.local_user.id;
   let local_instance_id = local_user_view.person.instance_id;
   let my_person_id = local_user_view.person.id;
   let my_person = &local_user_view.person;
@@ -58,24 +46,11 @@ pub async fn export_data(
   })
   .collect();
 
-  let saved = PersonSavedCombinedQuery {
-    no_limit: Some(true),
-    ..PersonSavedCombinedQuery::default()
-  }
-  .list(pool, &local_user_view)
-  .await?
-  .into_iter()
-  .map(|u| match u {
-    PersonSavedCombinedView::Post(pv) => Post(pv.post),
-    PersonSavedCombinedView::Comment(cv) => Comment(cv.comment),
-  })
-  .collect();
-
   let inbox = InboxCombinedQuery {
     no_limit: Some(true),
     ..InboxCombinedQuery::default()
   }
-  .list(&mut context.pool(), my_person_id, local_instance_id)
+  .list(pool, my_person_id, local_instance_id)
   .await?
   .into_iter()
   .map(|u| match u {
@@ -102,61 +77,27 @@ pub async fn export_data(
   })
   .collect();
 
-  let read_posts =
-    PostView::list_read(&mut context.pool(), my_person, None, None, None, Some(true))
-      .await?
-      .into_iter()
-      .map(|pv| pv.post.ap_id.into())
-      .collect();
+  let read_posts = PostView::list_read(pool, my_person, None, None, None, Some(true))
+    .await?
+    .into_iter()
+    .map(|pv| pv.post.ap_id.into())
+    .collect();
 
-  let follows = CommunityFollowerView::for_person(pool, my_person_id)
+  let moderates = CommunityModeratorView::for_person(pool, my_person_id, Some(local_user))
     .await?
     .into_iter()
     .map(|cv| cv.community.ap_id.into())
     .collect();
 
-  let moderates =
-    CommunityModeratorView::for_person(&mut context.pool(), my_person_id, Some(local_user))
-      .await?
-      .into_iter()
-      .map(|cv| cv.community.ap_id.into())
-      .collect();
-
-  let community_blocks = CommunityActions::read_blocks_for_person(pool, my_person_id)
-    .await?
-    .into_iter()
-    .map(|c| c.ap_id.into())
-    .collect();
-
-  let instance_blocks = InstanceActions::read_blocks_for_person(pool, my_person_id)
-    .await?
-    .into_iter()
-    .map(|i| i.domain)
-    .collect();
-
-  let person_blocks = PersonActions::read_blocks_for_person(pool, my_person_id)
-    .await?
-    .into_iter()
-    .map(|p| p.ap_id.into())
-    .collect();
-
-  let keyword_blocks = LocalUserKeywordBlock::read(pool, local_user_id).await?;
-
-  let discussion_languages = LocalUserLanguage::read(pool, local_user_id).await?;
+  let lists = LocalUser::export_backup(pool, local_user_view.person.id).await?;
+  let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
 
   Ok(Json(ExportDataResponse {
-    local_user_view,
-    follows,
-    moderates,
-    community_blocks,
-    instance_blocks,
-    person_blocks,
-    keyword_blocks,
-    discussion_languages,
     inbox,
     content,
     liked,
-    saved,
     read_posts,
+    moderates,
+    settings,
   }))
 }
