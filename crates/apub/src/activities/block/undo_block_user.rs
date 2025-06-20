@@ -7,7 +7,6 @@ use crate::{
     send_lemmy_activity,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
@@ -93,7 +92,6 @@ impl ActivityHandler for UndoBlockUser {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;

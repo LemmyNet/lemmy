@@ -9,13 +9,12 @@ use actix_web::{
 use futures_util::future::LocalBoxFuture;
 use lemmy_db_schema::newtypes::LocalUserId;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::rate_limit::rate_limiter::InstantSecs;
 use std::{
   collections::HashSet,
   future::{ready, Ready},
   hash::{Hash, Hasher},
-  sync::{Arc, RwLock},
-  time::Duration,
+  sync::{Arc, LazyLock, RwLock},
+  time::{Duration, Instant},
 };
 
 /// https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-01.html
@@ -23,6 +22,25 @@ const IDEMPOTENCY_HEADER: &str = "Idempotency-Key";
 
 /// Delete idempotency keys older than this
 const CLEANUP_INTERVAL_SECS: u32 = 120;
+
+/// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
+/// store nanoseconds
+#[derive(PartialEq, Debug, Clone, Copy, Hash)]
+pub struct InstantSecs {
+  pub secs: u32,
+}
+
+static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
+
+#[allow(clippy::expect_used)]
+impl InstantSecs {
+  pub fn now() -> Self {
+    InstantSecs {
+      secs: u32::try_from(START_TIME.elapsed().as_secs())
+        .expect("server has been running for over 136 years"),
+    }
+  }
+}
 
 #[derive(Debug)]
 struct Entry {

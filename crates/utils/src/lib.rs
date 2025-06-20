@@ -4,7 +4,6 @@ use std::cmp::min;
 cfg_if! {
   if #[cfg(feature = "full")] {
     pub mod cache_header;
-    #[allow(clippy::as_conversions)]
     pub mod rate_limit;
     pub mod request;
     pub mod response;

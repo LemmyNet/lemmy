@@ -48,3 +48,4 @@ serial_test = { workspace = true }
 diff = "0.1.13"
 itertools = { workspace = true }
 pathfinding = "4.14.0"
+unified-diff = { workspace = true }
