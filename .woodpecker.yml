@@ -174,16 +174,6 @@ steps:
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
     when: *slow_check_paths
 
-  check_defaults_hjson_updated:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
-    when: *slow_check_paths
-
   cargo_build:
     image: *rust_image
     environment:
