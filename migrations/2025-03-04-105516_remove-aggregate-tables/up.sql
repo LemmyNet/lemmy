@@ -25,8 +25,6 @@ FROM
 WHERE
     comment.id = ca.comment_id;
 
-DROP TABLE comment_aggregates;
-
 CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DESC);
 
 CREATE INDEX idx_comment_hot ON comment USING btree (hot_rank DESC, score DESC);
@@ -48,7 +46,7 @@ ALTER TABLE post
     ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN hot_rank_active double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     ADD COLUMN scaled_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
@@ -74,14 +72,9 @@ FROM
 WHERE
     post.id = pa.post_id;
 
-SET CONSTRAINTS post_instance_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS post_instance_id_fkey DEFERRED;
-
 ALTER TABLE post
-    ALTER COLUMN instance_id SET NOT NULL;
-
-DROP TABLE post_aggregates;
+    ALTER COLUMN instance_id SET NOT NULL,
+    ALTER CONSTRAINT post_instance_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
 
@@ -183,8 +176,6 @@ FROM
 WHERE
     community.id = ca.community_id;
 
-DROP TABLE community_aggregates;
-
 CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
 CREATE INDEX idx_community_nonzero_hotrank ON public.community USING btree (published)
@@ -213,8 +204,6 @@ FROM
 WHERE
     person.id = pa.person_id;
 
-DROP TABLE person_aggregates;
-
 -- merge site_aggregates into person table
 ALTER TABLE local_site
     ADD COLUMN users bigint NOT NULL DEFAULT 1,
@@ -242,8 +231,6 @@ FROM
 WHERE
     local_site.site_id = sa.site_id;
 
-DROP TABLE site_aggregates;
-
 -- merge local_user_vote_display_mode into local_user table
 ALTER TABLE local_user
     ADD COLUMN show_score boolean NOT NULL DEFAULT FALSE,
@@ -263,5 +250,5 @@ FROM
 WHERE
     local_user.id = v.local_user_id;
 
-DROP TABLE local_user_vote_display_mode;
+DROP TABLE comment_aggregates, post_aggregates, community_aggregates, person_aggregates, site_aggregates, local_user_vote_display_mode;
 

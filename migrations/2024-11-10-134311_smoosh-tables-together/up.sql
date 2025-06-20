@@ -33,12 +33,45 @@ ALTER TABLE person_actions RENAME COLUMN pending TO follow_pending;
 
 ALTER TABLE post_actions RENAME COLUMN published TO read;
 
+-- Mark all constraints of affected tables as deferrable to speed up migration
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_community_id_fkey DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_approver_id_fkey DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_follower_person_id_fkey DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_like_comment_id_fkey DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_like_person_id_fkey DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_block_instance_id_fkey DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_block_person_id_fkey DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_follower_follower_id_fkey DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_follower_person_id_fkey DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_read_person_id_fkey DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_read_post_id_fkey DEFERRABLE;
+
 ALTER TABLE comment_actions
     ALTER COLUMN liked DROP NOT NULL,
     ALTER COLUMN liked DROP DEFAULT,
     ALTER COLUMN like_score DROP NOT NULL,
-    ADD COLUMN saved timestamptz,
-    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
+    ADD COLUMN saved timestamptz;
 
 ALTER TABLE community_actions
     ALTER COLUMN followed DROP NOT NULL,
@@ -47,9 +80,7 @@ ALTER TABLE community_actions
     ADD COLUMN blocked timestamptz,
     ADD COLUMN became_moderator timestamptz,
     ADD COLUMN received_ban timestamptz,
-    ADD COLUMN ban_expires timestamptz,
-    ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_state IS NULL) AND NOT (followed IS NULL AND follow_approver_id IS NOT NULL)),
-    ADD CONSTRAINT community_actions_check_received_ban CHECK (NOT (received_ban IS NULL AND ban_expires IS NOT NULL));
+    ADD COLUMN ban_expires timestamptz;
 
 ALTER TABLE instance_actions
     ALTER COLUMN blocked DROP NOT NULL,
@@ -59,8 +90,7 @@ ALTER TABLE person_actions
     ALTER COLUMN followed DROP NOT NULL,
     ALTER COLUMN followed DROP DEFAULT,
     ALTER COLUMN follow_pending DROP NOT NULL,
-    ADD COLUMN blocked timestamptz,
-    ADD CONSTRAINT person_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL));
+    ADD COLUMN blocked timestamptz;
 
 ALTER TABLE post_actions
     ALTER COLUMN read DROP NOT NULL,
@@ -70,9 +100,7 @@ ALTER TABLE post_actions
     ADD COLUMN saved timestamptz,
     ADD COLUMN liked timestamptz,
     ADD COLUMN like_score smallint,
-    ADD COLUMN hidden timestamptz,
-    ADD CONSTRAINT post_actions_check_read_comments CHECK ((read_comments IS NULL) = (read_comments_amount IS NULL)),
-    ADD CONSTRAINT post_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
+    ADD COLUMN hidden timestamptz;
 
 -- Add actions from other old tables to the new tables
 INSERT INTO comment_actions (person_id, comment_id, saved)
@@ -395,4 +423,52 @@ FROM post_actions;
 
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL), (post_id IS NULL)
 FROM post_actions;
+
+ALTER TABLE comment_actions
+    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
+
+ALTER TABLE community_actions
+    ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_state IS NULL) AND NOT (followed IS NULL AND follow_approver_id IS NOT NULL)),
+    ADD CONSTRAINT community_actions_check_received_ban CHECK (NOT (received_ban IS NULL AND ban_expires IS NOT NULL));
+
+ALTER TABLE person_actions
+    ADD CONSTRAINT person_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL));
+
+ALTER TABLE post_actions
+    ADD CONSTRAINT post_actions_check_read_comments CHECK ((read_comments IS NULL) = (read_comments_amount IS NULL)),
+    ADD CONSTRAINT post_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
+
+-- Remove deferrable to restore original db schema
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_community_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_follow_approver_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE community_actions
+    ALTER CONSTRAINT community_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_actions_comment_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE comment_actions
+    ALTER CONSTRAINT comment_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_actions_instance_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE instance_actions
+    ALTER CONSTRAINT instance_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_actions_target_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_actions_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_actions
+    ALTER CONSTRAINT post_actions_post_id_fkey NOT DEFERRABLE;
 
