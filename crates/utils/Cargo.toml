@@ -88,3 +88,4 @@ actix-extensible-rate-limit = { git = "https://github.com/Nutomic/actix-extensib
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
+unified-diff = { workspace = true }
