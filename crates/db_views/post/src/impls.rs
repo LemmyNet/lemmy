@@ -33,6 +33,7 @@ use lemmy_db_schema::{
     paginate,
     queries::{
       creator_community_actions_join,
+      creator_community_instance_actions_join,
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
       filter_blocked,
@@ -113,6 +114,7 @@ impl PostView {
       .left_join(my_instance_actions_community_join)
       .left_join(my_local_user_admin_join)
       .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
   }
@@ -774,18 +776,18 @@ mod tests {
       let tegan_local_user_view = LocalUserView {
         local_user: inserted_tegan_local_user,
         person: inserted_tegan_person,
-        instance_actions: None,
+        banned: false,
       };
       let john_local_user_view = LocalUserView {
         local_user: inserted_john_local_user,
         person: inserted_john_person,
-        instance_actions: None,
+        banned: false,
       };
 
       let bot_local_user_view = LocalUserView {
         local_user: inserted_bot_local_user,
         person: inserted_bot_person,
-        instance_actions: None,
+        banned: false,
       };
 
       Ok(Data {
@@ -1097,15 +1099,7 @@ mod tests {
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| {
-      (
-        p.creator.name,
-        p.creator_community_actions
-          .map(|x| x.became_moderator_at.is_some())
-          .unwrap_or(false),
-        p.can_mod,
-      )
-    })
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
 
     // Tegan is an admin, so can_mod should be always true
@@ -1133,15 +1127,7 @@ mod tests {
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| {
-      (
-        p.creator.name,
-        p.creator_community_actions
-          .map(|x| x.became_moderator_at.is_some())
-          .unwrap_or(false),
-        p.can_mod,
-      )
-    })
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
 
     // John is a mod, so he can_mod the bots (and his own) posts, but not tegans.
@@ -1162,15 +1148,7 @@ mod tests {
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| {
-      (
-        p.creator.name,
-        p.creator_community_actions
-          .map(|x| x.became_moderator_at.is_some())
-          .unwrap_or(false),
-        p.can_mod,
-      )
-    })
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
@@ -1192,15 +1170,7 @@ mod tests {
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| {
-      (
-        p.creator.name,
-        p.creator_community_actions
-          .map(|x| x.became_moderator_at.is_some())
-          .unwrap_or(false),
-        p.can_mod,
-      )
-    })
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
@@ -1223,15 +1193,7 @@ mod tests {
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|p| {
-      (
-        p.creator.name,
-        p.creator_community_actions
-          .map(|x| x.became_moderator_at.is_some())
-          .unwrap_or(false),
-        p.can_mod,
-      )
-    })
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
 
     // John is a mod, so he still can_mod the bots (and his own) posts. Tegan is a lower mod and
@@ -1892,13 +1854,9 @@ mod tests {
     )
     .await?;
 
-    assert!(post_view
-      .creator_local_instance_actions
-      .is_some_and(|x| x.received_ban_at.is_some()));
+    assert!(post_view.creator_banned);
 
-    assert!(post_view
-      .creator_home_instance_actions
-      .is_some_and(|x| x.received_ban_at.is_some()));
+    assert!(post_view.creator_banned);
 
     // This should be none, since john wasn't banned, only the creator.
     assert!(post_view.instance_actions.is_none());

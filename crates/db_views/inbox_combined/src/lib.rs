@@ -21,21 +21,16 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  diesel::{Queryable, Selectable},
   lemmy_db_schema::{
     utils::queries::{
       creator_banned,
-      creator_community_actions_select,
-      creator_home_instance_actions_select,
       creator_is_admin,
-      creator_local_instance_actions_select,
       local_user_can_mod,
       person1_select,
       post_tags_fragment,
     },
-    CreatorCommunityActionsAllColumnsTuple,
-    CreatorHomeInstanceActionsAllColumnsTuple,
-    CreatorLocalInstanceActionsAllColumnsTuple,
+    utils::queries::{creator_banned_from_community, creator_is_moderator},
     Person1AliasAllColumnsTuple,
   },
 };
@@ -76,25 +71,10 @@ pub struct InboxCombinedViewInternal {
   pub item_recipient: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
-      select_expression = creator_community_actions_select().nullable()
-    )
-  )]
-  pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
-      select_expression = creator_local_instance_actions_select()))]
-  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -125,6 +105,18 @@ pub struct InboxCombinedViewInternal {
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_moderator()
+    )
+  )]
+  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_from_community()
+    )
+  )]
+  pub creator_banned_from_community: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -156,12 +148,11 @@ pub struct PersonCommentMentionView {
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
   pub instance_actions: Option<InstanceActions>,
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  pub creator_local_instance_actions: Option<InstanceActions>,
-  pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned_from_community: bool,
 }
 
 #[skip_serializing_none]
@@ -182,13 +173,12 @@ pub struct PersonPostMentionView {
   pub person_actions: Option<PersonActions>,
   pub post_actions: Option<PostActions>,
   pub instance_actions: Option<InstanceActions>,
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  pub creator_local_instance_actions: Option<InstanceActions>,
-  pub creator_community_actions: Option<CommunityActions>,
   pub post_tags: TagsView,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned_from_community: bool,
 }
 
 #[skip_serializing_none]
@@ -210,13 +200,12 @@ pub struct CommentReplyView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub instance_actions: Option<InstanceActions>,
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  pub creator_local_instance_actions: Option<InstanceActions>,
-  pub creator_community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
   pub post_tags: TagsView,
   pub can_mod: bool,
   pub creator_banned: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned_from_community: bool,
 }
 
 #[skip_serializing_none]

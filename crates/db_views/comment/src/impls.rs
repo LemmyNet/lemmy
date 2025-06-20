@@ -27,6 +27,7 @@ use lemmy_db_schema::{
     paginate,
     queries::{
       creator_community_actions_join,
+      creator_community_instance_actions_join,
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
       filter_blocked,
@@ -93,6 +94,7 @@ impl CommentView {
       .left_join(my_local_user_admin_join)
       .left_join(my_instance_actions_community_join)
       .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
   }
@@ -135,14 +137,13 @@ impl CommentView {
       comment: self.comment,
       creator: self.creator,
       comment_actions: self.comment_actions,
-      creator_community_actions: self.creator_community_actions,
       person_actions: self.person_actions,
       instance_actions: self.instance_actions,
-      creator_home_instance_actions: self.creator_home_instance_actions,
-      creator_local_instance_actions: self.creator_local_instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
       creator_banned: self.creator_banned,
+      creator_banned_from_community: self.creator_banned_from_community,
+      creator_is_moderator: self.creator_is_moderator,
     }
   }
 }
@@ -458,7 +459,7 @@ mod tests {
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
       person: inserted_timmy_person.clone(),
-      instance_actions: None,
+      banned: false,
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;
@@ -711,12 +712,9 @@ mod tests {
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
-    assert!(comments[1]
-      .creator_community_actions
-      .as_ref()
-      .is_some_and(|x| x.became_moderator_at.is_some()));
+    assert!(comments[1].creator_is_moderator);
 
-    assert!(comments[0].creator_community_actions.is_none());
+    assert!(!comments[0].creator_is_moderator);
 
     cleanup(data, pool).await
   }

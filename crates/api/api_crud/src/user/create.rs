@@ -167,7 +167,7 @@ pub async fn register(
         Ok(LocalUserView {
           person,
           local_user,
-          instance_actions: None,
+          banned: false,
         })
       }
       .scope_boxed()
@@ -411,7 +411,7 @@ pub async fn authenticate_with_oauth(
             Ok(LocalUserView {
               person,
               local_user,
-              instance_actions: None,
+              banned: false,
             })
           }
           .scope_boxed()

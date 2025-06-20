@@ -190,7 +190,7 @@ pub async fn update_read_comments(
 
 pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
-  if local_user_view.banned() {
+  if local_user_view.banned {
     Err(LemmyErrorType::SiteBan)?
   }
   check_local_user_deleted(local_user_view)
