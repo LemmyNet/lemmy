@@ -213,23 +213,21 @@ pub async fn send_local_notifs(
     if let Some(parent_comment_id) = comment.parent_comment_id() {
       let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
 
-      // Get the parent commenter local_user
-      let parent_creator_id = parent_comment.creator_id;
-
       let check_blocks = check_person_instance_community_block(
-        person.id,
-        parent_creator_id,
-        // Only block from the community's instance_id
-        community.instance_id,
-        community.id,
         &mut context.pool(),
+        person.id,
+        person.instance_id,
+        parent_comment.creator_id,
+        community.id,
+        community.instance_id,
       )
       .await
       .is_err();
 
       // Don't send a notif to yourself
       if parent_comment.creator_id != person.id && !check_blocks {
-        let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
+        let user_view =
+          LocalUserView::read_person(&mut context.pool(), parent_comment.creator_id).await;
         if let Ok(parent_user_view) = user_view {
           // Don't duplicate notif if already mentioned by checking recipient ids
           if !recipient_ids.contains(&parent_user_view.local_user.id) {
@@ -264,12 +262,12 @@ pub async fn send_local_notifs(
     } else {
       // Use the post creator to check blocks
       let check_blocks = check_person_instance_community_block(
-        person.id,
-        post.creator_id,
-        // Only block from the community's instance_id
-        community.instance_id,
-        community.id,
         &mut context.pool(),
+        person.id,
+        person.instance_id,
+        post.creator_id,
+        community.id,
+        community.instance_id,
       )
       .await
       .is_err();

@@ -34,7 +34,7 @@ use lemmy_db_schema::{
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_actions_person_join,
+      my_instance_persons_actions_join,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -116,8 +116,8 @@ impl InboxCombinedViewInternal {
       my_comment_actions_join(Some(my_person_id));
     let my_local_user_admin_join: my_local_user_admin_join =
       my_local_user_admin_join(Some(my_person_id));
-    let my_instance_actions_person_join: my_instance_actions_person_join =
-      my_instance_actions_person_join(Some(my_person_id));
+    let my_instance_persons_actions_join: my_instance_persons_actions_join =
+      my_instance_persons_actions_join(Some(my_person_id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -137,7 +137,7 @@ impl InboxCombinedViewInternal {
       .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_person_join)
+      .left_join(my_instance_persons_actions_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_post_actions_join)
@@ -175,7 +175,7 @@ impl InboxCombinedViewInternal {
       .filter(unread_filter)
       // Don't count replies from blocked users
       .filter(person_actions::blocked_at.is_null())
-      .filter(instance_actions::blocked_at.is_null())
+      .filter(instance_actions::blocked_persons_at.is_null())
       .select(count(inbox_combined::id))
       .into_boxed();
 
@@ -307,7 +307,7 @@ impl InboxCombinedQuery {
     // Dont show replies from blocked users or instances
     query = query
       .filter(person_actions::blocked_at.is_null())
-      .filter(instance_actions::blocked_at.is_null());
+      .filter(instance_actions::blocked_persons_at.is_null());
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -450,7 +450,7 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
-      instance::{Instance, InstanceActions, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstancePersonsBlockForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
       person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
@@ -861,16 +861,18 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure instance_blocks are working
-    let timmy_blocks_instance_form = InstanceBlockForm::new(data.timmy.id, data.sara.instance_id);
+    let timmy_blocks_instance_form =
+      InstancePersonsBlockForm::new(data.timmy.id, data.sara.instance_id);
 
-    let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
+    let inserted_instance_block =
+      InstanceActions::block_persons(pool, &timmy_blocks_instance_form).await?;
 
     assert_eq!(
       (data.timmy.id, data.sara.instance_id, true),
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,
-        inserted_instance_block.blocked_at.is_some()
+        inserted_instance_block.blocked_persons_at.is_some()
       )
     );
 
