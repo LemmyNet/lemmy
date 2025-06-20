@@ -33,16 +33,14 @@ fn test_config_defaults_updated() -> lemmy_utils::error::LemmyResult<()> {
   let mut updated_config = config_to_string();
   updated_config.push('\n');
   if current_config != updated_config {
-    panic!(
-      "{}",
-      String::from_utf8_lossy(&unified_diff::diff(
-        current_config.as_bytes(),
-        "current",
-        updated_config.as_bytes(),
-        "expected",
-        3
-      ))
+    let diff = unified_diff::diff(
+      current_config.as_bytes(),
+      "current",
+      updated_config.as_bytes(),
+      "expected",
+      3,
     );
+    panic!("{}", String::from_utf8_lossy(&diff));
   }
   Ok(())
 }

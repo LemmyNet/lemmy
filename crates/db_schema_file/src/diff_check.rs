@@ -80,17 +80,12 @@ pub fn check_dump_diff(dumps: [&str; 2], label_of_change_from_0_to_1: &str) {
 
   if !(statements_only_in_0.is_empty() && statements_only_in_1.is_empty()) {
     let (a, b): (String, String) = select_pairs([&statements_only_in_0, &statements_only_in_1])
-      .flat_map(|[a, b]| std::iter::once((a, b)).chain([("\n\n", "\n\n")]))
+      .flat_map(|[a, b]| [(a, b), ("\n\n", "\n\n")])
       .unzip();
+    let diff = unified_diff::diff(a.as_bytes(), "", b.as_bytes(), "", 10000);
     panic!(
       "{label_of_change_from_0_to_1}\n\n{}",
-      String::from_utf8_lossy(&unified_diff::diff(
-        a.as_bytes(),
-        "without change",
-        b.as_bytes(),
-        "with change",
-        10000
-      ))
+      String::from_utf8_lossy(&diff)
     );
   }
 }
