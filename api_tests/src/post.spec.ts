@@ -189,6 +189,36 @@ test("Unlike a post", async () => {
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
+test("Make sure like is within range", async () => {
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+  let postRes = await createPost(alpha, betaCommunity.community.id);
+
+  // Try a like with score 2
+  await expect(
+    likePost(alpha, 2, postRes.post_view.post),
+  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
+
+  // Try a like with score -2
+  await expect(
+    likePost(alpha, -2, postRes.post_view.post),
+  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
+
+  // Make sure that post stayed at 1
+  const betaPost = await waitForPost(
+    beta,
+    postRes.post_view.post,
+    post => post?.post.score === 1,
+  );
+
+  expect(betaPost).toBeDefined();
+  expect(betaPost?.community.local).toBe(true);
+  expect(betaPost?.creator.local).toBe(false);
+  expect(betaPost?.post.score).toBe(1);
+  await assertPostFederation(betaPost, postRes.post_view);
+});
+
 test("Update a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";

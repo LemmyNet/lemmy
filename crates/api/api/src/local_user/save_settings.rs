@@ -164,6 +164,7 @@ pub async fn save_user_settings(
     show_upvotes: data.show_upvotes,
     show_downvotes: data.show_downvotes,
     show_upvote_percentage: data.show_upvote_percentage,
+    show_person_votes: data.show_person_votes,
     ..Default::default()
   };
 

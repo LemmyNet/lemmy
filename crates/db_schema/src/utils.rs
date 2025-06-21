@@ -399,7 +399,7 @@ fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
   Ok(url.into())
 }
 
-fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
+fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
   let fut = async {
     /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
@@ -638,6 +638,18 @@ pub(crate) fn format_actor_url(
     format!("{local_protocol_and_hostname}/{prefix}/{name}")
   };
   Ok(Url::parse(&url)?)
+}
+
+/// Make sure the like score is 1, or -1
+///
+/// Uses a default NotFound error, that you should map to
+/// CouldntLikeComment/CouldntLikePost.
+pub(crate) fn validate_like(like_score: i16) -> LemmyResult<()> {
+  if [-1, 1].contains(&like_score) {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotFound.into())
+  }
 }
 
 #[cfg(test)]
