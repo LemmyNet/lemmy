@@ -40,9 +40,9 @@ pub async fn update_comment(
   .await?;
 
   check_community_user_action(
+    &mut context.pool(),
     &local_user_view,
     &orig_comment.community,
-    &mut context.pool(),
   )
   .await?;
 
@@ -61,7 +61,7 @@ pub async fn update_comment(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let content = process_markdown_opt(&context, &data.content, &slur_regex, &url_blocklist).await?;
   if let Some(content) = &content {
     is_valid_body_field(content, false)?;
   }

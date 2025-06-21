@@ -144,7 +144,7 @@ impl Attachment {
     let name = name.map(|n| n.split_whitespace().collect::<Vec<_>>().join(" "));
 
     if is_image {
-      let url = proxy_image_link(url, false, context).await?;
+      let url = proxy_image_link(context, url, false).await?;
       Ok(format!("![{}]({url})", name.unwrap_or_default()))
     } else {
       Ok(format!("[{url}]({url})"))

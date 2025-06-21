@@ -273,7 +273,7 @@ impl Object for ApubPost {
     let slur_regex = slur_regex(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-    let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;
+    let body = process_markdown_opt(context, &body, &slur_regex, &url_blocklist).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())

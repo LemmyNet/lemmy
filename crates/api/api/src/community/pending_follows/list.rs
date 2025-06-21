@@ -14,7 +14,7 @@ pub async fn get_pending_follows_list(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListCommunityPendingFollowsResponse>> {
-  check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
+  check_community_mod_of_any_or_admin_action(&mut context.pool(), &local_user_view).await?;
   let all_communities =
     data.all_communities.unwrap_or_default() && local_user_view.local_user.admin;
 

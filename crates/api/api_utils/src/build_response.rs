@@ -217,12 +217,12 @@ pub async fn send_local_notifs(
       let parent_creator_id = parent_comment.creator_id;
 
       let check_blocks = check_person_instance_community_block(
+        &mut context.pool(),
         person.id,
         parent_creator_id,
         // Only block from the community's instance_id
         community.instance_id,
         community.id,
-        &mut context.pool(),
       )
       .await
       .is_err();
@@ -264,12 +264,12 @@ pub async fn send_local_notifs(
     } else {
       // Use the post creator to check blocks
       let check_blocks = check_person_instance_community_block(
+        &mut context.pool(),
         person.id,
         post.creator_id,
         // Only block from the community's instance_id
         community.instance_id,
         community.id,
-        &mut context.pool(),
       )
       .await
       .is_err();

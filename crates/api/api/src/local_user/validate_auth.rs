@@ -17,7 +17,7 @@ pub async fn validate_auth(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let jwt = read_auth_token(&req)?;
   if let Some(jwt) = jwt {
-    local_user_view_from_jwt(&jwt, &context).await?;
+    local_user_view_from_jwt(&context, &jwt).await?;
   } else {
     Err(LemmyErrorType::NotLoggedIn)?;
   }

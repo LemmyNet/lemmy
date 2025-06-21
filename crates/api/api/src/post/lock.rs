@@ -32,10 +32,10 @@ pub async fn lock_post(
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
   check_community_mod_action(
+    &mut context.pool(),
     &local_user_view,
     &orig_post.community,
     false,
-    &mut context.pool(),
   )
   .await?;
 

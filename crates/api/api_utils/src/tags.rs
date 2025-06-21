@@ -23,10 +23,10 @@ pub async fn update_post_tags(
   if !is_author {
     // Check if user is either the post author or a community mod
     check_community_mod_action(
+      &mut context.pool(),
       local_user_view,
       &community.community,
       false,
-      &mut context.pool(),
     )
     .await?;
   }

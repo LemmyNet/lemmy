@@ -264,7 +264,7 @@ async fn receive_delete_action(
       let local_instance_id = site_view.site.instance_id;
 
       if do_purge_user_account.unwrap_or(false) {
-        purge_user_account(person.id, local_instance_id, context).await?;
+        purge_user_account(context, person.id, local_instance_id).await?;
       } else {
         Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }

@@ -71,7 +71,7 @@ where
         // Ignore any invalid auth so the site can still be used
         // This means it is be impossible to get any error message for invalid jwt. Need
         // to use `/api/v4/account/validate_auth` for that.
-        let local_user_view = local_user_view_from_jwt(jwt, &context).await.ok();
+        let local_user_view = local_user_view_from_jwt(&context, jwt).await.ok();
         if let Some(local_user_view) = local_user_view {
           req.extensions_mut().insert(local_user_view);
         }
