@@ -72,23 +72,22 @@ impl Note {
     // necessary because we need to know the post and parent comment in order to insert a new
     // comment. However it can also lead to too much resource consumption when fetching many
     // comments recursively. To avoid this we check the request count against max comment depth.
-    // Stack overflow is prevented by spawning a separate task for building and polling the nested
-    // `Future`.
+    //
+    // A separate task is spawned for the recursive call. Otherwise, when the async executor polls
+    // the task this is in, the poll function's call stack would grow with the level of recursion,
+    // so a stack overflow would be possible. This stack overflow prevention relies on the total
+    // laziness that the async keyword provides
+    // (https://rust-lang.github.io/rfcs/2394-async_await.html#async-functions), so you must not
+    // change this function to `pub fn get_parents(...) -> impl Future<Output = ...>`.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
     let parent = tokio::spawn({
       let in_reply_to = self.in_reply_to.clone();
       let context = context.clone();
-      async move {
-        // `lazy` is called for complete certainty that:
-        // - Nothing in `dereference` is evaluated while the `get_parents` call that spawned this
-        //   `async` block is still part of the current call stack.
-        // - The surrounding `async` block is not seen as redundant, possibly by the
-        //   `clippy::redundant_async_block` lint.
-        futures_util::future::lazy(|_| ()).await;
-        in_reply_to.dereference(&context).await
-      }
+      // This is wrapped in an async block only to satisfy the borrow checker. This wrapping is not
+      // needed for the stack overflow prevention.
+      async move { in_reply_to.dereference(&context).await }
     })
     .await??;
     match parent {
