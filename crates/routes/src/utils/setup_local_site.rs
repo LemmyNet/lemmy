@@ -24,6 +24,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use rand::{distr::Alphanumeric, Rng};
 use tracing::info;
 use url::Url;
 
@@ -89,32 +90,31 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
             ..SiteInsertForm::new(name, instance.id)
           };
           let site = Site::create(&mut conn.into(), &site_form).await?;
+          // create multi-comm follower account
+          let r: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(11)
+            .map(char::from)
+            .collect();
+          let name = format!("multicomm{}", r);
+          let form = PersonInsertForm {
+            private_key: site.private_key,
+            inbox_url: Some(site.inbox_url),
+            bot_account: Some(true),
+            ..PersonInsertForm::new(name, site.public_key, instance.id)
+          };
+          let multi_comm_follower = Person::create(&mut conn.into(), &form).await?;
 
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
             site_setup: Some(settings.setup.is_some()),
+            multi_comm_follower: Some(multi_comm_follower.id),
             ..LocalSiteInsertForm::new(site.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;
 
           // Create the rate limit table
-          let local_site_rate_limit_form = if cfg!(debug_assertions) {
-            LocalSiteRateLimitInsertForm {
-              message: Some(999),
-              post: Some(999),
-              register: Some(999),
-              image: Some(999),
-              comment: Some(999),
-              search: Some(999),
-              ..LocalSiteRateLimitInsertForm::new(local_site.id)
-            }
-          } else {
-            LocalSiteRateLimitInsertForm::new(local_site.id)
-          };
-          // TODO these have to be set, because the database defaults are too low for the federation
-          // tests to pass, and there's no way to live update the rate limits without restarting the
-          // server.
-          // This can be removed once live rate limits are enabled.
+          let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
           LocalSiteRateLimit::create(&mut conn.into(), &local_site_rate_limit_form).await?;
           Ok(())
         }

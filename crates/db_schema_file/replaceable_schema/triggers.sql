@@ -1,10 +1,6 @@
 -- A trigger is associated with a table instead of a schema, so they can't be in the `r` schema. This is
 -- okay if the function specified after `EXECUTE FUNCTION` is in `r`, since dropping the function drops the trigger.
 --
--- Tables that are updated by triggers should not have foreign keys that aren't set to `INITIALLY DEFERRED`
--- (even if only other columns are updated) because triggers can run after the deletion of referenced rows and
--- before the automatic deletion of the row that references it. This is not a problem for insert or delete.
---
 -- Triggers that update multiple tables should use this order: person_aggregates, comment_aggregates,
 -- post, community_aggregates, site_aggregates
 --   * The order matters because the updated rows are locked until the end of the transaction, and statements
@@ -692,7 +688,7 @@ CREATE TRIGGER require_uplete
     BEFORE DELETE ON post_actions
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
--- search: (post, comment, community, person)
+-- search: (post, comment, community, person, multi_community)
 CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -720,6 +716,7 @@ CALL r.create_search_combined_trigger ('post');
 CALL r.create_search_combined_trigger ('comment');
 CALL r.create_search_combined_trigger ('community');
 CALL r.create_search_combined_trigger ('person');
+CALL r.create_search_combined_trigger ('multi_community');
 -- You also need to triggers to update the `score` column.
 -- post | post::score
 -- comment | comment_aggregates::score

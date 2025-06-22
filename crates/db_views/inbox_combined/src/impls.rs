@@ -375,13 +375,12 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
+        creator_is_moderator: v.creator_is_moderator,
       }))
     } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
       v.person_comment_mention,
@@ -401,12 +400,11 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           comment_actions: v.comment_actions,
           person_actions: v.person_actions,
           instance_actions: v.instance_actions,
-          creator_home_instance_actions: v.creator_home_instance_actions,
-          creator_local_instance_actions: v.creator_local_instance_actions,
-          creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
           can_mod: v.can_mod,
           creator_banned: v.creator_banned,
+          creator_banned_from_community: v.creator_banned_from_community,
+          creator_is_moderator: v.creator_is_moderator,
         },
       ))
     } else if let (Some(person_post_mention), Some(post), Some(community)) =
@@ -421,15 +419,14 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         community_actions: v.community_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
         post_actions: v.post_actions,
         image_details: v.image_details,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
+        creator_is_moderator: v.creator_is_moderator,
       }))
     } else if let Some(private_message) = v.private_message {
       Some(InboxCombinedView::PrivateMessage(PrivateMessageView {

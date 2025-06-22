@@ -1,5 +1,5 @@
 pub use lemmy_db_schema::{
-  newtypes::{LocalSiteId, OAuthProviderId, SiteId},
+  newtypes::{LocalSiteId, SiteId},
   source::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,

@@ -8,7 +8,6 @@ use crate::{
     verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::block::block_user::BlockUser,
 };
 use activitypub_federation::{
@@ -57,10 +56,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: reason,
-      id: generate_activity_id(
-        BlockType::Block,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
     })
   }
@@ -127,7 +123,6 @@ impl ActivityHandler for BlockUser {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let expires_at = self.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;

@@ -328,16 +328,17 @@ impl Blockable for PersonActions {
 }
 
 impl PersonActions {
-  pub async fn list_followers(
+  pub async fn follower_inboxes(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> LemmyResult<Vec<Person>> {
+  ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
     person_actions::table
       .filter(person_actions::followed_at.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .filter(person_actions::target_id.eq(for_person_id))
-      .select(person::all_columns)
+      .select(person::inbox_url)
+      .distinct()
       .load(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -463,8 +464,8 @@ mod tests {
     assert_eq!(person_2.id, person_follower.person_id);
     assert!(person_follower.follow_pending.is_some_and(|x| !x));
 
-    let followers = PersonActions::list_followers(pool, person_1.id).await?;
-    assert_eq!(vec![person_2], followers);
+    let followers = PersonActions::follower_inboxes(pool, person_1.id).await?;
+    assert_eq!(vec![person_2.inbox_url], followers);
 
     let unfollow =
       PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;

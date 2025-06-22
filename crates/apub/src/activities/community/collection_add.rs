@@ -1,7 +1,6 @@
 use crate::{
   activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::{
     collection_add::CollectionAdd,
     collection_remove::CollectionRemove,
@@ -40,16 +39,13 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
-  pub async fn send_add_mod(
+  async fn send_add_mod(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -65,16 +61,13 @@ impl CollectionAdd {
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
-  pub async fn send_add_featured_post(
+  async fn send_add_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -119,7 +112,6 @@ impl ActivityHandler for CollectionAdd {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
@@ -148,7 +140,6 @@ impl ActivityHandler for CollectionAdd {
           };
           ModAddCommunity::create(&mut context.pool(), &form).await?;
         }
-        // TODO: send websocket notification about added mod
       }
       CollectionType::Featured => {
         let post = ObjectId::<ApubPost>::from(self.object)

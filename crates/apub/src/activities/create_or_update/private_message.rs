@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_received_activity,
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
@@ -26,10 +25,7 @@ pub(crate) async fn send_create_or_update_pm(
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
-  let id = generate_activity_id(
-    kind.clone(),
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(kind.clone(), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
     actor: actor.id().into(),
@@ -66,7 +62,6 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     ApubPrivateMessage::from_json(self.object, context).await?;
     Ok(())
   }

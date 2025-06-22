@@ -3,7 +3,6 @@ use crate::{
     generate_activity_id,
     voting::{undo_vote_comment, undo_vote_post},
   },
-  insert_received_activity,
   protocol::activities::voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{
@@ -30,10 +29,7 @@ impl UndoVote {
       actor: actor.id().into(),
       object: vote,
       kind: UndoType::Undo,
-      id: generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(UndoType::Undo, context)?,
     })
   }
 }
@@ -60,7 +56,6 @@ impl ActivityHandler for UndoVote {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
     match object {

@@ -401,12 +401,11 @@ mod tests {
   use crate::{
     source::{
       community::{Community, CommunityInsertForm},
-      instance::Instance,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::LocalSite,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      site::SiteInsertForm,
     },
+    test_data::TestData,
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
@@ -425,19 +424,6 @@ mod tests {
       Language::read_id_from_code(pool, "fi").await?,
       Language::read_id_from_code(pool, "se").await?,
     ])
-  }
-
-  async fn create_test_site(pool: &mut DbPool<'_>) -> LemmyResult<(Site, Instance)> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
-    let site = Site::create(pool, &site_form).await?;
-
-    // Create a local site, since this is necessary for local languages
-    let local_site_form = LocalSiteInsertForm::new(site.id);
-    LocalSite::create(pool, &local_site_form).await?;
-
-    Ok((site, inserted_instance))
   }
 
   #[tokio::test]
@@ -485,21 +471,19 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let (site, instance) = create_test_site(pool).await?;
+    let data = TestData::create(pool).await?;
     let site_languages1 = SiteLanguage::read_local_raw(pool).await?;
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
 
     let test_langs = test_langs1(pool).await?;
-    SiteLanguage::update(pool, test_langs.clone(), &site).await?;
+    SiteLanguage::update(pool, test_langs.clone(), &data.site).await?;
 
     let site_languages2 = SiteLanguage::read_local_raw(pool).await?;
     // after update, site only has new languages
     assert_eq!(test_langs, site_languages2);
 
-    Site::delete(pool, site.id).await?;
-    Instance::delete(pool, instance.id).await?;
-    LocalSite::delete(pool).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -510,9 +494,9 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let (site, instance) = create_test_site(pool).await?;
+    let data = TestData::create(pool).await?;
 
-    let person_form = PersonInsertForm::test_form(instance.id, "my test person");
+    let person_form = PersonInsertForm::test_form(data.instance.id, "my test person");
     let person = Person::create(pool, &person_form).await?;
     let local_user_form = LocalUserInsertForm::test_form(person.id);
 
@@ -530,9 +514,8 @@ mod tests {
 
     Person::delete(pool, person.id).await?;
     LocalUser::delete(pool, local_user.id).await?;
-    Site::delete(pool, site.id).await?;
     LocalSite::delete(pool).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -542,11 +525,11 @@ mod tests {
   async fn test_community_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let (site, instance) = create_test_site(pool).await?;
+    let data = TestData::create(pool).await?;
     let test_langs = test_langs1(pool).await?;
-    SiteLanguage::update(pool, test_langs.clone(), &site).await?;
+    SiteLanguage::update(pool, test_langs.clone(), &data.site).await?;
 
-    let read_site_langs = SiteLanguage::read(pool, site.id).await?;
+    let read_site_langs = SiteLanguage::read(pool, data.site.id).await?;
     assert_eq!(test_langs, read_site_langs);
 
     // Test the local ones are the same
@@ -554,7 +537,7 @@ mod tests {
     assert_eq!(test_langs, read_local_site_langs);
 
     let community_form = CommunityInsertForm::new(
-      instance.id,
+      data.instance.id,
       "test community".to_string(),
       "test community".to_string(),
       "pubkey".to_string(),
@@ -576,7 +559,7 @@ mod tests {
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], &site).await?;
+    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], &data.site).await?;
     let community_langs2 = CommunityLanguage::read(pool, community.id).await?;
     assert_eq!(vec![test_langs[0]], community_langs2);
 
@@ -586,9 +569,8 @@ mod tests {
     assert_eq!(test_langs2, community_langs3);
 
     Community::delete(pool, community.id).await?;
-    Site::delete(pool, site.id).await?;
     LocalSite::delete(pool).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -598,12 +580,12 @@ mod tests {
   async fn test_validate_post_language() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let (site, instance) = create_test_site(pool).await?;
+    let data = TestData::create(pool).await?;
     let test_langs = test_langs1(pool).await?;
     let test_langs2 = test_langs2(pool).await?;
 
     let community_form = CommunityInsertForm::new(
-      instance.id,
+      data.instance.id,
       "test community".to_string(),
       "test community".to_string(),
       "pubkey".to_string(),
@@ -611,7 +593,7 @@ mod tests {
     let community = Community::create(pool, &community_form).await?;
     CommunityLanguage::update(pool, test_langs, community.id).await?;
 
-    let person_form = PersonInsertForm::test_form(instance.id, "my test person");
+    let person_form = PersonInsertForm::test_form(data.instance.id, "my test person");
     let person = Person::create(pool, &person_form).await?;
     let local_user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
@@ -640,9 +622,8 @@ mod tests {
     Person::delete(pool, person.id).await?;
     Community::delete(pool, community.id).await?;
     LocalUser::delete(pool, local_user.id).await?;
-    Site::delete(pool, site.id).await?;
     LocalSite::delete(pool).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

@@ -17,12 +17,10 @@ use {
   lemmy_db_schema::{
     utils::queries::{
       comment_creator_is_admin,
-      creator_community_actions_select,
       person1_select,
       person2_select,
       post_creator_is_admin,
     },
-    CreatorCommunityActionsAllColumnsTuple,
     Person1AliasAllColumnsTuple,
     Person2AliasAllColumnsTuple,
   },
@@ -106,14 +104,6 @@ pub struct CommentReportView {
   )]
   pub resolver: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
-      select_expression = creator_community_actions_select().nullable()
-    )
-  )]
-  pub creator_community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
@@ -171,13 +161,6 @@ pub struct PostReportView {
     )
   )]
   pub post_creator: Person,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
-      select_expression = creator_community_actions_select().nullable()
-    )
-  )]
-  pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

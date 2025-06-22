@@ -1,7 +1,6 @@
 use crate::{
   activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::collection_remove::CollectionRemove,
 };
 use activitypub_federation::{
@@ -35,16 +34,13 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
-  pub async fn send_remove_mod(
+  pub(super) async fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -60,16 +56,13 @@ impl CollectionRemove {
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
-  pub async fn send_remove_featured_post(
+  pub(super) async fn send_remove_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      RemoveType::Remove,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -114,7 +107,6 @@ impl ActivityHandler for CollectionRemove {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {

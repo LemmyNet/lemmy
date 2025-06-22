@@ -5,7 +5,6 @@ use crate::{
     generate_activity_id,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use activitypub_federation::{
@@ -46,10 +45,7 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
       to: generate_to(community)?,
@@ -116,7 +112,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_instance_id = site_view.site.instance_id;
 
-    insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default

@@ -1,7 +1,6 @@
 use crate::{
   activities::{generate_activity_id, generate_announce_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
     IdOrNestedObject,
@@ -115,10 +114,7 @@ impl AnnounceActivity {
       // Hack: need to convert Page into a format which can be sent as activity, which requires
       //       adding actor field.
       let announcable_page = RawAnnouncableActivities {
-        id: generate_activity_id(
-          AnnounceType::Announce,
-          &context.settings().get_protocol_and_hostname(),
-        )?,
+        id: generate_activity_id(AnnounceType::Announce, context)?,
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
@@ -150,7 +146,6 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.

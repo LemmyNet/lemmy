@@ -10,11 +10,14 @@ pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
 #[cfg(feature = "full")]
+pub mod test_data;
+#[cfg(feature = "full")]
 pub mod aliases {
   use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
     instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
+    instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
     instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
@@ -82,6 +85,7 @@ pub enum SearchType {
   Posts,
   Communities,
   Users,
+  MultiCommunities,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
@@ -265,4 +269,14 @@ pub type CreatorLocalInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for creator home instance actions.
+pub type CreatorCommunityInstanceActionsAllColumnsTuple = (
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::person_id>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::instance_id>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::ban_expires_at>,
 );

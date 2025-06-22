@@ -393,7 +393,6 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         post_creator,
         creator: v.report_creator,
         resolver: v.resolver,
-        creator_community_actions: v.creator_community_actions,
         community_actions: v.community_actions,
         post_actions: v.post_actions,
         person_actions: v.person_actions,
@@ -420,7 +419,6 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         creator: v.report_creator,
         comment_creator,
         resolver: v.resolver,
-        creator_community_actions: v.creator_community_actions,
         community_actions: v.community_actions,
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
@@ -517,7 +515,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: inserted_timmy.clone(),
-      instance_actions: None,
+      banned: false,
     };
 
     // Make an admin, to be able to see private message reports.
@@ -528,7 +526,7 @@ mod tests {
     let admin_view = LocalUserView {
       local_user: admin_local_user,
       person: inserted_admin.clone(),
-      instance_actions: None,
+      banned: false,
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");

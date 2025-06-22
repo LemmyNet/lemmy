@@ -2,7 +2,6 @@ use super::{local_community, report_inboxes, verify_mod_or_admin_action};
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::{
     announce::AnnounceActivity,
     report::Report,
@@ -47,10 +46,7 @@ impl ResolveReport {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
       actor: actor.id().into(),
@@ -88,7 +84,6 @@ impl ActivityHandler for ResolveReport {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let reporter = self.object.actor.dereference(context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.object.dereference(context).await? {

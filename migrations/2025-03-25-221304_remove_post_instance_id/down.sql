@@ -1,9 +1,9 @@
 ALTER TABLE post
-    ADD COLUMN name_new character varying(200) NOT NULL,
+    ADD COLUMN name_new character varying(200),
     ADD COLUMN url_new character varying(2000),
     ADD COLUMN body_new text,
-    ADD COLUMN creator_id_new integer NOT NULL,
-    ADD COLUMN community_id_new integer NOT NULL,
+    ADD COLUMN creator_id_new integer,
+    ADD COLUMN community_id_new integer,
     ADD COLUMN removed_new boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN locked_new boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN published_new timestamp with time zone DEFAULT now() NOT NULL,
@@ -13,7 +13,7 @@ ALTER TABLE post
     ADD COLUMN embed_title_new text,
     ADD COLUMN embed_description_new text,
     ADD COLUMN thumbnail_url_new text,
-    ADD COLUMN ap_id_new character varying(255) NOT NULL,
+    ADD COLUMN ap_id_new character varying(255),
     ADD COLUMN local_new boolean DEFAULT TRUE NOT NULL,
     ADD COLUMN embed_video_url_new text,
     ADD COLUMN language_id_new integer DEFAULT 0 NOT NULL,
@@ -32,7 +32,7 @@ ALTER TABLE post
     ADD COLUMN hot_rank_active_new double precision DEFAULT 0.0001 NOT NULL,
     ADD COLUMN controversy_rank_new double precision DEFAULT 0 NOT NULL,
     -- Old column here
-    ADD COLUMN instance_id integer NOT NULL,
+    ADD COLUMN instance_id integer,
     ADD COLUMN scaled_rank_new double precision DEFAULT 0.0001 NOT NULL,
     ADD COLUMN report_count_new smallint DEFAULT 0 NOT NULL,
     ADD COLUMN unresolved_report_count_new smallint DEFAULT 0 NOT NULL,
@@ -324,4 +324,19 @@ ALTER TABLE ONLY post
 
 ALTER TABLE ONLY post
     ADD CONSTRAINT post_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE post
+    ALTER COLUMN name SET NOT NULL;
+
+ALTER TABLE post
+    ALTER COLUMN creator_id SET NOT NULL;
+
+ALTER TABLE post
+    ALTER COLUMN community_id SET NOT NULL;
+
+ALTER TABLE post
+    ALTER COLUMN ap_id SET NOT NULL;
+
+ALTER TABLE post
+    ALTER COLUMN instance_id SET NOT NULL;
 

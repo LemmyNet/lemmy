@@ -31,10 +31,12 @@ use lemmy_db_schema::{
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views_api_misc::LoginResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::api::Register;
-use lemmy_db_views_site::{api::AuthenticateWithOauth, SiteView};
+use lemmy_db_views_site::{
+  api::{AuthenticateWithOauth, LoginResponse},
+  SiteView,
+};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
@@ -165,7 +167,7 @@ pub async fn register(
         Ok(LocalUserView {
           person,
           local_user,
-          instance_actions: None,
+          banned: false,
         })
       }
       .scope_boxed()
@@ -409,7 +411,7 @@ pub async fn authenticate_with_oauth(
             Ok(LocalUserView {
               person,
               local_user,
-              instance_actions: None,
+              banned: false,
             })
           }
           .scope_boxed()

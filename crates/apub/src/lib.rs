@@ -1,13 +1,8 @@
-use activitypub_federation::{
-  config::{Data, UrlVerifier},
-  error::Error as ActivityPubError,
-};
+use activitypub_federation::{config::UrlVerifier, error::Error as ActivityPubError};
 use async_trait::async_trait;
-use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
-use lemmy_db_schema::{source::activity::ReceivedActivity, utils::ActualDbPool};
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
-use tracing::debug;
+use lemmy_db_schema::utils::ActualDbPool;
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType};
 use url::Url;
 
 pub mod activities;
@@ -59,14 +54,4 @@ impl UrlVerifier for VerifyUrlData {
     })?;
     Ok(())
   }
-}
-
-/// Store received activities in the database.
-///
-/// This ensures that the same activity doesn't get received and processed more than once, which
-/// would be a waste of resources.
-async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
-  debug!("Received activity {}", ap_id.to_string());
-  ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
-  Ok(())
 }

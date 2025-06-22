@@ -2,12 +2,7 @@ use crate::SiteView;
 use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  source::{
-    instance::Instance,
-    local_site::{LocalSite, LocalSiteInsertForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
-    site::{Site, SiteInsertForm},
-  },
+  source::person::Person,
   traits::Crud,
   utils::{get_conn, DbPool},
 };
@@ -42,12 +37,9 @@ impl SiteView {
       .await
       .map_err(|e: Arc<LemmyError>| anyhow::anyhow!("err getting local site: {e:?}").into())
   }
-}
 
-pub async fn create_test_instance(pool: &mut DbPool<'_>) -> LemmyResult<Instance> {
-  let instance = Instance::read_or_create(pool, "example.com".to_string()).await?;
-  let site = Site::create(pool, &SiteInsertForm::new("name".to_string(), instance.id)).await?;
-  let local_site = LocalSite::create(pool, &LocalSiteInsertForm::new(site.id)).await?;
-  LocalSiteRateLimit::create(pool, &LocalSiteRateLimitInsertForm::new(local_site.id)).await?;
-  Ok(instance)
+  pub async fn read_multicomm_follower(pool: &mut DbPool<'_>) -> LemmyResult<Person> {
+    let site_view = SiteView::read_local(pool).await?;
+    Person::read(pool, site_view.local_site.multi_comm_follower).await
+  }
 }

@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.2"
+version = "0.7.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97a43194e54834c0efa258af64a64487a4d255cf53596c70615c7e0872d56132"
+checksum = "91fb4c19ede0a628977cdc5d1ec7d1fb3e3e3e5e9de955bd0d5fed0c8cd5260d"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -88,6 +88,19 @@ dependencies = [
  "log",
  "once_cell",
  "smallvec",
+]
+
+[[package]]
+name = "actix-extensible-rate-limit"
+version = "0.4.0"
+source = "git+https://github.com/Nutomic/actix-extensible-rate-limit.git?branch=make-extensible#f15e205ec3d2ed45f4a3509c54ff5669c402e808"
+dependencies = [
+ "actix-web",
+ "dashmap",
+ "futures",
+ "log",
+ "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -1350,6 +1363,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1376,6 +1403,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
 dependencies = [
  "uuid",
+]
+
+[[package]]
+name = "deprecate-until"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a3767f826efbbe5a5ae093920b58b43b01734202be697e1354914e862e8e704"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "semver",
+ "syn 2.0.102",
 ]
 
 [[package]]
@@ -1612,19 +1651,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
-name = "diffutils"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d7ce619b5c0e13f7543dc2c203a7e6fa37e0111d876339aada7ec9540a58d5"
-dependencies = [
- "chrono",
- "diff",
- "regex",
- "same-file",
- "unicode-width 0.1.14",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1764,6 +1790,9 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "elementtree"
@@ -2402,7 +2431,7 @@ dependencies = [
  "html5ever 0.31.0",
  "tendril",
  "thiserror 2.0.12",
- "unicode-width 0.2.1",
+ "unicode-width",
 ]
 
 [[package]]
@@ -2902,6 +2931,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "integer-sqrt"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "invisible-characters"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3101,7 +3139,6 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3138,7 +3175,6 @@ version = "1.0.0-alpha.5"
 dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3180,7 +3216,6 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3222,7 +3257,6 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3274,7 +3308,6 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -3382,31 +3415,16 @@ dependencies = [
  "diesel-derive-enum",
  "diesel_ltree",
  "diesel_migrations",
- "diffutils",
+ "diff",
+ "itertools 0.14.0",
  "lemmy_utils",
+ "pathfinding",
  "serde",
  "serial_test",
  "strum",
  "tracing",
  "ts-rs",
-]
-
-[[package]]
-name = "lemmy_db_views_api_misc"
-version = "1.0.0-alpha.5"
-dependencies = [
- "extism",
- "extism-convert",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_community_follower",
- "lemmy_db_views_community_moderator",
- "lemmy_db_views_local_user",
- "lemmy_db_views_post",
- "serde",
- "serde_with",
- "ts-rs",
- "url",
+ "unified-diff",
 ]
 
 [[package]]
@@ -3798,10 +3816,15 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "extism",
+ "extism-convert",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
+ "lemmy_db_views_community_follower",
+ "lemmy_db_views_community_moderator",
+ "lemmy_db_views_local_user",
  "lemmy_db_views_person",
+ "lemmy_db_views_post",
  "lemmy_db_views_readable_federation_state",
  "lemmy_utils",
  "serde",
@@ -3855,6 +3878,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "either",
  "futures",
  "lemmy_api_utils",
  "lemmy_apub_objects",
@@ -3896,7 +3920,6 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_api_misc",
  "lemmy_db_views_community",
  "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
@@ -3909,6 +3932,7 @@ dependencies = [
  "percent-encoding",
  "pretty_assertions",
  "prometheus",
+ "rand 0.9.1",
  "reqwest 0.12.19",
  "reqwest-middleware",
  "rss",
@@ -3933,6 +3957,7 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
@@ -3951,6 +3976,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "actix-extensible-rate-limit",
  "actix-web",
  "anyhow",
  "cfg-if",
@@ -3982,6 +4008,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "unicode-segmentation",
+ "unified-diff",
  "url",
  "urlencoding",
 ]
@@ -4698,6 +4725,20 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pathfinding"
+version = "4.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59ac35caa284c08f3721fb33c2741b5f763decaf42d080c8a6a722154347017e"
+dependencies = [
+ "deprecate-until",
+ "indexmap 2.9.0",
+ "integer-sqrt",
+ "num-traits",
+ "rustc-hash 2.1.1",
+ "thiserror 2.0.12",
+]
 
 [[package]]
 name = "pem"
@@ -6960,12 +7001,6 @@ checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
-
-[[package]]
-name = "unicode-width"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a1a07cc7db3810833284e8d372ccdc6da29741639ecc70c9ec107df0fa6154c"
@@ -6975,6 +7010,15 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unified-diff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "496a3d395ed0c30f411ceace4a91f7d93b148fb5a9b383d5d4cff7850f048d5f"
+dependencies = [
+ "diff",
+]
 
 [[package]]
 name = "untrusted"
@@ -7565,7 +7609,7 @@ dependencies = [
  "bumpalo",
  "leb128fmt",
  "memchr",
- "unicode-width 0.2.1",
+ "unicode-width",
  "wasm-encoder 0.233.0",
 ]
 

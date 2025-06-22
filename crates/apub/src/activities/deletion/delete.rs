@@ -3,7 +3,6 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  insert_received_activity,
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::ActivityHandler};
@@ -50,7 +49,6 @@ impl ActivityHandler for Delete {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
       // remove. Here we change it back to option, so we don't write it to db.
@@ -88,10 +86,7 @@ impl Delete {
     summary: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
-    let id = generate_activity_id(
-      DeleteType::Delete,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(DeleteType::Delete, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(Delete {
       actor: actor.ap_id.clone().into(),
