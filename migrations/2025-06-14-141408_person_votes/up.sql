@@ -17,20 +17,8 @@ SELECT
     votes.person_id,
     votes.creator_id,
     now(),
-    sum(
-        CASE votes.like_score
-        WHEN 1 THEN
-            1
-        ELSE
-            0
-        END) AS upvotes,
-    sum(
-        CASE votes.like_score
-        WHEN -1 THEN
-            1
-        ELSE
-            0
-        END) AS downvotes
+    count(*) FILTER (WHERE votes.like_score = 1) AS upvotes,
+    count(*) FILTER (WHERE votes.like_score != 1) AS downvotes
 FROM (
     SELECT
         pa.person_id,
