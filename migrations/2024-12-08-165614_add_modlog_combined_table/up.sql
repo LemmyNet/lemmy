@@ -203,6 +203,7 @@ ALTER TABLE modlog_combined
     ALTER CONSTRAINT modlog_combined_admin_allow_instance_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT modlog_combined_admin_block_instance_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT modlog_combined_admin_purge_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_post_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT modlog_combined_admin_purge_community_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT modlog_combined_admin_purge_person_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT modlog_combined_mod_add_id_fkey NOT DEFERRABLE,
