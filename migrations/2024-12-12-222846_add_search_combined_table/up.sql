@@ -9,12 +9,10 @@ CREATE TABLE search_combined (
     -- For posts: score,
     -- For community: users active monthly
     score bigint NOT NULL DEFAULT 0,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
-    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
-    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    -- Make sure only one of the columns is not null
-    CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1)
+    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
@@ -77,4 +75,12 @@ SELECT
     person_id
 FROM
     person_aggregates;
+
+-- Make sure only one of the columns is not null
+ALTER TABLE search_combined
+    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1),
+    ALTER CONSTRAINT search_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT search_combined_person_id_fkey NOT DEFERRABLE;
 

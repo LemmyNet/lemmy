@@ -21,7 +21,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_utils::error::LemmyResult;
 use serial_test::serial;
-use std::num::NonZeroU32;
+use std::{fmt::Display, num::NonZeroU32, str::FromStr};
 use url::Url;
 
 #[derive(Debug)]
@@ -33,15 +33,25 @@ struct CmdArgs {
   explain_insertions: bool,
 }
 
+fn get_option<T: FromStr + Display>(suffix: &str, default: T) -> Result<T, T::Err> {
+  let name = format!("LEMMY_{suffix}");
+  if let Some(value) = std::env::var_os(&name) {
+    value.to_string_lossy().parse()
+  } else {
+    println!("🔧 using default env var {name}={default}");
+    Ok(default)
+  }
+}
+
 #[tokio::test]
 #[serial]
 async fn db_perf() -> LemmyResult<()> {
   let args = CmdArgs {
-    communities: 3.try_into()?,
-    people: 3.try_into()?,
-    posts: 100000.try_into()?,
-    read_post_pages: 0,
-    explain_insertions: false,
+    communities: get_option("COMMUNITIES", 3.try_into()?)?,
+    people: get_option("PEOPLE", 3.try_into()?)?,
+    posts: get_option("POSTS", 100000.try_into()?)?,
+    read_post_pages: get_option("READ_POST_PAGES", 0)?,
+    explain_insertions: get_option("EXPLAIN_INSERTIONS", false)?,
   };
   let pool = &build_db_pool()?;
   let pool = &mut pool.into();
