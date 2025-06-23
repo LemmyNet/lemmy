@@ -38,8 +38,7 @@ FROM (
         like_score
     FROM
         post_actions pa
-        INNER JOIN post p ON pa.post_id = p.id
-        INNER JOIN local_user lu ON pa.person_id = lu.person_id
+        INNER JOIN post p ON pa.post_id = p.id AND p.local
 UNION ALL
 SELECT
     ca.person_id,
