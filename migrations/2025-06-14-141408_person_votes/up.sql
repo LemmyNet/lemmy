@@ -46,8 +46,7 @@ SELECT
     like_score
 FROM
     comment_actions ca
-    INNER JOIN comment c ON ca.comment_id = c.id
-    INNER JOIN local_user lu ON ca.person_id = lu.person_id) AS votes
+    INNER JOIN comment c ON ca.comment_id = c.id AND c.local
 GROUP BY
     votes.person_id,
     votes.creator_id
