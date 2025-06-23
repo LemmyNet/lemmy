@@ -4,8 +4,8 @@
 CREATE TABLE person_content_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     -- Make sure only one of the columns is not null
     CHECK (num_nonnulls (post_id, comment_id) = 1)
 );
@@ -66,4 +66,8 @@ FROM
     comment_actions
 WHERE
     saved IS NOT NULL;
+
+ALTER TABLE person_content_combined
+    ALTER CONSTRAINT person_content_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_content_combined_comment_id_fkey NOT DEFERRABLE;
 

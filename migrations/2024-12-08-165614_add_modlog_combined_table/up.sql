@@ -55,25 +55,23 @@ ALTER TABLE mod_transfer_community RENAME COLUMN when_ TO published;
 CREATE TABLE modlog_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    admin_allow_instance_id int UNIQUE REFERENCES admin_allow_instance ON UPDATE CASCADE ON DELETE CASCADE,
-    admin_block_instance_id int UNIQUE REFERENCES admin_block_instance ON UPDATE CASCADE ON DELETE CASCADE,
-    admin_purge_comment_id int UNIQUE REFERENCES admin_purge_comment ON UPDATE CASCADE ON DELETE CASCADE,
-    admin_purge_community_id int UNIQUE REFERENCES admin_purge_community ON UPDATE CASCADE ON DELETE CASCADE,
-    admin_purge_person_id int UNIQUE REFERENCES admin_purge_person ON UPDATE CASCADE ON DELETE CASCADE,
-    admin_purge_post_id int UNIQUE REFERENCES admin_purge_post ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_add_id int UNIQUE REFERENCES mod_add ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_add_community_id int UNIQUE REFERENCES mod_add_community ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_ban_id int UNIQUE REFERENCES mod_ban ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_ban_from_community_id int UNIQUE REFERENCES mod_ban_from_community ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_feature_post_id int UNIQUE REFERENCES mod_feature_post ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_hide_community_id int UNIQUE REFERENCES mod_hide_community ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_lock_post_id int UNIQUE REFERENCES mod_lock_post ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_remove_comment_id int UNIQUE REFERENCES mod_remove_comment ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_remove_community_id int UNIQUE REFERENCES mod_remove_community ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_remove_post_id int UNIQUE REFERENCES mod_remove_post ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_transfer_community_id int UNIQUE REFERENCES mod_transfer_community ON UPDATE CASCADE ON DELETE CASCADE,
-    -- Make sure only one of the columns is not null
-    CHECK (num_nonnulls (admin_allow_instance_id, admin_block_instance_id, admin_purge_comment_id, admin_purge_community_id, admin_purge_person_id, admin_purge_post_id, mod_add_id, mod_add_community_id, mod_ban_id, mod_ban_from_community_id, mod_feature_post_id, mod_hide_community_id, mod_lock_post_id, mod_remove_comment_id, mod_remove_community_id, mod_remove_post_id, mod_transfer_community_id) = 1)
+    admin_allow_instance_id int UNIQUE REFERENCES admin_allow_instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    admin_block_instance_id int UNIQUE REFERENCES admin_block_instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    admin_purge_comment_id int UNIQUE REFERENCES admin_purge_comment ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    admin_purge_community_id int UNIQUE REFERENCES admin_purge_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    admin_purge_person_id int UNIQUE REFERENCES admin_purge_person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    admin_purge_post_id int UNIQUE REFERENCES admin_purge_post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_add_id int UNIQUE REFERENCES mod_add ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_add_community_id int UNIQUE REFERENCES mod_add_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_ban_id int UNIQUE REFERENCES mod_ban ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_ban_from_community_id int UNIQUE REFERENCES mod_ban_from_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_feature_post_id int UNIQUE REFERENCES mod_feature_post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_hide_community_id int UNIQUE REFERENCES mod_hide_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_lock_post_id int UNIQUE REFERENCES mod_lock_post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_remove_comment_id int UNIQUE REFERENCES mod_remove_comment ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_remove_community_id int UNIQUE REFERENCES mod_remove_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_remove_post_id int UNIQUE REFERENCES mod_remove_post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    mod_transfer_community_id int UNIQUE REFERENCES mod_transfer_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX idx_modlog_combined_published ON modlog_combined (published DESC, id DESC);
@@ -198,4 +196,25 @@ SELECT
     id
 FROM
     mod_transfer_community;
+
+-- Make sure only one of the columns is not null
+ALTER TABLE modlog_combined
+    ADD CONSTRAINT modlog_combined_check CHECK (num_nonnulls (admin_allow_instance_id, admin_block_instance_id, admin_purge_comment_id, admin_purge_community_id, admin_purge_person_id, admin_purge_post_id, mod_add_id, mod_add_community_id, mod_ban_id, mod_ban_from_community_id, mod_feature_post_id, mod_hide_community_id, mod_lock_post_id, mod_remove_comment_id, mod_remove_community_id, mod_remove_post_id, mod_transfer_community_id) = 1),
+    ALTER CONSTRAINT modlog_combined_admin_allow_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_block_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_admin_purge_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_add_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_add_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_ban_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_ban_from_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_feature_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_hide_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_lock_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_comment_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_remove_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT modlog_combined_mod_transfer_community_id_fkey NOT DEFERRABLE;
 
