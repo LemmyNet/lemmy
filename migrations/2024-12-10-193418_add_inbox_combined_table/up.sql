@@ -67,7 +67,7 @@ CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined (reverse_timesta
 ALTER TABLE person_post_mention
     ALTER CONSTRAINT person_post_mention_recipient_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT person_post_mention_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
+    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
 
 -- Make sure only one of the columns is not null
 ALTER TABLE inbox_combined
