@@ -22,7 +22,9 @@ services:
     logging: *default-logging
 
   lemmy:
-    image: dessalines/lemmy:1.0.0-alpha.4
+    build:
+      context: ../
+      dockerfile: Dockerfile
     hostname: lemmy
     restart: unless-stopped
     environment:
