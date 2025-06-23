@@ -26,22 +26,24 @@ FROM (
         like_score
     FROM
         post_actions pa
-        INNER JOIN post p ON pa.post_id = p.id AND p.local
-UNION ALL
-SELECT
-    ca.person_id,
-    c.creator_id,
-    like_score
-FROM
-    comment_actions ca
-    INNER JOIN comment c ON ca.comment_id = c.id AND c.local
-GROUP BY
-    votes.person_id,
-    votes.creator_id
-ON CONFLICT (person_id,
-    target_id)
-    DO UPDATE SET
-        voted_at = now(),
-        upvotes = excluded.upvotes,
-        downvotes = excluded.downvotes;
+        INNER JOIN post p ON pa.post_id = p.id
+            AND p.local
+        UNION ALL
+        SELECT
+            ca.person_id,
+            c.creator_id,
+            like_score
+        FROM
+            comment_actions ca
+        INNER JOIN comment c ON ca.comment_id = c.id
+            AND c.local
+    GROUP BY
+        votes.person_id,
+        votes.creator_id
+    ON CONFLICT (person_id,
+        target_id)
+        DO UPDATE SET
+            voted_at = now(),
+            upvotes = excluded.upvotes,
+            downvotes = excluded.downvotes;
 
