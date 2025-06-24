@@ -41,9 +41,10 @@ pub async fn like_post(
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post = PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post =
+    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(&local_user_view, &post.community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   let mut like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
@@ -67,13 +68,20 @@ pub async fn like_post(
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
-      object_id: post.post.ap_id,
+      object_id: orig_post.post.ap_id,
       actor: local_user_view.person.clone(),
-      community: post.community.clone(),
-      score: data.score,
+      community: orig_post.community.clone(),
+      previous_score: orig_post.post_actions.and_then(|a| a.like_score),
+      new_score: data.score,
     },
     &context,
   )?;
 
-  build_post_response(context.deref(), post.community.id, local_user_view, post_id).await
+  build_post_response(
+    context.deref(),
+    orig_post.community.id,
+    local_user_view,
+    post_id,
+  )
+  .await
 }
