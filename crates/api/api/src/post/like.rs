@@ -89,7 +89,8 @@ pub async fn like_post(
       object_id: orig_post.post.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_post.community.clone(),
-      score: data.score,
+      previous_score: orig_post.post_actions.and_then(|a| a.like_score),
+      new_score: data.score,
     },
     &context,
   )?;
