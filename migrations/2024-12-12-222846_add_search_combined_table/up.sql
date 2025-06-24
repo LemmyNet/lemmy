@@ -15,12 +15,6 @@ CREATE TABLE search_combined (
     person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
 
-CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
-
-CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
-
-CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
-
 -- Add published to person_aggregates (it was missing for some reason)
 ALTER TABLE person_aggregates
     ADD COLUMN published timestamptz NOT NULL DEFAULT now();
@@ -75,6 +69,12 @@ SELECT
     person_id
 FROM
     person_aggregates;
+
+CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
+
+CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
+
+CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
 
 -- Make sure only one of the columns is not null
 ALTER TABLE search_combined

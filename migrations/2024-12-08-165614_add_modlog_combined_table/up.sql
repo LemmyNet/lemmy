@@ -74,8 +74,6 @@ CREATE TABLE modlog_combined (
     mod_transfer_community_id int UNIQUE REFERENCES mod_transfer_community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
 
-CREATE INDEX idx_modlog_combined_published ON modlog_combined (published DESC, id DESC);
-
 -- Updating the history
 -- Not doing a union all here, because there's way too many null columns
 INSERT INTO modlog_combined (published, admin_allow_instance_id)
@@ -196,6 +194,8 @@ SELECT
     id
 FROM
     mod_transfer_community;
+
+CREATE INDEX idx_modlog_combined_published ON modlog_combined (published DESC, id DESC);
 
 -- Make sure only one of the columns is not null
 ALTER TABLE modlog_combined
