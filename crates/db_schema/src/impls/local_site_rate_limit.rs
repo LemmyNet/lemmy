@@ -52,18 +52,18 @@ impl LocalSiteRateLimit {
 
 impl LocalSiteRateLimitUpdateForm {
   fn is_empty(&self) -> bool {
-    self.message.is_none()
-      && self.message_per_second.is_none()
-      && self.post.is_none()
-      && self.post_per_second.is_none()
-      && self.register.is_none()
-      && self.register_per_second.is_none()
-      && self.image.is_none()
-      && self.image_per_second.is_none()
-      && self.comment.is_none()
-      && self.comment_per_second.is_none()
-      && self.search.is_none()
-      && self.search_per_second.is_none()
+    self.message_max_requests.is_none()
+      && self.message_interval_seconds.is_none()
+      && self.post_max_requests.is_none()
+      && self.post_interval_seconds.is_none()
+      && self.register_max_requests.is_none()
+      && self.register_interval_seconds.is_none()
+      && self.image_max_requests.is_none()
+      && self.image_interval_seconds.is_none()
+      && self.comment_max_requests.is_none()
+      && self.comment_interval_seconds.is_none()
+      && self.search_max_requests.is_none()
+      && self.search_interval_seconds.is_none()
       && self.updated_at.is_none()
   }
 }

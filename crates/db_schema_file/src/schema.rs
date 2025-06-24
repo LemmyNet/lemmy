@@ -459,22 +459,22 @@ diesel::table! {
 diesel::table! {
     local_site_rate_limit (local_site_id) {
         local_site_id -> Int4,
-        message -> Int4,
-        message_per_second -> Int4,
-        post -> Int4,
-        post_per_second -> Int4,
-        register -> Int4,
-        register_per_second -> Int4,
-        image -> Int4,
-        image_per_second -> Int4,
-        comment -> Int4,
-        comment_per_second -> Int4,
-        search -> Int4,
-        search_per_second -> Int4,
+        message_max_requests -> Int4,
+        message_interval_seconds -> Int4,
+        post_max_requests -> Int4,
+        post_interval_seconds -> Int4,
+        register_max_requests -> Int4,
+        register_interval_seconds -> Int4,
+        image_max_requests -> Int4,
+        image_interval_seconds -> Int4,
+        comment_max_requests -> Int4,
+        comment_interval_seconds -> Int4,
+        search_max_requests -> Int4,
+        search_interval_seconds -> Int4,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        import_user_settings -> Int4,
-        import_user_settings_per_second -> Int4,
+        import_user_settings_max_requests -> Int4,
+        import_user_settings_interval_seconds -> Int4,
     }
 }
 
@@ -1258,6 +1258,7 @@ diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(search_combined -> comment (comment_id));
 diesel::joinable!(search_combined -> community (community_id));
+diesel::joinable!(search_combined -> multi_community (multi_community_id));
 diesel::joinable!(search_combined -> person (person_id));
 diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
