@@ -4,7 +4,7 @@ use crate::{
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PostId, PostOrCommentId},
+  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PostId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
@@ -27,6 +27,7 @@ use lemmy_email::notifications::{
   send_post_reply_email,
 };
 use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
+use url::Url;
 
 pub async fn build_comment_response(
   context: &LemmyContext,
@@ -94,59 +95,70 @@ pub async fn build_post_response(
   Ok(Json(PostResponse { post_view }))
 }
 
-// TODO: this function is a mess and should be split up to handle email separately
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
-  post_or_comment_id: PostOrCommentId,
+  post: &Post,
+  comment_opt: Option<&Comment>,
+  community: &Community,
+  do_send_email: bool,
+  context: &LemmyContext,
+  local_user_view: &LocalUserView,
+) -> LemmyResult<Vec<LocalUserId>> {
+  let person = &local_user_view.person;
+
+  let recipient_ids =
+    send_local_mentions(mentions, post, comment_opt, person, do_send_email, context).await?;
+
+  let recipient_ids = notify_parent_creator(
+    recipient_ids,
+    person,
+    post,
+    comment_opt,
+    &community,
+    do_send_email,
+    context,
+  )
+  .await?;
+
+  Ok(recipient_ids)
+}
+
+pub async fn send_local_notifs_apub(
+  mentions: Vec<MentionData>,
+  post: &Post,
+  comment_opt: Option<&Comment>,
   person: &Person,
   do_send_email: bool,
   context: &LemmyContext,
-  local_user_view: Option<&LocalUserView>,
-  local_instance_id: InstanceId,
+) -> LemmyResult<Vec<LocalUserId>> {
+  let community = Community::read(&mut context.pool(), post.community_id).await?;
+
+  let recipient_ids =
+    send_local_mentions(mentions, post, comment_opt, person, do_send_email, context).await?;
+
+  let recipient_ids = notify_parent_creator(
+    recipient_ids,
+    person,
+    post,
+    comment_opt,
+    &community,
+    do_send_email,
+    context,
+  )
+  .await?;
+
+  Ok(recipient_ids)
+}
+
+async fn send_local_mentions(
+  mentions: Vec<MentionData>,
+  post: &Post,
+  comment_opt: Option<&Comment>,
+  person: &Person,
+  do_send_email: bool,
+  context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
-
-  let (comment_opt, post, community) = match post_or_comment_id {
-    PostOrCommentId::Post(post_id) => {
-      let post_view = PostView::read(
-        &mut context.pool(),
-        post_id,
-        local_user_view.map(|view| &view.local_user),
-        local_instance_id,
-        false,
-      )
-      .await?;
-      (None, post_view.post, post_view.community)
-    }
-    PostOrCommentId::Comment(comment_id) => {
-      // When called from api code, we have local user view and can read with CommentView
-      // to reduce db queries. But when receiving a federated comment the user view is None,
-      // which means that comments inside private communities cant be read. As a workaround
-      // we need to read the items manually to bypass this check.
-      if let Some(local_user_view) = local_user_view {
-        // Read the comment view to get extra info
-        let comment_view = CommentView::read(
-          &mut context.pool(),
-          comment_id,
-          Some(&local_user_view.local_user),
-          local_instance_id,
-        )
-        .await?;
-        (
-          Some(comment_view.comment),
-          comment_view.post,
-          comment_view.community,
-        )
-      } else {
-        let comment = Comment::read(&mut context.pool(), comment_id).await?;
-        let post = Post::read(&mut context.pool(), comment.post_id).await?;
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
-        (Some(comment), post, community)
-      }
-    }
-  };
-
-  // Send the local mentions
   for mention in mentions
     .iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
@@ -160,39 +172,8 @@ pub async fn send_local_notifs(
       // below by checking recipient ids
       recipient_ids.push(mention_user_view.local_user.id);
 
-      // Make the correct reply form depending on whether its a post or comment mention
-      let (link, comment_content_or_post_body) = if let Some(comment) = &comment_opt {
-        let person_comment_mention_form = PersonCommentMentionInsertForm {
-          recipient_id: mention_user_view.person.id,
-          comment_id: comment.id,
-          read: None,
-        };
-
-        // Allow this to fail softly, since comment edits might re-update or replace it
-        // Let the uniqueness handle this fail
-        PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
-          .await
-          .ok();
-        (
-          comment.local_url(context.settings())?,
-          comment.content.clone(),
-        )
-      } else {
-        let person_post_mention_form = PersonPostMentionInsertForm {
-          recipient_id: mention_user_view.person.id,
-          post_id: post.id,
-          read: None,
-        };
-
-        // Allow this to fail softly, since edits might re-update or replace it
-        PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
-          .await
-          .ok();
-        (
-          post.local_url(context.settings())?,
-          post.body.clone().unwrap_or_default(),
-        )
-      };
+      let (link, comment_content_or_post_body) =
+        insert_post_or_comment_mention(&mention_user_view, post, comment_opt, context).await?;
 
       // Send an email to those local users that have notifications on
       if do_send_email {
@@ -207,7 +188,18 @@ pub async fn send_local_notifs(
       }
     }
   }
+  Ok(recipient_ids)
+}
 
+async fn notify_parent_creator(
+  mut recipient_ids: Vec<LocalUserId>,
+  person: &Person,
+  post: &Post,
+  comment_opt: Option<&Comment>,
+  community: &Community,
+  do_send_email: bool,
+  context: &LemmyContext,
+) -> LemmyResult<Vec<LocalUserId>> {
   // Send comment_reply to the parent commenter / poster
   if let Some(comment) = &comment_opt {
     if let Some(parent_comment_id) = comment.parent_comment_id() {
@@ -308,6 +300,46 @@ pub async fn send_local_notifs(
       }
     }
   }
-
   Ok(recipient_ids)
+}
+
+/// Make the correct reply form depending on whether its a post or comment mention
+async fn insert_post_or_comment_mention(
+  mention_user_view: &LocalUserView,
+  post: &Post,
+  comment_opt: Option<&Comment>,
+  context: &LemmyContext,
+) -> LemmyResult<(Url, String)> {
+  if let Some(comment) = &comment_opt {
+    let person_comment_mention_form = PersonCommentMentionInsertForm {
+      recipient_id: mention_user_view.person.id,
+      comment_id: comment.id,
+      read: None,
+    };
+
+    // Allow this to fail softly, since comment edits might re-update or replace it
+    // Let the uniqueness handle this fail
+    PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
+      .await
+      .ok();
+    Ok((
+      comment.local_url(context.settings())?,
+      comment.content.clone(),
+    ))
+  } else {
+    let person_post_mention_form = PersonPostMentionInsertForm {
+      recipient_id: mention_user_view.person.id,
+      post_id: post.id,
+      read: None,
+    };
+
+    // Allow this to fail softly, since edits might re-update or replace it
+    PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
+      .await
+      .ok();
+    Ok((
+      post.local_url(context.settings())?,
+      post.body.clone().unwrap_or_default(),
+    ))
+  }
 }

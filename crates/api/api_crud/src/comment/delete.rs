@@ -7,7 +7,6 @@ use lemmy_api_utils::{
   utils::check_community_user_action,
 };
 use lemmy_db_schema::{
-  newtypes::PostOrCommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
@@ -64,12 +63,12 @@ pub async fn delete_comment(
 
   let recipient_ids = send_local_notifs(
     vec![],
-    PostOrCommentId::Comment(comment_id),
-    &local_user_view.person,
+    &orig_comment.post,
+    Some(&orig_comment.comment),
+    &orig_comment.community,
     false,
     &context,
-    Some(&local_user_view),
-    local_instance_id,
+    &local_user_view,
   )
   .await?;
   let updated_comment_id = updated_comment.id;

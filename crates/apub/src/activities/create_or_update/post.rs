@@ -12,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_utils::{build_response::send_local_notifs, context::LemmyContext};
+use lemmy_api_utils::{build_response::send_local_notifs_apub, context::LemmyContext};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
@@ -21,7 +21,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::{PersonId, PostOrCommentId},
+  newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
     community::Community,
@@ -110,7 +110,6 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let local_instance_id = site_view.site.instance_id;
 
     let post = ApubPost::from_json(self.object, context).await?;
 
@@ -127,16 +126,7 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     // Send the post body mentions
     let mentions = scrape_text_for_mentions(&post.body.clone().unwrap_or_default());
-    send_local_notifs(
-      mentions,
-      PostOrCommentId::Post(post.id),
-      &actor,
-      do_send_email,
-      context,
-      None,
-      local_instance_id,
-    )
-    .await?;
+    send_local_notifs_apub(mentions, &post.0, None, &actor, do_send_email, context).await?;
 
     Ok(())
   }

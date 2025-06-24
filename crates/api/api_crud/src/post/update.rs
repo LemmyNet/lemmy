@@ -20,7 +20,6 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  newtypes::PostOrCommentId,
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
@@ -167,12 +166,12 @@ pub async fn update_post(
   let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());
   send_local_notifs(
     mentions,
-    PostOrCommentId::Post(updated_post.id),
-    &local_user_view.person,
+    &updated_post,
+    None,
+    &orig_post.community,
     false,
     &context,
-    Some(&local_user_view),
-    local_instance_id,
+    &local_user_view,
   )
   .await?;
 
