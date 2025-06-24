@@ -449,17 +449,17 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
   enum_map! {
-    ActionType::Message => (l.message, l.message_per_second),
-    ActionType::Post => (l.post, l.post_per_second),
-    ActionType::Register => (l.register, l.register_per_second),
-    ActionType::Image => (l.image, l.image_per_second),
-    ActionType::Comment => (l.comment, l.comment_per_second),
-    ActionType::Search => (l.search, l.search_per_second),
-    ActionType::ImportUserSettings => (l.import_user_settings, l.import_user_settings_per_second),
+    ActionType::Message => (l.message_max_requests, l.message_interval_seconds),
+    ActionType::Post => (l.post_max_requests, l.post_interval_seconds),
+    ActionType::Register => (l.register_max_requests, l.register_interval_seconds),
+    ActionType::Image => (l.image_max_requests, l.image_interval_seconds),
+    ActionType::Comment => (l.comment_max_requests, l.comment_interval_seconds),
+    ActionType::Search => (l.search_max_requests, l.search_interval_seconds),
+    ActionType::ImportUserSettings => (l.import_user_settings_max_requests, l.import_user_settings_interval_seconds),
   }
-  .map(|_key, (capacity, secs_to_refill)| BucketConfig {
-    capacity: u32::try_from(capacity).unwrap_or(0),
-    secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
+  .map(|_key, (max_requests, interval)| BucketConfig {
+    max_requests: u32::try_from(max_requests).unwrap_or(0),
+    interval: u32::try_from(interval).unwrap_or(0),
   })
 }
 

@@ -91,7 +91,8 @@ pub async fn like_comment(
       object_id: orig_comment.comment.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
-      score: data.score,
+      previous_score: orig_comment.comment_actions.and_then(|a| a.like_score),
+      new_score: data.score,
     },
     &context,
   )?;
