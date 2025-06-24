@@ -31,8 +31,8 @@ pub enum ActionType {
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct BucketConfig {
-  pub capacity: u32,
-  pub secs_to_refill: u32,
+  pub max_requests: u32,
+  pub interval: u32,
 }
 
 #[derive(Clone)]
@@ -52,32 +52,32 @@ impl RateLimit {
   pub fn with_test_config() -> Self {
     Self::new(enum_map! {
       ActionType::Message => BucketConfig {
-        capacity: 180,
-        secs_to_refill: 60,
+        max_requests: 180,
+        interval: 60,
       },
       ActionType::Post => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 300,
+        max_requests: 6,
+        interval: 300,
       },
       ActionType::Register => BucketConfig {
-        capacity: 3,
-        secs_to_refill: 3600,
+        max_requests: 3,
+        interval: 3600,
       },
       ActionType::Image => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 3600,
+        max_requests: 6,
+        interval: 3600,
       },
       ActionType::Comment => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 600,
+        max_requests: 6,
+        interval: 600,
       },
       ActionType::Search => BucketConfig {
-        capacity: 60,
-        secs_to_refill: 600,
+        max_requests: 60,
+        interval: 600,
       },
       ActionType::ImportUserSettings => BucketConfig {
-        capacity: 1,
-        secs_to_refill: 24 * 60 * 60,
+        max_requests: 1,
+        interval: 24 * 60 * 60,
       },
     })
   }
@@ -182,8 +182,8 @@ fn new_input(
       #[allow(clippy::expect_used)]
       let config = configs.read().expect("read rwlock")[action_type];
 
-      let interval = Duration::from_secs(config.secs_to_refill.into());
-      let max_requests = config.capacity.into();
+      let interval = Duration::from_secs(config.interval.into());
+      let max_requests = config.max_requests.into();
       Ok(SimpleInput {
         interval,
         max_requests,
