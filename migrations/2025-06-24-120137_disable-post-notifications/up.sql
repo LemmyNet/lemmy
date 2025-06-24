@@ -1,1 +1,3 @@
-alter table post_actions add column disable_notifications bool default false;
+ALTER TABLE post_actions
+    ADD COLUMN disable_notifications bool DEFAULT FALSE;
+

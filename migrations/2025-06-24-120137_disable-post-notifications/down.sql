@@ -1,1 +1,3 @@
-alter table post_actions drop column disable_notifications;
+ALTER TABLE post_actions
+    DROP COLUMN disable_notifications;
+
