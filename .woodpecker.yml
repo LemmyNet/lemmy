@@ -52,7 +52,7 @@ steps:
     image: alpine:3
     commands:
       - apk add shfmt
-      - shfmt -i 2 -d */**.sh
+      - shfmt -i 2 -d */**{.bash,.sh}
     when:
       - event: pull_request
 
