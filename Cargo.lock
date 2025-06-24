@@ -3855,6 +3855,7 @@ dependencies = [
 name = "lemmy_email"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "either",
  "html2text",
  "lemmy_db_schema",
  "lemmy_db_schema_file",

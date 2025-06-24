@@ -21,11 +21,7 @@ use lemmy_db_views_comment::{api::CommentResponse, CommentView};
 use lemmy_db_views_community::{api::CommunityResponse, CommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{api::PostResponse, PostView};
-use lemmy_email::notifications::{
-  send_comment_reply_email,
-  send_mention_email,
-  send_post_reply_email,
-};
+use lemmy_email::notifications::{send_mention_email, send_reply_email};
 use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
 use url::Url;
 
@@ -163,8 +159,7 @@ async fn send_local_mentions(
     .iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
   {
-    let mention_name = mention.name.clone();
-    let user_view = LocalUserView::read_from_name(&mut context.pool(), &mention_name).await;
+    let user_view = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await;
     if let Ok(mention_user_view) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
@@ -200,102 +195,60 @@ async fn notify_parent_creator(
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
+  let Some(comment) = comment_opt else {
+    return Ok(recipient_ids);
+  };
+
   // Send comment_reply to the parent commenter / poster
-  if let Some(comment) = &comment_opt {
+  let (parent_creator_id, parent_comment) =
     if let Some(parent_comment_id) = comment.parent_comment_id() {
       let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
-
-      // Get the parent commenter local_user
-      let parent_creator_id = parent_comment.creator_id;
-
-      let check_blocks = check_person_instance_community_block(
-        person.id,
-        parent_creator_id,
-        // Only block from the community's instance_id
-        community.instance_id,
-        community.id,
-        &mut context.pool(),
-      )
-      .await
-      .is_err();
-
-      // Don't send a notif to yourself
-      if parent_comment.creator_id != person.id && !check_blocks {
-        let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
-        if let Ok(parent_user_view) = user_view {
-          // Don't duplicate notif if already mentioned by checking recipient ids
-          if !recipient_ids.contains(&parent_user_view.local_user.id) {
-            recipient_ids.push(parent_user_view.local_user.id);
-
-            let comment_reply_form = CommentReplyInsertForm {
-              recipient_id: parent_user_view.person.id,
-              comment_id: comment.id,
-              read: None,
-            };
-
-            // Allow this to fail softly, since comment edits might re-update or replace it
-            // Let the uniqueness handle this fail
-            CommentReply::create(&mut context.pool(), &comment_reply_form)
-              .await
-              .ok();
-
-            if do_send_email {
-              send_comment_reply_email(
-                &parent_user_view,
-                comment,
-                person,
-                &parent_comment,
-                &post,
-                context.settings(),
-              )
-              .await?;
-            }
-          }
-        }
-      }
+      (parent_comment.creator_id, Some(parent_comment))
     } else {
-      // Use the post creator to check blocks
-      let check_blocks = check_person_instance_community_block(
-        person.id,
-        post.creator_id,
-        // Only block from the community's instance_id
-        community.instance_id,
-        community.id,
-        &mut context.pool(),
-      )
-      .await
-      .is_err();
+      (post.creator_id, None)
+    };
 
-      if post.creator_id != person.id && !check_blocks {
-        let creator_id = post.creator_id;
-        let parent_user = LocalUserView::read_person(&mut context.pool(), creator_id).await;
-        if let Ok(parent_user_view) = parent_user {
-          if !recipient_ids.contains(&parent_user_view.local_user.id) {
-            recipient_ids.push(parent_user_view.local_user.id);
+  let is_blocked = check_person_instance_community_block(
+    person.id,
+    parent_creator_id,
+    // Only block from the community's instance_id
+    community.instance_id,
+    community.id,
+    &mut context.pool(),
+  )
+  .await
+  .is_err();
 
-            let comment_reply_form = CommentReplyInsertForm {
-              recipient_id: parent_user_view.person.id,
-              comment_id: comment.id,
-              read: None,
-            };
+  // Don't send a notif to yourself
+  if parent_creator_id != person.id && !is_blocked {
+    let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
+    if let Ok(parent_user_view) = user_view {
+      // Don't duplicate notif if already mentioned by checking recipient ids
+      if !recipient_ids.contains(&parent_user_view.local_user.id) {
+        recipient_ids.push(parent_user_view.local_user.id);
 
-            // Allow this to fail softly, since comment edits might re-update or replace it
-            // Let the uniqueness handle this fail
-            CommentReply::create(&mut context.pool(), &comment_reply_form)
-              .await
-              .ok();
+        let comment_reply_form = CommentReplyInsertForm {
+          recipient_id: parent_user_view.person.id,
+          comment_id: comment.id,
+          read: None,
+        };
 
-            if do_send_email {
-              send_post_reply_email(
-                &parent_user_view,
-                comment,
-                person,
-                &post,
-                context.settings(),
-              )
-              .await?;
-            }
-          }
+        // Allow this to fail softly, since comment edits might re-update or replace it
+        // Let the uniqueness handle this fail
+        CommentReply::create(&mut context.pool(), &comment_reply_form)
+          .await
+          .ok();
+
+        if do_send_email {
+          send_reply_email(
+            &parent_user_view,
+            comment,
+            person,
+            &parent_comment,
+            &post,
+            context.settings(),
+          )
+          .await?;
         }
       }
     }
