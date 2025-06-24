@@ -881,10 +881,15 @@ test("Distinguish comment", async () => {
   await beta.distinguishComment(form);
 
   let alphaPost = await resolvePost(alpha, post.post_view.post);
+  if (!alphaPost) {
+    throw "unable to locate post on alpha";
+  }
+
+  await resolveComment(alpha, commentRes.comment_view.comment);
 
   // Find the comment on alpha (home of community)
   let alphaComments = await waitUntil(
-    () => getComments(alpha, alphaPost?.post.id),
+    () => getComments(alpha, alphaPost.post.id),
     c => c.comments[0].comment.distinguished,
   );
 

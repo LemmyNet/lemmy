@@ -502,7 +502,7 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.creator_banned!,
+    res => res?.creator_banned == true,
   );
   expect(alphaUserOnBeta1?.creator_banned).toBe(true);
 
