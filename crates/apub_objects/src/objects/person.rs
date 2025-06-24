@@ -140,10 +140,10 @@ impl Object for ApubPerson {
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = process_markdown_opt(context, &bio, &slur_regex, &url_blocklist).await?;
+    let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, context).await?;
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
-    let avatar = proxy_image_link_opt_apub(context, person.icon.map(|i| i.url)).await?;
-    let banner = proxy_image_link_opt_apub(context, person.image.map(|i| i.url)).await?;
+    let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233

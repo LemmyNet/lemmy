@@ -624,7 +624,6 @@ pub async fn remove_or_restore_user_data(
       .await?;
     }
 
-// TODO join
     // Remove post and comment votes
     PostActions::remove_all_likes(pool, banned_person_id).await?;
     CommentActions::remove_all_likes(pool, banned_person_id).await?;
@@ -715,7 +714,6 @@ pub async fn remove_or_restore_user_data_in_community(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // These actions are only possible when removing, not restoring
-// TODO join
   if remove {
     // Remove post and comment votes
     PostActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
@@ -724,8 +722,9 @@ pub async fn remove_or_restore_user_data_in_community(
 
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+    Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
+
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,

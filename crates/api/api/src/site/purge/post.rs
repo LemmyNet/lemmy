@@ -37,7 +37,7 @@ pub async fn purge_post(
   )
   .await?;
 
-  purge_post_images(&context, post.url.clone(), post.thumbnail_url.clone()).await;
+  purge_post_images(post.url.clone(), post.thumbnail_url.clone(), &context).await;
 
   Post::delete(&mut context.pool(), data.post_id).await?;
 

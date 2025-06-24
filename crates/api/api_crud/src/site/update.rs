@@ -66,7 +66,7 @@ pub async fn update_site(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
-    process_markdown_opt(&context, &data.sidebar, &slur_regex, &url_blocklist)
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );

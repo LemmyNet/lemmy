@@ -37,7 +37,7 @@ pub async fn create_post_report(
   let post_view =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(&mut context.pool(), &local_user_view, &post_view.community).await?;
+  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
 
   check_post_deleted_or_removed(&post_view.post)?;
 

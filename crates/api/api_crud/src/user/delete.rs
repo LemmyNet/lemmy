@@ -35,7 +35,7 @@ pub async fn delete_account(
   }
 
   if data.delete_content {
-    purge_user_account(&context, local_user_view.person.id, local_instance_id).await?;
+    purge_user_account(local_user_view.person.id, local_instance_id, &context).await?;
   } else {
     // These are already run in purge_user_account,
     // but should be done anyway even if delete_content is false

@@ -139,10 +139,10 @@ impl Object for ApubSite {
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(context, &sidebar, &slur_regex, &url_blocklist).await?;
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
-    let icon = proxy_image_link_opt_apub(context, apub.icon.map(|i| i.url)).await?;
-    let banner = proxy_image_link_opt_apub(context, apub.image.map(|i| i.url)).await?;
+    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),

@@ -61,7 +61,7 @@ pub async fn create_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = process_markdown_opt(&context, &data.sidebar, &slur_regex, &url_blocklist).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),

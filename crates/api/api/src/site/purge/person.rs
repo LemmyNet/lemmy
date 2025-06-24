@@ -52,7 +52,7 @@ pub async fn purge_person(
   )?;
 
   // Clear profile data.
-  purge_user_account(&context, data.person_id, local_instance_id).await?;
+  purge_user_account(data.person_id, local_instance_id, &context).await?;
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   InstanceActions::ban(

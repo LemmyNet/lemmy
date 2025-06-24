@@ -56,7 +56,7 @@ pub async fn read_person(
   )
   .await?;
 
-  let site = read_site_for_actor(&context, person_view.person.ap_id.clone()).await?;
+  let site = read_site_for_actor(person_view.person.ap_id.clone(), &context).await?;
 
   Ok(Json(GetPersonDetailsResponse {
     person_view,

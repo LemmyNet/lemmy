@@ -175,11 +175,11 @@ mod tests {
 
     // Remove the user data
     remove_or_restore_user_data(
-      &context,
       john.id,
       sara.id,
       true,
       &Some("a remove reason".to_string()),
+      &context,
     )
     .await?;
 
@@ -252,11 +252,11 @@ mod tests {
 
     // Now restore the content, and make sure it got appended
     remove_or_restore_user_data(
-      &context,
       john.id,
       sara.id,
       false,
       &Some("a restore reason".to_string()),
+      &context,
     )
     .await?;
 

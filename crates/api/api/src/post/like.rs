@@ -31,11 +31,11 @@ pub async fn like_post(
   let post_id = data.post_id;
 
   check_local_vote_mode(
-    &mut context.pool(),
     data.score,
     PostOrCommentId::Post(post_id),
     &local_site,
     local_user_view.person.id,
+    &mut context.pool(),
   )
   .await?;
   check_bot_account(&local_user_view.person)?;

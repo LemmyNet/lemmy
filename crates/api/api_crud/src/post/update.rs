@@ -67,7 +67,7 @@ pub async fn update_post(
   let slur_regex = slur_regex(&context).await?;
 
   let body = diesel_string_update(
-    process_markdown_opt(&context, &data.body, &slur_regex, &url_blocklist)
+    process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
@@ -102,7 +102,7 @@ pub async fn update_post(
   let orig_post =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
-  check_community_user_action(&mut context.pool(), &local_user_view, &orig_post.community).await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   if let Some(tags) = &data.tags {
     // post view does not include communityview.post_tags

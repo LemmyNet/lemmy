@@ -105,7 +105,7 @@ impl ActivityHandler for UndoBlockUser {
         if self.restore_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user unbanned from home instance, restore all content
-            remove_or_restore_user_data(context, mod_person.id, blocked_person.id, false, &None)
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
               .await?;
           } else {
             update_removed_for_instance(&blocked_person, &site, false, pool).await?;
@@ -130,12 +130,12 @@ impl ActivityHandler for UndoBlockUser {
 
         if self.restore_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
-            &mut context.pool(),
             community.id,
             mod_person.id,
             blocked_person.id,
             false,
             &None,
+            &mut context.pool(),
           )
           .await?;
         }

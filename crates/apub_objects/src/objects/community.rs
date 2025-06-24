@@ -168,10 +168,10 @@ impl Object for ApubCommunity {
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
-    let sidebar = process_markdown_opt(context, &sidebar, &slur_regex, &url_blocklist).await?;
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
-    let icon = proxy_image_link_opt_apub(context, group.icon.clone().map(|i| i.url)).await?;
-    let banner = proxy_image_link_opt_apub(context, group.image.clone().map(|i| i.url)).await?;
+    let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
     let visibility = Some(community_visibility(&group));
 
     // If NSFW is not allowed, then remove NSFW communities

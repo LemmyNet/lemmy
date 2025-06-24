@@ -36,11 +36,11 @@ pub async fn like_comment(
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
   check_local_vote_mode(
-    &mut context.pool(),
     data.score,
     PostOrCommentId::Comment(comment_id),
     &local_site,
     local_user_view.person.id,
+    &mut context.pool(),
   )
   .await?;
   check_bot_account(&local_user_view.person)?;
@@ -54,9 +54,9 @@ pub async fn like_comment(
   .await?;
 
   check_community_user_action(
-    &mut context.pool(),
     &local_user_view,
     &orig_comment.community,
+    &mut context.pool(),
   )
   .await?;
 

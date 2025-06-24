@@ -60,7 +60,7 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let sidebar = process_markdown_opt(&context, &data.sidebar, &slur_regex, &url_blocklist).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(sidebar) = &sidebar {

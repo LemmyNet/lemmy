@@ -44,7 +44,7 @@ pub async fn update_community(
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let sidebar = diesel_string_update(
-    process_markdown_opt(&context, &data.sidebar, &slur_regex, &url_blocklist)
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
@@ -59,7 +59,7 @@ pub async fn update_community(
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify its a mod (only mods can edit it)
-  check_community_mod_action(&mut context.pool(), &local_user_view, &old_community, false).await?;
+  check_community_mod_action(&local_user_view, &old_community, false, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {

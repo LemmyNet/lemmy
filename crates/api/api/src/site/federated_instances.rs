@@ -8,7 +8,7 @@ pub async fn get_federated_instances(
 ) -> LemmyResult<Json<GetFederatedInstancesResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let federated_instances =
-    build_federated_instances(&mut context.pool(), &site_view.local_site).await?;
+    build_federated_instances(&site_view.local_site, &mut context.pool()).await?;
 
   Ok(Json(GetFederatedInstancesResponse {
     federated_instances,

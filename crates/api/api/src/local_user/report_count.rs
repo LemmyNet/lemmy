@@ -10,7 +10,7 @@ pub async fn report_count(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetReportCountResponse>> {
-  check_community_mod_of_any_or_admin_action(&mut context.pool(), &local_user_view).await?;
+  check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
 
   let count = ReportCombinedViewInternal::get_report_count(
     &mut context.pool(),

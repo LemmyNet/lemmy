@@ -58,7 +58,7 @@ pub async fn create_post(
   check_slurs(&data.name, &slur_regex)?;
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  let body = process_markdown_opt(&context, &data.body, &slur_regex, &url_blocklist).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let url = diesel_url_create(data.url.as_deref())?;
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
@@ -90,7 +90,7 @@ pub async fn create_post(
   )
   .await?;
   let community = &community_view.community;
-  check_community_user_action(&mut context.pool(), &local_user_view, community).await?;
+  check_community_user_action(&local_user_view, community, &mut context.pool()).await?;
 
   // Ensure that all posts in NSFW communities are marked as NSFW
   let nsfw = if community.nsfw {

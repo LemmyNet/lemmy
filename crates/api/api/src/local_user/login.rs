@@ -41,7 +41,7 @@ pub async fn login(
   check_local_user_deleted(&local_user_view)?;
   check_email_verified(&local_user_view, &site_view)?;
 
-  check_registration_application(&mut context.pool(), &local_user_view, &site_view.local_site)
+  check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
     .await?;
 
   // Check the totp if enabled

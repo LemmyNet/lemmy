@@ -36,7 +36,7 @@ pub async fn ban_from_community(
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify that only mods or admins can ban
-  check_community_mod_action(&mut context.pool(), &local_user_view, &community, false).await?;
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
@@ -76,12 +76,12 @@ pub async fn ban_from_community(
         if tx_data.remove_or_restore_data.unwrap_or(false) {
           let remove_data = tx_data.ban;
           remove_or_restore_user_data_in_community(
-            &mut conn.into(),
             tx_data.community_id,
             my_person_id,
             banned_person_id,
             remove_data,
             &tx_data.reason,
+            &mut conn.into(),
           )
           .await?;
         };
