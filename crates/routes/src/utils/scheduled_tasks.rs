@@ -3,7 +3,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{exists, not, IntervalDsl},
+  dsl::{count, exists, not, update, IntervalDsl},
   query_builder::AsQuery,
   sql_query,
   sql_types::{Integer, Timestamptz},
@@ -37,6 +37,8 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
+  local_site,
+  local_user,
   person,
   post,
   received_activity,
@@ -101,6 +103,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Delete old denied users
   // - Update instance software
   // - Delete old outgoing activities
+  // - Local site stats
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.reset_request_count();
 
@@ -118,6 +121,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
       clear_old_activities(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
+        .ok();
+      local_site_stats(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
@@ -330,7 +337,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   Ok(())
 }
 
-/// Re-calculate the site and community active counts every 12 hours
+/// Re-calculate the site and community active counts
 async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating active site and community aggregates ...");
 
@@ -363,6 +370,59 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
+async fn local_site_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating local site stats ...");
+
+  let mut conn = get_conn(pool).await?;
+
+  let user_count: i64 = local_user::table
+    .inner_join(person::table.left_join(instance_actions::table))
+    // only count approved users
+    .filter(local_user::accepted_application)
+    // ignore banned and deleted accounts
+    .filter(instance_actions::received_ban_at.is_null())
+    .filter(not(person::deleted))
+    .select(count(local_user::id))
+    .get_result(&mut conn)
+    .await?;
+
+  let community_count: i64 = community::table
+    .filter(community::local)
+    .filter(not(community::deleted))
+    .filter(not(community::removed))
+    .select(count(community::id))
+    .get_result(&mut conn)
+    .await?;
+
+  let post_count: i64 = post::table
+    .filter(post::local)
+    .filter(not(post::deleted))
+    .filter(not(post::removed))
+    .select(count(post::id))
+    .get_result(&mut conn)
+    .await?;
+
+  let comment_count: i64 = comment::table
+    .filter(comment::local)
+    .filter(not(comment::deleted))
+    .filter(not(comment::removed))
+    .select(count(comment::id))
+    .get_result(&mut conn)
+    .await?;
+
+  update(local_site::table)
+    .set((
+      local_site::users.eq(user_count),
+      local_site::communities.eq(community_count),
+      local_site::posts.eq(post_count),
+      local_site::comments.eq(comment_count),
+    ))
+    .execute(&mut conn)
+    .await?;
+
+  info!("Done.");
+  Ok(())
+}
 /// Set banned to false after ban expires
 async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
@@ -588,6 +648,7 @@ mod tests {
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
+    local_site_stats(&mut context.pool()).await?;
     data.delete(&mut context.pool()).await?;
     Ok(())
   }
