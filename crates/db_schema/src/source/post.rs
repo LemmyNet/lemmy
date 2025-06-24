@@ -201,6 +201,7 @@ pub struct PostActions {
   pub like_score: Option<i16>,
   /// When the post was hidden.
   pub hidden_at: Option<DateTime<Utc>>,
+  pub disable_notifications: bool,
 }
 
 #[derive(Clone, derive_new::new)]

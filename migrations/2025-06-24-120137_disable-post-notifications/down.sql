@@ -1,0 +1,1 @@
+alter table post_actions drop column disable_notifications;

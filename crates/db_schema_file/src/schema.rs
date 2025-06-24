@@ -947,6 +947,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
+        disable_notifications -> Bool
     }
 }
 

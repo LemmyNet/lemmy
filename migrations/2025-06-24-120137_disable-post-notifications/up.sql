@@ -1,0 +1,1 @@
+alter table post_actions add column disable_notifications bool default false;
