@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-    Help() {
+Help() {
   # Display help
   echo "Usage: ./docker_update.sh [OPTIONS]"
   echo ""
