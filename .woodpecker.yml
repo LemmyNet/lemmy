@@ -51,6 +51,7 @@ steps:
   bash_fmt:
     image: alpine:3
     commands:
+      - apk add shfmt
       - shfmt -i 2 -d */**.sh
     when:
       - event: pull_request
