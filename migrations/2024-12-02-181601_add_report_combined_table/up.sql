@@ -3,9 +3,9 @@
 CREATE TABLE report_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE,
-    private_message_report_id int UNIQUE REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE,
+    post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    private_message_report_id int UNIQUE REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     -- Make sure only one of the columns is not null
     CHECK (num_nonnulls (post_report_id, comment_report_id, private_message_report_id) = 1)
 );
@@ -39,4 +39,9 @@ SELECT
     id
 FROM
     private_message_report;
+
+ALTER TABLE report_combined
+    ALTER CONSTRAINT report_combined_post_report_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT report_combined_comment_report_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT report_combined_private_message_report_id_fkey NOT DEFERRABLE;
 
