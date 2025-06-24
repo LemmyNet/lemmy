@@ -54,6 +54,7 @@ pub async fn like_comment(
     local_instance_id,
   )
   .await?;
+  let previous_score = orig_comment.comment_actions.and_then(|p| p.like_score);
 
   check_community_user_action(
     &local_user_view,
@@ -76,12 +77,12 @@ pub async fn like_comment(
 
   // Remove any likes first
   CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_like_score) = orig_comment.comment_actions.and_then(|p| p.like_score) {
+  if let Some(previous_score) = previous_score {
     PersonActions::remove_like(
       &mut context.pool(),
       my_person_id,
       orig_comment.creator.id,
-      previous_like_score,
+      previous_score,
     )
     .await
     // Ignore errors, since a previous_like of zero throws an error
@@ -107,7 +108,7 @@ pub async fn like_comment(
       object_id: orig_comment.comment.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
-      previous_score: orig_comment.comment_actions.and_then(|a| a.like_score),
+      previous_score,
       new_score: data.score,
     },
     &context,

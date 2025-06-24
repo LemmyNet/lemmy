@@ -410,16 +410,16 @@ impl PersonActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  /// Removes a person like. A previous_like_score of zero throws an error.
+  /// Removes a person like. A previous_score of zero throws an error.
   pub async fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    previous_like_score: i16,
+    previous_score: i16,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = match previous_like_score {
+    let (upvotes_inc, downvotes_inc) = match previous_score {
       1 => (-1, 0),
       -1 => (0, -1),
       _ => return Err(LemmyErrorType::NotFound.into()),
