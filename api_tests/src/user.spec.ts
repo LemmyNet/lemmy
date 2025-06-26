@@ -122,10 +122,8 @@ test("Delete user", async () => {
     (await getComments(alpha, localComment.post_id)).comments[0].comment
       .deleted,
   ).toBe(true);
-  expect(
-    (await getComments(alpha, remoteComment.post_id)).comments[0].comment
-      .deleted,
-  ).toBe(true);
+  let comment = await alpha.getComment({ id: remoteComment.id });
+  expect(comment.comment_view.comment.deleted).toBe(true);
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
   ).rejects.toStrictEqual(new LemmyError("not_found"));
