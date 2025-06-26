@@ -535,6 +535,8 @@ pub struct SaveUserSettings {
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   /// Whether to hide posts containing images/videos.
   pub hide_media: Option<bool>,
+  /// Whether to show vote totals given to others.
+  pub show_person_votes: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

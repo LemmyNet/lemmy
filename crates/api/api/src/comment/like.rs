@@ -12,6 +12,7 @@ use lemmy_db_schema::{
   source::{
     comment::{CommentActions, CommentLikeForm},
     comment_reply::CommentReply,
+    person::PersonActions,
   },
   traits::Likeable,
 };
@@ -32,6 +33,7 @@ pub async fn like_comment(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
+  let my_person_id = local_user_view.person.id;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
@@ -39,7 +41,7 @@ pub async fn like_comment(
     data.score,
     PostOrCommentId::Comment(comment_id),
     &local_site,
-    local_user_view.person.id,
+    my_person_id,
     &mut context.pool(),
   )
   .await?;
@@ -52,6 +54,7 @@ pub async fn like_comment(
     local_instance_id,
   )
   .await?;
+  let previous_score = orig_comment.comment_actions.and_then(|p| p.like_score);
 
   check_community_user_action(
     &local_user_view,
@@ -70,19 +73,33 @@ pub async fn like_comment(
     }
   }
 
-  let mut like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
+  let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, data.score);
 
   // Remove any likes first
-  let person_id = local_user_view.person.id;
+  CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
+  if let Some(previous_score) = previous_score {
+    PersonActions::remove_like(
+      &mut context.pool(),
+      my_person_id,
+      orig_comment.creator.id,
+      previous_score,
+    )
+    .await
+    // Ignore errors, since a previous_like of zero throws an error
+    .ok();
+  }
 
-  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
-
-  // Only add the like if the score isnt 0
-  let do_add =
-    like_form.like_score != 0 && (like_form.like_score == 1 || like_form.like_score == -1);
-  if do_add {
+  if like_form.like_score != 0 {
     like_form = plugin_hook_before("before_comment_vote", like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+    PersonActions::like(
+      &mut context.pool(),
+      my_person_id,
+      orig_comment.creator.id,
+      like_form.like_score,
+    )
+    .await?;
+
     plugin_hook_after("after_comment_vote", &like)?;
   }
 
@@ -91,7 +108,7 @@ pub async fn like_comment(
       object_id: orig_comment.comment.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
-      previous_score: orig_comment.comment_actions.and_then(|a| a.like_score),
+      previous_score,
       new_score: data.score,
     },
     &context,

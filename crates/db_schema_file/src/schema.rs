@@ -532,6 +532,7 @@ diesel::table! {
         show_upvotes -> Bool,
         show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
+        show_person_votes -> Bool,
     }
 }
 
@@ -744,7 +745,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
 
-    multi_community_follow (multi_community_id, person_id) {
+    multi_community_follow (person_id, multi_community_id) {
         multi_community_id -> Int4,
         person_id -> Int4,
         follow_state -> CommunityFollowerState,
@@ -831,6 +832,9 @@ diesel::table! {
         blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
         note -> Nullable<Text>,
+        voted_at -> Nullable<Timestamptz>,
+        upvotes -> Nullable<Int4>,
+        downvotes -> Nullable<Int4>,
     }
 }
 
@@ -1059,7 +1063,7 @@ diesel::table! {
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
-        multi_community_id -> Nullable<Int4>
+        multi_community_id -> Nullable<Int4>,
     }
 }
 
