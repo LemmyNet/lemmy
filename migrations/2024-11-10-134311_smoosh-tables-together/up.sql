@@ -307,7 +307,7 @@ ON CONFLICT (person_id,
     DO UPDATE SET
         became_moderator = excluded.became_moderator;
 
-DROP TABLE community_block, community_moderator, community_person_ban;
+DROP TABLE community_follower, community_block, community_moderator, community_person_ban;
 
 -- Create indexes
 CREATE INDEX idx_community_actions_person ON community_actions (person_id);
@@ -345,42 +345,66 @@ ALTER TABLE community_actions
     ALTER CONSTRAINT community_actions_community_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT community_actions_follow_approver_id_fkey NOT DEFERRABLE;
 
-ALTER TABLE instance_block RENAME TO instance_actions;
+-- instance_actions
+CREATE TABLE instance_actions (
+    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    blocked timestamptz,
+    PRIMARY KEY (person_id, instance_id)
+);
 
-ALTER TABLE person_follower RENAME TO person_actions;
+INSERT INTO instance_actions (person_id, instance_id, blocked)
+SELECT
+    person_id,
+    instance_id,
+    published
+FROM
+    instance_block
+ON CONFLICT (person_id,
+    instance_id)
+    DO UPDATE SET
+        blocked = excluded.blocked;
 
-ALTER TABLE instance_actions RENAME COLUMN published TO blocked;
+DROP TABLE instance_block;
 
-ALTER TABLE person_actions RENAME COLUMN person_id TO target_id;
+-- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
+-- with other tables would make it harder to do everything correctly when adding another action type
+CREATE INDEX idx_instance_actions_person ON instance_actions (person_id);
 
-ALTER TABLE person_actions RENAME COLUMN follower_id TO person_id;
+CREATE INDEX idx_instance_actions_instance ON instance_actions (instance_id);
 
-ALTER TABLE person_actions RENAME COLUMN published TO followed;
+CREATE INDEX idx_instance_actions_blocked_not_null ON instance_actions (person_id, instance_id)
+WHERE
+    blocked IS NOT NULL;
 
-ALTER TABLE person_actions RENAME COLUMN pending TO follow_pending;
-
--- Mark all constraints of affected tables as deferrable to speed up migration
 ALTER TABLE instance_actions
-    ALTER CONSTRAINT instance_block_instance_id_fkey DEFERRABLE;
+    ALTER CONSTRAINT instance_actions_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT instance_actions_person_id_fkey NOT DEFERRABLE;
 
-ALTER TABLE instance_actions
-    ALTER CONSTRAINT instance_block_person_id_fkey DEFERRABLE;
+-- person_actions
+CREATE TABLE person_actions (
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    target_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    followed timestamptz,
+    follow_pending boolean,
+    blocked timestamptz,
+    PRIMARY KEY (person_id, target_id)
+);
 
-ALTER TABLE person_actions
-    ALTER CONSTRAINT person_follower_follower_id_fkey DEFERRABLE;
-
-ALTER TABLE person_actions
-    ALTER CONSTRAINT person_follower_person_id_fkey DEFERRABLE;
-
-ALTER TABLE instance_actions
-    ALTER COLUMN blocked DROP NOT NULL,
-    ALTER COLUMN blocked DROP DEFAULT;
-
-ALTER TABLE person_actions
-    ALTER COLUMN followed DROP NOT NULL,
-    ALTER COLUMN followed DROP DEFAULT,
-    ALTER COLUMN follow_pending DROP NOT NULL,
-    ADD COLUMN blocked timestamptz;
+INSERT INTO person_actions (person_id, target_id, followed, follow_pending)
+SELECT
+    follower_id,
+    person_id,
+    published,
+    pending
+FROM
+    person_follower
+ON CONFLICT (person_id,
+    target_id)
+    DO UPDATE SET
+        followed = excluded.followed,
+        follow_pending = excluded.follow_pending;
 
 INSERT INTO person_actions (person_id, target_id, blocked)
 SELECT
@@ -394,20 +418,11 @@ ON CONFLICT (person_id,
     DO UPDATE SET
         blocked = excluded.blocked;
 
--- Drop old tables
-DROP TABLE community_block, community_moderator, community_person_ban, person_block;
+DROP TABLE person_block, person_follower;
 
-ALTER INDEX instance_block_pkey RENAME TO instance_actions_pkey;
+CREATE INDEX idx_person_actions_person ON person_actions (person_id);
 
-ALTER TABLE instance_actions RENAME CONSTRAINT instance_block_instance_id_fkey TO instance_actions_instance_id_fkey;
-
-ALTER TABLE instance_actions RENAME CONSTRAINT instance_block_person_id_fkey TO instance_actions_person_id_fkey;
-
-ALTER INDEX person_follower_pkey RENAME TO person_actions_pkey;
-
-ALTER TABLE person_actions RENAME CONSTRAINT person_follower_person_id_fkey TO person_actions_target_id_fkey;
-
-ALTER TABLE person_actions RENAME CONSTRAINT person_follower_follower_id_fkey TO person_actions_person_id_fkey;
+CREATE INDEX idx_person_actions_target ON person_actions (target_id);
 
 CREATE INDEX idx_person_actions_followed_not_null ON person_actions (person_id, target_id)
 WHERE
@@ -417,15 +432,10 @@ CREATE INDEX idx_person_actions_blocked_not_null ON person_actions (person_id, t
 WHERE
     blocked IS NOT NULL;
 
-CREATE INDEX idx_person_actions_person ON person_actions (person_id);
-
-CREATE INDEX idx_person_actions_target ON person_actions (target_id);
-
--- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
--- with other tables would make it harder to do everything correctly when adding another action type
-CREATE INDEX idx_instance_actions_blocked_not_null ON instance_actions (person_id, instance_id)
-WHERE
-    blocked IS NOT NULL;
+ALTER TABLE person_actions
+    ALTER CONSTRAINT person_actions_target_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_actions_person_id_fkey NOT DEFERRABLE,
+    ADD CONSTRAINT person_actions_check_followed CHECK (((followed IS NULL) = (follow_pending IS NULL)));
 
 -- Create new statistics for more accurate estimations of how much of an index will be read (e.g. for
 -- `(liked, like_score)`, the query planner might othewise assume that `(TRUE, FALSE)` and `(TRUE, TRUE)`
@@ -445,20 +455,4 @@ FROM post_actions;
 
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL), (post_id IS NULL)
 FROM post_actions;
-
-ALTER TABLE person_actions
-    ADD CONSTRAINT person_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL));
-
--- Remove deferrable to restore original db schema
-ALTER TABLE instance_actions
-    ALTER CONSTRAINT instance_actions_instance_id_fkey NOT DEFERRABLE;
-
-ALTER TABLE instance_actions
-    ALTER CONSTRAINT instance_actions_person_id_fkey NOT DEFERRABLE;
-
-ALTER TABLE person_actions
-    ALTER CONSTRAINT person_actions_person_id_fkey NOT DEFERRABLE;
-
-ALTER TABLE person_actions
-    ALTER CONSTRAINT person_actions_target_id_fkey NOT DEFERRABLE;
 
