@@ -1,8 +1,12 @@
--- These (and many future migrations) are taking too long to complete for production instances.
--- Due to this, for some large tables (post_like, comment_like, etc), only fill the last month of data.
--- Keep the old tables around, rename them to `_v019` to keep track.
+-- Consolidates  all the old tables like post_read, post_like, into post_actions, to reduce joins and increase performance.
+-- This creates the tables:
+-- post_actions, comment_actions, community_actions, instance_actions, and person_actions.
 --
--- Since these and many more future migrations need to do the history filling in the background,
+-- Fetching the full history takes too long to complete for production instances.
+-- Due to this, for some large tables (post_like, post_read, comment_like, etc), only fill the last month of data.
+-- Keep the old tables around, but rename them to `_v019` to keep track.
+-- A code migration will handle the rest of the history in the background.
+--
 -- Create a table to store background history filling status
 CREATE TABLE history_status (
     id int GENERATED ALWAYS AS IDENTITY UNIQUE,
@@ -384,6 +388,7 @@ ALTER TABLE instance_actions
 
 -- person_actions
 CREATE TABLE person_actions (
+    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     target_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     followed timestamptz,

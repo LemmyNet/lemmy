@@ -318,3 +318,6 @@ DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_no
 -- Drop statistics of columns that still exist
 DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
 
+-- Drop the old v019 tables if they exist
+DROP TABLE IF EXISTS comment_like_v019, post_read_v019, person_post_aggregates_v019, post_like_v019;
+
