@@ -623,11 +623,15 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
     }
+
+    // Remove post and comment votes
+    PostActions::remove_all_likes(pool, banned_person_id).await?;
+    CommentActions::remove_all_likes(pool, banned_person_id).await?;
   }
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -709,10 +713,18 @@ pub async fn remove_or_restore_user_data_in_community(
   reason: &Option<String>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  // These actions are only possible when removing, not restoring
+  if remove {
+    // Remove post and comment votes
+    PostActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+    CommentActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+  }
+
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+    Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
+
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
