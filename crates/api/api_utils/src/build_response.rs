@@ -99,14 +99,14 @@ pub async fn send_local_notifs(
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
-  let recipient_ids =
-    send_local_mentions(post, comment_opt, person, community, do_send_email, context).await?;
+  let parent_creator =
+    notify_parent_creator(person, post, comment_opt, community, do_send_email, context).await?;
 
-  let recipient_ids = notify_parent_creator(
-    recipient_ids,
-    person,
+  let recipient_ids = send_local_mentions(
     post,
     comment_opt,
+    person,
+    parent_creator,
     community,
     do_send_email,
     context,
@@ -120,6 +120,7 @@ async fn send_local_mentions(
   post: &Post,
   comment_opt: Option<&Comment>,
   person: &Person,
+  parent_creator_id: Option<LocalUserId>,
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
@@ -135,10 +136,16 @@ async fn send_local_mentions(
     .iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
   {
+    // Ignore error if user is remote
     let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
     else {
       continue;
     };
+
+    // Dont send any mention notification to parent creator
+    if Some(user_view.local_user.id) == parent_creator_id {
+      continue;
+    }
 
     let is_blocked = check_person_instance_community_block(
       user_view.person.id,
@@ -178,16 +185,15 @@ async fn send_local_mentions(
 }
 
 async fn notify_parent_creator(
-  mut recipient_ids: Vec<LocalUserId>,
   person: &Person,
   post: &Post,
   comment_opt: Option<&Comment>,
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
-) -> LemmyResult<Vec<LocalUserId>> {
+) -> LemmyResult<Option<LocalUserId>> {
   let Some(comment) = comment_opt else {
-    return Ok(recipient_ids);
+    return Ok(None);
   };
 
   // Send comment_reply to the parent commenter / poster
@@ -213,37 +219,33 @@ async fn notify_parent_creator(
   if parent_creator_id != person.id && !is_blocked {
     let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
     if let Ok(parent_user_view) = user_view {
-      // Don't duplicate notif if already mentioned by checking recipient ids
-      if !recipient_ids.contains(&parent_user_view.local_user.id) {
-        recipient_ids.push(parent_user_view.local_user.id);
+      let comment_reply_form = CommentReplyInsertForm {
+        recipient_id: parent_user_view.person.id,
+        comment_id: comment.id,
+        read: None,
+      };
 
-        let comment_reply_form = CommentReplyInsertForm {
-          recipient_id: parent_user_view.person.id,
-          comment_id: comment.id,
-          read: None,
-        };
+      // Allow this to fail softly, since comment edits might re-update or replace it
+      // Let the uniqueness handle this fail
+      CommentReply::create(&mut context.pool(), &comment_reply_form)
+        .await
+        .ok();
 
-        // Allow this to fail softly, since comment edits might re-update or replace it
-        // Let the uniqueness handle this fail
-        CommentReply::create(&mut context.pool(), &comment_reply_form)
-          .await
-          .ok();
-
-        if do_send_email {
-          send_reply_email(
-            &parent_user_view,
-            comment,
-            person,
-            &parent_comment,
-            post,
-            context.settings(),
-          )
-          .await?;
-        }
+      if do_send_email {
+        send_reply_email(
+          &parent_user_view,
+          comment,
+          person,
+          &parent_comment,
+          post,
+          context.settings(),
+        )
+        .await?;
       }
+      return Ok(Some(parent_user_view.local_user.id));
     }
   }
-  Ok(recipient_ids)
+  Ok(None)
 }
 
 /// Make the correct reply form depending on whether its a post or comment mention
