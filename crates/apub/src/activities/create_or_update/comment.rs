@@ -14,7 +14,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_utils::{
-  build_response::send_local_notifs_apub,
+  build_response::send_local_notifs,
   context::LemmyContext,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
 };
@@ -169,7 +169,16 @@ impl ActivityHandler for CreateOrUpdateNote {
     // anyway.
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
-    send_local_notifs_apub(&post.0, Some(&comment.0), &actor, do_send_email, context).await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    send_local_notifs(
+      &post.0,
+      Some(&comment.0),
+      &actor,
+      &community,
+      do_send_email,
+      context,
+    )
+    .await?;
     Ok(())
   }
 }

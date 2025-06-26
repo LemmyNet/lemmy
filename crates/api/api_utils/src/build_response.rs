@@ -116,40 +116,6 @@ pub async fn send_local_notifs(
   Ok(recipient_ids)
 }
 
-/// Same as [send_local_notifs()] but reads Community from db instead of taking parameter
-pub async fn send_local_notifs_apub(
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  person: &Person,
-  do_send_email: bool,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<LocalUserId>> {
-  let community = Community::read(&mut context.pool(), post.community_id).await?;
-
-  let recipient_ids = send_local_mentions(
-    post,
-    comment_opt,
-    person,
-    &community,
-    do_send_email,
-    context,
-  )
-  .await?;
-
-  let recipient_ids = notify_parent_creator(
-    recipient_ids,
-    person,
-    post,
-    comment_opt,
-    &community,
-    do_send_email,
-    context,
-  )
-  .await?;
-
-  Ok(recipient_ids)
-}
-
 async fn send_local_mentions(
   post: &Post,
   comment_opt: Option<&Comment>,

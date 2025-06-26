@@ -12,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_utils::{build_response::send_local_notifs_apub, context::LemmyContext};
+use lemmy_api_utils::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
@@ -121,7 +121,8 @@ impl ActivityHandler for CreateOrUpdatePage {
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
-    send_local_notifs_apub(&post.0, None, &actor, do_send_email, context).await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    send_local_notifs(&post.0, None, &actor, &community, do_send_email, context).await?;
 
     Ok(())
   }
