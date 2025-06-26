@@ -107,7 +107,7 @@ pub async fn send_local_notifs(
     person,
     post,
     comment_opt,
-    &community,
+    community,
     do_send_email,
     context,
   )
@@ -269,7 +269,7 @@ async fn notify_parent_creator(
             comment,
             person,
             &parent_comment,
-            &post,
+            post,
             context.settings(),
           )
           .await?;
