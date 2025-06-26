@@ -48,6 +48,15 @@ steps:
     when:
       - event: pull_request
 
+  bash_fmt:
+    image: alpine:3
+    commands:
+      - apk add shfmt
+      - shfmt -i 2 -d */**.bash
+      - shfmt -i 2 -d */**.sh
+    when:
+      - event: pull_request
+
   toml_fmt:
     image: tamasfe/taplo:0.9.3
     commands:
