@@ -86,7 +86,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub local: Option<bool>,
   #[new(default)]
-  pub private_key: Option<SensitiveString>,
+  pub private_key: Option<String>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]

@@ -839,13 +839,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_ban (person_id) {
-        person_id -> Int4,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     person_comment_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
@@ -1232,7 +1225,6 @@ diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
-diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_comment_mention -> comment (comment_id));
 diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
@@ -1325,7 +1317,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   password_reset_request,
   person,
   person_actions,
-  person_ban,
   person_comment_mention,
   person_content_combined,
   person_liked_combined,
