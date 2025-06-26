@@ -238,17 +238,116 @@ ALTER TABLE post_actions
     ALTER CONSTRAINT post_actions_person_id_fkey NOT DEFERRABLE,
     ALTER CONSTRAINT post_actions_post_id_fkey NOT DEFERRABLE;
 
-ALTER TABLE community_follower RENAME TO community_actions;
+-- community_actions
+CREATE TABLE community_actions (
+    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    followed timestamptz,
+    follow_state community_follower_state,
+    follow_approver_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    blocked timestamptz,
+    became_moderator timestamptz,
+    received_ban timestamptz,
+    ban_expires timestamptz,
+    PRIMARY KEY (person_id, community_id)
+);
+
+INSERT INTO community_actions (person_id, community_id, followed, follow_state, follow_approver_id)
+SELECT
+    person_id,
+    community_id,
+    published,
+    state,
+    approver_id
+FROM
+    community_follower
+ON CONFLICT (person_id,
+    community_id)
+    DO UPDATE SET
+        followed = excluded.followed,
+        follow_state = excluded.follow_state,
+        follow_approver_id = excluded.follow_approver_id;
+
+INSERT INTO community_actions (person_id, community_id, received_ban, ban_expires)
+SELECT
+    person_id,
+    community_id,
+    published,
+    expires
+FROM
+    community_person_ban
+ON CONFLICT (person_id,
+    community_id)
+    DO UPDATE SET
+        received_ban = excluded.received_ban,
+        ban_expires = excluded.ban_expires;
+
+INSERT INTO community_actions (person_id, community_id, blocked)
+SELECT
+    person_id,
+    community_id,
+    published
+FROM
+    community_block
+ON CONFLICT (person_id,
+    community_id)
+    DO UPDATE SET
+        blocked = excluded.blocked;
+
+INSERT INTO community_actions (person_id, community_id, became_moderator)
+SELECT
+    person_id,
+    community_id,
+    published
+FROM
+    community_moderator
+ON CONFLICT (person_id,
+    community_id)
+    DO UPDATE SET
+        became_moderator = excluded.became_moderator;
+
+DROP TABLE community_block, community_moderator, community_person_ban;
+
+-- Create indexes
+CREATE INDEX idx_community_actions_person ON community_actions (person_id);
+
+CREATE INDEX idx_community_actions_community ON community_actions (community_id);
+
+CREATE INDEX idx_community_actions_followed ON community_actions (followed)
+WHERE
+    followed IS NOT NULL;
+
+CREATE INDEX idx_community_actions_followed_not_null ON community_actions (person_id, community_id)
+WHERE
+    followed IS NOT NULL OR follow_state IS NOT NULL;
+
+CREATE INDEX idx_community_actions_became_moderator ON community_actions (became_moderator)
+WHERE
+    became_moderator IS NOT NULL;
+
+CREATE INDEX idx_community_actions_became_moderator_not_null ON community_actions (person_id, community_id)
+WHERE
+    became_moderator IS NOT NULL;
+
+CREATE INDEX idx_community_actions_blocked_not_null ON community_actions (person_id, community_id)
+WHERE
+    blocked IS NOT NULL;
+
+CREATE INDEX idx_community_actions_received_ban_not_null ON community_actions (person_id, community_id)
+WHERE
+    received_ban IS NOT NULL;
+
+ALTER TABLE community_actions
+    ADD CONSTRAINT community_actions_check_followed CHECK ((((followed IS NULL) = (follow_state IS NULL)) AND (NOT ((followed IS NULL) AND (follow_approver_id IS NOT NULL))))),
+    ADD CONSTRAINT community_actions_check_received_ban CHECK ((NOT ((received_ban IS NULL) AND (ban_expires IS NOT NULL)))),
+    ALTER CONSTRAINT community_actions_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT community_actions_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT community_actions_follow_approver_id_fkey NOT DEFERRABLE;
 
 ALTER TABLE instance_block RENAME TO instance_actions;
 
 ALTER TABLE person_follower RENAME TO person_actions;
-
-ALTER TABLE community_actions RENAME COLUMN published TO followed;
-
-ALTER TABLE community_actions RENAME COLUMN state TO follow_state;
-
-ALTER TABLE community_actions RENAME COLUMN approver_id TO follow_approver_id;
 
 ALTER TABLE instance_actions RENAME COLUMN published TO blocked;
 
@@ -261,15 +360,6 @@ ALTER TABLE person_actions RENAME COLUMN published TO followed;
 ALTER TABLE person_actions RENAME COLUMN pending TO follow_pending;
 
 -- Mark all constraints of affected tables as deferrable to speed up migration
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_follower_community_id_fkey DEFERRABLE;
-
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_follower_approver_id_fkey DEFERRABLE;
-
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_follower_person_id_fkey DEFERRABLE;
-
 ALTER TABLE instance_actions
     ALTER CONSTRAINT instance_block_instance_id_fkey DEFERRABLE;
 
@@ -281,15 +371,6 @@ ALTER TABLE person_actions
 
 ALTER TABLE person_actions
     ALTER CONSTRAINT person_follower_person_id_fkey DEFERRABLE;
-
-ALTER TABLE community_actions
-    ALTER COLUMN followed DROP NOT NULL,
-    ALTER COLUMN followed DROP DEFAULT,
-    ALTER COLUMN follow_state DROP NOT NULL,
-    ADD COLUMN blocked timestamptz,
-    ADD COLUMN became_moderator timestamptz,
-    ADD COLUMN received_ban timestamptz,
-    ADD COLUMN ban_expires timestamptz;
 
 ALTER TABLE instance_actions
     ALTER COLUMN blocked DROP NOT NULL,
@@ -313,85 +394,8 @@ ON CONFLICT (person_id,
     DO UPDATE SET
         blocked = excluded.blocked;
 
-UPDATE
-    community_actions AS a
-SET
-    blocked = (
-        SELECT
-            published
-        FROM
-            community_block AS b
-        WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id)),
-became_moderator = (
-    SELECT
-        published
-    FROM
-        community_moderator AS b
-    WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id)),
-(received_ban,
-    ban_expires) = (
-    SELECT
-        published,
-        expires
-    FROM
-        community_person_ban AS b
-    WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id));
-
-INSERT INTO community_actions (person_id, community_id, received_ban, ban_expires)
-SELECT
-    person_id,
-    community_id,
-    published,
-    expires
-FROM
-    community_person_ban AS b
-WHERE
-    NOT EXISTS (
-        SELECT
-        FROM
-            community_actions AS a
-        WHERE (a.person_id, a.community_id) = (b.person_id, b.community_id));
-
-INSERT INTO community_actions (person_id, community_id, blocked)
-SELECT
-    person_id,
-    community_id,
-    published
-FROM
-    community_block
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        blocked = excluded.blocked
-    WHERE
-        community_actions.blocked IS NULL;
-
-INSERT INTO community_actions (person_id, community_id, became_moderator)
-SELECT
-    person_id,
-    community_id,
-    published
-FROM
-    community_moderator
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        became_moderator = excluded.became_moderator
-    WHERE
-        community_actions.became_moderator IS NULL;
-
 -- Drop old tables
 DROP TABLE community_block, community_moderator, community_person_ban, person_block;
-
-ALTER INDEX community_follower_pkey RENAME TO community_actions_pkey;
-
-ALTER INDEX idx_community_follower_community RENAME TO idx_community_actions_community;
-
-ALTER TABLE community_actions RENAME CONSTRAINT community_follower_community_id_fkey TO community_actions_community_id_fkey;
-
-ALTER TABLE community_actions RENAME CONSTRAINT community_follower_person_id_fkey TO community_actions_person_id_fkey;
-
-ALTER TABLE community_actions RENAME CONSTRAINT community_follower_approver_id_fkey TO community_actions_follow_approver_id_fkey;
 
 ALTER INDEX instance_block_pkey RENAME TO instance_actions_pkey;
 
@@ -405,38 +409,6 @@ ALTER TABLE person_actions RENAME CONSTRAINT person_follower_person_id_fkey TO p
 
 ALTER TABLE person_actions RENAME CONSTRAINT person_follower_follower_id_fkey TO person_actions_person_id_fkey;
 
--- Rename idx_community_follower_published and add filter
-CREATE INDEX idx_community_actions_followed ON community_actions (followed)
-WHERE
-    followed IS NOT NULL;
-
-DROP INDEX idx_community_follower_published;
-
--- Restore indexes of dropped tables
-CREATE INDEX idx_community_actions_became_moderator ON community_actions (became_moderator)
-WHERE
-    became_moderator IS NOT NULL;
-
-CREATE INDEX idx_person_actions_person ON person_actions (person_id);
-
-CREATE INDEX idx_person_actions_target ON person_actions (target_id);
-
-CREATE INDEX idx_community_actions_followed_not_null ON community_actions (person_id, community_id)
-WHERE
-    followed IS NOT NULL OR follow_state IS NOT NULL;
-
-CREATE INDEX idx_community_actions_blocked_not_null ON community_actions (person_id, community_id)
-WHERE
-    blocked IS NOT NULL;
-
-CREATE INDEX idx_community_actions_became_moderator_not_null ON community_actions (person_id, community_id)
-WHERE
-    became_moderator IS NOT NULL;
-
-CREATE INDEX idx_community_actions_received_ban_not_null ON community_actions (person_id, community_id)
-WHERE
-    received_ban IS NOT NULL;
-
 CREATE INDEX idx_person_actions_followed_not_null ON person_actions (person_id, target_id)
 WHERE
     followed IS NOT NULL OR follow_pending IS NOT NULL;
@@ -444,6 +416,10 @@ WHERE
 CREATE INDEX idx_person_actions_blocked_not_null ON person_actions (person_id, target_id)
 WHERE
     blocked IS NOT NULL;
+
+CREATE INDEX idx_person_actions_person ON person_actions (person_id);
+
+CREATE INDEX idx_person_actions_target ON person_actions (target_id);
 
 -- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
 -- with other tables would make it harder to do everything correctly when adding another action type
@@ -470,23 +446,10 @@ FROM post_actions;
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL), (post_id IS NULL)
 FROM post_actions;
 
-ALTER TABLE community_actions
-    ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_state IS NULL) AND NOT (followed IS NULL AND follow_approver_id IS NOT NULL)),
-    ADD CONSTRAINT community_actions_check_received_ban CHECK (NOT (received_ban IS NULL AND ban_expires IS NOT NULL));
-
 ALTER TABLE person_actions
     ADD CONSTRAINT person_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL));
 
 -- Remove deferrable to restore original db schema
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_actions_community_id_fkey NOT DEFERRABLE;
-
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_actions_follow_approver_id_fkey NOT DEFERRABLE;
-
-ALTER TABLE community_actions
-    ALTER CONSTRAINT community_actions_person_id_fkey NOT DEFERRABLE;
-
 ALTER TABLE instance_actions
     ALTER CONSTRAINT instance_actions_instance_id_fkey NOT DEFERRABLE;
 
