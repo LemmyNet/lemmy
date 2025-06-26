@@ -20,7 +20,7 @@ use lemmy_db_views_comment::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 pub async fn update_comment(
@@ -78,16 +78,13 @@ pub async fn update_comment(
   plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
-  let updated_comment_content = updated_comment.content.clone();
-  let mentions = scrape_text_for_mentions(&updated_comment_content);
   let recipient_ids = send_local_notifs(
-    mentions,
     &orig_comment.post,
     Some(&updated_comment),
+    &local_user_view.person,
     &orig_comment.community,
     false,
     &context,
-    &local_user_view,
   )
   .await?;
 

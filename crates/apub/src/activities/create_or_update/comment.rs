@@ -38,10 +38,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::mention::scrape_text_for_mentions,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
 
@@ -172,18 +169,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     // anyway.
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
-    let mentions = scrape_text_for_mentions(&comment.content);
-    // TODO: this fails in local community comment as CommentView::read() returns nothing
-    //       without passing LocalUser
-    send_local_notifs_apub(
-      mentions,
-      &post.0,
-      Some(&comment.0),
-      &actor,
-      do_send_email,
-      context,
-    )
-    .await?;
+    send_local_notifs_apub(&post.0, Some(&comment.0), &actor, do_send_email, context).await?;
     Ok(())
   }
 }

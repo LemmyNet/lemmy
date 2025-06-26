@@ -33,7 +33,6 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
-    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -172,17 +171,14 @@ pub async fn create_post(
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
-  // Scan the post body for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
   let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
-    mentions,
     &inserted_post,
     None,
+    &local_user_view.person,
     &community,
     do_send_email,
     &context,
-    &local_user_view,
   )
   .await?;
 

@@ -20,7 +20,7 @@ use lemmy_db_views_community::{api::CommunityResponse, CommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{api::PostResponse, PostView};
 use lemmy_email::notifications::{send_mention_email, send_reply_email};
-use lemmy_utils::{error::LemmyResult, utils::mention::MentionData};
+use lemmy_utils::{error::LemmyResult, utils::mention::scrape_text_for_mentions};
 use url::Url;
 
 pub async fn build_comment_response(
@@ -89,27 +89,18 @@ pub async fn build_post_response(
   Ok(Json(PostResponse { post_view }))
 }
 
+/// Scans the post/comment content for mentions, then sends notifications via db and email
+/// to mentioned users and parent creator.
 pub async fn send_local_notifs(
-  mentions: Vec<MentionData>,
   post: &Post,
   comment_opt: Option<&Comment>,
+  person: &Person,
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
-  local_user_view: &LocalUserView,
 ) -> LemmyResult<Vec<LocalUserId>> {
-  let person = &local_user_view.person;
-
-  let recipient_ids = send_local_mentions(
-    mentions,
-    post,
-    comment_opt,
-    person,
-    community,
-    do_send_email,
-    context,
-  )
-  .await?;
+  let recipient_ids =
+    send_local_mentions(post, comment_opt, person, community, do_send_email, context).await?;
 
   let recipient_ids = notify_parent_creator(
     recipient_ids,
@@ -125,8 +116,8 @@ pub async fn send_local_notifs(
   Ok(recipient_ids)
 }
 
+/// Same as [send_local_notifs()] but reads Community from db instead of taking parameter
 pub async fn send_local_notifs_apub(
-  mentions: Vec<MentionData>,
   post: &Post,
   comment_opt: Option<&Comment>,
   person: &Person,
@@ -136,7 +127,6 @@ pub async fn send_local_notifs_apub(
   let community = Community::read(&mut context.pool(), post.community_id).await?;
 
   let recipient_ids = send_local_mentions(
-    mentions,
     post,
     comment_opt,
     person,
@@ -161,7 +151,6 @@ pub async fn send_local_notifs_apub(
 }
 
 async fn send_local_mentions(
-  mentions: Vec<MentionData>,
   post: &Post,
   comment_opt: Option<&Comment>,
   person: &Person,
@@ -169,6 +158,12 @@ async fn send_local_mentions(
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
+  let content = if let Some(comment) = comment_opt {
+    &comment.content
+  } else {
+    &post.body.clone().unwrap_or_default()
+  };
+  let mentions = scrape_text_for_mentions(content);
   let mut recipient_ids = Vec::new();
   for mention in mentions
     .iter()

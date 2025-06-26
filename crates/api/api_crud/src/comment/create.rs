@@ -31,7 +31,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
   MAX_COMMENT_DEPTH_LIMIT,
 };
 
@@ -112,17 +112,14 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
-  // Scan the comment for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&content);
   let do_send_email = !local_site.disable_email_notifications;
   let recipient_ids = send_local_notifs(
-    mentions,
     &post,
     Some(&inserted_comment),
+    &local_user_view.person,
     &post_view.community,
     do_send_email,
     &context,
-    &local_user_view,
   )
   .await?;
 

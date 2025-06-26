@@ -31,10 +31,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::mention::scrape_text_for_mentions,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -124,9 +121,7 @@ impl ActivityHandler for CreateOrUpdatePage {
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
-    // Send the post body mentions
-    let mentions = scrape_text_for_mentions(&post.body.clone().unwrap_or_default());
-    send_local_notifs_apub(mentions, &post.0, None, &actor, do_send_email, context).await?;
+    send_local_notifs_apub(&post.0, None, &actor, do_send_email, context).await?;
 
     Ok(())
   }
