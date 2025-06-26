@@ -116,11 +116,81 @@ pub async fn send_local_notifs(
   Ok(recipient_ids)
 }
 
+async fn notify_parent_creator(
+  person: &Person,
+  post: &Post,
+  comment_opt: Option<&Comment>,
+  community: &Community,
+  do_send_email: bool,
+  context: &LemmyContext,
+) -> LemmyResult<Option<PersonId>> {
+  let Some(comment) = comment_opt else {
+    return Ok(None);
+  };
+
+  // Get the parent data
+  let (parent_creator_id, parent_comment) =
+    if let Some(parent_comment_id) = comment.parent_comment_id() {
+      let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
+      (parent_comment.creator_id, Some(parent_comment))
+    } else {
+      (post.creator_id, None)
+    };
+
+  // Dont send notification to yourself
+  if parent_creator_id == person.id {
+    return Ok(None);
+  }
+
+  let is_blocked = check_person_instance_community_block(
+    parent_creator_id,
+    // Only block from the community's instance_id
+    community.instance_id,
+    post,
+    context,
+  )
+  .await
+  .is_err();
+  if is_blocked {
+    return Ok(None);
+  }
+
+  let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await
+  else {
+    return Ok(None);
+  };
+
+  let comment_reply_form = CommentReplyInsertForm {
+    recipient_id: user_view.person.id,
+    comment_id: comment.id,
+    read: None,
+  };
+
+  // Allow this to fail softly, since comment edits might re-update or replace it
+  // Let the uniqueness handle this fail
+  CommentReply::create(&mut context.pool(), &comment_reply_form)
+    .await
+    .ok();
+
+  if do_send_email {
+    send_reply_email(
+      &user_view,
+      comment,
+      person,
+      &parent_comment,
+      post,
+      context.settings(),
+    )
+    .await?;
+  }
+  Ok(Some(user_view.person.id))
+}
+
 async fn send_local_mentions(
   post: &Post,
   comment_opt: Option<&Comment>,
   person: &Person,
-  parent_creator_id: Option<LocalUserId>,
+  parent_creator_id: Option<PersonId>,
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
@@ -130,20 +200,19 @@ async fn send_local_mentions(
   } else {
     &post.body.clone().unwrap_or_default()
   };
-  let mentions = scrape_text_for_mentions(content);
+  let mentions = scrape_text_for_mentions(content)
+    .into_iter()
+    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name));
   let mut recipient_ids = Vec::new();
-  for mention in mentions
-    .iter()
-    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
-  {
+  for mention in mentions {
     // Ignore error if user is remote
     let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
     else {
       continue;
     };
 
-    // Dont send any mention notification to parent creator
-    if Some(user_view.local_user.id) == parent_creator_id {
+    // Dont send any mention notification to parent creator nor to yourself
+    if Some(user_view.person.id) == parent_creator_id || user_view.person.id == person.id {
       continue;
     }
 
@@ -160,10 +229,6 @@ async fn send_local_mentions(
       continue;
     };
 
-    // TODO
-    // At some point, make it so you can't tag the parent creator either
-    // Potential duplication of notifications, one for reply and the other for mention, is handled
-    // below by checking recipient ids
     recipient_ids.push(user_view.local_user.id);
 
     let (link, comment_content_or_post_body) =
@@ -182,70 +247,6 @@ async fn send_local_mentions(
     }
   }
   Ok(recipient_ids)
-}
-
-async fn notify_parent_creator(
-  person: &Person,
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  community: &Community,
-  do_send_email: bool,
-  context: &LemmyContext,
-) -> LemmyResult<Option<LocalUserId>> {
-  let Some(comment) = comment_opt else {
-    return Ok(None);
-  };
-
-  // Send comment_reply to the parent commenter / poster
-  let (parent_creator_id, parent_comment) =
-    if let Some(parent_comment_id) = comment.parent_comment_id() {
-      let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
-      (parent_comment.creator_id, Some(parent_comment))
-    } else {
-      (post.creator_id, None)
-    };
-
-  let is_blocked = check_person_instance_community_block(
-    parent_creator_id,
-    // Only block from the community's instance_id
-    community.instance_id,
-    post,
-    context,
-  )
-  .await
-  .is_err();
-
-  // Don't send a notif to yourself
-  if parent_creator_id != person.id && !is_blocked {
-    let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
-    if let Ok(parent_user_view) = user_view {
-      let comment_reply_form = CommentReplyInsertForm {
-        recipient_id: parent_user_view.person.id,
-        comment_id: comment.id,
-        read: None,
-      };
-
-      // Allow this to fail softly, since comment edits might re-update or replace it
-      // Let the uniqueness handle this fail
-      CommentReply::create(&mut context.pool(), &comment_reply_form)
-        .await
-        .ok();
-
-      if do_send_email {
-        send_reply_email(
-          &parent_user_view,
-          comment,
-          person,
-          &parent_comment,
-          post,
-          context.settings(),
-        )
-        .await?;
-      }
-      return Ok(Some(parent_user_view.local_user.id));
-    }
-  }
-  Ok(None)
 }
 
 /// Make the correct reply form depending on whether its a post or comment mention

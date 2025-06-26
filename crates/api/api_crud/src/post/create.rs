@@ -176,7 +176,7 @@ pub async fn create_post(
     &inserted_post,
     None,
     &local_user_view.person,
-    &community,
+    community,
     do_send_email,
     &context,
   )
