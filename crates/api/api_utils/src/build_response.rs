@@ -1,21 +1,19 @@
-use crate::{
-  context::LemmyContext,
-  utils::{check_person_instance_community_block, is_mod_or_admin},
-};
+use crate::{context::LemmyContext, utils::is_mod_or_admin};
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PersonId, PostId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
-    community::Community,
-    person::Person,
+    community::{Community, CommunityActions},
+    instance::InstanceActions,
+    person::{Person, PersonActions},
     person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
     person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
-    post::Post,
+    post::{Post, PostActions},
   },
-  traits::Crud,
+  traits::{Blockable, Crud},
 };
 use lemmy_db_views_comment::{api::CommentResponse, CommentView};
 use lemmy_db_views_community::{api::CommunityResponse, CommunityView};
@@ -102,8 +100,16 @@ pub async fn send_local_notifs(
 ) -> LemmyResult<Vec<LocalUserId>> {
   let person = &local_user_view.person;
 
-  let recipient_ids =
-    send_local_mentions(mentions, post, comment_opt, person, do_send_email, context).await?;
+  let recipient_ids = send_local_mentions(
+    mentions,
+    post,
+    comment_opt,
+    person,
+    community,
+    do_send_email,
+    context,
+  )
+  .await?;
 
   let recipient_ids = notify_parent_creator(
     recipient_ids,
@@ -129,8 +135,16 @@ pub async fn send_local_notifs_apub(
 ) -> LemmyResult<Vec<LocalUserId>> {
   let community = Community::read(&mut context.pool(), post.community_id).await?;
 
-  let recipient_ids =
-    send_local_mentions(mentions, post, comment_opt, person, do_send_email, context).await?;
+  let recipient_ids = send_local_mentions(
+    mentions,
+    post,
+    comment_opt,
+    person,
+    &community,
+    do_send_email,
+    context,
+  )
+  .await?;
 
   let recipient_ids = notify_parent_creator(
     recipient_ids,
@@ -151,6 +165,7 @@ async fn send_local_mentions(
   post: &Post,
   comment_opt: Option<&Comment>,
   person: &Person,
+  community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
@@ -159,28 +174,43 @@ async fn send_local_mentions(
     .iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
   {
-    let user_view = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await;
-    if let Ok(mention_user_view) = user_view {
-      // TODO
-      // At some point, make it so you can't tag the parent creator either
-      // Potential duplication of notifications, one for reply and the other for mention, is handled
-      // below by checking recipient ids
-      recipient_ids.push(mention_user_view.local_user.id);
+    let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
+    else {
+      continue;
+    };
 
-      let (link, comment_content_or_post_body) =
-        insert_post_or_comment_mention(&mention_user_view, post, comment_opt, context).await?;
+    let is_blocked = check_person_instance_community_block(
+      user_view.person.id,
+      // Only block from the community's instance_id
+      community.instance_id,
+      post,
+      context,
+    )
+    .await
+    .is_err();
+    if is_blocked {
+      continue;
+    };
 
-      // Send an email to those local users that have notifications on
-      if do_send_email {
-        send_mention_email(
-          &mention_user_view,
-          &comment_content_or_post_body,
-          person,
-          link.into(),
-          context.settings(),
-        )
-        .await;
-      }
+    // TODO
+    // At some point, make it so you can't tag the parent creator either
+    // Potential duplication of notifications, one for reply and the other for mention, is handled
+    // below by checking recipient ids
+    recipient_ids.push(user_view.local_user.id);
+
+    let (link, comment_content_or_post_body) =
+      insert_post_or_comment_mention(&user_view, post, comment_opt, context).await?;
+
+    // Send an email to those local users that have notifications on
+    if do_send_email {
+      send_mention_email(
+        &user_view,
+        &comment_content_or_post_body,
+        person,
+        link.into(),
+        context.settings(),
+      )
+      .await;
     }
   }
   Ok(recipient_ids)
@@ -209,12 +239,11 @@ async fn notify_parent_creator(
     };
 
   let is_blocked = check_person_instance_community_block(
-    person.id,
     parent_creator_id,
     // Only block from the community's instance_id
     community.instance_id,
-    community.id,
-    &mut context.pool(),
+    post,
+    context,
   )
   .await
   .is_err();
@@ -295,4 +324,18 @@ async fn insert_post_or_comment_mention(
       post.body.clone().unwrap_or_default(),
     ))
   }
+}
+
+pub async fn check_person_instance_community_block(
+  potential_blocker_id: PersonId,
+  community_instance_id: InstanceId,
+  post: &Post,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let pool = &mut context.pool();
+  PersonActions::read_block(pool, potential_blocker_id, post.creator_id).await?;
+  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityActions::read_block(pool, potential_blocker_id, post.community_id).await?;
+  PostActions::check_notifications_disabled(post.id, potential_blocker_id, pool).await?;
+  Ok(())
 }

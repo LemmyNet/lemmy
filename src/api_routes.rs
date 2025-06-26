@@ -57,6 +57,7 @@ use lemmy_api::{
     verify_email::verify_email,
   },
   post::{
+    disable_notifications::disable_post_notifications,
     feature::feature_post,
     get_link_metadata::get_link_metadata,
     hide::hide_post,
@@ -293,7 +294,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/like/list", get().to(list_post_likes))
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
-          .route("/report/resolve", put().to(resolve_post_report)),
+          .route("/report/resolve", put().to(resolve_post_report))
+          .route(
+            "/disable_notifications",
+            post().to(disable_post_notifications),
+          ),
       )
       // Comment
       .service(

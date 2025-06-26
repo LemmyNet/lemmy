@@ -1,4 +1,5 @@
 use crate::{
+  diesel::PgExpressionMethods,
   newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
   source::post::{
     Post,
@@ -24,11 +25,11 @@ use crate::{
     SITEMAP_LIMIT,
   },
 };
-use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not, update},
+  dsl::{count, exists, insert_into, not, update},
   expression::SelectableHelper,
+  select,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -43,6 +44,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use url::Url;
 
 impl Crud for Post {
   type InsertForm = PostInsertForm;
@@ -452,9 +454,7 @@ impl PostActions {
       .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>()
   }
-}
 
-impl PostActions {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -479,6 +479,46 @@ impl PostActions {
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
+  }
+
+  pub async fn check_notifications_disabled(
+    post_id: PostId,
+    person_id: PersonId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let find_action = post_actions::table
+      .find((person_id, post_id))
+      .filter(post_actions::disable_notifications.is_distinct_from(false));
+
+    select(not(exists(find_action)))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::NotFound.into())
+  }
+
+  pub async fn update_notifications_disabled(
+    post_id: PostId,
+    person_id: PersonId,
+    disabled: bool,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActions> {
+    let conn = &mut get_conn(pool).await?;
+    let form = (
+      post_actions::person_id.eq(person_id),
+      post_actions::post_id.eq(post_id),
+      post_actions::disable_notifications.eq(disabled),
+    );
+
+    insert_into(post_actions::table)
+      .values(form)
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

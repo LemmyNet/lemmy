@@ -1,3 +1,4 @@
+pub mod disable_notifications;
 pub mod feature;
 pub mod get_link_metadata;
 pub mod hide;
