@@ -89,15 +89,26 @@ pub async fn build_post_response(
   Ok(Json(PostResponse { post_view }))
 }
 
-pub struct NotifyData {
-  pub post: Post,
-  pub comment_opt: Option<Comment>,
-  pub community: Community,
-  pub creator: Person,
-  pub do_send_email: bool,
+#[derive(derive_new::new)]
+pub struct NotifyData<'a> {
+  post: &'a Post,
+  comment_opt: Option<&'a Comment>,
+  community: &'a Community,
+  creator: &'a Person,
+  do_send_email: bool,
 }
 
-impl NotifyData {
+impl NotifyData<'_> {
+  pub async fn send(self, context: &LemmyContext) -> LemmyResult<()> {
+    let parent_creator = notify_parent_creator(&self, context).await?;
+
+    send_local_mentions(&self, parent_creator, context).await?;
+
+    send_subscriber_notifications(&self, context).await?;
+
+    Ok(())
+  }
+
   async fn check_notifications_allowed(
     &self,
     potential_blocker_id: PersonId,
@@ -137,16 +148,6 @@ impl NotifyData {
   }
 }
 
-pub async fn send_local_notifs_new(data: NotifyData, context: &LemmyContext) -> LemmyResult<()> {
-  let parent_creator = notify_parent_creator(&data, context).await?;
-
-  send_local_mentions(&data, parent_creator, context).await?;
-
-  send_subscriber_notifications(&data, context).await?;
-
-  Ok(())
-}
-
 /// Scans the post/comment content for mentions, then sends notifications via db and email
 /// to mentioned users and parent creator.
 pub async fn send_local_notifs(
@@ -161,7 +162,7 @@ pub async fn send_local_notifs(
 }
 
 async fn notify_parent_creator(
-  data: &NotifyData,
+  data: &NotifyData<'_>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<PersonId>> {
   let Some(comment) = data.comment_opt.as_ref() else {
@@ -222,7 +223,7 @@ async fn notify_parent_creator(
 }
 
 async fn send_local_mentions(
-  data: &NotifyData,
+  data: &NotifyData<'_>,
   parent_creator_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
@@ -249,8 +250,7 @@ async fn send_local_mentions(
       continue;
     };
 
-    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt.as_ref(), context)
-      .await?;
+    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt, context).await?;
 
     // Send an email to those local users that have notifications on
     if data.do_send_email {
@@ -268,7 +268,7 @@ async fn send_local_mentions(
 }
 
 async fn send_subscriber_notifications(
-  data: &NotifyData,
+  data: &NotifyData<'_>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
@@ -280,8 +280,7 @@ async fn send_subscriber_notifications(
 
     // TODO: would be easier if we use the same db table and email template here, eg with
     // `type` param
-    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt.as_ref(), context)
-      .await?;
+    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt, context).await?;
 
     if data.do_send_email {
       send_mention_email(

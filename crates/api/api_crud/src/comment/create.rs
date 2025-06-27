@@ -2,7 +2,7 @@ use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::{build_comment_response, send_local_notifs, send_local_notifs_new, NotifyData},
+  build_response::{build_comment_response, NotifyData},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
@@ -112,6 +112,16 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
+  NotifyData::new(
+    &post,
+    Some(&inserted_comment),
+    &post_view.community,
+    &local_user_view.person,
+    !local_site.disable_email_notifications,
+  )
+  .send(&context)
+  .await?;
+
   // You like your own comment by default
   let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);
 
@@ -163,23 +173,10 @@ pub async fn create_comment(
     }
   }
 
-  let inserted_comment_id = inserted_comment.id;
-  send_local_notifs_new(
-    NotifyData {
-      post,
-      comment_opt: Some(inserted_comment),
-      creator: local_user_view.person.clone(),
-      community: post_view.community,
-      do_send_email: !local_site.disable_email_notifications,
-    },
-    &context,
-  )
-  .await?;
-
   Ok(Json(
     build_comment_response(
       &context,
-      inserted_comment_id,
+      inserted_comment.id,
       Some(local_user_view),
       local_instance_id,
     )
