@@ -113,7 +113,7 @@ pub async fn create_comment(
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   let do_send_email = !local_site.disable_email_notifications;
-  let recipient_ids = send_local_notifs(
+  send_local_notifs(
     &post,
     Some(&inserted_comment),
     &local_user_view.person,
@@ -179,7 +179,6 @@ pub async fn create_comment(
       &context,
       inserted_comment.id,
       Some(local_user_view),
-      recipient_ids,
       local_instance_id,
     )
     .await?,

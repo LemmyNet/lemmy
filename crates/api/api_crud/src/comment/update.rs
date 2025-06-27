@@ -78,7 +78,7 @@ pub async fn update_comment(
   plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
-  let recipient_ids = send_local_notifs(
+  send_local_notifs(
     &orig_comment.post,
     Some(&updated_comment),
     &local_user_view.person,
@@ -98,7 +98,6 @@ pub async fn update_comment(
       &context,
       updated_comment.id,
       Some(local_user_view),
-      recipient_ids,
       local_instance_id,
     )
     .await?,

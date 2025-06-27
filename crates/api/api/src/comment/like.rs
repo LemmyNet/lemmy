@@ -8,11 +8,8 @@ use lemmy_api_utils::{
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, PostOrCommentId},
-  source::{
-    comment::{CommentActions, CommentLikeForm},
-    comment_reply::CommentReply,
-  },
+  newtypes::PostOrCommentId,
+  source::comment::{CommentActions, CommentLikeForm},
   traits::Likeable,
 };
 use lemmy_db_views_comment::{
@@ -32,8 +29,6 @@ pub async fn like_comment(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
-
-  let mut recipient_ids = Vec::<LocalUserId>::new();
 
   check_local_vote_mode(
     data.score,
@@ -59,16 +54,6 @@ pub async fn like_comment(
     &mut context.pool(),
   )
   .await?;
-
-  // Add parent poster or commenter to recipients
-  let comment_reply = CommentReply::read_by_comment(&mut context.pool(), comment_id).await;
-  if let Ok(Some(reply)) = comment_reply {
-    let recipient_id = reply.recipient_id;
-    if let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), recipient_id).await
-    {
-      recipient_ids.push(local_recipient.local_user.id);
-    }
-  }
 
   let mut like_form = CommentLikeForm::new(local_user_view.person.id, data.comment_id, data.score);
 
@@ -101,7 +86,6 @@ pub async fn like_comment(
       context.deref(),
       comment_id,
       Some(local_user_view),
-      recipient_ids,
       local_instance_id,
     )
     .await?,

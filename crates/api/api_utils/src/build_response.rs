@@ -1,7 +1,7 @@
 use crate::{context::LemmyContext, utils::is_mod_or_admin};
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
@@ -27,7 +27,6 @@ pub async fn build_comment_response(
   context: &LemmyContext,
   comment_id: CommentId,
   local_user_view: Option<LocalUserView>,
-  recipient_ids: Vec<LocalUserId>,
   local_instance_id: InstanceId,
 ) -> LemmyResult<CommentResponse> {
   let local_user = local_user_view.map(|l| l.local_user);
@@ -38,10 +37,7 @@ pub async fn build_comment_response(
     local_instance_id,
   )
   .await?;
-  Ok(CommentResponse {
-    comment_view,
-    recipient_ids,
-  })
+  Ok(CommentResponse { comment_view })
 }
 
 pub async fn build_community_response(
@@ -98,11 +94,11 @@ pub async fn send_local_notifs(
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
-) -> LemmyResult<Vec<LocalUserId>> {
+) -> LemmyResult<()> {
   let parent_creator =
     notify_parent_creator(person, post, comment_opt, community, do_send_email, context).await?;
 
-  let recipient_ids = send_local_mentions(
+  send_local_mentions(
     post,
     comment_opt,
     person,
@@ -113,7 +109,7 @@ pub async fn send_local_notifs(
   )
   .await?;
 
-  Ok(recipient_ids)
+  Ok(())
 }
 
 async fn notify_parent_creator(
@@ -194,7 +190,7 @@ async fn send_local_mentions(
   community: &Community,
   do_send_email: bool,
   context: &LemmyContext,
-) -> LemmyResult<Vec<LocalUserId>> {
+) -> LemmyResult<()> {
   let content = if let Some(comment) = comment_opt {
     &comment.content
   } else {
@@ -203,7 +199,6 @@ async fn send_local_mentions(
   let mentions = scrape_text_for_mentions(content)
     .into_iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name));
-  let mut recipient_ids = Vec::new();
   for mention in mentions {
     // Ignore error if user is remote
     let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
@@ -229,8 +224,6 @@ async fn send_local_mentions(
       continue;
     };
 
-    recipient_ids.push(user_view.local_user.id);
-
     let (link, comment_content_or_post_body) =
       insert_post_or_comment_mention(&user_view, post, comment_opt, context).await?;
 
@@ -246,7 +239,7 @@ async fn send_local_mentions(
       .await;
     }
   }
-  Ok(recipient_ids)
+  Ok(())
 }
 
 /// Make the correct reply form depending on whether its a post or comment mention
