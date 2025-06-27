@@ -14,8 +14,8 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_utils::{
-  build_response::NotifyData,
   context::LemmyContext,
+  notify::NotifyData,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
 };
 use lemmy_apub_objects::{

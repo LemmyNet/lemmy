@@ -3,8 +3,9 @@ use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::{build_post_response, NotifyData},
+  build_response::build_post_response,
   context::LemmyContext,
+  notify::NotifyData,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
