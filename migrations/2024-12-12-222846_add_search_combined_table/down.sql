@@ -3,3 +3,6 @@ ALTER TABLE person_aggregates
 
 DROP TABLE search_combined;
 
+DELETE FROM history_status
+WHERE dest = 'search_combined';
+

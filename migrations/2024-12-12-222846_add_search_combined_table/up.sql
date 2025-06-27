@@ -29,46 +29,74 @@ WHERE
     pa.person_id = p.id;
 
 -- Updating the history
-INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
+INSERT INTO search_combined (published, score, post_id)
 SELECT
     published,
     score,
-    post_id,
-    NULL::int,
-    NULL::int,
-    NULL::int
+    post_id
 FROM
     post_aggregates
-UNION ALL
+WHERE
+    published > now() - interval '1 month'
+ON CONFLICT (post_id)
+    DO UPDATE SET
+        published = excluded.published,
+        score = excluded.score;
+
+-- Don't bother with IDs since these are missing from the aggregates tables
+INSERT INTO history_status (source, dest)
+    VALUES ('post_aggregates', 'search_combined');
+
+INSERT INTO search_combined (published, score, comment_id)
 SELECT
     published,
     score,
-    NULL::int,
-    comment_id,
-    NULL::int,
-    NULL::int
+    comment_id
 FROM
     comment_aggregates
-UNION ALL
+WHERE
+    published > now() - interval '1 month'
+ON CONFLICT (comment_id)
+    DO UPDATE SET
+        published = excluded.published,
+        score = excluded.score;
+
+INSERT INTO history_status (source, dest)
+    VALUES ('comment_aggregates', 'search_combined');
+
+INSERT INTO search_combined (published, score, community_id)
 SELECT
     published,
     users_active_month,
-    NULL::int,
-    NULL::int,
-    community_id,
-    NULL::int
+    community_id
 FROM
     community_aggregates
-UNION ALL
+WHERE
+    published > now() - interval '1 month'
+ON CONFLICT (community_id)
+    DO UPDATE SET
+        published = excluded.published,
+        score = excluded.score;
+
+INSERT INTO history_status (source, dest)
+    VALUES ('community_aggregates', 'search_combined');
+
+INSERT INTO search_combined (published, score, person_id)
 SELECT
     published,
     post_score,
-    NULL::int,
-    NULL::int,
-    NULL::int,
     person_id
 FROM
-    person_aggregates;
+    person_aggregates
+WHERE
+    published > now() - interval '1 month'
+ON CONFLICT (person_id)
+    DO UPDATE SET
+        published = excluded.published,
+        score = excluded.score;
+
+INSERT INTO history_status (source, dest)
+    VALUES ('person_aggregates', 'search_combined');
 
 CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
 

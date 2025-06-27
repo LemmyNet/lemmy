@@ -24,7 +24,6 @@ ON CONFLICT (post_id)
         published = excluded.published;
 
 -- Update history status
--- Leave the last_scanned_ids blank, since these need to run after
 INSERT INTO history_status (source, dest, last_scanned_id)
 SELECT
     'post',
