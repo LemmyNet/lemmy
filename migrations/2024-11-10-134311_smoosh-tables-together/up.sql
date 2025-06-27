@@ -4,7 +4,6 @@
 --
 -- Fetching the full history takes too long to complete for production instances.
 -- Due to this, for some large tables (post_like, post_read, comment_like, etc), only fill the last month of data.
--- Keep the old tables around, but rename them to `_v019` to keep track.
 -- A code migration will handle the rest of the history in the background.
 --
 -- Create a table to store background history filling status
@@ -44,12 +43,6 @@ ON CONFLICT (person_id,
 DROP TABLE comment_saved;
 
 -- Insert only last month from comment_like
-ALTER TABLE comment_like RENAME TO comment_like_v019;
-
-ALTER INDEX comment_like_pkey RENAME TO comment_like_pkey_v019;
-
-ALTER INDEX idx_comment_like_comment RENAME TO idx_comment_like_comment_v019;
-
 INSERT INTO comment_actions (person_id, comment_id, like_score, liked)
 SELECT
     person_id,
@@ -57,7 +50,7 @@ SELECT
     score,
     published
 FROM
-    comment_like_v019
+    comment_like
 WHERE
     published > now() - interval '1 month'
 ON CONFLICT (person_id,
@@ -68,10 +61,10 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('comment_like_v019', 'comment_actions', now() - interval '1 month');
+    VALUES ('comment_like', 'comment_actions', now() - interval '1 month');
 
 -- Delete that data
-DELETE FROM comment_like_v019
+DELETE FROM comment_like
 WHERE published > now() - interval '1 month';
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
@@ -110,9 +103,6 @@ CREATE TABLE post_actions (
 );
 
 -- post_like, post_read, and person_post_aggregates need history tables
-ALTER TABLE post_read RENAME TO post_read_v019;
-
-ALTER INDEX post_read_pkey RENAME TO post_read_pkey_v019;
 
 INSERT INTO post_actions (person_id, post_id, read)
 SELECT
@@ -120,7 +110,7 @@ SELECT
     post_id,
     published
 FROM
-    post_read_v019
+    post_read
 WHERE
     published > now() - interval '1 month'
 ON CONFLICT (person_id,
@@ -130,23 +120,12 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_read_v019', 'post_actions', now() - interval '1 month');
+    VALUES ('post_read', 'post_actions', now() - interval '1 month');
 
 -- Delete that data
-DELETE FROM post_read_v019
+DELETE FROM post_read
 WHERE published > now() - interval '1 month';
 
-ALTER TABLE person_post_aggregates RENAME TO person_post_aggregates_v019;
-
-ALTER INDEX person_post_aggregates_pkey RENAME TO person_post_aggregates_pkey_v019;
-
-ALTER INDEX idx_person_post_aggregates_person RENAME TO idx_person_post_aggregates_person_v019;
-
-ALTER INDEX idx_person_post_aggregates_post RENAME TO idx_person_post_aggregates_post_v019;
-
-ALTER TABLE person_post_aggregates_v019 RENAME CONSTRAINT person_post_aggregates_person_id_fkey TO person_post_aggregates_person_id_fkey_v019;
-
-ALTER TABLE person_post_aggregates_v019 RENAME CONSTRAINT person_post_aggregates_post_id_fkey TO person_post_aggregates_post_id_fkey_v019;
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -155,7 +134,7 @@ SELECT
     published,
     read_comments
 FROM
-    person_post_aggregates_v019
+    person_post_aggregates
 WHERE
     published > now() - interval '1 month'
 ON CONFLICT (person_id,
@@ -166,21 +145,13 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('person_post_aggregates_v019', 'post_actions', now() - interval '1 month');
+    VALUES ('person_post_aggregates', 'post_actions', now() - interval '1 month');
 
 -- Delete that data
-DELETE FROM person_post_aggregates_v019
+DELETE FROM person_post_aggregates
 WHERE published > now() - interval '1 month';
 
-ALTER TABLE post_like RENAME TO post_like_v019;
 
-ALTER INDEX idx_post_like_post RENAME TO idx_post_like_post_v019;
-
-ALTER INDEX post_like_pkey RENAME TO post_like_pkey_v019;
-
-ALTER TABLE post_like_v019 RENAME CONSTRAINT post_like_person_id_fkey TO post_like_person_id_fkey_v019;
-
-ALTER TABLE post_like_v019 RENAME CONSTRAINT post_like_post_id_fkey TO post_like_post_id_fkey_v019;
 
 INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT
@@ -189,7 +160,7 @@ SELECT
     published,
     score
 FROM
-    post_like_v019
+    post_like
 WHERE
     published > now() - interval '1 month'
 ON CONFLICT (person_id,
@@ -200,10 +171,10 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_like_v019', 'post_actions', now() - interval '1 month');
+    VALUES ('post_like', 'post_actions', now() - interval '1 month');
 
 -- Delete that data
-DELETE FROM post_like_v019
+DELETE FROM post_like
 WHERE published > now() - interval '1 month';
 
 -- insert saved, hidden, read with full history

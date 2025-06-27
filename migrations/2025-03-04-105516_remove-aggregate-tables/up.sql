@@ -9,7 +9,6 @@ ALTER TABLE comment
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
--- Can't rename this table to v019 cause it breaks triggers
 UPDATE
     comment
 SET
