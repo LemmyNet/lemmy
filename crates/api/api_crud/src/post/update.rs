@@ -3,8 +3,9 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
-  build_response::{build_post_response, send_local_notifs},
+  build_response::build_post_response,
   context::LemmyContext,
+  notify::NotifyData,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
@@ -161,14 +162,14 @@ pub async fn update_post(
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 
-  send_local_notifs(
+  NotifyData::new(
     &updated_post,
     None,
     &local_user_view.person,
     &orig_post.community,
     false,
-    &context,
   )
+  .send(&context)
   .await?;
 
   // send out federation/webmention if necessary

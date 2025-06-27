@@ -120,8 +120,7 @@ pub enum ModlogActionType {
 pub enum InboxDataType {
   All,
   CommentReply,
-  CommentMention,
-  PostMention,
+  Mention,
   PrivateMessage,
 }
 

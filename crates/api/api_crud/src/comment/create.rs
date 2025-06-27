@@ -2,8 +2,9 @@ use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::{build_comment_response, send_local_notifs},
+  build_response::build_comment_response,
   context::LemmyContext,
+  notify::NotifyData,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -20,8 +21,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-    comment_reply::{CommentReply, CommentReplyUpdateForm},
-    person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
+    notification::Notification,
   },
   traits::{Crud, Likeable},
 };
@@ -112,15 +112,14 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
-  let do_send_email = !local_site.disable_email_notifications;
-  send_local_notifs(
+  NotifyData::new(
     &post,
     Some(&inserted_comment),
     &local_user_view.person,
     &post_view.community,
-    do_send_email,
-    &context,
+    !local_site.disable_email_notifications,
   )
+  .send(&context)
   .await?;
 
   // You like your own comment by default
@@ -148,30 +147,8 @@ pub async fn create_comment(
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
     let person_id = local_user_view.person.id;
-    let parent_id = parent.id;
-    let comment_reply =
-      CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(Some(reply)) = comment_reply {
-      CommentReply::update(
-        &mut context.pool(),
-        reply.id,
-        &CommentReplyUpdateForm { read: Some(true) },
-      )
+    Notification::mark_read_by_comment_and_person(&mut context.pool(), parent.id, person_id)
       .await?;
-    }
-
-    // If the parent has PersonCommentMentions mark them as read too
-    let person_comment_mention =
-      PersonCommentMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id)
-        .await;
-    if let Ok(Some(mention)) = person_comment_mention {
-      PersonCommentMention::update(
-        &mut context.pool(),
-        mention.id,
-        &PersonCommentMentionUpdateForm { read: Some(true) },
-      )
-      .await?;
-    }
   }
 
   Ok(Json(
