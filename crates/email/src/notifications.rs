@@ -109,12 +109,7 @@ async fn send_email_to_user(
   body: &str,
   settings: &Settings,
 ) {
-  let banned = local_user_view
-    .instance_actions
-    .as_ref()
-    .and_then(|i| i.received_ban_at)
-    .is_some();
-  if banned || !local_user_view.local_user.send_notifications_to_email {
+  if local_user_view.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 

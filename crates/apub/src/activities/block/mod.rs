@@ -210,14 +210,8 @@ async fn update_removed_for_instance(
   removed: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  Post::update_removed_for_creator(
-    pool,
-    blocked_person.id,
-    None,
-    Some(site.instance_id),
-    removed,
-  )
-  .await?;
+  Post::update_removed_for_creator_and_instance(pool, blocked_person.id, site.instance_id, removed)
+    .await?;
   Comment::update_removed_for_creator_and_instance(
     pool,
     blocked_person.id,

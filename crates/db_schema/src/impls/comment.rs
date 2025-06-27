@@ -14,6 +14,7 @@ use crate::{
     functions::{coalesce, hot_rank},
     get_conn,
     uplete,
+    validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -31,7 +32,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
@@ -70,31 +71,61 @@ impl Comment {
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 
+  /// Diesel can't update from join unfortunately, so you'll need to loop over these
+  async fn creator_comment_ids_in_community(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    community_id: CommunityId,
+  ) -> LemmyResult<Vec<CommentId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    comment::table
+      .inner_join(post::table)
+      .filter(comment::creator_id.eq(creator_id))
+      .filter(post::community_id.eq(community_id))
+      .select(comment::id)
+      .load::<CommentId>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// Diesel can't update from join unfortunately, so you'll need to loop over these
+  async fn creator_comment_ids_in_instance(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    instance_id: InstanceId,
+  ) -> LemmyResult<Vec<CommentId>> {
+    let conn = &mut get_conn(pool).await?;
+    let community_join = community::table.on(post::community_id.eq(community::id));
+
+    comment::table
+      .inner_join(post::table)
+      .inner_join(community_join)
+      .filter(comment::creator_id.eq(creator_id))
+      .filter(community::instance_id.eq(instance_id))
+      .select(comment::id)
+      .load::<CommentId>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
   pub async fn update_removed_for_creator_and_community(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
     removed: bool,
   ) -> LemmyResult<Vec<CommentId>> {
+    let comment_ids =
+      Self::creator_comment_ids_in_community(pool, creator_id, community_id).await?;
+
     let conn = &mut get_conn(pool).await?;
-
-    // Diesel can't update from join unfortunately, so you'll need to loop over these
-    let comment_ids = comment::table
-      .inner_join(post::table)
-      .filter(comment::creator_id.eq(creator_id))
-      .filter(post::community_id.eq(community_id))
-      .select(comment::id)
-      .load::<CommentId>(conn)
-      .await?;
-
-    let form = &CommentUpdateForm {
-      removed: Some(removed),
-      ..Default::default()
-    };
 
     update(comment::table)
       .filter(comment::id.eq_any(comment_ids.clone()))
-      .set(form)
+      .set((
+        comment::removed.eq(removed),
+        comment::updated_at.eq(Utc::now()),
+      ))
       .execute(conn)
       .await?;
 
@@ -107,26 +138,15 @@ impl Comment {
     instance_id: InstanceId,
     removed: bool,
   ) -> LemmyResult<Vec<CommentId>> {
+    let comment_ids = Self::creator_comment_ids_in_instance(pool, creator_id, instance_id).await?;
     let conn = &mut get_conn(pool).await?;
-    // Diesel can't update from join unfortunately, so you'll need to loop over these
-    let community_join = community::table.on(post::community_id.eq(community::id));
-    let comment_ids = comment::table
-      .inner_join(post::table)
-      .inner_join(community_join)
-      .filter(comment::creator_id.eq(creator_id))
-      .filter(community::instance_id.eq(instance_id))
-      .select(comment::id)
-      .load::<CommentId>(conn)
-      .await?;
-
-    let form = &CommentUpdateForm {
-      removed: Some(removed),
-      ..Default::default()
-    };
 
     update(comment::table)
       .filter(comment::id.eq_any(comment_ids.clone()))
-      .set(form)
+      .set((
+        comment::removed.eq(removed),
+        comment::updated_at.eq(Utc::now()),
+      ))
       .execute(conn)
       .await?;
     Ok(comment_ids)
@@ -250,6 +270,9 @@ impl Likeable for CommentActions {
 
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
+
+    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+
     insert_into(comment_actions::table)
       .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
@@ -272,6 +295,40 @@ impl Likeable for CommentActions {
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
+  }
+
+  async fn remove_all_likes(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+  ) -> LemmyResult<uplete::Count> {
+    let conn = &mut get_conn(pool).await?;
+
+    uplete::new(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
+      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::liked_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+  }
+
+  async fn remove_likes_in_community(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    community_id: CommunityId,
+  ) -> LemmyResult<uplete::Count> {
+    let comment_ids =
+      Comment::creator_comment_ids_in_community(pool, creator_id, community_id).await?;
+
+    let conn = &mut get_conn(pool).await?;
+
+    uplete::new(
+      comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())),
+    )
+    .set_null(comment_actions::like_score)
+    .set_null(comment_actions::liked_at)
+    .get_result(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 }
 

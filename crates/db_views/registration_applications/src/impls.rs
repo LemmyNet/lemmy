@@ -242,7 +242,13 @@ mod tests {
         last_donation_notification_at: sara_local_user.last_donation_notification_at,
         show_upvotes: sara_local_user.show_upvotes,
         show_downvotes: sara_local_user.show_downvotes,
-        ..Default::default()
+        admin: sara_local_user.admin,
+        auto_mark_fetched_posts_as_read: sara_local_user.auto_mark_fetched_posts_as_read,
+        hide_media: sara_local_user.hide_media,
+        default_post_time_range_seconds: sara_local_user.default_post_time_range_seconds,
+        show_score: sara_local_user.show_score,
+        show_upvote_percentage: sara_local_user.show_upvote_percentage,
+        show_person_votes: sara_local_user.show_person_votes,
       },
       creator: Person {
         id: sara_person.id,

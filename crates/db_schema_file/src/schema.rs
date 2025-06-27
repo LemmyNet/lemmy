@@ -459,22 +459,22 @@ diesel::table! {
 diesel::table! {
     local_site_rate_limit (local_site_id) {
         local_site_id -> Int4,
-        message -> Int4,
-        message_per_second -> Int4,
-        post -> Int4,
-        post_per_second -> Int4,
-        register -> Int4,
-        register_per_second -> Int4,
-        image -> Int4,
-        image_per_second -> Int4,
-        comment -> Int4,
-        comment_per_second -> Int4,
-        search -> Int4,
-        search_per_second -> Int4,
+        message_max_requests -> Int4,
+        message_interval_seconds -> Int4,
+        post_max_requests -> Int4,
+        post_interval_seconds -> Int4,
+        register_max_requests -> Int4,
+        register_interval_seconds -> Int4,
+        image_max_requests -> Int4,
+        image_interval_seconds -> Int4,
+        comment_max_requests -> Int4,
+        comment_interval_seconds -> Int4,
+        search_max_requests -> Int4,
+        search_interval_seconds -> Int4,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        import_user_settings -> Int4,
-        import_user_settings_per_second -> Int4,
+        import_user_settings_max_requests -> Int4,
+        import_user_settings_interval_seconds -> Int4,
     }
 }
 
@@ -532,6 +532,7 @@ diesel::table! {
         show_upvotes -> Bool,
         show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
+        show_person_votes -> Bool,
     }
 }
 
@@ -744,7 +745,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
 
-    multi_community_follow (multi_community_id, person_id) {
+    multi_community_follow (person_id, multi_community_id) {
         multi_community_id -> Int4,
         person_id -> Int4,
         follow_state -> CommunityFollowerState,
@@ -831,13 +832,9 @@ diesel::table! {
         blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
         note -> Nullable<Text>,
-    }
-}
-
-diesel::table! {
-    person_ban (person_id) {
-        person_id -> Int4,
-        published_at -> Timestamptz,
+        voted_at -> Nullable<Timestamptz>,
+        upvotes -> Nullable<Int4>,
+        downvotes -> Nullable<Int4>,
     }
 }
 
@@ -1059,7 +1056,7 @@ diesel::table! {
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
-        multi_community_id -> Nullable<Int4>
+        multi_community_id -> Nullable<Int4>,
     }
 }
 
@@ -1228,7 +1225,6 @@ diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
-diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_comment_mention -> comment (comment_id));
 diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
@@ -1258,6 +1254,7 @@ diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(search_combined -> comment (comment_id));
 diesel::joinable!(search_combined -> community (community_id));
+diesel::joinable!(search_combined -> multi_community (multi_community_id));
 diesel::joinable!(search_combined -> person (person_id));
 diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
@@ -1320,7 +1317,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   password_reset_request,
   person,
   person_actions,
-  person_ban,
   person_comment_mention,
   person_content_combined,
   person_liked_combined,

@@ -189,6 +189,36 @@ test("Unlike a post", async () => {
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
+test("Make sure like is within range", async () => {
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+  let postRes = await createPost(alpha, betaCommunity.community.id);
+
+  // Try a like with score 2
+  await expect(
+    likePost(alpha, 2, postRes.post_view.post),
+  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
+
+  // Try a like with score -2
+  await expect(
+    likePost(alpha, -2, postRes.post_view.post),
+  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
+
+  // Make sure that post stayed at 1
+  const betaPost = await waitForPost(
+    beta,
+    postRes.post_view.post,
+    post => post?.post.score === 1,
+  );
+
+  expect(betaPost).toBeDefined();
+  expect(betaPost?.community.local).toBe(true);
+  expect(betaPost?.creator.local).toBe(false);
+  expect(betaPost?.post.score).toBe(1);
+  await assertPostFederation(betaPost, postRes.post_view);
+});
+
 test("Update a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -502,11 +532,9 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.home_instance_actions?.received_ban_at != null,
+    res => res?.creator_banned!,
   );
-  expect(
-    alphaUserOnBeta1?.home_instance_actions?.received_ban_at,
-  ).toBeDefined();
+  expect(alphaUserOnBeta1?.creator_banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(
@@ -562,9 +590,7 @@ test("Enforce site ban federation for federated user", async () => {
   await followBeta(alphaUserHttp);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
-  expect(
-    alphaUserOnBeta2?.local_instance_actions?.received_ban_at,
-  ).toBeUndefined();
+  expect(alphaUserOnBeta2?.creator_banned).toBe(false);
 
   if (!alphaUserOnBeta2?.person) {
     throw "Missing alpha person";
@@ -597,7 +623,7 @@ test("Enforce site ban federation for federated user", async () => {
 
   // User should not be shown to be banned from alpha
   let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view;
-  expect(alphaPerson2.instance_actions?.received_ban_at).toBeUndefined();
+  expect(alphaPerson2.banned).toBe(false);
 
   // but the ban should be indicated by beta community on alpha
   let communityWithBan = await getCommunity(
@@ -649,9 +675,7 @@ test("Enforce community ban for federated user", async () => {
     s => s.post_view.post.removed,
   );
   expect(removePostRes.post_view.post.removed).toBe(true);
-  expect(
-    removePostRes.post_view.creator_community_actions?.received_ban_at,
-  ).toBeDefined();
+  expect(removePostRes.post_view.creator_banned_from_community).toBe(true);
   expect(
     removePostRes.community_view.community_actions?.received_ban_at,
   ).toBeDefined();
@@ -688,7 +712,7 @@ test("Enforce community ban for federated user", async () => {
   // Make sure that post makes it to beta community
   let postRes4 = await waitForPost(beta, postRes3.post_view.post);
   expect(postRes4.post).toBeDefined();
-  expect(postRes4.creator_community_actions?.received_ban_at).toBeUndefined();
+  expect(postRes4.creator_banned).toBe(false);
 
   await unfollowRemotes(alpha);
 });

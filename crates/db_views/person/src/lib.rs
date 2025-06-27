@@ -1,23 +1,9 @@
-use lemmy_db_schema::source::{
-  instance::InstanceActions,
-  person::{Person, PersonActions},
-};
+use lemmy_db_schema::source::person::{Person, PersonActions};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::{
-      functions::coalesce,
-      queries::{
-        creator_banned,
-        creator_home_instance_actions_select,
-        creator_local_instance_actions_select,
-      },
-    },
-    CreatorHomeInstanceActionsAllColumnsTuple,
-    CreatorLocalInstanceActionsAllColumnsTuple,
-  },
+  lemmy_db_schema::utils::{functions::coalesce, queries::creator_banned},
   lemmy_db_schema_file::schema::local_user,
 };
 
@@ -43,14 +29,6 @@ pub struct PersonView {
   pub is_admin: bool,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
-      select_expression = creator_local_instance_actions_select()))]
-  pub local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned()

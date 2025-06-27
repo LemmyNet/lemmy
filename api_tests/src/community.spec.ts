@@ -304,7 +304,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();
-  expect(gammaPost.creator_community_actions?.received_ban_at).toBeUndefined();
+  expect(gammaPost.creator_banned_from_community).toBe(false);
 
   // admin of beta decides to ban gamma from community
   let betaCommunity = await resolveCommunity(
@@ -334,13 +334,11 @@ test("Admin actions in remote community are not federated to origin", async () =
 
   // ban doesn't federate to community's origin instance alpha
   let alphaPost = await resolvePost(alpha, gammaPost.post);
-  expect(alphaPost?.creator_community_actions?.received_ban_at).toBeUndefined();
+  expect(alphaPost?.creator_banned_from_community).toBe(false);
 
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);
-  expect(
-    gammaPost2.post_view.creator_community_actions?.received_ban_at,
-  ).toBeUndefined();
+  expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
 });
 
 test("moderator view", async () => {

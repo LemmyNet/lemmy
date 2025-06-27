@@ -5,8 +5,8 @@
 --
 -- See https://github.com/LemmyNet/lemmy/issues/5564
 ALTER TABLE local_image
-    ADD COLUMN person_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN thumbnail_for_post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN person_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    ADD COLUMN thumbnail_for_post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE;
 
 -- Update historical person_id columns
 -- Note: The local_user_id rows are null for thumbnails, so there's nothing you can do there.
@@ -24,4 +24,8 @@ ALTER TABLE local_image
     DROP COLUMN local_user_id;
 
 CREATE INDEX idx_image_upload_person_id ON local_image (person_id);
+
+ALTER TABLE local_image
+    ALTER CONSTRAINT local_image_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT local_image_thumbnail_for_post_id_fkey NOT DEFERRABLE;
 
