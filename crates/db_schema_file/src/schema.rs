@@ -34,6 +34,10 @@ pub mod sql_types {
   pub struct PostListingModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+  pub struct PostNotificationsModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
   pub struct PostSortTypeEnum;
 
@@ -744,7 +748,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
 
-    multi_community_follow (multi_community_id, person_id) {
+    multi_community_follow (person_id, multi_community_id) {
         multi_community_id -> Int4,
         person_id -> Int4,
         follow_state -> CommunityFollowerState,
@@ -937,6 +941,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::PostNotificationsModeEnum;
+
     post_actions (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
@@ -947,7 +954,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
-        disable_notifications -> Nullable<Bool>
+        notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }
 
@@ -1060,7 +1067,7 @@ diesel::table! {
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
-        multi_community_id -> Nullable<Int4>
+        multi_community_id -> Nullable<Int4>,
     }
 }
 
@@ -1259,6 +1266,7 @@ diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(search_combined -> comment (comment_id));
 diesel::joinable!(search_combined -> community (community_id));
+diesel::joinable!(search_combined -> multi_community (multi_community_id));
 diesel::joinable!(search_combined -> person (person_id));
 diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));

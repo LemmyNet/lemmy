@@ -15,12 +15,16 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
+use lemmy_db_schema_file::enums::PostNotifications;
 use lemmy_db_views_comment::{api::CommentResponse, CommentView};
 use lemmy_db_views_community::{api::CommunityResponse, CommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{api::PostResponse, PostView};
 use lemmy_email::notifications::{send_mention_email, send_reply_email};
-use lemmy_utils::{error::LemmyResult, utils::mention::scrape_text_for_mentions};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  utils::mention::scrape_text_for_mentions,
+};
 use url::Url;
 
 pub async fn build_comment_response(
@@ -138,7 +142,7 @@ async fn notify_parent_creator(
     return Ok(None);
   }
 
-  let is_blocked = check_person_instance_community_block(
+  let is_blocked = check_notifications_allowed(
     parent_creator_id,
     // Only block from the community's instance_id
     community.instance_id,
@@ -211,7 +215,7 @@ async fn send_local_mentions(
       continue;
     }
 
-    let is_blocked = check_person_instance_community_block(
+    let is_blocked = check_notifications_allowed(
       user_view.person.id,
       // Only block from the community's instance_id
       community.instance_id,
@@ -283,7 +287,7 @@ async fn insert_post_or_comment_mention(
   }
 }
 
-pub async fn check_person_instance_community_block(
+pub async fn check_notifications_allowed(
   potential_blocker_id: PersonId,
   community_instance_id: InstanceId,
   post: &Post,
@@ -293,6 +297,15 @@ pub async fn check_person_instance_community_block(
   PersonActions::read_block(pool, potential_blocker_id, post.creator_id).await?;
   InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
   CommunityActions::read_block(pool, potential_blocker_id, post.community_id).await?;
-  PostActions::check_notifications_disabled(post.id, potential_blocker_id, pool).await?;
+  let post_notifications = PostActions::read(pool, post.id, potential_blocker_id)
+    .await
+    .ok()
+    .and_then(|a| a.notifications)
+    .unwrap_or_default();
+  if post_notifications == PostNotifications::Mute {
+    // The specific error type is irrelevant
+    return Err(LemmyErrorType::NotFound.into());
+  }
+
   Ok(())
 }

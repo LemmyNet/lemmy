@@ -57,7 +57,6 @@ use lemmy_api::{
     verify_email::verify_email,
   },
   post::{
-    disable_notifications::disable_post_notifications,
     feature::feature_post,
     get_link_metadata::get_link_metadata,
     hide::hide_post,
@@ -67,6 +66,7 @@ use lemmy_api::{
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
     save::save_post,
+    update_notifications::update_post_notifications,
   },
   private_message::mark_read::mark_pm_as_read,
   reports::{
@@ -297,7 +297,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/report/resolve", put().to(resolve_post_report))
           .route(
             "/disable_notifications",
-            post().to(disable_post_notifications),
+            post().to(update_post_notifications),
           ),
       )
       // Comment

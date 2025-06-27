@@ -1,5 +1,4 @@
 use crate::{
-  diesel::PgExpressionMethods,
   newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
   source::post::{
     Post,
@@ -27,9 +26,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, exists, insert_into, not, update},
+  dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
-  select,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -39,7 +37,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{community, person, post, post_actions};
+use lemmy_db_schema_file::{
+  enums::PostNotifications,
+  schema::{community, person, post, post_actions},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -481,38 +482,21 @@ impl PostActions {
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
   }
 
-  pub async fn check_notifications_disabled(
+  pub async fn update_notification_state(
     post_id: PostId,
     person_id: PersonId,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-    let find_action = post_actions::table
-      .find((person_id, post_id))
-      .filter(post_actions::disable_notifications.is_distinct_from(false));
-
-    select(not(exists(find_action)))
-      .get_result::<bool>(conn)
-      .await?
-      .then_some(())
-      .ok_or(LemmyErrorType::NotFound.into())
-  }
-
-  pub async fn update_notifications_disabled(
-    post_id: PostId,
-    person_id: PersonId,
-    disabled: bool,
+    new_state: PostNotifications,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PostActions> {
     let conn = &mut get_conn(pool).await?;
     let form = (
       post_actions::person_id.eq(person_id),
       post_actions::post_id.eq(post_id),
-      post_actions::disable_notifications.eq(disabled),
+      post_actions::notifications.eq(new_state),
     );
 
     insert_into(post_actions::table)
-      .values(form)
+      .values(form.clone())
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
