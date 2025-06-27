@@ -63,8 +63,8 @@ pub fn user_backup_list_to_user_settings_backup(
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
     blocked_instances: lists.blocked_instances,
-    blocked_users: lists.blocked_users.into_iter().map(Into::into).collect(),
-    saved_posts: lists.saved_posts.into_iter().map(Into::into).collect(),
-    saved_comments: lists.saved_comments.into_iter().map(Into::into).collect(),
+    blocked_users: vec_into(lists.blocked_users),
+    saved_posts: vec_into(lists.saved_posts),
+    saved_comments: vec_into(lists.saved_comments),
   }
 }
