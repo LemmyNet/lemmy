@@ -46,6 +46,10 @@ DROP TABLE comment_saved;
 -- Insert only last month from comment_like
 ALTER TABLE comment_like RENAME TO comment_like_v019;
 
+ALTER INDEX comment_like_pkey RENAME TO comment_like_pkey_v019;
+
+ALTER INDEX idx_comment_like_comment RENAME TO idx_comment_like_comment_v019;
+
 INSERT INTO comment_actions (person_id, comment_id, like_score, liked)
 SELECT
     person_id,
@@ -108,6 +112,8 @@ CREATE TABLE post_actions (
 -- post_like, post_read, and person_post_aggregates need history tables
 ALTER TABLE post_read RENAME TO post_read_v019;
 
+ALTER INDEX post_read_pkey RENAME TO post_read_pkey_v019;
+
 INSERT INTO post_actions (person_id, post_id, read)
 SELECT
     person_id,
@@ -131,6 +137,16 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('post_read_v019', 'post_actions', now() - interval '1 month');
 
 ALTER TABLE person_post_aggregates RENAME TO person_post_aggregates_v019;
+
+ALTER INDEX person_post_aggregates_pkey RENAME TO person_post_aggregates_pkey_v019;
+
+ALTER INDEX idx_person_post_aggregates_person RENAME TO idx_person_post_aggregates_person_v019;
+
+ALTER INDEX idx_person_post_aggregates_post RENAME TO idx_person_post_aggregates_post_v019;
+
+ALTER TABLE person_post_aggregates_v019 RENAME CONSTRAINT person_post_aggregates_person_id_fkey TO person_post_aggregates_person_id_fkey_v019;
+
+ALTER TABLE person_post_aggregates_v019 RENAME CONSTRAINT person_post_aggregates_post_id_fkey TO person_post_aggregates_post_id_fkey_v019;
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -157,6 +173,14 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('person_post_aggregates_v019', 'post_actions', now() - interval '1 month');
 
 ALTER TABLE post_like RENAME TO post_like_v019;
+
+ALTER INDEX idx_post_like_post RENAME TO idx_post_like_post_v019;
+
+ALTER INDEX post_like_pkey RENAME TO post_like_pkey_v019;
+
+ALTER TABLE post_like_v019 RENAME CONSTRAINT post_like_person_id_fkey TO post_like_person_id_fkey_v019;
+
+ALTER TABLE post_like_v019 RENAME CONSTRAINT post_like_post_id_fkey TO post_like_post_id_fkey_v019;
 
 INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT

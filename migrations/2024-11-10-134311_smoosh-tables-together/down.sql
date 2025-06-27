@@ -211,7 +211,8 @@ ALTER TABLE comment_like
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN score SET NOT NULL,
-    DROP COLUMN saved;
+    DROP COLUMN saved,
+    DROP COLUMN id;
 
 ALTER TABLE community_follower
     DROP CONSTRAINT community_actions_check_followed,
@@ -222,18 +223,21 @@ ALTER TABLE community_follower
     DROP COLUMN blocked,
     DROP COLUMN became_moderator,
     DROP COLUMN received_ban,
-    DROP COLUMN ban_expires;
+    DROP COLUMN ban_expires,
+    DROP COLUMN id;
 
 ALTER TABLE instance_block
     ALTER COLUMN published SET NOT NULL,
-    ALTER COLUMN published SET DEFAULT now();
+    ALTER COLUMN published SET DEFAULT now(),
+    DROP COLUMN id;
 
 ALTER TABLE person_follower
     DROP CONSTRAINT person_actions_check_followed,
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN pending SET NOT NULL,
-    DROP COLUMN blocked;
+    DROP COLUMN blocked,
+    DROP COLUMN id;
 
 ALTER TABLE post_read
     DROP CONSTRAINT post_actions_check_read_comments,
@@ -245,7 +249,8 @@ ALTER TABLE post_read
     DROP COLUMN saved,
     DROP COLUMN liked,
     DROP COLUMN like_score,
-    DROP COLUMN hidden;
+    DROP COLUMN hidden,
+    DROP COLUMN id;
 
 -- Rename associated stuff
 ALTER INDEX comment_actions_pkey RENAME TO comment_like_pkey;
@@ -313,10 +318,12 @@ CREATE INDEX idx_post_like_post ON post_like (post_id);
 DROP INDEX idx_person_actions_person, idx_person_actions_target, idx_post_actions_person, idx_post_actions_post;
 
 -- Drop `NOT NULL` indexes of columns that still exist
-DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null;
+DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null, idx_comment_actions_person, idx_community_actions_person, idx_instance_actions_instance, idx_instance_actions_person;
 
 -- Drop statistics of columns that still exist
 DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
+
+DROP TABLE history_status;
 
 -- Drop the old v019 tables if they exist
 DROP TABLE IF EXISTS comment_like_v019, post_read_v019, person_post_aggregates_v019, post_like_v019;
