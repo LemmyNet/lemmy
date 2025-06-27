@@ -66,13 +66,13 @@ ON CONFLICT (person_id,
         liked = excluded.liked,
         like_score = excluded.like_score;
 
--- Delete that data
-DELETE FROM comment_like_v019
-WHERE published > now() - interval '1 month';
-
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('comment_like_v019', 'comment_actions', now() - interval '1 month');
+
+-- Delete that data
+DELETE FROM comment_like_v019
+WHERE published > now() - interval '1 month';
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
 -- a group (e.g. `liked IS NOT NULL` and `like_score IS NOT NULL` both work)
@@ -128,13 +128,13 @@ ON CONFLICT (person_id,
     DO UPDATE SET
         read = excluded.read;
 
--- Delete that data
-DELETE FROM post_read_v019
-WHERE published > now() - interval '1 month';
-
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('post_read_v019', 'post_actions', now() - interval '1 month');
+
+-- Delete that data
+DELETE FROM post_read_v019
+WHERE published > now() - interval '1 month';
 
 ALTER TABLE person_post_aggregates RENAME TO person_post_aggregates_v019;
 
@@ -164,13 +164,13 @@ ON CONFLICT (person_id,
         read_comments = excluded.read_comments,
         read_comments_amount = excluded.read_comments_amount;
 
--- Delete that data
-DELETE FROM person_post_aggregates_v019
-WHERE published > now() - interval '1 month';
-
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('person_post_aggregates_v019', 'post_actions', now() - interval '1 month');
+
+-- Delete that data
+DELETE FROM person_post_aggregates_v019
+WHERE published > now() - interval '1 month';
 
 ALTER TABLE post_like RENAME TO post_like_v019;
 
@@ -198,13 +198,13 @@ ON CONFLICT (person_id,
         liked = excluded.liked,
         like_score = excluded.like_score;
 
--- Delete that data
-DELETE FROM post_like_v019
-WHERE published > now() - interval '1 month';
-
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
     VALUES ('post_like_v019', 'post_actions', now() - interval '1 month');
+
+-- Delete that data
+DELETE FROM post_like_v019
+WHERE published > now() - interval '1 month';
 
 -- insert saved, hidden, read with full history
 INSERT INTO post_actions (person_id, post_id, saved)

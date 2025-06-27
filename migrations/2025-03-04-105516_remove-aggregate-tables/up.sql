@@ -9,6 +9,7 @@ ALTER TABLE comment
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
+-- Can't rename this table to v019 cause it breaks triggers
 UPDATE
     comment
 SET
@@ -23,7 +24,26 @@ SET
 FROM
     comment_aggregates AS ca
 WHERE
-    comment.id = ca.comment_id;
+    comment.id = ca.comment_id
+    AND ca.published > now() - interval '1 month';
+
+-- Update history status
+INSERT INTO history_status (source, dest, last_scanned_id)
+SELECT
+    'comment_aggregates',
+    'comment',
+    min(comment_id)
+FROM
+    comment_aggregates
+WHERE
+    published > now() - interval '1 month';
+
+-- Delete that data
+DELETE FROM comment_aggregates
+WHERE published > now() - interval '1 month';
+
+ALTER TABLE comment_aggregates
+    ALTER CONSTRAINT comment_aggregates_comment_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DESC);
 
@@ -70,11 +90,33 @@ SET
 FROM
     post_aggregates AS pa
 WHERE
-    post.id = pa.post_id;
+    post.id = pa.post_id
+    AND pa.published > now() - interval '1 month';
+
+-- Update history status
+INSERT INTO history_status (source, dest, last_scanned_id)
+SELECT
+    'post_aggregates',
+    'post',
+    min(post_id)
+FROM
+    post_aggregates
+WHERE
+    published > now() - interval '1 month';
+
+-- Delete that data
+DELETE FROM post_aggregates
+WHERE published > now() - interval '1 month';
 
 ALTER TABLE post
     ALTER COLUMN instance_id SET NOT NULL,
     ALTER CONSTRAINT post_instance_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_aggregates
+    ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_creator_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_post_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
 
@@ -250,5 +292,5 @@ FROM
 WHERE
     local_user.id = v.local_user_id;
 
-DROP TABLE comment_aggregates, post_aggregates, community_aggregates, person_aggregates, site_aggregates, local_user_vote_display_mode;
+DROP TABLE community_aggregates, person_aggregates, site_aggregates, local_user_vote_display_mode;
 
