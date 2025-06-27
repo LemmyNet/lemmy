@@ -368,12 +368,10 @@ mod tests {
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
-      comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::{Instance, InstanceActions, InstanceBlockForm},
+      notification::{Notification, NotificationInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
-      person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
-      person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
       post::{Post, PostInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
@@ -381,6 +379,7 @@ mod tests {
     utils::{build_db_pool_for_tests, DbPool},
     InboxDataType,
   };
+  use lemmy_db_schema_file::enums::NotificationTypes;
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -478,12 +477,12 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Sara replied to timmys comment, but lets create the row now
-    let form = CommentReplyInsertForm {
-      recipient_id: data.timmy.id,
-      comment_id: data.sara_comment.id,
-      read: None,
-    };
-    let reply = CommentReply::create(pool, &form).await?;
+    let form = NotificationInsertForm::new_comment(
+      data.timmy.id,
+      data.sara_comment.id,
+      NotificationTypes::Reply,
+    );
+    let reply = Notification::create(pool, &form).await?;
 
     let timmy_unread_replies =
       InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
@@ -495,9 +494,9 @@ mod tests {
       .await?;
     assert_length!(1, timmy_inbox);
 
-    if let InboxCombinedView::CommentReply(v) = &timmy_inbox[0] {
-      assert_eq!(data.sara_comment.id, v.comment_reply.comment_id);
-      assert_eq!(data.sara_comment.id, v.comment.id);
+    if let InboxCombinedView::Notification(v) = &timmy_inbox[0] {
+      assert_eq!(Some(data.sara_comment.id), v.notification.comment_id);
+      assert_eq!(data.sara_comment.id, v.comment.as_ref().unwrap().id);
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.sara.id, v.creator.id);
       assert_eq!(data.timmy.id, v.recipient.id);
@@ -506,8 +505,7 @@ mod tests {
     }
 
     // Mark it as read
-    let form = CommentReplyUpdateForm { read: Some(true) };
-    CommentReply::update(pool, reply.id, &form).await?;
+    Notification::mark_read_by_id_and_person(pool, reply.id, data.timmy.id).await?;
 
     let timmy_unread_replies =
       InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
@@ -535,20 +533,20 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
-    let timmy_mention_sara_comment_form = PersonCommentMentionInsertForm {
-      recipient_id: data.sara.id,
-      comment_id: data.timmy_comment.id,
-      read: None,
-    };
-    PersonCommentMention::create(pool, &timmy_mention_sara_comment_form).await?;
+    let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
+      data.sara.id,
+      data.timmy_comment.id,
+      NotificationTypes::Mention,
+    );
+    Notification::create(pool, &timmy_mention_sara_comment_form).await?;
 
     // Jessica mentions sara in a post
-    let jessica_mention_sara_post_form = PersonPostMentionInsertForm {
-      recipient_id: data.sara.id,
-      post_id: data.jessica_post.id,
-      read: None,
-    };
-    PersonPostMention::create(pool, &jessica_mention_sara_post_form).await?;
+    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
+      data.sara.id,
+      data.jessica_post.id,
+      NotificationTypes::Mention,
+    );
+    Notification::create(pool, &jessica_mention_sara_post_form).await?;
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =
@@ -561,8 +559,8 @@ mod tests {
       .await?;
     assert_length!(2, sara_inbox);
 
-    if let InboxCombinedView::PostMention(v) = &sara_inbox[0] {
-      assert_eq!(data.jessica_post.id, v.person_post_mention.post_id);
+    if let InboxCombinedView::Notification(v) = &sara_inbox[0] {
+      assert_eq!(Some(data.jessica_post.id), v.notification.post_id);
       assert_eq!(data.jessica_post.id, v.post.id);
       assert_eq!(data.jessica.id, v.creator.id);
       assert_eq!(data.sara.id, v.recipient.id);
@@ -570,9 +568,9 @@ mod tests {
       panic!("wrong type");
     }
 
-    if let InboxCombinedView::CommentMention(v) = &sara_inbox[1] {
-      assert_eq!(data.timmy_comment.id, v.person_comment_mention.comment_id);
-      assert_eq!(data.timmy_comment.id, v.comment.id);
+    if let InboxCombinedView::Notification(v) = &sara_inbox[1] {
+      assert_eq!(Some(data.timmy_comment.id), v.notification.comment_id);
+      assert_eq!(data.timmy_comment.id, v.comment.as_ref().unwrap().id);
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.creator.id);
       assert_eq!(data.sara.id, v.recipient.id);
@@ -597,7 +595,7 @@ mod tests {
     // Make sure the comment mention which timmy made is the hidden one
     assert!(matches!(
       sara_inbox_after_block[0],
-      InboxCombinedView::PostMention(_)
+      InboxCombinedView::Notification(_)
     ));
 
     // Unblock user so we can reuse the same person
@@ -605,7 +603,7 @@ mod tests {
 
     // Test the type filter
     let sara_inbox_post_mentions_only = InboxCombinedQuery {
-      type_: Some(InboxDataType::PostMention),
+      type_: Some(InboxDataType::Mention),
       ..Default::default()
     }
     .list(pool, data.sara.id, data.instance.id)
@@ -614,7 +612,7 @@ mod tests {
 
     assert!(matches!(
       sara_inbox_post_mentions_only[0],
-      InboxCombinedView::PostMention(_)
+      InboxCombinedView::Notification(_)
     ));
 
     // Turn Jessica into a bot account
@@ -638,12 +636,11 @@ mod tests {
     // Make sure the post mention which jessica made is the hidden one
     assert!(matches!(
       sara_inbox_after_hide_bots[0],
-      InboxCombinedView::CommentMention(_)
+      InboxCombinedView::Notification(_)
     ));
 
     // Mark them all as read
-    PersonPostMention::mark_all_as_read(pool, data.sara.id).await?;
-    PersonCommentMention::mark_all_as_read(pool, data.sara.id).await?;
+    Notification::mark_all_as_read(pool, data.sara.id).await?;
 
     // Make sure none come back
     let sara_unread_mentions =

@@ -1,7 +1,7 @@
 CREATE TYPE notification_type_enum AS enum (
-    'mention',
-    'reply',
-    'subscribed'
+    'Mention',
+    'Reply',
+    'Subscribed'
 );
 
 CREATE TABLE notification (
@@ -13,7 +13,7 @@ CREATE TABLE notification (
     read bool NOT NULL DEFAULT FALSE,
     kind notification_type_enum NOT NULL,
     published_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (recipient_id,post_id, comment_id,kind)
+    UNIQUE (recipient_id, post_id, comment_id, kind)
 );
 
 -- TODO: transfer data from existing tables

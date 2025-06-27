@@ -30,16 +30,16 @@ pub mod sql_types {
   pub struct Ltree;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "notification_type_enum"))]
+  pub struct NotificationTypeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_listing_mode_enum"))]
   pub struct PostListingModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
   pub struct PostNotificationsModeEnum;
-
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "notification_type_enum"))]
-  pub struct NotificationTypeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
@@ -749,6 +749,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationTypeEnum;
+
+    notification (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+        read -> Bool,
+        kind -> NotificationTypeEnum,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     oauth_account (oauth_provider_id, local_user_id) {
         local_user_id -> Int4,
         oauth_provider_id -> Int4,
@@ -924,21 +939,6 @@ diesel::table! {
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
         notifications -> Nullable<PostNotificationsModeEnum>,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::NotificationTypeEnum;
-
-    notification (id) {
-        id -> Int4,
-        recipient_id -> Int4,
-        post_id -> Nullable<Int4>,
-        comment_id -> Nullable<Int4>,
-        read -> Bool,
-        kind -> NotificationTypeEnum,
-        published_at -> Timestamptz,
     }
 }
 
@@ -1212,6 +1212,9 @@ diesel::joinable!(multi_community_entry -> community (community_id));
 diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
+diesel::joinable!(notification -> comment (comment_id));
+diesel::joinable!(notification -> person (recipient_id));
+diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
@@ -1229,9 +1232,6 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
-diesel::joinable!(notification -> comment (comment_id));
-diesel::joinable!(notification -> person (recipient_id));
-diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
@@ -1301,6 +1301,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   multi_community,
   multi_community_entry,
   multi_community_follow,
+  notification,
   oauth_account,
   oauth_provider,
   password_reset_request,
@@ -1311,7 +1312,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_saved_combined,
   post,
   post_actions,
-  notification,
   post_report,
   post_tag,
   previously_run_sql,
