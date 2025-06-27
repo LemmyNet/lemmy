@@ -89,6 +89,64 @@ pub async fn build_post_response(
   Ok(Json(PostResponse { post_view }))
 }
 
+pub struct NotifyData {
+  pub post: Post,
+  pub comment_opt: Option<Comment>,
+  pub community: Community,
+  pub creator: Person,
+  pub do_send_email: bool,
+}
+
+impl NotifyData {
+  async fn check_notifications_allowed(
+    &self,
+    potential_blocker_id: PersonId,
+    context: &LemmyContext,
+  ) -> LemmyResult<()> {
+    let pool = &mut context.pool();
+    PersonActions::read_block(pool, potential_blocker_id, self.post.creator_id).await?;
+    InstanceActions::read_block(pool, potential_blocker_id, self.community.instance_id).await?;
+    CommunityActions::read_block(pool, potential_blocker_id, self.post.community_id).await?;
+    let post_notifications = PostActions::read(pool, self.post.id, potential_blocker_id)
+      .await
+      .ok()
+      .and_then(|a| a.notifications)
+      .unwrap_or_default();
+    if post_notifications == PostNotifications::Mute {
+      // The specific error type is irrelevant
+      return Err(LemmyErrorType::NotFound.into());
+    }
+
+    Ok(())
+  }
+
+  fn content(&self) -> String {
+    if let Some(comment) = self.comment_opt.as_ref() {
+      comment.content.clone()
+    } else {
+      self.post.body.clone().unwrap_or_default()
+    }
+  }
+
+  fn link(&self, context: &LemmyContext) -> LemmyResult<Url> {
+    if let Some(comment) = self.comment_opt.as_ref() {
+      Ok(comment.local_url(context.settings())?)
+    } else {
+      Ok(self.post.local_url(context.settings())?)
+    }
+  }
+}
+
+pub async fn send_local_notifs_new(data: NotifyData, context: &LemmyContext) -> LemmyResult<()> {
+  let parent_creator = notify_parent_creator(&data, context).await?;
+
+  send_local_mentions(&data, parent_creator, context).await?;
+
+  send_subscriber_notifications(&data, context).await?;
+
+  Ok(())
+}
+
 /// Scans the post/comment content for mentions, then sends notifications via db and email
 /// to mentioned users and parent creator.
 pub async fn send_local_notifs(
@@ -99,32 +157,14 @@ pub async fn send_local_notifs(
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let parent_creator =
-    notify_parent_creator(person, post, comment_opt, community, do_send_email, context).await?;
-
-  send_local_mentions(
-    post,
-    comment_opt,
-    person,
-    parent_creator,
-    community,
-    do_send_email,
-    context,
-  )
-  .await?;
-
-  Ok(())
+  todo!()
 }
 
 async fn notify_parent_creator(
-  person: &Person,
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  community: &Community,
-  do_send_email: bool,
+  data: &NotifyData,
   context: &LemmyContext,
 ) -> LemmyResult<Option<PersonId>> {
-  let Some(comment) = comment_opt else {
+  let Some(comment) = data.comment_opt.as_ref() else {
     return Ok(None);
   };
 
@@ -134,23 +174,18 @@ async fn notify_parent_creator(
       let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
       (parent_comment.creator_id, Some(parent_comment))
     } else {
-      (post.creator_id, None)
+      (data.post.creator_id, None)
     };
 
   // Dont send notification to yourself
-  if parent_creator_id == person.id {
+  if parent_creator_id == data.creator.id {
     return Ok(None);
   }
 
-  let is_blocked = check_notifications_allowed(
-    parent_creator_id,
-    // Only block from the community's instance_id
-    community.instance_id,
-    post,
-    context,
-  )
-  .await
-  .is_err();
+  let is_blocked = data
+    .check_notifications_allowed(parent_creator_id, context)
+    .await
+    .is_err();
   if is_blocked {
     return Ok(None);
   }
@@ -172,13 +207,13 @@ async fn notify_parent_creator(
     .await
     .ok();
 
-  if do_send_email {
+  if data.do_send_email {
     send_reply_email(
       &user_view,
-      comment,
-      person,
+      &comment,
+      &data.creator,
       &parent_comment,
-      post,
+      &data.post,
       context.settings(),
     )
     .await?;
@@ -187,22 +222,13 @@ async fn notify_parent_creator(
 }
 
 async fn send_local_mentions(
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  person: &Person,
+  data: &NotifyData,
   parent_creator_id: Option<PersonId>,
-  community: &Community,
-  do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let content = if let Some(comment) = comment_opt {
-    &comment.content
-  } else {
-    &post.body.clone().unwrap_or_default()
-  };
-  let mentions = scrape_text_for_mentions(content)
+  let mentions = scrape_text_for_mentions(&data.content())
     .into_iter()
-    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name));
+    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&data.creator.name));
   for mention in mentions {
     // Ignore error if user is remote
     let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
@@ -211,33 +237,58 @@ async fn send_local_mentions(
     };
 
     // Dont send any mention notification to parent creator nor to yourself
-    if Some(user_view.person.id) == parent_creator_id || user_view.person.id == person.id {
+    if Some(user_view.person.id) == parent_creator_id || user_view.person.id == data.creator.id {
       continue;
     }
 
-    let is_blocked = check_notifications_allowed(
-      user_view.person.id,
-      // Only block from the community's instance_id
-      community.instance_id,
-      post,
-      context,
-    )
-    .await
-    .is_err();
+    let is_blocked = data
+      .check_notifications_allowed(user_view.person.id, context)
+      .await
+      .is_err();
     if is_blocked {
       continue;
     };
 
-    let (link, comment_content_or_post_body) =
-      insert_post_or_comment_mention(&user_view, post, comment_opt, context).await?;
+    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt.as_ref(), context)
+      .await?;
 
     // Send an email to those local users that have notifications on
-    if do_send_email {
+    if data.do_send_email {
       send_mention_email(
         &user_view,
-        &comment_content_or_post_body,
-        person,
-        link.into(),
+        &data.content(),
+        &data.creator,
+        data.link(context)?.into(),
+        context.settings(),
+      )
+      .await;
+    }
+  }
+  Ok(())
+}
+
+async fn send_subscriber_notifications(
+  data: &NotifyData,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
+
+  for subscriber in subscribers {
+    let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
+
+    // TODO: need to check blocks and mentioned users, parent creator here?
+
+    // TODO: would be easier if we use the same db table and email template here, eg with
+    // `type` param
+    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt.as_ref(), context)
+      .await?;
+
+    if data.do_send_email {
+      send_mention_email(
+        &user_view,
+        &data.content(),
+        &data.creator,
+        data.link(context)?.into(),
         context.settings(),
       )
       .await;
@@ -252,7 +303,7 @@ async fn insert_post_or_comment_mention(
   post: &Post,
   comment_opt: Option<&Comment>,
   context: &LemmyContext,
-) -> LemmyResult<(Url, String)> {
+) -> LemmyResult<()> {
   if let Some(comment) = &comment_opt {
     let person_comment_mention_form = PersonCommentMentionInsertForm {
       recipient_id: mention_user_view.person.id,
@@ -265,10 +316,6 @@ async fn insert_post_or_comment_mention(
     PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
       .await
       .ok();
-    Ok((
-      comment.local_url(context.settings())?,
-      comment.content.clone(),
-    ))
   } else {
     let person_post_mention_form = PersonPostMentionInsertForm {
       recipient_id: mention_user_view.person.id,
@@ -280,32 +327,6 @@ async fn insert_post_or_comment_mention(
     PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
       .await
       .ok();
-    Ok((
-      post.local_url(context.settings())?,
-      post.body.clone().unwrap_or_default(),
-    ))
   }
-}
-
-pub async fn check_notifications_allowed(
-  potential_blocker_id: PersonId,
-  community_instance_id: InstanceId,
-  post: &Post,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let pool = &mut context.pool();
-  PersonActions::read_block(pool, potential_blocker_id, post.creator_id).await?;
-  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityActions::read_block(pool, potential_blocker_id, post.community_id).await?;
-  let post_notifications = PostActions::read(pool, post.id, potential_blocker_id)
-    .await
-    .ok()
-    .and_then(|a| a.notifications)
-    .unwrap_or_default();
-  if post_notifications == PostNotifications::Mute {
-    // The specific error type is irrelevant
-    return Err(LemmyErrorType::NotFound.into());
-  }
-
   Ok(())
 }

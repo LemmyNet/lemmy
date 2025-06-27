@@ -591,6 +591,20 @@ impl PostActions {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub async fn list_subscribers(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    post_actions::table
+      .filter(post_actions::post_id.eq(post_id))
+      .select(post_actions::person_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 #[cfg(test)]
