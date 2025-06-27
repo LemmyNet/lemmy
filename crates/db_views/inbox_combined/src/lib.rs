@@ -3,13 +3,11 @@ use lemmy_db_schema::{
   source::{
     combined::inbox::InboxCombined,
     comment::{Comment, CommentActions},
-    comment_reply::CommentReply,
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
+    notification::Notification,
     person::{Person, PersonActions},
-    person_comment_mention::PersonCommentMention,
-    person_post_mention::PersonPostMention,
     post::{Post, PostActions},
     private_message::PrivateMessage,
     tag::TagsView,
@@ -47,11 +45,7 @@ pub struct InboxCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub inbox_combined: InboxCombined,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub comment_reply: Option<CommentReply>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub person_comment_mention: Option<PersonCommentMention>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub person_post_mention: Option<PersonPostMention>,
+  pub notification: Option<Notification>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -125,9 +119,7 @@ pub struct InboxCombinedViewInternal {
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
 pub enum InboxCombinedView {
-  CommentReply(CommentReplyView),
-  CommentMention(PersonCommentMentionView),
-  PostMention(PersonPostMentionView),
+  Notification(NotificationView),
   PrivateMessage(PrivateMessageView),
 }
 #[skip_serializing_none]
@@ -137,10 +129,10 @@ pub enum InboxCombinedView {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person comment mention view.
-pub struct PersonCommentMentionView {
-  pub person_comment_mention: PersonCommentMention,
+pub struct NotificationView {
+  pub notification: Notification,
   pub recipient: Person,
-  pub comment: Comment,
+  pub comment: Option<Comment>,
   pub creator: Person,
   pub post: Post,
   pub community: Community,
@@ -148,60 +140,8 @@ pub struct PersonCommentMentionView {
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
   pub instance_actions: Option<InstanceActions>,
-  pub creator_is_admin: bool,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person post mention view.
-pub struct PersonPostMentionView {
-  pub person_post_mention: PersonPostMention,
-  pub recipient: Person,
-  pub post: Post,
-  pub creator: Person,
-  pub community: Community,
-  pub image_details: Option<ImageDetails>,
-  pub community_actions: Option<CommunityActions>,
-  pub person_actions: Option<PersonActions>,
-  pub post_actions: Option<PostActions>,
-  pub instance_actions: Option<InstanceActions>,
   pub post_tags: TagsView,
   pub creator_is_admin: bool,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A comment reply view.
-pub struct CommentReplyView {
-  pub comment_reply: CommentReply,
-  pub recipient: Person,
-  pub comment: Comment,
-  pub creator: Person,
-  pub post: Post,
-  pub community: Community,
-  pub community_actions: Option<CommunityActions>,
-  pub comment_actions: Option<CommentActions>,
-  pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
-  pub creator_is_admin: bool,
-  pub post_tags: TagsView,
   pub can_mod: bool,
   pub creator_banned: bool,
   pub creator_is_moderator: bool,

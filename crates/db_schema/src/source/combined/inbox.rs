@@ -1,10 +1,4 @@
-use crate::newtypes::{
-  CommentReplyId,
-  InboxCombinedId,
-  PersonCommentMentionId,
-  PersonPostMentionId,
-  PrivateMessageId,
-};
+use crate::newtypes::{InboxCombinedId, NotificationId, PrivateMessageId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -26,8 +20,6 @@ use serde_with::skip_serializing_none;
 pub struct InboxCombined {
   pub id: InboxCombinedId,
   pub published_at: DateTime<Utc>,
-  pub comment_reply_id: Option<CommentReplyId>,
-  pub person_comment_mention_id: Option<PersonCommentMentionId>,
-  pub person_post_mention_id: Option<PersonPostMentionId>,
+  pub notification_id: Option<NotificationId>,
   pub private_message_id: Option<PrivateMessageId>,
 }

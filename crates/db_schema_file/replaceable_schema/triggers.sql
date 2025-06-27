@@ -652,9 +652,7 @@ BEGIN
         table_name);
 END;
 $a$;
-CALL r.create_inbox_combined_trigger ('comment_reply');
-CALL r.create_inbox_combined_trigger ('person_comment_mention');
-CALL r.create_inbox_combined_trigger ('person_post_mention');
+CALL r.create_inbox_combined_trigger ('notification');
 CALL r.create_inbox_combined_trigger ('private_message');
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()

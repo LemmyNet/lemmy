@@ -36,7 +36,7 @@ ALTER TABLE inbox_combined
     ADD COLUMN comment_reply_id int REFERENCES comment_reply (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     ADD COLUMN person_comment_mention_id int REFERENCES person_comment_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     ADD COLUMN person_post_mention_id int REFERENCES person_post_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
-    DROP COLUMN post_or_comment_notification_id;
+    DROP COLUMN notification_id;
 
 ALTER TABLE inbox_combined
     ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
@@ -47,7 +47,7 @@ CREATE INDEX idx_comment_reply_recipient ON public.comment_reply USING btree (re
 
 CREATE INDEX idx_comment_reply_published ON public.comment_reply USING btree (published_at DESC);
 
-DROP TABLE post_or_comment_notification;
+DROP TABLE notification;
 
-DROP TYPE post_or_comment_notification_type_enum;
+DROP TYPE notification_type_enum;
 

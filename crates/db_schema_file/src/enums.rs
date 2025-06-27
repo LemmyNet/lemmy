@@ -245,3 +245,19 @@ pub enum PostNotifications {
   AllComments,
   Mute,
 }
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::NotificationTypeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Lets you show votes for others only, show all votes, or hide all votes.
+pub enum NotificationTypes {
+  Mention,
+  Reply,
+  Subscribed,
+}

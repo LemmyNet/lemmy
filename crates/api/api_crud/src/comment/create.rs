@@ -21,8 +21,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-    comment_reply::{CommentReply, CommentReplyUpdateForm},
-    person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
+    notification::Notification,
   },
   traits::{Crud, Likeable},
 };
@@ -148,30 +147,8 @@ pub async fn create_comment(
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
     let person_id = local_user_view.person.id;
-    let parent_id = parent.id;
-    let comment_reply =
-      CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(Some(reply)) = comment_reply {
-      CommentReply::update(
-        &mut context.pool(),
-        reply.id,
-        &CommentReplyUpdateForm { read: Some(true) },
-      )
+    Notification::mark_read_by_comment_and_person(&mut context.pool(), parent.id, person_id)
       .await?;
-    }
-
-    // If the parent has PersonCommentMentions mark them as read too
-    let person_comment_mention =
-      PersonCommentMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id)
-        .await;
-    if let Ok(Some(mention)) = person_comment_mention {
-      PersonCommentMention::update(
-        &mut context.pool(),
-        mention.id,
-        &PersonCommentMentionUpdateForm { read: Some(true) },
-      )
-      .await?;
-    }
   }
 
   Ok(Json(

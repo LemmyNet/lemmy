@@ -1,10 +1,4 @@
-use crate::{
-  CommentReplyView,
-  InboxCombinedView,
-  InboxCombinedViewInternal,
-  PersonCommentMentionView,
-  PersonPostMentionView,
-};
+use crate::{InboxCombinedView, InboxCombinedViewInternal, NotificationView};
 use diesel::{
   dsl::not,
   BoolExpressionMethods,
@@ -43,17 +37,18 @@ use lemmy_db_schema::{
   },
   InboxDataType,
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  comment_reply,
-  inbox_combined,
-  instance_actions,
-  person,
-  person_actions,
-  person_comment_mention,
-  person_post_mention,
-  post,
-  private_message,
+use lemmy_db_schema_file::{
+  enums::NotificationTypes,
+  schema::{
+    comment,
+    inbox_combined,
+    instance_actions,
+    notification,
+    person,
+    person_actions,
+    post,
+    private_message,
+  },
 };
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -68,7 +63,7 @@ impl InboxCombinedViewInternal {
       comment::creator_id
         .eq(item_creator)
         .or(
-          inbox_combined::person_post_mention_id
+          inbox_combined::notification_id
             .is_not_null()
             .and(post::creator_id.eq(item_creator)),
         )
@@ -76,25 +71,22 @@ impl InboxCombinedViewInternal {
     );
 
     let recipient_join = aliases::person1.on(
-      comment_reply::recipient_id
+      notification::recipient_id
         .eq(recipient_person)
-        .or(person_comment_mention::recipient_id.eq(recipient_person))
-        .or(person_post_mention::recipient_id.eq(recipient_person))
         .or(private_message::recipient_id.eq(recipient_person)),
     );
 
     let comment_join = comment::table.on(
-      comment_reply::comment_id
-        .eq(comment::id)
-        .or(person_comment_mention::comment_id.eq(comment::id))
+      notification::comment_id
+        .eq(comment::id.nullable())
         // Filter out the deleted / removed
         .and(not(comment::deleted))
         .and(not(comment::removed)),
     );
 
     let post_join = post::table.on(
-      person_post_mention::post_id
-        .eq(post::id)
+      notification::post_id
+        .eq(post::id.nullable())
         .or(comment::post_id.eq(post::id))
         // Filter out the deleted / removed
         .and(not(post::deleted))
@@ -123,9 +115,7 @@ impl InboxCombinedViewInternal {
       creator_local_instance_actions_join(local_instance_id);
 
     inbox_combined::table
-      .left_join(comment_reply::table)
-      .left_join(person_comment_mention::table)
-      .left_join(person_post_mention::table)
+      .left_join(notification::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -157,10 +147,8 @@ impl InboxCombinedViewInternal {
 
     let recipient_person = aliases::person1.field(person::id);
 
-    let unread_filter = comment_reply::read
+    let unread_filter = notification::read
       .eq(false)
-      .or(person_comment_mention::read.eq(false))
-      .or(person_post_mention::read.eq(false))
       // If its unread, I only want the messages to me
       .or(
         private_message::read
@@ -196,9 +184,7 @@ impl PaginationCursorBuilder for InboxCombinedView {
 
   fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
-      InboxCombinedView::CommentReply(v) => ('R', v.comment_reply.id.0),
-      InboxCombinedView::CommentMention(v) => ('C', v.person_comment_mention.id.0),
-      InboxCombinedView::PostMention(v) => ('P', v.person_post_mention.id.0),
+      InboxCombinedView::Notification(v) => ('N', v.notification.id.0),
       InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
     };
     PaginationCursor::new_single(prefix, id)
@@ -220,9 +206,7 @@ impl PaginationCursorBuilder for InboxCombinedView {
       .into_boxed();
 
     query = match prefix {
-      'R' => query.filter(inbox_combined::comment_reply_id.eq(id)),
-      'C' => query.filter(inbox_combined::person_comment_mention_id.eq(id)),
-      'P' => query.filter(inbox_combined::person_post_mention_id.eq(id)),
+      'N' => query.filter(inbox_combined::notification_id.eq(id)),
       'M' => query.filter(inbox_combined::private_message_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
@@ -266,10 +250,8 @@ impl InboxCombinedQuery {
         // The recipient filter (IE only show replies to you)
         .filter(recipient_person.eq(my_person_id))
         .filter(
-          comment_reply::read
+          notification::read
             .eq(false)
-            .or(person_comment_mention::read.eq(false))
-            .or(person_post_mention::read.eq(false))
             // If its unread, I only want the messages to me
             .or(private_message::read.eq(false)),
         );
@@ -277,19 +259,9 @@ impl InboxCombinedQuery {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others
       query = query.filter(
-        inbox_combined::comment_reply_id
+        inbox_combined::notification_id
           .is_not_null()
           .and(recipient_person.eq(my_person_id))
-          .or(
-            inbox_combined::person_comment_mention_id
-              .is_not_null()
-              .and(recipient_person.eq(my_person_id)),
-          )
-          .or(
-            inbox_combined::person_post_mention_id
-              .is_not_null()
-              .and(recipient_person.eq(my_person_id)),
-          )
           .or(
             inbox_combined::private_message_id.is_not_null().and(
               recipient_person
@@ -312,13 +284,10 @@ impl InboxCombinedQuery {
     if let Some(type_) = self.type_ {
       query = match type_ {
         InboxDataType::All => query,
-        InboxDataType::CommentReply => query.filter(inbox_combined::comment_reply_id.is_not_null()),
-        InboxDataType::CommentMention => {
-          query.filter(inbox_combined::person_comment_mention_id.is_not_null())
+        InboxDataType::CommentReply => {
+          query.filter(notification::kind.eq(NotificationTypes::Reply))
         }
-        InboxDataType::PostMention => {
-          query.filter(inbox_combined::person_post_mention_id.is_not_null())
-        }
+        InboxDataType::Mention => query.filter(notification::kind.eq(NotificationTypes::Mention)),
         InboxDataType::PrivateMessage => {
           query.filter(inbox_combined::private_message_id.is_not_null())
         }
@@ -358,15 +327,12 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
     // Use for a short alias
     let v = self;
 
-    if let (Some(comment_reply), Some(comment), Some(post), Some(community)) = (
-      v.comment_reply,
-      v.comment.clone(),
-      v.post.clone(),
-      v.community.clone(),
-    ) {
-      Some(InboxCombinedView::CommentReply(CommentReplyView {
-        comment_reply,
-        comment,
+    if let (Some(notification), Some(post), Some(community)) =
+      (v.notification, v.post.clone(), v.community.clone())
+    {
+      Some(InboxCombinedView::Notification(NotificationView {
+        notification,
+        comment: v.comment,
         recipient: v.item_recipient,
         post,
         community,
@@ -375,52 +341,6 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_is_moderator: v.creator_is_moderator,
-      }))
-    } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
-      v.person_comment_mention,
-      v.comment,
-      v.post.clone(),
-      v.community.clone(),
-    ) {
-      Some(InboxCombinedView::CommentMention(
-        PersonCommentMentionView {
-          person_comment_mention,
-          comment,
-          recipient: v.item_recipient,
-          post,
-          community,
-          creator: v.item_creator,
-          community_actions: v.community_actions,
-          comment_actions: v.comment_actions,
-          person_actions: v.person_actions,
-          instance_actions: v.instance_actions,
-          creator_is_admin: v.item_creator_is_admin,
-          can_mod: v.can_mod,
-          creator_banned: v.creator_banned,
-          creator_banned_from_community: v.creator_banned_from_community,
-          creator_is_moderator: v.creator_is_moderator,
-        },
-      ))
-    } else if let (Some(person_post_mention), Some(post), Some(community)) =
-      (v.person_post_mention, v.post, v.community)
-    {
-      Some(InboxCombinedView::PostMention(PersonPostMentionView {
-        person_post_mention,
-        post,
-        community,
-        creator: v.item_creator,
-        recipient: v.item_recipient,
-        community_actions: v.community_actions,
-        person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
-        post_actions: v.post_actions,
-        image_details: v.image_details,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,

@@ -42,9 +42,7 @@ use lemmy_api::{
     notifications::{
       list_inbox::list_inbox,
       mark_all_read::mark_all_notifications_read,
-      mark_comment_mention_read::mark_comment_mention_as_read,
-      mark_post_mention_read::mark_post_mention_as_read,
-      mark_reply_read::mark_reply_as_read,
+      mark_notification_read::mark_notification_as_read,
       unread_count::unread_count,
     },
     report_count::report_count,
@@ -314,7 +312,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", put().to(update_comment))
           .route("/delete", post().to(delete_comment))
           .route("/remove", post().to(remove_comment))
-          .route("/mark_as_read", post().to(mark_reply_as_read))
           .route("/distinguish", post().to(distinguish_comment))
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))
@@ -370,15 +367,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
-          .service(
-            scope("/mention")
-              .route(
-                "/comment/mark_as_read",
-                post().to(mark_comment_mention_as_read),
-              )
-              .route("/post/mark_as_read", post().to(mark_post_mention_as_read)),
-          )
           .route("/mark_as_read/all", post().to(mark_all_notifications_read))
+          .route("/mark_as_read", post().to(mark_notification_as_read))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))

@@ -392,35 +392,26 @@ fn create_reply_and_mention_items(
   let reply_items: Vec<Item> = inbox
     .iter()
     .map(|r| match r {
-      InboxCombinedView::CommentReply(v) => {
-        let reply_url = v.comment.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &v.comment.published_at,
-          reply_url.as_str(),
-          &v.comment.content,
-          context.settings(),
-        )
-      }
-      InboxCombinedView::CommentMention(v) => {
-        let mention_url = v.comment.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &v.comment.published_at,
-          mention_url.as_str(),
-          &v.comment.content,
-          context.settings(),
-        )
-      }
-      InboxCombinedView::PostMention(v) => {
-        let mention_url = v.post.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &v.post.published_at,
-          mention_url.as_str(),
-          &v.post.body.clone().unwrap_or_default(),
-          context.settings(),
-        )
+      InboxCombinedView::Notification(v) => {
+        if let Some(comment) = &v.comment {
+          let reply_url = comment.local_url(context.settings())?;
+          build_item(
+            &v.creator,
+            &comment.published_at,
+            reply_url.as_str(),
+            &comment.content,
+            context.settings(),
+          )
+        } else {
+          let mention_url = v.post.local_url(context.settings())?;
+          build_item(
+            &v.creator,
+            &v.post.published_at,
+            mention_url.as_str(),
+            &v.post.body.clone().unwrap_or_default(),
+            context.settings(),
+          )
+        }
       }
       InboxCombinedView::PrivateMessage(v) => {
         let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());

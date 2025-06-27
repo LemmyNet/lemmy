@@ -3,17 +3,15 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   source::{
     comment::Comment,
-    comment_reply::{CommentReply, CommentReplyInsertForm},
     community::{Community, CommunityActions},
     instance::InstanceActions,
+    notification::{Notification, NotificationInsertForm},
     person::{Person, PersonActions},
-    person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
-    person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
     post::{Post, PostActions},
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_schema_file::enums::PostNotifications;
+use lemmy_db_schema_file::enums::{NotificationTypes, PostNotifications};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_email::notifications::{send_mention_email, send_reply_email};
 use lemmy_utils::{
@@ -118,17 +116,10 @@ async fn notify_parent_creator(
     return Ok(None);
   };
 
-  let comment_reply_form = CommentReplyInsertForm {
-    recipient_id: user_view.person.id,
-    comment_id: comment.id,
-    read: None,
-  };
+  let comment_reply_form =
+    NotificationInsertForm::new_comment(user_view.person.id, comment.id, NotificationTypes::Reply);
 
-  // Allow this to fail softly, since comment edits might re-update or replace it
-  // Let the uniqueness handle this fail
-  CommentReply::create(&mut context.pool(), &comment_reply_form)
-    .await
-    .ok();
+  Notification::create(&mut context.pool(), &comment_reply_form).await?;
 
   if data.do_send_email {
     send_reply_email(
@@ -225,29 +216,20 @@ async fn insert_post_or_comment_mention(
   comment_opt: Option<&Comment>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  if let Some(comment) = &comment_opt {
-    let person_comment_mention_form = PersonCommentMentionInsertForm {
-      recipient_id: mention_user_view.person.id,
-      comment_id: comment.id,
-      read: None,
-    };
-
-    // Allow this to fail softly, since comment edits might re-update or replace it
-    // Let the uniqueness handle this fail
-    PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
-      .await
-      .ok();
+  let notif = if let Some(comment) = &comment_opt {
+    NotificationInsertForm::new_comment(
+      mention_user_view.person.id,
+      comment.id,
+      NotificationTypes::Mention,
+    )
   } else {
-    let person_post_mention_form = PersonPostMentionInsertForm {
-      recipient_id: mention_user_view.person.id,
-      post_id: post.id,
-      read: None,
-    };
+    NotificationInsertForm::new_post(
+      mention_user_view.person.id,
+      post.id,
+      NotificationTypes::Mention,
+    )
+  };
 
-    // Allow this to fail softly, since edits might re-update or replace it
-    PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
-      .await
-      .ok();
-  }
+  Notification::create(&mut context.pool(), &notif).await?;
   Ok(())
 }
