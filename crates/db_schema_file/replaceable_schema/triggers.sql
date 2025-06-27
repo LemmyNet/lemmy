@@ -165,6 +165,20 @@ WHERE
         GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
         a.newest_comment_time_at,
         a.newest_comment_time_necro_at);
+UPDATE
+    local_site AS a
+SET
+    comments = a.comments + diff.comments
+FROM (
+    SELECT
+        coalesce(sum(count_diff), 0) AS comments
+    FROM
+        select_old_and_new_rows AS old_and_new_rows
+    WHERE
+        r.is_counted (comment)
+        AND (comment).local) AS diff
+WHERE
+    diff.comments != 0;
 RETURN NULL;
 END;
 $$);
@@ -205,6 +219,38 @@ WHERE
     AND (diff.posts,
         diff.comments) != (0,
         0);
+UPDATE
+    local_site AS a
+SET
+    posts = a.posts + diff.posts
+FROM (
+    SELECT
+        coalesce(sum(count_diff), 0) AS posts
+    FROM
+        select_old_and_new_rows AS old_and_new_rows
+    WHERE
+        r.is_counted (post)
+        AND (post).local) AS diff
+WHERE
+    diff.posts != 0;
+RETURN NULL;
+END;
+$$);
+CALL r.create_triggers ('community', $$
+BEGIN
+    UPDATE
+        local_site AS a
+    SET
+        communities = a.communities + diff.communities
+    FROM (
+        SELECT
+            coalesce(sum(count_diff), 0) AS communities
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE
+            r.is_counted (community)
+            AND (community).local) AS diff
+WHERE
+    diff.communities != 0;
 RETURN NULL;
 END;
 $$);
