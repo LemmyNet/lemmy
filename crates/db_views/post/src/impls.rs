@@ -182,17 +182,21 @@ impl PostView {
     cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
+    no_limit: Option<bool>,
   ) -> LemmyResult<Vec<PostView>> {
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
 
-    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+    let mut query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !no_limit.unwrap_or_default() {
+      let limit = limit_fetch(limit)?;
+      query = query.limit(limit);
+    }
 
     // Sorting by the read date
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
@@ -213,17 +217,21 @@ impl PostView {
     cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
+    no_limit: Option<bool>,
   ) -> LemmyResult<Vec<PostView>> {
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
 
-    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+    let mut query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
       .select(PostView::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !no_limit.unwrap_or_default() {
+      let limit = limit_fetch(limit)?;
+      query = query.limit(limit);
+    }
 
     // Sorting by the hidden date
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
@@ -1223,7 +1231,7 @@ mod tests {
     PostActions::mark_as_read(pool, &tag_post_read_form).await?;
 
     let read_read_post_listing =
-      PostView::list_read(pool, &data.tegan.person, None, None, None).await?;
+      PostView::list_read(pool, &data.tegan.person, None, None, None, None).await?;
 
     // This should be ordered from most recently read
     assert_eq!(
@@ -1802,7 +1810,8 @@ mod tests {
       .is_some_and(|a| a.hidden_at.is_some())));
 
     // Make sure only that one comes back for list_hidden
-    let list_hidden = PostView::list_hidden(pool, &data.tegan.person, None, None, None).await?;
+    let list_hidden =
+      PostView::list_hidden(pool, &data.tegan.person, None, None, None, None).await?;
     assert_eq!(vec![POST_BY_BOT], names(&list_hidden));
 
     Ok(())
