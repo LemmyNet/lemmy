@@ -93,12 +93,14 @@ pub async fn build_post_response(
 pub struct NotifyData<'a> {
   post: &'a Post,
   comment_opt: Option<&'a Comment>,
-  community: &'a Community,
   creator: &'a Person,
+  community: &'a Community,
   do_send_email: bool,
 }
 
 impl NotifyData<'_> {
+  /// Scans the post/comment content for mentions, then sends notifications via db and email
+  /// to mentioned users and parent creator.
   pub async fn send(self, context: &LemmyContext) -> LemmyResult<()> {
     let parent_creator = notify_parent_creator(&self, context).await?;
 
@@ -146,19 +148,6 @@ impl NotifyData<'_> {
       Ok(self.post.local_url(context.settings())?)
     }
   }
-}
-
-/// Scans the post/comment content for mentions, then sends notifications via db and email
-/// to mentioned users and parent creator.
-pub async fn send_local_notifs(
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  person: &Person,
-  community: &Community,
-  do_send_email: bool,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  todo!()
 }
 
 async fn notify_parent_creator(

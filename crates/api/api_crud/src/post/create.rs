@@ -3,7 +3,7 @@ use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::{build_post_response, send_local_notifs},
+  build_response::{build_post_response, NotifyData},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
@@ -171,15 +171,14 @@ pub async fn create_post(
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
-  let do_send_email = !local_site.disable_email_notifications;
-  send_local_notifs(
+  NotifyData::new(
     &inserted_post,
     None,
     &local_user_view.person,
     community,
-    do_send_email,
-    &context,
+    !local_site.disable_email_notifications,
   )
+  .send(&context)
   .await?;
 
   let read_form = PostReadForm::new(post_id, person_id);

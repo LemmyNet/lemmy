@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
-  build_response::{build_comment_response, send_local_notifs},
+  build_response::{build_comment_response, NotifyData},
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
@@ -78,14 +78,14 @@ pub async fn update_comment(
   plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
-  send_local_notifs(
+  NotifyData::new(
     &orig_comment.post,
     Some(&updated_comment),
     &local_user_view.person,
     &orig_comment.community,
     false,
-    &context,
   )
+  .send(&context)
   .await?;
 
   ActivityChannel::submit_activity(

@@ -115,8 +115,8 @@ pub async fn create_comment(
   NotifyData::new(
     &post,
     Some(&inserted_comment),
-    &post_view.community,
     &local_user_view.person,
+    &post_view.community,
     !local_site.disable_email_notifications,
   )
   .send(&context)
