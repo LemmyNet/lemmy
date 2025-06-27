@@ -62,7 +62,6 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
     Right(multi) => multi.format_url(context.settings()),
   }
   .ok()
-  .map(Into::into)
 }
 
 #[cfg(test)]

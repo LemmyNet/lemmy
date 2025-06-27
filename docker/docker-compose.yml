@@ -22,11 +22,13 @@ services:
     logging: *default-logging
 
   lemmy:
-    image: dessalines/lemmy:1.0.0-alpha.4
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
     hostname: lemmy
     restart: unless-stopped
     environment:
-      - RUST_LOG=extism=info,lemmy_api_common=info,error
+      - RUST_LOG=warn,extism=info,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z
       - ./plugins:/plugins:Z
@@ -109,5 +111,6 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
+      - ./customPostgresql.conf:/etc/postgresql.conf:Z
     restart: unless-stopped
     logging: *default-logging

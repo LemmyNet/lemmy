@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-Help()
-{
+Help() {
   # Display help
   echo "Usage: ./docker_update.sh [OPTIONS]"
   echo ""
@@ -15,12 +14,17 @@ Help()
 
 while getopts ":hu:" option; do
   case $option in
-    h) Help
-       exit;;
-    u) DOCKER_USER=$OPTARG
-       ;;
-    *) echo "Invalid option $OPTARG."
-       exit;;
+  h)
+    Help
+    exit
+    ;;
+  u)
+    DOCKER_USER=$OPTARG
+    ;;
+  *)
+    echo "Invalid option $OPTARG."
+    exit
+    ;;
   esac
 done
 
@@ -37,11 +41,11 @@ if [ "$ARCH" = 'arm64' ]; then
 
   # You need a Docker account to pull images. Otherwise, you will get an error like: "error getting credentials"
   if [ -z "$DOCKER_USER" ]; then
-      echo "$LOG_PREFIX Logging into Docker Hub..."
-      docker login
+    echo "$LOG_PREFIX Logging into Docker Hub..."
+    docker login
   else
-      echo "$LOG_PREFIX Logging into Docker Hub. Please provide your personal access token."
-      docker login --username="$DOCKER_USER"
+    echo "$LOG_PREFIX Logging into Docker Hub. Please provide your personal access token."
+    docker login --username="$DOCKER_USER"
   fi
 
   echo "$LOG_PREFIX Initializing images in the background. Please be patient if compiling from source..."

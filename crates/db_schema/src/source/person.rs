@@ -86,7 +86,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub local: Option<bool>,
   #[new(default)]
-  pub private_key: Option<SensitiveString>,
+  pub private_key: Option<String>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -148,6 +148,12 @@ pub struct PersonActions {
   pub noted_at: Option<DateTime<Utc>>,
   /// A note about the person.
   pub note: Option<String>,
+  /// When the person was voted on.
+  pub voted_at: Option<DateTime<Utc>>,
+  /// A total of upvotes given to this person
+  pub upvotes: Option<i32>,
+  /// A total of downvotes given to this person
+  pub downvotes: Option<i32>,
 }
 
 #[derive(Clone, derive_new::new)]

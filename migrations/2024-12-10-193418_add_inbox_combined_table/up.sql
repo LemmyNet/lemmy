@@ -10,8 +10,7 @@ CREATE TABLE person_post_mention (
     recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     read boolean DEFAULT FALSE NOT NULL,
-    published timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (recipient_id, post_id)
+    published timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE inbox_combined (
@@ -22,10 +21,6 @@ CREATE TABLE inbox_combined (
     person_post_mention_id int UNIQUE REFERENCES person_post_mention ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     private_message_id int UNIQUE REFERENCES private_message ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
-
-CREATE INDEX idx_inbox_combined_published ON inbox_combined (published DESC, id DESC);
-
-CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 -- Updating the history
 INSERT INTO inbox_combined (published, comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id)
@@ -65,9 +60,14 @@ SELECT
 FROM
     private_message;
 
+CREATE INDEX idx_inbox_combined_published ON inbox_combined (published DESC, id DESC);
+
+CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined (reverse_timestamp_sort (published) DESC, id DESC);
+
 ALTER TABLE person_post_mention
     ALTER CONSTRAINT person_post_mention_recipient_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_post_mention_post_id_fkey NOT DEFERRABLE;
+    ALTER CONSTRAINT person_post_mention_post_id_fkey NOT DEFERRABLE,
+    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
 
 -- Make sure only one of the columns is not null
 ALTER TABLE inbox_combined

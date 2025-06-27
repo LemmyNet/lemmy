@@ -1,4 +1,4 @@
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
 use lemmy_api_utils::{
@@ -71,7 +71,7 @@ pub async fn register(
 ) -> LemmyResult<Json<LoginResponse>> {
   let pool = &mut context.pool();
   let site_view = SiteView::read_local(pool).await?;
-  let local_site = site_view.local_site;
+  let local_site = site_view.local_site.clone();
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
 
@@ -137,7 +137,6 @@ pub async fn register(
   let user = conn
     .run_transaction(|conn| {
       async move {
-        let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
         // We have to create both a person, and local_user
         let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
 
@@ -152,7 +151,7 @@ pub async fn register(
         let local_user =
           create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
 
-        if local_site.site_setup && require_registration_application {
+        if site_view.local_site.site_setup && require_registration_application {
           if let Some(answer) = tx_data.answer.clone() {
             // Create the registration application
             let form = RegistrationApplicationInsertForm {
@@ -354,7 +353,6 @@ pub async fn authenticate_with_oauth(
       let user = conn
         .run_transaction(|conn| {
           async move {
-            let site_view = SiteView::read_local(&mut tx_context.pool()).await?;
             // make sure the username is provided
             let username = tx_data
               .username
@@ -444,6 +442,7 @@ async fn create_person(
   context: &LemmyContext,
   conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
+  let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, site_view.local_site.actor_name_max_length)?;
   let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
 
@@ -451,10 +450,10 @@ async fn create_person(
   let person_form = PersonInsertForm {
     ap_id: Some(ap_id.clone()),
     inbox_url: Some(generate_inbox_url()?),
-    private_key: site_view.site.private_key.clone(),
+    private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(
       username.clone(),
-      site_view.site.public_key.clone(),
+      actor_keypair.public_key,
       site_view.site.instance_id,
     )
   };

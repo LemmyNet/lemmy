@@ -436,17 +436,17 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
   enum_map! {
-    ActionType::Message => (l.message, l.message_per_second),
-    ActionType::Post => (l.post, l.post_per_second),
-    ActionType::Register => (l.register, l.register_per_second),
-    ActionType::Image => (l.image, l.image_per_second),
-    ActionType::Comment => (l.comment, l.comment_per_second),
-    ActionType::Search => (l.search, l.search_per_second),
-    ActionType::ImportUserSettings => (l.import_user_settings, l.import_user_settings_per_second),
+    ActionType::Message => (l.message_max_requests, l.message_interval_seconds),
+    ActionType::Post => (l.post_max_requests, l.post_interval_seconds),
+    ActionType::Register => (l.register_max_requests, l.register_interval_seconds),
+    ActionType::Image => (l.image_max_requests, l.image_interval_seconds),
+    ActionType::Comment => (l.comment_max_requests, l.comment_interval_seconds),
+    ActionType::Search => (l.search_max_requests, l.search_interval_seconds),
+    ActionType::ImportUserSettings => (l.import_user_settings_max_requests, l.import_user_settings_interval_seconds),
   }
-  .map(|_key, (capacity, secs_to_refill)| BucketConfig {
-    capacity: u32::try_from(capacity).unwrap_or(0),
-    secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
+  .map(|_key, (max_requests, interval)| BucketConfig {
+    max_requests: u32::try_from(max_requests).unwrap_or(0),
+    interval: u32::try_from(interval).unwrap_or(0),
   })
 }
 
@@ -610,11 +610,15 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
     }
+
+    // Remove post and comment votes
+    PostActions::remove_all_likes(pool, banned_person_id).await?;
+    CommentActions::remove_all_likes(pool, banned_person_id).await?;
   }
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -696,10 +700,18 @@ pub async fn remove_or_restore_user_data_in_community(
   reason: &Option<String>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  // These actions are only possible when removing, not restoring
+  if remove {
+    // Remove post and comment votes
+    PostActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+    CommentActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+  }
+
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+    Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
+
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,

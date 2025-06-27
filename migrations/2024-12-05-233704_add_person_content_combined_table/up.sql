@@ -5,9 +5,7 @@ CREATE TABLE person_content_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    -- Make sure only one of the columns is not null
-    CHECK (num_nonnulls (post_id, comment_id) = 1)
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX idx_person_content_combined_published ON person_content_combined (published DESC, id DESC);
@@ -32,18 +30,10 @@ FROM
 CREATE TABLE person_saved_combined (
     id serial PRIMARY KEY,
     saved timestamptz NOT NULL,
-    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
-    UNIQUE (person_id, post_id),
-    UNIQUE (person_id, comment_id),
-    -- Make sure only one of the columns is not null
-    CHECK (num_nonnulls (post_id, comment_id) = 1)
+    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
-
-CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
-
-CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
 
 -- Updating the history
 INSERT INTO person_saved_combined (saved, person_id, post_id, comment_id)
@@ -67,7 +57,20 @@ FROM
 WHERE
     saved IS NOT NULL;
 
+CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
+
+CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
+
+ALTER TABLE person_saved_combined
+    ALTER CONSTRAINT person_saved_combined_person_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_saved_combined_post_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT person_saved_combined_comment_id_fkey NOT DEFERRABLE,
+    ADD CONSTRAINT person_saved_combined_person_id_post_id_key UNIQUE (person_id, post_id),
+    ADD CONSTRAINT person_saved_combined_person_id_comment_id_key UNIQUE (person_id, comment_id),
+    ADD CONSTRAINT person_saved_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
+
 ALTER TABLE person_content_combined
     ALTER CONSTRAINT person_content_combined_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_content_combined_comment_id_fkey NOT DEFERRABLE;
+    ALTER CONSTRAINT person_content_combined_comment_id_fkey NOT DEFERRABLE,
+    ADD CONSTRAINT person_content_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
 

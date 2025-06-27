@@ -143,6 +143,21 @@ pub trait Likeable {
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
   where
     Self: Sized;
+
+  fn remove_all_likes(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
+
+  fn remove_likes_in_community(
+    pool: &mut DbPool<'_>,
+    creator_id: PersonId,
+    community_id: CommunityId,
+  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  where
+    Self: Sized;
 }
 
 pub trait Bannable {
