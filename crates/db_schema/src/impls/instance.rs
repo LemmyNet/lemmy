@@ -10,11 +10,10 @@ use crate::{
     functions::{coalesce, lower},
     get_conn,
     now,
-    uplete,
     DbPool,
   },
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count_star, exists, insert_into, not, select},
   ExpressionMethods,
@@ -224,11 +223,11 @@ impl Blockable for InstanceActions {
       .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
-      .set_null(instance_actions::blocked_at)
-      .get_result(conn)
+    diesel::update(instance_actions::table.find((form.person_id, form.instance_id)))
+      .set(instance_actions::blocked_at.eq(None::<DateTime<Utc>>))
+      .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
   }
@@ -304,13 +303,15 @@ impl Bannable for InstanceActions {
         .await?,
     )
   }
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
-        .set_null(instance_actions::received_ban_at)
-        .set_null(instance_actions::ban_expires_at)
-        .get_result(conn)
+      diesel::update(instance_actions::table.find((form.person_id, form.instance_id)))
+        .set((
+          instance_actions::received_ban_at.eq(None::<DateTime<Utc>>),
+          instance_actions::ban_expires_at.eq(None::<DateTime<Utc>>),
+        ))
+        .execute(conn)
         .await?,
     )
   }

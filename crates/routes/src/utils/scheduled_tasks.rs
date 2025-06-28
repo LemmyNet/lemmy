@@ -27,18 +27,21 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
   comment,
+  comment_actions,
   community,
   community_actions,
   federation_blocklist,
   instance,
   instance_actions,
   person,
+  person_actions,
   post,
+  post_actions,
   received_activity,
   sent_activity,
 };
@@ -112,6 +115,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       delete_old_denied_users(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to delete old denied users: {e}"))
+        .ok();
+      delete_empty_actions_rows(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
       update_instance_software(&mut context.pool(), context.client())
         .await
@@ -292,6 +299,77 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
+/// This deletes actions rows where all the data columns are null.
+/// The tables are post, person, instance, comment, community.
+///
+/// Note: Any time a new field gets added to an action row, it should be added here also.
+/// We used to use some uplete logic for this, but now do this task daily.
+async fn delete_empty_actions_rows(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Deleting empty actions rows...");
+  let mut conn = get_conn(pool).await?;
+
+  let empty_post_actions = post_actions::table
+    .filter(post_actions::read_at.is_null())
+    .filter(post_actions::read_comments_at.is_null())
+    .filter(post_actions::read_comments_amount.is_null())
+    .filter(post_actions::saved_at.is_null())
+    .filter(post_actions::liked_at.is_null())
+    .filter(post_actions::like_score.is_null())
+    .filter(post_actions::hidden_at.is_null());
+
+  diesel::delete(empty_post_actions)
+    .execute(&mut conn)
+    .await?;
+
+  let empty_comment_actions = comment_actions::table
+    .filter(comment_actions::like_score.is_null())
+    .filter(comment_actions::liked_at.is_null())
+    .filter(comment_actions::saved_at.is_null());
+
+  diesel::delete(empty_comment_actions)
+    .execute(&mut conn)
+    .await?;
+
+  let empty_community_actions = community_actions::table
+    .filter(community_actions::followed_at.is_null())
+    .filter(community_actions::follow_state.is_null())
+    .filter(community_actions::follow_approver_id.is_null())
+    .filter(community_actions::blocked_at.is_null())
+    .filter(community_actions::became_moderator_at.is_null())
+    .filter(community_actions::received_ban_at.is_null())
+    .filter(community_actions::ban_expires_at.is_null());
+
+  diesel::delete(empty_community_actions)
+    .execute(&mut conn)
+    .await?;
+
+  let empty_instance_actions = instance_actions::table
+    .filter(instance_actions::blocked_at.is_null())
+    .filter(instance_actions::received_ban_at.is_null())
+    .filter(instance_actions::ban_expires_at.is_null());
+
+  diesel::delete(empty_instance_actions)
+    .execute(&mut conn)
+    .await?;
+
+  let empty_person_actions = person_actions::table
+    .filter(person_actions::followed_at.is_null())
+    .filter(person_actions::follow_pending.is_null())
+    .filter(person_actions::blocked_at.is_null())
+    .filter(person_actions::noted_at.is_null())
+    .filter(person_actions::note.is_null())
+    .filter(person_actions::voted_at.is_null())
+    .filter(person_actions::upvotes.is_null())
+    .filter(person_actions::downvotes.is_null());
+
+  diesel::delete(empty_person_actions)
+    .execute(&mut conn)
+    .await?;
+
+  info!("Done.");
+  Ok(())
+}
+
 async fn delete_old_denied_users(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   LocalUser::delete_old_denied_local_users(pool).await?;
   info!("Done.");
@@ -368,20 +446,24 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  uplete::new(
+  diesel::update(
     community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())),
   )
-  .set_null(community_actions::received_ban_at)
-  .set_null(community_actions::ban_expires_at)
+  .set((
+    community_actions::received_ban_at.eq(None::<DateTime<Utc>>),
+    community_actions::ban_expires_at.eq(None::<DateTime<Utc>>),
+  ))
   .as_query()
   .execute(&mut conn)
   .await?;
 
-  uplete::new(
+  diesel::update(
     instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())),
   )
-  .set_null(instance_actions::received_ban_at)
-  .set_null(instance_actions::ban_expires_at)
+  .set((
+    instance_actions::received_ban_at.eq(None::<DateTime<Utc>>),
+    instance_actions::ban_expires_at.eq(None::<DateTime<Utc>>),
+  ))
   .as_query()
   .execute(&mut conn)
   .await?;
