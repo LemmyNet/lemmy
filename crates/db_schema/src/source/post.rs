@@ -183,9 +183,11 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
   #[serde(skip)]
-  pub post_id: PostId,
+  pub id: i32,
   #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
+  pub post_id: PostId,
   /// When the post was read.
   pub read_at: Option<DateTime<Utc>>,
   /// When was the last time you read the comments.

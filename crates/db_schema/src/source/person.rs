@@ -135,9 +135,11 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PersonActions {
   #[serde(skip)]
-  pub target_id: PersonId,
+  pub id: i32,
   #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
+  pub target_id: PersonId,
   #[serde(skip)]
   pub followed_at: Option<DateTime<Utc>>,
   #[serde(skip)]

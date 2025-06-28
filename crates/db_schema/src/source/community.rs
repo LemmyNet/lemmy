@@ -192,9 +192,11 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommunityActions {
   #[serde(skip)]
-  pub community_id: CommunityId,
+  pub id: i32,
   #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
+  pub community_id: CommunityId,
   /// When the community was followed.
   pub followed_at: Option<DateTime<Utc>>,
   /// The state of the community follow.
