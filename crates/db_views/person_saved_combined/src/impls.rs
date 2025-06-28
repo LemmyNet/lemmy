@@ -51,6 +51,7 @@ pub struct PersonSavedCombinedQuery {
   pub cursor_data: Option<PersonSavedCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
+  pub no_limit: Option<bool>,
 }
 
 impl PaginationCursorBuilder for PersonSavedCombinedView {
@@ -159,13 +160,16 @@ impl PersonSavedCombinedQuery {
     let local_instance_id = user.person.instance_id;
 
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
 
     let mut query = PersonSavedCombinedViewInternal::joins(my_person_id, local_instance_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select(PersonSavedCombinedViewInternal::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !self.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     if let Some(type_) = self.type_ {
       query = match type_ {
