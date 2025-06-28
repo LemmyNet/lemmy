@@ -3401,7 +3401,6 @@ dependencies = [
  "tokio-postgres-rustls",
  "tracing",
  "ts-rs",
- "tuplex",
  "url",
  "uuid",
 ]
@@ -6942,12 +6941,6 @@ dependencies = [
  "syn 2.0.102",
  "termcolor",
 ]
-
-[[package]]
-name = "tuplex"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "676ac81d5454c4dcf37955d34fa8626ede3490f744b86ca14a7b90168d2a08aa"
 
 [[package]]
 name = "typenum"
