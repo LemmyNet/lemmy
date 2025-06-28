@@ -8,7 +8,7 @@ CREATE TABLE search_combined (
     -- For comments: score,
     -- For posts: score,
     -- For community: users active monthly
-    score bigint NOT NULL DEFAULT 0,
+    score int NOT NULL DEFAULT 0,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
