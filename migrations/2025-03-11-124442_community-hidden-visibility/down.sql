@@ -8,18 +8,18 @@ ALTER TABLE community
     ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public',
     ADD COLUMN description_new varchar(150),
     ADD COLUMN random_number_new smallint NOT NULL DEFAULT random_smallint (),
-    ADD COLUMN subscribers_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN posts_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN comments_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_day_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_week_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_month_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_half_year_new bigint NOT NULL DEFAULT 0,
+    ADD COLUMN subscribers_new int NOT NULL DEFAULT 0,
+    ADD COLUMN posts_new int NOT NULL DEFAULT 0,
+    ADD COLUMN comments_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_day_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_week_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_month_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_half_year_new int NOT NULL DEFAULT 0,
     ADD COLUMN hot_rank_new double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN subscribers_local_new bigint NOT NULL DEFAULT 0,
+    ADD COLUMN subscribers_local_new int NOT NULL DEFAULT 0,
     ADD COLUMN report_count_new smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count_new smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month_new bigint NOT NULL DEFAULT 0;
+    ADD COLUMN interactions_month_new int NOT NULL DEFAULT 0;
 
 UPDATE
     community
