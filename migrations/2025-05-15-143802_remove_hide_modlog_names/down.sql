@@ -27,14 +27,14 @@ ALTER TABLE local_site
     ADD COLUMN comment_downvotes_new public.federation_mode_enum DEFAULT 'All'::public.federation_mode_enum NOT NULL,
     ADD COLUMN default_post_time_range_seconds_new integer,
     ADD COLUMN disallow_nsfw_content_new boolean DEFAULT FALSE NOT NULL,
-    ADD COLUMN users_new bigint DEFAULT 1 NOT NULL,
-    ADD COLUMN posts_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN comments_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN communities_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN users_active_day_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN users_active_week_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN users_active_month_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN users_active_half_year_new bigint DEFAULT 0 NOT NULL,
+    ADD COLUMN users_new int DEFAULT 1 NOT NULL,
+    ADD COLUMN posts_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN comments_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN communities_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN users_active_day_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN users_active_week_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN users_active_month_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN users_active_half_year_new int DEFAULT 0 NOT NULL,
     ADD COLUMN disable_email_notifications_new boolean DEFAULT FALSE NOT NULL;
 
 -- Update

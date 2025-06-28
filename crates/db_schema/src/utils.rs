@@ -529,24 +529,24 @@ static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamptz};
+  use diesel::sql_types::{Int4, Text, Timestamptz};
 
   define_sql_function! {
     #[sql_name = "r.hot_rank"]
-    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
+    fn hot_rank(score: Int4, time: Timestamptz) -> Double;
   }
 
   define_sql_function! {
     #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
+    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Double;
   }
 
   define_sql_function! {
     #[sql_name = "r.controversy_rank"]
-    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
+    fn controversy_rank(upvotes: Int4, downvotes: Int4, score: Int4) -> Double;
   }
 
-  define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
+  define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> Int4);
 
   define_sql_function!(fn lower(x: Text) -> Text);
 

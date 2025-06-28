@@ -286,7 +286,7 @@ impl Community {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(for_community_id))
-      .set(community::dsl::subscribers.eq(new_subscribers))
+      .set(community::dsl::subscribers.eq(new_subscribers as i32))
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)

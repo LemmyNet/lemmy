@@ -18,10 +18,10 @@ ALTER TABLE person
     ADD COLUMN bot_account_new boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN ban_expires timestamptz,
     ADD COLUMN instance_id_new int,
-    ADD COLUMN post_count_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN post_score_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN comment_count_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN comment_score_new bigint DEFAULT 0 NOT NULL;
+    ADD COLUMN post_count_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN post_score_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN comment_count_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN comment_score_new int DEFAULT 0 NOT NULL;
 
 UPDATE
     person
