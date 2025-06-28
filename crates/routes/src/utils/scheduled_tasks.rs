@@ -118,7 +118,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .ok();
       delete_empty_actions_rows(&mut context.pool())
         .await
-        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
+        .inspect_err(|e| warn!("Failed to delete empty actions: {e}"))
         .ok();
       update_instance_software(&mut context.pool(), context.client())
         .await
