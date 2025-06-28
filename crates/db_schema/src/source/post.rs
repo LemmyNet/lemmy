@@ -61,10 +61,10 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
-  pub comments: i64,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
+  pub comments: i32,
+  pub score: i32,
+  pub upvotes: i32,
+  pub downvotes: i32,
   #[serde(skip)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
@@ -192,7 +192,7 @@ pub struct PostActions {
   pub read_comments_at: Option<DateTime<Utc>>,
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
-  pub read_comments_amount: Option<i64>,
+  pub read_comments_amount: Option<i32>,
   /// When the post was saved.
   pub saved_at: Option<DateTime<Utc>>,
   /// When the post was liked.
@@ -243,7 +243,7 @@ pub struct PostReadForm {
 pub struct PostReadCommentsForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub read_comments_amount: i64,
+  pub read_comments_amount: i32,
   #[new(value = "Utc::now()")]
   pub read_comments_at: DateTime<Utc>,
 }

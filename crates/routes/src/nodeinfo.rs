@@ -115,16 +115,16 @@ pub struct NodeInfoSoftware {
 #[serde(rename_all = "camelCase", default)]
 pub struct NodeInfoUsage {
   pub users: Option<NodeInfoUsers>,
-  pub local_posts: Option<i64>,
-  pub local_comments: Option<i64>,
+  pub local_posts: Option<i32>,
+  pub local_comments: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
 pub struct NodeInfoUsers {
-  pub total: Option<i64>,
-  pub active_halfyear: Option<i64>,
-  pub active_month: Option<i64>,
+  pub total: Option<i32>,
+  pub active_halfyear: Option<i32>,
+  pub active_month: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

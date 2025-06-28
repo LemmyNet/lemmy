@@ -576,7 +576,7 @@ mod tests {
     assert_eq!(posts[0].4, TEST_COMMUNITY_ID_1);
     assert_eq!(posts[0].5, TEST_USER_ID_1);
 
-    let comments: Vec<(i32, String, String, i32, i32, Ltree, i64)> = comment::table
+    let comments: Vec<(i32, String, String, i32, i32, Ltree, i32)> = comment::table
       .select((
         comment::id,
         comment::content,

@@ -305,7 +305,7 @@ impl Post {
       .select(community::interactions_month)
       .inner_join(post::table.on(community::id.eq(post::community_id)))
       .filter(post::id.eq(post_id))
-      .first::<i64>(conn)
+      .first::<i32>(conn)
       .await?;
 
     diesel::update(post::table.find(post_id))

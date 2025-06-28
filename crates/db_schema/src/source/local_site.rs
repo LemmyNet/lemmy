@@ -80,18 +80,18 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub disallow_nsfw_content: bool,
-  pub users: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub communities: i64,
+  pub users: i32,
+  pub posts: i32,
+  pub comments: i32,
+  pub communities: i32,
   /// The number of users with any activity in the last day.
-  pub users_active_day: i64,
+  pub users_active_day: i32,
   /// The number of users with any activity in the last week.
-  pub users_active_week: i64,
+  pub users_active_week: i32,
   /// The number of users with any activity in the last month.
-  pub users_active_month: i64,
+  pub users_active_month: i32,
   /// The number of users with any activity in the last half year.
-  pub users_active_half_year: i64,
+  pub users_active_half_year: i32,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
   pub suggested_communities: Option<MultiCommunityId>,
