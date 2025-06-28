@@ -108,7 +108,6 @@ DELETE FROM post_aggregates
 WHERE published > now() - interval '1 month';
 
 ALTER TABLE post
-    ALTER COLUMN instance_id SET NOT NULL,
     ALTER CONSTRAINT post_instance_id_fkey NOT DEFERRABLE;
 
 ALTER TABLE post_aggregates
@@ -195,7 +194,6 @@ ALTER TABLE community
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN interactions_month bigint NOT NULL DEFAULT 0,
-    ALTER CONSTRAINT community_instance_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
 UPDATE
     community

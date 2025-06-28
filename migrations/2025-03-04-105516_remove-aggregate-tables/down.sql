@@ -231,7 +231,7 @@ DROP INDEX idx_search_combined_score;
 
 -- move community_aggregates back into separate table
 CREATE TABLE community_aggregates (
-    community_id int PRIMARY KEY NOT NULL REFERENCES COMMunity ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    community_id int PRIMARY KEY NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     subscribers bigint NOT NULL DEFAULT 0,
     posts bigint NOT NULL DEFAULT 0,
     comments bigint NOT NULL DEFAULT 0,
@@ -278,12 +278,10 @@ ALTER TABLE community
     DROP COLUMN subscribers_local,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count,
-    DROP COLUMN interactions_month,
-    ALTER CONSTRAINT community_instance_id_fkey NOT DEFERRABLE INITIALLY IMMEDIATE;
+    DROP COLUMN interactions_month;
 
-SET CONSTRAINTS community_aggregates_community_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS community_aggregates_community_id_fkey DEFERRED;
+ALTER TABLE community
+    ALTER CONSTRAINT community_instance_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_community_aggregates_hot ON public.community_aggregates USING btree (hot_rank DESC);
 
@@ -400,6 +398,9 @@ SET CONSTRAINTS site_aggregates_site_id_fkey IMMEDIATE;
 SET CONSTRAINTS site_aggregates_site_id_fkey DEFERRED;
 
 CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USING btree ((TRUE));
+
+ALTER TABLE community_aggregates
+    ALTER CONSTRAINT community_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
 DELETE FROM history_status
 WHERE source IN ('comment_aggregates', 'post_aggregates');

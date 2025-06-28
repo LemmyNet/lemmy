@@ -62,10 +62,6 @@ SET
         unresolved_report_count,
         interactions_month);
 
-SET CONSTRAINTS community_instance_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS community_instance_id_fkey DEFERRED;
-
 ALTER TABLE community
     ALTER COLUMN instance_id_new SET NOT NULL,
     DROP COLUMN posting_restricted_to_mods,
@@ -129,7 +125,7 @@ ALTER TABLE community RENAME COLUMN interactions_month_new TO interactions_month
 ALTER TABLE community
     ADD CONSTRAINT community_featured_url_key UNIQUE (featured_url),
     ADD CONSTRAINT community_moderators_url_key UNIQUE (moderators_url),
-    ADD CONSTRAINT community_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT community_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- same changes as up.sql, but the other way round
 UPDATE
