@@ -254,22 +254,6 @@ WHERE
 RETURN NULL;
 END;
 $$);
-CALL r.create_triggers ('local_user', $$
-BEGIN
-    UPDATE
-        local_site AS a
-    SET
-        users = a.users + diff.users
-    FROM (
-        SELECT
-            coalesce(sum(count_diff), 0) AS users
-        FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (local_user).accepted_application) AS diff
-WHERE
-    diff.users != 0;
-RETURN NULL;
-END;
-$$);
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
