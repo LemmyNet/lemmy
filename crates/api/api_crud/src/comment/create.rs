@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-    notification::Notification,
+    notification::{LocalUserNotification, Notification},
   },
   traits::{Crud, Likeable},
 };
@@ -146,8 +146,9 @@ pub async fn create_comment(
   // then mark the parent as read.
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
-    let person_id = local_user_view.person.id;
-    Notification::mark_read_by_comment_and_person(&mut context.pool(), parent.id, person_id)
+    let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await?;
+    let local_user_id = local_user_view.local_user.id;
+    LocalUserNotification::mark_read_by_id_and_person(&mut context.pool(), notif.id, local_user_id)
       .await?;
   }
 

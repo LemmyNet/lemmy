@@ -548,6 +548,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationTypeEnum;
+    local_user_notification (recipient_id, notification_id) {
+        notification_id -> Int4,
+        recipient_id -> Int4,
+        kind -> NotificationTypeEnum,
+        read -> Bool,
+    }
+}
+
+diesel::table! {
     login_token (token) {
         token -> Text,
         user_id -> Int4,
@@ -749,16 +760,11 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::NotificationTypeEnum;
 
     notification (id) {
         id -> Int4,
-        recipient_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
-        read -> Bool,
-        kind -> NotificationTypeEnum,
         published_at -> Timestamptz,
     }
 }
@@ -1172,6 +1178,8 @@ diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
+diesel::joinable!(local_user_notification -> local_user (recipient_id));
+diesel::joinable!(local_user_notification -> notification (notification_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban -> instance (instance_id));
@@ -1213,7 +1221,6 @@ diesel::joinable!(multi_community_entry -> multi_community (multi_community_id))
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
-diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
@@ -1285,6 +1292,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_user,
   local_user_keyword_block,
   local_user_language,
+  local_user_notification,
   login_token,
   mod_add,
   mod_add_community,

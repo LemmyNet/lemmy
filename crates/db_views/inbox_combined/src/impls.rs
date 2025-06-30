@@ -43,6 +43,7 @@ use lemmy_db_schema_file::{
     comment,
     inbox_combined,
     instance_actions,
+    local_user_notification,
     notification,
     person,
     person_actions,
@@ -71,7 +72,7 @@ impl InboxCombinedViewInternal {
     );
 
     let recipient_join = aliases::person1.on(
-      notification::recipient_id
+      local_user_notification::recipient_id
         .eq(recipient_person)
         .or(private_message::recipient_id.eq(recipient_person)),
     );
@@ -115,7 +116,7 @@ impl InboxCombinedViewInternal {
       creator_local_instance_actions_join(local_instance_id);
 
     inbox_combined::table
-      .left_join(notification::table)
+      .left_join(notification::table.left_join(local_user_notification::table))
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -147,7 +148,7 @@ impl InboxCombinedViewInternal {
 
     let recipient_person = aliases::person1.field(person::id);
 
-    let unread_filter = notification::read
+    let unread_filter = local_user_notification::read
       .eq(false)
       // If its unread, I only want the messages to me
       .or(
@@ -254,7 +255,7 @@ impl InboxCombinedQuery {
         // The recipient filter (IE only show replies to you)
         .filter(recipient_person.eq(my_person_id))
         .filter(
-          notification::read
+          local_user_notification::read
             .eq(false)
             // If its unread, I only want the messages to me
             .or(private_message::read.eq(false)),
@@ -289,9 +290,11 @@ impl InboxCombinedQuery {
       query = match type_ {
         InboxDataType::All => query,
         InboxDataType::CommentReply => {
-          query.filter(notification::kind.eq(NotificationTypes::Reply))
+          query.filter(local_user_notification::kind.eq(NotificationTypes::Reply))
         }
-        InboxDataType::Mention => query.filter(notification::kind.eq(NotificationTypes::Mention)),
+        InboxDataType::Mention => {
+          query.filter(local_user_notification::kind.eq(NotificationTypes::Mention))
+        }
         InboxDataType::PrivateMessage => {
           query.filter(inbox_combined::private_message_id.is_not_null())
         }

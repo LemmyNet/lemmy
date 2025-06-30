@@ -5,7 +5,12 @@ use lemmy_db_schema::{
     comment::Comment,
     community::{Community, CommunityActions},
     instance::InstanceActions,
-    notification::{Notification, NotificationInsertForm},
+    notification::{
+      LocalUserNotification,
+      LocalUserNotificationInsertForm,
+      Notification,
+      NotificationInsertForm,
+    },
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
@@ -116,10 +121,16 @@ async fn notify_parent_creator(
     return Ok(None);
   };
 
-  let comment_reply_form =
-    NotificationInsertForm::new_comment(user_view.person.id, comment.id, NotificationTypes::Reply);
+  let form = NotificationInsertForm::new_comment(comment.id);
 
-  Notification::create(&mut context.pool(), &comment_reply_form).await?;
+  let notif = Notification::create(&mut context.pool(), &form).await?;
+
+  let form = LocalUserNotificationInsertForm::new(
+    notif.id,
+    user_view.local_user.id,
+    NotificationTypes::Reply,
+  );
+  LocalUserNotification::create(&mut context.pool(), &form).await?;
 
   if data.do_send_email {
     send_reply_email(
@@ -216,20 +227,19 @@ async fn insert_post_or_comment_mention(
   comment_opt: Option<&Comment>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let notif = if let Some(comment) = &comment_opt {
-    NotificationInsertForm::new_comment(
-      mention_user_view.person.id,
-      comment.id,
-      NotificationTypes::Mention,
-    )
+  // TODO: dont insert the same item more than once
+  let form = if let Some(comment) = &comment_opt {
+    NotificationInsertForm::new_comment(comment.id)
   } else {
-    NotificationInsertForm::new_post(
-      mention_user_view.person.id,
-      post.id,
-      NotificationTypes::Mention,
-    )
+    NotificationInsertForm::new_post(post.id)
   };
+  let notification_id = Notification::create(&mut context.pool(), &form).await?.id;
 
-  Notification::create(&mut context.pool(), &notif).await?;
+  let form = LocalUserNotificationInsertForm {
+    notification_id,
+    recipient_id: mention_user_view.local_user.id,
+    kind: NotificationTypes::Mention,
+  };
+  LocalUserNotification::create(&mut context.pool(), &form).await?;
   Ok(())
 }
