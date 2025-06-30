@@ -346,15 +346,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    inbox_combined (id) {
-        id -> Int4,
-        published_at -> Timestamptz,
-        private_message_id -> Nullable<Int4>,
-        notification_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -550,6 +541,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::NotificationTypeEnum;
+
     local_user_notification (recipient_id, notification_id) {
         notification_id -> Int4,
         recipient_id -> Int4,
@@ -760,11 +752,11 @@ diesel::table! {
 }
 
 diesel::table! {
-
     notification (id) {
         id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        private_message_id -> Nullable<Int4>,
         published_at -> Timestamptz,
     }
 }
@@ -1164,8 +1156,6 @@ diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
-diesel::joinable!(inbox_combined -> notification (notification_id));
-diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> person (person_id));
@@ -1222,6 +1212,7 @@ diesel::joinable!(multi_community_follow -> multi_community (multi_community_id)
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
 diesel::joinable!(notification -> post (post_id));
+diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
@@ -1281,7 +1272,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   federation_queue_state,
   image_details,
-  inbox_combined,
   instance,
   instance_actions,
   language,

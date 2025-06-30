@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
+use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, NotificationView};
 use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
@@ -387,42 +387,41 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
 }
 
 fn create_reply_and_mention_items(
-  inbox: Vec<InboxCombinedView>,
+  inbox: Vec<NotificationView>,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = inbox
     .iter()
-    .map(|r| match r {
-      InboxCombinedView::Notification(v) => {
-        if let Some(comment) = &v.comment {
-          let reply_url = comment.local_url(context.settings())?;
-          build_item(
-            &v.creator,
-            &comment.published_at,
-            reply_url.as_str(),
-            &comment.content,
-            context.settings(),
-          )
-        } else {
-          let mention_url = v.post.local_url(context.settings())?;
-          build_item(
-            &v.creator,
-            &v.post.published_at,
-            mention_url.as_str(),
-            &v.post.body.clone().unwrap_or_default(),
-            context.settings(),
-          )
-        }
-      }
-      InboxCombinedView::PrivateMessage(v) => {
+    .map(|v| {
+      if let Some(comment) = &v.comment {
+        let reply_url = comment.local_url(context.settings())?;
+        build_item(
+          &v.creator,
+          &comment.published_at,
+          reply_url.as_str(),
+          &comment.content,
+          context.settings(),
+        )
+      } else if let Some(pm) = &v.private_message {
         let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
         build_item(
           &v.creator,
-          &v.private_message.published_at,
+          &pm.published_at,
           &inbox_url,
-          &v.private_message.content,
+          &pm.content,
           context.settings(),
         )
+      } else if let Some(post) = &v.post {
+        let mention_url = post.local_url(context.settings())?;
+        build_item(
+          &v.creator,
+          &post.published_at,
+          mention_url.as_str(),
+          &post.body.clone().unwrap_or_default(),
+          context.settings(),
+        )
+      } else {
+        todo!()
       }
     })
     .collect::<LemmyResult<Vec<Item>>>()?;

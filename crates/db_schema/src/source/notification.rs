@@ -1,21 +1,27 @@
-use crate::newtypes::{CommentId, LocalUserId, NotificationId, PostId};
+use crate::newtypes::{CommentId, LocalUserId, NotificationId, PostId, PrivateMessageId};
 use chrono::{DateTime, Utc};
+use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::enums::NotificationTypes;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{local_user_notification, notification};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = notification_keys))]
 /// A person mention.
 pub struct Notification {
   pub id: NotificationId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
+  pub private_message_id: Option<PrivateMessageId>,
   pub published_at: DateTime<Utc>,
 }
 
@@ -24,6 +30,7 @@ pub struct Notification {
 pub struct NotificationInsertForm {
   pub comment_id: Option<CommentId>,
   pub post_id: Option<PostId>,
+  pub private_message_id: Option<PrivateMessageId>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -52,12 +59,21 @@ impl NotificationInsertForm {
     Self {
       post_id: Some(post_id),
       comment_id: None,
+      private_message_id: None,
     }
   }
   pub fn new_comment(comment_id: CommentId) -> Self {
     Self {
-      comment_id: Some(comment_id),
       post_id: None,
+      comment_id: Some(comment_id),
+      private_message_id: None,
+    }
+  }
+  pub fn new_private_message(private_message_id: PrivateMessageId) -> Self {
+    Self {
+      post_id: None,
+      comment_id: None,
+      private_message_id: Some(private_message_id),
     }
   }
 }

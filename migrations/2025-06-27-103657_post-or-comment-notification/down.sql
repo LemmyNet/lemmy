@@ -51,7 +51,7 @@ CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined USING btree (rev
 
 CREATE INDEX idx_inbox_combined_published ON inbox_combined USING btree (published_at DESC, id DESC);
 
-drop table local_user_notification;
+DROP TABLE local_user_notification;
 
 DROP TABLE notification;
 

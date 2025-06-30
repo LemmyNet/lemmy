@@ -1,12 +1,11 @@
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
   source::{
-    combined::inbox::InboxCombined,
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
-    notification::Notification,
+    notification::{LocalUserNotification, Notification},
     person::{Person, PersonActions},
     post::{Post, PostActions},
     private_message::PrivateMessage,
@@ -14,7 +13,6 @@ use lemmy_db_schema::{
   },
   InboxDataType,
 };
-use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -41,11 +39,11 @@ pub mod impls;
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined inbox view
-pub struct InboxCombinedViewInternal {
+pub struct NotificationView {
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub inbox_combined: InboxCombined,
+  pub notification: Notification,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub notification: Option<Notification>,
+  pub local_user_notification: LocalUserNotification,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -55,14 +53,14 @@ pub struct InboxCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub item_creator: Person,
+  pub creator: Person,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Person1AliasAllColumnsTuple,
       select_expression = person1_select()
     )
   )]
-  pub item_recipient: Person,
+  pub recipient: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -113,41 +111,6 @@ pub struct InboxCombinedViewInternal {
   pub creator_banned_from_community: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
-pub enum InboxCombinedView {
-  Notification(NotificationView),
-  PrivateMessage(PrivateMessageView),
-}
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person comment mention view.
-pub struct NotificationView {
-  pub notification: Notification,
-  pub recipient: Person,
-  pub comment: Option<Comment>,
-  pub creator: Person,
-  pub post: Post,
-  pub community: Community,
-  pub community_actions: Option<CommunityActions>,
-  pub comment_actions: Option<CommentActions>,
-  pub person_actions: Option<PersonActions>,
-  pub instance_actions: Option<InstanceActions>,
-  pub post_tags: TagsView,
-  pub creator_is_admin: bool,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -166,7 +129,7 @@ pub struct ListInbox {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListInboxResponse {
-  pub inbox: Vec<InboxCombinedView>,
+  pub inbox: Vec<NotificationView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,

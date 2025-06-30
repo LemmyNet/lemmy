@@ -1,4 +1,4 @@
-use crate::{InboxCombinedView, InboxCombinedViewInternal, NotificationView};
+use crate::NotificationView;
 use diesel::{
   dsl::not,
   BoolExpressionMethods,
@@ -13,8 +13,8 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::{self},
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::inbox::{inbox_combined_keys as key, InboxCombined},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  source::notification::{notification_keys, Notification},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,
@@ -41,7 +41,6 @@ use lemmy_db_schema_file::{
   enums::NotificationTypes,
   schema::{
     comment,
-    inbox_combined,
     instance_actions,
     local_user_notification,
     notification,
@@ -51,10 +50,9 @@ use lemmy_db_schema_file::{
     private_message,
   },
 };
-use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl InboxCombinedViewInternal {
+impl NotificationView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
@@ -63,11 +61,7 @@ impl InboxCombinedViewInternal {
     let item_creator_join = person::table.on(
       comment::creator_id
         .eq(item_creator)
-        .or(
-          inbox_combined::notification_id
-            .is_not_null()
-            .and(post::creator_id.eq(item_creator)),
-        )
+        .or(post::creator_id.eq(item_creator))
         .or(private_message::creator_id.eq(item_creator)),
     );
 
@@ -96,7 +90,7 @@ impl InboxCombinedViewInternal {
 
     // This could be a simple join, but you need to check for deleted here
     let private_message_join = private_message::table.on(
-      inbox_combined::private_message_id
+      notification::private_message_id
         .eq(private_message::id.nullable())
         .and(not(private_message::deleted))
         .and(not(private_message::removed)),
@@ -115,8 +109,8 @@ impl InboxCombinedViewInternal {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    inbox_combined::table
-      .left_join(notification::table.left_join(local_user_notification::table))
+    notification::table
+      .inner_join(local_user_notification::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -165,7 +159,7 @@ impl InboxCombinedViewInternal {
       // Don't count replies from blocked users
       .filter(person_actions::blocked_at.is_null())
       .filter(instance_actions::blocked_at.is_null())
-      .select(count(inbox_combined::id))
+      .select(count(notification::id))
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
@@ -180,15 +174,11 @@ impl InboxCombinedViewInternal {
   }
 }
 
-impl PaginationCursorBuilder for InboxCombinedView {
-  type CursorData = InboxCombined;
+impl PaginationCursorBuilder for NotificationView {
+  type CursorData = Notification;
 
   fn to_cursor(&self) -> PaginationCursor {
-    let (prefix, id) = match &self {
-      InboxCombinedView::Notification(v) => ('N', v.notification.id.0),
-      InboxCombinedView::PrivateMessage(v) => ('M', v.private_message.id.0),
-    };
-    PaginationCursor::new_single(prefix, id)
+    PaginationCursor(self.notification.id.0.to_string())
   }
 
   async fn from_cursor(
@@ -196,21 +186,10 @@ impl PaginationCursorBuilder for InboxCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-
-    let mut query = inbox_combined::table
+    let id: i32 = cursor.0.parse()?;
+    let query = notification::table
       .select(Self::CursorData::as_select())
-      .into_boxed();
-
-    query = match prefix {
-      'N' => query.filter(inbox_combined::notification_id.eq(id)),
-      'M' => query.filter(inbox_combined::private_message_id.eq(id)),
-      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
-    };
+      .filter(notification::id.eq(id));
     let token = query.first(conn).await?;
 
     Ok(token)
@@ -222,7 +201,7 @@ pub struct InboxCombinedQuery {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub cursor_data: Option<InboxCombined>,
+  pub cursor_data: Option<Notification>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
@@ -234,14 +213,14 @@ impl InboxCombinedQuery {
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<Vec<InboxCombinedView>> {
+  ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let mut query = InboxCombinedViewInternal::joins(my_person_id, local_instance_id)
-      .select(InboxCombinedViewInternal::as_select())
+    let mut query = NotificationView::joins(my_person_id, local_instance_id)
+      .select(NotificationView::as_select())
       .into_boxed();
 
     if !self.no_limit.unwrap_or_default() {
@@ -264,16 +243,13 @@ impl InboxCombinedQuery {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others
       query = query.filter(
-        inbox_combined::notification_id
-          .is_not_null()
-          .and(recipient_person.eq(my_person_id))
-          .or(
-            inbox_combined::private_message_id.is_not_null().and(
-              recipient_person
-                .eq(my_person_id)
-                .or(item_creator.eq(my_person_id)),
-            ),
+        recipient_person.eq(my_person_id).or(
+          notification::private_message_id.is_not_null().and(
+            recipient_person
+              .eq(my_person_id)
+              .or(item_creator.eq(my_person_id)),
           ),
+        ),
       );
     }
 
@@ -296,7 +272,7 @@ impl InboxCombinedQuery {
           query.filter(local_user_notification::kind.eq(NotificationTypes::Mention))
         }
         InboxDataType::PrivateMessage => {
-          query.filter(inbox_combined::private_message_id.is_not_null())
+          query.filter(notification::private_message_id.is_not_null())
         }
       }
     }
@@ -309,68 +285,20 @@ impl InboxCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::published_at)
+    .then_order_by(notification_keys::published_at)
     // Tie breaker
-    .then_order_by(key::id);
+    .then_order_by(notification_keys::id);
 
-    let res = paginated_query
-      .load::<InboxCombinedViewInternal>(conn)
-      .await?;
+    let res = paginated_query.load::<NotificationView>(conn).await?;
 
-    // Map the query results to the enum
-    let out = res
-      .into_iter()
-      .filter_map(InternalToCombinedView::map_to_enum)
-      .collect();
-
-    Ok(out)
-  }
-}
-
-impl InternalToCombinedView for InboxCombinedViewInternal {
-  type CombinedView = InboxCombinedView;
-
-  fn map_to_enum(self) -> Option<Self::CombinedView> {
-    // Use for a short alias
-    let v = self;
-
-    if let (Some(notification), Some(post), Some(community)) =
-      (v.notification, v.post.clone(), v.community.clone())
-    {
-      Some(InboxCombinedView::Notification(NotificationView {
-        notification,
-        comment: v.comment,
-        recipient: v.item_recipient,
-        post,
-        community,
-        creator: v.item_creator,
-        community_actions: v.community_actions,
-        comment_actions: v.comment_actions,
-        person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_is_moderator: v.creator_is_moderator,
-      }))
-    } else if let Some(private_message) = v.private_message {
-      Some(InboxCombinedView::PrivateMessage(PrivateMessageView {
-        private_message,
-        creator: v.item_creator,
-        recipient: v.item_recipient,
-      }))
-    } else {
-      None
-    }
+    Ok(res)
   }
 }
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{impls::InboxCombinedQuery, InboxCombinedView, InboxCombinedViewInternal};
+  use crate::{impls::InboxCombinedQuery, NotificationView};
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -393,7 +321,6 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::NotificationTypes;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -510,13 +437,9 @@ mod tests {
     );
     LocalUserNotification::create(pool, &form).await?;
 
-    let timmy_unread_replies = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.timmy.person.id,
-      data.instance.id,
-      true,
-    )
-    .await?;
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
+        .await?;
     assert_eq!(1, timmy_unread_replies);
 
     let timmy_inbox = InboxCombinedQuery::default()
@@ -524,27 +447,29 @@ mod tests {
       .await?;
     assert_length!(1, timmy_inbox);
 
-    if let InboxCombinedView::Notification(v) = &timmy_inbox[0] {
-      assert_eq!(Some(data.sara_comment.id), v.notification.comment_id);
-      assert_eq!(data.sara_comment.id, v.comment.as_ref().unwrap().id);
-      assert_eq!(data.timmy_post.id, v.post.id);
-      assert_eq!(data.sara.person.id, v.creator.id);
-      assert_eq!(data.timmy.person.id, v.recipient.id);
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(
+      Some(data.sara_comment.id),
+      timmy_inbox[0].notification.comment_id
+    );
+    assert_eq!(
+      data.sara_comment.id,
+      timmy_inbox[0].comment.as_ref().unwrap().id
+    );
+    assert_eq!(data.timmy_post.id, timmy_inbox[0].post.as_ref().unwrap().id);
+    assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
+    assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient.id);
+    assert_eq!(
+      NotificationTypes::Mention,
+      timmy_inbox[0].local_user_notification.kind
+    );
 
     // Mark it as read
     LocalUserNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.local_user.id)
       .await?;
 
-    let timmy_unread_replies = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.timmy.person.id,
-      data.instance.id,
-      true,
-    )
-    .await?;
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
+        .await?;
     assert_eq!(0, timmy_unread_replies);
 
     let timmy_inbox_unread = InboxCombinedQuery {
@@ -589,13 +514,8 @@ mod tests {
     LocalUserNotification::create(pool, &form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let sara_unread_mentions = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.sara.person.id,
-      data.instance.id,
-      true,
-    )
-    .await?;
+    let sara_unread_mentions =
+      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, true).await?;
     assert_eq!(2, sara_unread_mentions);
 
     let sara_inbox = InboxCombinedQuery::default()
@@ -603,36 +523,43 @@ mod tests {
       .await?;
     assert_length!(2, sara_inbox);
 
-    if let InboxCombinedView::Notification(v) = &sara_inbox[0] {
-      assert_eq!(Some(data.jessica_post.id), v.notification.post_id);
-      assert_eq!(data.jessica_post.id, v.post.id);
-      assert_eq!(data.jessica.id, v.creator.id);
-      assert_eq!(data.sara.person.id, v.recipient.id);
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(
+      Some(data.jessica_post.id),
+      sara_inbox[0].notification.post_id
+    );
+    assert_eq!(
+      data.jessica_post.id,
+      sara_inbox[0].post.as_ref().unwrap().id
+    );
+    assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
+    assert_eq!(data.sara.person.id, sara_inbox[0].recipient.id);
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox[0].local_user_notification.kind
+    );
 
-    if let InboxCombinedView::Notification(v) = &sara_inbox[1] {
-      assert_eq!(Some(data.timmy_comment.id), v.notification.comment_id);
-      assert_eq!(data.timmy_comment.id, v.comment.as_ref().unwrap().id);
-      assert_eq!(data.timmy_post.id, v.post.id);
-      assert_eq!(data.timmy.person.id, v.creator.id);
-      assert_eq!(data.sara.person.id, v.recipient.id);
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(
+      Some(data.timmy_comment.id),
+      sara_inbox[1].notification.comment_id
+    );
+    assert_eq!(
+      data.timmy_comment.id,
+      sara_inbox[1].comment.as_ref().unwrap().id
+    );
+    assert_eq!(data.timmy_post.id, sara_inbox[1].post.as_ref().unwrap().id);
+    assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
+    assert_eq!(data.sara.person.id, sara_inbox[1].recipient.id);
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox[1].local_user_notification.kind
+    );
 
     // Sara blocks timmy, and make sure these counts are now empty
     let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
     PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
-    let sara_unread_mentions_after_block = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.sara.person.id,
-      data.instance.id,
-      true,
-    )
-    .await?;
+    let sara_unread_mentions_after_block =
+      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, true).await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
     let sara_inbox_after_block = InboxCombinedQuery::default()
@@ -641,10 +568,10 @@ mod tests {
     assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
-    assert!(matches!(
-      sara_inbox_after_block[0],
-      InboxCombinedView::Notification(_)
-    ));
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox_after_block[0].local_user_notification.kind
+    );
 
     // Unblock user so we can reuse the same person
     PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
@@ -658,10 +585,12 @@ mod tests {
     .await?;
     assert_length!(1, sara_inbox_post_mentions_only);
 
-    assert!(matches!(
-      sara_inbox_post_mentions_only[0],
-      InboxCombinedView::Notification(_)
-    ));
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox_post_mentions_only[0]
+        .local_user_notification
+        .kind
+    );
 
     // Turn Jessica into a bot account
     let person_update_form = PersonUpdateForm {
@@ -671,13 +600,9 @@ mod tests {
     Person::update(pool, data.jessica.id, &person_update_form).await?;
 
     // Make sure sara hides bots
-    let sara_unread_mentions_after_hide_bots = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.sara.person.id,
-      data.instance.id,
-      false,
-    )
-    .await?;
+    let sara_unread_mentions_after_hide_bots =
+      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, false)
+        .await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
     let sara_inbox_after_hide_bots = InboxCombinedQuery::default()
@@ -686,22 +611,18 @@ mod tests {
     assert_length!(1, sara_inbox_after_hide_bots);
 
     // Make sure the post mention which jessica made is the hidden one
-    assert!(matches!(
-      sara_inbox_after_hide_bots[0],
-      InboxCombinedView::Notification(_)
-    ));
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox_after_hide_bots[0].local_user_notification.kind
+    );
 
     // Mark them all as read
     LocalUserNotification::mark_all_as_read(pool, data.sara.local_user.id).await?;
 
     // Make sure none come back
-    let sara_unread_mentions = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.sara.person.id,
-      data.instance.id,
-      false,
-    )
-    .await?;
+    let sara_unread_mentions =
+      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, false)
+        .await?;
     assert_eq!(0, sara_unread_mentions);
 
     let sara_inbox_unread = InboxCombinedQuery {
@@ -717,20 +638,11 @@ mod tests {
     Ok(())
   }
 
-  /// A helper function to coerce to a private message type for tests
-  fn map_to_pm(inbox: &[InboxCombinedView]) -> Vec<PrivateMessageView> {
+  fn filter_pm(inbox: Vec<NotificationView>) -> Vec<NotificationView> {
     inbox
-      .iter()
-      // Filter map to collect private messages
-      .filter_map(|f| {
-        if let InboxCombinedView::PrivateMessage(v) = f {
-          Some(v)
-        } else {
-          None
-        }
-      })
-      .cloned()
-      .collect::<Vec<PrivateMessageView>>()
+      .into_iter()
+      .filter(|f| f.private_message.is_some())
+      .collect::<Vec<NotificationView>>()
   }
 
   #[tokio::test]
@@ -741,8 +653,8 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, pool).await?;
 
-    let timmy_messages = map_to_pm(
-      &InboxCombinedQuery::default()
+    let timmy_messages = filter_pm(
+      InboxCombinedQuery::default()
         .list(pool, data.timmy.person.id, data.instance.id)
         .await?,
     );
@@ -756,17 +668,13 @@ mod tests {
     assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
     assert_eq!(timmy_messages[2].recipient.id, data.timmy.person.id);
 
-    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.timmy.person.id,
-      data.instance.id,
-      false,
-    )
-    .await?;
+    let timmy_unread =
+      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
+        .await?;
     assert_eq!(2, timmy_unread);
 
-    let timmy_unread_messages = map_to_pm(
-      &InboxCombinedQuery {
+    let timmy_unread_messages = filter_pm(
+      InboxCombinedQuery {
         unread_only: Some(true),
         ..Default::default()
       }
@@ -808,8 +716,8 @@ mod tests {
       )
     );
 
-    let timmy_messages = map_to_pm(
-      &InboxCombinedQuery {
+    let timmy_messages = filter_pm(
+      InboxCombinedQuery {
         unread_only: Some(true),
         ..Default::default()
       }
@@ -819,13 +727,9 @@ mod tests {
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.timmy.person.id,
-      data.instance.id,
-      false,
-    )
-    .await?;
+    let timmy_unread =
+      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
+        .await?;
     assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
@@ -856,8 +760,8 @@ mod tests {
       )
     );
 
-    let timmy_messages = map_to_pm(
-      &InboxCombinedQuery {
+    let timmy_messages = filter_pm(
+      InboxCombinedQuery {
         unread_only: Some(true),
         ..Default::default()
       }
@@ -867,13 +771,9 @@ mod tests {
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
-      pool,
-      data.timmy.person.id,
-      data.instance.id,
-      false,
-    )
-    .await?;
+    let timmy_unread =
+      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
+        .await?;
     assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;
