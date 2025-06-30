@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{NotificationId, PersonId},
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -38,11 +38,18 @@ impl NotifyData<'_> {
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator.
   pub async fn send(self, context: &LemmyContext) -> LemmyResult<()> {
-    let parent_creator = notify_parent_creator(&self, context).await?;
+    let form = if let Some(comment) = self.comment_opt {
+      NotificationInsertForm::new_comment(comment.id)
+    } else {
+      NotificationInsertForm::new_post(self.post.id)
+    };
+    let notif = Notification::create(&mut context.pool(), &form).await?;
 
-    send_local_mentions(&self, parent_creator, context).await?;
+    notify_parent_creator(&self, notif.id, context).await?;
 
-    send_subscriber_notifications(&self, context).await?;
+    notify_mentions(&self, notif.id, context).await?;
+
+    notify_subscribers(&self, notif.id, context).await?;
 
     Ok(())
   }
@@ -88,10 +95,11 @@ impl NotifyData<'_> {
 
 async fn notify_parent_creator(
   data: &NotifyData<'_>,
+  notif_id: NotificationId,
   context: &LemmyContext,
-) -> LemmyResult<Option<PersonId>> {
+) -> LemmyResult<()> {
   let Some(comment) = data.comment_opt.as_ref() else {
-    return Ok(None);
+    return Ok(());
   };
 
   // Get the parent data
@@ -105,7 +113,7 @@ async fn notify_parent_creator(
 
   // Dont send notification to yourself
   if parent_creator_id == data.creator.id {
-    return Ok(None);
+    return Ok(());
   }
 
   let is_blocked = data
@@ -113,20 +121,16 @@ async fn notify_parent_creator(
     .await
     .is_err();
   if is_blocked {
-    return Ok(None);
+    return Ok(());
   }
 
   let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await
   else {
-    return Ok(None);
+    return Ok(());
   };
 
-  let form = NotificationInsertForm::new_comment(comment.id);
-
-  let notif = Notification::create(&mut context.pool(), &form).await?;
-
   let form = LocalUserNotificationInsertForm::new(
-    notif.id,
+    notif_id,
     user_view.local_user.id,
     NotificationTypes::Reply,
   );
@@ -143,12 +147,12 @@ async fn notify_parent_creator(
     )
     .await?;
   }
-  Ok(Some(user_view.person.id))
+  Ok(())
 }
 
-async fn send_local_mentions(
+async fn notify_mentions(
   data: &NotifyData<'_>,
-  parent_creator_id: Option<PersonId>,
+  notif_id: NotificationId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let mentions = scrape_text_for_mentions(&data.content())
@@ -161,11 +165,6 @@ async fn send_local_mentions(
       continue;
     };
 
-    // Dont send any mention notification to parent creator nor to yourself
-    if Some(user_view.person.id) == parent_creator_id || user_view.person.id == data.creator.id {
-      continue;
-    }
-
     let is_blocked = data
       .check_notifications_allowed(user_view.person.id, context)
       .await
@@ -174,7 +173,12 @@ async fn send_local_mentions(
       continue;
     };
 
-    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt, context).await?;
+    let form = LocalUserNotificationInsertForm::new(
+      notif_id,
+      user_view.local_user.id,
+      NotificationTypes::Mention,
+    );
+    LocalUserNotification::create(&mut context.pool(), &form).await?;
 
     // Send an email to those local users that have notifications on
     if data.do_send_email {
@@ -191,8 +195,9 @@ async fn send_local_mentions(
   Ok(())
 }
 
-async fn send_subscriber_notifications(
+async fn notify_subscribers(
   data: &NotifyData<'_>,
+  notif_id: NotificationId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
@@ -204,7 +209,12 @@ async fn send_subscriber_notifications(
 
     // TODO: would be easier if we use the same db table and email template here, eg with
     // `type` param
-    insert_post_or_comment_mention(&user_view, &data.post, data.comment_opt, context).await?;
+    let form = LocalUserNotificationInsertForm::new(
+      notif_id,
+      user_view.local_user.id,
+      NotificationTypes::Mention,
+    );
+    LocalUserNotification::create(&mut context.pool(), &form).await?;
 
     if data.do_send_email {
       send_mention_email(
@@ -217,29 +227,5 @@ async fn send_subscriber_notifications(
       .await;
     }
   }
-  Ok(())
-}
-
-/// Make the correct reply form depending on whether its a post or comment mention
-async fn insert_post_or_comment_mention(
-  mention_user_view: &LocalUserView,
-  post: &Post,
-  comment_opt: Option<&Comment>,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  // TODO: dont insert the same item more than once
-  let form = if let Some(comment) = &comment_opt {
-    NotificationInsertForm::new_comment(comment.id)
-  } else {
-    NotificationInsertForm::new_post(post.id)
-  };
-  let notification_id = Notification::create(&mut context.pool(), &form).await?.id;
-
-  let form = LocalUserNotificationInsertForm {
-    notification_id,
-    recipient_id: mention_user_view.local_user.id,
-    kind: NotificationTypes::Mention,
-  };
-  LocalUserNotification::create(&mut context.pool(), &form).await?;
   Ok(())
 }

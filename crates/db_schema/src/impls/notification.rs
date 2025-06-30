@@ -44,14 +44,12 @@ impl LocalUserNotification {
   pub async fn create(
     pool: &mut DbPool<'_>,
     form: &LocalUserNotificationInsertForm,
-  ) -> LemmyResult<Self> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    // since the return here isnt utilized, we dont need to do an update
-    // but get_result doesn't return the existing row here
     insert_into(local_user_notification::table)
       .values(form)
       .on_conflict_do_nothing()
-      .get_result::<Self>(conn)
+      .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreateNotification)
   }

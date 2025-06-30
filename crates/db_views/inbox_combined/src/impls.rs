@@ -377,7 +377,12 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::{Instance, InstanceActions, InstanceBlockForm},
-      notification::{Notification, NotificationInsertForm},
+      notification::{
+        LocalUserNotification,
+        LocalUserNotificationInsertForm,
+        Notification,
+        NotificationInsertForm,
+      },
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
@@ -387,6 +392,7 @@ mod tests {
     InboxDataType,
   };
   use lemmy_db_schema_file::enums::NotificationTypes;
+  use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -394,8 +400,8 @@ mod tests {
 
   struct Data {
     instance: Instance,
-    timmy: Person,
-    sara: Person,
+    timmy: LocalUserView,
+    sara: LocalUserView,
     jessica: Person,
     timmy_post: Post,
     jessica_post: Post,
@@ -406,11 +412,9 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
-    let timmy = Person::create(pool, &timmy_form).await?;
+    let timmy = LocalUserView::create_test_user(pool, "timmy_pcv", "", false).await?;
 
-    let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
-    let sara = Person::create(pool, &sara_form).await?;
+    let sara = LocalUserView::create_test_user(pool, "sara_pcv", "", false).await?;
 
     let jessica_form = PersonInsertForm::test_form(instance.id, "jessica_mrv");
     let jessica = Person::create(pool, &jessica_form).await?;
@@ -423,7 +427,8 @@ mod tests {
     );
     let community = Community::create(pool, &community_form).await?;
 
-    let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
+    let timmy_post_form =
+      PostInsertForm::new("timmy post prv".into(), timmy.person.id, community.id);
     let timmy_post = Post::create(pool, &timmy_post_form).await?;
 
     let jessica_post_form =
@@ -431,11 +436,11 @@ mod tests {
     let jessica_post = Post::create(pool, &jessica_post_form).await?;
 
     let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+      CommentInsertForm::new(timmy.person.id, timmy_post.id, "timmy comment prv".into());
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
     let sara_comment_form =
-      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+      CommentInsertForm::new(sara.person.id, timmy_post.id, "sara comment prv".into());
     let sara_comment = Comment::create(pool, &sara_comment_form, Some(&timmy_comment.path)).await?;
 
     Ok(Data {
@@ -451,20 +456,32 @@ mod tests {
   }
 
   async fn setup_private_messages(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let sara_timmy_message_form =
-      PrivateMessageInsertForm::new(data.sara.id, data.timmy.id, "sara to timmy".into());
+    let sara_timmy_message_form = PrivateMessageInsertForm::new(
+      data.sara.person.id,
+      data.timmy.person.id,
+      "sara to timmy".into(),
+    );
     PrivateMessage::create(pool, &sara_timmy_message_form).await?;
 
-    let sara_jessica_message_form =
-      PrivateMessageInsertForm::new(data.sara.id, data.jessica.id, "sara to jessica".into());
+    let sara_jessica_message_form = PrivateMessageInsertForm::new(
+      data.sara.person.id,
+      data.jessica.id,
+      "sara to jessica".into(),
+    );
     PrivateMessage::create(pool, &sara_jessica_message_form).await?;
 
-    let timmy_sara_message_form =
-      PrivateMessageInsertForm::new(data.timmy.id, data.sara.id, "timmy to sara".into());
+    let timmy_sara_message_form = PrivateMessageInsertForm::new(
+      data.timmy.person.id,
+      data.sara.person.id,
+      "timmy to sara".into(),
+    );
     PrivateMessage::create(pool, &timmy_sara_message_form).await?;
 
-    let jessica_timmy_message_form =
-      PrivateMessageInsertForm::new(data.jessica.id, data.timmy.id, "jessica to timmy".into());
+    let jessica_timmy_message_form = PrivateMessageInsertForm::new(
+      data.jessica.id,
+      data.timmy.person.id,
+      "jessica to timmy".into(),
+    );
     PrivateMessage::create(pool, &jessica_timmy_message_form).await?;
 
     Ok(())
@@ -484,20 +501,26 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Sara replied to timmys comment, but lets create the row now
-    let form = NotificationInsertForm::new_comment(
-      data.timmy.id,
-      data.sara_comment.id,
+    let form = NotificationInsertForm::new_comment(data.sara_comment.id);
+    let reply = Notification::create(pool, &form).await?;
+    let form = LocalUserNotificationInsertForm::new(
+      reply.id,
+      data.timmy.local_user.id,
       NotificationTypes::Reply,
     );
-    let reply = Notification::create(pool, &form).await?;
+    LocalUserNotification::create(pool, &form).await?;
 
-    let timmy_unread_replies =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
-        .await?;
+    let timmy_unread_replies = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.timmy.person.id,
+      data.instance.id,
+      true,
+    )
+    .await?;
     assert_eq!(1, timmy_unread_replies);
 
     let timmy_inbox = InboxCombinedQuery::default()
-      .list(pool, data.timmy.id, data.instance.id)
+      .list(pool, data.timmy.person.id, data.instance.id)
       .await?;
     assert_length!(1, timmy_inbox);
 
@@ -505,25 +528,30 @@ mod tests {
       assert_eq!(Some(data.sara_comment.id), v.notification.comment_id);
       assert_eq!(data.sara_comment.id, v.comment.as_ref().unwrap().id);
       assert_eq!(data.timmy_post.id, v.post.id);
-      assert_eq!(data.sara.id, v.creator.id);
-      assert_eq!(data.timmy.id, v.recipient.id);
+      assert_eq!(data.sara.person.id, v.creator.id);
+      assert_eq!(data.timmy.person.id, v.recipient.id);
     } else {
       panic!("wrong type");
     }
 
     // Mark it as read
-    Notification::mark_read_by_id_and_person(pool, reply.id, data.timmy.id).await?;
+    LocalUserNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.local_user.id)
+      .await?;
 
-    let timmy_unread_replies =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, true)
-        .await?;
+    let timmy_unread_replies = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.timmy.person.id,
+      data.instance.id,
+      true,
+    )
+    .await?;
     assert_eq!(0, timmy_unread_replies);
 
     let timmy_inbox_unread = InboxCombinedQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.timmy.id, data.instance.id)
+    .list(pool, data.timmy.person.id, data.instance.id)
     .await?;
     assert_length!(0, timmy_inbox_unread);
 
@@ -540,29 +568,38 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
-    let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
-      data.sara.id,
-      data.timmy_comment.id,
+    let timmy_mention_sara_comment_form =
+      NotificationInsertForm::new_comment(data.timmy_comment.id);
+    let notif = Notification::create(pool, &timmy_mention_sara_comment_form).await?;
+    let form = LocalUserNotificationInsertForm::new(
+      notif.id,
+      data.sara.local_user.id,
       NotificationTypes::Mention,
     );
-    Notification::create(pool, &timmy_mention_sara_comment_form).await?;
+    LocalUserNotification::create(pool, &form).await?;
 
     // Jessica mentions sara in a post
-    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
-      data.sara.id,
-      data.jessica_post.id,
+    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(data.jessica_post.id);
+    let notif = Notification::create(pool, &jessica_mention_sara_post_form).await?;
+    let form = LocalUserNotificationInsertForm::new(
+      notif.id,
+      data.sara.local_user.id,
       NotificationTypes::Mention,
     );
-    Notification::create(pool, &jessica_mention_sara_post_form).await?;
+    LocalUserNotification::create(pool, &form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let sara_unread_mentions =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, true)
-        .await?;
+    let sara_unread_mentions = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.sara.person.id,
+      data.instance.id,
+      true,
+    )
+    .await?;
     assert_eq!(2, sara_unread_mentions);
 
     let sara_inbox = InboxCombinedQuery::default()
-      .list(pool, data.sara.id, data.instance.id)
+      .list(pool, data.sara.person.id, data.instance.id)
       .await?;
     assert_length!(2, sara_inbox);
 
@@ -570,7 +607,7 @@ mod tests {
       assert_eq!(Some(data.jessica_post.id), v.notification.post_id);
       assert_eq!(data.jessica_post.id, v.post.id);
       assert_eq!(data.jessica.id, v.creator.id);
-      assert_eq!(data.sara.id, v.recipient.id);
+      assert_eq!(data.sara.person.id, v.recipient.id);
     } else {
       panic!("wrong type");
     }
@@ -579,23 +616,27 @@ mod tests {
       assert_eq!(Some(data.timmy_comment.id), v.notification.comment_id);
       assert_eq!(data.timmy_comment.id, v.comment.as_ref().unwrap().id);
       assert_eq!(data.timmy_post.id, v.post.id);
-      assert_eq!(data.timmy.id, v.creator.id);
-      assert_eq!(data.sara.id, v.recipient.id);
+      assert_eq!(data.timmy.person.id, v.creator.id);
+      assert_eq!(data.sara.person.id, v.recipient.id);
     } else {
       panic!("wrong type");
     }
 
     // Sara blocks timmy, and make sure these counts are now empty
-    let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.id, data.timmy.id);
+    let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
     PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
-    let sara_unread_mentions_after_block =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, true)
-        .await?;
+    let sara_unread_mentions_after_block = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.sara.person.id,
+      data.instance.id,
+      true,
+    )
+    .await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
     let sara_inbox_after_block = InboxCombinedQuery::default()
-      .list(pool, data.sara.id, data.instance.id)
+      .list(pool, data.sara.person.id, data.instance.id)
       .await?;
     assert_length!(1, sara_inbox_after_block);
 
@@ -613,7 +654,7 @@ mod tests {
       type_: Some(InboxDataType::Mention),
       ..Default::default()
     }
-    .list(pool, data.sara.id, data.instance.id)
+    .list(pool, data.sara.person.id, data.instance.id)
     .await?;
     assert_length!(1, sara_inbox_post_mentions_only);
 
@@ -630,13 +671,17 @@ mod tests {
     Person::update(pool, data.jessica.id, &person_update_form).await?;
 
     // Make sure sara hides bots
-    let sara_unread_mentions_after_hide_bots =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, false)
-        .await?;
+    let sara_unread_mentions_after_hide_bots = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.sara.person.id,
+      data.instance.id,
+      false,
+    )
+    .await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
     let sara_inbox_after_hide_bots = InboxCombinedQuery::default()
-      .list(pool, data.sara.id, data.instance.id)
+      .list(pool, data.sara.person.id, data.instance.id)
       .await?;
     assert_length!(1, sara_inbox_after_hide_bots);
 
@@ -647,19 +692,23 @@ mod tests {
     ));
 
     // Mark them all as read
-    Notification::mark_all_as_read(pool, data.sara.id).await?;
+    LocalUserNotification::mark_all_as_read(pool, data.sara.local_user.id).await?;
 
     // Make sure none come back
-    let sara_unread_mentions =
-      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, data.instance.id, false)
-        .await?;
+    let sara_unread_mentions = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.sara.person.id,
+      data.instance.id,
+      false,
+    )
+    .await?;
     assert_eq!(0, sara_unread_mentions);
 
     let sara_inbox_unread = InboxCombinedQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.sara.id, data.instance.id)
+    .list(pool, data.sara.person.id, data.instance.id)
     .await?;
     assert_length!(0, sara_inbox_unread);
 
@@ -694,22 +743,26 @@ mod tests {
 
     let timmy_messages = map_to_pm(
       &InboxCombinedQuery::default()
-        .list(pool, data.timmy.id, data.instance.id)
+        .list(pool, data.timmy.person.id, data.instance.id)
         .await?,
     );
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
     assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
-    assert_eq!(timmy_messages[0].recipient.id, data.timmy.id);
-    assert_eq!(timmy_messages[1].creator.id, data.timmy.id);
-    assert_eq!(timmy_messages[1].recipient.id, data.sara.id);
-    assert_eq!(timmy_messages[2].creator.id, data.sara.id);
-    assert_eq!(timmy_messages[2].recipient.id, data.timmy.id);
+    assert_eq!(timmy_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(timmy_messages[1].creator.id, data.timmy.person.id);
+    assert_eq!(timmy_messages[1].recipient.id, data.sara.person.id);
+    assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
+    assert_eq!(timmy_messages[2].recipient.id, data.timmy.person.id);
 
-    let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.timmy.person.id,
+      data.instance.id,
+      false,
+    )
+    .await?;
     assert_eq!(2, timmy_unread);
 
     let timmy_unread_messages = map_to_pm(
@@ -717,16 +770,16 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id, data.instance.id)
+      .list(pool, data.timmy.person.id, data.instance.id)
       .await?,
     );
 
     // The unread hides timmy's sent messages
     assert_length!(2, &timmy_unread_messages);
     assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
-    assert_eq!(timmy_unread_messages[0].recipient.id, data.timmy.id);
-    assert_eq!(timmy_unread_messages[1].creator.id, data.sara.id);
-    assert_eq!(timmy_unread_messages[1].recipient.id, data.timmy.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, data.sara.person.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, data.timmy.person.id);
 
     cleanup(data, pool).await?;
 
@@ -742,12 +795,12 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure blocks are working
-    let timmy_blocks_sara_form = PersonBlockForm::new(data.timmy.id, data.sara.id);
+    let timmy_blocks_sara_form = PersonBlockForm::new(data.timmy.person.id, data.sara.person.id);
 
     let inserted_block = PersonActions::block(pool, &timmy_blocks_sara_form).await?;
 
     assert_eq!(
-      (data.timmy.id, data.sara.id, true),
+      (data.timmy.person.id, data.sara.person.id, true),
       (
         inserted_block.person_id,
         inserted_block.target_id,
@@ -760,15 +813,19 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id, data.instance.id)
+      .list(pool, data.timmy.person.id, data.instance.id)
       .await?,
     );
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.timmy.person.id,
+      data.instance.id,
+      false,
+    )
+    .await?;
     assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
@@ -785,12 +842,13 @@ mod tests {
     setup_private_messages(&data, pool).await?;
 
     // Make sure instance_blocks are working
-    let timmy_blocks_instance_form = InstanceBlockForm::new(data.timmy.id, data.sara.instance_id);
+    let timmy_blocks_instance_form =
+      InstanceBlockForm::new(data.timmy.person.id, data.sara.person.instance_id);
 
     let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
 
     assert_eq!(
-      (data.timmy.id, data.sara.instance_id, true),
+      (data.timmy.person.id, data.sara.person.instance_id, true),
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,
@@ -803,15 +861,19 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.id, data.instance.id)
+      .list(pool, data.timmy.person.id, data.instance.id)
       .await?,
     );
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread =
-      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = InboxCombinedViewInternal::get_unread_count(
+      pool,
+      data.timmy.person.id,
+      data.instance.id,
+      false,
+    )
+    .await?;
     assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;
