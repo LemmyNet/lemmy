@@ -11,13 +11,17 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{
+    comment::Comment,
     community::Community,
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
     login_token::LoginToken,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
+    post::Post,
+    private_message::PrivateMessage,
     tagline::Tagline,
   },
 };
@@ -689,6 +693,60 @@ pub struct PluginMetadata {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum PostOrCommentOrPrivateMessage {
+  Post(Post),
+  Comment(Comment),
+  PrivateMessage(PrivateMessage),
+}
+
+/// Backup of user data. This struct should never be changed so that the data can be used as a
+/// long-term backup in case the instance goes down unexpectedly. All fields are optional to allow
+/// importing partial backups.
+///
+/// This data should not be parsed by apps/clients, but directly downloaded as a file.
+///
+/// Be careful with any changes to this struct, to avoid breaking changes which could prevent
+/// importing older backups.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct UserSettingsBackup {
+  pub display_name: Option<String>,
+  pub bio: Option<String>,
+  pub avatar: Option<Url>,
+  pub banner: Option<Url>,
+  pub matrix_id: Option<String>,
+  pub bot_account: Option<bool>,
+  // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
+  //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
+  pub settings: Option<LocalUser>,
+  #[serde(default)]
+  pub followed_communities: Vec<Url>,
+  #[serde(default)]
+  pub saved_posts: Vec<Url>,
+  #[serde(default)]
+  pub saved_comments: Vec<Url>,
+  #[serde(default)]
+  pub blocked_communities: Vec<Url>,
+  #[serde(default)]
+  pub blocked_users: Vec<Url>,
+  #[serde(default)]
+  pub blocked_instances: Vec<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Your exported data.
+pub struct ExportDataResponse {
+  pub inbox: Vec<PostOrCommentOrPrivateMessage>,
+  pub content: Vec<PostOrCommentOrPrivateMessage>,
+  pub read_posts: Vec<Url>,
+  pub liked: Vec<Url>,
+  pub moderates: Vec<Url>,
+  pub settings: UserSettingsBackup,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
