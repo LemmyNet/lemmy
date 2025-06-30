@@ -3,7 +3,7 @@ pub use lemmy_db_schema::{
   source::notification::Notification,
   InboxDataType,
 };
-pub use lemmy_db_views_inbox_combined::{
+pub use lemmy_db_views_notification::{
   api::{GetUnreadCountResponse, MarkNotificationAsRead, MarkPrivateMessageAsRead},
   ListInbox,
   ListInboxResponse,
