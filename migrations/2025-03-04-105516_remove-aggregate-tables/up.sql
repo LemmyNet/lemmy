@@ -1,3 +1,5 @@
+-- Even only selecting the last month of data, this one still took 80m.
+-- The deletes also take a long time.
 -- merge comment_aggregates into comment table
 ALTER TABLE comment
     ADD COLUMN score int NOT NULL DEFAULT 0,
