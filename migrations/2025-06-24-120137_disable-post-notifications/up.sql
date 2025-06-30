@@ -1,7 +1,7 @@
 CREATE TYPE post_notifications_mode_enum AS enum (
-    'replies_and_mentions',
-    'all_comments',
-    'mute'
+    'RepliesAndMentions',
+    'AllComments',
+    'Mute'
 );
 
 ALTER TABLE post_actions
