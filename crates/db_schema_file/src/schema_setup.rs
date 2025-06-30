@@ -179,10 +179,9 @@ pub enum Branch {
 }
 
 pub fn run(options: Options) -> LemmyResult<Branch> {
-  let db_url = SETTINGS.get_database_url();
-
   // Migrations don't support async connection, and this function doesn't need to be async
-  let mut conn = PgConnection::establish(&db_url)?;
+  let db_url_with_options = SETTINGS.get_database_url_with_options()?;
+  let mut conn = PgConnection::establish(&db_url_with_options)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks

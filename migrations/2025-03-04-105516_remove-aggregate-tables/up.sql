@@ -67,7 +67,7 @@ ALTER TABLE post
     ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN hot_rank_active double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     ADD COLUMN scaled_rank double precision NOT NULL DEFAULT 0.0001,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
@@ -109,9 +109,6 @@ WHERE
 -- Delete that data
 DELETE FROM post_aggregates
 WHERE published > now() - interval '1 month';
-
-ALTER TABLE post
-    ALTER CONSTRAINT post_instance_id_fkey NOT DEFERRABLE;
 
 ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
