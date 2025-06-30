@@ -34,6 +34,10 @@ pub mod sql_types {
   pub struct PostListingModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+  pub struct PostNotificationsModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
   pub struct PostSortTypeEnum;
 
@@ -934,6 +938,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::PostNotificationsModeEnum;
+
     post_actions (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
@@ -944,6 +951,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
+        notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }
 

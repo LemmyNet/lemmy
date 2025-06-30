@@ -21,7 +21,6 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  newtypes::PostOrCommentId,
   source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   traits::{Crud, Likeable, Readable},
   utils::diesel_url_create,
@@ -34,7 +33,6 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
-    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -169,22 +167,18 @@ pub async fn create_post(
   // They like their own post by default
   let person_id = local_user_view.person.id;
   let post_id = inserted_post.id;
-  let local_instance_id = local_user_view.person.instance_id;
   let like_form = PostLikeForm::new(post_id, person_id, 1);
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
-  // Scan the post body for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
   let do_send_email = !local_site.disable_email_notifications;
   send_local_notifs(
-    mentions,
-    PostOrCommentId::Post(inserted_post.id),
+    &inserted_post,
+    None,
     &local_user_view.person,
+    community,
     do_send_email,
     &context,
-    Some(&local_user_view),
-    local_instance_id,
   )
   .await?;
 
