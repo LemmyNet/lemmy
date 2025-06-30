@@ -103,7 +103,6 @@ CREATE TABLE post_actions (
 );
 
 -- post_like, post_read, and person_post_aggregates need history tables
-
 INSERT INTO post_actions (person_id, post_id, read)
 SELECT
     person_id,
@@ -125,7 +124,6 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
 -- Delete that data
 DELETE FROM post_read
 WHERE published > now() - interval '1 month';
-
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -150,8 +148,6 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
 -- Delete that data
 DELETE FROM person_post_aggregates
 WHERE published > now() - interval '1 month';
-
-
 
 INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT
