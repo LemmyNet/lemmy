@@ -119,7 +119,7 @@ impl Settings {
       // The equal signs need to be encoded, since the url set_query doesn't do them,
       // and postgres requires them to be %3D
       // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-      .map(|o| format!("-c {}", encode(&o)))
+      .map(|o| format!("-c {}", encode(o)))
       .collect::<Vec<String>>()
       .join(" ");
 
