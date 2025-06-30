@@ -37,7 +37,7 @@ SELECT
 FROM
     post_aggregates
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (post_id)
     DO UPDATE SET
         published = excluded.published,
@@ -55,7 +55,7 @@ SELECT
 FROM
     comment_aggregates
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (comment_id)
     DO UPDATE SET
         published = excluded.published,
@@ -72,7 +72,7 @@ SELECT
 FROM
     community_aggregates
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (community_id)
     DO UPDATE SET
         published = excluded.published,
@@ -89,7 +89,7 @@ SELECT
 FROM
     person_aggregates
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id)
     DO UPDATE SET
         published = excluded.published,

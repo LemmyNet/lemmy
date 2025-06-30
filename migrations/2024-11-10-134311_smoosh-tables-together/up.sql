@@ -52,7 +52,7 @@ SELECT
 FROM
     comment_like
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     comment_id)
     DO UPDATE SET
@@ -61,11 +61,11 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('comment_like', 'comment_actions', now() - interval '1 month');
+    VALUES ('comment_like', 'comment_actions', CURRENT_DATE - interval '1 month');
 
 -- Delete that data
 DELETE FROM comment_like
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
 -- a group (e.g. `liked IS NOT NULL` and `like_score IS NOT NULL` both work)
@@ -111,7 +111,7 @@ SELECT
 FROM
     post_read
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
@@ -119,11 +119,11 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_read', 'post_actions', now() - interval '1 month');
+    VALUES ('post_read', 'post_actions', CURRENT_DATE - interval '1 month');
 
 -- Delete that data
 DELETE FROM post_read
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -134,7 +134,7 @@ SELECT
 FROM
     person_post_aggregates
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
@@ -143,11 +143,11 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('person_post_aggregates', 'post_actions', now() - interval '1 month');
+    VALUES ('person_post_aggregates', 'post_actions', CURRENT_DATE - interval '1 month');
 
 -- Delete that data
 DELETE FROM person_post_aggregates
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT
@@ -158,7 +158,7 @@ SELECT
 FROM
     post_like
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
@@ -167,11 +167,11 @@ ON CONFLICT (person_id,
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_like', 'post_actions', now() - interval '1 month');
+    VALUES ('post_like', 'post_actions', CURRENT_DATE - interval '1 month');
 
 -- Delete that data
 DELETE FROM post_like
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 -- insert saved, hidden, read with full history
 INSERT INTO post_actions (person_id, post_id, saved)

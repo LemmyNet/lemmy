@@ -18,7 +18,7 @@ SELECT
 FROM
     post
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (post_id)
     DO UPDATE SET
         published = excluded.published;
@@ -32,7 +32,7 @@ SELECT
 FROM
     post
 WHERE
-    published > now() - interval '1 month';
+    published > CURRENT_DATE - interval '1 month';
 
 INSERT INTO person_content_combined (published, comment_id)
 SELECT
@@ -41,7 +41,7 @@ SELECT
 FROM
     comment
 WHERE
-    published > now() - interval '1 month'
+    published > CURRENT_DATE - interval '1 month'
 ON CONFLICT (comment_id)
     DO UPDATE SET
         published = excluded.published;
@@ -55,7 +55,7 @@ SELECT
 FROM
     comment
 WHERE
-    published > now() - interval '1 month';
+    published > CURRENT_DATE - interval '1 month';
 
 -- This one is special, because you use the saved date, not the ordinary published
 CREATE TABLE person_saved_combined (
@@ -81,7 +81,7 @@ FROM
 WHERE
     pa.person_id = lu.person_id
     AND pa.saved IS NOT NULL
-    AND pa.saved > now() - interval '1 month'
+    AND pa.saved > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
@@ -103,7 +103,7 @@ FROM
 WHERE
     ca.person_id = lu.person_id
     AND ca.saved IS NOT NULL
-    AND ca.saved > now() - interval '1 month'
+    AND ca.saved > CURRENT_DATE - interval '1 month'
 ON CONFLICT (person_id,
     comment_id)
     DO UPDATE SET

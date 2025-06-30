@@ -25,7 +25,7 @@ FROM
     comment_aggregates AS ca
 WHERE
     comment.id = ca.comment_id
-    AND ca.published > now() - interval '1 month';
+    AND ca.published > CURRENT_DATE - interval '1 month';
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_id)
@@ -36,11 +36,11 @@ SELECT
 FROM
     comment_aggregates
 WHERE
-    published > now() - interval '1 month';
+    published > CURRENT_DATE - interval '1 month';
 
 -- Delete that data
 DELETE FROM comment_aggregates
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 ALTER TABLE comment_aggregates
     ALTER CONSTRAINT comment_aggregates_comment_id_fkey NOT DEFERRABLE;
@@ -93,7 +93,7 @@ FROM
     post_aggregates AS pa
 WHERE
     post.id = pa.post_id
-    AND pa.published > now() - interval '1 month';
+    AND pa.published > CURRENT_DATE - interval '1 month';
 
 -- Update history status
 INSERT INTO history_status (source, dest, last_scanned_id)
@@ -104,11 +104,11 @@ SELECT
 FROM
     post_aggregates
 WHERE
-    published > now() - interval '1 month';
+    published > CURRENT_DATE - interval '1 month';
 
 -- Delete that data
 DELETE FROM post_aggregates
-WHERE published > now() - interval '1 month';
+WHERE published > CURRENT_DATE - interval '1 month';
 
 ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
