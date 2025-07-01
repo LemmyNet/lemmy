@@ -6,10 +6,10 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     instance::InstanceActions,
     notification::{
-      LocalUserNotification,
-      LocalUserNotificationInsertForm,
       Notification,
       NotificationInsertForm,
+      PersonNotification,
+      PersonNotificationInsertForm,
     },
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -108,12 +108,12 @@ pub async fn notify_private_message(
   let form = NotificationInsertForm::new_private_message(view.private_message.id);
   let notif = Notification::create(&mut context.pool(), &form).await?;
 
-  let form = LocalUserNotificationInsertForm::new(
+  let form = PersonNotificationInsertForm::new(
     notif.id,
-    local_recipient.local_user.id,
+    local_recipient.person.id,
     NotificationTypes::PrivateMessage,
   );
-  LocalUserNotification::create(&mut context.pool(), &form).await?;
+  PersonNotification::create(&mut context.pool(), &form).await?;
 
   if do_send_email {
     send_private_message_email(
@@ -163,12 +163,9 @@ async fn notify_parent_creator(
     return Ok(());
   };
 
-  let form = LocalUserNotificationInsertForm::new(
-    notif_id,
-    user_view.local_user.id,
-    NotificationTypes::Reply,
-  );
-  LocalUserNotification::create(&mut context.pool(), &form).await?;
+  let form =
+    PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Reply);
+  PersonNotification::create(&mut context.pool(), &form).await?;
 
   if data.do_send_email {
     send_reply_email(
@@ -207,12 +204,9 @@ async fn notify_mentions(
       continue;
     };
 
-    let form = LocalUserNotificationInsertForm::new(
-      notif_id,
-      user_view.local_user.id,
-      NotificationTypes::Mention,
-    );
-    LocalUserNotification::create(&mut context.pool(), &form).await?;
+    let form =
+      PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Mention);
+    PersonNotification::create(&mut context.pool(), &form).await?;
 
     // Send an email to those local users that have notifications on
     if data.do_send_email {
@@ -243,12 +237,9 @@ async fn notify_subscribers(
 
     // TODO: would be easier if we use the same db table and email template here, eg with
     // `type` param
-    let form = LocalUserNotificationInsertForm::new(
-      notif_id,
-      user_view.local_user.id,
-      NotificationTypes::Mention,
-    );
-    LocalUserNotification::create(&mut context.pool(), &form).await?;
+    let form =
+      PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Mention);
+    PersonNotification::create(&mut context.pool(), &form).await?;
 
     if data.do_send_email {
       send_mention_email(

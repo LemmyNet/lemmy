@@ -5,7 +5,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
-    notification::{LocalUserNotification, Notification},
+    notification::{Notification, PersonNotification},
     person::{Person, PersonActions},
     post::{Post, PostActions},
     private_message::PrivateMessage,
@@ -45,7 +45,7 @@ pub struct NotificationView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub notification: Notification,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub local_user_notification: LocalUserNotification,
+  pub person_notification: PersonNotification,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]

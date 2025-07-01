@@ -1,9 +1,9 @@
-use crate::newtypes::{CommentId, LocalUserId, NotificationId, PostId, PrivateMessageId};
+use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessageId};
 use chrono::{DateTime, Utc};
 use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::enums::NotificationTypes;
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{local_user_notification, notification};
+use lemmy_db_schema_file::schema::{notification, person_notification};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -35,22 +35,22 @@ pub struct NotificationInsertForm {
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(table_name = local_user_notification))]
+#[cfg_attr(feature = "full", diesel(table_name = person_notification))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct LocalUserNotification {
+pub struct PersonNotification {
   pub notification_id: NotificationId,
-  pub recipient_id: LocalUserId,
+  pub recipient_id: PersonId,
   pub kind: NotificationTypes,
   pub read: bool,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, derive_new::new))]
-#[cfg_attr(feature = "full", diesel(table_name = local_user_notification))]
-pub struct LocalUserNotificationInsertForm {
+#[cfg_attr(feature = "full", diesel(table_name = person_notification))]
+pub struct PersonNotificationInsertForm {
   pub notification_id: NotificationId,
-  pub recipient_id: LocalUserId,
+  pub recipient_id: PersonId,
   pub kind: NotificationTypes,
 }
 

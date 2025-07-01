@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-    notification::{LocalUserNotification, Notification},
+    notification::{Notification, PersonNotification},
   },
   traits::{Crud, Likeable},
 };
@@ -148,7 +148,7 @@ pub async fn create_comment(
   if let Some(parent) = parent_opt {
     let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await?;
     let local_user_id = local_user_view.local_user.id;
-    LocalUserNotification::mark_read_by_id_and_person(&mut context.pool(), notif.id, local_user_id)
+    PersonNotification::mark_read_by_id_and_person(&mut context.pool(), notif.id, local_user_id)
       .await?;
   }
 

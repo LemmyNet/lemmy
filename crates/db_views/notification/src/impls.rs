@@ -42,10 +42,10 @@ use lemmy_db_schema_file::{
   schema::{
     comment,
     instance_actions,
-    local_user_notification,
     notification,
     person,
     person_actions,
+    person_notification,
     post,
     private_message,
   },
@@ -66,7 +66,7 @@ impl NotificationView {
     );
 
     let recipient_join = aliases::person1.on(
-      local_user_notification::recipient_id
+      person_notification::recipient_id
         .eq(recipient_person)
         .or(private_message::recipient_id.eq(recipient_person)),
     );
@@ -110,7 +110,7 @@ impl NotificationView {
       creator_local_instance_actions_join(local_instance_id);
 
     notification::table
-      .inner_join(local_user_notification::table)
+      .inner_join(person_notification::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -142,7 +142,7 @@ impl NotificationView {
 
     let recipient_person = aliases::person1.field(person::id);
 
-    let unread_filter = local_user_notification::read
+    let unread_filter = person_notification::read
       .eq(false)
       // If its unread, I only want the messages to me
       .or(
@@ -234,7 +234,7 @@ impl InboxCombinedQuery {
         // The recipient filter (IE only show replies to you)
         .filter(recipient_person.eq(my_person_id))
         .filter(
-          local_user_notification::read
+          person_notification::read
             .eq(false)
             // If its unread, I only want the messages to me
             .or(private_message::read.eq(false)),
@@ -266,10 +266,10 @@ impl InboxCombinedQuery {
       query = match type_ {
         InboxDataType::All => query,
         InboxDataType::CommentReply => {
-          query.filter(local_user_notification::kind.eq(NotificationTypes::Reply))
+          query.filter(person_notification::kind.eq(NotificationTypes::Reply))
         }
         InboxDataType::Mention => {
-          query.filter(local_user_notification::kind.eq(NotificationTypes::Mention))
+          query.filter(person_notification::kind.eq(NotificationTypes::Mention))
         }
         InboxDataType::PrivateMessage => {
           query.filter(notification::private_message_id.is_not_null())
@@ -307,10 +307,10 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::{Instance, InstanceActions, InstanceBlockForm},
       notification::{
-        LocalUserNotification,
-        LocalUserNotificationInsertForm,
         Notification,
         NotificationInsertForm,
+        PersonNotification,
+        PersonNotificationInsertForm,
       },
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
@@ -431,12 +431,9 @@ mod tests {
     // Sara replied to timmys comment, but lets create the row now
     let form = NotificationInsertForm::new_comment(data.sara_comment.id);
     let reply = Notification::create(pool, &form).await?;
-    let form = LocalUserNotificationInsertForm::new(
-      reply.id,
-      data.timmy.local_user.id,
-      NotificationTypes::Reply,
-    );
-    LocalUserNotification::create(pool, &form).await?;
+    let form =
+      PersonNotificationInsertForm::new(reply.id, data.timmy.person.id, NotificationTypes::Reply);
+    PersonNotification::create(pool, &form).await?;
 
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
@@ -461,11 +458,11 @@ mod tests {
     assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient.id);
     assert_eq!(
       NotificationTypes::Mention,
-      timmy_inbox[0].local_user_notification.kind
+      timmy_inbox[0].person_notification.kind
     );
 
     // Mark it as read
-    LocalUserNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.local_user.id)
+    PersonNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.local_user.id)
       .await?;
 
     let timmy_unread_replies =
@@ -497,22 +494,19 @@ mod tests {
     let timmy_mention_sara_comment_form =
       NotificationInsertForm::new_comment(data.timmy_comment.id);
     let notif = Notification::create(pool, &timmy_mention_sara_comment_form).await?;
-    let form = LocalUserNotificationInsertForm::new(
+    let form = PersonNotificationInsertForm::new(
       notif.id,
       data.sara.local_user.id,
       NotificationTypes::Mention,
     );
-    LocalUserNotification::create(pool, &form).await?;
+    PersonNotification::create(pool, &form).await?;
 
     // Jessica mentions sara in a post
     let jessica_mention_sara_post_form = NotificationInsertForm::new_post(data.jessica_post.id);
     let notif = Notification::create(pool, &jessica_mention_sara_post_form).await?;
-    let form = LocalUserNotificationInsertForm::new(
-      notif.id,
-      data.sara.local_user.id,
-      NotificationTypes::Mention,
-    );
-    LocalUserNotification::create(pool, &form).await?;
+    let form =
+      PersonNotificationInsertForm::new(notif.id, data.sara.person.id, NotificationTypes::Mention);
+    PersonNotification::create(pool, &form).await?;
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =
@@ -536,7 +530,7 @@ mod tests {
     assert_eq!(data.sara.person.id, sara_inbox[0].recipient.id);
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox[0].local_user_notification.kind
+      sara_inbox[0].person_notification.kind
     );
 
     assert_eq!(
@@ -552,7 +546,7 @@ mod tests {
     assert_eq!(data.sara.person.id, sara_inbox[1].recipient.id);
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox[1].local_user_notification.kind
+      sara_inbox[1].person_notification.kind
     );
 
     // Sara blocks timmy, and make sure these counts are now empty
@@ -571,7 +565,7 @@ mod tests {
     // Make sure the comment mention which timmy made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_block[0].local_user_notification.kind
+      sara_inbox_after_block[0].person_notification.kind
     );
 
     // Unblock user so we can reuse the same person
@@ -588,9 +582,7 @@ mod tests {
 
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_post_mentions_only[0]
-        .local_user_notification
-        .kind
+      sara_inbox_post_mentions_only[0].person_notification.kind
     );
 
     // Turn Jessica into a bot account
@@ -614,11 +606,11 @@ mod tests {
     // Make sure the post mention which jessica made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_hide_bots[0].local_user_notification.kind
+      sara_inbox_after_hide_bots[0].person_notification.kind
     );
 
     // Mark them all as read
-    LocalUserNotification::mark_all_as_read(pool, data.sara.local_user.id).await?;
+    PersonNotification::mark_all_as_read(pool, data.sara.local_user.id).await?;
 
     // Make sure none come back
     let sara_unread_mentions =

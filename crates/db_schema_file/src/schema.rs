@@ -542,7 +542,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::NotificationTypeEnum;
 
-    local_user_notification (recipient_id, notification_id) {
+    person_notification (recipient_id, notification_id) {
         notification_id -> Int4,
         recipient_id -> Int4,
         kind -> NotificationTypeEnum,
@@ -1168,8 +1168,8 @@ diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
-diesel::joinable!(local_user_notification -> local_user (recipient_id));
-diesel::joinable!(local_user_notification -> notification (notification_id));
+diesel::joinable!(person_notification -> local_user (recipient_id));
+diesel::joinable!(person_notification -> notification (notification_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban -> instance (instance_id));
@@ -1282,7 +1282,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_user,
   local_user_keyword_block,
   local_user_language,
-  local_user_notification,
+  person_notification,
   login_token,
   mod_add,
   mod_add_community,
