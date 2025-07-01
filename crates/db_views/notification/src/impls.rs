@@ -297,6 +297,7 @@ impl InboxCombinedQuery {
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
   use crate::{impls::InboxCombinedQuery, NotificationView};
   use lemmy_db_schema::{

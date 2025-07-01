@@ -98,7 +98,6 @@ impl NotifyData<'_> {
   }
 }
 
-// TODO: call this for federated pm
 pub async fn notify_private_message(
   view: &PrivateMessageView,
   do_send_email: bool,
@@ -174,10 +173,10 @@ async fn notify_parent_creator(
   if data.do_send_email {
     send_reply_email(
       &user_view,
-      &comment,
-      &data.creator,
+      comment,
+      data.creator,
       &parent_comment,
-      &data.post,
+      data.post,
       context.settings(),
     )
     .await?;
@@ -220,7 +219,7 @@ async fn notify_mentions(
       send_mention_email(
         &user_view,
         &data.content(),
-        &data.creator,
+        data.creator,
         data.link(context)?.into(),
         context.settings(),
       )
@@ -255,7 +254,7 @@ async fn notify_subscribers(
       send_mention_email(
         &user_view,
         &data.content(),
-        &data.creator,
+        data.creator,
         data.link(context)?.into(),
         context.settings(),
       )
