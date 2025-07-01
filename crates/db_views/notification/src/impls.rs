@@ -265,14 +265,14 @@ impl InboxCombinedQuery {
     if let Some(type_) = self.type_ {
       query = match type_ {
         InboxDataType::All => query,
-        InboxDataType::CommentReply => {
+        InboxDataType::Reply => {
           query.filter(person_notification::kind.eq(NotificationTypes::Reply))
         }
         InboxDataType::Mention => {
           query.filter(person_notification::kind.eq(NotificationTypes::Mention))
         }
         InboxDataType::PrivateMessage => {
-          query.filter(notification::private_message_id.is_not_null())
+          query.filter(person_notification::kind.eq(NotificationTypes::PrivateMessage))
         }
       }
     }
@@ -438,11 +438,16 @@ mod tests {
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
         .await?;
+    // TODO: fails because the same notification gets returned twice
     assert_eq!(1, timmy_unread_replies);
 
     let timmy_inbox = InboxCombinedQuery::default()
       .list(pool, data.timmy.person.id, data.instance.id)
       .await?;
+    dbg!(&timmy_inbox
+      .iter()
+      .map(|x| (x.notification.clone(), x.person_notification.clone()))
+      .collect::<Vec<_>>());
     assert_length!(1, timmy_inbox);
 
     assert_eq!(
@@ -462,8 +467,7 @@ mod tests {
     );
 
     // Mark it as read
-    PersonNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.local_user.id)
-      .await?;
+    PersonNotification::mark_read_by_id_and_person(pool, reply.id, data.timmy.person.id).await?;
 
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
@@ -494,11 +498,8 @@ mod tests {
     let timmy_mention_sara_comment_form =
       NotificationInsertForm::new_comment(data.timmy_comment.id);
     let notif = Notification::create(pool, &timmy_mention_sara_comment_form).await?;
-    let form = PersonNotificationInsertForm::new(
-      notif.id,
-      data.sara.local_user.id,
-      NotificationTypes::Mention,
-    );
+    let form =
+      PersonNotificationInsertForm::new(notif.id, data.sara.person.id, NotificationTypes::Mention);
     PersonNotification::create(pool, &form).await?;
 
     // Jessica mentions sara in a post
@@ -572,17 +573,17 @@ mod tests {
     PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
 
     // Test the type filter
-    let sara_inbox_post_mentions_only = InboxCombinedQuery {
+    let sara_inbox_mentions_only = InboxCombinedQuery {
       type_: Some(InboxDataType::Mention),
       ..Default::default()
     }
     .list(pool, data.sara.person.id, data.instance.id)
     .await?;
-    assert_length!(1, sara_inbox_post_mentions_only);
+    assert_length!(2, sara_inbox_mentions_only);
 
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_post_mentions_only[0].person_notification.kind
+      sara_inbox_mentions_only[0].person_notification.kind
     );
 
     // Turn Jessica into a bot account
@@ -610,7 +611,7 @@ mod tests {
     );
 
     // Mark them all as read
-    PersonNotification::mark_all_as_read(pool, data.sara.local_user.id).await?;
+    PersonNotification::mark_all_as_read(pool, data.sara.person.id).await?;
 
     // Make sure none come back
     let sara_unread_mentions =

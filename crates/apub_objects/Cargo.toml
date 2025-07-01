@@ -15,6 +15,10 @@ name = "lemmy_apub_objects"
 path = "src/lib.rs"
 doctest = false
 
+[features]
+# dummy to make test.sh work
+full = []
+
 [lints]
 workspace = true
 
@@ -26,7 +30,7 @@ lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_utils = { workspace = true }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 chrono = { workspace = true }

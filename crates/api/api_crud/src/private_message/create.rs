@@ -19,7 +19,6 @@ use lemmy_db_views_private_message::{
   api::{CreatePrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
 };
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn create_private_message(
@@ -64,17 +63,12 @@ pub async fn create_private_message(
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
-  // Send email to the local recipient, if one exists
-  if view.recipient.local {
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let do_send_email = !site_view.local_site.disable_email_notifications;
-    notify_private_message(&view, do_send_email, &context).await?;
-  } else {
-    ActivityChannel::submit_activity(
-      SendActivityData::CreatePrivateMessage(view.clone()),
-      &context,
-    )?;
-  }
+  notify_private_message(&view, true, &context).await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::CreatePrivateMessage(view.clone()),
+    &context,
+  )?;
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,

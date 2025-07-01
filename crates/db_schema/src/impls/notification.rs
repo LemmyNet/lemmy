@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, LocalUserId, NotificationId},
+  newtypes::{CommentId, NotificationId, PersonId},
   source::notification::{
     Notification,
     NotificationInsertForm,
@@ -56,7 +56,7 @@ impl PersonNotification {
 
   pub async fn mark_all_as_read(
     pool: &mut DbPool<'_>,
-    for_recipient_id: LocalUserId,
+    for_recipient_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
@@ -73,7 +73,7 @@ impl PersonNotification {
   pub async fn mark_read_by_id_and_person(
     pool: &mut DbPool<'_>,
     notification_id: NotificationId,
-    for_recipient_id: LocalUserId,
+    for_recipient_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(

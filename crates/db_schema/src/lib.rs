@@ -119,7 +119,7 @@ pub enum ModlogActionType {
 /// A list of possible types for the inbox.
 pub enum InboxDataType {
   All,
-  CommentReply,
+  Reply,
   Mention,
   PrivateMessage,
 }

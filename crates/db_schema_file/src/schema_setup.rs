@@ -622,6 +622,7 @@ mod tests {
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;
 
+    // TODO: this is empty, why?
     assert_eq!(replies.len(), 2);
     assert_eq!(replies[0].0, Some(TEST_COMMENT_ID_1));
     assert_eq!(replies[0].1, TEST_USER_ID_1);

@@ -53,14 +53,12 @@ pub async fn update_private_message(
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 
-  if view.recipient.local {
-    notify_private_message(&view, false, &context).await?;
-  } else {
-    ActivityChannel::submit_activity(
-      SendActivityData::UpdatePrivateMessage(view.clone()),
-      &context,
-    )?;
-  }
+  notify_private_message(&view, false, &context).await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdatePrivateMessage(view.clone()),
+    &context,
+  )?;
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,

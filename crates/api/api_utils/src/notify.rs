@@ -19,6 +19,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::{NotificationTypes, PostNotifications};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_site::SiteView;
 use lemmy_email::notifications::{
   send_mention_email,
   send_private_message_email,
@@ -100,10 +101,14 @@ impl NotifyData<'_> {
 
 pub async fn notify_private_message(
   view: &PrivateMessageView,
-  do_send_email: bool,
+  is_create: bool,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let local_recipient = LocalUserView::read_person(&mut context.pool(), view.recipient.id).await?;
+  let Ok(local_recipient) =
+    LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
+  else {
+    return Ok(());
+  };
 
   let form = NotificationInsertForm::new_private_message(view.private_message.id);
   let notif = Notification::create(&mut context.pool(), &form).await?;
@@ -115,14 +120,17 @@ pub async fn notify_private_message(
   );
   PersonNotification::create(&mut context.pool(), &form).await?;
 
-  if do_send_email {
-    send_private_message_email(
-      &view.creator,
-      &local_recipient,
-      &view.private_message.content,
-      context.settings(),
-    )
-    .await;
+  if is_create {
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    if !site_view.local_site.disable_email_notifications {
+      send_private_message_email(
+        &view.creator,
+        &local_recipient,
+        &view.private_message.content,
+        context.settings(),
+      )
+      .await;
+    }
   }
   Ok(())
 }
