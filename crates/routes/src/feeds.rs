@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
-use lemmy_db_views_notification::{impls::InboxCombinedQuery, NotificationView};
+use lemmy_db_views_notification::{impls::NotificationQuery, NotificationView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
@@ -328,7 +328,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let inbox = InboxCombinedQuery {
+  let inbox = NotificationQuery {
     show_bot_accounts,
     ..Default::default()
   }

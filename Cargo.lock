@@ -3266,6 +3266,7 @@ dependencies = [
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
@@ -3591,13 +3592,9 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_local_user",
  "lemmy_utils",
- "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
- "tokio",
  "ts-rs",
 ]
 

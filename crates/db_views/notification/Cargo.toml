@@ -38,7 +38,3 @@ i-love-jesus = { workspace = true, optional = true }
 serde_with = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { workspace = true }
-serial_test = { workspace = true }
-tokio = { workspace = true }
-lemmy_db_views_local_user = { workspace = true, features = ["full"] }

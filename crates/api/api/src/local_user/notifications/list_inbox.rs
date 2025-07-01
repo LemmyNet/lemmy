@@ -3,7 +3,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::{
-  impls::InboxCombinedQuery,
+  impls::NotificationQuery,
   ListInbox,
   ListInboxResponse,
   NotificationView,
@@ -24,7 +24,7 @@ pub async fn list_inbox(
     None
   };
 
-  let inbox = InboxCombinedQuery {
+  let inbox = NotificationQuery {
     type_: data.type_,
     unread_only: data.unread_only,
     show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),

@@ -4,7 +4,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::impls::InboxCombinedQuery;
+use lemmy_db_views_notification::impls::NotificationQuery;
 use lemmy_db_views_person_content_combined::{
   impls::PersonContentCombinedQuery,
   PersonContentCombinedView,
@@ -46,9 +46,9 @@ pub async fn export_data(
   })
   .collect();
 
-  let inbox = InboxCombinedQuery {
+  let inbox = NotificationQuery {
     no_limit: Some(true),
-    ..InboxCombinedQuery::default()
+    ..NotificationQuery::default()
   }
   .list(pool, my_person_id, local_instance_id)
   .await?
