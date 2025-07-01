@@ -61,7 +61,7 @@ pub async fn send_community_subscribed_email(
   let content = post
     .body
     .as_ref()
-    .map(|b| markdown_to_html(&b))
+    .map(|b| markdown_to_html(b))
     .unwrap_or_default();
   send_email_to_user(
     user_view,

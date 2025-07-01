@@ -490,6 +490,7 @@ impl CommunityActions {
 
     community_actions::table
       .filter(community_actions::community_id.eq(community_id))
+      .filter(community_actions::notifications.eq(NotificationsMode::All))
       .select(community_actions::person_id)
       .get_results(conn)
       .await

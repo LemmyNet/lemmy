@@ -39,13 +39,11 @@ import {
   listInbox,
 } from "./shared";
 import {
-  CommentReplyView,
   CommentReportView,
   CommentView,
   CommunityView,
   DistinguishComment,
   LemmyError,
-  PersonCommentMentionView,
   ReportCombinedView,
   SaveUserSettings,
 } from "lemmy-js-client";
@@ -409,23 +407,24 @@ test("Reply to a comment from another instance, get notification", async () => {
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await waitUntil(
-    () => listInbox(alpha, "CommentReply"),
+    () => listInbox(alpha, "Reply"),
     r => r.inbox.length > 0,
   );
   const alphaReply = alphaRepliesRes.inbox.find(
-    r => r.type_ == "CommentReply" && r.comment.id === alphaComment.comment.id,
-  ) as CommentReplyView | undefined;
+    r =>
+      r.person_notification.kind == "Reply" &&
+      r.comment!.id === alphaComment.comment.id,
+  );
   expect(alphaReply).toBeDefined();
   if (!alphaReply) throw Error();
-  expect(alphaReply.comment.content).toBeDefined();
-  expect(alphaReply.community.local).toBe(false);
+  expect(alphaReply.comment!.content).toBeDefined();
+  expect(alphaReply.community!.local).toBe(false);
   expect(alphaReply.creator.local).toBe(false);
-  expect(alphaReply.comment.score).toBe(1);
+  expect(alphaReply.comment!.score).toBe(1);
   // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
-  expect(alphaReply.comment.id).toBe(alphaComment.comment.id);
+  expect(alphaReply.comment!.id).toBe(alphaComment.comment.id);
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
-  expect(alphaReply.comment_reply.read).toBe(false);
-  assertCommentFederation(alphaReply, replyRes.comment_view);
+  expect(alphaReply.person_notification.read).toBe(false);
 });
 
 test("Bot reply notifications are filtered when bots are hidden", async () => {
@@ -472,9 +471,9 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   alphaUnreadCountRes = await getUnreadCount(alpha);
   expect(alphaUnreadCountRes.count).toBe(1);
 
-  let alphaUnreadRepliesRes = await listInbox(alpha, "CommentReply", true);
+  let alphaUnreadRepliesRes = await listInbox(alpha, "Reply", true);
   expect(alphaUnreadRepliesRes.inbox.length).toBe(1);
-  expect((alphaUnreadRepliesRes.inbox[0] as CommentReplyView).comment.id).toBe(
+  expect(alphaUnreadRepliesRes.inbox[0].comment!.id).toBe(
     commentRes.comment_view.comment.id,
   );
 });
@@ -526,17 +525,17 @@ test("Mention beta from alpha comment", async () => {
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
   let mentionsRes = await waitUntil(
-    () => listInbox(beta, "CommentMention"),
+    () => listInbox(beta, "Mention"),
     m => !!m.inbox[0],
   );
 
-  const firstMention = mentionsRes.inbox[0] as PersonCommentMentionView;
-  expect(firstMention.comment.content).toBeDefined();
-  expect(firstMention.community.local).toBe(true);
+  const firstMention = mentionsRes.inbox[0];
+  expect(firstMention.comment!.content).toBeDefined();
+  expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.comment.score).toBe(1);
+  expect(firstMention.comment!.score).toBe(1);
   // the reply comment with mention should be the most fresh, newest, index 0
-  expect(firstMention.person_comment_mention.comment_id).toBe(
+  expect(firstMention.comment!.id).toBe(
     betaPostComments.comments[0].comment.id,
   );
 });
@@ -599,20 +598,20 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   );
 
   // Make sure beta has mentions
-  let relevantMention = (await waitUntil(
+  let relevantMention = await waitUntil(
     () =>
-      listInbox(beta, "CommentMention").then(m =>
+      listInbox(beta, "Mention").then(m =>
         m.inbox.find(
           m =>
-            m.type_ == "CommentMention" &&
-            m.comment.ap_id === commentRes.comment_view.comment.ap_id,
+            m.person_notification.kind == "Mention" &&
+            m.comment!.ap_id === commentRes.comment_view.comment.ap_id,
         ),
       ),
     e => !!e,
-  )) as PersonCommentMentionView | undefined;
+  );
   if (!relevantMention) throw Error("could not find mention");
-  expect(relevantMention.comment.content).toBe(commentContent);
-  expect(relevantMention.community.local).toBe(false);
+  expect(relevantMention.comment!.content).toBe(commentContent);
+  expect(relevantMention.community!.local).toBe(false);
   expect(relevantMention.creator.local).toBe(false);
   // TODO this is failing because fetchInReplyTos aren't getting score
   // expect(mentionsRes.mentions[0].score).toBe(1);
@@ -839,7 +838,7 @@ test("Dont send a comment reply to a blocked community", async () => {
   unreadCount = await getUnreadCount(beta);
   expect(unreadCount.count).toBe(0);
 
-  let replies = await listInbox(beta, "CommentReply", true);
+  let replies = await listInbox(beta, "Reply", true);
   expect(replies.inbox.length).toBe(0);
 
   // Unblock the community

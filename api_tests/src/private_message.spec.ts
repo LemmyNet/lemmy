@@ -62,8 +62,8 @@ test("Update a private message", async () => {
   let betaPms = await waitUntil(
     () => listInbox(beta, "PrivateMessage"),
     p =>
-      p.inbox[0].type_ == "PrivateMessage" &&
-      p.inbox[0].private_message.content === updatedContent,
+      p.inbox[0].person_notification.kind == "PrivateMessage" &&
+      p.inbox[0].private_message!.content === updatedContent,
   );
   expect((betaPms.inbox[0] as PrivateMessageView).private_message.content).toBe(
     updatedContent,
@@ -77,8 +77,8 @@ test("Delete a private message", async () => {
     m =>
       !!m.inbox.find(
         e =>
-          e.type_ == "PrivateMessage" &&
-          e.private_message.ap_id ===
+          e.person_notification.kind == "PrivateMessage" &&
+          e.private_message!.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
   );
@@ -122,8 +122,8 @@ test("Create a private message report", async () => {
     m =>
       !!m.inbox.find(
         e =>
-          e.type_ == "PrivateMessage" &&
-          e.private_message.ap_id ===
+          e.person_notification.kind == "PrivateMessage" &&
+          e.private_message!.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
   );

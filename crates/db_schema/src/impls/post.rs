@@ -600,6 +600,7 @@ impl PostActions {
 
     post_actions::table
       .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::notifications.eq(NotificationsMode::All))
       .select(post_actions::person_id)
       .get_results(conn)
       .await

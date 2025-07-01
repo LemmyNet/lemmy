@@ -242,7 +242,7 @@ pub enum VoteShow {
 pub enum NotificationsMode {
   #[default]
   RepliesAndMentions,
-  AllComments,
+  All,
   Mute,
 }
 

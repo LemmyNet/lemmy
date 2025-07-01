@@ -40,7 +40,6 @@ pub mod impls;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A combined inbox view
 pub struct NotificationView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub notification: Notification,
