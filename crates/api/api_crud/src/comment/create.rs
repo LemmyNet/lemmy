@@ -147,8 +147,8 @@ pub async fn create_comment(
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
     let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await?;
-    let local_user_id = local_user_view.local_user.id;
-    PersonNotification::mark_read_by_id_and_person(&mut context.pool(), notif.id, local_user_id)
+    let person_id = local_user_view.person.id;
+    PersonNotification::mark_read_by_id_and_person(&mut context.pool(), notif.id, person_id)
       .await?;
   }
 

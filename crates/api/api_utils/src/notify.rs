@@ -410,7 +410,7 @@ mod tests {
   #[serial]
   async fn replies() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool().into();
+    let pool = &mut context.pool();
     let data = init_data(pool).await?;
 
     // Sara replied to timmys comment, but lets create the row now
@@ -433,10 +433,6 @@ mod tests {
     let timmy_inbox = NotificationQuery::default()
       .list(pool, data.timmy.person.id, data.instance.id)
       .await?;
-    dbg!(&timmy_inbox
-      .iter()
-      .map(|x| (x.notification.clone(), x.person_notification.clone()))
-      .collect::<Vec<_>>());
     assert_length!(1, timmy_inbox);
 
     assert_eq!(
@@ -637,7 +633,7 @@ mod tests {
   #[serial]
   async fn read_private_messages() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool().into();
+    let pool = &mut context.pool();
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
@@ -686,7 +682,7 @@ mod tests {
   #[serial]
   async fn ensure_private_message_person_block() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool().into();
+    let pool = &mut context.pool();
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
@@ -729,7 +725,7 @@ mod tests {
   #[serial]
   async fn ensure_private_message_instance_block() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool().into();
+    let pool = &mut context.pool();
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
