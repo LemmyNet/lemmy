@@ -43,6 +43,7 @@ use lemmy_db_schema_file::schema::{
   post,
   received_activity,
   sent_activity,
+  site,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -364,7 +365,12 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   let mut conn = get_conn(pool).await?;
 
   let user_count: i64 = local_user::table
-    .inner_join(person::table.left_join(instance_actions::table))
+    .inner_join(
+      person::table.left_join(
+        instance_actions::table
+          .inner_join(instance::table.inner_join(site::table.inner_join(local_site::table))),
+      ),
+    )
     // only count approved users
     .filter(local_user::accepted_application)
     // ignore banned and deleted accounts
