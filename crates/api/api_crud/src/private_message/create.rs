@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
@@ -18,7 +19,7 @@ use lemmy_db_views_private_message::{
   api::{CreatePrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
 };
-use lemmy_email::notifications::send_private_message_email;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn create_private_message(
@@ -65,21 +66,15 @@ pub async fn create_private_message(
 
   // Send email to the local recipient, if one exists
   if view.recipient.local {
-    let local_recipient =
-      LocalUserView::read_person(&mut context.pool(), data.recipient_id).await?;
-    send_private_message_email(
-      &local_user_view,
-      &local_recipient,
-      &content,
-      context.settings(),
-    )
-    .await;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let do_send_email = !site_view.local_site.disable_email_notifications;
+    notify_private_message(&view, do_send_email, &context).await?;
+  } else {
+    ActivityChannel::submit_activity(
+      SendActivityData::CreatePrivateMessage(view.clone()),
+      &context,
+    )?;
   }
-
-  ActivityChannel::submit_activity(
-    SendActivityData::CreatePrivateMessage(view.clone()),
-    &context,
-  )?;
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,

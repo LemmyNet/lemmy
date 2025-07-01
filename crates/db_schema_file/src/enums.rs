@@ -260,4 +260,5 @@ pub enum NotificationTypes {
   Mention,
   Reply,
   Subscribed,
+  PrivateMessage,
 }

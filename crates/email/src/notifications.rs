@@ -70,14 +70,14 @@ pub async fn send_reply_email(
 }
 
 pub async fn send_private_message_email(
-  sender: &LocalUserView,
+  sender: &Person,
   local_recipient: &LocalUserView,
   content: &str,
   settings: &Settings,
 ) {
   let inbox_link = inbox_link(settings);
   let lang = user_language(local_recipient);
-  let sender_name = &sender.person.name;
+  let sender_name = &sender.name;
   let content = markdown_to_html(content);
   send_email_to_user(
     local_recipient,

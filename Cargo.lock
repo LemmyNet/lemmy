@@ -3355,6 +3355,7 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_private_message",
  "lemmy_db_views_site",
  "lemmy_utils",
  "moka",

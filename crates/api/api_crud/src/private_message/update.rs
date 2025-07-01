@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{get_url_blocklist, process_markdown, slur_regex},
@@ -52,10 +53,14 @@ pub async fn update_private_message(
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 
-  ActivityChannel::submit_activity(
-    SendActivityData::UpdatePrivateMessage(view.clone()),
-    &context,
-  )?;
+  if view.recipient.local {
+    notify_private_message(&view, false, &context).await?;
+  } else {
+    ActivityChannel::submit_activity(
+      SendActivityData::UpdatePrivateMessage(view.clone()),
+      &context,
+    )?;
+  }
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,
