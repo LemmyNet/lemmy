@@ -55,5 +55,8 @@ DROP TABLE person_notification;
 
 DROP TABLE notification;
 
+ALTER TABLE community_actions
+    DROP COLUMN notifications;
+
 DROP TYPE notification_type_enum;
 
