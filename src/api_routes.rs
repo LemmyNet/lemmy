@@ -20,6 +20,7 @@ use lemmy_api::{
     random::get_random_community,
     tag::{create_community_tag, delete_community_tag, update_community_tag},
     transfer::transfer_community,
+    update_notifications::update_community_notifications,
   },
   local_user::{
     add_admin::add_admin,
@@ -246,6 +247,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/tag", post().to(create_community_tag))
           .route("/tag", put().to(update_community_tag))
           .route("/tag", delete().to(delete_community_tag))
+          .route(
+            "/update_notifications",
+            post().to(update_community_notifications),
+          )
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -295,7 +300,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
           .route(
-            "/disable_notifications",
+            "/update_notifications",
             post().to(update_post_notifications),
           ),
       )

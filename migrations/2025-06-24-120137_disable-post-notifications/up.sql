@@ -1,9 +1,9 @@
-CREATE TYPE post_notifications_mode_enum AS enum (
+CREATE TYPE notifications_mode_enum AS enum (
     'RepliesAndMentions',
-    'AllComments',
+    'All',
     'Mute'
 );
 
 ALTER TABLE post_actions
-    ADD COLUMN notifications post_notifications_mode_enum;
+    ADD COLUMN notifications notifications_mode_enum;
 

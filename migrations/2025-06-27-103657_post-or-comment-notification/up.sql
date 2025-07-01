@@ -83,3 +83,6 @@ FROM
 
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention, comment_reply;
 
+ALTER TABLE community_actions
+    ADD COLUMN notifications notifications_mode_enum;
+

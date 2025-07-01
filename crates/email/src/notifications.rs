@@ -1,7 +1,7 @@
 use crate::{inbox_link, send_email, user_language};
 use lemmy_db_schema::{
   newtypes::DbUrl,
-  source::{comment::Comment, person::Person, post::Post},
+  source::{comment::Comment, community::Community, person::Person, post::Post},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
@@ -44,6 +44,29 @@ pub async fn send_post_subscribed_email(
     user_view,
     &lang.notification_post_subscribed_subject(&post.name),
     &lang.notification_post_subscribed_body(&content, &link, inbox_link),
+    settings,
+  )
+  .await
+}
+
+pub async fn send_community_subscribed_email(
+  user_view: &LocalUserView,
+  post: &Post,
+  community: &Community,
+  link: DbUrl,
+  settings: &Settings,
+) {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(user_view);
+  let content = post
+    .body
+    .as_ref()
+    .map(|b| markdown_to_html(&b))
+    .unwrap_or_default();
+  send_email_to_user(
+    user_view,
+    &lang.notification_community_subscribed_subject(&post.name, &community.title),
+    &lang.notification_community_subscribed_body(&content, &link, inbox_link),
     settings,
   )
   .await

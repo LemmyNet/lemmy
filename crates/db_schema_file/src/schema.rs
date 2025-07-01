@@ -38,8 +38,8 @@ pub mod sql_types {
   pub struct PostListingModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
-  pub struct PostNotificationsModeEnum;
+  #[diesel(postgres_type(name = "notifications_mode_enum"))]
+  pub struct NotificationsModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
@@ -236,6 +236,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
+    use super::sql_types::NotificationsModeEnum;
 
     community_actions (person_id, community_id) {
         community_id -> Int4,
@@ -247,6 +248,7 @@ diesel::table! {
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        notifications -> Nullable<NotificationsModeEnum>,
     }
 }
 
@@ -924,7 +926,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::PostNotificationsModeEnum;
+    use super::sql_types::NotificationsModeEnum;
 
     post_actions (person_id, post_id) {
         post_id -> Int4,
@@ -936,7 +938,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
-        notifications -> Nullable<PostNotificationsModeEnum>,
+        notifications -> Nullable<NotificationsModeEnum>,
     }
 }
 

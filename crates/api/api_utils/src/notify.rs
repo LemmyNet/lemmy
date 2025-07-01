@@ -16,11 +16,12 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_schema_file::enums::{NotificationTypes, PostNotifications};
+use lemmy_db_schema_file::enums::{NotificationTypes, NotificationsMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::notifications::{
+  send_community_subscribed_email,
   send_mention_email,
   send_post_subscribed_email,
   send_private_message_email,
@@ -75,7 +76,7 @@ impl NotifyData<'_> {
       .ok()
       .and_then(|a| a.notifications)
       .unwrap_or_default();
-    if post_notifications == PostNotifications::Mute {
+    if post_notifications == NotificationsMode::Mute {
       // The specific error type is irrelevant
       return Err(LemmyErrorType::NotFound.into());
     }
@@ -237,23 +238,28 @@ async fn notify_subscribers(
   notif_id: NotificationId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  if let Some(comment) = data.comment_opt {
-    let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
+  let subscribers = if data.comment_opt.is_some() {
+    PostActions::list_subscribers(data.post.id, &mut context.pool()).await?
+  } else {
+    CommunityActions::list_subscribers(data.post.community_id, &mut context.pool()).await?
+  };
 
-    for subscriber in subscribers {
+  for subscriber in subscribers {
+    if data
+      .check_notifications_allowed(subscriber, context)
+      .await
+      .is_err()
+    {
+      continue;
+    };
+
+    let form =
+      PersonNotificationInsertForm::new(notif_id, subscriber, NotificationTypes::Subscribed);
+    PersonNotification::create(&mut context.pool(), &form).await?;
+
+    if data.do_send_email {
       let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
-      data
-        .check_notifications_allowed(user_view.person.id, context)
-        .await?;
-
-      let form = PersonNotificationInsertForm::new(
-        notif_id,
-        user_view.person.id,
-        NotificationTypes::Subscribed,
-      );
-      PersonNotification::create(&mut context.pool(), &form).await?;
-
-      if data.do_send_email {
+      if let Some(comment) = data.comment_opt {
         send_post_subscribed_email(
           &user_view,
           data.post,
@@ -262,10 +268,17 @@ async fn notify_subscribers(
           context.settings(),
         )
         .await;
+      } else {
+        send_community_subscribed_email(
+          &user_view,
+          data.post,
+          data.community,
+          data.link(context)?.into(),
+          context.settings(),
+        )
+        .await;
       }
     }
-  } else {
-    // TODO: community subscribers
   }
 
   Ok(())
