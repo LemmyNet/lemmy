@@ -30,6 +30,25 @@ pub async fn send_mention_email(
   .await
 }
 
+pub async fn send_post_subscribed_email(
+  user_view: &LocalUserView,
+  post: &Post,
+  comment: &Comment,
+  link: DbUrl,
+  settings: &Settings,
+) {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(user_view);
+  let content = markdown_to_html(&comment.content);
+  send_email_to_user(
+    user_view,
+    &lang.notification_post_subscribed_subject(&post.name),
+    &lang.notification_post_subscribed_body(&content, &link, inbox_link),
+    settings,
+  )
+  .await
+}
+
 pub async fn send_reply_email(
   parent_user_view: &LocalUserView,
   comment: &Comment,

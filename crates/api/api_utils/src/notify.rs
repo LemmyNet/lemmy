@@ -22,6 +22,7 @@ use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::notifications::{
   send_mention_email,
+  send_post_subscribed_email,
   send_private_message_email,
   send_reply_email,
 };
@@ -236,30 +237,37 @@ async fn notify_subscribers(
   notif_id: NotificationId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
+  if let Some(comment) = data.comment_opt {
+    let subscribers = PostActions::list_subscribers(data.post.id, &mut context.pool()).await?;
 
-  for subscriber in subscribers {
-    let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
+    for subscriber in subscribers {
+      let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
+      data
+        .check_notifications_allowed(user_view.person.id, context)
+        .await?;
 
-    // TODO: need to check blocks and mentioned users, parent creator here?
+      let form = PersonNotificationInsertForm::new(
+        notif_id,
+        user_view.person.id,
+        NotificationTypes::Subscribed,
+      );
+      PersonNotification::create(&mut context.pool(), &form).await?;
 
-    // TODO: would be easier if we use the same db table and email template here, eg with
-    // `type` param
-    let form =
-      PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Mention);
-    PersonNotification::create(&mut context.pool(), &form).await?;
-
-    if data.do_send_email {
-      send_mention_email(
-        &user_view,
-        &data.content(),
-        data.creator,
-        data.link(context)?.into(),
-        context.settings(),
-      )
-      .await;
+      if data.do_send_email {
+        send_post_subscribed_email(
+          &user_view,
+          data.post,
+          comment,
+          data.link(context)?.into(),
+          context.settings(),
+        )
+        .await;
+      }
     }
+  } else {
+    // TODO: community subscribers
   }
+
   Ok(())
 }
 
