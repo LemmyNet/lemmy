@@ -60,3 +60,8 @@ ALTER TABLE community_actions
 
 DROP TYPE notification_type_enum;
 
+ALTER TABLE post_actions
+    DROP COLUMN notifications;
+
+DROP TYPE notifications_mode_enum;
+
