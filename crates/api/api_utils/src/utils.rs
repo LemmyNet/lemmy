@@ -24,13 +24,13 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    person::{Person, PersonUpdateForm},
+    person::{Person, PersonActions, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::{Crud, Likeable, ReadComments},
+  traits::{Blockable, Crud, Likeable, ReadComments},
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
@@ -319,6 +319,19 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  community_instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
+  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
+  Ok(())
 }
 
 pub async fn check_local_vote_mode(

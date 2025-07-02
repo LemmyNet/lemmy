@@ -1,12 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::build_comment_response,
+  build_response::{build_comment_response, send_local_notifs},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_user_action,
 };
 use lemmy_db_schema::{
+  newtypes::PostOrCommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
@@ -61,6 +62,16 @@ pub async fn delete_comment(
   )
   .await?;
 
+  let recipient_ids = send_local_notifs(
+    vec![],
+    PostOrCommentId::Comment(comment_id),
+    &local_user_view.person,
+    false,
+    &context,
+    Some(&local_user_view),
+    local_instance_id,
+  )
+  .await?;
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(
@@ -77,6 +88,7 @@ pub async fn delete_comment(
       &context,
       updated_comment_id,
       Some(local_user_view),
+      recipient_ids,
       local_instance_id,
     )
     .await?,

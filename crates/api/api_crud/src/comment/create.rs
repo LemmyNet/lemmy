@@ -19,6 +19,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::PostOrCommentId,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
@@ -32,7 +33,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::validation::is_valid_body_field,
+  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
 pub async fn create_comment(
@@ -112,14 +113,19 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
+  let inserted_comment_id = inserted_comment.id;
+
+  // Scan the comment for user mentions, add those rows
+  let mentions = scrape_text_for_mentions(&content);
   let do_send_email = !local_site.disable_email_notifications;
-  send_local_notifs(
-    &post,
-    Some(&inserted_comment),
+  let recipient_ids = send_local_notifs(
+    mentions,
+    PostOrCommentId::Comment(inserted_comment_id),
     &local_user_view.person,
-    &post_view.community,
     do_send_email,
     &context,
+    Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
@@ -179,6 +185,7 @@ pub async fn create_comment(
       &context,
       inserted_comment.id,
       Some(local_user_view),
+      recipient_ids,
       local_instance_id,
     )
     .await?,
