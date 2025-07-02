@@ -247,10 +247,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/tag", post().to(create_community_tag))
           .route("/tag", put().to(update_community_tag))
           .route("/tag", delete().to(delete_community_tag))
-          .route(
-            "/update_notifications",
-            post().to(update_community_notifications),
-          )
+          .route("/notifications", post().to(update_community_notifications))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -299,10 +296,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route(
-            "/update_notifications",
-            post().to(update_post_notifications),
-          ),
+          .route("/notifications", post().to(update_post_notifications)),
       )
       // Comment
       .service(
