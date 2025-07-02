@@ -4,7 +4,11 @@ use crate::{
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+use lemmy_db_schema_file::enums::{
+  CommunityFollowerState,
+  CommunityNotificationsMode,
+  CommunityVisibility,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -210,6 +214,7 @@ pub struct CommunityActions {
   pub received_ban_at: Option<DateTime<Utc>>,
   /// When their ban expires.
   pub ban_expires_at: Option<DateTime<Utc>>,
+  pub notifications: Option<CommunityNotificationsMode>,
 }
 
 #[derive(Clone, derive_new::new)]

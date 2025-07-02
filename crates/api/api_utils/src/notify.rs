@@ -16,7 +16,11 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud},
 };
-use lemmy_db_schema_file::enums::{NotificationTypes, NotificationsMode};
+use lemmy_db_schema_file::enums::{
+  CommunityNotificationsMode,
+  NotificationTypes,
+  PostNotificationsMode,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
@@ -68,6 +72,7 @@ impl NotifyData<'_> {
     context: &LemmyContext,
   ) -> LemmyResult<()> {
     let pool = &mut context.pool();
+    // TODO: this needs too many queries for each user
     PersonActions::read_block(pool, potential_blocker_id, self.post.creator_id).await?;
     InstanceActions::read_block(pool, potential_blocker_id, self.community.instance_id).await?;
     CommunityActions::read_block(pool, potential_blocker_id, self.post.community_id).await?;
@@ -76,7 +81,15 @@ impl NotifyData<'_> {
       .ok()
       .and_then(|a| a.notifications)
       .unwrap_or_default();
-    if post_notifications == NotificationsMode::Mute {
+    let community_notifications =
+      CommunityActions::read(pool, self.community.id, potential_blocker_id)
+        .await
+        .ok()
+        .and_then(|a| a.notifications)
+        .unwrap_or_default();
+    if post_notifications == PostNotificationsMode::Mute
+      || community_notifications == CommunityNotificationsMode::Mute
+    {
       // The specific error type is irrelevant
       return Err(LemmyErrorType::NotFound.into());
     }
@@ -238,11 +251,15 @@ async fn notify_subscribers(
   notif_id: NotificationId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let subscribers = if data.comment_opt.is_some() {
-    PostActions::list_subscribers(data.post.id, &mut context.pool()).await?
-  } else {
-    CommunityActions::list_subscribers(data.post.community_id, &mut context.pool()).await?
-  };
+  let is_post = data.comment_opt.is_none();
+  let subscribers = vec![
+    PostActions::list_subscribers(data.post.id, &mut context.pool()).await?,
+    CommunityActions::list_subscribers(data.post.community_id, is_post, &mut context.pool())
+      .await?,
+  ]
+  .into_iter()
+  .flatten()
+  .collect::<Vec<_>>();
 
   for subscriber in subscribers {
     if data

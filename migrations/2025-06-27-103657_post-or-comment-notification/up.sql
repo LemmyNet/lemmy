@@ -1,12 +1,3 @@
-CREATE TYPE notifications_mode_enum AS enum (
-    'RepliesAndMentions',
-    'All',
-    'Mute'
-);
-
-ALTER TABLE post_actions
-    ADD COLUMN notifications notifications_mode_enum;
-
 -- create new data types
 CREATE TYPE notification_type_enum AS enum (
     'Mention',
@@ -92,6 +83,22 @@ FROM
 
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention, comment_reply;
 
+CREATE TYPE post_notifications_mode_enum AS enum (
+    'AllPostsAndComments',
+    'AllPosts',
+    'RepliesAndMentions',
+    'Mute'
+);
+
+ALTER TABLE post_actions
+    ADD COLUMN notifications post_notifications_mode_enum;
+
+CREATE TYPE community_notifications_mode_enum AS enum (
+    'AllComments',
+    'RepliesAndMentions',
+    'Mute'
+);
+
 ALTER TABLE community_actions
-    ADD COLUMN notifications notifications_mode_enum;
+    ADD COLUMN notifications community_notifications_mode_enum;
 

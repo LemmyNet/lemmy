@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunitySortType,
 };
-use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType, NotificationsMode};
+use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
@@ -371,5 +371,5 @@ pub struct FollowMultiCommunity {
 /// Disable reply notifications for a post and all comments inside it
 pub struct UpdateCommunityNotifications {
   pub community_id: CommunityId,
-  pub mode: NotificationsMode,
+  pub mode: CommunityNotificationsMode,
 }

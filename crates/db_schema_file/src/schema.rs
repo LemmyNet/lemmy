@@ -14,6 +14,10 @@ pub mod sql_types {
   pub struct CommunityFollowerState;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
+  pub struct CommunityNotificationsModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_visibility"))]
   pub struct CommunityVisibility;
 
@@ -38,8 +42,8 @@ pub mod sql_types {
   pub struct PostListingModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "notifications_mode_enum"))]
-  pub struct NotificationsModeEnum;
+  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+  pub struct PostNotificationsModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
@@ -236,7 +240,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
-    use super::sql_types::NotificationsModeEnum;
+    use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
         community_id -> Int4,
@@ -248,7 +252,7 @@ diesel::table! {
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
-        notifications -> Nullable<NotificationsModeEnum>,
+        notifications -> Nullable<CommunityNotificationsModeEnum>,
     }
 }
 
@@ -537,18 +541,6 @@ diesel::table! {
     local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::NotificationTypeEnum;
-
-    person_notification (recipient_id, notification_id) {
-        notification_id -> Int4,
-        recipient_id -> Int4,
-        kind -> NotificationTypeEnum,
-        read -> Bool,
     }
 }
 
@@ -870,6 +862,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationTypeEnum;
+
+    person_notification (recipient_id, notification_id) {
+        notification_id -> Int4,
+        recipient_id -> Int4,
+        kind -> NotificationTypeEnum,
+        read -> Bool,
+    }
+}
+
+diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
         saved_at -> Timestamptz,
@@ -926,7 +930,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::NotificationsModeEnum;
+    use super::sql_types::PostNotificationsModeEnum;
 
     post_actions (person_id, post_id) {
         post_id -> Int4,
@@ -938,7 +942,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
-        notifications -> Nullable<NotificationsModeEnum>,
+        notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }
 
@@ -1170,8 +1174,6 @@ diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
-diesel::joinable!(person_notification -> local_user (recipient_id));
-diesel::joinable!(person_notification -> notification (notification_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban -> instance (instance_id));
@@ -1224,6 +1226,8 @@ diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
 diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
+diesel::joinable!(person_notification -> notification (notification_id));
+diesel::joinable!(person_notification -> person (recipient_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1284,7 +1288,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_user,
   local_user_keyword_block,
   local_user_language,
-  person_notification,
   login_token,
   mod_add,
   mod_add_community,
@@ -1309,6 +1312,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_actions,
   person_content_combined,
   person_liked_combined,
+  person_notification,
   person_saved_combined,
   post,
   post_actions,

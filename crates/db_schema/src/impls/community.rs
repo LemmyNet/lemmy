@@ -37,7 +37,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType, NotificationsMode},
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, post},
 };
 use lemmy_utils::{
@@ -459,7 +459,7 @@ impl CommunityActions {
   pub async fn update_notification_state(
     community_id: CommunityId,
     person_id: PersonId,
-    new_state: NotificationsMode,
+    new_state: CommunityNotificationsMode,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
@@ -484,14 +484,27 @@ impl CommunityActions {
 
   pub async fn list_subscribers(
     community_id: CommunityId,
+    is_post: bool,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Vec<PersonId>> {
     let conn = &mut get_conn(pool).await?;
 
-    community_actions::table
+    let mut query = community_actions::table
       .filter(community_actions::community_id.eq(community_id))
-      .filter(community_actions::notifications.eq(NotificationsMode::All))
       .select(community_actions::person_id)
+      .into_boxed();
+    if is_post {
+      query = query.filter(
+        community_actions::notifications
+          .eq(CommunityNotificationsMode::AllPosts)
+          .or(community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments)),
+      );
+    } else {
+      query = query.filter(
+        community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments),
+      );
+    }
+    query
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)

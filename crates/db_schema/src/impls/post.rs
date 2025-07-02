@@ -39,7 +39,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
-  enums::NotificationsMode,
+  enums::PostNotificationsMode,
   schema::{community, person, post, post_actions},
 };
 use lemmy_utils::{
@@ -572,7 +572,7 @@ impl PostActions {
   pub async fn update_notification_state(
     post_id: PostId,
     person_id: PersonId,
-    new_state: NotificationsMode,
+    new_state: PostNotificationsMode,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
@@ -600,7 +600,7 @@ impl PostActions {
 
     post_actions::table
       .filter(post_actions::post_id.eq(post_id))
-      .filter(post_actions::notifications.eq(NotificationsMode::All))
+      .filter(post_actions::notifications.eq(PostNotificationsMode::AllComments))
       .select(post_actions::person_id)
       .get_results(conn)
       .await
