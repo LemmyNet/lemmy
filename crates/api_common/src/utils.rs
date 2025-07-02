@@ -49,6 +49,7 @@ use lemmy_utils::{
     validation::clean_urls_in_text,
   },
   CACHE_DURATION_FEDERATION,
+  MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
@@ -984,6 +985,16 @@ fn build_proxied_image_url(
     protocol_and_hostname,
     encode(link.as_str())
   ))
+}
+
+pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
+  let path = &comment.path.0;
+  let length = path.split('.').count();
+  if length > MAX_COMMENT_DEPTH_LIMIT {
+    Err(LemmyErrorType::MaxCommentDepthReached)?
+  } else {
+    Ok(())
+  }
 }
 
 #[cfg(test)]
