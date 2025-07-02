@@ -84,8 +84,7 @@ FROM
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention, comment_reply;
 
 CREATE TYPE post_notifications_mode_enum AS enum (
-    'AllPostsAndComments',
-    'AllPosts',
+    'AllComments',
     'RepliesAndMentions',
     'Mute'
 );
@@ -94,7 +93,8 @@ ALTER TABLE post_actions
     ADD COLUMN notifications post_notifications_mode_enum;
 
 CREATE TYPE community_notifications_mode_enum AS enum (
-    'AllComments',
+    'AllPostsAndComments',
+    'AllPosts',
     'RepliesAndMentions',
     'Mute'
 );

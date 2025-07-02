@@ -298,14 +298,16 @@ impl NotificationQuery {
 }
 
 fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
-  let data = if let (Some(post), Some(community)) = (v.post.clone(), v.community.clone()) {
-    NotificationData::Post { post, community }
-  } else if let (Some(comment), Some(post), Some(community)) = (v.comment, v.post, v.community) {
+  let data = if let (Some(comment), Some(post), Some(community)) =
+    (v.comment, v.post.clone(), v.community.clone())
+  {
     NotificationData::Comment {
       comment,
       post,
       community,
     }
+  } else if let (Some(post), Some(community)) = (v.post, v.community) {
+    NotificationData::Post { post, community }
   } else if let Some(pm) = v.private_message {
     NotificationData::PrivateMessage { pm }
   } else {
