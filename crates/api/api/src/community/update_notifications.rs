@@ -15,7 +15,7 @@ pub async fn update_community_notifications(
   CommunityActions::update_notification_state(
     data.community_id,
     local_user_view.person.id,
-    data.new_state,
+    data.mode,
     &mut context.pool(),
   )
   .await?;

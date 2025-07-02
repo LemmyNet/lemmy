@@ -99,7 +99,7 @@ pub struct FeaturePost {
 /// Disable reply notifications for a post and all comments inside it
 pub struct UpdatePostNotifications {
   pub post_id: PostId,
-  pub new_state: NotificationsMode,
+  pub mode: NotificationsMode,
 }
 
 #[skip_serializing_none]

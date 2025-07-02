@@ -371,5 +371,5 @@ pub struct FollowMultiCommunity {
 /// Disable reply notifications for a post and all comments inside it
 pub struct UpdateCommunityNotifications {
   pub community_id: CommunityId,
-  pub new_state: NotificationsMode,
+  pub mode: NotificationsMode,
 }

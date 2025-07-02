@@ -15,7 +15,7 @@ pub async fn update_post_notifications(
   PostActions::update_notification_state(
     data.post_id,
     local_user_view.person.id,
-    data.new_state,
+    data.mode,
     &mut context.pool(),
   )
   .await?;
