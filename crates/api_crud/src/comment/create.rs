@@ -6,6 +6,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
+    check_comment_depth,
     check_community_user_action,
     check_post_deleted_or_removed,
     get_url_blocklist,
@@ -30,7 +31,6 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
-  MAX_COMMENT_DEPTH_LIMIT,
 };
 
 #[tracing::instrument(skip(context))]
@@ -206,14 +206,4 @@ pub async fn create_comment(
     )
     .await?,
   ))
-}
-
-pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
-  let path = &comment.path.0;
-  let length = path.split('.').count();
-  if length > MAX_COMMENT_DEPTH_LIMIT {
-    Err(LemmyErrorType::MaxCommentDepthReached)?
-  } else {
-    Ok(())
-  }
 }
