@@ -30,42 +30,57 @@ pub async fn send_mention_email(
   .await
 }
 
-pub async fn send_reply_email(
+pub async fn send_comment_reply_email(
   parent_user_view: &LocalUserView,
   comment: &Comment,
   person: &Person,
-  parent_comment: &Option<Comment>,
+  parent_comment: &Comment,
   post: &Post,
   settings: &Settings,
 ) -> LemmyResult<()> {
   let inbox_link = inbox_link(settings);
   let lang = user_language(parent_user_view);
   let content = markdown_to_html(&comment.content);
-  let (subject, body) = if let Some(parent_comment) = parent_comment {
-    (
-      lang.notification_comment_reply_subject(&person.name),
-      lang.notification_comment_reply_body(
-        comment.local_url(settings)?,
-        &content,
-        &inbox_link,
-        &parent_comment.content,
-        &post.name,
-        &person.name,
-      ),
-    )
-  } else {
-    (
-      lang.notification_post_reply_subject(&person.name),
-      lang.notification_post_reply_body(
-        comment.local_url(settings)?,
-        &content,
-        &inbox_link,
-        &post.name,
-        &person.name,
-      ),
-    )
-  };
-  send_email_to_user(parent_user_view, &subject, &body, settings).await;
+  send_email_to_user(
+    parent_user_view,
+    &lang.notification_comment_reply_subject(&person.name),
+    &lang.notification_comment_reply_body(
+      comment.local_url(settings)?,
+      &content,
+      &inbox_link,
+      &parent_comment.content,
+      &post.name,
+      &person.name,
+    ),
+    settings,
+  )
+  .await;
+  Ok(())
+}
+
+pub async fn send_post_reply_email(
+  parent_user_view: &LocalUserView,
+  comment: &Comment,
+  person: &Person,
+  post: &Post,
+  settings: &Settings,
+) -> LemmyResult<()> {
+  let inbox_link = inbox_link(settings);
+  let lang = user_language(parent_user_view);
+  let content = markdown_to_html(&comment.content);
+  send_email_to_user(
+    parent_user_view,
+    &lang.notification_post_reply_subject(&person.name),
+    &lang.notification_post_reply_body(
+      comment.local_url(settings)?,
+      &content,
+      &inbox_link,
+      &post.name,
+      &person.name,
+    ),
+    settings,
+  )
+  .await;
   Ok(())
 }
 

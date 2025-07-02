@@ -69,5 +69,8 @@ pub async fn distinguish_comment(
   )
   .await?;
 
-  Ok(Json(CommentResponse { comment_view }))
+  Ok(Json(CommentResponse {
+    comment_view,
+    recipient_ids: Vec::new(),
+  }))
 }
