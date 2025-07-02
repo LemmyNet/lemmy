@@ -3386,6 +3386,7 @@ dependencies = [
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",
+ "lemmy_db_schema_setup",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
@@ -3425,6 +3426,25 @@ dependencies = [
  "strum",
  "tracing",
  "ts-rs",
+ "unified-diff",
+]
+
+[[package]]
+name = "lemmy_db_schema_setup"
+version = "1.0.0-alpha.5"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "diesel",
+ "diesel_ltree",
+ "diesel_migrations",
+ "diff",
+ "itertools 0.14.0",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pathfinding",
+ "serial_test",
+ "tracing",
  "unified-diff",
 ]
 
@@ -3958,6 +3978,7 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_schema_setup",
  "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",

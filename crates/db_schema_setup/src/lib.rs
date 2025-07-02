@@ -1,6 +1,5 @@
 #[cfg(test)]
-use crate::diff_check;
-use crate::schema::previously_run_sql;
+mod diff_check;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use diesel::{
@@ -28,6 +27,13 @@ diesel::table! {
   }
 }
 
+diesel::table! {
+  previously_run_sql (id) {
+    id -> Bool,
+    content -> Text,
+  }
+}
+
 fn migrations() -> diesel_migrations::EmbeddedMigrations {
   // Using `const` here is required by the borrow checker
   const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
@@ -40,8 +46,8 @@ fn migrations() -> diesel_migrations::EmbeddedMigrations {
 fn replaceable_schema() -> String {
   [
     "CREATE SCHEMA r;",
-    include_str!("../replaceable_schema/utils.sql"),
-    include_str!("../replaceable_schema/triggers.sql"),
+    include_str!("../../../replaceable_schema/utils.sql"),
+    include_str!("../../../replaceable_schema/triggers.sql"),
   ]
   .join("\n")
 }
@@ -511,7 +517,7 @@ mod tests {
   }
 
   fn check_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
-    use crate::schema::{comment, comment_reply, community, person, post};
+    use lemmy_db_schema_file::schema::{comment, comment_reply, community, person, post};
 
     // Check users
     let users: Vec<(i32, String, Option<String>, String, String)> = person::table

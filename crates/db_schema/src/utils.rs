@@ -32,7 +32,6 @@ use diesel_async::{
 };
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
-use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::{structs::Settings, SETTINGS},
@@ -512,7 +511,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  schema_setup::run(schema_setup::Options::default().run())?;
+  lemmy_db_schema_setup::run(lemmy_db_schema_setup::Options::default().run())?;
 
   Ok(pool)
 }
