@@ -286,7 +286,6 @@ async fn notify_subscribers(
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
-#[expect(clippy::unwrap_used)]
 mod tests {
   use crate::{
     context::LemmyContext,
@@ -314,7 +313,7 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::NotificationTypes;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_notification::{impls::NotificationQuery, NotificationView};
+  use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -460,11 +459,17 @@ mod tests {
       Some(data.sara_comment.id),
       timmy_inbox[0].notification.comment_id
     );
-    assert_eq!(
-      data.sara_comment.id,
-      timmy_inbox[0].comment.as_ref().unwrap().id
-    );
-    assert_eq!(data.timmy_post.id, timmy_inbox[0].post.as_ref().unwrap().id);
+    if let NotificationData::Comment {
+      comment,
+      post,
+      community: _,
+    } = &timmy_inbox[0].data
+    {
+      assert_eq!(data.sara_comment.id, comment.id);
+      assert_eq!(data.timmy_post.id, post.id);
+    } else {
+      panic!("wrong type")
+    };
     assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
     assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient.id);
     assert_eq!(
@@ -534,10 +539,11 @@ mod tests {
       Some(data.jessica_post.id),
       sara_inbox[0].notification.post_id
     );
-    assert_eq!(
-      data.jessica_post.id,
-      sara_inbox[0].post.as_ref().unwrap().id
-    );
+    if let NotificationData::Post { post, community: _ } = &sara_inbox[0].data {
+      assert_eq!(data.jessica_post.id, post.id);
+    } else {
+      panic!("wrong type")
+    }
     assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
     assert_eq!(data.sara.person.id, sara_inbox[0].recipient.id);
     assert_eq!(
@@ -549,11 +555,17 @@ mod tests {
       Some(data.timmy_comment.id),
       sara_inbox[1].notification.comment_id
     );
-    assert_eq!(
-      data.timmy_comment.id,
-      sara_inbox[1].comment.as_ref().unwrap().id
-    );
-    assert_eq!(data.timmy_post.id, sara_inbox[1].post.as_ref().unwrap().id);
+    if let NotificationData::Comment {
+      comment,
+      post,
+      community: _,
+    } = &sara_inbox[1].data
+    {
+      assert_eq!(data.timmy_comment.id, comment.id);
+      assert_eq!(data.timmy_post.id, post.id);
+    } else {
+      panic!("wrong type");
+    }
     assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
     assert_eq!(data.sara.person.id, sara_inbox[1].recipient.id);
     assert_eq!(
@@ -646,7 +658,7 @@ mod tests {
   fn filter_pm(inbox: Vec<NotificationView>) -> Vec<NotificationView> {
     inbox
       .into_iter()
-      .filter(|f| f.private_message.is_some())
+      .filter(|f| matches!(f.data, NotificationData::PrivateMessage { .. }))
       .collect::<Vec<NotificationView>>()
   }
 

@@ -35,12 +35,10 @@ pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct NotificationView {
+struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub notification: Notification,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -79,7 +77,7 @@ pub struct NotificationView {
       select_expression = creator_is_admin()
     )
   )]
-  pub item_creator_is_admin: bool,
+  pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_tags_fragment()
@@ -110,6 +108,48 @@ pub struct NotificationView {
     )
   )]
   pub creator_banned_from_community: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct NotificationView {
+  pub notification: Notification,
+  pub person_notification: PersonNotification,
+  pub creator: Person,
+  pub recipient: Person,
+  pub image_details: Option<ImageDetails>,
+  pub community_actions: Option<CommunityActions>,
+  pub instance_actions: Option<InstanceActions>,
+  pub post_actions: Option<PostActions>,
+  pub person_actions: Option<PersonActions>,
+  pub comment_actions: Option<CommentActions>,
+  pub creator_is_admin: bool,
+  pub post_tags: TagsView,
+  pub can_mod: bool,
+  pub creator_banned: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned_from_community: bool,
+  pub data: NotificationData,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+#[serde(tag = "type_")]
+pub enum NotificationData {
+  Post {
+    post: Post,
+    community: Community,
+  },
+  Comment {
+    comment: Comment,
+    post: Post,
+    community: Community,
+  },
+  PrivateMessage {
+    pm: PrivateMessage,
+  },
 }
 
 #[skip_serializing_none]

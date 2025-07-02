@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
-use lemmy_db_views_notification::{impls::NotificationQuery, NotificationView};
+use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
@@ -392,26 +392,8 @@ fn create_reply_and_mention_items(
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = inbox
     .iter()
-    .map(|v| {
-      if let Some(comment) = &v.comment {
-        let reply_url = comment.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &comment.published_at,
-          reply_url.as_str(),
-          &comment.content,
-          context.settings(),
-        )
-      } else if let Some(pm) = &v.private_message {
-        let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
-        build_item(
-          &v.creator,
-          &pm.published_at,
-          &inbox_url,
-          &pm.content,
-          context.settings(),
-        )
-      } else if let Some(post) = &v.post {
+    .map(|v| match &v.data {
+      NotificationData::Post { post, community: _ } => {
         let mention_url = post.local_url(context.settings())?;
         build_item(
           &v.creator,
@@ -420,8 +402,30 @@ fn create_reply_and_mention_items(
           &post.body.clone().unwrap_or_default(),
           context.settings(),
         )
-      } else {
-        todo!()
+      }
+      NotificationData::Comment {
+        comment,
+        post: _,
+        community: _,
+      } => {
+        let reply_url = comment.local_url(context.settings())?;
+        build_item(
+          &v.creator,
+          &comment.published_at,
+          reply_url.as_str(),
+          &comment.content,
+          context.settings(),
+        )
+      }
+      NotificationData::PrivateMessage { pm } => {
+        let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+        build_item(
+          &v.creator,
+          &pm.published_at,
+          &inbox_url,
+          &pm.content,
+          context.settings(),
+        )
       }
     })
     .collect::<LemmyResult<Vec<Item>>>()?;

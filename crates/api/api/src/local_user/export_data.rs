@@ -4,7 +4,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::impls::NotificationQuery;
+use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData};
 use lemmy_db_views_person_content_combined::{
   impls::PersonContentCombinedQuery,
   PersonContentCombinedView,
@@ -53,16 +53,14 @@ pub async fn export_data(
   .list(pool, my_person_id, local_instance_id)
   .await?
   .into_iter()
-  .map(|u| {
-    if let Some(comment) = u.comment {
-      Comment(comment)
-    } else if let Some(pm) = u.private_message {
-      PrivateMessage(pm)
-    } else if let Some(post) = u.post {
-      Post(post)
-    } else {
-      todo!()
-    }
+  .map(|u| match u.data {
+    NotificationData::Post { post, community: _ } => Post(post),
+    NotificationData::Comment {
+      comment,
+      post: _,
+      community: _,
+    } => Comment(comment),
+    NotificationData::PrivateMessage { pm } => PrivateMessage(pm),
   })
   .collect();
 

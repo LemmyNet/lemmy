@@ -1,4 +1,4 @@
-use crate::NotificationView;
+use crate::{NotificationData, NotificationView, NotificationViewInternal};
 use diesel::{
   dsl::not,
   BoolExpressionMethods,
@@ -220,7 +220,7 @@ impl NotificationQuery {
     let recipient_person = aliases::person1.field(person::id);
 
     let mut query = NotificationView::joins(my_person_id, local_instance_id)
-      .select(NotificationView::as_select())
+      .select(NotificationViewInternal::as_select())
       .into_boxed();
 
     if !self.no_limit.unwrap_or_default() {
@@ -289,8 +289,45 @@ impl NotificationQuery {
     // Tie breaker
     .then_order_by(notification_keys::id);
 
-    let res = paginated_query.load::<NotificationView>(conn).await?;
+    let res = paginated_query
+      .load::<NotificationViewInternal>(conn)
+      .await?;
 
-    Ok(res)
+    Ok(res.into_iter().filter_map(map_to_enum).collect())
   }
+}
+
+fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
+  let data = if let (Some(post), Some(community)) = (v.post.clone(), v.community.clone()) {
+    NotificationData::Post { post, community }
+  } else if let (Some(comment), Some(post), Some(community)) = (v.comment, v.post, v.community) {
+    NotificationData::Comment {
+      comment,
+      post,
+      community,
+    }
+  } else if let Some(pm) = v.private_message {
+    NotificationData::PrivateMessage { pm }
+  } else {
+    return None;
+  };
+  Some(NotificationView {
+    notification: v.notification,
+    person_notification: v.person_notification,
+    creator: v.creator,
+    recipient: v.recipient,
+    image_details: v.image_details,
+    community_actions: v.community_actions,
+    instance_actions: v.instance_actions,
+    post_actions: v.post_actions,
+    person_actions: v.person_actions,
+    comment_actions: v.comment_actions,
+    creator_is_admin: v.creator_is_admin,
+    post_tags: v.post_tags,
+    can_mod: v.can_mod,
+    creator_banned: v.creator_banned,
+    creator_is_moderator: v.creator_is_moderator,
+    creator_banned_from_community: v.creator_banned_from_community,
+    data,
+  })
 }
