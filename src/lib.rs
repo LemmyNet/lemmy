@@ -155,7 +155,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    lemmy_db_schema_setup::run(options)?;
+    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url())?;
 
     return Ok(());
   }

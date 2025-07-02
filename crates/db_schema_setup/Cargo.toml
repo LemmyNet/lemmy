@@ -25,7 +25,6 @@ diesel = { workspace = true }
 chrono = { workspace = true }
 diesel_migrations = { workspace = true }
 tracing = { workspace = true }
-lemmy_utils = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 
 [dev-dependencies]
@@ -36,3 +35,4 @@ pathfinding = "4.14.0"
 unified-diff = { workspace = true }
 diesel_ltree = { workspace = true }
 lemmy_db_schema_file = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true, features = ["full"] }

@@ -17,7 +17,6 @@ use diesel::{
   RunQueryDsl,
 };
 use diesel_migrations::MigrationHarness;
-use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
 use tracing::debug;
 
@@ -184,11 +183,9 @@ pub enum Branch {
   ReplaceableSchemaNotRebuilt,
 }
 
-pub fn run(options: Options) -> LemmyResult<Branch> {
-  let db_url = SETTINGS.get_database_url();
-
+pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
-  let mut conn = PgConnection::establish(&db_url)?;
+  let mut conn = PgConnection::establish(db_url)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks
@@ -256,7 +253,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
   Ok(output)
 }
 
-fn run_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
+fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   conn.transaction(|conn| {
     conn
       .batch_execute(&replaceable_schema())
@@ -272,7 +269,7 @@ fn run_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
   })
 }
 
-fn revert_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
+fn revert_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   conn
     .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
     .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
@@ -390,7 +387,7 @@ mod tests {
 
     // Run initial migrations to prepare basic tables
     assert_eq!(
-      run(o.run().limit(INITIAL_MIGRATIONS_COUNT))?,
+      run(o.run().limit(INITIAL_MIGRATIONS_COUNT), &db_url)?,
       ReplaceableSchemaNotRebuilt
     );
 
@@ -398,16 +395,22 @@ mod tests {
     insert_test_data(&mut conn)?;
 
     // Run all migrations, and make sure that changes can be correctly reverted
-    assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
+    assert_eq!(
+      run(o.run().enable_diff_check(), &db_url)?,
+      ReplaceableSchemaRebuilt
+    );
 
     // Check the test data we inserted before after running migrations
     check_test_data(&mut conn)?;
 
     // Check for early return
-    assert_eq!(run(o.run())?, EarlyReturn);
+    assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
 
     // Test `limit`
-    assert_eq!(run(o.revert().limit(1))?, ReplaceableSchemaNotRebuilt);
+    assert_eq!(
+      run(o.revert().limit(1), &db_url)?,
+      ReplaceableSchemaNotRebuilt
+    );
     assert_eq!(
       conn
         .pending_migrations(migrations())
@@ -415,7 +418,7 @@ mod tests {
         .len(),
       1
     );
-    assert_eq!(run(o.run().limit(1))?, ReplaceableSchemaRebuilt);
+    assert_eq!(run(o.run().limit(1), &db_url)?, ReplaceableSchemaRebuilt);
 
     // This should throw an error saying to use lemmy_server instead of diesel CLI
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
@@ -425,7 +428,7 @@ mod tests {
     ));
 
     // Diesel CLI's way of running migrations shouldn't break the custom migration runner
-    assert_eq!(run(o.run())?, ReplaceableSchemaRebuilt);
+    assert_eq!(run(o.run(), &db_url)?, ReplaceableSchemaRebuilt);
 
     Ok(())
   }

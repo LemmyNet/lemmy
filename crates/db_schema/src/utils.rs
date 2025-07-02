@@ -493,7 +493,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(db_url, config);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -511,7 +511,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  lemmy_db_schema_setup::run(lemmy_db_schema_setup::Options::default().run())?;
+  lemmy_db_schema_setup::run(lemmy_db_schema_setup::Options::default().run(), &db_url)?;
 
   Ok(pool)
 }
