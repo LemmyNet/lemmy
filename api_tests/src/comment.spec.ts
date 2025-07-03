@@ -44,6 +44,9 @@ import {
   CommunityView,
   DistinguishComment,
   LemmyError,
+  Post,
+  Comment,
+  Community,
   ReportCombinedView,
   SaveUserSettings,
 } from "lemmy-js-client";
@@ -413,16 +416,22 @@ test("Reply to a comment from another instance, get notification", async () => {
   const alphaReply = alphaRepliesRes.inbox.find(
     r =>
       r.person_notification.kind == "Reply" &&
-      r.comment!.id === alphaComment.comment.id,
+      r.notification.comment_id === alphaComment.comment.id,
   );
   expect(alphaReply).toBeDefined();
   if (!alphaReply) throw Error();
-  expect(alphaReply.comment!.content).toBeDefined();
-  expect(alphaReply.community!.local).toBe(false);
+  let alphaReplyData = alphaReply.data as {
+    type_: "Comment";
+    comment: Comment;
+    post: Post;
+    community: Community;
+  };
+  expect(alphaReplyData.comment!.content).toBeDefined();
+  expect(alphaReplyData.community!.local).toBe(false);
   expect(alphaReply.creator.local).toBe(false);
-  expect(alphaReply.comment!.score).toBe(1);
+  expect(alphaReplyData.comment!.score).toBe(1);
   // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
-  expect(alphaReply.comment!.id).toBe(alphaComment.comment.id);
+  expect(alphaReplyData.comment!.id).toBe(alphaComment.comment.id);
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
   expect(alphaReply.person_notification.read).toBe(false);
 });
@@ -473,7 +482,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
 
   let alphaUnreadRepliesRes = await listInbox(alpha, "Reply", true);
   expect(alphaUnreadRepliesRes.inbox.length).toBe(1);
-  expect(alphaUnreadRepliesRes.inbox[0].comment!.id).toBe(
+  expect(alphaUnreadRepliesRes.inbox[0].notification.comment_id).toBe(
     commentRes.comment_view.comment.id,
   );
 });
@@ -530,12 +539,18 @@ test("Mention beta from alpha comment", async () => {
   );
 
   const firstMention = mentionsRes.inbox[0];
-  expect(firstMention.comment!.content).toBeDefined();
-  expect(firstMention.community!.local).toBe(true);
+  let firstMentionData = firstMention.data as {
+    type_: "Comment";
+    comment: Comment;
+    post: Post;
+    community: Community;
+  };
+  expect(firstMentionData.comment!.content).toBeDefined();
+  expect(firstMentionData.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.comment!.score).toBe(1);
+  expect(firstMentionData.comment!.score).toBe(1);
   // the reply comment with mention should be the most fresh, newest, index 0
-  expect(firstMention.comment!.id).toBe(
+  expect(firstMentionData.comment!.id).toBe(
     betaPostComments.comments[0].comment.id,
   );
 });
@@ -601,17 +616,30 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   let relevantMention = await waitUntil(
     () =>
       listInbox(beta, "Mention").then(m =>
-        m.inbox.find(
-          m =>
+        m.inbox.find(m => {
+          let data = m.data as {
+            type_: "Comment";
+            comment: Comment;
+            post: Post;
+            community: Community;
+          };
+          return (
             m.person_notification.kind == "Mention" &&
-            m.comment!.ap_id === commentRes.comment_view.comment.ap_id,
-        ),
+            data.comment.ap_id === commentRes.comment_view.comment.ap_id
+          );
+        }),
       ),
     e => !!e,
   );
   if (!relevantMention) throw Error("could not find mention");
-  expect(relevantMention.comment!.content).toBe(commentContent);
-  expect(relevantMention.community!.local).toBe(false);
+  let relevantMentionData = relevantMention.data as {
+    type_: "Comment";
+    comment: Comment;
+    post: Post;
+    community: Community;
+  };
+  expect(relevantMentionData.comment!.content).toBe(commentContent);
+  expect(relevantMentionData.community!.local).toBe(false);
   expect(relevantMention.creator.local).toBe(false);
   // TODO this is failing because fetchInReplyTos aren't getting score
   // expect(mentionsRes.mentions[0].score).toBe(1);

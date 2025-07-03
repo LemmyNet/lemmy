@@ -1,5 +1,6 @@
 use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessageId};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::enums::NotificationTypes;
 #[cfg(feature = "full")]
