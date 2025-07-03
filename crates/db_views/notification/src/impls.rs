@@ -65,11 +65,8 @@ impl NotificationView {
         .or(private_message::creator_id.eq(item_creator)),
     );
 
-    let recipient_join = aliases::person1.on(
-      person_notification::recipient_id
-        .eq(recipient_person)
-        .or(private_message::recipient_id.eq(recipient_person)),
-    );
+    let recipient_join =
+      aliases::person1.on(person_notification::recipient_id.eq(recipient_person));
 
     let comment_join = comment::table.on(
       notification::comment_id

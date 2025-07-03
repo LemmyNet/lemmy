@@ -349,7 +349,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "example.com".to_string()).await?;
 
     let timmy = LocalUserView::create_test_user(pool, "timmy_pcv", "", false).await?;
 
@@ -464,7 +464,6 @@ mod tests {
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
         .await?;
-    // TODO: fails because the same notification gets returned twice
     assert_eq!(1, timmy_unread_replies);
 
     let timmy_inbox = NotificationQuery::default()
@@ -785,14 +784,12 @@ mod tests {
 
     let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
 
+    assert_eq!(data.timmy.person.id, inserted_instance_block.person_id);
     assert_eq!(
-      (data.timmy.person.id, data.sara.person.instance_id, true),
-      (
-        inserted_instance_block.person_id,
-        inserted_instance_block.instance_id,
-        inserted_instance_block.blocked_at.is_some()
-      )
+      data.sara.person.instance_id,
+      inserted_instance_block.instance_id
     );
+    assert!(inserted_instance_block.blocked_at.is_some());
 
     let timmy_messages = filter_pm(
       NotificationQuery {
