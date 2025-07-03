@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   },
   PostFeatureType,
 };
-use lemmy_db_schema_file::enums::{ListingType, PostNotifications, PostSortType};
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
@@ -91,15 +91,6 @@ pub struct FeaturePost {
   pub post_id: PostId,
   pub featured: bool,
   pub feature_type: PostFeatureType,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Disable reply notifications for a post and all comments inside it
-pub struct UpdatePostNotifications {
-  pub post_id: PostId,
-  pub new_state: PostNotifications,
 }
 
 #[skip_serializing_none]

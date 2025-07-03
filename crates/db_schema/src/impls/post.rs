@@ -25,6 +25,7 @@ use crate::{
     SITEMAP_LIMIT,
   },
 };
+use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not, update},
@@ -38,15 +39,11 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{
-  enums::PostNotifications,
-  schema::{community, person, post, post_actions},
-};
+use lemmy_db_schema_file::schema::{community, person, post, post_actions};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
-use url::Url;
 
 impl Crud for Post {
   type InsertForm = PostInsertForm;
@@ -542,7 +539,9 @@ impl PostActions {
       .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>()
   }
+}
 
+impl PostActions {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -567,29 +566,6 @@ impl PostActions {
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
-  }
-
-  pub async fn update_notification_state(
-    post_id: PostId,
-    person_id: PersonId,
-    new_state: PostNotifications,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActions> {
-    let conn = &mut get_conn(pool).await?;
-    let form = (
-      post_actions::person_id.eq(person_id),
-      post_actions::post_id.eq(post_id),
-      post_actions::notifications.eq(new_state),
-    );
-
-    insert_into(post_actions::table)
-      .values(form.clone())
-      .on_conflict((post_actions::person_id, post_actions::post_id))
-      .do_update()
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

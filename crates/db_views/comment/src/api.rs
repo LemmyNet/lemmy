@@ -1,5 +1,12 @@
 use crate::{CommentSlimView, CommentView};
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PaginationCursor, PostId};
+use lemmy_db_schema::newtypes::{
+  CommentId,
+  CommunityId,
+  LanguageId,
+  LocalUserId,
+  PaginationCursor,
+  PostId,
+};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
 use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
@@ -12,6 +19,7 @@ use serde_with::skip_serializing_none;
 /// A comment response.
 pub struct CommentResponse {
   pub comment_view: CommentView,
+  pub recipient_ids: Vec<LocalUserId>,
 }
 
 #[skip_serializing_none]

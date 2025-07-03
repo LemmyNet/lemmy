@@ -27,7 +27,13 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
+  utils::{
+    check_comment_depth,
+    check_is_mod_or_admin,
+    get_url_blocklist,
+    process_markdown,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -190,6 +196,9 @@ impl Object for ApubComment {
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
+    if let Some(c) = &parent_comment {
+      check_comment_depth(c)?;
+    }
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
