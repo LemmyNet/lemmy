@@ -14,9 +14,6 @@ CREATE TABLE notification (
     published_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE notification
-    ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id) = 1);
-
 CREATE TABLE person_notification (
     notification_id int REFERENCES notification (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     -- this could reference local_user as notifications cannot be sent to remote users,
@@ -80,6 +77,9 @@ SELECT
 FROM
     comment_reply m
     INNER JOIN notification n ON n.comment_id = m.comment_id;
+
+ALTER TABLE notification
+    ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id) = 1);
 
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention, comment_reply;
 

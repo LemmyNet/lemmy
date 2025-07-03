@@ -6,9 +6,6 @@ CREATE TABLE person_post_mention (
     published_at timestamptz DEFAULT now() NOT NULL
 );
 
-ALTER TABLE ONLY person_post_mention
-    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
-
 CREATE TABLE person_mention (
     id serial PRIMARY KEY,
     recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
@@ -38,6 +35,72 @@ CREATE TABLE inbox_combined (
     published_at timestamptz NOT NULL
 );
 
+-- copy back data to person_post_mention table
+INSERT INTO person_post_mention (recipient_id, post_id, read, published_at)
+SELECT
+    p.recipient_id,
+    n.post_id,
+    p.read,
+    n.published_at
+FROM
+    notification n
+    INNER JOIN person_notification p ON n.id = p.notification_id
+WHERE
+    p.kind = 'Mention'
+    AND n.post_id IS NOT NULL;
+
+INSERT INTO inbox_combined (person_post_mention_id, published_at)
+SELECT
+    id,
+    published_at
+FROM
+    person_post_mention;
+
+-- copy back data to person_comment_mention table
+INSERT INTO person_comment_mention (recipient_id, comment_id, read, published_at)
+SELECT
+    p.recipient_id,
+    n.comment_id,
+    p.read,
+    n.published_at
+FROM
+    notification n
+    INNER JOIN person_notification p ON n.id = p.notification_id
+WHERE
+    p.kind = 'Mention'
+    AND n.comment_id IS NOT NULL;
+
+INSERT INTO inbox_combined (person_comment_mention_id, published_at)
+SELECT
+    id,
+    published_at
+FROM
+    person_comment_mention;
+
+-- copy back data to comment_reply table
+INSERT INTO comment_reply (recipient_id, comment_id, read, published_at)
+SELECT
+    p.recipient_id,
+    n.comment_id,
+    p.read,
+    n.published_at
+FROM
+    notification n
+    INNER JOIN person_notification p ON n.id = p.notification_id
+WHERE
+    p.kind = 'Reply'
+    AND n.comment_id IS NOT NULL;
+
+INSERT INTO inbox_combined (comment_reply_id, published_at)
+SELECT
+    id,
+    published_at
+FROM
+    comment_reply;
+
+ALTER TABLE ONLY person_post_mention
+    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
+
 ALTER TABLE inbox_combined
     ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
 
@@ -55,13 +118,15 @@ DROP TABLE person_notification;
 
 DROP TABLE notification;
 
+DROP TYPE notification_type_enum;
+
 ALTER TABLE community_actions
     DROP COLUMN notifications;
 
-DROP TYPE notification_type_enum;
+DROP TYPE community_notifications_mode_enum;
 
 ALTER TABLE post_actions
     DROP COLUMN notifications;
 
-DROP TYPE notifications_mode_enum;
+DROP TYPE post_notifications_mode_enum;
 
