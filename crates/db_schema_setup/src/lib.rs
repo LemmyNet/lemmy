@@ -1,4 +1,3 @@
-#[cfg(test)]
 mod diff_check;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
