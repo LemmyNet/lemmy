@@ -44,13 +44,13 @@ fn migrations() -> diesel_migrations::EmbeddedMigrations {
 fn replaceable_schema() -> String {
   [
     "CREATE SCHEMA r;",
-    include_str!("../../../replaceable_schema/utils.sql"),
-    include_str!("../../../replaceable_schema/triggers.sql"),
+    include_str!("../replaceable_schema/utils.sql"),
+    include_str!("../replaceable_schema/triggers.sql"),
   ]
   .join("\n")
 }
 
-const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
+const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema_setup/replaceable_schema";
 
 struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
@@ -235,7 +235,7 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
 
       let after = diff_check::get_dump();
 
-      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema_setup/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
 
       diff_check::deferr_constraint_check(&after);
     }
