@@ -213,7 +213,6 @@ i-love-jesus = { version = "0.2.0" }
 clap = { version = "4.5.39", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
-tuplex = "0.1.2"
 html2text = "0.15.1"
 async-trait = "0.1.88"
 either = { version = "1.15.0", features = ["serde"] }
