@@ -4,7 +4,6 @@ use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use diesel::{
-  connection::SimpleConnection,
   dsl::exists,
   migration::{Migration, MigrationVersion},
   pg::Pg,
@@ -20,6 +19,7 @@ use diesel::{
 use diesel_migrations::MigrationHarness;
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
+use diesel::connection::LoadConnection;
 use tracing::debug;
 
 diesel::table! {
@@ -48,14 +48,20 @@ fn replaceable_schema() -> String {
 
 const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
 
-struct MigrationHarnessWrapper<'a> {
-  conn: &'a mut PgConnection,
+struct MigrationHarnessWrapper<'a, Conn>
+where
+  Conn: MigrationHarness<Pg>,
+{
+  conn: &'a mut Conn,
   #[cfg(test)]
   enable_diff_check: bool,
   options: &'a Options,
 }
 
-impl MigrationHarnessWrapper<'_> {
+impl<Conn> MigrationHarnessWrapper<'_, Conn>
+where
+  Conn: MigrationHarness<Pg>,
+{
   fn run_migration_inner(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -74,7 +80,10 @@ impl MigrationHarnessWrapper<'_> {
   }
 }
 
-impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
+impl<Conn> MigrationHarness<Pg> for MigrationHarnessWrapper<'_, Conn>
+where
+  Conn: MigrationHarness<Pg>,
+{
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -178,12 +187,10 @@ pub enum Branch {
   ReplaceableSchemaNotRebuilt,
 }
 
-pub fn run(options: Options) -> LemmyResult<Branch> {
-  let db_url = SETTINGS.get_database_url();
-
-  // Migrations don't support async connection, and this function doesn't need to be async
-  let mut conn = PgConnection::establish(&db_url)?;
-
+pub fn run_with_connection<Conn>(options: Options, mut conn: Conn) -> LemmyResult<Branch>
+where
+  Conn: Connection<Backend = Pg> + MigrationHarness<Pg> + LoadConnection,
+{
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks
   if !options.revert
@@ -250,7 +257,17 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
   Ok(output)
 }
 
-fn run_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
+pub fn run(options: Options) -> LemmyResult<Branch> {
+  let db_url = SETTINGS.get_database_url();
+
+  // Migrations don't support async connection, and this function doesn't need to be async
+  run_with_connection(options, PgConnection::establish(&db_url)?)
+}
+
+fn run_replaceable_schema<Conn>(conn: &mut Conn) -> LemmyResult<()>
+where
+  Conn: Connection<Backend = Pg>,
+{
   conn.transaction(|conn| {
     conn
       .batch_execute(&replaceable_schema())
@@ -266,7 +283,10 @@ fn run_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
   })
 }
 
-fn revert_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
+fn revert_replaceable_schema<Conn>(conn: &mut Conn) -> LemmyResult<()>
+where
+  Conn: Connection<Backend = Pg>,
+{
   conn
     .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
     .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
@@ -277,10 +297,13 @@ fn revert_replaceable_schema(conn: &mut PgConnection) -> LemmyResult<()> {
   Ok(())
 }
 
-fn run_selected_migrations(
-  conn: &mut PgConnection,
+fn run_selected_migrations<Conn>(
+  conn: &mut Conn,
   options: &Options,
-) -> diesel::migration::Result<()> {
+) -> diesel::migration::Result<()>
+where
+  Conn: MigrationHarness<Pg>,
+{
   let mut wrapper = MigrationHarnessWrapper {
     conn,
     options,

@@ -3,6 +3,12 @@ pub mod uplete;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
+use db_pool::{
+  r#async::{
+    DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool,
+  },
+  PrivilegedPostgresConfig,
+};
 use deadpool::Runtime;
 use diesel::{
   dsl,
@@ -21,6 +27,7 @@ use diesel::{
   IntoSql,
 };
 use diesel_async::{
+  async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
@@ -57,6 +64,7 @@ use std::{
   sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
+use tokio::sync::OnceCell;
 use tracing::error;
 use url::Url;
 
@@ -518,8 +526,50 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 }
 
 #[allow(clippy::expect_used)]
-pub fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool().expect("db pool missing")
+pub async fn build_db_pool_for_tests() -> ActualDbPool {
+  static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
+    OnceCell::const_new();
+  let db_pool = POOL
+    .get_or_init(|| async {
+      let conn_string = SETTINGS.get_database_url();
+
+      let db_url = Url::parse(conn_string.as_str()).unwrap();
+
+      let config = PrivilegedPostgresConfig::new()
+        .host(db_url.host().unwrap().to_string())
+        .port(db_url.port().unwrap())
+        .username(db_url.username().to_string())
+        .password(Some(db_url.password().unwrap().to_string()));
+
+      let backend = DieselAsyncPostgresBackend::new(
+        config,
+        |manager| Pool::builder(manager).max_size(SETTINGS.database.pool_size),
+        |manager| Pool::builder(manager).max_size(2),
+        None,
+        move |conn| {
+          Box::pin(async {
+            let async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+              AsyncConnectionWrapper::from(conn);
+
+            schema_setup::run_with_connection(
+              schema_setup::Options::default().run(),
+              async_wrapper,
+            )
+            .expect("run migrations");
+
+            None
+          })
+        },
+      )
+      .await
+      .unwrap();
+
+      backend.create_database_pool().await.unwrap()
+    })
+    .await;
+
+  // TODO make compatible with ActualDbPool
+  db_pool.pull_immutable().await
 }
 
 #[allow(clippy::expect_used)]

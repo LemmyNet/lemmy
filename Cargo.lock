@@ -600,6 +600,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 
 [[package]]
+name = "bb8"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89aabfae550a5c44b43ab941844ffcd2e993cb6900b342debf59e9ea74acdb8"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
 name = "bcrypt"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1377,6 +1389,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "db-pool"
+version = "0.6.0"
+source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021#39f31b40483257b6ce2adcc8fe632546cb6d45c8"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "deadpool",
+ "diesel",
+ "diesel-async",
+ "futures",
+ "parking_lot",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1549,9 +1577,9 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "2.2.10"
+version = "2.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff3e1edb1f37b4953dd5176916347289ed43d7119cc2e6c7c3f7849ff44ea506"
+checksum = "a917a9209950404d5be011c81d081a2692a822f73c3d6af586f0cab5ff50f614"
 dependencies = [
  "bitflags 2.9.1",
  "byteorder",
@@ -3377,6 +3405,7 @@ dependencies = [
  "activitypub_federation",
  "bcrypt",
  "chrono",
+ "db-pool",
  "deadpool",
  "derive-new",
  "diesel",

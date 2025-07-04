@@ -143,7 +143,7 @@ lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vo
 activitypub_federation = { version = "0.7.0-beta.4", default-features = false, features = [
   "actix-web",
 ] }
-diesel = { version = "2.2.10", features = [
+diesel = { version = "2.2.11", features = [
   "chrono",
   "postgres",
   "serde_json",
