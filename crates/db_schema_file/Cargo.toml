@@ -18,16 +18,7 @@ doctest = false
 workspace = true
 
 [features]
-full = [
-  "diesel",
-  "diesel_ltree",
-  "diesel-derive-enum",
-  "lemmy_utils",
-  "anyhow",
-  "chrono",
-  "tracing",
-  "diesel_migrations",
-]
+full = ["diesel", "diesel_ltree", "diesel-derive-enum"]
 ts-rs = ["dep:ts-rs"]
 
 [dependencies]
@@ -37,15 +28,3 @@ diesel = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 diesel-derive-enum = { workspace = true, optional = true }
-lemmy_utils = { workspace = true, features = ["full"], optional = true }
-anyhow = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
-diesel_migrations = { workspace = true, optional = true }
-tracing = { workspace = true, optional = true }
-
-[dev-dependencies]
-serial_test = { workspace = true }
-diff = "0.1.13"
-itertools = { workspace = true }
-pathfinding = "4.14.0"
-unified-diff = { workspace = true }

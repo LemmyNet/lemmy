@@ -1,0 +1,38 @@
+[package]
+name = "lemmy_db_schema_setup"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "lemmy_db_schema_setup"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = []
+
+[dependencies]
+diesel = { workspace = true }
+chrono = { workspace = true }
+diesel_migrations = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+diff = "0.1.13"
+itertools = { workspace = true }
+pathfinding = "4.14.0"
+unified-diff = { workspace = true }
+diesel_ltree = { workspace = true }
+lemmy_db_schema_file = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true, features = ["full"] }

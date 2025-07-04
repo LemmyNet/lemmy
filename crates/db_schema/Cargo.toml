@@ -38,6 +38,7 @@ full = [
   "tuplex",
   "moka",
   "lemmy_db_schema_file/full",
+  "lemmy_db_schema_setup",
 ]
 ts-rs = ["dep:ts-rs"]
 
@@ -51,6 +52,7 @@ serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_schema_setup = { workspace = true, optional = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
