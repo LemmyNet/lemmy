@@ -11,8 +11,8 @@ use lemmy_db_schema::{
   PersonContentType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
 use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
+use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
 use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
@@ -328,7 +328,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let inbox = InboxCombinedQuery {
+  let inbox = NotificationQuery {
     show_bot_accounts,
     ..Default::default()
   }
@@ -387,49 +387,43 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
 }
 
 fn create_reply_and_mention_items(
-  inbox: Vec<InboxCombinedView>,
+  inbox: Vec<NotificationView>,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = inbox
     .iter()
-    .map(|r| match r {
-      InboxCombinedView::CommentReply(v) => {
-        let reply_url = v.comment.local_url(context.settings())?;
+    .map(|v| match &v.data {
+      NotificationData::Post { post, community: _ } => {
+        let mention_url = post.local_url(context.settings())?;
         build_item(
           &v.creator,
-          &v.comment.published_at,
+          &post.published_at,
+          mention_url.as_str(),
+          &post.body.clone().unwrap_or_default(),
+          context.settings(),
+        )
+      }
+      NotificationData::Comment {
+        comment,
+        post: _,
+        community: _,
+      } => {
+        let reply_url = comment.local_url(context.settings())?;
+        build_item(
+          &v.creator,
+          &comment.published_at,
           reply_url.as_str(),
-          &v.comment.content,
+          &comment.content,
           context.settings(),
         )
       }
-      InboxCombinedView::CommentMention(v) => {
-        let mention_url = v.comment.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &v.comment.published_at,
-          mention_url.as_str(),
-          &v.comment.content,
-          context.settings(),
-        )
-      }
-      InboxCombinedView::PostMention(v) => {
-        let mention_url = v.post.local_url(context.settings())?;
-        build_item(
-          &v.creator,
-          &v.post.published_at,
-          mention_url.as_str(),
-          &v.post.body.clone().unwrap_or_default(),
-          context.settings(),
-        )
-      }
-      InboxCombinedView::PrivateMessage(v) => {
+      NotificationData::PrivateMessage { pm } => {
         let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
         build_item(
           &v.creator,
-          &v.private_message.published_at,
+          &pm.published_at,
           &inbox_url,
-          &v.private_message.content,
+          &pm.content,
           context.settings(),
         )
       }

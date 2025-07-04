@@ -25,7 +25,7 @@ lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
 lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
-lemmy_db_views_inbox_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_notification = { workspace = true, features = ["full"] }
 lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
   "full",

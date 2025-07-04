@@ -37,7 +37,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, post},
 };
 use lemmy_utils::{
@@ -454,6 +454,60 @@ impl CommunityActions {
       })
       .await
       .map_err(|_e: Arc<LemmyError>| LemmyErrorType::NotFound.into())
+  }
+
+  pub async fn update_notification_state(
+    community_id: CommunityId,
+    person_id: PersonId,
+    new_state: CommunityNotificationsMode,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let form = (
+      community_actions::person_id.eq(person_id),
+      community_actions::community_id.eq(community_id),
+      community_actions::notifications.eq(new_state),
+    );
+
+    insert_into(community_actions::table)
+      .values(form.clone())
+      .on_conflict((
+        community_actions::person_id,
+        community_actions::community_id,
+      ))
+      .do_update()
+      .set(form)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+
+  pub async fn list_subscribers(
+    community_id: CommunityId,
+    is_post: bool,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    let mut query = community_actions::table
+      .filter(community_actions::community_id.eq(community_id))
+      .select(community_actions::person_id)
+      .into_boxed();
+    if is_post {
+      query = query.filter(
+        community_actions::notifications
+          .eq(CommunityNotificationsMode::AllPosts)
+          .or(community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments)),
+      );
+    } else {
+      query = query.filter(
+        community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments),
+      );
+    }
+    query
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -1,13 +1,13 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_inbox_combined::{
-  impls::InboxCombinedQuery,
-  InboxCombinedView,
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_notification::{
+  impls::NotificationQuery,
   ListInbox,
   ListInboxResponse,
+  NotificationView,
 };
-use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_inbox(
@@ -19,12 +19,12 @@ pub async fn list_inbox(
   let local_instance_id = local_user_view.person.instance_id;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(InboxCombinedView::from_cursor(cursor, &mut context.pool()).await?)
+    Some(NotificationView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
 
-  let inbox = InboxCombinedQuery {
+  let inbox = NotificationQuery {
     type_: data.type_,
     unread_only: data.unread_only,
     show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
