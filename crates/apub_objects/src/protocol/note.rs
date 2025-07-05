@@ -70,16 +70,26 @@ impl Note {
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // We use recursion here to fetch the entire comment chain up to the top-level parent. This is
     // necessary because we need to know the post and parent comment in order to insert a new
-    // comment. However it can also lead to stack overflow when fetching many comments recursively.
-    // To avoid this we check the request count against max comment depth, which based on testing
-    // can be handled without risking stack overflow. This is not a perfect solution, because in
-    // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
-    // or so.
-    // A cleaner solution would be converting the recursion into a loop, but that is tricky.
+    // comment. However it can also lead to too much resource consumption when fetching many
+    // comments recursively. To avoid this we check the request count against max comment depth.
+    //
+    // A separate task is spawned for the recursive call. Otherwise, when the async executor polls
+    // the task this is in, the poll function's call stack would grow with the level of recursion,
+    // so a stack overflow would be possible. This stack overflow prevention relies on the total
+    // laziness that the async keyword provides
+    // (https://rust-lang.github.io/rfcs/2394-async_await.html#async-functions), so you must not
+    // change this function to `pub fn get_parents(...) -> impl Future<Output = ...>`.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
-    let parent = self.in_reply_to.dereference(context).await?;
+    let parent = tokio::spawn({
+      let in_reply_to = self.in_reply_to.clone();
+      let context = context.clone();
+      // This is wrapped in an async block only to satisfy the borrow checker. This wrapping is not
+      // needed for the stack overflow prevention.
+      async move { in_reply_to.dereference(&context).await }
+    })
+    .await??;
     match parent {
       PostOrComment::Left(p) => Ok((p.clone(), None)),
       PostOrComment::Right(c) => {
