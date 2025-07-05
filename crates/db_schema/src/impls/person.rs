@@ -11,7 +11,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, uplete, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -249,9 +249,9 @@ impl Followable for PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_id, target_id)))
+    diesel_uplete::new(person_actions::table.find((person_id, target_id)))
       .set_null(person_actions::followed_at)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
@@ -278,9 +278,9 @@ impl Blockable for PersonActions {
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
+    diesel_uplete::new(person_actions::table.find((form.person_id, form.target_id)))
       .set_null(person_actions::blocked_at)
       .get_result(conn)
       .await
@@ -361,9 +361,9 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_id, target_id)))
+    diesel_uplete::new(person_actions::table.find((person_id, target_id)))
       .set_null(person_actions::note)
       .set_null(person_actions::noted_at)
       .get_result(conn)
@@ -462,7 +462,7 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Followable, Likeable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -547,7 +547,7 @@ mod tests {
 
     let unfollow =
       PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), unfollow);
+    assert_eq!(diesel_uplete::Count::only_deleted(1), unfollow);
 
     Ok(())
   }

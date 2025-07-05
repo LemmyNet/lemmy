@@ -16,7 +16,6 @@ use crate::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
-    uplete,
     validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
@@ -364,9 +363,9 @@ impl Likeable for PostActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(post_actions::table.find((person_id, post_id)))
+    diesel_uplete::new(post_actions::table.find((person_id, post_id)))
       .set_null(post_actions::like_score)
       .set_null(post_actions::liked_at)
       .get_result(conn)
@@ -377,10 +376,10 @@ impl Likeable for PostActions {
   async fn remove_all_likes(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(post_actions::table.filter(post_actions::person_id.eq(person_id)))
+    diesel_uplete::new(post_actions::table.filter(post_actions::person_id.eq(person_id)))
       .set_null(post_actions::like_score)
       .set_null(post_actions::liked_at)
       .get_result(conn)
@@ -392,12 +391,12 @@ impl Likeable for PostActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let post_ids = Post::creator_post_ids_in_community(pool, person_id, community_id).await?;
 
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
+    diesel_uplete::new(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
       .set_null(post_actions::like_score)
       .set_null(post_actions::liked_at)
       .get_result(conn)
@@ -420,9 +419,9 @@ impl Saveable for PostActions {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntSavePost)
   }
-  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(post_actions::table.find((form.person_id, form.post_id)))
+    diesel_uplete::new(post_actions::table.find((form.person_id, form.post_id)))
       .set_null(post_actions::saved_at)
       .get_result(conn)
       .await
@@ -437,10 +436,13 @@ impl Readable for PostActions {
     Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
   }
 
-  async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn mark_as_unread(
+    pool: &mut DbPool<'_>,
+    form: &Self::Form,
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(
+    diesel_uplete::new(
       post_actions::table
         .filter(post_actions::post_id.eq(form.post_id))
         .filter(post_actions::person_id.eq(form.person_id)),
@@ -480,10 +482,10 @@ impl Hideable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntHidePost)
   }
 
-  async fn unhide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unhide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(
+    diesel_uplete::new(
       post_actions::table
         .filter(post_actions::post_id.eq(form.post_id))
         .filter(post_actions::person_id.eq(form.person_id)),
@@ -516,10 +518,10 @@ impl ReadComments for PostActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(
+    diesel_uplete::new(
       post_actions::table
         .filter(post_actions::post_id.eq(post_id))
         .filter(post_actions::person_id.eq(person_id)),
@@ -588,7 +590,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Readable, Saveable},
-    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use chrono::DateTime;
   use lemmy_utils::error::LemmyResult;
@@ -708,17 +710,17 @@ mod tests {
     assert_eq!(1, scheduled_post_count);
 
     let like_removed = PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
-    assert_eq!(uplete::Count::only_updated(1), like_removed);
+    assert_eq!(diesel_uplete::Count::only_updated(1), like_removed);
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
-    assert_eq!(uplete::Count::only_updated(1), saved_removed);
+    assert_eq!(diesel_uplete::Count::only_updated(1), saved_removed);
 
     let read_remove_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);
     let read_removed_1 = PostActions::mark_as_unread(pool, &read_remove_form_1).await?;
-    assert_eq!(uplete::Count::only_deleted(1), read_removed_1);
+    assert_eq!(diesel_uplete::Count::only_deleted(1), read_removed_1);
 
     let read_remove_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id);
     let read_removed_2 = PostActions::mark_as_unread(pool, &read_remove_form_2).await?;
-    assert_eq!(uplete::Count::only_deleted(1), read_removed_2);
+    assert_eq!(diesel_uplete::Count::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?
       + Post::delete(pool, inserted_post2.id).await?

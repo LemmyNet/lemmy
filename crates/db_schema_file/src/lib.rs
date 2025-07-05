@@ -5,3 +5,5 @@ pub mod enums;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod schema_setup;
+#[cfg(feature = "full")]
+pub mod table_impls;

@@ -10,7 +10,6 @@ use crate::{
     functions::{coalesce, lower},
     get_conn,
     now,
-    uplete,
     DbPool,
   },
 };
@@ -224,9 +223,9 @@ impl Blockable for InstanceActions {
       .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+    diesel_uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
       .set_null(instance_actions::blocked_at)
       .get_result(conn)
       .await
@@ -304,10 +303,10 @@ impl Bannable for InstanceActions {
         .await?,
     )
   }
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+      diesel_uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
         .set_null(instance_actions::received_ban_at)
         .set_null(instance_actions::ban_expires_at)
         .get_result(conn)
