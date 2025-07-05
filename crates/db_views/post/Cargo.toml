@@ -48,6 +48,7 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
+diesel-uplete.workspace = true
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }

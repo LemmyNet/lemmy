@@ -1602,6 +1602,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel-uplete"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "tuplex",
+]
+
+[[package]]
 name = "diesel_derives"
 version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3382,6 +3390,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",
+ "diesel-uplete",
  "diesel_ltree",
  "futures-util",
  "i-love-jesus",
@@ -3414,6 +3423,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-derive-enum",
+ "diesel-uplete",
  "diesel_ltree",
  "diesel_migrations",
  "diff",
@@ -3689,6 +3699,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "diesel-uplete",
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
@@ -3915,6 +3926,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel-async",
+ "diesel-uplete",
  "futures",
  "futures-util",
  "http 1.3.1",

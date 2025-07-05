@@ -57,6 +57,7 @@ actix-web-prom = "0.10.0"
 actix-cors = "0.7.1"
 rand = "0.9.1"
 percent-encoding = "2.3.1"
+diesel-uplete.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
