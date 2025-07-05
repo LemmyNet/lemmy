@@ -22,10 +22,10 @@ ALTER TABLE post
     ADD COLUMN url_content_type_new text,
     ADD COLUMN alt_text_new text,
     ADD COLUMN scheduled_publish_time_new timestamp with time zone,
-    ADD COLUMN comments_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN score_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN upvotes_new bigint DEFAULT 0 NOT NULL,
-    ADD COLUMN downvotes_new bigint DEFAULT 0 NOT NULL,
+    ADD COLUMN comments_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN score_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN upvotes_new int DEFAULT 0 NOT NULL,
+    ADD COLUMN downvotes_new int DEFAULT 0 NOT NULL,
     ADD COLUMN newest_comment_time_necro_new timestamp with time zone DEFAULT now() NOT NULL,
     ADD COLUMN newest_comment_time_new timestamp with time zone DEFAULT now() NOT NULL,
     ADD COLUMN hot_rank_new double precision DEFAULT 0.0001 NOT NULL,
@@ -336,7 +336,4 @@ ALTER TABLE post
 
 ALTER TABLE post
     ALTER COLUMN ap_id SET NOT NULL;
-
-ALTER TABLE post
-    ALTER COLUMN instance_id SET NOT NULL;
 

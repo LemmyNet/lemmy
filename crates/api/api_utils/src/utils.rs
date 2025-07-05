@@ -180,7 +180,7 @@ pub fn is_top_mod(
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
-  read_comments: i64,
+  read_comments: i32,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
