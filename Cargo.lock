@@ -1604,6 +1604,8 @@ dependencies = [
 [[package]]
 name = "diesel-uplete"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86bf152eb068f4c8f0383dc30616a9c4f99c6047dc17399f25b4f2bc812c1a5a"
 dependencies = [
  "diesel",
  "tuplex",
