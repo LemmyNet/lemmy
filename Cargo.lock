@@ -3412,7 +3412,6 @@ dependencies = [
  "tokio-postgres-rustls",
  "tracing",
  "ts-rs",
- "tuplex",
  "url",
  "uuid",
 ]
