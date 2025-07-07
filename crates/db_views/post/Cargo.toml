@@ -48,7 +48,6 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
-diesel-uplete.workspace = true
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
@@ -57,3 +56,4 @@ tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url = { workspace = true }
 test-context = "0.4.1"
+diesel-uplete.workspace = true
