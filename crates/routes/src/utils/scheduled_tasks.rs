@@ -364,7 +364,7 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   let mut conn = get_conn(pool).await?;
 
-  let user_count: i64 = local_user::table
+  let user_count = local_user::table
     .inner_join(
       person::table.left_join(
         instance_actions::table
@@ -377,11 +377,12 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .filter(instance_actions::received_ban_at.is_null())
     .filter(not(person::deleted))
     .select(count(local_user::id))
-    .get_result(&mut conn)
-    .await?;
+    .first::<i64>(&mut conn)
+    .await
+    .map(i32::try_from)??;
 
   update(local_site::table)
-    .set((local_site::users.eq(user_count),))
+    .set(local_site::users.eq(user_count))
     .execute(&mut conn)
     .await?;
 
