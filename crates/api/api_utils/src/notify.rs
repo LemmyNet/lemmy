@@ -112,7 +112,7 @@ impl NotifyData<'_> {
     } else {
       NotificationInsertForm::new_post(self.post.id, person_id, kind)
     };
-    Ok(Notification::create(&mut context.pool(), &form).await?)
+    Notification::create(&mut context.pool(), &form).await
   }
 }
 
