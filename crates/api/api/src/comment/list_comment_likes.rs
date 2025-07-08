@@ -43,6 +43,7 @@ pub async fn list_comment_likes(
     cursor_data,
     data.page_back,
     data.limit,
+    local_instance_id,
   )
   .await?;
 

@@ -1,7 +1,6 @@
 use crate::{
   activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::activities::community::collection_remove::CollectionRemove,
 };
 use activitypub_federation::{
@@ -108,7 +107,6 @@ impl ActivityHandler for CollectionRemove {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {

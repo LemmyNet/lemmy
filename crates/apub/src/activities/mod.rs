@@ -256,8 +256,19 @@ pub async fn match_outgoing_activities(
         object_id,
         actor,
         community,
-        score,
-      } => send_like_activity(object_id, actor, community, score, context).await,
+        previous_score,
+        new_score,
+      } => {
+        send_like_activity(
+          object_id,
+          actor,
+          community,
+          previous_score,
+          new_score,
+          context,
+        )
+        .await
+      }
       FollowCommunity(community, person, follow) => {
         send_follow(Either::Left(community.into()), person, follow, &context).await
       }

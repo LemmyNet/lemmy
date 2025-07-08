@@ -140,7 +140,7 @@ lemmy_db_views_reports = { version = "=1.0.0-alpha.5", path = "./crates/db_views
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vote" }
-activitypub_federation = { version = "0.7.0-beta.3", default-features = false, features = [
+activitypub_federation = { version = "0.7.0-beta.4", default-features = false, features = [
   "actix-web",
 ] }
 diesel = { version = "2.2.10", features = [
@@ -219,6 +219,7 @@ async-trait = "0.1.88"
 either = { version = "1.15.0", features = ["serde"] }
 extism = { git = "https://github.com/extism/extism.git", branch = "main" }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
+unified-diff = "0.2.1"
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -231,6 +232,7 @@ lemmy_db_schema_file = { workspace = true }
 lemmy_api_utils = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_federate = { workspace = true }
+lemmy_db_views_site = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }

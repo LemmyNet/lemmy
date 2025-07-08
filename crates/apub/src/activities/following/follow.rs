@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_received_activity,
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
 use activitypub_federation::{
@@ -82,7 +81,6 @@ impl ActivityHandler for Follow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     use CommunityVisibility::*;
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {

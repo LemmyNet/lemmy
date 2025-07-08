@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.3"
+version = "0.7.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab8ebaa25d19adb45efa866999a1395cd3622ecf41969373f70d22341ff85401"
+checksum = "91fb4c19ede0a628977cdc5d1ec7d1fb3e3e3e5e9de955bd0d5fed0c8cd5260d"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -88,6 +88,19 @@ dependencies = [
  "log",
  "once_cell",
  "smallvec",
+]
+
+[[package]]
+name = "actix-extensible-rate-limit"
+version = "0.4.0"
+source = "git+https://github.com/Nutomic/actix-extensible-rate-limit.git?branch=make-extensible#f15e205ec3d2ed45f4a3509c54ff5669c402e808"
+dependencies = [
+ "actix-web",
+ "dashmap",
+ "futures",
+ "log",
+ "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -1350,6 +1363,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1522,9 +1549,9 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "2.2.10"
+version = "2.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff3e1edb1f37b4953dd5176916347289ed43d7119cc2e6c7c3f7849ff44ea506"
+checksum = "a917a9209950404d5be011c81d081a2692a822f73c3d6af586f0cab5ff50f614"
 dependencies = [
  "bitflags 2.9.1",
  "byteorder",
@@ -3122,6 +3149,7 @@ dependencies = [
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
  "lemmy_db_views_person",
+ "lemmy_db_views_person_content_combined",
  "lemmy_db_views_person_liked_combined",
  "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
@@ -3397,6 +3425,7 @@ dependencies = [
  "strum",
  "tracing",
  "ts-rs",
+ "unified-diff",
 ]
 
 [[package]]
@@ -3929,6 +3958,7 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
+ "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
@@ -3947,6 +3977,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "1.0.0-alpha.5"
 dependencies = [
+ "actix-extensible-rate-limit",
  "actix-web",
  "anyhow",
  "cfg-if",
@@ -3978,6 +4009,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "unicode-segmentation",
+ "unified-diff",
  "url",
  "urlencoding",
 ]
@@ -6979,6 +7011,15 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unified-diff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "496a3d395ed0c30f411ceace4a91f7d93b148fb5a9b383d5d4cff7850f048d5f"
+dependencies = [
+ "diff",
+]
 
 [[package]]
 name = "untrusted"

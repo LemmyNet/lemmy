@@ -1,5 +1,5 @@
 use super::check_community_visibility_allowed;
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_community_response,
@@ -88,12 +88,13 @@ pub async fn create_community(
     Err(LemmyErrorType::CommunityAlreadyExists)?
   }
 
+  let keypair = generate_actor_keypair()?;
   let community_form = CommunityInsertForm {
     sidebar,
     description,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),
-    private_key: site_view.site.private_key,
+    private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
@@ -102,7 +103,7 @@ pub async fn create_community(
       site_view.site.instance_id,
       data.name.clone(),
       data.title.clone(),
-      site_view.site.public_key,
+      keypair.public_key,
     )
   };
 

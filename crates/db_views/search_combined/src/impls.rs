@@ -432,17 +432,16 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         creator,
         community_actions: v.community_actions,
-        instance_communities_actions: None,
+        instance_communities_actions: v.instance_communities_actions,
         instance_persons_actions: v.instance_persons_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -454,16 +453,15 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_is_admin: v.item_creator_is_admin,
         image_details: v.image_details,
         community_actions: v.community_actions,
-        instance_communities_actions: None,
+        instance_communities_actions: v.instance_communities_actions,
         instance_persons_actions: v.instance_persons_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
@@ -483,8 +481,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person,
         is_admin: v.item_creator_is_admin,
         person_actions: v.person_actions,
-        home_instance_actions: v.creator_home_instance_actions,
-        local_instance_actions: v.creator_local_instance_actions,
         creator_banned: v.creator_banned,
       }))
     } else {
@@ -552,7 +548,7 @@ mod tests {
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       person: timmy.clone(),
-      instance_actions: None,
+      banned: false,
     };
 
     let community_form = CommunityInsertForm {

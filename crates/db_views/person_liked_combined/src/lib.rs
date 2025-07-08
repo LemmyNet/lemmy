@@ -19,23 +19,13 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::queries::{
-      creator_banned,
-      creator_community_actions_select,
-      creator_home_instance_actions_select,
-      creator_is_admin,
-      creator_local_instance_actions_select,
-      local_user_can_mod,
-      my_instance_persons_actions_select,
-      post_tags_fragment,
-    },
-    CreatorCommunityActionsAllColumnsTuple,
-    CreatorHomeInstanceActionsAllColumnsTuple,
-    CreatorLocalInstanceActionsAllColumnsTuple,
-    MyInstancePersonsActionsAllColumnsTuple,
+  diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
   },
+  lemmy_db_schema::utils::queries::{creator_is_admin, local_user_can_mod, post_tags_fragment},
   lemmy_db_views_local_user::LocalUserView,
 };
 
@@ -57,13 +47,6 @@ pub(crate) struct PersonLikedCombinedViewInternal {
   pub item_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<CreatorCommunityActionsAllColumnsTuple>,
-      select_expression = creator_community_actions_select().nullable()
-    )
-  )]
-  pub creator_community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -72,14 +55,6 @@ pub(crate) struct PersonLikedCombinedViewInternal {
       select_expression_type = Nullable<MyInstancePersonsActionsAllColumnsTuple>,
       select_expression = my_instance_persons_actions_select()))]
   pub instance_persons_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorHomeInstanceActionsAllColumnsTuple>,
-      select_expression = creator_home_instance_actions_select()))]
-  pub creator_home_instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<CreatorLocalInstanceActionsAllColumnsTuple>,
-      select_expression = creator_local_instance_actions_select()))]
-  pub creator_local_instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -108,10 +83,22 @@ pub(crate) struct PersonLikedCombinedViewInternal {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_banned_within_community()
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_moderator()
+    )
+  )]
+  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_from_community()
+    )
+  )]
+  pub creator_banned_from_community: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

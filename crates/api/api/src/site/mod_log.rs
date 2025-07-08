@@ -87,22 +87,25 @@ mod tests {
   use lemmy_api_utils::utils::remove_or_restore_user_data;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentInsertForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
       mod_log::moderator::{ModRemoveComment, ModRemovePost},
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::Crud,
+    traits::{Crud, Likeable},
     ModlogActionType,
   };
+  use lemmy_db_views_comment::CommentView;
   use lemmy_db_views_modlog_combined::{
     impls::ModlogCombinedQuery,
     ModRemoveCommentView,
     ModRemovePostView,
     ModlogCombinedView,
   };
+  use lemmy_db_views_post::PostView;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -112,54 +115,68 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_mod = PersonInsertForm::test_form(inserted_instance.id, "modder");
-    let inserted_mod = Person::create(pool, &new_mod).await?;
+    // John is the mod
+    let john = PersonInsertForm::test_form(instance.id, "john the modder");
+    let john = Person::create(pool, &john).await?;
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "chrimbus");
-    let inserted_person = Person::create(pool, &new_person).await?;
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara");
+    let sara = Person::create(pool, &sara_form).await?;
 
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+    let sara_local_user_form = LocalUserInsertForm::test_form(sara.id);
+    let sara_local_user = LocalUser::create(pool, &sara_local_user_form, Vec::new()).await?;
+
+    let community_form = CommunityInsertForm::new(
+      instance.id,
       "mod_community crepes".to_string(),
       "nada".to_owned(),
       "pubkey".to_string(),
     );
-    let inserted_community = Community::create(pool, &new_community).await?;
+    let community = Community::create(pool, &community_form).await?;
 
-    let post_form_1 = PostInsertForm::new(
-      "A test post tubular".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
-    let inserted_post_1 = Post::create(pool, &post_form_1).await?;
+    let post_form_1 = PostInsertForm::new("A test post tubular".into(), sara.id, community.id);
+    let post_1 = Post::create(pool, &post_form_1).await?;
 
-    let post_form_2 = PostInsertForm::new(
-      "A test post radical".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
-    let inserted_post_2 = Post::create(pool, &post_form_2).await?;
+    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, 1);
+    let _post_like_1 = PostActions::like(pool, &post_like_form_1).await?;
 
-    let comment_form_1 = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post_1.id,
-      "A test comment tubular".into(),
-    );
-    let _inserted_comment_1 = Comment::create(pool, &comment_form_1, None).await?;
+    let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
+    let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form_2 = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post_2.id,
-      "A test comment radical".into(),
+    let comment_form_1 =
+      CommentInsertForm::new(sara.id, post_1.id, "A test comment tubular".into());
+    let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
+
+    let comment_like_form_1 = CommentLikeForm::new(sara.id, comment_1.id, 1);
+    let _comment_like_1 = CommentActions::like(pool, &comment_like_form_1).await?;
+
+    let comment_form_2 =
+      CommentInsertForm::new(sara.id, post_2.id, "A test comment radical".into());
+    let _comment_2 = Comment::create(pool, &comment_form_2, None).await?;
+
+    // Read saras post to make sure it has a like
+    let post_view_1 =
+      PostView::read(pool, post_1.id, Some(&sara_local_user), instance.id, false).await?;
+    assert_eq!(1, post_view_1.post.score);
+    assert_eq!(
+      Some(1),
+      post_view_1.post_actions.and_then(|pa| pa.like_score)
     );
-    let _inserted_comment_2 = Comment::create(pool, &comment_form_2, None).await?;
+
+    // Read saras comment to make sure it has a like
+    let comment_view_1 =
+      CommentView::read(pool, comment_1.id, Some(&sara_local_user), instance.id).await?;
+    assert_eq!(1, comment_view_1.post.score);
+    assert_eq!(
+      Some(1),
+      comment_view_1.comment_actions.and_then(|ca| ca.like_score)
+    );
 
     // Remove the user data
     remove_or_restore_user_data(
-      inserted_mod.id,
-      inserted_person.id,
+      john.id,
+      sara.id,
       true,
       &Some("a remove reason".to_string()),
       &context,
@@ -217,10 +234,26 @@ mod tests {
       ],
     ));
 
+    // Verify that the likes got removed
+    // post
+    let post_view_1 =
+      PostView::read(pool, post_1.id, Some(&sara_local_user), instance.id, false).await?;
+    assert_eq!(0, post_view_1.post.score);
+    assert_eq!(None, post_view_1.post_actions.and_then(|pa| pa.like_score));
+
+    // comment
+    let comment_view_1 =
+      CommentView::read(pool, comment_1.id, Some(&sara_local_user), instance.id).await?;
+    assert_eq!(0, comment_view_1.post.score);
+    assert_eq!(
+      None,
+      comment_view_1.comment_actions.and_then(|ca| ca.like_score)
+    );
+
     // Now restore the content, and make sure it got appended
     remove_or_restore_user_data(
-      inserted_mod.id,
-      inserted_person.id,
+      john.id,
+      sara.id,
       false,
       &Some("a restore reason".to_string()),
       &context,
@@ -297,7 +330,7 @@ mod tests {
       ],
     ));
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    Instance::delete(pool, instance.id).await?;
 
     Ok(())
   }

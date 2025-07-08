@@ -27,6 +27,7 @@ pub async fn list_post_likes(
     cursor_data,
     data.page_back,
     data.limit,
+    local_user_view.person.instance_id,
   )
   .await?;
 

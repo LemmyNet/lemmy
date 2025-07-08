@@ -42,9 +42,18 @@ steps:
       - event: [pull_request, tag]
 
   prettier_check:
-    image: tmknom/prettier:3.4.2
+    image: tmknom/prettier:3.6.2
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
+
+  bash_fmt:
+    image: alpine:3
+    commands:
+      - apk add shfmt
+      - shfmt -i 2 -d */**.bash
+      - shfmt -i 2 -d */**.sh
     when:
       - event: pull_request
 
@@ -172,16 +181,6 @@ steps:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when: *slow_check_paths
-
-  check_defaults_hjson_updated:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
   cargo_build:

@@ -11,13 +11,17 @@ use lemmy_db_schema::{
   },
   sensitive::SensitiveString,
   source::{
+    comment::Comment,
     community::Community,
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
     login_token::LoginToken,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
+    post::Post,
+    private_message::PrivateMessage,
     tagline::Tagline,
   },
 };
@@ -126,18 +130,20 @@ pub struct CreateSite {
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub slur_filter_regex: Option<String>,
   pub actor_name_max_length: Option<i32>,
-  pub rate_limit_message: Option<i32>,
-  pub rate_limit_message_per_second: Option<i32>,
-  pub rate_limit_post: Option<i32>,
-  pub rate_limit_post_per_second: Option<i32>,
-  pub rate_limit_register: Option<i32>,
-  pub rate_limit_register_per_second: Option<i32>,
-  pub rate_limit_image: Option<i32>,
-  pub rate_limit_image_per_second: Option<i32>,
-  pub rate_limit_comment: Option<i32>,
-  pub rate_limit_comment_per_second: Option<i32>,
-  pub rate_limit_search: Option<i32>,
-  pub rate_limit_search_per_second: Option<i32>,
+  pub rate_limit_message_max_requests: Option<i32>,
+  pub rate_limit_message_interval_seconds: Option<i32>,
+  pub rate_limit_post_max_requests: Option<i32>,
+  pub rate_limit_post_interval_seconds: Option<i32>,
+  pub rate_limit_register_max_requests: Option<i32>,
+  pub rate_limit_register_interval_seconds: Option<i32>,
+  pub rate_limit_image_max_requests: Option<i32>,
+  pub rate_limit_image_interval_seconds: Option<i32>,
+  pub rate_limit_comment_max_requests: Option<i32>,
+  pub rate_limit_comment_interval_seconds: Option<i32>,
+  pub rate_limit_search_max_requests: Option<i32>,
+  pub rate_limit_search_interval_seconds: Option<i32>,
+  pub rate_limit_import_user_settings_max_requests: Option<i32>,
+  pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
@@ -223,23 +229,26 @@ pub struct EditSite {
   /// The max length of actor names.
   pub actor_name_max_length: Option<i32>,
   /// The number of messages allowed in a given time frame.
-  pub rate_limit_message: Option<i32>,
-  pub rate_limit_message_per_second: Option<i32>,
+  pub rate_limit_message_max_requests: Option<i32>,
+  pub rate_limit_message_interval_seconds: Option<i32>,
   /// The number of posts allowed in a given time frame.
-  pub rate_limit_post: Option<i32>,
-  pub rate_limit_post_per_second: Option<i32>,
+  pub rate_limit_post_max_requests: Option<i32>,
+  pub rate_limit_post_interval_seconds: Option<i32>,
   /// The number of registrations allowed in a given time frame.
-  pub rate_limit_register: Option<i32>,
-  pub rate_limit_register_per_second: Option<i32>,
+  pub rate_limit_register_max_requests: Option<i32>,
+  pub rate_limit_register_interval_seconds: Option<i32>,
   /// The number of image uploads allowed in a given time frame.
-  pub rate_limit_image: Option<i32>,
-  pub rate_limit_image_per_second: Option<i32>,
+  pub rate_limit_image_max_requests: Option<i32>,
+  pub rate_limit_image_interval_seconds: Option<i32>,
   /// The number of comments allowed in a given time frame.
-  pub rate_limit_comment: Option<i32>,
-  pub rate_limit_comment_per_second: Option<i32>,
+  pub rate_limit_comment_max_requests: Option<i32>,
+  pub rate_limit_comment_interval_seconds: Option<i32>,
   /// The number of searches allowed in a given time frame.
-  pub rate_limit_search: Option<i32>,
-  pub rate_limit_search_per_second: Option<i32>,
+  pub rate_limit_search_max_requests: Option<i32>,
+  pub rate_limit_search_interval_seconds: Option<i32>,
+  /// The number of settings imports or exports allowed in a given time frame.
+  pub rate_limit_import_user_settings_max_requests: Option<i32>,
+  pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   /// Whether to enable federation.
   pub federation_enabled: Option<bool>,
   /// Whether to enable captchas for signups.
@@ -531,6 +540,8 @@ pub struct SaveUserSettings {
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   /// Whether to hide posts containing images/videos.
   pub hide_media: Option<bool>,
+  /// Whether to show vote totals given to others.
+  pub show_person_votes: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -692,6 +703,62 @@ pub struct PluginMetadata {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum PostOrCommentOrPrivateMessage {
+  Post(Post),
+  Comment(Comment),
+  PrivateMessage(PrivateMessage),
+}
+
+/// Backup of user data. This struct should never be changed so that the data can be used as a
+/// long-term backup in case the instance goes down unexpectedly. All fields are optional to allow
+/// importing partial backups.
+///
+/// This data should not be parsed by apps/clients, but directly downloaded as a file.
+///
+/// Be careful with any changes to this struct, to avoid breaking changes which could prevent
+/// importing older backups.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct UserSettingsBackup {
+  pub display_name: Option<String>,
+  pub bio: Option<String>,
+  pub avatar: Option<Url>,
+  pub banner: Option<Url>,
+  pub matrix_id: Option<String>,
+  pub bot_account: Option<bool>,
+  // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
+  //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
+  pub settings: Option<LocalUser>,
+  #[serde(default)]
+  pub followed_communities: Vec<Url>,
+  #[serde(default)]
+  pub saved_posts: Vec<Url>,
+  #[serde(default)]
+  pub saved_comments: Vec<Url>,
+  #[serde(default)]
+  pub blocked_communities: Vec<Url>,
+  #[serde(default)]
+  pub blocked_users: Vec<Url>,
+  #[serde(default)]
+  pub blocked_instances_communities: Vec<String>,
+  #[serde(default)]
+  pub blocked_instances_persons: Vec<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Your exported data.
+pub struct ExportDataResponse {
+  pub inbox: Vec<PostOrCommentOrPrivateMessage>,
+  pub content: Vec<PostOrCommentOrPrivateMessage>,
+  pub read_posts: Vec<Url>,
+  pub liked: Vec<Url>,
+  pub moderates: Vec<Url>,
+  pub settings: UserSettingsBackup,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -240,6 +240,7 @@ pub struct InboxCombinedQuery {
   pub cursor_data: Option<InboxCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
+  pub no_limit: Option<bool>,
 }
 
 impl InboxCombinedQuery {
@@ -250,15 +251,18 @@ impl InboxCombinedQuery {
     local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<InboxCombinedView>> {
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
 
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
     let mut query = InboxCombinedViewInternal::joins(my_person_id, local_instance_id)
       .select(InboxCombinedViewInternal::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !self.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     // Filters
     if self.unread_only.unwrap_or_default() {
@@ -375,13 +379,12 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
+        creator_is_moderator: v.creator_is_moderator,
       }))
     } else if let (Some(person_comment_mention), Some(comment), Some(post), Some(community)) = (
       v.person_comment_mention,
@@ -401,12 +404,11 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
           comment_actions: v.comment_actions,
           person_actions: v.person_actions,
           instance_actions: v.instance_actions,
-          creator_home_instance_actions: v.creator_home_instance_actions,
-          creator_local_instance_actions: v.creator_local_instance_actions,
-          creator_community_actions: v.creator_community_actions,
           creator_is_admin: v.item_creator_is_admin,
           can_mod: v.can_mod,
           creator_banned: v.creator_banned,
+          creator_banned_from_community: v.creator_banned_from_community,
+          creator_is_moderator: v.creator_is_moderator,
         },
       ))
     } else if let (Some(person_post_mention), Some(post), Some(community)) =
@@ -421,15 +423,14 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         community_actions: v.community_actions,
         person_actions: v.person_actions,
         instance_actions: v.instance_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
         post_actions: v.post_actions,
         image_details: v.image_details,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
+        creator_is_moderator: v.creator_is_moderator,
       }))
     } else if let Some(private_message) = v.private_message {
       Some(InboxCombinedView::PrivateMessage(PrivateMessageView {

@@ -164,20 +164,21 @@ pub struct PersonContentCombinedQuery {
   pub page_back: Option<bool>,
   #[new(default)]
   pub limit: Option<i64>,
+  #[new(default)]
+  pub no_limit: Option<bool>,
 }
 
 impl PersonContentCombinedQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    user: &Option<LocalUserView>,
+    user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<Vec<PersonContentCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -188,8 +189,12 @@ impl PersonContentCombinedQuery {
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
       .select(PersonContentCombinedViewInternal::as_select())
-      .limit(limit)
       .into_boxed();
+
+    if !self.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(self.limit)?;
+      query = query.limit(limit);
+    }
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -245,13 +250,12 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         person_actions: v.person_actions,
         instance_communities_actions: v.instance_communities_actions,
         instance_persons_actions: v.instance_persons_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
@@ -264,13 +268,12 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         person_actions: v.person_actions,
         instance_communities_actions: v.instance_communities_actions,
         instance_persons_actions: v.instance_persons_actions,
-        creator_home_instance_actions: v.creator_home_instance_actions,
-        creator_local_instance_actions: v.creator_local_instance_actions,
-        creator_community_actions: v.creator_community_actions,
         creator_is_admin: v.item_creator_is_admin,
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     }
   }
@@ -374,7 +377,7 @@ mod tests {
 
     // Do a batch read of timmy
     let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, &None, data.instance.id)
+      .list(pool, None, data.instance.id)
       .await?;
     assert_eq!(3, timmy_content.len());
 
@@ -400,7 +403,7 @@ mod tests {
 
     // Do a batch read of sara
     let sara_content = PersonContentCombinedQuery::new(data.sara.id)
-      .list(pool, &None, data.instance.id)
+      .list(pool, None, data.instance.id)
       .await?;
     assert_eq!(3, sara_content.len());
 

@@ -1,7 +1,6 @@
 use crate::{
   activities::{generate_activity_id, generate_announce_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
     IdOrNestedObject,
@@ -147,7 +146,6 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
@@ -206,7 +204,8 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityActions::check_has_local_followers(&mut context.pool(), community.id).await?
+      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community.id)
+        .await?
     }
   }
   Ok(())

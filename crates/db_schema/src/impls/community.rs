@@ -38,7 +38,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility, ListingType},
-  schema::{community, community_actions, instance, post},
+  schema::{comment, community, community_actions, instance, post},
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -381,17 +381,27 @@ impl CommunityActions {
     }
   }
 
-  /// Check if a remote instance has any followers on local instance. For this it is enough to check
-  /// if any follow relation is stored. Dont use this for local community.
-  pub async fn check_has_local_followers(
+  /// Check if we should accept activity in remote community. This requires either:
+  /// - Local follower of the community
+  /// - Local post or comment in the community
+  ///
+  /// Dont use this check for local communities.
+  pub async fn check_accept_activity_in_community(
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    let find_action = community_actions::table
+    let follow_action = community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::community_id.eq(remote_community_id));
-    select(exists(find_action))
+    let local_post = post::table
+      .filter(post::community_id.eq(remote_community_id))
+      .filter(post::local);
+    let local_comment = comment::table
+      .inner_join(post::table)
+      .filter(post::community_id.eq(remote_community_id))
+      .filter(comment::local);
+    select(exists(follow_action).or(exists(local_post).or(exists(local_comment))))
       .get_result::<bool>(conn)
       .await?
       .then_some(())
