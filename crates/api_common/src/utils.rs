@@ -990,7 +990,7 @@ fn build_proxied_image_url(
 pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   let path = &comment.path.0;
   let length = path.split('.').count();
-  if length > MAX_COMMENT_DEPTH_LIMIT {
+  if length >= MAX_COMMENT_DEPTH_LIMIT {
     Err(LemmyErrorType::MaxCommentDepthReached)?
   } else {
     Ok(())
