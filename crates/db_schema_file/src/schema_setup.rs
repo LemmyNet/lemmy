@@ -181,7 +181,7 @@ pub enum Branch {
 pub fn run(options: Options) -> LemmyResult<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
   let db_url_with_options = SETTINGS.get_database_url_with_options()?;
-  let mut conn = PgConnection::establish(&db_url_with_options)?;
+  let conn = &mut PgConnection::establish(&db_url_with_options)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks
@@ -200,7 +200,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
     let schema_exists = exists(pg_namespace::table.find("r"));
 
-    if select(sql_unchanged.and(schema_exists)).get_result(&mut conn)? {
+    if select(sql_unchanged.and(schema_exists)).get_result(conn)? {
       return Ok(Branch::EarlyReturn);
     }
   }
@@ -213,9 +213,9 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
   // Drop `r` schema, so migrations don't need to be made to work both with and without things in
   // it existing
-  revert_replaceable_schema(&mut conn)?;
+  revert_replaceable_schema(conn)?;
 
-  run_selected_migrations(&mut conn, &options).map_err(convert_err)?;
+  run_selected_migrations(conn, &options).map_err(convert_err)?;
 
   // Only run replaceable_schema if newest migration was applied
   let output = if (options.run && options.limit.is_none())
@@ -227,8 +227,8 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
     if options.enable_diff_check {
       let before = diff_check::get_dump();
 
-      run_replaceable_schema(&mut conn)?;
-      revert_replaceable_schema(&mut conn)?;
+      run_replaceable_schema(conn)?;
+      revert_replaceable_schema(conn)?;
 
       let after = diff_check::get_dump();
 
@@ -237,7 +237,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
       diff_check::deferr_constraint_check(&after);
     }
 
-    run_replaceable_schema(&mut conn)?;
+    run_replaceable_schema(conn)?;
 
     Branch::ReplaceableSchemaRebuilt
   } else {
@@ -376,7 +376,7 @@ mod tests {
   fn test_schema_setup() -> LemmyResult<()> {
     let o = Options::default();
     let db_url = SETTINGS.get_database_url();
-    let mut conn = PgConnection::establish(&db_url)?;
+    let conn = &mut PgConnection::establish(&db_url)?;
 
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
@@ -388,13 +388,13 @@ mod tests {
     );
 
     // Insert the test data
-    insert_test_data(&mut conn)?;
+    insert_test_data(conn)?;
 
     // Run all migrations, and make sure that changes can be correctly reverted
     assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
 
     // Check the test data we inserted before after running migrations
-    check_test_data(&mut conn)?;
+    check_test_data(conn)?;
 
     // Check for early return
     assert_eq!(run(o.run())?, EarlyReturn);
