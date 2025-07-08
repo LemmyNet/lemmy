@@ -746,11 +746,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationTypeEnum;
+
     notification (id) {
         id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
+        recipient_id -> Int4,
+        kind -> NotificationTypeEnum,
+        read -> Bool,
         published_at -> Timestamptz,
     }
 }
@@ -858,18 +864,6 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::NotificationTypeEnum;
-
-    person_notification (recipient_id, notification_id) {
-        notification_id -> Int4,
-        recipient_id -> Int4,
-        kind -> NotificationTypeEnum,
-        read -> Bool,
     }
 }
 
@@ -1215,6 +1209,7 @@ diesel::joinable!(multi_community_entry -> multi_community (multi_community_id))
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
+diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
@@ -1226,8 +1221,6 @@ diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
 diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
-diesel::joinable!(person_notification -> notification (notification_id));
-diesel::joinable!(person_notification -> person (recipient_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1312,7 +1305,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_actions,
   person_content_combined,
   person_liked_combined,
-  person_notification,
   person_saved_combined,
   post,
   post_actions,

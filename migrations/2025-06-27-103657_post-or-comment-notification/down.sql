@@ -38,16 +38,15 @@ CREATE TABLE inbox_combined (
 -- copy back data to person_post_mention table
 INSERT INTO person_post_mention (recipient_id, post_id, read, published_at)
 SELECT
-    p.recipient_id,
-    n.post_id,
-    p.read,
-    n.published_at
+    recipient_id,
+    post_id,
+    read,
+    published_at
 FROM
-    notification n
-    INNER JOIN person_notification p ON n.id = p.notification_id
+    notification
 WHERE
-    p.kind = 'Mention'
-    AND n.post_id IS NOT NULL;
+    kind = 'Mention'
+    AND post_id IS NOT NULL;
 
 INSERT INTO inbox_combined (person_post_mention_id, published_at)
 SELECT
@@ -59,16 +58,15 @@ FROM
 -- copy back data to person_comment_mention table
 INSERT INTO person_comment_mention (recipient_id, comment_id, read, published_at)
 SELECT
-    p.recipient_id,
-    n.comment_id,
-    p.read,
-    n.published_at
+    recipient_id,
+    comment_id,
+    read,
+    published_at
 FROM
-    notification n
-    INNER JOIN person_notification p ON n.id = p.notification_id
+    notification
 WHERE
-    p.kind = 'Mention'
-    AND n.comment_id IS NOT NULL;
+    kind = 'Mention'
+    AND comment_id IS NOT NULL;
 
 INSERT INTO inbox_combined (person_comment_mention_id, published_at)
 SELECT
@@ -80,16 +78,15 @@ FROM
 -- copy back data to comment_reply table
 INSERT INTO comment_reply (recipient_id, comment_id, read, published_at)
 SELECT
-    p.recipient_id,
-    n.comment_id,
-    p.read,
-    n.published_at
+    recipient_id,
+    comment_id,
+    read,
+    published_at
 FROM
-    notification n
-    INNER JOIN person_notification p ON n.id = p.notification_id
+    notification
 WHERE
-    p.kind = 'Reply'
-    AND n.comment_id IS NOT NULL;
+    kind = 'Reply'
+    AND comment_id IS NOT NULL;
 
 INSERT INTO inbox_combined (comment_reply_id, published_at)
 SELECT
@@ -113,8 +110,6 @@ CREATE INDEX idx_comment_reply_published ON comment_reply USING btree (published
 CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined USING btree (reverse_timestamp_sort (published_at) DESC, id DESC);
 
 CREATE INDEX idx_inbox_combined_published ON inbox_combined USING btree (published_at DESC, id DESC);
-
-DROP TABLE person_notification;
 
 DROP TABLE notification;
 

@@ -45,7 +45,6 @@ use lemmy_db_schema_file::{
     notification,
     person,
     person_actions,
-    person_notification,
     post,
     private_message,
   },
@@ -65,8 +64,7 @@ impl NotificationView {
         .or(private_message::creator_id.eq(item_creator)),
     );
 
-    let recipient_join =
-      aliases::person1.on(person_notification::recipient_id.eq(recipient_person));
+    let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
     let comment_join = comment::table.on(
       notification::comment_id
@@ -107,7 +105,6 @@ impl NotificationView {
       creator_local_instance_actions_join(local_instance_id);
 
     notification::table
-      .inner_join(person_notification::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -139,7 +136,7 @@ impl NotificationView {
 
     let recipient_person = aliases::person1.field(person::id);
 
-    let unread_filter = person_notification::read
+    let unread_filter = notification::read
       .eq(false)
       // If its unread, I only want the messages to me
       .or(
@@ -231,7 +228,7 @@ impl NotificationQuery {
         // The recipient filter (IE only show replies to you)
         .filter(recipient_person.eq(my_person_id))
         .filter(
-          person_notification::read
+          notification::read
             .eq(false)
             // If its unread, I only want the messages to me
             .or(private_message::read.eq(false)),
@@ -262,14 +259,10 @@ impl NotificationQuery {
     if let Some(type_) = self.type_ {
       query = match type_ {
         InboxDataType::All => query,
-        InboxDataType::Reply => {
-          query.filter(person_notification::kind.eq(NotificationTypes::Reply))
-        }
-        InboxDataType::Mention => {
-          query.filter(person_notification::kind.eq(NotificationTypes::Mention))
-        }
+        InboxDataType::Reply => query.filter(notification::kind.eq(NotificationTypes::Reply)),
+        InboxDataType::Mention => query.filter(notification::kind.eq(NotificationTypes::Mention)),
         InboxDataType::PrivateMessage => {
-          query.filter(person_notification::kind.eq(NotificationTypes::PrivateMessage))
+          query.filter(notification::kind.eq(NotificationTypes::PrivateMessage))
         }
       }
     }
@@ -312,7 +305,6 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
   };
   Some(NotificationView {
     notification: v.notification,
-    person_notification: v.person_notification,
     creator: v.creator,
     recipient: v.recipient,
     image_details: v.image_details,

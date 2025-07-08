@@ -1,11 +1,6 @@
 use crate::{
   newtypes::{CommentId, NotificationId, PersonId},
-  source::notification::{
-    Notification,
-    NotificationInsertForm,
-    PersonNotification,
-    PersonNotificationInsertForm,
-  },
+  source::notification::{Notification, NotificationInsertForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -14,7 +9,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{notification, person_notification};
+use lemmy_db_schema_file::schema::notification;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Notification {
@@ -38,21 +33,6 @@ impl Notification {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-}
-
-impl PersonNotification {
-  pub async fn create(
-    pool: &mut DbPool<'_>,
-    form: &PersonNotificationInsertForm,
-  ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(person_notification::table)
-      .values(form)
-      .on_conflict_do_nothing()
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateNotification)
-  }
 
   pub async fn mark_all_as_read(
     pool: &mut DbPool<'_>,
@@ -60,11 +40,11 @@ impl PersonNotification {
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
-      person_notification::table
-        .filter(person_notification::recipient_id.eq(for_recipient_id))
-        .filter(person_notification::read.eq(false)),
+      notification::table
+        .filter(notification::recipient_id.eq(for_recipient_id))
+        .filter(notification::read.eq(false)),
     )
-    .set(person_notification::read.eq(true))
+    .set(notification::read.eq(true))
     .execute(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateNotification)
@@ -77,11 +57,11 @@ impl PersonNotification {
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(
-      person_notification::table
-        .filter(person_notification::notification_id.eq(notification_id))
-        .filter(person_notification::recipient_id.eq(for_recipient_id)),
+      notification::table
+        .filter(notification::id.eq(notification_id))
+        .filter(notification::recipient_id.eq(for_recipient_id)),
     )
-    .set(person_notification::read.eq(true))
+    .set(notification::read.eq(true))
     .execute(conn)
     .await
     .with_lemmy_type(LemmyErrorType::NotFound)

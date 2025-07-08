@@ -1,16 +1,11 @@
 use crate::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{NotificationId, PersonId},
+  newtypes::PersonId,
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
     instance::InstanceActions,
-    notification::{
-      Notification,
-      NotificationInsertForm,
-      PersonNotification,
-      PersonNotificationInsertForm,
-    },
+    notification::{Notification, NotificationInsertForm},
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
@@ -50,18 +45,11 @@ impl NotifyData<'_> {
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator.
   pub async fn send(self, context: &LemmyContext) -> LemmyResult<()> {
-    let form = if let Some(comment) = self.comment_opt {
-      NotificationInsertForm::new_comment(comment.id)
-    } else {
-      NotificationInsertForm::new_post(self.post.id)
-    };
-    let notif = Notification::create(&mut context.pool(), &form).await?;
+    notify_parent_creator(&self, context).await?;
 
-    notify_parent_creator(&self, notif.id, context).await?;
+    notify_mentions(&self, context).await?;
 
-    notify_mentions(&self, notif.id, context).await?;
-
-    notify_subscribers(&self, notif.id, context).await?;
+    notify_subscribers(&self, context).await?;
 
     Ok(())
   }
@@ -112,6 +100,20 @@ impl NotifyData<'_> {
       Ok(self.post.local_url(context.settings())?)
     }
   }
+
+  async fn insert(
+    &self,
+    person_id: PersonId,
+    kind: NotificationTypes,
+    context: &LemmyContext,
+  ) -> LemmyResult<Notification> {
+    let form = if let Some(comment) = self.comment_opt {
+      NotificationInsertForm::new_comment(comment.id, person_id, kind)
+    } else {
+      NotificationInsertForm::new_post(self.post.id, person_id, kind)
+    };
+    Ok(Notification::create(&mut context.pool(), &form).await?)
+  }
 }
 
 pub async fn notify_private_message(
@@ -125,15 +127,12 @@ pub async fn notify_private_message(
     return Ok(());
   };
 
-  let form = NotificationInsertForm::new_private_message(view.private_message.id);
-  let notif = Notification::create(&mut context.pool(), &form).await?;
-
-  let form = PersonNotificationInsertForm::new(
-    notif.id,
+  let form = NotificationInsertForm::new_private_message(
+    view.private_message.id,
     local_recipient.person.id,
     NotificationTypes::PrivateMessage,
   );
-  PersonNotification::create(&mut context.pool(), &form).await?;
+  Notification::create(&mut context.pool(), &form).await?;
 
   if is_create {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -150,11 +149,7 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-async fn notify_parent_creator(
-  data: &NotifyData<'_>,
-  notif_id: NotificationId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
+async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
   let Some(comment) = data.comment_opt.as_ref() else {
     return Ok(());
   };
@@ -186,9 +181,9 @@ async fn notify_parent_creator(
     return Ok(());
   };
 
-  let form =
-    PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Reply);
-  PersonNotification::create(&mut context.pool(), &form).await?;
+  data
+    .insert(user_view.person.id, NotificationTypes::Reply, context)
+    .await?;
 
   if data.do_send_email {
     send_reply_email(
@@ -204,11 +199,7 @@ async fn notify_parent_creator(
   Ok(())
 }
 
-async fn notify_mentions(
-  data: &NotifyData<'_>,
-  notif_id: NotificationId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
+async fn notify_mentions(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
   let mentions = scrape_text_for_mentions(&data.content())
     .into_iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&data.creator.name));
@@ -227,9 +218,9 @@ async fn notify_mentions(
       continue;
     };
 
-    let form =
-      PersonNotificationInsertForm::new(notif_id, user_view.person.id, NotificationTypes::Mention);
-    PersonNotification::create(&mut context.pool(), &form).await?;
+    data
+      .insert(user_view.person.id, NotificationTypes::Mention, context)
+      .await?;
 
     // Send an email to those local users that have notifications on
     if data.do_send_email {
@@ -246,11 +237,7 @@ async fn notify_mentions(
   Ok(())
 }
 
-async fn notify_subscribers(
-  data: &NotifyData<'_>,
-  notif_id: NotificationId,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
+async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
   let is_post = data.comment_opt.is_none();
   let subscribers = vec![
     PostActions::list_subscribers(data.post.id, &mut context.pool()).await?,
@@ -270,9 +257,9 @@ async fn notify_subscribers(
       continue;
     };
 
-    let form =
-      PersonNotificationInsertForm::new(notif_id, subscriber, NotificationTypes::Subscribed);
-    PersonNotification::create(&mut context.pool(), &form).await?;
+    data
+      .insert(subscriber, NotificationTypes::Subscribed, context)
+      .await?;
 
     if data.do_send_email {
       let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
@@ -314,12 +301,7 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::{Instance, InstanceActions, InstanceBlockForm},
-      notification::{
-        Notification,
-        NotificationInsertForm,
-        PersonNotification,
-        PersonNotificationInsertForm,
-      },
+      notification::{Notification, NotificationInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
@@ -488,13 +470,10 @@ mod tests {
     };
     assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
     assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient.id);
-    assert_eq!(
-      NotificationTypes::Mention,
-      timmy_inbox[0].person_notification.kind
-    );
+    assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
 
     // Mark it as read
-    PersonNotification::mark_read_by_id_and_person(
+    Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
       data.timmy.person.id,
@@ -527,19 +506,20 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
-    let timmy_mention_sara_comment_form =
-      NotificationInsertForm::new_comment(data.timmy_comment.id);
-    let notif = Notification::create(pool, &timmy_mention_sara_comment_form).await?;
-    let form =
-      PersonNotificationInsertForm::new(notif.id, data.sara.person.id, NotificationTypes::Mention);
-    PersonNotification::create(pool, &form).await?;
+    let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
+      data.timmy_comment.id,
+      data.sara.person.id,
+      NotificationTypes::Mention,
+    );
+    Notification::create(pool, &timmy_mention_sara_comment_form).await?;
 
     // Jessica mentions sara in a post
-    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(data.jessica_post.id);
-    let notif = Notification::create(pool, &jessica_mention_sara_post_form).await?;
-    let form =
-      PersonNotificationInsertForm::new(notif.id, data.sara.person.id, NotificationTypes::Mention);
-    PersonNotification::create(pool, &form).await?;
+    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
+      data.jessica_post.id,
+      data.sara.person.id,
+      NotificationTypes::Mention,
+    );
+    Notification::create(pool, &jessica_mention_sara_post_form).await?;
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =
@@ -562,10 +542,7 @@ mod tests {
     }
     assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
     assert_eq!(data.sara.person.id, sara_inbox[0].recipient.id);
-    assert_eq!(
-      NotificationTypes::Mention,
-      sara_inbox[0].person_notification.kind
-    );
+    assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
 
     assert_eq!(
       Some(data.timmy_comment.id),
@@ -584,10 +561,7 @@ mod tests {
     }
     assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
     assert_eq!(data.sara.person.id, sara_inbox[1].recipient.id);
-    assert_eq!(
-      NotificationTypes::Mention,
-      sara_inbox[1].person_notification.kind
-    );
+    assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
     let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
@@ -605,7 +579,7 @@ mod tests {
     // Make sure the comment mention which timmy made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_block[0].person_notification.kind
+      sara_inbox_after_block[0].notification.kind
     );
 
     // Unblock user so we can reuse the same person
@@ -622,7 +596,7 @@ mod tests {
 
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_mentions_only[0].person_notification.kind
+      sara_inbox_mentions_only[0].notification.kind
     );
 
     // Turn Jessica into a bot account
@@ -646,11 +620,11 @@ mod tests {
     // Make sure the post mention which jessica made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_hide_bots[0].person_notification.kind
+      sara_inbox_after_hide_bots[0].notification.kind
     );
 
     // Mark them all as read
-    PersonNotification::mark_all_as_read(pool, data.sara.person.id).await?;
+    Notification::mark_all_as_read(pool, data.sara.person.id).await?;
 
     // Make sure none come back
     let sara_unread_mentions =
