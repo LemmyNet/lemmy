@@ -10,18 +10,18 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{Queryable, Selectable},
+  diesel::{helper_types::Nullable, Queryable, Selectable},
   lemmy_db_schema::utils::queries::{
     comment_creator_is_admin,
     comment_select_remove_deletes,
-    local_user_can_mod_comment,
-    post_tags_fragment,
-  },
-  lemmy_db_schema::utils::queries::{
     creator_banned_from_community,
     creator_banned_within_community,
     creator_is_moderator,
+    local_user_can_mod_comment,
+    my_instance_persons_actions_select,
+    post_tags_fragment,
   },
+  lemmy_db_schema::MyInstancePersonsActionsAllColumnsTuple,
 };
 
 pub mod api;

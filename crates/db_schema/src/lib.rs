@@ -290,7 +290,8 @@ pub type CreatorLocalInstanceActionsAllColumnsTuple = (
 pub type CreatorCommunityInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::received_ban_at>,
   AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_persons_at>,
 );

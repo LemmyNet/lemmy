@@ -10,13 +10,14 @@ use crate::{
     person2,
   },
   newtypes::{InstanceId, PersonId},
+  MyInstancePersonsActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
 use diesel::{
   dsl::{case_when, exists, not},
   expression::SqlLiteral,
-  helper_types::{Eq, NotEq},
+  helper_types::{Eq, NotEq, Nullable},
   sql_types::Json,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -358,6 +359,13 @@ pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
       .eq(person::instance_id)
       .and(instance_actions::person_id.nullable().eq(my_person_id)),
   )
+}
+
+/// The select for the my_instance_persons_actions alias
+pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
+  my_instance_persons_actions
+    .fields(instance_actions::all_columns)
+    .nullable()
 }
 
 /// Your instance actions for the person's instance.

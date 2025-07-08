@@ -1584,7 +1584,7 @@ mod tests {
       language_id: Some(LanguageId(1)),
       ..PostInsertForm::new(
         POST_FROM_BLOCKED_INSTANCE_COMMS.to_string(),
-        data.bot_local_user_view.person.id,
+        data.bot.person.id,
         inserted_community.id,
       )
     };
@@ -1687,7 +1687,7 @@ mod tests {
       language_id: Some(LanguageId(1)),
       ..PostInsertForm::new(
         POST_TO_UNBLOCKED_COMM.to_string(),
-        data.bot_local_user_view.person.id,
+        data.bot.person.id,
         inserted_community.id,
       )
     };

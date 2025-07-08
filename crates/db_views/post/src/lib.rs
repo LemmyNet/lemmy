@@ -12,17 +12,17 @@ pub mod db_perf;
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{Queryable, Selectable},
+  diesel::{helper_types::Nullable, Queryable, Selectable},
   lemmy_db_schema::utils::queries::{
     creator_banned_from_community,
     creator_banned_within_community,
-  },
-  lemmy_db_schema::utils::queries::{
     creator_is_moderator,
     local_user_can_mod_post,
+    my_instance_persons_actions_select,
     post_creator_is_admin,
     post_tags_fragment,
   },
+  lemmy_db_schema::MyInstancePersonsActionsAllColumnsTuple,
 };
 
 pub mod api;
