@@ -162,7 +162,7 @@ where
     send_all_instances: send_targets.all_instances,
     send_community_followers_of: send_targets.community_followers_of.map(|e| e.0),
     actor_type: actor.actor_type(),
-    actor_apub_id: actor.id().into(),
+    actor_apub_id: actor.id().clone().into(),
   };
   SentActivity::create(&mut data.pool(), form).await?;
 

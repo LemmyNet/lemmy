@@ -69,6 +69,10 @@ impl Object for ApubSite {
   type Kind = Instance;
   type Error = LemmyError;
 
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
+  }
+
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
@@ -92,7 +96,7 @@ impl Object for ApubSite {
 
     let instance = Instance {
       kind: ApplicationType::Application,
-      id: self.id().into(),
+      id: self.id().clone().into(),
       name: self.name.clone(),
       preferred_username: Some(data.domain().to_string()),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
@@ -169,10 +173,6 @@ impl Object for ApubSite {
 }
 
 impl Actor for ApubSite {
-  fn id(&self) -> Url {
-    self.ap_id.inner().clone()
-  }
-
   fn public_key_pem(&self) -> &str {
     &self.public_key
   }

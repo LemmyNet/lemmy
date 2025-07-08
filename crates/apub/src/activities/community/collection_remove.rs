@@ -7,7 +7,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::RemoveType,
-  traits::{ActivityHandler, Actor},
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -42,12 +42,12 @@ impl CollectionRemove {
   ) -> LemmyResult<()> {
     let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
-      object: removed_mod.id(),
+      object: removed_mod.id().clone(),
       target: generate_moderators_url(&community.ap_id)?.into(),
       id: id.clone(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: RemoveType::Remove,
     };
 
@@ -64,11 +64,11 @@ impl CollectionRemove {
   ) -> LemmyResult<()> {
     let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.ap_id)?.into(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: RemoveType::Remove,
       id: id.clone(),
     };

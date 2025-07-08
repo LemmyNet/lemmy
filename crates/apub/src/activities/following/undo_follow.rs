@@ -6,7 +6,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{ActivityHandler, Actor, Object},
 };
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
@@ -31,8 +31,8 @@ impl UndoFollow {
   ) -> LemmyResult<()> {
     let object = Follow::new(actor, target, context)?;
     let undo = UndoFollow {
-      actor: actor.id().into(),
-      to: Some([target.id().into()]),
+      actor: actor.id().clone().into(),
+      to: Some([target.id().clone().into()]),
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,

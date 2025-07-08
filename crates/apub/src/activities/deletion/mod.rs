@@ -93,10 +93,24 @@ pub(crate) async fn send_apub_delete_private_message(
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   if deleted {
-    let delete: Delete = Delete::new(actor, deletable, vec![recipient.id()], None, None, &context)?;
+    let delete: Delete = Delete::new(
+      actor,
+      deletable,
+      vec![recipient.id().clone()],
+      None,
+      None,
+      &context,
+    )?;
     send_lemmy_activity(&context, delete, actor, inbox, true).await?;
   } else {
-    let undo = UndoDelete::new(actor, deletable, vec![recipient.id()], None, None, &context)?;
+    let undo = UndoDelete::new(
+      actor,
+      deletable,
+      vec![recipient.id().clone()],
+      None,
+      None,
+      &context,
+    )?;
     send_lemmy_activity(&context, undo, actor, inbox, true).await?;
   };
   Ok(())
@@ -150,13 +164,13 @@ impl DeletableObjects {
     Err(diesel::NotFound.into())
   }
 
-  pub(crate) fn id(&self) -> Url {
+  pub(crate) fn id(&self) -> &Url {
     match self {
       DeletableObjects::Community(c) => c.id(),
       DeletableObjects::Person(p) => p.id(),
-      DeletableObjects::Comment(c) => c.ap_id.clone().into(),
-      DeletableObjects::Post(p) => p.ap_id.clone().into(),
-      DeletableObjects::PrivateMessage(p) => p.ap_id.clone().into(),
+      DeletableObjects::Comment(c) => c.ap_id.inner(),
+      DeletableObjects::Post(p) => p.ap_id.inner(),
+      DeletableObjects::PrivateMessage(p) => p.ap_id.inner(),
     }
   }
 }

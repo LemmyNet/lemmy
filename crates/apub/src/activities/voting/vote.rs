@@ -8,7 +8,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  traits::{ActivityHandler, Actor},
+  traits::{ActivityHandler, Object},
 };
 use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
 use lemmy_apub_objects::{
@@ -28,7 +28,7 @@ impl Vote {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Vote> {
     Ok(Vote {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       object: object_id,
       kind: kind.clone(),
       id: generate_activity_id(kind, context)?,

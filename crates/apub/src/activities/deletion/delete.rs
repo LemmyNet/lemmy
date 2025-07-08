@@ -91,7 +91,7 @@ impl Delete {
     Ok(Delete {
       actor: actor.ap_id.clone().into(),
       to,
-      object: IdOrNestedObject::Id(object.id()),
+      object: IdOrNestedObject::Id(object.id().clone()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,

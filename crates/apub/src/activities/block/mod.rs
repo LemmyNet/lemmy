@@ -1,15 +1,9 @@
 use crate::protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser};
-use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::public,
-  traits::{Actor, Object},
-};
-use chrono::{DateTime, Utc};
+use activitypub_federation::{config::Data, kinds::public, traits::Object};
+use either::Either;
 use lemmy_api_utils::{context::LemmyContext, utils::check_expire_time};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite},
-  protocol::{group::Group, instance::Instance},
   utils::functions::generate_to,
 };
 use lemmy_db_schema::{
@@ -19,106 +13,22 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views_community::api::BanFromCommunity;
-use lemmy_utils::error::{LemmyError, LemmyResult};
-use serde::Deserialize;
+use lemmy_utils::error::LemmyResult;
 use url::Url;
 
 pub mod block_user;
 pub mod undo_block_user;
 
-#[derive(Clone, Debug)]
-pub enum SiteOrCommunity {
-  Site(ApubSite),
-  Community(ApubCommunity),
-}
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub enum InstanceOrGroup {
-  Instance(Box<Instance>),
-  Group(Box<Group>),
-}
-
-#[async_trait::async_trait]
-impl Object for SiteOrCommunity {
-  type DataType = LemmyContext;
-  type Kind = InstanceOrGroup;
-  type Error = LemmyError;
-
-  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    Some(match self {
-      SiteOrCommunity::Site(i) => i.last_refreshed_at,
-      SiteOrCommunity::Community(c) => c.last_refreshed_at,
-    })
-  }
-
-  async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>>
-  where
-    Self: Sized,
-  {
-    let site = ApubSite::read_from_id(object_id.clone(), data).await?;
-    Ok(match site {
-      Some(o) => Some(SiteOrCommunity::Site(o)),
-      None => ApubCommunity::read_from_id(object_id, data)
-        .await?
-        .map(SiteOrCommunity::Community),
-    })
-  }
-
-  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
-    match self {
-      SiteOrCommunity::Site(i) => i.delete(data).await,
-      SiteOrCommunity::Community(c) => c.delete(data).await,
-    }
-  }
-
-  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    Ok(match self {
-      SiteOrCommunity::Site(i) => InstanceOrGroup::Instance(Box::new(i.into_json(data).await?)),
-      SiteOrCommunity::Community(c) => InstanceOrGroup::Group(Box::new(c.into_json(data).await?)),
-    })
-  }
-
-  async fn verify(
-    apub: &Self::Kind,
-    expected_domain: &Url,
-    data: &Data<Self::DataType>,
-  ) -> LemmyResult<()> {
-    match apub {
-      InstanceOrGroup::Instance(i) => ApubSite::verify(i, expected_domain, data).await,
-      InstanceOrGroup::Group(g) => ApubCommunity::verify(g, expected_domain, data).await,
-    }
-  }
-
-  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self>
-  where
-    Self: Sized,
-  {
-    Ok(match apub {
-      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_json(*p, data).await?),
-      InstanceOrGroup::Group(n) => {
-        SiteOrCommunity::Community(ApubCommunity::from_json(*n, data).await?)
-      }
-    })
-  }
-}
-
-impl SiteOrCommunity {
-  fn id(&self) -> ObjectId<SiteOrCommunity> {
-    match self {
-      SiteOrCommunity::Site(s) => ObjectId::from(s.ap_id.clone()),
-      SiteOrCommunity::Community(c) => ObjectId::from(c.ap_id.clone()),
-    }
-  }
-}
+pub type SiteOrCommunity = Either<ApubSite, ApubCommunity>;
 
 async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyResult<Vec<Url>> {
   Ok(match target {
-    SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
+    SiteOrCommunity::Left(_) => Site::read_remote_sites(pool)
       .await?
       .into_iter()
       .map(|s| s.ap_id.into())
       .collect(),
-    SiteOrCommunity::Community(c) => vec![c.id()],
+    SiteOrCommunity::Right(c) => vec![c.id().clone()],
   })
 }
 
@@ -131,7 +41,7 @@ pub(crate) async fn send_ban_from_site(
   expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let site = SiteOrCommunity::Site(Site::read_local(&mut context.pool()).await?.into());
+  let site = SiteOrCommunity::Left(Site::read_local(&mut context.pool()).await?.into());
   let expires = check_expire_time(expires)?;
 
   if ban {
@@ -172,7 +82,7 @@ pub(crate) async fn send_ban_from_community(
 
   if data.ban {
     BlockUser::send(
-      &SiteOrCommunity::Community(community),
+      &SiteOrCommunity::Right(community),
       &banned_person.into(),
       &mod_.into(),
       data.remove_or_restore_data.unwrap_or(false),
@@ -183,7 +93,7 @@ pub(crate) async fn send_ban_from_community(
     .await
   } else {
     UndoBlockUser::send(
-      &SiteOrCommunity::Community(community),
+      &SiteOrCommunity::Right(community),
       &banned_person.into(),
       &mod_.into(),
       data.remove_or_restore_data.unwrap_or(false),
@@ -195,7 +105,7 @@ pub(crate) async fn send_ban_from_community(
 }
 
 fn to(target: &SiteOrCommunity) -> LemmyResult<Vec<Url>> {
-  Ok(if let SiteOrCommunity::Community(c) = target {
+  Ok(if let SiteOrCommunity::Right(c) = target {
     generate_to(c)?
   } else {
     vec![public()]

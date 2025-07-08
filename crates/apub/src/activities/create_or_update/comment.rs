@@ -65,7 +65,7 @@ impl CreateOrUpdateNote {
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: person.id().into(),
+      actor: person.id().clone().into(),
       to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
