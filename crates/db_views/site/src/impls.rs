@@ -62,6 +62,7 @@ pub fn user_backup_list_to_user_settings_backup(
     settings: Some(local_user_view.local_user),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
+    blocked_instances: Vec::new(),
     blocked_instances_communities: lists.blocked_instances_communities,
     blocked_instances_persons: lists.blocked_instances_persons,
     blocked_users: vec_into(lists.blocked_users),

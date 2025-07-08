@@ -721,6 +721,7 @@ pub enum PostOrCommentOrPrivateMessage {
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(deny_unknown_fields)]
 pub struct UserSettingsBackup {
   pub display_name: Option<String>,
   pub bio: Option<String>,
@@ -741,6 +742,9 @@ pub struct UserSettingsBackup {
   pub blocked_communities: Vec<Url>,
   #[serde(default)]
   pub blocked_users: Vec<Url>,
+  #[serde(default)]
+  /// Only kept for v0.19 compatibility
+  pub blocked_instances: Vec<String>,
   #[serde(default)]
   pub blocked_instances_communities: Vec<String>,
   #[serde(default)]
