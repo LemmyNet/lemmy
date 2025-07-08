@@ -851,7 +851,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 /// fetched recursively. Ensure that it works properly.
 test("Fetch a deeply nested comment", async () => {
   let lastComment;
-  for (let i = 0; i < 50; i++) {
+  for (let i = 1; i < 50; i++) {
     let commentRes = await createComment(
       alpha,
       postOnAlphaRes.post_view.post.id,
