@@ -20,6 +20,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::PostOrCommentId,
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
@@ -37,6 +38,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
+    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -161,13 +163,16 @@ pub async fn update_post(
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 
+  // Scan the post body for user mentions, add those rows
+  let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());
   send_local_notifs(
-    &updated_post,
-    None,
+    mentions,
+    PostOrCommentId::Post(updated_post.id),
     &local_user_view.person,
-    &orig_post.community,
     false,
     &context,
+    Some(&local_user_view),
+    local_instance_id,
   )
   .await?;
 
