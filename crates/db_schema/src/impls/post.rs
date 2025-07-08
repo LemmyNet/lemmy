@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PaginationCursor, PersonId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -40,7 +40,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
-  schema::{community, person, post, post_actions},
+  schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -595,13 +595,14 @@ impl PostActions {
   pub async fn list_subscribers(
     post_id: PostId,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<PersonId>> {
+  ) -> LemmyResult<Vec<(PersonId, LocalUserId)>> {
     let conn = &mut get_conn(pool).await?;
 
     post_actions::table
+      .inner_join(local_user::table.on(post_actions::person_id.eq(local_user::person_id)))
       .filter(post_actions::post_id.eq(post_id))
       .filter(post_actions::notifications.eq(PostNotificationsMode::AllComments))
-      .select(post_actions::person_id)
+      .select((local_user::person_id, local_user::id))
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)

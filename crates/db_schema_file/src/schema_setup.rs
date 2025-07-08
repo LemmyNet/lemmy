@@ -323,6 +323,7 @@ mod tests {
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
     *,
   };
+  use crate::schema::local_user;
   use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
@@ -615,7 +616,8 @@ mod tests {
 
     // Check comment replies
     let replies: Vec<(Option<i32>, i32)> = notification::table
-      .select((notification::comment_id, notification::recipient_id))
+      .inner_join(local_user::table)
+      .select((notification::comment_id, local_user::person_id))
       .order_by(notification::comment_id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;

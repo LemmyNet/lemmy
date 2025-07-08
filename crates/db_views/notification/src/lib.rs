@@ -19,15 +19,8 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
-    utils::queries::{
-      creator_banned,
-      creator_is_admin,
-      local_user_can_mod,
-      person1_select,
-      post_tags_fragment,
-    },
+    utils::queries::{creator_banned, creator_is_admin, local_user_can_mod, post_tags_fragment},
     utils::queries::{creator_banned_from_community, creator_is_moderator},
-    Person1AliasAllColumnsTuple,
   },
 };
 
@@ -51,13 +44,6 @@ struct NotificationViewInternal {
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = person1_select()
-    )
-  )]
-  pub recipient: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -114,7 +100,6 @@ struct NotificationViewInternal {
 pub struct NotificationView {
   pub notification: Notification,
   pub creator: Person,
-  pub recipient: Person,
   pub image_details: Option<ImageDetails>,
   pub community_actions: Option<CommunityActions>,
   pub instance_actions: Option<InstanceActions>,

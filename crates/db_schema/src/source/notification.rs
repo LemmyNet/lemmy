@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessageId};
+use crate::newtypes::{CommentId, LocalUserId, NotificationId, PostId, PrivateMessageId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -22,7 +22,7 @@ pub struct Notification {
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub private_message_id: Option<PrivateMessageId>,
-  pub recipient_id: PersonId,
+  pub recipient_id: LocalUserId,
   pub kind: NotificationTypes,
   pub read: bool,
   pub published_at: DateTime<Utc>,
@@ -34,12 +34,12 @@ pub struct NotificationInsertForm {
   pub comment_id: Option<CommentId>,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
-  pub recipient_id: PersonId,
+  pub recipient_id: LocalUserId,
   pub kind: NotificationTypes,
 }
 
 impl NotificationInsertForm {
-  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationTypes) -> Self {
+  pub fn new_post(post_id: PostId, recipient_id: LocalUserId, kind: NotificationTypes) -> Self {
     Self {
       post_id: Some(post_id),
       comment_id: None,
@@ -50,7 +50,7 @@ impl NotificationInsertForm {
   }
   pub fn new_comment(
     comment_id: CommentId,
-    recipient_id: PersonId,
+    recipient_id: LocalUserId,
     kind: NotificationTypes,
   ) -> Self {
     Self {
@@ -63,7 +63,7 @@ impl NotificationInsertForm {
   }
   pub fn new_private_message(
     private_message_id: PrivateMessageId,
-    recipient_id: PersonId,
+    recipient_id: LocalUserId,
     kind: NotificationTypes,
   ) -> Self {
     Self {

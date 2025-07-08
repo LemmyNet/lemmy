@@ -1209,7 +1209,7 @@ diesel::joinable!(multi_community_entry -> multi_community (multi_community_id))
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
-diesel::joinable!(notification -> person (recipient_id));
+diesel::joinable!(notification -> local_user (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));

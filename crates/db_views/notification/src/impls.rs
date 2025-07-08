@@ -49,13 +49,13 @@ use lemmy_db_schema_file::{
     private_message,
   },
 };
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl NotificationView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
-    let recipient_person = aliases::person1.field(person::id);
 
     let item_creator_join = person::table.on(
       comment::creator_id
@@ -63,8 +63,6 @@ impl NotificationView {
         .or(post::creator_id.eq(item_creator))
         .or(private_message::creator_id.eq(item_creator)),
     );
-
-    let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
     let comment_join = comment::table.on(
       notification::comment_id
@@ -110,7 +108,6 @@ impl NotificationView {
       .left_join(post_join)
       .left_join(community_join())
       .inner_join(item_creator_join)
-      .inner_join(recipient_join)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
       .left_join(my_local_user_admin_join)
@@ -127,14 +124,10 @@ impl NotificationView {
   /// Gets the number of unread mentions
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    local_instance_id: InstanceId,
-    show_bot_accounts: bool,
+    my_user_view: &LocalUserView,
   ) -> LemmyResult<i64> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
-
-    let recipient_person = aliases::person1.field(person::id);
 
     let unread_filter = notification::read
       .eq(false)
@@ -142,12 +135,12 @@ impl NotificationView {
       .or(
         private_message::read
           .eq(false)
-          .and(private_message::recipient_id.eq(my_person_id)),
+          .and(private_message::recipient_id.eq(my_user_view.person.id)),
       );
 
-    let mut query = Self::joins(my_person_id, local_instance_id)
+    let mut query = Self::joins(my_user_view.person.id, my_user_view.person.instance_id)
       // Filter for your user
-      .filter(recipient_person.eq(my_person_id))
+      .filter(notification::recipient_id.eq(my_user_view.local_user.id))
       // Filter unreads
       .filter(unread_filter)
       // Don't count replies from blocked users
@@ -157,7 +150,7 @@ impl NotificationView {
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
-    if !show_bot_accounts {
+    if !my_user_view.local_user.show_bot_accounts {
       query = query.filter(not(person::bot_account));
     }
 
@@ -205,17 +198,17 @@ impl NotificationQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    local_instance_id: InstanceId,
+    my_user_view: &LocalUserView,
   ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
     let item_creator = person::id;
-    let recipient_person = aliases::person1.field(person::id);
+    let recipient = notification::recipient_id;
 
-    let mut query = NotificationView::joins(my_person_id, local_instance_id)
-      .select(NotificationViewInternal::as_select())
-      .into_boxed();
+    let mut query =
+      NotificationView::joins(my_user_view.person.id, my_user_view.person.instance_id)
+        .select(NotificationViewInternal::as_select())
+        .into_boxed();
 
     if !self.no_limit.unwrap_or_default() {
       let limit = limit_fetch(self.limit)?;
@@ -226,7 +219,7 @@ impl NotificationQuery {
     if self.unread_only.unwrap_or_default() {
       query = query
         // The recipient filter (IE only show replies to you)
-        .filter(recipient_person.eq(my_person_id))
+        .filter(notification::recipient_id.eq(my_user_view.local_user.id))
         .filter(
           notification::read
             .eq(false)
@@ -237,11 +230,11 @@ impl NotificationQuery {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others
       query = query.filter(
-        recipient_person.eq(my_person_id).or(
+        recipient.eq(my_user_view.local_user.id).or(
           notification::private_message_id.is_not_null().and(
-            recipient_person
-              .eq(my_person_id)
-              .or(item_creator.eq(my_person_id)),
+            recipient
+              .eq(my_user_view.local_user.id)
+              .or(item_creator.eq(my_user_view.person.id)),
           ),
         ),
       );
@@ -306,7 +299,6 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
   Some(NotificationView {
     notification: v.notification,
     creator: v.creator,
-    recipient: v.recipient,
     image_details: v.image_details,
     community_actions: v.community_actions,
     instance_actions: v.instance_actions,

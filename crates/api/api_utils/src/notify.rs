@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{LocalUserId, PersonId},
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -103,14 +103,14 @@ impl NotifyData<'_> {
 
   async fn insert(
     &self,
-    person_id: PersonId,
+    local_user_id: LocalUserId,
     kind: NotificationTypes,
     context: &LemmyContext,
   ) -> LemmyResult<Notification> {
     let form = if let Some(comment) = self.comment_opt {
-      NotificationInsertForm::new_comment(comment.id, person_id, kind)
+      NotificationInsertForm::new_comment(comment.id, local_user_id, kind)
     } else {
-      NotificationInsertForm::new_post(self.post.id, person_id, kind)
+      NotificationInsertForm::new_post(self.post.id, local_user_id, kind)
     };
     Notification::create(&mut context.pool(), &form).await
   }
@@ -129,7 +129,7 @@ pub async fn notify_private_message(
 
   let form = NotificationInsertForm::new_private_message(
     view.private_message.id,
-    local_recipient.person.id,
+    local_recipient.local_user.id,
     NotificationTypes::PrivateMessage,
   );
   Notification::create(&mut context.pool(), &form).await?;
@@ -182,7 +182,7 @@ async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) ->
   };
 
   data
-    .insert(user_view.person.id, NotificationTypes::Reply, context)
+    .insert(user_view.local_user.id, NotificationTypes::Reply, context)
     .await?;
 
   if data.do_send_email {
@@ -219,7 +219,7 @@ async fn notify_mentions(data: &NotifyData<'_>, context: &LemmyContext) -> Lemmy
     };
 
     data
-      .insert(user_view.person.id, NotificationTypes::Mention, context)
+      .insert(user_view.local_user.id, NotificationTypes::Mention, context)
       .await?;
 
     // Send an email to those local users that have notifications on
@@ -248,9 +248,9 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
   .flatten()
   .collect::<Vec<_>>();
 
-  for subscriber in subscribers {
+  for (person_id, local_user_id) in subscribers {
     if data
-      .check_notifications_allowed(subscriber, context)
+      .check_notifications_allowed(person_id, context)
       .await
       .is_err()
     {
@@ -258,11 +258,11 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
     };
 
     data
-      .insert(subscriber, NotificationTypes::Subscribed, context)
+      .insert(local_user_id, NotificationTypes::Subscribed, context)
       .await?;
 
     if data.do_send_email {
-      let user_view = LocalUserView::read_person(&mut context.pool(), subscriber).await?;
+      let user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
       if let Some(comment) = data.comment_opt {
         send_post_subscribed_email(
           &user_view,
@@ -432,7 +432,7 @@ mod tests {
     let pool = &mut context.pool();
     let data = init_data(pool).await?;
 
-    // Sara replied to timmys comment, but lets create the row now
+    // Sara replied to timmys comment
     NotifyData {
       post: &data.timmy_post,
       comment_opt: Some(&data.sara_comment),
@@ -443,14 +443,10 @@ mod tests {
     .send(&context)
     .await?;
 
-    let timmy_unread_replies =
-      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
-        .await?;
+    let timmy_unread_replies = NotificationView::get_unread_count(pool, &data.timmy).await?;
     assert_eq!(1, timmy_unread_replies);
 
-    let timmy_inbox = NotificationQuery::default()
-      .list(pool, data.timmy.person.id, data.instance.id)
-      .await?;
+    let timmy_inbox = NotificationQuery::default().list(pool, &data.timmy).await?;
     assert_length!(1, timmy_inbox);
 
     assert_eq!(
@@ -469,27 +465,28 @@ mod tests {
       panic!("wrong type")
     };
     assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
-    assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient.id);
+    assert_eq!(
+      data.timmy.local_user.id,
+      timmy_inbox[0].notification.recipient_id
+    );
     assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
 
     // Mark it as read
     Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
-      data.timmy.person.id,
+      data.timmy.local_user.id,
     )
     .await?;
 
-    let timmy_unread_replies =
-      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, true)
-        .await?;
+    let timmy_unread_replies = NotificationView::get_unread_count(pool, &data.timmy).await?;
     assert_eq!(0, timmy_unread_replies);
 
     let timmy_inbox_unread = NotificationQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.timmy.person.id, data.instance.id)
+    .list(pool, &data.timmy)
     .await?;
     assert_length!(0, timmy_inbox_unread);
 
@@ -503,12 +500,12 @@ mod tests {
   async fn mentions() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
+    let mut data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
     let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
       data.timmy_comment.id,
-      data.sara.person.id,
+      data.sara.local_user.id,
       NotificationTypes::Mention,
     );
     Notification::create(pool, &timmy_mention_sara_comment_form).await?;
@@ -516,19 +513,16 @@ mod tests {
     // Jessica mentions sara in a post
     let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
       data.jessica_post.id,
-      data.sara.person.id,
+      data.sara.local_user.id,
       NotificationTypes::Mention,
     );
     Notification::create(pool, &jessica_mention_sara_post_form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let sara_unread_mentions =
-      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, true).await?;
+    let sara_unread_mentions = NotificationView::get_unread_count(pool, &data.sara).await?;
     assert_eq!(2, sara_unread_mentions);
 
-    let sara_inbox = NotificationQuery::default()
-      .list(pool, data.sara.person.id, data.instance.id)
-      .await?;
+    let sara_inbox = NotificationQuery::default().list(pool, &data.sara).await?;
     assert_length!(2, sara_inbox);
 
     assert_eq!(
@@ -541,7 +535,10 @@ mod tests {
       panic!("wrong type")
     }
     assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
-    assert_eq!(data.sara.person.id, sara_inbox[0].recipient.id);
+    assert_eq!(
+      data.sara.local_user.id,
+      sara_inbox[0].notification.recipient_id
+    );
     assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
 
     assert_eq!(
@@ -560,7 +557,10 @@ mod tests {
       panic!("wrong type");
     }
     assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
-    assert_eq!(data.sara.person.id, sara_inbox[1].recipient.id);
+    assert_eq!(
+      data.sara.local_user.id,
+      sara_inbox[1].notification.recipient_id
+    );
     assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
@@ -568,12 +568,10 @@ mod tests {
     PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
     let sara_unread_mentions_after_block =
-      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, true).await?;
+      NotificationView::get_unread_count(pool, &data.sara).await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
-    let sara_inbox_after_block = NotificationQuery::default()
-      .list(pool, data.sara.person.id, data.instance.id)
-      .await?;
+    let sara_inbox_after_block = NotificationQuery::default().list(pool, &data.sara).await?;
     assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
@@ -590,7 +588,7 @@ mod tests {
       type_: Some(InboxDataType::Mention),
       ..Default::default()
     }
-    .list(pool, data.sara.person.id, data.instance.id)
+    .list(pool, &data.sara)
     .await?;
     assert_length!(2, sara_inbox_mentions_only);
 
@@ -607,14 +605,12 @@ mod tests {
     Person::update(pool, data.jessica.id, &person_update_form).await?;
 
     // Make sure sara hides bots
+    data.sara.local_user.show_bot_accounts = false;
     let sara_unread_mentions_after_hide_bots =
-      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, false)
-        .await?;
+      NotificationView::get_unread_count(pool, &data.sara).await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
-    let sara_inbox_after_hide_bots = NotificationQuery::default()
-      .list(pool, data.sara.person.id, data.instance.id)
-      .await?;
+    let sara_inbox_after_hide_bots = NotificationQuery::default().list(pool, &data.sara).await?;
     assert_length!(1, sara_inbox_after_hide_bots);
 
     // Make sure the post mention which jessica made is the hidden one
@@ -624,19 +620,17 @@ mod tests {
     );
 
     // Mark them all as read
-    Notification::mark_all_as_read(pool, data.sara.person.id).await?;
+    Notification::mark_all_as_read(pool, data.sara.local_user.id).await?;
 
     // Make sure none come back
-    let sara_unread_mentions =
-      NotificationView::get_unread_count(pool, data.sara.person.id, data.instance.id, false)
-        .await?;
+    let sara_unread_mentions = NotificationView::get_unread_count(pool, &data.sara).await?;
     assert_eq!(0, sara_unread_mentions);
 
     let sara_inbox_unread = NotificationQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, data.sara.person.id, data.instance.id)
+    .list(pool, &data.sara)
     .await?;
     assert_length!(0, sara_inbox_unread);
 
@@ -660,24 +654,27 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages = filter_pm(
-      NotificationQuery::default()
-        .list(pool, data.timmy.person.id, data.instance.id)
-        .await?,
-    );
+    let timmy_messages = filter_pm(NotificationQuery::default().list(pool, &data.timmy).await?);
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
     assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
-    assert_eq!(timmy_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(
+      timmy_messages[0].notification.recipient_id,
+      data.timmy.local_user.id
+    );
     assert_eq!(timmy_messages[1].creator.id, data.timmy.person.id);
-    assert_eq!(timmy_messages[1].recipient.id, data.sara.person.id);
+    assert_eq!(
+      timmy_messages[1].notification.recipient_id,
+      data.sara.local_user.id
+    );
     assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
-    assert_eq!(timmy_messages[2].recipient.id, data.timmy.person.id);
+    assert_eq!(
+      timmy_messages[2].notification.recipient_id,
+      data.timmy.local_user.id
+    );
 
-    let timmy_unread =
-      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
     assert_eq!(2, timmy_unread);
 
     let timmy_unread_messages = filter_pm(
@@ -685,16 +682,22 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.person.id, data.instance.id)
+      .list(pool, &data.timmy)
       .await?,
     );
 
     // The unread hides timmy's sent messages
     assert_length!(2, &timmy_unread_messages);
     assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
-    assert_eq!(timmy_unread_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(
+      timmy_unread_messages[0].notification.recipient_id,
+      data.timmy.local_user.id
+    );
     assert_eq!(timmy_unread_messages[1].creator.id, data.sara.person.id);
-    assert_eq!(timmy_unread_messages[1].recipient.id, data.timmy.person.id);
+    assert_eq!(
+      timmy_unread_messages[1].notification.recipient_id,
+      data.timmy.local_user.id
+    );
 
     cleanup(data, pool).await?;
 
@@ -728,15 +731,13 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.person.id, data.instance.id)
+      .list(pool, &data.timmy)
       .await?,
     );
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread =
-      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
     assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
@@ -770,15 +771,13 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, data.timmy.person.id, data.instance.id)
+      .list(pool, &data.timmy)
       .await?,
     );
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread =
-      NotificationView::get_unread_count(pool, data.timmy.person.id, data.instance.id, false)
-        .await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
     assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;

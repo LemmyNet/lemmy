@@ -38,12 +38,13 @@ CREATE TABLE inbox_combined (
 -- copy back data to person_post_mention table
 INSERT INTO person_post_mention (recipient_id, post_id, read, published_at)
 SELECT
-    recipient_id,
+    local_user.person_id,
     post_id,
     read,
     published_at
 FROM
     notification
+    LEFT JOIN local_user ON notification.recipient_id = local_user.id
 WHERE
     kind = 'Mention'
     AND post_id IS NOT NULL;
@@ -58,12 +59,13 @@ FROM
 -- copy back data to person_comment_mention table
 INSERT INTO person_comment_mention (recipient_id, comment_id, read, published_at)
 SELECT
-    recipient_id,
+    local_user.person_id,
     comment_id,
     read,
     published_at
 FROM
     notification
+    LEFT JOIN local_user ON notification.recipient_id = local_user.id
 WHERE
     kind = 'Mention'
     AND comment_id IS NOT NULL;
@@ -78,12 +80,13 @@ FROM
 -- copy back data to comment_reply table
 INSERT INTO comment_reply (recipient_id, comment_id, read, published_at)
 SELECT
-    recipient_id,
+    local_user.person_id,
     comment_id,
     read,
     published_at
 FROM
     notification
+    LEFT JOIN local_user ON notification.recipient_id = local_user.id
 WHERE
     kind = 'Reply'
     AND comment_id IS NOT NULL;

@@ -11,7 +11,7 @@ pub async fn mark_all_notifications_read(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let person_id = local_user_view.person.id;
 
-  Notification::mark_all_as_read(&mut context.pool(), local_user_view.person.id).await?;
+  Notification::mark_all_as_read(&mut context.pool(), local_user_view.local_user.id).await?;
 
   // Mark all private_messages as read
   PrivateMessage::mark_all_as_read(&mut context.pool(), person_id).await?;

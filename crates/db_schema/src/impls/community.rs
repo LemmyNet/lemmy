@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -38,7 +38,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
-  schema::{comment, community, community_actions, instance, post},
+  schema::{comment, community, community_actions, instance, local_user, post},
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -486,12 +486,13 @@ impl CommunityActions {
     community_id: CommunityId,
     is_post: bool,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<PersonId>> {
+  ) -> LemmyResult<Vec<(PersonId, LocalUserId)>> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = community_actions::table
+      .inner_join(local_user::table.on(community_actions::person_id.eq(local_user::person_id)))
       .filter(community_actions::community_id.eq(community_id))
-      .select(community_actions::person_id)
+      .select((local_user::person_id, local_user::id))
       .into_boxed();
     if is_post {
       query = query.filter(

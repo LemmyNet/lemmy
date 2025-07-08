@@ -14,7 +14,7 @@ pub async fn mark_notification_as_read(
   Notification::mark_read_by_id_and_person(
     &mut context.pool(),
     data.notification_id,
-    local_user_view.person.id,
+    local_user_view.local_user.id,
   )
   .await?;
 
