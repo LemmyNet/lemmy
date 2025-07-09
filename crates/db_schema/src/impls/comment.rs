@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -236,6 +236,19 @@ impl Comment {
       Comment::update(pool, self.id, &form).await?;
     }
     Ok(())
+  }
+
+  pub async fn read_ap_ids_for_post(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<DbUrl>> {
+    let conn = &mut get_conn(pool).await?;
+    comment::table
+      .filter(comment::post_id.eq(post_id))
+      .select(comment::ap_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -138,6 +138,7 @@ impl Object for ApubComment {
       distinguished: Some(self.distinguished),
       language,
       attachment: vec![],
+      context: Some(format!("{}/context", self.ap_id)),
     };
 
     Ok(note)

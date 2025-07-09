@@ -1,7 +1,10 @@
 use activitypub_federation::{
+  actix_web::response::create_http_response,
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
+  kinds::collection::CollectionType,
 };
+use actix_web::HttpResponse;
 use community_featured::ApubCommunityFeatured;
 use community_follower::ApubCommunityFollower;
 use community_moderators::ApubCommunityModerators;
@@ -15,7 +18,10 @@ use lemmy_apub_objects::{
     protocol::{AttributedTo, PersonOrGroupType},
   },
 };
-use lemmy_utils::spawn_try_task;
+use lemmy_db_schema::{newtypes::PostId, source::comment::Comment};
+use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
+use serde::Serialize;
+use url::Url;
 
 pub(crate) mod community_featured;
 pub(crate) mod community_follower;
@@ -55,4 +61,31 @@ pub fn fetch_community_collections(
     }
     Ok(())
   });
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PostContextCollection {
+  r#type: CollectionType,
+  id: Url,
+  total_items: i32,
+  items: Vec<Url>,
+}
+
+impl PostContextCollection {
+  pub(crate) async fn new_response(
+    post_id: PostId,
+    id: Url,
+    context: &LemmyContext,
+  ) -> LemmyResult<HttpResponse> {
+    let comments = Comment::read_ap_ids_for_post(post_id, &mut context.pool()).await?;
+    let comments = comments.into_iter().map(Into::into).collect::<Vec<_>>();
+    let collection = Self {
+      r#type: Default::default(),
+      id,
+      total_items: comments.len().try_into()?,
+      items: comments,
+    };
+    Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+  }
 }

@@ -157,6 +157,7 @@ impl Object for ApubPost {
       updated: self.updated_at,
       in_reply_to: None,
       tag: vec![hashtag],
+      context: Some(format!("{}/context", self.ap_id)),
     };
     Ok(page)
   }
