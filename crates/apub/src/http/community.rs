@@ -211,6 +211,7 @@ pub(crate) mod tests {
   };
   use serde::de::DeserializeOwned;
   use serial_test::serial;
+  use url::Url;
 
   async fn init(
     deleted: bool,
@@ -221,6 +222,7 @@ pub(crate) mod tests {
 
     let community_form = CommunityInsertForm {
       deleted: Some(deleted),
+      ap_id: Some(Url::parse("http://lemmy-alpha")?.into()),
       visibility: Some(visibility),
       ..CommunityInsertForm::new(
         data.instance.id,
@@ -308,7 +310,6 @@ pub(crate) mod tests {
     let res = get_apub_community_outbox(path, context.clone(), request).await;
     assert!(res.is_err());
 
-    //Community::delete(&mut context.pool(), community.id).await?;
     data.delete(&mut context.pool()).await?;
     Ok(())
   }

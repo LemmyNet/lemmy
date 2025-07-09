@@ -59,7 +59,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       web::get().to(get_apub_person_multi_community_follows),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))
-    .route("/post/{post_id}/context", web::get().to(get_apub_post))
     .route("/comment/{comment_id}", web::get().to(get_apub_comment))
     .route("/activities/{type_}/{id}", web::get().to(get_activity));
 
