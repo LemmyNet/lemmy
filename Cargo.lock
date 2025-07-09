@@ -3248,6 +3248,7 @@ dependencies = [
  "actix-web-httpauth",
  "anyhow",
  "chrono",
+ "diesel_ltree",
  "either",
  "encoding_rs",
  "enum-map",
