@@ -13,7 +13,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::BlockType,
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
@@ -96,7 +96,7 @@ impl BlockUser {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for BlockUser {
+impl Activity for BlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

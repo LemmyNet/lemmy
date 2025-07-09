@@ -9,7 +9,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -25,7 +25,7 @@ use serde_json::Value;
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for RawAnnouncableActivities {
+impl Activity for RawAnnouncableActivities {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -135,7 +135,7 @@ impl AnnounceActivity {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for AnnounceActivity {
+impl Activity for AnnounceActivity {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

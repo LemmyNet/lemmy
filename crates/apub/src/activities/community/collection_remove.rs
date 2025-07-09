@@ -7,7 +7,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::RemoveType,
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -86,7 +86,7 @@ impl CollectionRemove {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CollectionRemove {
+impl Activity for CollectionRemove {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

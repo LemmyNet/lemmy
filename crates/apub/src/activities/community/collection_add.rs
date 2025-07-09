@@ -10,7 +10,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::AddType,
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -91,7 +91,7 @@ impl CollectionAdd {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CollectionAdd {
+impl Activity for CollectionAdd {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

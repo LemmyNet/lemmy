@@ -10,7 +10,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_apub_objects::{
@@ -85,7 +85,7 @@ impl CreateOrUpdatePage {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdatePage {
+impl Activity for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

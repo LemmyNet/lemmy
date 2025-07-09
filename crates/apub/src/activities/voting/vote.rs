@@ -8,7 +8,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
 use lemmy_apub_objects::{
@@ -37,7 +37,7 @@ impl Vote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Vote {
+impl Activity for Vote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

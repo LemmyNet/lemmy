@@ -7,7 +7,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::RejectType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
@@ -35,7 +35,7 @@ impl RejectFollow {
 
 /// Handle rejected follows
 #[async_trait::async_trait]
-impl ActivityHandler for RejectFollow {
+impl Activity for RejectFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

@@ -11,7 +11,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::FlagType,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::{
@@ -79,7 +79,7 @@ impl Report {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Report {
+impl Activity for Report {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

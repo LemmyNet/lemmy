@@ -9,7 +9,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -35,7 +35,7 @@ impl UndoVote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoVote {
+impl Activity for UndoVote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

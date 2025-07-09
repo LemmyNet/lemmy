@@ -6,7 +6,7 @@ use activitypub_federation::{
     signing_actor,
   },
   config::Data,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use actix_web::{
   web::{self, Bytes},

@@ -13,7 +13,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -73,7 +73,7 @@ impl UndoBlockUser {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoBlockUser {
+impl Activity for UndoBlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

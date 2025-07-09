@@ -11,7 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::{activity::UpdateType, public},
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -88,7 +88,7 @@ pub(crate) async fn send_update_multi_community(
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Update {
+impl Activity for Update {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

@@ -8,7 +8,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
@@ -40,7 +40,7 @@ pub(crate) async fn send_create_or_update_pm(
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdatePrivateMessage {
+impl Activity for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

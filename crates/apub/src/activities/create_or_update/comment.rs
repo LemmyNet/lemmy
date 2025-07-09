@@ -11,7 +11,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   build_response::send_local_notifs,
@@ -103,7 +103,7 @@ impl CreateOrUpdateNote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateNote {
+impl Activity for CreateOrUpdateNote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

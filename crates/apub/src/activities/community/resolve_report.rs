@@ -12,7 +12,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -62,7 +62,7 @@ impl ResolveReport {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for ResolveReport {
+impl Activity for ResolveReport {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
