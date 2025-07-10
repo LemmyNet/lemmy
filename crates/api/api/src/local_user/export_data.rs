@@ -50,7 +50,7 @@ pub async fn export_data(
     no_limit: Some(true),
     ..NotificationQuery::default()
   }
-  .list(pool, my_person_id, local_instance_id)
+  .list(pool, &local_user_view)
   .await?
   .into_iter()
   .map(|u| match u.data {

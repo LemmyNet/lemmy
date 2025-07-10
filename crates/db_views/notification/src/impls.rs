@@ -11,7 +11,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::{self},
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::notification::{notification_keys, Notification},
   traits::PaginationCursorBuilder,

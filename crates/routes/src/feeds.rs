@@ -321,9 +321,7 @@ async fn get_feed_front(
 
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_instance_id = site_view.site.instance_id;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
-  let my_person_id = local_user.person.id;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -332,7 +330,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
     show_bot_accounts,
     ..Default::default()
   }
-  .list(&mut context.pool(), my_person_id, local_instance_id)
+  .list(&mut context.pool(), &local_user)
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
