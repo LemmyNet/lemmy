@@ -47,5 +47,6 @@ pub(crate) async fn get_apub_comment_context(
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let comment = get_comment(info, &context, &request).await?;
-  PostContextCollection::new_response(comment.post_id, request.full_url(), &context).await
+  let post = Post::read(&mut context.pool(), comment.post_id).await?;
+  PostContextCollection::new_response(&post, request.full_url(), &context).await
 }

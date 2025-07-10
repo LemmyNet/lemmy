@@ -245,6 +245,7 @@ impl Comment {
     let conn = &mut get_conn(pool).await?;
     comment::table
       .filter(comment::post_id.eq(post_id))
+      .order_by(comment::id)
       .select(comment::ap_id)
       .get_results(conn)
       .await

@@ -2,7 +2,7 @@ use activitypub_federation::{
   actix_web::response::create_http_response,
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
-  kinds::collection::CollectionType,
+  kinds::collection::OrderedCollectionType,
 };
 use actix_web::HttpResponse;
 use community_featured::ApubCommunityFeatured;
@@ -18,7 +18,7 @@ use lemmy_apub_objects::{
     protocol::{AttributedTo, PersonOrGroupType},
   },
 };
-use lemmy_db_schema::{newtypes::PostId, source::comment::Comment};
+use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
 use serde::Serialize;
 use url::Url;
@@ -66,7 +66,7 @@ pub fn fetch_community_collections(
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PostContextCollection {
-  r#type: CollectionType,
+  r#type: OrderedCollectionType,
   id: Url,
   total_items: i32,
   items: Vec<Url>,
@@ -74,17 +74,18 @@ pub(crate) struct PostContextCollection {
 
 impl PostContextCollection {
   pub(crate) async fn new_response(
-    post_id: PostId,
+    post: &Post,
     id: Url,
     context: &LemmyContext,
   ) -> LemmyResult<HttpResponse> {
-    let comments = Comment::read_ap_ids_for_post(post_id, &mut context.pool()).await?;
-    let comments = comments.into_iter().map(Into::into).collect::<Vec<_>>();
+    let mut items = vec![post.ap_id.clone().into()];
+    let comments = Comment::read_ap_ids_for_post(post.id, &mut context.pool()).await?;
+    items.extend(comments.into_iter().map(Into::into));
     let collection = Self {
       r#type: Default::default(),
       id,
-      total_items: comments.len().try_into()?,
-      items: comments,
+      total_items: items.len().try_into()?,
+      items,
     };
     Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
   }

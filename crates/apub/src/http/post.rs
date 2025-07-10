@@ -48,5 +48,5 @@ pub(crate) async fn get_apub_post_context(
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let post = get_post(info, &context, &request).await?;
-  PostContextCollection::new_response(post.id, request.full_url(), &context).await
+  PostContextCollection::new_response(&post, request.full_url(), &context).await
 }
