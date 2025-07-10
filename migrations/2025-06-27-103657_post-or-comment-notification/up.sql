@@ -31,15 +31,25 @@ ALTER TABLE notification
     ADD COLUMN kind notification_type_enum,
     ALTER COLUMN comment_id DROP NOT NULL,
     ADD COLUMN post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD COLUMN private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD COLUMN recipient_id_new int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 UPDATE
-    notification
+    notification n1
 SET
-    kind = 'Reply';
+    recipient_id_new = l.id,
+    kind = 'Reply'
+FROM
+    notification n2
+    INNER JOIN local_user l ON recipient_id = l.person_id
+WHERE
+    n1.id = n2.id;
 
 ALTER TABLE notification
-    ALTER COLUMN kind SET NOT NULL;
+    ALTER COLUMN kind SET NOT NULL,
+    DROP COLUMN recipient_id;
+
+ALTER TABLE notification RENAME COLUMN recipient_id_new TO recipient_id;
 
 -- copy data from person_post_mention table
 INSERT INTO notification (post_id, recipient_id, kind, read, published_at)
