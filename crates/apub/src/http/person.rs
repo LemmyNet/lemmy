@@ -37,6 +37,6 @@ pub(crate) async fn get_apub_person_outbox(
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  let outbox_id = generate_outbox_url(&person.ap_id)?.into();
+  let outbox_id = generate_outbox_url(&person.ap_id)?.to_string();
   UrlCollection::new_empty_response(outbox_id)
 }

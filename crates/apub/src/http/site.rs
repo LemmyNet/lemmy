@@ -5,7 +5,6 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::instance::ApubSite;
 use lemmy_db_schema::source::site::Site;
 use lemmy_utils::{error::LemmyResult, FEDERATION_CONTEXT};
-use url::Url;
 
 pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let site: ApubSite = Site::read_local(&mut context.pool()).await?.into();
@@ -18,5 +17,5 @@ pub(crate) async fn get_apub_site_outbox(context: Data<LemmyContext>) -> LemmyRe
     "{}/site_outbox",
     context.settings().get_protocol_and_hostname()
   );
-  UrlCollection::new_empty_response(Url::parse(&outbox_id)?)
+  UrlCollection::new_empty_response(outbox_id)
 }

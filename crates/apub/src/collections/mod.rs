@@ -20,7 +20,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
-use url::Url;
 
 pub(crate) mod community_featured;
 pub(crate) mod community_follower;
@@ -65,7 +64,7 @@ pub fn fetch_community_collections(
 impl UrlCollection {
   pub(crate) async fn new_response(
     post: &Post,
-    id: Url,
+    id: String,
     context: &LemmyContext,
   ) -> LemmyResult<HttpResponse> {
     let mut ordered_items = vec![post.ap_id.clone().into()];
@@ -81,7 +80,7 @@ impl UrlCollection {
   }
 
   /// Empty placeholder outbox used for Person, Instance, which dont implement a proper outbox.
-  pub(crate) fn new_empty_response(id: Url) -> LemmyResult<HttpResponse> {
+  pub(crate) fn new_empty_response(id: String) -> LemmyResult<HttpResponse> {
     let collection = Self {
       r#type: Default::default(),
       id,
