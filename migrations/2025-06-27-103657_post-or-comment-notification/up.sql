@@ -6,59 +6,69 @@ CREATE TYPE notification_type_enum AS enum (
     'PrivateMessage'
 );
 
-CREATE TABLE notification (
-    id serial PRIMARY KEY,
-    post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    recipient_id int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    kind notification_type_enum NOT NULL,
-    read bool NOT NULL DEFAULT FALSE,
-    published_at timestamptz NOT NULL DEFAULT now()
-);
+-- create notification table by renaming comment_reply, to avoid copying lots of data around
+ALTER TABLE comment_reply RENAME TO notification;
+
+ALTER INDEX idx_comment_reply_comment RENAME TO idx_notification_comment;
+
+ALTER INDEX idx_comment_reply_recipient RENAME TO idx_notification_recipient;
+
+ALTER INDEX idx_comment_reply_published RENAME TO idx_notification_published;
+
+ALTER SEQUENCE comment_reply_id_seq
+    RENAME TO notification_id_seq;
+
+ALTER TABLE notification RENAME CONSTRAINT comment_reply_comment_id_fkey TO notification_comment_id_fkey;
+
+ALTER TABLE notification RENAME CONSTRAINT comment_reply_pkey TO notification_pkey;
+
+ALTER TABLE notification
+    DROP CONSTRAINT comment_reply_recipient_id_comment_id_key;
+
+ALTER TABLE notification RENAME CONSTRAINT comment_reply_recipient_id_fkey TO notification_recipient_id_fkey;
+
+ALTER TABLE notification
+    ADD COLUMN kind notification_type_enum,
+    ALTER COLUMN comment_id DROP NOT NULL,
+    ADD COLUMN post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD COLUMN private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+UPDATE
+    notification
+SET
+    kind = 'Reply';
+
+ALTER TABLE notification
+    ALTER COLUMN kind SET NOT NULL;
 
 -- copy data from person_post_mention table
 INSERT INTO notification (post_id, recipient_id, kind, read, published_at)
 SELECT
     post_id,
-    local_user.id,
+    recipient_id,
     'Mention',
     read,
     published_at
 FROM
-    person_post_mention
-    LEFT JOIN local_user ON recipient_id = local_user.person_id;
+    person_post_mention;
 
 -- copy data from person_comment_mention table
 INSERT INTO notification (comment_id, recipient_id, kind, read, published_at)
 SELECT
     comment_id,
-    local_user.id,
+    recipient_id,
     'Mention',
     read,
     published_at
 FROM
-    person_comment_mention
-    LEFT JOIN local_user ON recipient_id = local_user.person_id;
-
--- copy data from comment_reply table
-INSERT INTO notification (comment_id, recipient_id, kind, read, published_at)
-SELECT
-    comment_id,
-    local_user.id,
-    'Reply',
-    read,
-    published_at
-FROM
-    comment_reply
-    LEFT JOIN local_user ON recipient_id = local_user.person_id;
+    person_comment_mention;
 
 ALTER TABLE notification
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id) = 1);
 
 CREATE INDEX idx_notification_recipient_published ON notification (recipient_id, published_at);
 
-DROP TABLE inbox_combined, person_post_mention, person_comment_mention, comment_reply;
+DROP TABLE inbox_combined, person_post_mention, person_comment_mention;
 
 CREATE TYPE post_notifications_mode_enum AS enum (
     'AllComments',

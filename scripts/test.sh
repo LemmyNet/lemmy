@@ -24,5 +24,5 @@ fi
 
 # Add this to do printlns: -- --nocapture
 
-pg_ctl stop --silent
-rm -rf $PGDATA
+#pg_ctl stop --silent
+#rm -rf $PGDATA
