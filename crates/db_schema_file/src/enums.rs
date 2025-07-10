@@ -238,7 +238,7 @@ pub enum VoteShow {
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// Lets you show votes for others only, show all votes, or hide all votes.
+/// Available settings for post notifications
 pub enum PostNotificationsMode {
   AllComments,
   #[default]
@@ -257,7 +257,7 @@ pub enum PostNotificationsMode {
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// Lets you show votes for others only, show all votes, or hide all votes.
+/// Available settings for community notifications
 pub enum CommunityNotificationsMode {
   AllPostsAndComments,
   AllPosts,
@@ -275,7 +275,7 @@ pub enum CommunityNotificationsMode {
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// Lets you show votes for others only, show all votes, or hide all votes.
+/// Types of notifications which can be received in inbox
 pub enum NotificationTypes {
   Mention,
   Reply,

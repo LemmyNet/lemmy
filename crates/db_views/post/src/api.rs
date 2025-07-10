@@ -96,7 +96,7 @@ pub struct FeaturePost {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Disable reply notifications for a post and all comments inside it
+/// Change notification settings for a post
 pub struct UpdatePostNotifications {
   pub post_id: PostId,
   pub mode: PostNotificationsMode,
