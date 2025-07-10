@@ -1,8 +1,8 @@
+use crate::protocol::collections::url_collection::UrlCollection;
 use activitypub_federation::{
   actix_web::response::create_http_response,
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
-  kinds::collection::OrderedCollectionType,
 };
 use actix_web::HttpResponse;
 use community_featured::ApubCommunityFeatured;
@@ -20,7 +20,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
-use serde::Serialize;
 use url::Url;
 
 pub(crate) mod community_featured;
@@ -63,29 +62,31 @@ pub fn fetch_community_collections(
   });
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct PostContextCollection {
-  r#type: OrderedCollectionType,
-  id: Url,
-  total_items: i32,
-  items: Vec<Url>,
-}
-
-impl PostContextCollection {
+impl UrlCollection {
   pub(crate) async fn new_response(
     post: &Post,
     id: Url,
     context: &LemmyContext,
   ) -> LemmyResult<HttpResponse> {
-    let mut items = vec![post.ap_id.clone().into()];
+    let mut ordered_items = vec![post.ap_id.clone().into()];
     let comments = Comment::read_ap_ids_for_post(post.id, &mut context.pool()).await?;
-    items.extend(comments.into_iter().map(Into::into));
+    ordered_items.extend(comments.into_iter().map(Into::into));
     let collection = Self {
       r#type: Default::default(),
       id,
-      total_items: items.len().try_into()?,
-      items,
+      total_items: ordered_items.len().try_into()?,
+      ordered_items,
+    };
+    Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+  }
+
+  /// Empty placeholder outbox used for Person, Instance, which dont implement a proper outbox.
+  pub(crate) fn new_empty_response(id: Url) -> LemmyResult<HttpResponse> {
+    let collection = Self {
+      r#type: Default::default(),
+      id,
+      ordered_items: vec![],
+      total_items: 0,
     };
     Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
   }

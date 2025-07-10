@@ -1,5 +1,5 @@
 use super::check_community_content_fetchable;
-use crate::collections::PostContextCollection;
+use crate::protocol::collections::url_collection::UrlCollection;
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpRequest, HttpResponse};
 use lemmy_api_utils::context::LemmyContext;
@@ -48,5 +48,5 @@ pub(crate) async fn get_apub_comment_context(
 ) -> LemmyResult<HttpResponse> {
   let comment = get_comment(info, &context, &request).await?;
   let post = Post::read(&mut context.pool(), comment.post_id).await?;
-  PostContextCollection::new_response(&post, request.full_url(), &context).await
+  UrlCollection::new_response(&post, request.full_url(), &context).await
 }
