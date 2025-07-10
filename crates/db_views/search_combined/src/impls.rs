@@ -145,17 +145,17 @@ impl SearchCombinedViewInternal {
       .left_join(multi_community_join)
       .left_join(item_creator_join)
       .left_join(community_join)
+      .left_join(image_details_join())
       .left_join(creator_community_actions_join())
-      .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
-      .left_join(my_community_actions_join)
-      .left_join(my_instance_persons_actions_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(my_local_user_admin_join)
+      .left_join(my_community_actions_join)
+      .left_join(my_instance_persons_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
-      .left_join(image_details_join())
   }
 }
 

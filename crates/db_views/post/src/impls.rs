@@ -111,16 +111,16 @@ impl PostView {
       .inner_join(person::table)
       .inner_join(community::table)
       .left_join(image_details_join())
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(creator_community_actions_join())
       .left_join(my_community_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_instance_communities_actions_join)
       .left_join(my_instance_persons_actions_join_1)
       .left_join(my_local_user_admin_join)
-      .left_join(creator_home_instance_actions_join())
-      .left_join(creator_community_instance_actions_join())
-      .left_join(creator_local_instance_actions_join)
-      .left_join(creator_community_actions_join())
   }
 
   pub async fn read(

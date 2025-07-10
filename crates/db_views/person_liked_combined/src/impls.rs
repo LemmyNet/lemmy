@@ -138,21 +138,22 @@ impl PersonLikedCombinedViewInternal {
     person_liked_combined::table
       .left_join(comment_join)
       .inner_join(post_join)
-      .inner_join(item_creator_join)
       .inner_join(community_join())
+      .inner_join(item_creator_join)
+      .left_join(image_details_join())
       .left_join(creator_community_actions_join())
-      .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
-      .left_join(my_community_actions_join)
-      .left_join(my_instance_communities_actions_join)
-      .left_join(my_instance_persons_actions_join_1)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      // The my_'s have to come last to avoid stack overflows
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
-      .left_join(image_details_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_local_user_admin_join)
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
   }
 }
 
