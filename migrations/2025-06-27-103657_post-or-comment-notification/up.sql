@@ -78,6 +78,12 @@ ALTER TABLE notification
 
 CREATE INDEX idx_notification_recipient_published ON notification (recipient_id, published_at);
 
+CREATE INDEX idx_notification_post ON notification (post_id);
+
+CREATE INDEX idx_notification_recipient_id_new ON notification (private_message_id);
+
+CREATE INDEX idx_notification_recipient ON notification (recipient_id);
+
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention;
 
 CREATE TYPE post_notifications_mode_enum AS enum (
