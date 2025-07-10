@@ -9,7 +9,10 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyResult, FEDERATION_CONTEXT};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  FEDERATION_CONTEXT,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -48,5 +51,8 @@ pub(crate) async fn get_apub_post_context(
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let post = get_post(info, &context, &request).await?;
+  if !post.local {
+    return Err(LemmyErrorType::NotFound.into());
+  }
   UrlCollection::new_response(&post, request.full_url(), &context).await
 }
