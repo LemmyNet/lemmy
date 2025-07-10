@@ -1,6 +1,7 @@
 -- lemmy requires (username + instance_id) to be unique
+-- delete any existing duplicates
 DELETE FROM person p1 USING person p2
-WHERE p1.id < p2.id
+WHERE p1.id > p2.id
     AND p1.name = p2.name
     AND p1.instance_id = p2.instance_id;
 
