@@ -129,7 +129,7 @@ enum CmdSubcommand {
   },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq, Eq)]
 enum MigrationSubcommand {
   /// Run up.sql for pending migrations, oldest to newest.
   Run,
@@ -156,6 +156,11 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     }
 
     lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url())?;
+
+    #[cfg(debug_assertions)]
+    if all && subcommand == MigrationSubcommand::Run {
+      println!("Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_db_schema_setup");
+    }
 
     return Ok(());
   }
