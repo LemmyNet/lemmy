@@ -26,7 +26,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::AnnounceType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor},
 };
 use either::Either;
 use following::send_accept_or_reject_follow;
@@ -137,15 +137,15 @@ fn generate_announce_activity_id(
   Url::parse(&id)
 }
 
-async fn send_lemmy_activity<Activity, ActorT>(
+async fn send_lemmy_activity<A, ActorT>(
   data: &Data<LemmyContext>,
-  activity: Activity,
+  activity: A,
   actor: &ActorT,
   send_targets: ActivitySendTargets,
   sensitive: bool,
 ) -> LemmyResult<()>
 where
-  Activity: ActivityHandler + Serialize + Send + Sync + Clone + ActivityHandler<Error = LemmyError>,
+  A: Activity + Serialize + Send + Sync + Clone + Activity<Error = LemmyError>,
   ActorT: Actor + GetActorType,
 {
   info!("Saving outgoing activity to queue {}", activity.id());
@@ -162,7 +162,7 @@ where
     send_all_instances: send_targets.all_instances,
     send_community_followers_of: send_targets.community_followers_of.map(|e| e.0),
     actor_type: actor.actor_type(),
-    actor_apub_id: actor.id().into(),
+    actor_apub_id: actor.id().clone().into(),
   };
   SentActivity::create(&mut data.pool(), form).await?;
 

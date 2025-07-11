@@ -2,30 +2,22 @@ use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
 use activitypub_federation::{
   actix_web::{
     inbox::{receive_activity_with_hook, ReceiveActivityHook},
+    response::create_http_response,
     signing_actor,
   },
   config::Data,
-  protocol::context::WithContext,
-  traits::{ActivityHandler, Actor},
-  FEDERATION_CONTENT_TYPE,
+  traits::{Activity, Object},
 };
 use actix_web::{
-  http::header::VARY,
   web::{self, Bytes},
   HttpRequest,
   HttpResponse,
 };
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
-use lemmy_apub_objects::{
-  objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity},
-  protocol::tombstone::Tombstone,
-};
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::{
-    activity::{ReceivedActivity, SentActivity},
-    community::Community,
-  },
+use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity};
+use lemmy_db_schema::source::{
+  activity::{ReceivedActivity, SentActivity},
+  community::Community,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -33,8 +25,8 @@ use lemmy_utils::{
   error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
 };
-use serde::{Deserialize, Serialize};
-use std::{ops::Deref, time::Duration};
+use serde::Deserialize;
+use std::time::Duration;
 use tokio::time::timeout;
 use tracing::debug;
 use url::Url;
@@ -91,46 +83,6 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
   }
 }
 
-/// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
-/// headers.
-///
-/// actix-web doesn't allow pretty-print for json so we need to do this manually.
-fn create_apub_response<T>(data: &T) -> LemmyResult<HttpResponse>
-where
-  T: Serialize,
-{
-  let json = serde_json::to_string_pretty(&WithContext::new(data, FEDERATION_CONTEXT.clone()))?;
-
-  Ok(
-    HttpResponse::Ok()
-      .content_type(FEDERATION_CONTENT_TYPE)
-      .insert_header((VARY, "Accept"))
-      .body(json),
-  )
-}
-
-fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpResponse> {
-  let tombstone = Tombstone::new(id.into());
-  let json = serde_json::to_string_pretty(&WithContext::new(
-    tombstone,
-    FEDERATION_CONTEXT.deref().clone(),
-  ))?;
-
-  Ok(
-    HttpResponse::Gone()
-      .content_type(FEDERATION_CONTENT_TYPE)
-      .status(actix_web::http::StatusCode::GONE)
-      .insert_header((VARY, "Accept"))
-      .body(json),
-  )
-}
-
-fn redirect_remote_object(url: &DbUrl) -> HttpResponse {
-  let mut res = HttpResponse::PermanentRedirect();
-  res.insert_header((actix_web::http::header::LOCATION, url.as_str()));
-  res.finish()
-}
-
 #[derive(Deserialize)]
 pub struct ActivityQuery {
   type_: String,
@@ -140,7 +92,7 @@ pub struct ActivityQuery {
 /// Return the ActivityPub json representation of a local activity over HTTP.
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
-  context: web::Data<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let settings = context.settings();
   let activity_id = Url::parse(&format!(
@@ -156,13 +108,12 @@ pub(crate) async fn get_activity(
   if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
-    create_apub_response(&activity.data)
+    Ok(create_http_response(&activity.data, &FEDERATION_CONTEXT)?)
   }
 }
 
 /// Ensure that the community is public and not removed/deleted.
 fn check_community_fetchable(community: &Community) -> LemmyResult<()> {
-  check_community_removed_or_deleted(community)?;
   if !community.visibility.can_federate() {
     return Err(LemmyErrorType::NotFound.into());
   }
@@ -176,7 +127,6 @@ async fn check_community_content_fetchable(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   use CommunityVisibility::*;
-  check_community_removed_or_deleted(community)?;
   match community.visibility {
     Public | Unlisted => Ok(()),
     Private => {
@@ -206,11 +156,4 @@ async fn check_community_content_fetchable(
     }
     LocalOnlyPublic | LocalOnlyPrivate => Err(LemmyErrorType::NotFound.into()),
   }
-}
-
-fn check_community_removed_or_deleted(community: &Community) -> LemmyResult<()> {
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
-  }
-  Ok(())
 }

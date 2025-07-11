@@ -7,10 +7,10 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   fetcher::get_instance_id,
-  http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
+  http::check_community_fetchable,
 };
 use activitypub_federation::{
-  actix_web::signing_actor,
+  actix_web::{response::create_http_response, signing_actor},
   config::Data,
   fetch::object_id::ObjectId,
   traits::{Collection, Object},
@@ -33,7 +33,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  FEDERATION_CONTEXT,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
@@ -57,13 +60,9 @@ pub(crate) async fn get_apub_community_http(
       .ok_or(LemmyErrorType::NotFound)?
       .into();
 
-  if community.deleted || community.removed {
-    return create_apub_tombstone_response(community.ap_id.clone());
-  }
   check_community_fetchable(&community)?;
 
-  let apub = community.into_json(&context).await?;
-  create_apub_response(&apub)
+  community.http_response(&FEDERATION_CONTEXT, &context).await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).
@@ -81,7 +80,7 @@ pub(crate) async fn get_apub_community_followers(
   }
   check_community_fetchable(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
-  create_apub_response(&followers)
+  Ok(create_http_response(followers, &FEDERATION_CONTEXT)?)
 }
 
 /// Checks if a given actor follows the private community. Returns status 200 if true.
@@ -132,7 +131,7 @@ pub(crate) async fn get_apub_community_outbox(
       .into();
   check_community_content_fetchable(&community, &request, &context).await?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
-  create_apub_response(&outbox)
+  Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
 }
 
 pub(crate) async fn get_apub_community_moderators(
@@ -146,7 +145,7 @@ pub(crate) async fn get_apub_community_moderators(
       .into();
   check_community_fetchable(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
-  create_apub_response(&moderators)
+  Ok(create_http_response(moderators, &FEDERATION_CONTEXT)?)
 }
 
 /// Returns collection of featured (stickied) posts.
@@ -162,7 +161,7 @@ pub(crate) async fn get_apub_community_featured(
       .into();
   check_community_content_fetchable(&community, &request, &context).await?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
-  create_apub_response(&featured)
+  Ok(create_http_response(featured, &FEDERATION_CONTEXT)?)
 }
 
 #[derive(Deserialize)]
@@ -179,7 +178,7 @@ pub(crate) async fn get_apub_person_multi_community(
       .await?
       .into();
 
-  create_apub_response(&multi.into_json(&context).await?)
+  multi.http_response(&FEDERATION_CONTEXT, &context).await
 }
 
 pub(crate) async fn get_apub_person_multi_community_follows(
@@ -191,15 +190,16 @@ pub(crate) async fn get_apub_person_multi_community_follows(
     .into();
 
   let collection = ApubFeedCollection::read_local(&multi, &context).await?;
-  create_apub_response(&collection)
+  Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
 
   use super::*;
+  use activitypub_federation::protocol::tombstone::Tombstone;
   use actix_web::{body::to_bytes, test::TestRequest};
-  use lemmy_apub_objects::protocol::{group::Group, tombstone::Tombstone};
+  use lemmy_apub_objects::protocol::group::Group;
   use lemmy_db_schema::{
     source::{
       community::CommunityInsertForm,
@@ -211,6 +211,7 @@ pub(crate) mod tests {
   };
   use serde::de::DeserializeOwned;
   use serial_test::serial;
+  use url::Url;
 
   async fn init(
     deleted: bool,
@@ -221,6 +222,7 @@ pub(crate) mod tests {
 
     let community_form = CommunityInsertForm {
       deleted: Some(deleted),
+      ap_id: Some(Url::parse("http://lemmy-alpha")?.into()),
       visibility: Some(visibility),
       ..CommunityInsertForm::new(
         data.instance.id,
@@ -308,7 +310,6 @@ pub(crate) mod tests {
     let res = get_apub_community_outbox(path, context.clone(), request).await;
     assert!(res.is_err());
 
-    //Community::delete(&mut context.pool(), community.id).await?;
     data.delete(&mut context.pool()).await?;
     Ok(())
   }

@@ -11,7 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::{activity::UpdateType, public},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -44,10 +44,10 @@ pub(crate) async fn send_update_community(
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(UpdateType::Update, &context)?;
   let update = Update {
-    actor: actor.id().into(),
+    actor: actor.id().clone().into(),
     to: generate_to(&community)?,
     object: Either::Left(community.clone().into_json(&context).await?),
-    cc: vec![community.id()],
+    cc: vec![community.id().clone()],
     kind: UpdateType::Update,
     id: id.clone(),
   };
@@ -73,7 +73,7 @@ pub(crate) async fn send_update_multi_community(
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(UpdateType::Update, &context)?;
   let update = Update {
-    actor: actor.id().into(),
+    actor: actor.id().clone().into(),
     to: vec![multi.ap_id.clone().into(), public()],
     object: Either::Right(multi.clone().into_json(&context).await?),
     cc: vec![],
@@ -88,7 +88,7 @@ pub(crate) async fn send_update_multi_community(
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Update {
+impl Activity for Update {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

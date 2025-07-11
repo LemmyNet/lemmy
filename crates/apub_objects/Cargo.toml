@@ -18,6 +18,9 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+full = []
+
 [dependencies]
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
@@ -25,7 +28,7 @@ lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_utils = { workspace = true }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 chrono = { workspace = true }

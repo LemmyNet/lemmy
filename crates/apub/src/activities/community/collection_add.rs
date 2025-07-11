@@ -10,7 +10,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::AddType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -47,11 +47,11 @@ impl CollectionAdd {
   ) -> LemmyResult<()> {
     let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
-      object: added_mod.id(),
+      object: added_mod.id().clone(),
       target: generate_moderators_url(&community.ap_id)?.into(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: AddType::Add,
       id: id.clone(),
     };
@@ -69,11 +69,11 @@ impl CollectionAdd {
   ) -> LemmyResult<()> {
     let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.ap_id)?.into(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: AddType::Add,
       id: id.clone(),
     };
@@ -91,7 +91,7 @@ impl CollectionAdd {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CollectionAdd {
+impl Activity for CollectionAdd {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

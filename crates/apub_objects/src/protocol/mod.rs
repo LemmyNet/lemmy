@@ -5,7 +5,6 @@ pub mod note;
 pub mod page;
 pub mod person;
 pub mod private_message;
-pub mod tombstone;
 
 #[cfg(test)]
 mod tests {
@@ -16,9 +15,9 @@ mod tests {
     page::Page,
     person::Person,
     private_message::PrivateMessage,
-    tombstone::Tombstone,
   };
   use crate::utils::test::{test_json, test_parse_lemmy_item};
+  use activitypub_federation::protocol::tombstone::Tombstone;
   use lemmy_utils::error::LemmyResult;
 
   #[test]
