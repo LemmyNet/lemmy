@@ -28,28 +28,13 @@ ALTER TABLE notification
 ALTER TABLE notification RENAME CONSTRAINT comment_reply_recipient_id_fkey TO notification_recipient_id_fkey;
 
 ALTER TABLE notification
-    ADD COLUMN kind notification_type_enum,
+    ADD COLUMN kind notification_type_enum NOT NULL DEFAULT 'Reply',
     ALTER COLUMN comment_id DROP NOT NULL,
     ADD COLUMN post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN recipient_id_new int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-UPDATE
-    notification n1
-SET
-    recipient_id_new = l.id,
-    kind = 'Reply'
-FROM
-    notification n2
-    INNER JOIN local_user l ON recipient_id = l.person_id
-WHERE
-    n1.id = n2.id;
+    ADD COLUMN private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE notification
-    ALTER COLUMN kind SET NOT NULL,
-    DROP COLUMN recipient_id;
-
-ALTER TABLE notification RENAME COLUMN recipient_id_new TO recipient_id;
+    ALTER COLUMN kind DROP DEFAULT;
 
 -- copy data from person_post_mention table
 INSERT INTO notification (post_id, recipient_id, kind, read, published_at)
@@ -80,9 +65,7 @@ CREATE INDEX idx_notification_recipient_published ON notification (recipient_id,
 
 CREATE INDEX idx_notification_post ON notification (post_id);
 
-CREATE INDEX idx_notification_recipient_id_new ON notification (private_message_id);
-
-CREATE INDEX idx_notification_recipient ON notification (recipient_id);
+CREATE INDEX idx_notification_private_message ON notification (private_message_id);
 
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention;
 

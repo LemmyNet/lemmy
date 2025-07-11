@@ -751,13 +751,13 @@ diesel::table! {
 
     notification (id) {
         id -> Int4,
-        post_id -> Nullable<Int4>,
-        comment_id -> Nullable<Int4>,
-        private_message_id -> Nullable<Int4>,
         recipient_id -> Int4,
-        kind -> NotificationTypeEnum,
+        comment_id -> Nullable<Int4>,
         read -> Bool,
         published_at -> Timestamptz,
+        kind -> NotificationTypeEnum,
+        post_id -> Nullable<Int4>,
+        private_message_id -> Nullable<Int4>,
     }
 }
 
@@ -1202,7 +1202,7 @@ diesel::joinable!(multi_community_entry -> multi_community (multi_community_id))
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
-diesel::joinable!(notification -> local_user (recipient_id));
+diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));

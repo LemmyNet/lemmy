@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, PersonId},
+  newtypes::PersonId,
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -103,14 +103,14 @@ impl NotifyData<'_> {
 
   async fn insert(
     &self,
-    local_user_id: LocalUserId,
+    recipient_id: PersonId,
     kind: NotificationTypes,
     context: &LemmyContext,
   ) -> LemmyResult<Notification> {
     let form = if let Some(comment) = self.comment_opt {
-      NotificationInsertForm::new_comment(comment.id, local_user_id, kind)
+      NotificationInsertForm::new_comment(comment.id, recipient_id, kind)
     } else {
-      NotificationInsertForm::new_post(self.post.id, local_user_id, kind)
+      NotificationInsertForm::new_post(self.post.id, recipient_id, kind)
     };
     Notification::create(&mut context.pool(), &form).await
   }
@@ -129,7 +129,7 @@ pub async fn notify_private_message(
 
   let form = NotificationInsertForm::new_private_message(
     view.private_message.id,
-    local_recipient.local_user.id,
+    local_recipient.person.id,
     NotificationTypes::PrivateMessage,
   );
   Notification::create(&mut context.pool(), &form).await?;
@@ -182,7 +182,7 @@ async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) ->
   };
 
   data
-    .insert(user_view.local_user.id, NotificationTypes::Reply, context)
+    .insert(user_view.person.id, NotificationTypes::Reply, context)
     .await?;
 
   if data.do_send_email {
@@ -219,7 +219,7 @@ async fn notify_mentions(data: &NotifyData<'_>, context: &LemmyContext) -> Lemmy
     };
 
     data
-      .insert(user_view.local_user.id, NotificationTypes::Mention, context)
+      .insert(user_view.person.id, NotificationTypes::Mention, context)
       .await?;
 
     // Send an email to those local users that have notifications on
@@ -248,7 +248,7 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
   .flatten()
   .collect::<Vec<_>>();
 
-  for (person_id, local_user_id) in subscribers {
+  for person_id in subscribers {
     if data
       .check_notifications_allowed(person_id, context)
       .await
@@ -258,11 +258,11 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
     };
 
     data
-      .insert(local_user_id, NotificationTypes::Subscribed, context)
+      .insert(person_id, NotificationTypes::Subscribed, context)
       .await?;
 
     if data.do_send_email {
-      let user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+      let user_view = LocalUserView::read_person(&mut context.pool(), person_id).await?;
       if let Some(comment) = data.comment_opt {
         send_post_subscribed_email(
           &user_view,
@@ -466,7 +466,7 @@ mod tests {
     };
     assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
     assert_eq!(
-      data.timmy.local_user.id,
+      data.timmy.person.id,
       timmy_inbox[0].notification.recipient_id
     );
     assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
@@ -505,7 +505,7 @@ mod tests {
     // Timmy mentions sara in a comment
     let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
       data.timmy_comment.id,
-      data.sara.local_user.id,
+      data.sara.person.id,
       NotificationTypes::Mention,
     );
     Notification::create(pool, &timmy_mention_sara_comment_form).await?;
@@ -513,7 +513,7 @@ mod tests {
     // Jessica mentions sara in a post
     let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
       data.jessica_post.id,
-      data.sara.local_user.id,
+      data.sara.person.id,
       NotificationTypes::Mention,
     );
     Notification::create(pool, &jessica_mention_sara_post_form).await?;
@@ -535,10 +535,7 @@ mod tests {
       panic!("wrong type")
     }
     assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
-    assert_eq!(
-      data.sara.local_user.id,
-      sara_inbox[0].notification.recipient_id
-    );
+    assert_eq!(data.sara.person.id, sara_inbox[0].notification.recipient_id);
     assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
 
     assert_eq!(
@@ -557,10 +554,7 @@ mod tests {
       panic!("wrong type");
     }
     assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
-    assert_eq!(
-      data.sara.local_user.id,
-      sara_inbox[1].notification.recipient_id
-    );
+    assert_eq!(data.sara.person.id, sara_inbox[1].notification.recipient_id);
     assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
@@ -661,17 +655,17 @@ mod tests {
     assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
     assert_eq!(
       timmy_messages[0].notification.recipient_id,
-      data.timmy.local_user.id
+      data.timmy.person.id
     );
     assert_eq!(timmy_messages[1].creator.id, data.timmy.person.id);
     assert_eq!(
       timmy_messages[1].notification.recipient_id,
-      data.sara.local_user.id
+      data.sara.person.id
     );
     assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
     assert_eq!(
       timmy_messages[2].notification.recipient_id,
-      data.timmy.local_user.id
+      data.timmy.person.id
     );
 
     let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
@@ -691,12 +685,12 @@ mod tests {
     assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
     assert_eq!(
       timmy_unread_messages[0].notification.recipient_id,
-      data.timmy.local_user.id
+      data.timmy.person.id
     );
     assert_eq!(timmy_unread_messages[1].creator.id, data.sara.person.id);
     assert_eq!(
       timmy_unread_messages[1].notification.recipient_id,
-      data.timmy.local_user.id
+      data.timmy.person.id
     );
 
     cleanup(data, pool).await?;

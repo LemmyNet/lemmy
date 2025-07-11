@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId},
+  newtypes::{CommunityId, DbUrl, PersonId},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -486,13 +486,13 @@ impl CommunityActions {
     community_id: CommunityId,
     is_post: bool,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<(PersonId, LocalUserId)>> {
+  ) -> LemmyResult<Vec<PersonId>> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = community_actions::table
       .inner_join(local_user::table.on(community_actions::person_id.eq(local_user::person_id)))
       .filter(community_actions::community_id.eq(community_id))
-      .select((local_user::person_id, local_user::id))
+      .select(local_user::person_id)
       .into_boxed();
     if is_post {
       query = query.filter(

@@ -9,7 +9,6 @@ export ENCODED_HOST=$(printf $PGHOST | jq -sRr @uri)
 export PGUSER=postgres
 export DATABASE_URL="postgresql://lemmy:password@$ENCODED_HOST/lemmy"
 export LEMMY_DATABASE_URL=$DATABASE_URL
-echo $LEMMY_DATABASE_URL
 export PGDATABASE=lemmy
 
 # If cluster exists, stop the server and delete the cluster
