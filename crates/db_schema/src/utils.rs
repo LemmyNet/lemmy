@@ -63,6 +63,7 @@ use std::{
   sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
+use db_pool::async::ReusableConnectionPool;
 use tokio::sync::OnceCell;
 use tracing::error;
 use url::Url;
@@ -550,8 +551,8 @@ pub async fn build_db_pool_for_tests() -> ActualDbPool {
             let async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
               AsyncConnectionWrapper::from(conn);
 
-            schema_setup::run_with_connection(
-              schema_setup::Options::default().run(),
+            lemmy_db_schema_setup::run_with_connection(
+              lemmy_db_schema_setup::Options::default().run(),
               async_wrapper,
             )
             .expect("run migrations");

@@ -18,7 +18,6 @@ use diesel_migrations::MigrationHarness;
 use std::time::Instant;
 use diesel::connection::LoadConnection;
 use tracing::debug;
-use lemmy_utils::settings::SETTINGS;
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -262,9 +261,7 @@ where
   Ok(output)
 }
 
-pub fn run(options: Options) -> anyhow::Result<Branch> {
-  let db_url = SETTINGS.get_database_url();
-
+pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
   run_with_connection(options, PgConnection::establish(&db_url)?)
 }
