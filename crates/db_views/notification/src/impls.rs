@@ -1,4 +1,4 @@
-use crate::{NotificationData, NotificationView, NotificationViewInternal};
+use crate::{CommentView, NotificationData, NotificationView, NotificationViewInternal};
 use diesel::{
   dsl::not,
   BoolExpressionMethods,
@@ -11,8 +11,11 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::notification::{notification_keys, Notification},
+  newtypes::PaginationCursor,
+  source::{
+    notification::{notification_keys, Notification},
+    person::Person,
+  },
   traits::PaginationCursorBuilder,
   utils::{
     get_conn,
@@ -48,12 +51,13 @@ use lemmy_db_schema_file::{
     private_message,
   },
 };
-use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl NotificationView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
+  fn joins(my_person: &Person) -> _ {
     let item_creator = person::id;
 
     let item_creator_join = person::table.on(
@@ -89,17 +93,17 @@ impl NotificationView {
     );
 
     let my_community_actions_join: my_community_actions_join =
-      my_community_actions_join(Some(my_person_id));
-    let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person_id));
+      my_community_actions_join(Some(my_person.id));
+    let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person.id));
     let my_comment_actions_join: my_comment_actions_join =
-      my_comment_actions_join(Some(my_person_id));
+      my_comment_actions_join(Some(my_person.id));
     let my_local_user_admin_join: my_local_user_admin_join =
-      my_local_user_admin_join(Some(my_person_id));
+      my_local_user_admin_join(Some(my_person.id));
     let my_instance_actions_person_join: my_instance_actions_person_join =
-      my_instance_actions_person_join(Some(my_person_id));
-    let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person_id));
+      my_instance_actions_person_join(Some(my_person.id));
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
-      creator_local_instance_actions_join(local_instance_id);
+      creator_local_instance_actions_join(my_person.instance_id);
 
     notification::table
       .left_join(private_message_join)
@@ -123,7 +127,8 @@ impl NotificationView {
   /// Gets the number of unread mentions
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
-    my_user_view: &LocalUserView,
+    my_person: &Person,
+    show_bot_accounts: bool,
   ) -> LemmyResult<i64> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
@@ -134,12 +139,12 @@ impl NotificationView {
       .or(
         private_message::read
           .eq(false)
-          .and(private_message::recipient_id.eq(my_user_view.person.id)),
+          .and(private_message::recipient_id.eq(my_person.id)),
       );
 
-    let mut query = Self::joins(my_user_view.person.id, my_user_view.person.instance_id)
+    let mut query = Self::joins(my_person)
       // Filter for your user
-      .filter(notification::recipient_id.eq(my_user_view.local_user.id))
+      .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
       .filter(unread_filter)
       // Don't count replies from blocked users
@@ -149,7 +154,7 @@ impl NotificationView {
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
-    if !my_user_view.local_user.show_bot_accounts {
+    if !show_bot_accounts {
       query = query.filter(not(person::bot_account));
     }
 
@@ -164,7 +169,7 @@ impl PaginationCursorBuilder for NotificationView {
   type CursorData = Notification;
 
   fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor(self.notification.id.0.to_string())
+    PaginationCursor(self.id.0.to_string())
   }
 
   async fn from_cursor(
@@ -197,17 +202,16 @@ impl NotificationQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    my_user_view: &LocalUserView,
+    my_person: &Person,
   ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
     let item_creator = person::id;
     let recipient = notification::recipient_id;
 
-    let mut query =
-      NotificationView::joins(my_user_view.person.id, my_user_view.person.instance_id)
-        .select(NotificationViewInternal::as_select())
-        .into_boxed();
+    let mut query = NotificationView::joins(my_person)
+      .select(NotificationViewInternal::as_select())
+      .into_boxed();
 
     if !self.no_limit.unwrap_or_default() {
       let limit = limit_fetch(self.limit)?;
@@ -218,7 +222,7 @@ impl NotificationQuery {
     if self.unread_only.unwrap_or_default() {
       query = query
         // The recipient filter (IE only show replies to you)
-        .filter(notification::recipient_id.eq(my_user_view.local_user.id))
+        .filter(notification::recipient_id.eq(my_person.id))
         .filter(
           notification::read
             .eq(false)
@@ -229,12 +233,10 @@ impl NotificationQuery {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others
       query = query.filter(
-        recipient.eq(my_user_view.local_user.id).or(
-          notification::private_message_id.is_not_null().and(
-            recipient
-              .eq(my_user_view.local_user.id)
-              .or(item_creator.eq(my_user_view.person.id)),
-          ),
+        recipient.eq(my_person.id).or(
+          notification::private_message_id
+            .is_not_null()
+            .and(recipient.eq(my_person.id).or(item_creator.eq(my_person.id))),
         ),
       );
     }
@@ -282,41 +284,66 @@ impl NotificationQuery {
       .load::<NotificationViewInternal>(conn)
       .await?;
 
-    Ok(res.into_iter().filter_map(map_to_enum).collect())
+    Ok(
+      res
+        .into_iter()
+        .filter_map(|r| map_to_enum(r, &my_person))
+        .collect(),
+    )
   }
 }
 
-fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
+fn map_to_enum(v: NotificationViewInternal, my_person: &Person) -> Option<NotificationView> {
   let data = if let (Some(comment), Some(post), Some(community)) =
     (v.comment, v.post.clone(), v.community.clone())
   {
-    NotificationData::Comment {
+    NotificationData::Comment(CommentView {
       comment,
       post,
       community,
-    }
+      creator: v.creator,
+      community_actions: v.community_actions,
+      instance_actions: v.instance_actions,
+      person_actions: v.person_actions,
+      comment_actions: v.comment_actions,
+      creator_is_admin: v.creator_is_admin,
+      post_tags: v.post_tags,
+      can_mod: v.can_mod,
+      creator_banned: v.creator_banned,
+      creator_is_moderator: v.creator_is_moderator,
+      creator_banned_from_community: v.creator_banned_from_community,
+    })
   } else if let (Some(post), Some(community)) = (v.post, v.community) {
-    NotificationData::Post { post, community }
-  } else if let Some(pm) = v.private_message {
-    NotificationData::PrivateMessage { pm }
+    NotificationData::Post(PostView {
+      post,
+      community,
+      creator: v.creator,
+      image_details: v.image_details,
+      community_actions: v.community_actions,
+      instance_actions: v.instance_actions,
+      post_actions: v.post_actions,
+      person_actions: v.person_actions,
+      creator_is_admin: v.creator_is_admin,
+      tags: v.post_tags,
+      can_mod: v.can_mod,
+      creator_banned: v.creator_banned,
+      creator_is_moderator: v.creator_is_moderator,
+      creator_banned_from_community: v.creator_banned_from_community,
+    })
+  } else if let Some(private_message) = v.private_message {
+    NotificationData::PrivateMessage(PrivateMessageView {
+      private_message,
+      creator: v.creator,
+      recipient: my_person.clone(),
+    })
   } else {
     return None;
   };
   Some(NotificationView {
-    notification: v.notification,
-    creator: v.creator,
-    image_details: v.image_details,
-    community_actions: v.community_actions,
-    instance_actions: v.instance_actions,
-    post_actions: v.post_actions,
-    person_actions: v.person_actions,
-    comment_actions: v.comment_actions,
-    creator_is_admin: v.creator_is_admin,
-    post_tags: v.post_tags,
-    can_mod: v.can_mod,
-    creator_banned: v.creator_banned,
-    creator_is_moderator: v.creator_is_moderator,
-    creator_banned_from_community: v.creator_banned_from_community,
+    id: v.notification.id,
+    kind: v.notification.kind,
+    recipient_id: v.notification.recipient_id,
+    published_at: v.notification.published_at,
     data,
   })
 }

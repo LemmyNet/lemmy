@@ -8,7 +8,13 @@ pub async fn unread_count(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetUnreadCountResponse>> {
-  let count = NotificationView::get_unread_count(&mut context.pool(), &local_user_view).await?;
+  let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
+  let count = NotificationView::get_unread_count(
+    &mut context.pool(),
+    &local_user_view.person,
+    show_bot_accounts,
+  )
+  .await?;
 
   Ok(Json(GetUnreadCountResponse { count }))
 }

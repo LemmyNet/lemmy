@@ -443,50 +443,37 @@ mod tests {
     .send(&context)
     .await?;
 
-    let timmy_unread_replies = NotificationView::get_unread_count(pool, &data.timmy).await?;
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread_replies);
 
-    let timmy_inbox = NotificationQuery::default().list(pool, &data.timmy).await?;
+    let timmy_inbox = NotificationQuery::default()
+      .list(pool, &data.timmy.person)
+      .await?;
     assert_length!(1, timmy_inbox);
 
-    assert_eq!(
-      Some(data.sara_comment.id),
-      timmy_inbox[0].notification.comment_id
-    );
-    if let NotificationData::Comment {
-      comment,
-      post,
-      community: _,
-    } = &timmy_inbox[0].data
-    {
-      assert_eq!(data.sara_comment.id, comment.id);
-      assert_eq!(data.timmy_post.id, post.id);
+    if let NotificationData::Comment(comment) = &timmy_inbox[0].data {
+      assert_eq!(data.sara_comment.id, comment.comment.id);
+      assert_eq!(data.timmy_post.id, comment.post.id);
+      assert_eq!(data.sara.person.id, comment.creator.id);
+      assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient_id);
+      assert_eq!(NotificationTypes::Mention, timmy_inbox[0].kind);
     } else {
       panic!("wrong type")
     };
-    assert_eq!(data.sara.person.id, timmy_inbox[0].creator.id);
-    assert_eq!(
-      data.timmy.person.id,
-      timmy_inbox[0].notification.recipient_id
-    );
-    assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
 
     // Mark it as read
-    Notification::mark_read_by_id_and_person(
-      pool,
-      timmy_inbox[0].notification.id,
-      data.timmy.local_user.id,
-    )
-    .await?;
+    Notification::mark_read_by_id_and_person(pool, timmy_inbox[0].id, data.timmy.person.id).await?;
 
-    let timmy_unread_replies = NotificationView::get_unread_count(pool, &data.timmy).await?;
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(0, timmy_unread_replies);
 
     let timmy_inbox_unread = NotificationQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &data.timmy)
+    .list(pool, &data.timmy.person)
     .await?;
     assert_length!(0, timmy_inbox_unread);
 
@@ -500,7 +487,7 @@ mod tests {
   async fn mentions() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
+    let data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
     let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
@@ -519,60 +506,49 @@ mod tests {
     Notification::create(pool, &jessica_mention_sara_post_form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let sara_unread_mentions = NotificationView::get_unread_count(pool, &data.sara).await?;
+    let sara_unread_mentions =
+      NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(2, sara_unread_mentions);
 
-    let sara_inbox = NotificationQuery::default().list(pool, &data.sara).await?;
+    let sara_inbox = NotificationQuery::default()
+      .list(pool, &data.sara.person)
+      .await?;
     assert_length!(2, sara_inbox);
 
-    assert_eq!(
-      Some(data.jessica_post.id),
-      sara_inbox[0].notification.post_id
-    );
-    if let NotificationData::Post { post, community: _ } = &sara_inbox[0].data {
-      assert_eq!(data.jessica_post.id, post.id);
+    if let NotificationData::Post(post) = &sara_inbox[0].data {
+      assert_eq!(data.jessica_post.id, post.post.id);
+      assert_eq!(data.jessica.id, post.creator.id);
     } else {
       panic!("wrong type")
     }
-    assert_eq!(data.jessica.id, sara_inbox[0].creator.id);
-    assert_eq!(data.sara.person.id, sara_inbox[0].notification.recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
+    assert_eq!(data.sara.person.id, sara_inbox[0].recipient_id);
+    assert_eq!(NotificationTypes::Mention, sara_inbox[0].kind);
 
-    assert_eq!(
-      Some(data.timmy_comment.id),
-      sara_inbox[1].notification.comment_id
-    );
-    if let NotificationData::Comment {
-      comment,
-      post,
-      community: _,
-    } = &sara_inbox[1].data
-    {
-      assert_eq!(data.timmy_comment.id, comment.id);
-      assert_eq!(data.timmy_post.id, post.id);
+    if let NotificationData::Comment(comment) = &sara_inbox[1].data {
+      assert_eq!(data.timmy_comment.id, comment.comment.id);
+      assert_eq!(data.timmy_post.id, comment.post.id);
+      assert_eq!(data.timmy.person.id, comment.creator.id);
     } else {
       panic!("wrong type");
     }
-    assert_eq!(data.timmy.person.id, sara_inbox[1].creator.id);
-    assert_eq!(data.sara.person.id, sara_inbox[1].notification.recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
+    assert_eq!(data.sara.person.id, sara_inbox[1].recipient_id);
+    assert_eq!(NotificationTypes::Mention, sara_inbox[1].kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
     let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
     PersonActions::block(pool, &sara_blocks_timmy_form).await?;
 
     let sara_unread_mentions_after_block =
-      NotificationView::get_unread_count(pool, &data.sara).await?;
+      NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
-    let sara_inbox_after_block = NotificationQuery::default().list(pool, &data.sara).await?;
+    let sara_inbox_after_block = NotificationQuery::default()
+      .list(pool, &data.sara.person)
+      .await?;
     assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
-    assert_eq!(
-      NotificationTypes::Mention,
-      sara_inbox_after_block[0].notification.kind
-    );
+    assert_eq!(NotificationTypes::Mention, sara_inbox_after_block[0].kind);
 
     // Unblock user so we can reuse the same person
     PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
@@ -582,14 +558,11 @@ mod tests {
       type_: Some(NotificationDataType::Mention),
       ..Default::default()
     }
-    .list(pool, &data.sara)
+    .list(pool, &data.sara.person)
     .await?;
     assert_length!(2, sara_inbox_mentions_only);
 
-    assert_eq!(
-      NotificationTypes::Mention,
-      sara_inbox_mentions_only[0].notification.kind
-    );
+    assert_eq!(NotificationTypes::Mention, sara_inbox_mentions_only[0].kind);
 
     // Turn Jessica into a bot account
     let person_update_form = PersonUpdateForm {
@@ -598,33 +571,35 @@ mod tests {
     };
     Person::update(pool, data.jessica.id, &person_update_form).await?;
 
-    // Make sure sara hides bots
-    data.sara.local_user.show_bot_accounts = false;
+    // Make sure sara hides bot
     let sara_unread_mentions_after_hide_bots =
-      NotificationView::get_unread_count(pool, &data.sara).await?;
+      NotificationView::get_unread_count(pool, &data.sara.person, false).await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
-    let sara_inbox_after_hide_bots = NotificationQuery::default().list(pool, &data.sara).await?;
+    let sara_inbox_after_hide_bots = NotificationQuery::default()
+      .list(pool, &data.sara.person)
+      .await?;
     assert_length!(1, sara_inbox_after_hide_bots);
 
     // Make sure the post mention which jessica made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_hide_bots[0].notification.kind
+      sara_inbox_after_hide_bots[0].kind
     );
 
     // Mark them all as read
-    Notification::mark_all_as_read(pool, data.sara.local_user.id).await?;
+    Notification::mark_all_as_read(pool, data.sara.person.id).await?;
 
     // Make sure none come back
-    let sara_unread_mentions = NotificationView::get_unread_count(pool, &data.sara).await?;
+    let sara_unread_mentions =
+      NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(0, sara_unread_mentions);
 
     let sara_inbox_unread = NotificationQuery {
       unread_only: Some(true),
       ..Default::default()
     }
-    .list(pool, &data.sara)
+    .list(pool, &data.sara.person)
     .await?;
     assert_length!(0, sara_inbox_unread);
 
@@ -648,27 +623,34 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages = filter_pm(NotificationQuery::default().list(pool, &data.timmy).await?);
+    let timmy_messages = filter_pm(
+      NotificationQuery::default()
+        .list(pool, &data.timmy.person)
+        .await?,
+    );
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
-    assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
-    assert_eq!(
-      timmy_messages[0].notification.recipient_id,
-      data.timmy.person.id
-    );
-    assert_eq!(timmy_messages[1].creator.id, data.timmy.person.id);
-    assert_eq!(
-      timmy_messages[1].notification.recipient_id,
-      data.sara.person.id
-    );
-    assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
-    assert_eq!(
-      timmy_messages[2].notification.recipient_id,
-      data.timmy.person.id
-    );
+    if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
+      assert_eq!(pm.creator.id, data.jessica.id);
+      assert_eq!(timmy_messages[0].recipient_id, data.timmy.person.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
+      assert_eq!(pm.creator.id, data.timmy.person.id);
+      assert_eq!(timmy_messages[1].recipient_id, data.sara.person.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let NotificationData::PrivateMessage(pm) = &timmy_messages[2].data {
+      assert_eq!(pm.creator.id, data.sara.person.id);
+      assert_eq!(timmy_messages[2].recipient_id, data.timmy.person.id);
+    } else {
+      panic!("wrong type");
+    }
 
-    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(2, timmy_unread);
 
     let timmy_unread_messages = filter_pm(
@@ -676,22 +658,24 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, &data.timmy)
+      .list(pool, &data.timmy.person)
       .await?,
     );
 
     // The unread hides timmy's sent messages
     assert_length!(2, &timmy_unread_messages);
-    assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
-    assert_eq!(
-      timmy_unread_messages[0].notification.recipient_id,
-      data.timmy.person.id
-    );
-    assert_eq!(timmy_unread_messages[1].creator.id, data.sara.person.id);
-    assert_eq!(
-      timmy_unread_messages[1].notification.recipient_id,
-      data.timmy.person.id
-    );
+    if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
+      assert_eq!(pm.creator.id, data.jessica.id);
+      assert_eq!(timmy_unread_messages[0].recipient_id, data.timmy.person.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
+      assert_eq!(pm.creator.id, data.sara.person.id);
+      assert_eq!(timmy_unread_messages[1].recipient_id, data.timmy.person.id);
+    } else {
+      panic!("wrong type");
+    }
 
     cleanup(data, pool).await?;
 
@@ -725,13 +709,13 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, &data.timmy)
+      .list(pool, &data.timmy.person)
       .await?,
     );
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
@@ -765,13 +749,13 @@ mod tests {
         unread_only: Some(true),
         ..Default::default()
       }
-      .list(pool, &data.timmy)
+      .list(pool, &data.timmy.person)
       .await?,
     );
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy).await?;
+    let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;

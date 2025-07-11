@@ -48,19 +48,16 @@ pub async fn export_data(
 
   let notifications = NotificationQuery {
     no_limit: Some(true),
+    show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
     ..NotificationQuery::default()
   }
-  .list(pool, &local_user_view)
+  .list(pool, &local_user_view.person)
   .await?
   .into_iter()
   .map(|u| match u.data {
-    NotificationData::Post { post, community: _ } => Post(post),
-    NotificationData::Comment {
-      comment,
-      post: _,
-      community: _,
-    } => Comment(comment),
-    NotificationData::PrivateMessage { pm } => PrivateMessage(pm),
+    NotificationData::Post(p) => Post(p.post),
+    NotificationData::Comment(c) => Comment(c.comment),
+    NotificationData::PrivateMessage(pm) => PrivateMessage(pm.private_message),
   })
   .collect();
 

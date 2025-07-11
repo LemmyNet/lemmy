@@ -1,5 +1,6 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
+  newtypes::{NotificationId, PaginationCursor, PersonId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
@@ -13,6 +14,10 @@ use lemmy_db_schema::{
   },
   NotificationDataType,
 };
+use lemmy_db_schema_file::enums::NotificationTypes;
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -33,85 +38,75 @@ pub mod impls;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub notification: Notification,
+  notification: Notification,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub private_message: Option<PrivateMessage>,
+  private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub comment: Option<Comment>,
+  comment: Option<Comment>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub post: Option<Post>,
+  post: Option<Post>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub community: Option<Community>,
+  community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub creator: Person,
+  creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub image_details: Option<ImageDetails>,
+  image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub community_actions: Option<CommunityActions>,
+  community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
+  instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub post_actions: Option<PostActions>,
+  post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub person_actions: Option<PersonActions>,
+  person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub comment_actions: Option<CommentActions>,
+  comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_admin()
     )
   )]
-  pub creator_is_admin: bool,
+  creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_tags_fragment()
     )
   )]
-  pub post_tags: TagsView,
+  post_tags: TagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
     )
   )]
-  pub can_mod: bool,
+  can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned()
     )
   )]
-  pub creator_banned: bool,
+  creator_banned: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_moderator()
     )
   )]
-  pub creator_is_moderator: bool,
+  creator_is_moderator: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()
     )
   )]
-  pub creator_banned_from_community: bool,
+  creator_banned_from_community: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 pub struct NotificationView {
-  pub notification: Notification,
-  pub creator: Person,
-  pub image_details: Option<ImageDetails>,
-  pub community_actions: Option<CommunityActions>,
-  pub instance_actions: Option<InstanceActions>,
-  pub post_actions: Option<PostActions>,
-  pub person_actions: Option<PersonActions>,
-  pub comment_actions: Option<CommentActions>,
-  pub creator_is_admin: bool,
-  pub post_tags: TagsView,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
+  pub id: NotificationId,
+  pub kind: NotificationTypes,
+  pub recipient_id: PersonId,
+  pub published_at: DateTime<Utc>,
   pub data: NotificationData,
 }
 
@@ -120,18 +115,9 @@ pub struct NotificationView {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "type_")]
 pub enum NotificationData {
-  Post {
-    post: Post,
-    community: Community,
-  },
-  Comment {
-    comment: Comment,
-    post: Post,
-    community: Community,
-  },
-  PrivateMessage {
-    pm: PrivateMessage,
-  },
+  Comment(CommentView),
+  Post(PostView),
+  PrivateMessage(PrivateMessageView),
 }
 
 #[skip_serializing_none]

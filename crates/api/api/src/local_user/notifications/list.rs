@@ -30,7 +30,7 @@ pub async fn list_notifications(
     limit: data.limit,
     no_limit: None,
   }
-  .list(&mut context.pool(), &local_user_view)
+  .list(&mut context.pool(), &local_user_view.person)
   .await?;
 
   let next_page = notifications.last().map(PaginationCursorBuilder::to_cursor);

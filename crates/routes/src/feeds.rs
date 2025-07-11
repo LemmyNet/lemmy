@@ -330,7 +330,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
     show_bot_accounts,
     ..Default::default()
   }
-  .list(&mut context.pool(), &local_user)
+  .list(&mut context.pool(), &local_user.person)
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -391,37 +391,33 @@ fn create_reply_and_mention_items(
   let reply_items: Vec<Item> = inbox
     .iter()
     .map(|v| match &v.data {
-      NotificationData::Post { post, community: _ } => {
-        let mention_url = post.local_url(context.settings())?;
+      NotificationData::Post(post) => {
+        let mention_url = post.post.local_url(context.settings())?;
         build_item(
-          &v.creator,
-          &post.published_at,
+          &post.creator,
+          &post.post.published_at,
           mention_url.as_str(),
-          &post.body.clone().unwrap_or_default(),
+          &post.post.body.clone().unwrap_or_default(),
           context.settings(),
         )
       }
-      NotificationData::Comment {
-        comment,
-        post: _,
-        community: _,
-      } => {
-        let reply_url = comment.local_url(context.settings())?;
+      NotificationData::Comment(comment) => {
+        let reply_url = comment.comment.local_url(context.settings())?;
         build_item(
-          &v.creator,
-          &comment.published_at,
+          &comment.creator,
+          &comment.comment.published_at,
           reply_url.as_str(),
-          &comment.content,
+          &comment.comment.content,
           context.settings(),
         )
       }
-      NotificationData::PrivateMessage { pm } => {
+      NotificationData::PrivateMessage(pm) => {
         let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
         build_item(
-          &v.creator,
-          &pm.published_at,
+          &pm.creator,
+          &pm.private_message.published_at,
           &inbox_url,
-          &pm.content,
+          &pm.private_message.content,
           context.settings(),
         )
       }
