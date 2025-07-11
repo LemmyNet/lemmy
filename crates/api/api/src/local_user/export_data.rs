@@ -46,7 +46,7 @@ pub async fn export_data(
   })
   .collect();
 
-  let inbox = NotificationQuery {
+  let notifications = NotificationQuery {
     no_limit: Some(true),
     ..NotificationQuery::default()
   }
@@ -96,7 +96,7 @@ pub async fn export_data(
   let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
 
   Ok(Json(ExportDataResponse {
-    inbox,
+    notifications,
     content,
     liked,
     read_posts,

@@ -326,7 +326,6 @@ mod tests {
     *,
   };
   use diesel_ltree::Ltree;
-  use lemmy_db_schema_file::schema::local_user;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
   // The number of migrations that should be run to set up some test data.
@@ -624,8 +623,7 @@ mod tests {
 
     // Check comment replies
     let replies: Vec<(Option<i32>, i32)> = notification::table
-      .inner_join(local_user::table)
-      .select((notification::comment_id, local_user::person_id))
+      .select((notification::comment_id, notification::recipient_id))
       .order_by(notification::comment_id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;

@@ -745,7 +745,7 @@ pub struct UserSettingsBackup {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Your exported data.
 pub struct ExportDataResponse {
-  pub inbox: Vec<PostOrCommentOrPrivateMessage>,
+  pub notifications: Vec<PostOrCommentOrPrivateMessage>,
   pub content: Vec<PostOrCommentOrPrivateMessage>,
   pub read_posts: Vec<Url>,
   pub liked: Vec<Url>,

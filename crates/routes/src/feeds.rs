@@ -326,7 +326,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let inbox = NotificationQuery {
+  let notifications = NotificationQuery {
     show_bot_accounts,
     ..Default::default()
   }
@@ -334,7 +334,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(inbox, context)?;
+  let items = create_reply_and_mention_items(notifications, context)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),

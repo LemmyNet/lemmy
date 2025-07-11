@@ -5,7 +5,7 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_views_notification::{
   api::{GetUnreadCountResponse, MarkNotificationAsRead, MarkPrivateMessageAsRead},
-  ListInbox,
-  ListInboxResponse,
+  ListNotifications,
+  ListNotificationsResponse,
   NotificationView,
 };

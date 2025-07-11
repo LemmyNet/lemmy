@@ -42,7 +42,7 @@ use lemmy_api::{
     logout::logout,
     note_person::user_note_person,
     notifications::{
-      list_inbox::list_inbox,
+      list::list_notifications,
       mark_all_read::mark_all_notifications_read,
       mark_notification_read::mark_notification_as_read,
       unread_count::unread_count,
@@ -365,7 +365,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("", delete().to(delete_image))
               .route("/list", get().to(list_media)),
           )
-          .route("/inbox", get().to(list_inbox))
+          .route("/notifications", get().to(list_notifications))
           .route("/delete", post().to(delete_account))
           .route("/mark_as_read/all", post().to(mark_all_notifications_read))
           .route("/mark_as_read", post().to(mark_notification_as_read))

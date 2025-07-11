@@ -139,7 +139,7 @@ pub enum NotificationData {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInbox {
+pub struct ListNotifications {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
@@ -151,8 +151,8 @@ pub struct ListInbox {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInboxResponse {
-  pub inbox: Vec<NotificationView>,
+pub struct ListNotificationsResponse {
+  pub notifications: Vec<NotificationView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
