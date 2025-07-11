@@ -85,10 +85,10 @@ impl Instance {
     instance_id: InstanceId,
     form: InstanceForm,
   ) -> LemmyResult<usize> {
-    let mut conn = get_conn(pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(instance::table.find(instance_id))
       .set(form)
-      .execute(&mut conn)
+      .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
   }
