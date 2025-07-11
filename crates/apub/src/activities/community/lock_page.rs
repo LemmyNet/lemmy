@@ -12,7 +12,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
-  traits::ActivityHandler,
+  traits::Activity,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -36,7 +36,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for LockPage {
+impl Activity for LockPage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -80,7 +80,7 @@ impl ActivityHandler for LockPage {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoLockPage {
+impl Activity for UndoLockPage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

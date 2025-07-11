@@ -6,7 +6,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::FollowType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
@@ -35,9 +35,9 @@ impl Follow {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Follow> {
     Ok(Follow {
-      actor: actor.id().into(),
-      object: target.id().into(),
-      to: Some([target.id().into()]),
+      actor: actor.id().clone().into(),
+      object: target.id().clone().into(),
+      to: Some([target.id().clone().into()]),
       kind: FollowType::Follow,
       id: generate_activity_id(FollowType::Follow, context)?,
     })
@@ -55,7 +55,7 @@ impl Follow {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Follow {
+impl Activity for Follow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
