@@ -3598,7 +3598,6 @@ dependencies = [
 name = "lemmy_db_views_notification"
 version = "1.0.0-alpha.5"
 dependencies = [
- "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",

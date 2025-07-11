@@ -11,6 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  aliases,
   newtypes::PaginationCursor,
   source::{
     notification::{notification_keys, Notification},
@@ -59,13 +60,20 @@ impl NotificationView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person: &Person) -> _ {
     let item_creator = person::id;
+    let recipient_person = aliases::person1.field(person::id);
 
     let item_creator_join = person::table.on(
       comment::creator_id
         .eq(item_creator)
-        .or(post::creator_id.eq(item_creator))
+        .or(
+          notification::post_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
         .or(private_message::creator_id.eq(item_creator)),
     );
+
+    let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
     let comment_join = comment::table.on(
       notification::comment_id
@@ -111,6 +119,7 @@ impl NotificationView {
       .left_join(post_join)
       .left_join(community_join())
       .inner_join(item_creator_join)
+      .inner_join(recipient_join)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
       .left_join(my_local_user_admin_join)
@@ -169,7 +178,7 @@ impl PaginationCursorBuilder for NotificationView {
   type CursorData = Notification;
 
   fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor(self.id.0.to_string())
+    PaginationCursor(self.notification.id.0.to_string())
   }
 
   async fn from_cursor(
@@ -284,16 +293,11 @@ impl NotificationQuery {
       .load::<NotificationViewInternal>(conn)
       .await?;
 
-    Ok(
-      res
-        .into_iter()
-        .filter_map(|r| map_to_enum(r, &my_person))
-        .collect(),
-    )
+    Ok(res.into_iter().filter_map(map_to_enum).collect())
   }
 }
 
-fn map_to_enum(v: NotificationViewInternal, my_person: &Person) -> Option<NotificationView> {
+fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
   let data = if let (Some(comment), Some(post), Some(community)) =
     (v.comment, v.post.clone(), v.community.clone())
   {
@@ -334,16 +338,13 @@ fn map_to_enum(v: NotificationViewInternal, my_person: &Person) -> Option<Notifi
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
       creator: v.creator,
-      recipient: my_person.clone(),
+      recipient: v.recipient,
     })
   } else {
     return None;
   };
   Some(NotificationView {
-    id: v.notification.id,
-    kind: v.notification.kind,
-    recipient_id: v.notification.recipient_id,
-    published_at: v.notification.published_at,
+    notification: v.notification,
     data,
   })
 }

@@ -1,6 +1,5 @@
-use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{NotificationId, PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
@@ -12,9 +11,10 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tag::TagsView,
   },
+  utils::queries::person1_select,
   NotificationDataType,
+  Person1AliasAllColumnsTuple,
 };
-use lemmy_db_schema_file::enums::NotificationTypes;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -49,6 +49,13 @@ struct NotificationViewInternal {
   community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
   creator: Person,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
+  recipient: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -103,10 +110,7 @@ struct NotificationViewInternal {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub struct NotificationView {
-  pub id: NotificationId,
-  pub kind: NotificationTypes,
-  pub recipient_id: PersonId,
-  pub published_at: DateTime<Utc>,
+  pub notification: Notification,
   pub data: NotificationData,
 }
 

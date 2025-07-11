@@ -1,21 +1,16 @@
 jest.setTimeout(120000);
-import {
-  LemmyError,
-  PrivateMessage,
-  PrivateMessageView,
-} from "lemmy-js-client";
+import { LemmyError, PrivateMessageView } from "lemmy-js-client";
 import {
   alpha,
   beta,
   setupLogins,
-  followBeta,
   createPrivateMessage,
   editPrivateMessage,
   deletePrivateMessage,
   waitUntil,
   reportPrivateMessage,
   unfollows,
-  listInbox,
+  listNotifications,
   resolvePerson,
 } from "./shared";
 
@@ -41,17 +36,14 @@ test("Create a private message", async () => {
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
   let betaPms = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
-    e => !!e.inbox[0],
+    () => listNotifications(beta, "PrivateMessage"),
+    e => !!e.notifications[0],
   );
-  const firstPm = betaPms.inbox[0].data as {
-    type_: "PrivateMessage";
-    pm: PrivateMessage;
-  };
-  expect(firstPm.pm.content).toBeDefined();
-  expect(firstPm.pm.local).toBe(false);
-  expect(betaPms.inbox[0].creator.local).toBe(false);
-  expect(betaPms.inbox[0].recipient.local).toBe(true);
+  const firstPm = betaPms.notifications[0].data as PrivateMessageView;
+  expect(firstPm.private_message.content).toBeDefined();
+  expect(firstPm.private_message.local).toBe(false);
+  expect(firstPm.creator.local).toBe(false);
+  expect(firstPm.recipient.local).toBe(true);
 });
 
 test("Update a private message", async () => {
@@ -67,27 +59,25 @@ test("Update a private message", async () => {
   );
 
   let betaPms = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
+    () => listNotifications(beta, "PrivateMessage"),
     p =>
-      p.inbox[0].data.type_ == "PrivateMessage" &&
-      p.inbox[0].data.pm.content === updatedContent,
+      p.notifications[0].data.type_ == "PrivateMessage" &&
+      p.notifications[0].data.private_message.content === updatedContent,
   );
-  let pm = betaPms.inbox[0].data as {
-    type_: "PrivateMessage";
-    pm: PrivateMessage;
-  };
-  expect(pm.pm.content).toBe(updatedContent);
+  let pm = betaPms.notifications[0].data as PrivateMessageView;
+  expect(pm.private_message.content).toBe(updatedContent);
 });
 
 test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
+    () => listNotifications(beta, "PrivateMessage"),
     m =>
-      !!m.inbox.find(
+      !!m.notifications.find(
         e =>
           e.data.type_ == "PrivateMessage" &&
-          e.data.pm.ap_id === pmRes.private_message_view.private_message.ap_id,
+          e.data.private_message.ap_id ===
+            pmRes.private_message_view.private_message.ap_id,
       ),
   );
   let deletedPmRes = await deletePrivateMessage(
@@ -101,10 +91,10 @@ test("Delete a private message", async () => {
   // even though they are in the actual database.
   // no reason to show them
   let betaPms2 = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
-    p => p.inbox.length === betaPms1.inbox.length - 1,
+    () => listNotifications(beta, "PrivateMessage"),
+    p => p.notifications.length === betaPms1.notifications.length - 1,
   );
-  expect(betaPms2.inbox.length).toBe(betaPms1.inbox.length - 1);
+  expect(betaPms2.notifications.length).toBe(betaPms1.notifications.length - 1);
 
   // Undelete
   let undeletedPmRes = await deletePrivateMessage(
@@ -117,27 +107,25 @@ test("Delete a private message", async () => {
   );
 
   let betaPms3 = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
-    p => p.inbox.length === betaPms1.inbox.length,
+    () => listNotifications(beta, "PrivateMessage"),
+    p => p.notifications.length === betaPms1.notifications.length,
   );
-  expect(betaPms3.inbox.length).toBe(betaPms1.inbox.length);
+  expect(betaPms3.notifications.length).toBe(betaPms1.notifications.length);
 });
 
 test("Create a private message report", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listInbox(beta, "PrivateMessage"),
+    () => listNotifications(beta, "PrivateMessage"),
     m =>
-      !!m.inbox.find(
+      !!m.notifications.find(
         e =>
           e.data.type_ == "PrivateMessage" &&
-          e.data.pm.ap_id === pmRes.private_message_view.private_message.ap_id,
+          e.data.private_message.ap_id ===
+            pmRes.private_message_view.private_message.ap_id,
       ),
   );
-  let betaPm = betaPms1.inbox[0].data as {
-    type_: "PrivateMessage";
-    pm: PrivateMessage;
-  };
+  let betaPm = betaPms1.notifications[0].data as PrivateMessageView;
   expect(betaPm).toBeDefined();
 
   // Make sure that only the recipient can report it, so this should fail
@@ -151,10 +139,14 @@ test("Create a private message report", async () => {
 
   // This one should pass
   let reason = "another reason";
-  let report = await reportPrivateMessage(beta, betaPm.pm.id, reason);
+  let report = await reportPrivateMessage(
+    beta,
+    betaPm.private_message.id,
+    reason,
+  );
 
   expect(report.private_message_report_view.private_message.id).toBe(
-    betaPm.pm.id,
+    betaPm.private_message.id,
   );
   expect(report.private_message_report_view.private_message_report.reason).toBe(
     reason,

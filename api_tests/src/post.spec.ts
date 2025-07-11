@@ -38,7 +38,7 @@ import {
   createCommunity,
   listReports,
   getMyUser,
-  listInbox,
+  listNotifications,
   getModlog,
   getCommunity,
 } from "./shared";
@@ -941,11 +941,11 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listInbox(beta, "Mention"),
-    m => !!m.inbox[0],
+    () => listNotifications(beta, "Mention"),
+    m => !!m.notifications[0],
   );
 
-  const firstMention = mentionsRes.inbox[0];
+  const firstMention = mentionsRes.notifications[0].data as PostView;
   expect(firstMention.post!.body).toBeDefined();
   expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);

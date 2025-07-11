@@ -32,7 +32,7 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[derive(derive_new::new)]
+#[derive(derive_new::new, Debug)]
 pub struct NotifyData<'a> {
   post: &'a Post,
   comment_opt: Option<&'a Comment>,
@@ -456,14 +456,22 @@ mod tests {
       assert_eq!(data.sara_comment.id, comment.comment.id);
       assert_eq!(data.timmy_post.id, comment.post.id);
       assert_eq!(data.sara.person.id, comment.creator.id);
-      assert_eq!(data.timmy.person.id, timmy_inbox[0].recipient_id);
-      assert_eq!(NotificationTypes::Mention, timmy_inbox[0].kind);
+      assert_eq!(
+        data.timmy.person.id,
+        timmy_inbox[0].notification.recipient_id
+      );
+      assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
     } else {
       panic!("wrong type")
     };
 
     // Mark it as read
-    Notification::mark_read_by_id_and_person(pool, timmy_inbox[0].id, data.timmy.person.id).await?;
+    Notification::mark_read_by_id_and_person(
+      pool,
+      timmy_inbox[0].notification.id,
+      data.timmy.person.id,
+    )
+    .await?;
 
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
@@ -521,8 +529,8 @@ mod tests {
     } else {
       panic!("wrong type")
     }
-    assert_eq!(data.sara.person.id, sara_inbox[0].recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[0].kind);
+    assert_eq!(data.sara.person.id, sara_inbox[0].notification.recipient_id);
+    assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
 
     if let NotificationData::Comment(comment) = &sara_inbox[1].data {
       assert_eq!(data.timmy_comment.id, comment.comment.id);
@@ -531,8 +539,8 @@ mod tests {
     } else {
       panic!("wrong type");
     }
-    assert_eq!(data.sara.person.id, sara_inbox[1].recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[1].kind);
+    assert_eq!(data.sara.person.id, sara_inbox[1].notification.recipient_id);
+    assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
     let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
@@ -548,7 +556,10 @@ mod tests {
     assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
-    assert_eq!(NotificationTypes::Mention, sara_inbox_after_block[0].kind);
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox_after_block[0].notification.kind
+    );
 
     // Unblock user so we can reuse the same person
     PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
@@ -562,7 +573,10 @@ mod tests {
     .await?;
     assert_length!(2, sara_inbox_mentions_only);
 
-    assert_eq!(NotificationTypes::Mention, sara_inbox_mentions_only[0].kind);
+    assert_eq!(
+      NotificationTypes::Mention,
+      sara_inbox_mentions_only[0].notification.kind
+    );
 
     // Turn Jessica into a bot account
     let person_update_form = PersonUpdateForm {
@@ -584,7 +598,7 @@ mod tests {
     // Make sure the post mention which jessica made is the hidden one
     assert_eq!(
       NotificationTypes::Mention,
-      sara_inbox_after_hide_bots[0].kind
+      sara_inbox_after_hide_bots[0].notification.kind
     );
 
     // Mark them all as read
@@ -633,19 +647,28 @@ mod tests {
     assert_length!(3, &timmy_messages);
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
       assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(timmy_messages[0].recipient_id, data.timmy.person.id);
+      assert_eq!(
+        timmy_messages[0].notification.recipient_id,
+        data.timmy.person.id
+      );
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
       assert_eq!(pm.creator.id, data.timmy.person.id);
-      assert_eq!(timmy_messages[1].recipient_id, data.sara.person.id);
+      assert_eq!(
+        timmy_messages[1].notification.recipient_id,
+        data.sara.person.id
+      );
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[2].data {
       assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(timmy_messages[2].recipient_id, data.timmy.person.id);
+      assert_eq!(
+        timmy_messages[2].notification.recipient_id,
+        data.timmy.person.id
+      );
     } else {
       panic!("wrong type");
     }
@@ -666,13 +689,19 @@ mod tests {
     assert_length!(2, &timmy_unread_messages);
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
       assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(timmy_unread_messages[0].recipient_id, data.timmy.person.id);
+      assert_eq!(
+        timmy_unread_messages[0].notification.recipient_id,
+        data.timmy.person.id
+      );
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
       assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(timmy_unread_messages[1].recipient_id, data.timmy.person.id);
+      assert_eq!(
+        timmy_unread_messages[1].notification.recipient_id,
+        data.timmy.person.id
+      );
     } else {
       panic!("wrong type");
     }
