@@ -6,7 +6,7 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::AcceptType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
@@ -21,8 +21,8 @@ impl AcceptFollow {
     let target = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
-      actor: target.id().into(),
-      to: Some([person.id().into()]),
+      actor: target.id().clone().into(),
+      to: Some([person.id().clone().into()]),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept, context)?,
@@ -34,7 +34,7 @@ impl AcceptFollow {
 
 /// Handle accepted follows
 #[async_trait::async_trait]
-impl ActivityHandler for AcceptFollow {
+impl Activity for AcceptFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

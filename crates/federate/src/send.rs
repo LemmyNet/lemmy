@@ -3,7 +3,7 @@ use activitypub_federation::{
   activity_sending::SendActivityTask,
   config::Data,
   protocol::context::WithContext,
-  traits::ActivityHandler,
+  traits::Activity,
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -166,7 +166,7 @@ struct DummyActivity {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for DummyActivity {
+impl Activity for DummyActivity {
   type DataType = LemmyContext;
 
   type Error = LemmyError;

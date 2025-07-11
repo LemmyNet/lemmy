@@ -11,7 +11,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::FlagType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::{
@@ -54,8 +54,8 @@ impl Report {
     let kind = FlagType::Flag;
     let id = generate_activity_id(kind.clone(), context)?;
     Ok(Report {
-      actor: actor.id().into(),
-      to: [receiver.id().into()],
+      actor: actor.id().clone().into(),
+      to: [receiver.id().clone().into()],
       object: ReportObject::Lemmy(object_id.clone()),
       summary: reason,
       content: None,
@@ -79,7 +79,7 @@ impl Report {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Report {
+impl Activity for Report {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

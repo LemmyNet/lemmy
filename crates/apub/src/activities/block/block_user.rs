@@ -13,7 +13,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::BlockType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
@@ -48,11 +48,11 @@ impl BlockUser {
   ) -> LemmyResult<BlockUser> {
     let to = to(target)?;
     Ok(BlockUser {
-      actor: mod_.id().into(),
+      actor: mod_.id().clone().into(),
       to,
-      object: user.id().into(),
+      object: user.id().clone().into(),
       cc: generate_cc(target, &mut context.pool()).await?,
-      target: target.id(),
+      target: target.id().clone().into(),
       kind: BlockType::Block,
       remove_data,
       summary: reason,
@@ -82,11 +82,11 @@ impl BlockUser {
     .await?;
 
     match target {
-      SiteOrCommunity::Site(_) => {
+      SiteOrCommunity::Left(_) => {
         let inboxes = ActivitySendTargets::to_all_instances();
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
-      SiteOrCommunity::Community(c) => {
+      SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
         let inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
         send_activity_in_community(activity, mod_, c, inboxes, true, context).await
@@ -96,7 +96,7 @@ impl BlockUser {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for BlockUser {
+impl Activity for BlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -110,10 +110,10 @@ impl ActivityHandler for BlockUser {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
-      SiteOrCommunity::Site(_site) => {
+      SiteOrCommunity::Left(_site) => {
         verify_is_public(&self.to, &self.cc)?;
       }
-      SiteOrCommunity::Community(community) => {
+      SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
@@ -130,7 +130,7 @@ impl ActivityHandler for BlockUser {
     let reason = self.summary;
     let pool = &mut context.pool();
     match target {
-      SiteOrCommunity::Site(site) => {
+      SiteOrCommunity::Left(site) => {
         let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::ban(pool, &form).await?;
 
@@ -155,7 +155,7 @@ impl ActivityHandler for BlockUser {
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }
-      SiteOrCommunity::Community(community) => {
+      SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
           ban_expires_at: Some(expires_at),
           ..CommunityPersonBanForm::new(community.id, blocked_person.id)

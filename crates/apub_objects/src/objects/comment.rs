@@ -27,7 +27,13 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
+  utils::{
+    check_comment_depth,
+    check_is_mod_or_admin,
+    get_url_blocklist,
+    process_markdown,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -68,8 +74,8 @@ impl Object for ApubComment {
   type Kind = Note;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    None
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
   }
 
   async fn read_from_id(
@@ -94,6 +100,10 @@ impl Object for ApubComment {
     Ok(())
   }
 
+  fn is_deleted(&self) -> bool {
+    self.removed || self.deleted
+  }
+
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -107,7 +117,7 @@ impl Object for ApubComment {
       let parent_comment = Comment::read(&mut context.pool(), comment_id).await?;
       parent_comment.ap_id.into()
     } else {
-      post.ap_id.into()
+      post.ap_id.clone().into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
     let maa = collect_non_local_mentions(&self, context).await?;
@@ -190,6 +200,9 @@ impl Object for ApubComment {
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
+    if let Some(c) = &parent_comment {
+      check_comment_depth(c)?;
+    }
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 

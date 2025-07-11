@@ -3,7 +3,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::object::ImageType,
-  protocol::values::MediaTypeMarkdown,
+  protocol::{tombstone::Tombstone, values::MediaTypeMarkdown},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
@@ -198,5 +198,11 @@ pub struct Endpoints {
 }
 
 pub trait Id {
-  fn object_id(&self) -> &Url;
+  fn id(&self) -> &Url;
+}
+
+impl Id for Tombstone {
+  fn id(&self) -> &Url {
+    &self.id
+  }
 }
