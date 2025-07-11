@@ -21,7 +21,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{insert_into, not},
   expression::SelectableHelper,
   update,
   ExpressionMethods,
@@ -245,6 +245,9 @@ impl Comment {
     let conn = &mut get_conn(pool).await?;
     comment::table
       .filter(comment::post_id.eq(post_id))
+      .filter(not(comment::deleted))
+      .filter(not(comment::removed))
+      .filter(not(comment::federation_pending))
       .order_by(comment::id)
       .select(comment::ap_id)
       .get_results(conn)
