@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunitySortType,
 };
-use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
+use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
@@ -363,4 +363,13 @@ pub struct GetMultiCommunityResponse {
 pub struct FollowMultiCommunity {
   pub multi_community_id: MultiCommunityId,
   pub follow: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Change notification settings for a community
+pub struct UpdateCommunityNotifications {
+  pub community_id: CommunityId,
+  pub mode: CommunityNotificationsMode,
 }

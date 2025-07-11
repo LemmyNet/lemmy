@@ -1,5 +1,6 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::enums::PostNotificationsMode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -201,6 +202,7 @@ pub struct PostActions {
   pub like_score: Option<i16>,
   /// When the post was hidden.
   pub hidden_at: Option<DateTime<Utc>>,
+  pub notifications: Option<PostNotificationsMode>,
 }
 
 #[derive(Clone, derive_new::new)]

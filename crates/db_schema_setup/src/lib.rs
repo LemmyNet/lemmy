@@ -519,7 +519,7 @@ mod tests {
   }
 
   fn check_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
-    use lemmy_db_schema_file::schema::{comment, comment_reply, community, person, post};
+    use lemmy_db_schema_file::schema::{comment, community, notification, person, post};
 
     // Check users
     let users: Vec<(i32, String, Option<String>, String, String)> = person::table
@@ -622,16 +622,16 @@ mod tests {
     assert_eq!(comments[1].6, 0); // Zero upvotes
 
     // Check comment replies
-    let replies: Vec<(i32, i32)> = comment_reply::table
-      .select((comment_reply::comment_id, comment_reply::recipient_id))
-      .order_by(comment_reply::comment_id)
+    let replies: Vec<(Option<i32>, i32)> = notification::table
+      .select((notification::comment_id, notification::recipient_id))
+      .order_by(notification::comment_id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;
 
     assert_eq!(replies.len(), 2);
-    assert_eq!(replies[0].0, TEST_COMMENT_ID_1);
+    assert_eq!(replies[0].0, Some(TEST_COMMENT_ID_1));
     assert_eq!(replies[0].1, TEST_USER_ID_1);
-    assert_eq!(replies[1].0, TEST_COMMENT_ID_2);
+    assert_eq!(replies[1].0, Some(TEST_COMMENT_ID_2));
     assert_eq!(replies[1].1, TEST_USER_ID_2);
 
     Ok(())

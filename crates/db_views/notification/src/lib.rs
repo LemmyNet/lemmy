@@ -1,37 +1,26 @@
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
   source::{
-    combined::inbox::InboxCombined,
     comment::{Comment, CommentActions},
-    comment_reply::CommentReply,
     community::{Community, CommunityActions},
     images::ImageDetails,
     instance::InstanceActions,
+    notification::Notification,
     person::{Person, PersonActions},
-    person_comment_mention::PersonCommentMention,
-    person_post_mention::PersonPostMention,
     post::{Post, PostActions},
     private_message::PrivateMessage,
     tag::TagsView,
   },
   InboxDataType,
 };
-use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
-    utils::queries::{
-      creator_banned,
-      creator_is_admin,
-      local_user_can_mod,
-      person1_select,
-      post_tags_fragment,
-    },
+    utils::queries::{creator_banned, creator_is_admin, local_user_can_mod, post_tags_fragment},
     utils::queries::{creator_banned_from_community, creator_is_moderator},
-    Person1AliasAllColumnsTuple,
   },
 };
 
@@ -39,21 +28,12 @@ pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A combined inbox view
-pub struct InboxCombinedViewInternal {
+struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub inbox_combined: InboxCombined,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub comment_reply: Option<CommentReply>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub person_comment_mention: Option<PersonCommentMention>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub person_post_mention: Option<PersonPostMention>,
+  pub notification: Notification,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -63,14 +43,7 @@ pub struct InboxCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub item_creator: Person,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = person1_select()
-    )
-  )]
-  pub item_recipient: Person,
+  pub creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -88,7 +61,7 @@ pub struct InboxCombinedViewInternal {
       select_expression = creator_is_admin()
     )
   )]
-  pub item_creator_is_admin: bool,
+  pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_tags_fragment()
@@ -123,91 +96,42 @@ pub struct InboxCombinedViewInternal {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
-pub enum InboxCombinedView {
-  CommentReply(CommentReplyView),
-  CommentMention(PersonCommentMentionView),
-  PostMention(PersonPostMentionView),
-  PrivateMessage(PrivateMessageView),
-}
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person comment mention view.
-pub struct PersonCommentMentionView {
-  pub person_comment_mention: PersonCommentMention,
-  pub recipient: Person,
-  pub comment: Comment,
+pub struct NotificationView {
+  pub notification: Notification,
   pub creator: Person,
-  pub post: Post,
-  pub community: Community,
-  pub community_actions: Option<CommunityActions>,
-  pub comment_actions: Option<CommentActions>,
-  pub person_actions: Option<PersonActions>,
-  pub instance_actions: Option<InstanceActions>,
-  pub creator_is_admin: bool,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person post mention view.
-pub struct PersonPostMentionView {
-  pub person_post_mention: PersonPostMention,
-  pub recipient: Person,
-  pub post: Post,
-  pub creator: Person,
-  pub community: Community,
   pub image_details: Option<ImageDetails>,
   pub community_actions: Option<CommunityActions>,
-  pub person_actions: Option<PersonActions>,
-  pub post_actions: Option<PostActions>,
   pub instance_actions: Option<InstanceActions>,
-  pub post_tags: TagsView,
+  pub post_actions: Option<PostActions>,
+  pub person_actions: Option<PersonActions>,
+  pub comment_actions: Option<CommentActions>,
   pub creator_is_admin: bool,
+  pub post_tags: TagsView,
   pub can_mod: bool,
   pub creator_banned: bool,
   pub creator_is_moderator: bool,
   pub creator_banned_from_community: bool,
+  pub data: NotificationData,
 }
 
-#[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A comment reply view.
-pub struct CommentReplyView {
-  pub comment_reply: CommentReply,
-  pub recipient: Person,
-  pub comment: Comment,
-  pub creator: Person,
-  pub post: Post,
-  pub community: Community,
-  pub community_actions: Option<CommunityActions>,
-  pub comment_actions: Option<CommentActions>,
-  pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
-  pub creator_is_admin: bool,
-  pub post_tags: TagsView,
-  pub can_mod: bool,
-  pub creator_banned: bool,
-  pub creator_is_moderator: bool,
-  pub creator_banned_from_community: bool,
+#[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "type_")]
+pub enum NotificationData {
+  Post {
+    post: Post,
+    community: Community,
+  },
+  Comment {
+    comment: Comment,
+    post: Post,
+    community: Community,
+  },
+  PrivateMessage {
+    pm: PrivateMessage,
+  },
 }
 
 #[skip_serializing_none]
@@ -215,7 +139,7 @@ pub struct CommentReplyView {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInbox {
+pub struct ListNotifications {
   pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
@@ -227,8 +151,8 @@ pub struct ListInbox {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListInboxResponse {
-  pub inbox: Vec<InboxCombinedView>,
+pub struct ListNotificationsResponse {
+  pub notifications: Vec<NotificationView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,

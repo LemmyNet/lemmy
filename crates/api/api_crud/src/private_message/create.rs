@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
@@ -18,7 +19,6 @@ use lemmy_db_views_private_message::{
   api::{CreatePrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
 };
-use lemmy_email::notifications::send_private_message_email;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn create_private_message(
@@ -63,18 +63,7 @@ pub async fn create_private_message(
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
-  // Send email to the local recipient, if one exists
-  if view.recipient.local {
-    let local_recipient =
-      LocalUserView::read_person(&mut context.pool(), data.recipient_id).await?;
-    send_private_message_email(
-      &local_user_view,
-      &local_recipient,
-      &content,
-      context.settings(),
-    )
-    .await;
-  }
+  notify_private_message(&view, true, &context).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreatePrivateMessage(view.clone()),
