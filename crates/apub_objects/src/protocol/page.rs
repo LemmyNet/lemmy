@@ -71,6 +71,7 @@ pub struct Page {
   pub(crate) language: Option<LanguageTag>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<Hashtag>,
+  pub(crate) context: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
