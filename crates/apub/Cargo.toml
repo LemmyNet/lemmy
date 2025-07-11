@@ -16,7 +16,6 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-# dummy to make test.sh work
 full = []
 
 [lints]

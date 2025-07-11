@@ -12,7 +12,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -49,8 +49,8 @@ impl ResolveReport {
     let id = generate_activity_id(kind.clone(), &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
-      actor: actor.id().into(),
-      to: [receiver.id().into()],
+      actor: actor.id().clone().into(),
+      to: [receiver.id().clone().into()],
       object,
       kind,
       id: id.clone(),
@@ -62,7 +62,7 @@ impl ResolveReport {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for ResolveReport {
+impl Activity for ResolveReport {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

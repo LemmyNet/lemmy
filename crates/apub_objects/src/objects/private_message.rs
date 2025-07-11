@@ -14,7 +14,7 @@ use activitypub_federation::{
   },
   traits::Object,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_private_message,
@@ -61,8 +61,8 @@ impl Object for ApubPrivateMessage {
   type Kind = PrivateMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    None
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
   }
 
   async fn read_from_id(
@@ -79,6 +79,10 @@ impl Object for ApubPrivateMessage {
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
     Err(LemmyErrorType::NotFound.into())
+  }
+
+  fn is_deleted(&self) -> bool {
+    self.removed || self.deleted
   }
 
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<PrivateMessage> {

@@ -65,6 +65,10 @@ impl Object for ApubPerson {
   type Kind = Person;
   type Error = LemmyError;
 
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
+  }
+
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
@@ -87,6 +91,10 @@ impl Object for ApubPerson {
     };
     DbPerson::update(&mut context.pool(), self.id, &form).await?;
     Ok(())
+  }
+
+  fn is_deleted(&self) -> bool {
+    self.deleted
   }
 
   async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Person> {
@@ -181,10 +189,6 @@ impl Object for ApubPerson {
 }
 
 impl Actor for ApubPerson {
-  fn id(&self) -> Url {
-    self.ap_id.inner().clone()
-  }
-
   fn public_key_pem(&self) -> &str {
     &self.public_key
   }

@@ -11,7 +11,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -62,7 +62,7 @@ impl CreateOrUpdateNote {
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: person.id().into(),
+      actor: person.id().clone().into(),
       to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
@@ -100,7 +100,7 @@ impl CreateOrUpdateNote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateNote {
+impl Activity for CreateOrUpdateNote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

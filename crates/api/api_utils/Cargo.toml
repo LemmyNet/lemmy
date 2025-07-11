@@ -83,3 +83,4 @@ derive-new.workspace = true
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 lemmy_db_views_notification = { workspace = true, features = ["full"] }
+diesel_ltree = { workspace = true }
