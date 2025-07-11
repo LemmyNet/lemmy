@@ -117,11 +117,12 @@ pub enum ModlogActionType {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
-pub enum InboxDataType {
+pub enum NotificationDataType {
   All,
   Reply,
   Mention,
   PrivateMessage,
+  Subscribed,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

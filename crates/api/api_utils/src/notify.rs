@@ -308,7 +308,7 @@ mod tests {
     },
     traits::{Blockable, Crud},
     utils::{build_db_pool_for_tests, DbPool},
-    InboxDataType,
+    NotificationDataType,
   };
   use lemmy_db_schema_file::enums::NotificationTypes;
   use lemmy_db_views_local_user::LocalUserView;
@@ -579,7 +579,7 @@ mod tests {
 
     // Test the type filter
     let sara_inbox_mentions_only = NotificationQuery {
-      type_: Some(InboxDataType::Mention),
+      type_: Some(NotificationDataType::Mention),
       ..Default::default()
     }
     .list(pool, &data.sara)

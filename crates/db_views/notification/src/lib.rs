@@ -11,7 +11,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  InboxDataType,
+  NotificationDataType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -140,7 +140,7 @@ pub enum NotificationData {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListNotifications {
-  pub type_: Option<InboxDataType>,
+  pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,

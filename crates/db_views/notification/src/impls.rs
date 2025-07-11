@@ -34,7 +34,7 @@ use lemmy_db_schema::{
     },
     DbPool,
   },
-  InboxDataType,
+  NotificationDataType,
 };
 use lemmy_db_schema_file::{
   enums::NotificationTypes,
@@ -184,7 +184,7 @@ impl PaginationCursorBuilder for NotificationView {
 
 #[derive(Default)]
 pub struct NotificationQuery {
-  pub type_: Option<InboxDataType>,
+  pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub cursor_data: Option<Notification>,
@@ -250,11 +250,18 @@ impl NotificationQuery {
 
     if let Some(type_) = self.type_ {
       query = match type_ {
-        InboxDataType::All => query,
-        InboxDataType::Reply => query.filter(notification::kind.eq(NotificationTypes::Reply)),
-        InboxDataType::Mention => query.filter(notification::kind.eq(NotificationTypes::Mention)),
-        InboxDataType::PrivateMessage => {
+        NotificationDataType::All => query,
+        NotificationDataType::Reply => {
+          query.filter(notification::kind.eq(NotificationTypes::Reply))
+        }
+        NotificationDataType::Mention => {
+          query.filter(notification::kind.eq(NotificationTypes::Mention))
+        }
+        NotificationDataType::PrivateMessage => {
           query.filter(notification::kind.eq(NotificationTypes::PrivateMessage))
+        }
+        NotificationDataType::Subscribed => {
+          query.filter(notification::kind.eq(NotificationTypes::Subscribed))
         }
       }
     }
