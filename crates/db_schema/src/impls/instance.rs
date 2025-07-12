@@ -23,6 +23,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
   federation_blocklist,
@@ -223,9 +224,9 @@ impl Blockable for InstanceActions {
       .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    diesel_uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+    uplete(instance_actions::table.find((form.person_id, form.instance_id)))
       .set_null(instance_actions::blocked_at)
       .get_result(conn)
       .await
@@ -303,10 +304,10 @@ impl Bannable for InstanceActions {
         .await?,
     )
   }
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      diesel_uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+      uplete(instance_actions::table.find((form.person_id, form.instance_id)))
         .set_null(instance_actions::received_ban_at)
         .set_null(instance_actions::ban_expires_at)
         .get_result(conn)

@@ -225,7 +225,7 @@ extism = { git = "https://github.com/extism/extism.git", branch = "main", defaul
 ] }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 unified-diff = "0.2.1"
-diesel-uplete = { version = "0.1.0" }
+diesel-uplete = { version = "0.2.0" }
 
 [dependencies]
 lemmy_api = { workspace = true }

@@ -29,6 +29,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -286,9 +287,9 @@ impl Likeable for CommentActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     comment_id: Self::IdType,
-  ) -> LemmyResult<diesel_uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    diesel_uplete::new(comment_actions::table.find((person_id, comment_id)))
+    uplete(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
@@ -299,10 +300,10 @@ impl Likeable for CommentActions {
   async fn remove_all_likes(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
-  ) -> LemmyResult<diesel_uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel_uplete::new(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
+    uplete(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
@@ -314,20 +315,18 @@ impl Likeable for CommentActions {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
-  ) -> LemmyResult<diesel_uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let comment_ids =
       Comment::creator_comment_ids_in_community(pool, creator_id, community_id).await?;
 
     let conn = &mut get_conn(pool).await?;
 
-    diesel_uplete::new(
-      comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())),
-    )
-    .set_null(comment_actions::like_score)
-    .set_null(comment_actions::liked_at)
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+    uplete(comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())))
+      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::liked_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 }
 
@@ -345,9 +344,9 @@ impl Saveable for CommentActions {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
   }
-  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<diesel_uplete::Count> {
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    diesel_uplete::new(comment_actions::table.find((form.person_id, form.comment_id)))
+    uplete(comment_actions::table.find((form.person_id, form.comment_id)))
       .set_null(comment_actions::saved_at)
       .get_result(conn)
       .await
@@ -498,8 +497,8 @@ mod tests {
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
-    assert_eq!(diesel_uplete::Count::only_updated(1), like_removed);
-    assert_eq!(diesel_uplete::Count::only_deleted(1), saved_removed);
+    assert_eq!(UpleteCount::only_updated(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
 
     Ok(())

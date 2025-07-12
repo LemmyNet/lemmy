@@ -14,6 +14,7 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -394,23 +395,19 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  diesel_uplete::new(
-    community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(community_actions::received_ban_at)
-  .set_null(community_actions::ban_expires_at)
-  .as_query()
-  .execute(&mut conn)
-  .await?;
+  uplete(community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(community_actions::received_ban_at)
+    .set_null(community_actions::ban_expires_at)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
 
-  diesel_uplete::new(
-    instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(instance_actions::received_ban_at)
-  .set_null(instance_actions::ban_expires_at)
-  .as_query()
-  .execute(&mut conn)
-  .await?;
+  uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(instance_actions::received_ban_at)
+    .set_null(instance_actions::ban_expires_at)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
   Ok(())
 }
 
