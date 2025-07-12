@@ -9,7 +9,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -25,7 +25,7 @@ use serde_json::Value;
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for RawAnnouncableActivities {
+impl Activity for RawAnnouncableActivities {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -70,6 +70,12 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 }
 
+impl Id for RawAnnouncableActivities {
+  fn id(&self) -> &Url {
+    &self.id
+  }
+}
+
 impl AnnounceActivity {
   pub(crate) fn new(
     object: RawAnnouncableActivities,
@@ -84,7 +90,7 @@ impl AnnounceActivity {
     let id =
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
-      actor: community.id().into(),
+      actor: community.id().clone().into(),
       to: generate_to(community)?,
       object: IdOrNestedObject::NestedObject(object),
       cc: community
@@ -129,7 +135,7 @@ impl AnnounceActivity {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for AnnounceActivity {
+impl Activity for AnnounceActivity {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -160,12 +166,6 @@ impl ActivityHandler for AnnounceActivity {
     // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
     object.receive(context).await
-  }
-}
-
-impl Id for RawAnnouncableActivities {
-  fn object_id(&self) -> &Url {
-    ActivityHandler::id(self)
   }
 }
 

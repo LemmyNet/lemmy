@@ -1015,10 +1015,15 @@ pub fn send_webmention(post: Post, community: &Community) {
   };
 }
 
+/// Returns error if new comment exceeds maximum depth.
+///
+/// Top-level comments have a path like `0.123` where 123 is the comment id. At the second level
+/// it is `0.123.456`, containing the parent id and current comment id.
 pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   let path = &comment.path.0;
   let length = path.split('.').count();
-  if length > MAX_COMMENT_DEPTH_LIMIT {
+  // Need to increment by one because the path always starts with 0
+  if length > MAX_COMMENT_DEPTH_LIMIT + 1 {
     Err(LemmyErrorType::MaxCommentDepthReached)?
   } else {
     Ok(())
@@ -1028,6 +1033,8 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use diesel_ltree::Ltree;
+  use lemmy_db_schema::newtypes::LanguageId;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1103,6 +1110,48 @@ mod tests {
         .is_ok()
     );
 
+    Ok(())
+  }
+
+  #[test]
+  fn test_comment_depth() -> LemmyResult<()> {
+    let mut comment = Comment {
+      id: CommentId(0),
+      creator_id: PersonId(0),
+      post_id: PostId(0),
+      content: String::new(),
+      removed: false,
+      published_at: Utc::now(),
+      updated_at: None,
+      deleted: false,
+      ap_id: Url::parse("http://example.com")?.into(),
+      local: false,
+      path: Ltree("0.123".to_string()),
+      distinguished: false,
+      language_id: LanguageId(0),
+      score: 0,
+      upvotes: 0,
+      downvotes: 0,
+      child_count: 0,
+      hot_rank: 0.0,
+      controversy_rank: 0.0,
+      report_count: 0,
+      unresolved_report_count: 0,
+      federation_pending: false,
+    };
+    assert!(check_comment_depth(&comment).is_ok());
+    comment.path = Ltree("0.123.456".to_string());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // build path with items 1 to 50 which is still acceptable
+    let mut path = "0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31.32.33.34.35.36.37.38.39.40.41.42.43.44.45.46.47.48.49.50".to_string();
+    comment.path = Ltree(path.clone());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // add one more item and we exceed the max depth
+    path.push_str(".51");
+    comment.path = Ltree(path);
+    assert!(check_comment_depth(&comment).is_err());
     Ok(())
   }
 }

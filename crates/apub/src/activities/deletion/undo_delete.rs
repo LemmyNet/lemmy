@@ -5,7 +5,7 @@ use crate::{
   },
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::ActivityHandler};
+use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
@@ -28,7 +28,7 @@ use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResul
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoDelete {
+impl Activity for UndoDelete {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

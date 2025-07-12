@@ -696,6 +696,8 @@ pub struct ResolveObject {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),
@@ -711,6 +713,8 @@ pub enum PostOrCommentOrPrivateMessage {
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UserSettingsBackup {
   pub display_name: Option<String>,
   pub bio: Option<String>,

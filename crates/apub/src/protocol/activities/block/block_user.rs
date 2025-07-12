@@ -44,8 +44,8 @@ impl InCommunity for BlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let target = self.target.dereference(context).await?;
     let community = match target {
-      SiteOrCommunity::Community(c) => c,
-      SiteOrCommunity::Site(_) => return Err(anyhow!("activity is not in community").into()),
+      SiteOrCommunity::Right(c) => c,
+      SiteOrCommunity::Left(_) => return Err(anyhow!("activity is not in community").into()),
     };
     Ok(community)
   }

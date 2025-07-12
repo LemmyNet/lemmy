@@ -1,5 +1,4 @@
 use super::check_community_content_fetchable;
-use crate::http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object};
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_utils::context::LemmyContext;
@@ -9,7 +8,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, FEDERATION_CONTEXT};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -30,11 +29,5 @@ pub(crate) async fn get_apub_post(
 
   check_community_content_fetchable(&community, &request, &context).await?;
 
-  if !post.local {
-    Ok(redirect_remote_object(&post.ap_id))
-  } else if !post.deleted && !post.removed {
-    create_apub_response(&post.into_json(&context).await?)
-  } else {
-    create_apub_tombstone_response(post.ap_id.clone())
-  }
+  post.http_response(&FEDERATION_CONTEXT, &context).await
 }
