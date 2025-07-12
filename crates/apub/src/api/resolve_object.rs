@@ -91,12 +91,14 @@ mod tests {
     let pool = &mut context.pool();
     let data = TestData::create(pool).await?;
 
-    let name = "test_local_user_name";
     let bio = "test_local_user_bio";
 
-    let creator = LocalUserView::create_test_user(pool, name, bio, false).await?;
-    let regular_user = LocalUserView::create_test_user(pool, name, bio, false).await?;
-    let admin_user = LocalUserView::create_test_user(pool, name, bio, true).await?;
+    let creator =
+      LocalUserView::create_test_user(pool, "test_local_user_name_1", bio, false).await?;
+    let regular_user =
+      LocalUserView::create_test_user(pool, "test_local_user_name_2", bio, false).await?;
+    let admin_user =
+      LocalUserView::create_test_user(pool, "test_local_user_name_3", bio, true).await?;
 
     let community = Community::create(
       pool,
