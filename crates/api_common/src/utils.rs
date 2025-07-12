@@ -49,6 +49,7 @@ use lemmy_utils::{
     validation::clean_urls_in_text,
   },
   CACHE_DURATION_FEDERATION,
+  MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
@@ -986,12 +987,29 @@ fn build_proxied_image_url(
   ))
 }
 
+/// Returns error if new comment exceeds maximum depth.
+///
+/// Top-level comments have a path like `0.123` where 123 is the comment id. At the second level
+/// it is `0.123.456`, containing the parent id and current comment id.
+pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
+  let path = &comment.path.0;
+  let length = path.split('.').count();
+  // Need to increment by one because the path always starts with 0
+  if length > MAX_COMMENT_DEPTH_LIMIT + 1 {
+    Err(LemmyErrorType::MaxCommentDepthReached)?
+  } else {
+    Ok(())
+  }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;
+  use diesel_ltree::Ltree;
+  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1067,5 +1085,38 @@ mod tests {
         .await
         .is_ok()
     );
+  }
+
+  #[test]
+  fn test_comment_depth() -> LemmyResult<()> {
+    let mut comment = Comment {
+      id: CommentId(0),
+      creator_id: PersonId(0),
+      post_id: PostId(0),
+      content: String::new(),
+      removed: false,
+      published: Utc::now(),
+      updated: None,
+      deleted: false,
+      ap_id: Url::parse("http://example.com")?.into(),
+      local: false,
+      path: Ltree("0.123".to_string()),
+      distinguished: false,
+      language_id: LanguageId(0),
+    };
+    assert!(check_comment_depth(&comment).is_ok());
+    comment.path = Ltree("0.123.456".to_string());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // build path with items 1 to 50 which is still acceptable
+    let mut path = "0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31.32.33.34.35.36.37.38.39.40.41.42.43.44.45.46.47.48.49.50".to_string();
+    comment.path = Ltree(path.clone());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // add one more item and we exceed the max depth
+    path.push_str(".51");
+    comment.path = Ltree(path);
+    assert!(check_comment_depth(&comment).is_err());
+    Ok(())
   }
 }
