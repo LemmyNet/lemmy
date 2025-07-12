@@ -20,7 +20,6 @@ use crate::{
     format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
-    uplete,
     DbPool,
   },
 };
@@ -36,6 +35,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, post},
@@ -101,9 +101,9 @@ impl Joinable for CommunityActions {
       .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
   }
 
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+    uplete(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
@@ -311,24 +311,22 @@ impl CommunityActions {
   pub async fn delete_mods_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(
-      community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
-    )
-    .set_null(community_actions::became_moderator_at)
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotFound)
+    uplete(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
+      .set_null(community_actions::became_moderator_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn leave_mod_team_for_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
+    uplete(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
@@ -475,9 +473,9 @@ impl Bannable for CommunityActions {
       .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
   }
 
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+    uplete(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::received_ban_at)
       .set_null(community_actions::ban_expires_at)
       .get_result(conn)
@@ -526,9 +524,9 @@ impl Followable for CommunityActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((person_id, community_id)))
+    uplete(community_actions::table.find((person_id, community_id)))
       .set_null(community_actions::followed_at)
       .set_null(community_actions::follow_state)
       .set_null(community_actions::follow_approver_id)
@@ -561,9 +559,9 @@ impl Blockable for CommunityActions {
   async fn unblock(
     pool: &mut DbPool<'_>,
     community_block_form: &Self::Form,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((
+    uplete(community_actions::table.find((
       community_block_form.person_id,
       community_block_form.community_id,
     )))
@@ -696,7 +694,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -854,9 +852,9 @@ mod tests {
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, updated_community);
-    assert_eq!(uplete::Count::only_updated(1), ignored_community);
-    assert_eq!(uplete::Count::only_updated(1), left_community);
-    assert_eq!(uplete::Count::only_deleted(1), unban);
+    assert_eq!(UpleteCount::only_updated(1), ignored_community);
+    assert_eq!(UpleteCount::only_updated(1), left_community);
+    assert_eq!(UpleteCount::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
 

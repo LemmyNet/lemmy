@@ -215,7 +215,6 @@ i-love-jesus = { version = "0.2.0" }
 clap = { version = "4.5.39", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
-tuplex = "0.1.2"
 html2text = "0.15.1"
 async-trait = "0.1.88"
 either = { version = "1.15.0", features = ["serde"] }
@@ -226,6 +225,7 @@ extism = { git = "https://github.com/extism/extism.git", branch = "main", defaul
 ] }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 unified-diff = "0.2.1"
+diesel-uplete = { version = "0.2.0" }
 
 [dependencies]
 lemmy_api = { workspace = true }

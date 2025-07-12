@@ -29,13 +29,13 @@ full = [
   "serde_json",
   "diesel_ltree",
   "diesel-async",
+  "diesel-uplete",
   "deadpool",
   "tokio",
   "tokio-postgres",
   "tokio-postgres-rustls",
   "rustls",
   "i-love-jesus",
-  "tuplex",
   "moka",
   "lemmy_db_schema_file/full",
   "lemmy_db_schema_setup",
@@ -60,6 +60,7 @@ diesel-async = { workspace = true, features = [
   "deadpool",
   "postgres",
 ], optional = true }
+diesel-uplete = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 tracing = { workspace = true }
@@ -73,7 +74,6 @@ rustls = { workspace = true, optional = true }
 uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
-tuplex = { workspace = true, optional = true }
 moka = { workspace = true, optional = true }
 
 
