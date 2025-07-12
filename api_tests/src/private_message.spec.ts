@@ -4,7 +4,6 @@ import {
   alpha,
   beta,
   setupLogins,
-  followBeta,
   createPrivateMessage,
   editPrivateMessage,
   deletePrivateMessage,

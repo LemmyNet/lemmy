@@ -1,0 +1,134 @@
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: Connection refused
+lemmy-1  | 	Is the server running on that host and accepting TCP/IP connections?
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Federation enabled, host is localhost
+lemmy-1  | Starting HTTP server at 0.0.0.0:8536
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user \"lemmy\"\n"), inner: connection to server at "postgres" (172.20.0.2), port 5432 failed: FATAL:  password authentication failed for user "lemmy"
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is not yet accepting connections
+lemmy-1  | DETAIL:  Consistent recovery state has not been yet reached.
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is not yet accepting connections
+lemmy-1  | DETAIL:  Consistent recovery state has not been yet reached.
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("connection to server at \"postgres\" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up\n"), inner: connection to server at "postgres" (172.20.0.3), port 5432 failed: FATAL:  the database system is starting up
+lemmy-1  | , context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
+lemmy-1  | Error: LemmyError { message: Unknown("Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint \"person_saved_combined_post_id_key\""), inner: Failed to run 2024-12-05-233704_add_person_content_combined_table with: duplicate key value violates unique constraint "person_saved_combined_post_id_key", context: <disabled> }
+lemmy-1  | Starting Lemmy v1.0.0-alpha.4-modified
