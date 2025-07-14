@@ -58,7 +58,6 @@ members = [
   "crates/db_views/person",
   "crates/db_views/post",
   "crates/db_views/vote",
-  "crates/db_views/reports",
   "crates/db_views/local_image",
   "crates/db_views/comment",
   "crates/db_views/community",
@@ -138,7 +137,6 @@ lemmy_db_views_private_message = { version = "=1.0.0-alpha.5", path = "./crates/
 lemmy_db_views_readable_federation_state = { version = "=1.0.0-alpha.5", path = "./crates/db_views/readable_federation_state" }
 lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.5", path = "./crates/db_views/registration_applications" }
 lemmy_db_views_report_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/report_combined" }
-lemmy_db_views_reports = { version = "=1.0.0-alpha.5", path = "./crates/db_views/reports" }
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vote" }

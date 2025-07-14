@@ -21,7 +21,17 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  newtypes::{CommunityId, PaginationCursor, PersonId, PostId},
+  newtypes::{
+    CommentReportId,
+    CommunityId,
+    CommunityReportId,
+    PaginationCursor,
+    PersonId,
+    PostId,
+    PostReportId,
+    PrivateMessageReportId,
+    ReportCombinedId,
+  },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{get_conn, limit_fetch, paginate, DbPool},
@@ -151,6 +161,82 @@ impl ReportCombinedViewInternal {
       .left_join(post_actions_join)
       .left_join(person_actions_join)
       .left_join(comment_actions_join)
+  }
+
+  pub async fn read_comment_report(
+    pool: &mut DbPool<'_>,
+    report_id: CommentReportId,
+    my_person_id: PersonId,
+  ) -> LemmyResult<CommentReportView> {
+    let conn = &mut get_conn(pool).await?;
+    let res = Self::joins(my_person_id)
+      .filter(report_combined::comment_report_id.eq(report_id))
+      .select(ReportCombinedViewInternal::as_select())
+      .first::<ReportCombinedViewInternal>(conn)
+      .await?;
+
+    let res = InternalToCombinedView::map_to_enum(res);
+    let Some(ReportCombinedView::Comment(c)) = res else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
+    Ok(c)
+  }
+
+  pub async fn read_post_report(
+    pool: &mut DbPool<'_>,
+    report_id: PostReportId,
+    my_person_id: PersonId,
+  ) -> LemmyResult<PostReportView> {
+    let conn = &mut get_conn(pool).await?;
+    let res = Self::joins(my_person_id)
+      .filter(report_combined::post_report_id.eq(report_id))
+      .select(ReportCombinedViewInternal::as_select())
+      .first::<ReportCombinedViewInternal>(conn)
+      .await?;
+
+    let res = InternalToCombinedView::map_to_enum(res);
+    let Some(ReportCombinedView::Post(p)) = res else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
+    Ok(p)
+  }
+
+  pub async fn read_community_report(
+    pool: &mut DbPool<'_>,
+    report_id: CommunityReportId,
+    my_person_id: PersonId,
+  ) -> LemmyResult<CommunityReportView> {
+    let conn = &mut get_conn(pool).await?;
+    let res = Self::joins(my_person_id)
+      .filter(report_combined::community_report_id.eq(report_id))
+      .select(ReportCombinedViewInternal::as_select())
+      .first::<ReportCombinedViewInternal>(conn)
+      .await?;
+
+    let res = InternalToCombinedView::map_to_enum(res);
+    let Some(ReportCombinedView::Community(c)) = res else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
+    Ok(c)
+  }
+
+  pub async fn read_private_message_report(
+    pool: &mut DbPool<'_>,
+    report_id: PrivateMessageReportId,
+    my_person_id: PersonId,
+  ) -> LemmyResult<PrivateMessageReportView> {
+    let conn = &mut get_conn(pool).await?;
+    let res = Self::joins(my_person_id)
+      .filter(report_combined::private_message_report_id.eq(report_id))
+      .select(ReportCombinedViewInternal::as_select())
+      .first::<ReportCombinedViewInternal>(conn)
+      .await?;
+
+    let res = InternalToCombinedView::map_to_enum(res);
+    let Some(ReportCombinedView::PrivateMessage(pm)) = res else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
+    Ok(pm)
   }
 
   /// returns the current unresolved report count for the communities you mod

@@ -8,10 +8,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CommentReportResponse, ResolveCommentReport},
   CommentReportView,
-};
+};use lemmy_db_views_report_combined::ReportCombinedViewInternal;
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
@@ -22,7 +22,7 @@ pub async fn resolve_comment_report(
 ) -> LemmyResult<Json<CommentReportResponse>> {
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
-  let report = CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
+  let report = ReportCombinedViewInternal::read_comment_report(&mut context.pool(), report_id, person_id).await?;
 
   let person_id = local_user_view.person.id;
   check_community_mod_action(
@@ -41,7 +41,8 @@ pub async fn resolve_comment_report(
 
   let report_id = data.report_id;
   let comment_report_view =
-    CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
+  ReportCombinedViewInternal::read_comment_report(&mut context.pool(), report_id, person_id)
+      .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::SendResolveReport {

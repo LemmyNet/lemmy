@@ -11,9 +11,10 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, ResolveCommunityReport},
   CommunityReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -33,7 +34,8 @@ pub async fn resolve_community_report(
   }
 
   let community_report_view =
-    CommunityReportView::read(&mut context.pool(), report_id, person_id).await?;
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person_id)
+      .await?;
   let site = Site::read_from_instance_id(
     &mut context.pool(),
     community_report_view.community.instance_id,
