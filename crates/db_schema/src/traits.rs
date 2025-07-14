@@ -105,18 +105,6 @@ pub trait Followable: Sized {
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
 }
 
-pub trait Joinable: Sized {
-  type Form;
-  fn join(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send;
-  fn leave(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
-}
-
 pub trait Likeable: Sized {
   type Form;
   type IdType;
@@ -161,48 +149,6 @@ pub trait Saveable: Sized {
     form: &Self::Form,
   ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn unsave(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
-}
-
-pub trait Readable: Sized {
-  type Form;
-  fn mark_as_read(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send;
-  fn mark_many_as_read(
-    pool: &mut DbPool<'_>,
-    forms: &[Self::Form],
-  ) -> impl Future<Output = LemmyResult<usize>> + Send;
-  fn mark_as_unread(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
-}
-
-pub trait ReadComments: Sized {
-  type Form;
-  type IdType;
-  fn update_read_comments(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send;
-  fn remove_read_comments(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
-}
-
-pub trait Hideable: Sized {
-  type Form;
-  fn hide(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send;
-  fn unhide(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
   ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;

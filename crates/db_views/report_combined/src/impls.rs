@@ -593,7 +593,7 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
-    traits::{Crud, Joinable, Reportable},
+    traits::{Crud, Reportable},
     utils::{build_db_pool_for_tests, get_conn, DbPool},
     ReportType,
   };
