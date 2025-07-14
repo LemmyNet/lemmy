@@ -34,11 +34,7 @@ pub async fn resolve_post_report(
   )
   .await?;
 
-  if data.resolved {
-    PostReport::resolve(&mut context.pool(), report_id, person.id).await?;
-  } else {
-    PostReport::unresolve(&mut context.pool(), report_id, person.id).await?;
-  }
+  PostReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved).await?;
 
   let post_report_view =
     ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;

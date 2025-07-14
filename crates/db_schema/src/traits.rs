@@ -281,45 +281,31 @@ pub trait Blockable {
     Self: Sized;
 }
 
-pub trait Reportable {
+pub trait Reportable: Sized {
   type Form;
   type IdType;
   type ObjectIdType;
   fn report(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn resolve(
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
+  fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+    is_resolved: bool,
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
     report_creator_id: PersonId,
     resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
-  fn unresolve(
-    pool: &mut DbPool<'_>,
-    report_id: Self::IdType,
-    resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
 }
 
 pub trait ApubActor {

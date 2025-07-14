@@ -849,7 +849,7 @@ mod tests {
     assert_eq!(2, report_count_timmy);
 
     // Resolve the post report
-    PostReport::resolve(pool, inserted_post_report.id, data.timmy.id).await?;
+    PostReport::update_resolved(pool, inserted_post_report.id, data.timmy.id, true).await?;
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
@@ -913,7 +913,8 @@ mod tests {
     }
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::resolve(pool, pm_report.id, data.admin_view.person.id).await?;
+    PrivateMessageReport::update_resolved(pool, pm_report.id, data.admin_view.person.id, true)
+      .await?;
 
     let reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
@@ -969,7 +970,7 @@ mod tests {
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
 
     let read_jessica_report_view =
-      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, data.timmy.id)
+      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, &data.timmy)
         .await?;
 
     // Make sure the triggers are reading the aggregates correctly.
@@ -1017,7 +1018,7 @@ mod tests {
       .await?;
 
     let read_jessica_report_view_after_resolve =
-      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, data.timmy.id)
+      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, &data.timmy)
         .await?;
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
     assert_eq!(
@@ -1104,7 +1105,7 @@ mod tests {
     let read_jessica_report_view = ReportCombinedViewInternal::read_comment_report(
       pool,
       inserted_jessica_report.id,
-      data.timmy.id,
+      &data.timmy,
     )
     .await?;
     assert_eq!(read_jessica_report_view.comment.unresolved_report_count, 2);
@@ -1131,11 +1132,11 @@ mod tests {
     assert_eq!(2, report_count);
 
     // Resolve the report
-    CommentReport::resolve(pool, inserted_jessica_report.id, data.timmy.id).await?;
+    CommentReport::update_resolved(pool, inserted_jessica_report.id, data.timmy.id, true).await?;
     let read_jessica_report_view_after_resolve = ReportCombinedViewInternal::read_comment_report(
       pool,
       inserted_jessica_report.id,
-      data.timmy.id,
+      &data.timmy,
     )
     .await?;
 

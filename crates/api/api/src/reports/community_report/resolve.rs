@@ -26,11 +26,8 @@ pub async fn resolve_community_report(
 
   let report_id = data.report_id;
   let person = &local_user_view.person;
-  if data.resolved {
-    CommunityReport::resolve(&mut context.pool(), report_id, person.id).await?;
-  } else {
-    CommunityReport::unresolve(&mut context.pool(), report_id, person.id).await?;
-  }
+  CommunityReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved)
+    .await?;
 
   let community_report_view =
     ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person)

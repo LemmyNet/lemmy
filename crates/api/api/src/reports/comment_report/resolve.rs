@@ -34,11 +34,7 @@ pub async fn resolve_comment_report(
   )
   .await?;
 
-  if data.resolved {
-    CommentReport::resolve(&mut context.pool(), report_id, person_id).await?;
-  } else {
-    CommentReport::unresolve(&mut context.pool(), report_id, person_id).await?;
-  }
+  CommentReport::update_resolved(&mut context.pool(), report_id, person_id, data.resolved).await?;
 
   let report_id = data.report_id;
   let comment_report_view =
