@@ -219,7 +219,11 @@ tuplex = "0.1.2"
 html2text = "0.15.1"
 async-trait = "0.1.88"
 either = { version = "1.15.0", features = ["serde"] }
-extism = { git = "https://github.com/extism/extism.git", branch = "main" }
+extism = { git = "https://github.com/extism/extism.git", branch = "main", default-features = false, features = [
+  "http",
+  "register-http",
+  "register-filesystem",
+] }
 extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
 unified-diff = "0.2.1"
 
