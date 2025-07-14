@@ -566,6 +566,7 @@ mod tests {
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
+  use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
@@ -604,7 +605,7 @@ mod tests {
     },
     test_data::TestData,
     traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
-    utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
+    utils::{build_db_pool, get_conn, ActualDbPool, DbPool},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
@@ -1012,7 +1013,7 @@ mod tests {
     );
 
     let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
     Ok(())
   }
 
@@ -1058,7 +1059,7 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(uplete::Count::only_deleted(1), note_removed);
+    assert_eq!(UpleteCount::only_deleted(1), note_removed);
     assert!(post_listing.person_actions.is_none());
 
     Ok(())
@@ -1151,7 +1152,7 @@ mod tests {
     // Remove the like
     let like_removed =
       PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     let person_like_removed =
       PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
@@ -1211,7 +1212,7 @@ mod tests {
 
     let like_removed =
       PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     Ok(())
   }
