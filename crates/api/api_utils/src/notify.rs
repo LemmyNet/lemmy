@@ -460,7 +460,7 @@ mod tests {
         data.timmy.person.id,
         timmy_inbox[0].notification.recipient_id
       );
-      assert_eq!(NotificationTypes::Mention, timmy_inbox[0].notification.kind);
+      assert_eq!(NotificationTypes::Reply, timmy_inbox[0].notification.kind);
     } else {
       panic!("wrong type")
     };
@@ -647,28 +647,19 @@ mod tests {
     assert_length!(3, &timmy_messages);
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
       assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(
-        timmy_messages[0].notification.recipient_id,
-        data.timmy.person.id
-      );
+      assert_eq!(pm.recipient.id, data.timmy.person.id);
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
       assert_eq!(pm.creator.id, data.timmy.person.id);
-      assert_eq!(
-        timmy_messages[1].notification.recipient_id,
-        data.sara.person.id
-      );
+      assert_eq!(pm.recipient.id, data.sara.person.id);
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[2].data {
       assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(
-        timmy_messages[2].notification.recipient_id,
-        data.timmy.person.id
-      );
+      assert_eq!(pm.recipient.id, data.timmy.person.id);
     } else {
       panic!("wrong type");
     }
@@ -689,19 +680,13 @@ mod tests {
     assert_length!(2, &timmy_unread_messages);
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
       assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(
-        timmy_unread_messages[0].notification.recipient_id,
-        data.timmy.person.id
-      );
+      assert_eq!(pm.recipient.id, data.timmy.person.id);
     } else {
       panic!("wrong type");
     }
     if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
       assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(
-        timmy_unread_messages[1].notification.recipient_id,
-        data.timmy.person.id
-      );
+      assert_eq!(pm.recipient.id, data.timmy.person.id);
     } else {
       panic!("wrong type");
     }

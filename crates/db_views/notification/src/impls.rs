@@ -215,9 +215,6 @@ impl NotificationQuery {
   ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
-    let item_creator = person::id;
-    let recipient = notification::recipient_id;
-
     let mut query = NotificationView::joins(my_person)
       .select(NotificationViewInternal::as_select())
       .into_boxed();
@@ -242,10 +239,12 @@ impl NotificationQuery {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others
       query = query.filter(
-        recipient.eq(my_person.id).or(
-          notification::private_message_id
-            .is_not_null()
-            .and(recipient.eq(my_person.id).or(item_creator.eq(my_person.id))),
+        notification::recipient_id.eq(my_person.id).or(
+          notification::private_message_id.is_not_null().and(
+            notification::recipient_id
+              .eq(my_person.id)
+              .or(person::id.eq(my_person.id)),
+          ),
         ),
       );
     }
