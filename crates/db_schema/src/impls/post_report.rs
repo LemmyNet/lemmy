@@ -149,9 +149,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_resolve_post_report() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (person, report) = init(pool).await?;
@@ -169,9 +168,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_resolve_all_post_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (person, report) = init(pool).await?;

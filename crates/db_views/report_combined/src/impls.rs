@@ -591,9 +591,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn combined() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -762,9 +761,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn private_message_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -826,9 +824,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn post_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -958,9 +955,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn comment_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1074,9 +1070,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn community_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1141,9 +1136,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn violates_instance_rules() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1231,9 +1225,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn my_reports_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

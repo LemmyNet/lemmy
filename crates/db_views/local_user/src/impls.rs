@@ -273,9 +273,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn list_banned() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

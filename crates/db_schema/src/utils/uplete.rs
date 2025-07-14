@@ -292,9 +292,8 @@ mod tests {
   // Main purpose of this test is to check accuracy of the returned `Count`, which other modules'
   // tests rely on
   #[tokio::test]
-  #[serial]
   async fn test_count() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let mut conn = get_conn(pool).await?;
 
@@ -401,9 +400,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_all_null() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let mut conn = get_conn(pool).await?;
 

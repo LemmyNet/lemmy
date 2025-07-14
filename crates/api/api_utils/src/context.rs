@@ -10,10 +10,17 @@ use lemmy_utils::{
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use std::sync::Arc;
+use lemmy_db_schema::utils::ReusableDbPool;
+
+#[derive(Clone)]
+pub enum ContextPool {
+  Actual(ActualDbPool),
+  Reusable(ReusableDbPool), // TODO it's not cloneable
+}
 
 #[derive(Clone)]
 pub struct LemmyContext {
-  pool: ActualDbPool,
+  pool: ContextPool,
   client: Arc<ClientWithMiddleware>,
   /// Pictrs requests must bypass proxy. Unfortunately no_proxy can only be set on ClientBuilder
   /// and not on RequestBuilder, so we need a separate client here.
@@ -24,7 +31,7 @@ pub struct LemmyContext {
 
 impl LemmyContext {
   pub fn create(
-    pool: ActualDbPool,
+    pool: ContextPool,
     client: ClientWithMiddleware,
     pictrs_client: ClientWithMiddleware,
     secret: Secret,
@@ -39,9 +46,12 @@ impl LemmyContext {
     }
   }
   pub fn pool(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+    match &self.pool {
+      ContextPool::Actual(pool) => DbPool::Pool(pool),
+      ContextPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
   }
-  pub fn inner_pool(&self) -> &ActualDbPool {
+  pub fn inner_pool(&self) -> &ContextPool {
     &self.pool
   }
   pub fn client(&self) -> &ClientWithMiddleware {
@@ -79,7 +89,7 @@ impl LemmyContext {
     let rate_limit_cell = RateLimit::with_test_config();
 
     let context = LemmyContext::create(
-      pool,
+      ContextPool::Reusable(pool),
       client.clone(),
       client,
       secret,

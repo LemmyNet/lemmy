@@ -3,10 +3,9 @@ pub mod uplete;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
+use db_pool::r#async::ReusableConnectionPool;
 use db_pool::{
-  r#async::{
-    DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool,
-  },
+  r#async::{DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool},
   PrivilegedPostgresConfig,
 };
 use deadpool::Runtime;
@@ -18,21 +17,18 @@ use diesel::{
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
-    ConnectionError,
-    ConnectionResult,
+    ConnectionError, ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
-  Expression,
-  IntoSql,
+  Expression, IntoSql,
 };
 use diesel_async::{
   async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-    AsyncDieselConnectionManager,
-    ManagerConfig,
+    AsyncDieselConnectionManager, ManagerConfig,
   },
   scoped_futures::ScopedBoxFuture,
   AsyncConnection,
@@ -47,23 +43,17 @@ use lemmy_utils::{
 use regex::Regex;
 use rustls::{
   client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
+    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
+  ClientConfig, DigitallySignedStruct, SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
   sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
-use db_pool::async::ReusableConnectionPool;
 use tokio::sync::OnceCell;
 use tracing::error;
 use url::Url;
@@ -77,6 +67,7 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 /// Some connection options to speed up queries
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
+pub type ReusableDbPool = ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -84,6 +75,7 @@ pub type ActualDbPool = Pool<AsyncPgConnection>;
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
   Pool(&'a ActualDbPool),
+  ReusablePool(&'a ReusableDbPool),
   Conn(&'a mut AsyncPgConnection),
 }
 
@@ -96,6 +88,9 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
   Ok(match pool {
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
+    DbPool::ReusablePool(pool) => {
+      DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?)
+    }
   })
 }
 
@@ -151,6 +146,12 @@ impl<'a, 'b: 'a> From<&'a mut DbConn<'b>> for DbPool<'a> {
 impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   fn from(value: &'a ActualDbPool) -> Self {
     DbPool::Pool(value)
+  }
+}
+
+impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
+  fn from(value: &'a ReusableDbPool) -> Self {
+    DbPool::ReusablePool(value)
   }
 }
 
@@ -526,7 +527,8 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 }
 
 #[allow(clippy::expect_used)]
-pub async fn build_db_pool_for_tests() -> ActualDbPool {
+pub async fn build_db_pool_for_tests(
+) -> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
   static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
     OnceCell::const_new();
   let db_pool = POOL
@@ -568,7 +570,6 @@ pub async fn build_db_pool_for_tests() -> ActualDbPool {
     })
     .await;
 
-  // TODO make compatible with ActualDbPool
   db_pool.pull_immutable().await
 }
 
