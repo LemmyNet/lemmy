@@ -25,7 +25,6 @@ use lemmy_apub::{
 };
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
-use lemmy_db_schema_file::schema_setup;
 use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
@@ -130,7 +129,7 @@ enum CmdSubcommand {
   },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq, Eq)]
 enum MigrationSubcommand {
   /// Run up.sql for pending migrations, oldest to newest.
   Run,
@@ -147,8 +146,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }) = args.subcommand
   {
     let mut options = match subcommand {
-      MigrationSubcommand::Run => schema_setup::Options::default().run(),
-      MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
+      MigrationSubcommand::Run => lemmy_db_schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => lemmy_db_schema_setup::Options::default().revert(),
     }
     .print_output();
 
@@ -156,7 +155,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    schema_setup::run(options)?;
+    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url())?;
+
+    #[cfg(debug_assertions)]
+    if all && subcommand == MigrationSubcommand::Run {
+      println!("Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_db_schema_setup");
+    }
 
     return Ok(());
   }

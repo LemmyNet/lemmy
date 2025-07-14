@@ -74,8 +74,8 @@ impl Object for ApubComment {
   type Kind = Note;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    None
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
   }
 
   async fn read_from_id(
@@ -100,6 +100,10 @@ impl Object for ApubComment {
     Ok(())
   }
 
+  fn is_deleted(&self) -> bool {
+    self.removed || self.deleted
+  }
+
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -113,7 +117,7 @@ impl Object for ApubComment {
       let parent_comment = Comment::read(&mut context.pool(), comment_id).await?;
       parent_comment.ap_id.into()
     } else {
-      post.ap_id.into()
+      post.ap_id.clone().into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
     let maa = collect_non_local_mentions(&self, context).await?;

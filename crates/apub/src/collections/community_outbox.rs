@@ -13,7 +13,7 @@ use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Collection},
+  traits::{Activity, Collection},
 };
 use futures::future::join_all;
 use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
