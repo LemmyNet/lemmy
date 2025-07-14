@@ -1,28 +1,28 @@
-use lemmy_db_schema::{
-  source::{
-    combined::report::ReportCombined,
-    comment::{Comment, CommentActions},
-    comment_report::CommentReport,
-    community::{Community, CommunityActions},
-    community_report::CommunityReport,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    post_report::PostReport,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-  },
-  utils::queries::{
-    creator_banned_from_community,
-    creator_banned_within_community,
-    creator_is_moderator,
-  },
+use lemmy_db_schema::source::{
+  combined::report::ReportCombined,
+  comment::{Comment, CommentActions},
+  comment_report::CommentReport,
+  community::{Community, CommunityActions},
+  community_report::CommunityReport,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  post_report::PostReport,
+  private_message::PrivateMessage,
+  private_message_report::PrivateMessageReport,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{local_user_is_admin, person1_select, person2_select},
+  lemmy_db_schema::utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
+    local_user_is_admin,
+    person1_select,
+    person2_select,
+  },
   lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,
 };
