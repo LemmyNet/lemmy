@@ -25,15 +25,29 @@ use lemmy_db_schema::{
     CommentReportId,
     CommunityId,
     CommunityReportId,
+    InstanceId,
     PaginationCursor,
     PersonId,
     PostId,
     PostReportId,
     PrivateMessageReportId,
   },
-  source::combined::report::{report_combined_keys as key, ReportCombined},
+  source::{
+    combined::report::{report_combined_keys as key, ReportCombined},
+    person::Person,
+  },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{
+    get_conn,
+    limit_fetch,
+    paginate,
+    queries::{
+      creator_community_instance_actions_join,
+      creator_home_instance_actions_join,
+      creator_local_instance_actions_join,
+    },
+    DbPool,
+  },
   ReportType,
 };
 use lemmy_db_schema_file::schema::{
@@ -57,7 +71,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: PersonId) -> _ {
+  fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let report_creator = person::id;
     let item_creator = aliases::person1.field(person::id);
     let resolver = aliases::person2.field(person::id).nullable();
@@ -123,6 +137,8 @@ impl ReportCombinedViewInternal {
             .eq(item_creator),
         ),
     );
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
@@ -155,6 +171,9 @@ impl ReportCombinedViewInternal {
       .left_join(resolver_join)
       .left_join(community_join)
       .left_join(creator_community_actions_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(creator_community_instance_actions_join())
       .left_join(local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
@@ -165,10 +184,10 @@ impl ReportCombinedViewInternal {
   pub async fn read_comment_report(
     pool: &mut DbPool<'_>,
     report_id: CommentReportId,
-    my_person_id: PersonId,
+    my_person: &Person,
   ) -> LemmyResult<CommentReportView> {
     let conn = &mut get_conn(pool).await?;
-    let res = Self::joins(my_person_id)
+    let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::comment_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
       .first::<ReportCombinedViewInternal>(conn)
@@ -184,10 +203,10 @@ impl ReportCombinedViewInternal {
   pub async fn read_post_report(
     pool: &mut DbPool<'_>,
     report_id: PostReportId,
-    my_person_id: PersonId,
+    my_person: &Person,
   ) -> LemmyResult<PostReportView> {
     let conn = &mut get_conn(pool).await?;
-    let res = Self::joins(my_person_id)
+    let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::post_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
       .first::<ReportCombinedViewInternal>(conn)
@@ -203,10 +222,10 @@ impl ReportCombinedViewInternal {
   pub async fn read_community_report(
     pool: &mut DbPool<'_>,
     report_id: CommunityReportId,
-    my_person_id: PersonId,
+    my_person: &Person,
   ) -> LemmyResult<CommunityReportView> {
     let conn = &mut get_conn(pool).await?;
-    let res = Self::joins(my_person_id)
+    let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::community_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
       .first::<ReportCombinedViewInternal>(conn)
@@ -222,10 +241,10 @@ impl ReportCombinedViewInternal {
   pub async fn read_private_message_report(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-    my_person_id: PersonId,
+    my_person: &Person,
   ) -> LemmyResult<PrivateMessageReportView> {
     let conn = &mut get_conn(pool).await?;
-    let res = Self::joins(my_person_id)
+    let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::private_message_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
       .first::<ReportCombinedViewInternal>(conn)
@@ -247,9 +266,8 @@ impl ReportCombinedViewInternal {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
-    let my_person_id = user.local_user.person_id;
 
-    let mut query = Self::joins(my_person_id)
+    let mut query = Self::joins(user.person.id, user.person.instance_id)
       .filter(report_is_not_resolved())
       .select(count(report_combined::id))
       .into_boxed();
@@ -336,11 +354,9 @@ impl ReportCombinedQuery {
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
   ) -> LemmyResult<Vec<ReportCombinedView>> {
-    let my_person_id = user.local_user.person_id;
-
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(self.limit)?;
-    let mut query = ReportCombinedViewInternal::joins(my_person_id)
+    let mut query = ReportCombinedViewInternal::joins(user.person.id, user.person.instance_id)
       .select(ReportCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
@@ -367,7 +383,7 @@ impl ReportCombinedQuery {
     }
 
     if self.my_reports_only.unwrap_or_default() {
-      query = query.filter(person::id.eq(my_person_id));
+      query = query.filter(person::id.eq(user.person.id));
     }
 
     if let Some(type_) = self.type_ {
@@ -469,7 +485,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
       v.post_report,
       v.post.clone(),
       v.community.clone(),
-      v.item_creator.clone(),
+      v.creator.clone(),
     ) {
       Some(ReportCombinedView::Post(PostReportView {
         post_report,
@@ -481,7 +497,10 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         community_actions: v.community_actions,
         post_actions: v.post_actions,
         person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
+        creator_is_admin: v.creator_is_admin,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
       Some(comment_report),
@@ -494,7 +513,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
       v.comment,
       v.post,
       v.community.clone(),
-      v.item_creator.clone(),
+      v.creator.clone(),
     ) {
       Some(ReportCombinedView::Comment(CommentReportView {
         comment_report,
@@ -507,13 +526,16 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         community_actions: v.community_actions,
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
+        creator_is_admin: v.creator_is_admin,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
       Some(private_message_report),
       Some(private_message),
       Some(private_message_creator),
-    ) = (v.private_message_report, v.private_message, v.item_creator)
+    ) = (v.private_message_report, v.private_message, v.creator)
     {
       Some(ReportCombinedView::PrivateMessage(
         PrivateMessageReportView {
@@ -522,6 +544,8 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
           creator: v.report_creator,
           private_message_creator,
           resolver: v.resolver,
+          creator_is_admin: v.creator_is_admin,
+          creator_banned: v.creator_banned,
         },
       ))
     } else if let (Some(community), Some(community_report)) = (v.community, v.community_report) {
@@ -530,6 +554,10 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         community,
         creator: v.report_creator,
         resolver: v.resolver,
+        creator_is_admin: v.creator_is_admin,
+        creator_is_moderator: v.creator_is_moderator,
+        creator_banned: v.creator_banned,
+        creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else {
       None

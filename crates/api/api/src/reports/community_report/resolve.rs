@@ -25,15 +25,15 @@ pub async fn resolve_community_report(
   is_admin(&local_user_view)?;
 
   let report_id = data.report_id;
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   if data.resolved {
-    CommunityReport::resolve(&mut context.pool(), report_id, person_id).await?;
+    CommunityReport::resolve(&mut context.pool(), report_id, person.id).await?;
   } else {
-    CommunityReport::unresolve(&mut context.pool(), report_id, person_id).await?;
+    CommunityReport::unresolve(&mut context.pool(), report_id, person.id).await?;
   }
 
   let community_report_view =
-    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person_id)
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person)
       .await?;
   let site = Site::read_from_instance_id(
     &mut context.pool(),

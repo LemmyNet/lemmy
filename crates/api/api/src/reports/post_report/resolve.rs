@@ -21,11 +21,11 @@ pub async fn resolve_post_report(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
   let report_id = data.report_id;
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let report =
-    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person_id).await?;
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   check_community_mod_action(
     &local_user_view,
     &report.community,
@@ -35,13 +35,13 @@ pub async fn resolve_post_report(
   .await?;
 
   if data.resolved {
-    PostReport::resolve(&mut context.pool(), report_id, person_id).await?;
+    PostReport::resolve(&mut context.pool(), report_id, person.id).await?;
   } else {
-    PostReport::unresolve(&mut context.pool(), report_id, person_id).await?;
+    PostReport::unresolve(&mut context.pool(), report_id, person.id).await?;
   }
 
   let post_report_view =
-    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person_id).await?;
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::SendResolveReport {

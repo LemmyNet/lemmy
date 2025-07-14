@@ -33,13 +33,13 @@ pub async fn create_community_report(
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
   let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
   let report_form = CommunityReportForm {
-    creator_id: person_id,
+    creator_id: person.id,
     community_id,
     original_community_banner: community.banner,
     original_community_description: community.description,
@@ -53,7 +53,7 @@ pub async fn create_community_report(
   let report = CommunityReport::report(&mut context.pool(), &report_form).await?;
 
   let community_report_view =
-    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person_id)
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person)
       .await?;
 
   // Email the admins

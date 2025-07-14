@@ -26,17 +26,17 @@ pub async fn create_pm_report(
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let private_message_id = data.private_message_id;
   let private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
 
   // Make sure that only the recipient of the private message can create a report
-  if person_id != private_message.recipient_id {
+  if person.id != private_message.recipient_id {
     Err(LemmyErrorType::CouldntCreateReport)?
   }
 
   let report_form = PrivateMessageReportForm {
-    creator_id: person_id,
+    creator_id: person.id,
     private_message_id,
     original_pm_text: private_message.content,
     reason,
@@ -44,12 +44,9 @@ pub async fn create_pm_report(
 
   let report = PrivateMessageReport::report(&mut context.pool(), &report_form).await?;
 
-  let private_message_report_view = ReportCombinedViewInternal::read_private_message_report(
-    &mut context.pool(),
-    report.id,
-    person_id,
-  )
-  .await?;
+  let private_message_report_view =
+    ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report.id, person)
+      .await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

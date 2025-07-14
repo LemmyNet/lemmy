@@ -1,14 +1,21 @@
-use lemmy_db_schema::source::{
-  combined::report::ReportCombined,
-  comment::{Comment, CommentActions},
-  comment_report::CommentReport,
-  community::{Community, CommunityActions},
-  community_report::CommunityReport,
-  person::{Person, PersonActions},
-  post::{Post, PostActions},
-  post_report::PostReport,
-  private_message::PrivateMessage,
-  private_message_report::PrivateMessageReport,
+use lemmy_db_schema::{
+  source::{
+    combined::report::ReportCombined,
+    comment::{Comment, CommentActions},
+    comment_report::CommentReport,
+    community::{Community, CommunityActions},
+    community_report::CommunityReport,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    post_report::PostReport,
+    private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
+  },
+  utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
+  },
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -53,7 +60,7 @@ pub struct ReportCombinedViewInternal {
       select_expression = person1_select().nullable()
     )
   )]
-  pub item_creator: Option<Person>,
+  pub creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
@@ -61,6 +68,30 @@ pub struct ReportCombinedViewInternal {
     )
   )]
   pub resolver: Option<Person>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_is_admin()
+    )
+  )]
+  pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_moderator()
+    )
+  )]
+  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_within_community()
+    )
+  )]
+  pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_from_community()
+    )
+  )]
+  pub creator_banned_from_community: bool,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -71,12 +102,6 @@ pub struct ReportCombinedViewInternal {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_is_admin()
-    )
-  )]
-  pub item_creator_is_admin: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -102,6 +127,8 @@ pub struct PrivateMessageReportView {
   pub creator: Person,
   pub private_message_creator: Person,
   pub resolver: Option<Person>,
+  pub creator_is_admin: bool,
+  pub creator_banned: bool,
 }
 
 #[skip_serializing_none]
@@ -121,6 +148,9 @@ pub struct CommentReportView {
   pub person_actions: Option<PersonActions>,
   pub community_actions: Option<CommunityActions>,
   pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
 }
 
 #[skip_serializing_none]
@@ -133,6 +163,10 @@ pub struct CommunityReportView {
   pub community: Community,
   pub creator: Person,
   pub resolver: Option<Person>,
+  pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
 }
 
 #[skip_serializing_none]
@@ -151,4 +185,7 @@ pub struct PostReportView {
   pub person_actions: Option<PersonActions>,
   pub resolver: Option<Person>,
   pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
 }

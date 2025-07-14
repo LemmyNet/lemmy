@@ -16,19 +16,16 @@ pub async fn resolve_pm_report(
   is_admin(&local_user_view)?;
 
   let report_id = data.report_id;
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   if data.resolved {
-    PrivateMessageReport::resolve(&mut context.pool(), report_id, person_id).await?;
+    PrivateMessageReport::resolve(&mut context.pool(), report_id, person.id).await?;
   } else {
-    PrivateMessageReport::unresolve(&mut context.pool(), report_id, person_id).await?;
+    PrivateMessageReport::unresolve(&mut context.pool(), report_id, person.id).await?;
   }
 
-  let private_message_report_view = ReportCombinedViewInternal::read_private_message_report(
-    &mut context.pool(),
-    report_id,
-    person_id,
-  )
-  .await?;
+  let private_message_report_view =
+    ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report_id, person)
+      .await?;
 
   Ok(Json(PrivateMessageReportResponse {
     private_message_report_view,
