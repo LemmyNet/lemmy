@@ -15,11 +15,11 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_report_combined::{
   api::{CreatePostReport, PostReportResponse},
-  PostReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
-use lemmy_utils::error::LemmyResult;use lemmy_db_views_report_combined::ReportCombinedViewInternal;
+use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
 pub async fn create_post_report(
@@ -54,7 +54,7 @@ pub async fn create_post_report(
   let report = PostReport::report(&mut context.pool(), &report_form).await?;
 
   let post_report_view =
-  ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person_id).await?;
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

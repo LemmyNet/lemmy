@@ -1,4 +1,10 @@
-use crate::{CommentReportView, CommunityReportView, ReportCombinedView};
+use crate::{
+  CommentReportView,
+  CommunityReportView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedView,
+};
 use lemmy_db_schema::{
   newtypes::{
     CommentId,
@@ -12,7 +18,7 @@ use lemmy_db_schema::{
     PrivateMessageReportId,
   },
   ReportType,
-};use crate::PostReportView;use crate::PrivateMessageReportView;
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

@@ -18,8 +18,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, CreateCommunityReport},
-  CommunityReportView,
-};use lemmy_db_views_report_combined::ReportCombinedViewInternal;
+  ReportCombinedViewInternal,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
@@ -53,7 +53,8 @@ pub async fn create_community_report(
   let report = CommunityReport::report(&mut context.pool(), &report_form).await?;
 
   let community_report_view =
-  ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person_id).await?;
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person_id)
+      .await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

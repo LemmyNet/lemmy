@@ -4,7 +4,6 @@ use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, trai
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
-  PrivateMessageReportView,
   ReportCombinedViewInternal,
 };
 use lemmy_utils::error::LemmyResult;

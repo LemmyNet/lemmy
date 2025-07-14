@@ -30,7 +30,6 @@ use lemmy_db_schema::{
     PostId,
     PostReportId,
     PrivateMessageReportId,
-    ReportCombinedId,
   },
   source::combined::report::{report_combined_keys as key, ReportCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
@@ -544,10 +543,7 @@ mod tests {
 
   use crate::{
     impls::ReportCombinedQuery,
-    CommentReportView,
-    CommunityReportView,
     LocalUserView,
-    PostReportView,
     ReportCombinedView,
     ReportCombinedViewInternal,
   };
@@ -945,7 +941,8 @@ mod tests {
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
 
     let read_jessica_report_view =
-      PostReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
+      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, data.timmy.id)
+        .await?;
 
     // Make sure the triggers are reading the aggregates correctly.
     let agg_1 = Post::read(pool, data.post.id).await?;
@@ -992,7 +989,8 @@ mod tests {
       .await?;
 
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
+      ReportCombinedViewInternal::read_post_report(pool, inserted_jessica_report.id, data.timmy.id)
+        .await?;
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
     assert_eq!(
       read_jessica_report_view_after_resolve
@@ -1075,8 +1073,12 @@ mod tests {
     let comment = Comment::read(pool, data.comment.id).await?;
     assert_eq!(comment.report_count, 2);
 
-    let read_jessica_report_view =
-      CommentReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
+    let read_jessica_report_view = ReportCombinedViewInternal::read_comment_report(
+      pool,
+      inserted_jessica_report.id,
+      data.timmy.id,
+    )
+    .await?;
     assert_eq!(read_jessica_report_view.comment.unresolved_report_count, 2);
 
     // Do a batch read of timmys reports
@@ -1102,8 +1104,12 @@ mod tests {
 
     // Resolve the report
     CommentReport::resolve(pool, inserted_jessica_report.id, data.timmy.id).await?;
-    let read_jessica_report_view_after_resolve =
-      CommentReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
+    let read_jessica_report_view_after_resolve = ReportCombinedViewInternal::read_comment_report(
+      pool,
+      inserted_jessica_report.id,
+      data.timmy.id,
+    )
+    .await?;
 
     assert!(
       read_jessica_report_view_after_resolve
@@ -1193,8 +1199,12 @@ mod tests {
       assert_eq!(community_report.reason, v.community_report.reason);
       assert_eq!(data.community.name, v.community.name);
       assert_eq!(data.community.title, v.community.title);
-      let read_report =
-        CommunityReportView::read(pool, community_report.id, data.admin_view.person.id).await?;
+      let read_report = ReportCombinedViewInternal::read_community_report(
+        pool,
+        community_report.id,
+        data.admin_view.person.id,
+      )
+      .await?;
       assert_eq!(&read_report, v);
     } else {
       panic!("wrong type");

@@ -15,7 +15,6 @@ use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{CommentReportResponse, CreateCommentReport},
-  CommentReportView,
   ReportCombinedViewInternal,
 };
 use lemmy_db_views_site::SiteView;

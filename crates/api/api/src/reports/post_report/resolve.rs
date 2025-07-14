@@ -10,7 +10,6 @@ use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{PostReportResponse, ResolvePostReport},
-  PostReportView,
   ReportCombinedViewInternal,
 };
 use lemmy_utils::error::LemmyResult;
