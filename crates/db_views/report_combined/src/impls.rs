@@ -1231,7 +1231,7 @@ mod tests {
       let read_report = ReportCombinedViewInternal::read_community_report(
         pool,
         community_report.id,
-        data.admin_view.person.id,
+        &data.admin_view.person,
       )
       .await?;
       assert_eq!(&read_report, v);
@@ -1240,7 +1240,8 @@ mod tests {
     }
 
     // admin resolves the report (after taking appropriate action)
-    CommunityReport::resolve(pool, community_report.id, data.admin_view.person.id).await?;
+    CommunityReport::update_resolved(pool, community_report.id, data.admin_view.person.id, true)
+      .await?;
 
     let reports = ReportCombinedQuery {
       show_community_rule_violations: Some(true),
