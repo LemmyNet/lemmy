@@ -184,7 +184,7 @@ pub enum Branch {
 
 pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
-  let mut conn = PgConnection::establish(db_url)?;
+  let conn = &mut PgConnection::establish(db_url)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks

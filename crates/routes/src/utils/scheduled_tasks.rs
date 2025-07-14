@@ -21,6 +21,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
+    comment::CommentActions,
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
@@ -53,6 +54,17 @@ use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
+  // Run startup jobs in a background thread
+  let context_1 = context.clone();
+  tokio::spawn(async move {
+    let context = context_1.clone();
+
+    run_startup_jobs(&mut context.pool())
+      .await
+      .inspect_err(|e| warn!("Failed to run startup tasks: {e}"))
+      .ok();
+  });
+
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
@@ -469,6 +481,16 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     ActivityChannel::submit_activity(send_activity, context)?;
     send_webmention(post, &community);
   }
+  Ok(())
+}
+
+/// Running startup jobs, like filling background history
+async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating history in a background thread...");
+
+  CommentActions::fill_comment_like_history(pool).await?;
+  // These must be run in the correct migration order, IE, make sure the entire smoosh history is
+  // finished before adding the later ones.
   Ok(())
 }
 

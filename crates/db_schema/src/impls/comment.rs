@@ -1,13 +1,16 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId},
-  source::comment::{
-    Comment,
-    CommentActions,
-    CommentInsertForm,
-    CommentLikeForm,
-    CommentSavedForm,
-    CommentUpdateForm,
+  source::{
+    comment::{
+      Comment,
+      CommentActions,
+      CommentInsertForm,
+      CommentLikeForm,
+      CommentSavedForm,
+      CommentUpdateForm,
+    },
+    history_status::{HistoryStatus, HistoryStatusUpdateForm},
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
@@ -21,20 +24,22 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{count_star, delete, insert_into},
   expression::SelectableHelper,
   update,
+  upsert::excluded,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use diesel_ltree::Ltree;
-use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
+use lemmy_db_schema_file::schema::{comment, comment_actions, comment_like, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use tracing::info;
 use url::Url;
 
 impl Comment {
@@ -369,6 +374,92 @@ impl CommentActions {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn fill_comment_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let batch_size = 1000;
+
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling comment_like history into comment_actions...");
+
+    // Get the total count of comment_like rows, to show progress
+    let comment_like_count = comment_like::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    // Do transactions of 1000, from recent to past
+    while processed_rows < comment_like_count {
+      let rows_inserted = conn
+        .run_transaction(|conn| {
+          async move {
+            // Select and map into comment like forms
+            let forms = comment_like::table
+              .order_by(comment_like::published.desc())
+              .limit(batch_size)
+              .get_results::<(PersonId, CommentId, i16, DateTime<Utc>)>(conn)
+              .await?
+              .iter()
+              .map(|cl| CommentLikeForm {
+                person_id: cl.0,
+                comment_id: cl.1,
+                like_score: cl.2,
+                liked_at: cl.3,
+              })
+              .collect::<Vec<CommentLikeForm>>();
+
+            // When this is None, the scanning is complete
+            let last_scanned_timestamp = forms.last().map(|f| f.liked_at);
+
+            let inserted_count = insert_into(comment_actions::table)
+              .values(forms)
+              .on_conflict((comment_actions::comment_id, comment_actions::person_id))
+              .do_update()
+              .set((
+                comment_actions::like_score.eq(excluded(comment_actions::like_score)),
+                comment_actions::liked_at.eq(excluded(comment_actions::liked_at)),
+              ))
+              .execute(conn)
+              .await?;
+
+            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
+                last_scanned_id: None,
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("comment_like".into(), "comment_actions".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from comment_like
+              delete(
+                comment_like::table.filter(comment_like::published.gt(last_scanned_timestamp)),
+              )
+              .execute(conn)
+              .await?;
+            }
+
+            Ok(inserted_count)
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += rows_inserted as i64;
+      let pct_complete = processed_rows * 100 / comment_like_count;
+      info!(
+        "comment_like -> comment_actions: {processed_rows} / {comment_like_count} , {pct_complete}% complete"
+      );
+    }
+
+    Ok(())
   }
 }
 

@@ -4,7 +4,7 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, QueryDsl};
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::history_status;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -28,6 +28,16 @@ impl Crud for HistoryStatus {
     form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
+    Self::update_conn(conn, id, form).await
+  }
+}
+
+impl HistoryStatus {
+  pub(crate) async fn update_conn(
+    conn: &mut AsyncPgConnection,
+    id: (String, String),
+    form: &HistoryStatusUpdateForm,
+  ) -> LemmyResult<Self> {
     diesel::update(history_status::table.find((id.0, id.1)))
       .set(form)
       .get_result::<Self>(conn)
