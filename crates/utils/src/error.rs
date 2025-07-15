@@ -224,7 +224,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
-  PlatformLackingPrivateCommunitySupport,
+  InvalidFollow(String),
   Unreachable,
 }
 
