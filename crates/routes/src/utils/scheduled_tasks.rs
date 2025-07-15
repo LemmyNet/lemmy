@@ -408,14 +408,14 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .set_null(community_actions::received_ban_at)
     .set_null(community_actions::ban_expires_at)
     .as_query()
-    .execute(&mut conn)
+    .execute(conn)
     .await?;
 
   uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
     .set_null(instance_actions::received_ban_at)
     .set_null(instance_actions::ban_expires_at)
     .as_query()
-    .execute(&mut conn)
+    .execute(conn)
     .await?;
   Ok(())
 }
