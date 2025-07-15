@@ -49,6 +49,7 @@ use lemmy_db_schema_file::schema::{
   person_post_aggregates,
   post,
   post_actions,
+  post_like,
   post_read,
 };
 use lemmy_utils::{
@@ -656,6 +657,91 @@ impl PostActions {
     }
 
     info!("Finished filling post_read history into post_actions.");
+    Ok(())
+  }
+
+  pub async fn fill_post_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let batch_size = 1000;
+
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling post_like history into post_actions...");
+
+    // Get the total count of post_like rows, to show progress
+    let post_like_count = post_like::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    // Do transactions of 1000, from recent to past
+    while processed_rows < post_like_count {
+      let rows_inserted = conn
+        .run_transaction(|conn| {
+          async move {
+            // Select and map into comment like forms
+            let forms = post_like::table
+              .order_by(post_like::published.desc())
+              .limit(batch_size)
+              .get_results::<(PostId, PersonId, i16, DateTime<Utc>)>(conn)
+              .await?
+              .iter()
+              .map(|cl| PostLikeForm {
+                post_id: cl.0,
+                person_id: cl.1,
+                like_score: cl.2,
+                liked_at: cl.3,
+              })
+              .collect::<Vec<PostLikeForm>>();
+
+            // When this is None, the scanning is complete
+            let last_scanned_timestamp = forms.last().map(|f| f.liked_at);
+
+            let inserted_count = insert_into(post_actions::table)
+              .values(forms)
+              .on_conflict((post_actions::person_id, post_actions::post_id))
+              .do_update()
+              .set((
+                post_actions::liked_at.eq(excluded(post_actions::liked_at)),
+                post_actions::like_score.eq(excluded(post_actions::like_score)),
+              ))
+              .execute(conn)
+              .await?;
+
+            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
+                last_scanned_id: None,
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("post_like".into(), "post_actions".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from post_like
+              delete(post_like::table.filter(post_like::published.gt(last_scanned_timestamp)))
+                .execute(conn)
+                .await?;
+            }
+
+            Ok(inserted_count)
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += rows_inserted as i64;
+      let pct_complete = processed_rows * 100 / post_like_count;
+      info!(
+        "post_like -> post_actions: {processed_rows} / {post_like_count} , {pct_complete}% complete"
+      );
+    }
+
+    info!("Finished filling post_like history into post_actions.");
     Ok(())
   }
 
