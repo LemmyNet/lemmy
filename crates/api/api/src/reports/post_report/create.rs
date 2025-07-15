@@ -13,9 +13,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CreatePostReport, PostReportResponse},
-  PostReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
@@ -31,7 +31,7 @@ pub async fn create_post_report(
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let post_id = data.post_id;
   let local_instance_id = local_user_view.person.instance_id;
   let post_view =
@@ -42,7 +42,7 @@ pub async fn create_post_report(
   check_post_deleted_or_removed(&post_view.post)?;
 
   let report_form = PostReportForm {
-    creator_id: person_id,
+    creator_id: person.id,
     post_id,
     original_post_name: post_view.post.name,
     original_post_url: post_view.post.url,
@@ -53,7 +53,8 @@ pub async fn create_post_report(
 
   let report = PostReport::report(&mut context.pool(), &report_form).await?;
 
-  let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
+  let post_report_view =
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person).await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

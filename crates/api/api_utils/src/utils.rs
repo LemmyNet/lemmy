@@ -30,7 +30,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::{Crud, Likeable, ReadComments},
+  traits::{Crud, Likeable},
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
