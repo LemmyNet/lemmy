@@ -452,6 +452,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,
+      is_counted: todo!(),
     };
 
     let child_comment_form = CommentInsertForm::new(

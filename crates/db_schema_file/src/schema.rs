@@ -143,6 +143,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        is_counted -> Bool,
     }
 }
 
@@ -153,6 +154,7 @@ diesel::table! {
         like_score -> Nullable<Int2>,
         liked_at -> Nullable<Timestamptz>,
         saved_at -> Nullable<Timestamptz>,
+        like_is_counted -> Nullable<Bool>,
     }
 }
 
@@ -178,6 +180,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        is_counted -> Bool,
     }
 }
 
@@ -249,6 +252,7 @@ diesel::table! {
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        follow_is_counted -> Nullable<Bool>,
     }
 }
 
@@ -275,6 +279,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        is_counted -> Bool,
     }
 }
 
@@ -930,6 +935,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        is_counted -> Bool,
     }
 }
 
@@ -944,6 +950,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
+        like_is_counted -> Nullable<Bool>,
     }
 }
 
@@ -962,6 +969,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        is_counted -> Bool,
     }
 }
 

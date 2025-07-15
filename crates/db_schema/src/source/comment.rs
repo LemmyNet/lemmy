@@ -63,6 +63,8 @@ pub struct Comment {
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  #[serde(skip)]
+  pub is_counted: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
