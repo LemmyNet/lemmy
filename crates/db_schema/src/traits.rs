@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  utils::{get_conn, uplete, DbPool},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -14,6 +14,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
+use diesel_uplete::UpleteCount;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -102,7 +103,7 @@ pub trait Followable: Sized {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
 pub trait Likeable: Sized {
@@ -116,18 +117,18 @@ pub trait Likeable: Sized {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 
   fn remove_all_likes(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 
   fn remove_likes_in_community(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
 pub trait Bannable: Sized {
@@ -139,7 +140,7 @@ pub trait Bannable: Sized {
   fn unban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
 pub trait Saveable: Sized {
@@ -151,7 +152,7 @@ pub trait Saveable: Sized {
   fn unsave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
 pub trait Blockable: Sized {
@@ -165,7 +166,7 @@ pub trait Blockable: Sized {
   fn unblock(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
   fn read_block(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,

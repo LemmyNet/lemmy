@@ -37,7 +37,7 @@ lemmy_db_views_person_content_combined = { workspace = true, features = [
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_utils = { workspace = true }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_apub_objects = { workspace = true }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }

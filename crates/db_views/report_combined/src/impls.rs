@@ -190,7 +190,7 @@ impl ReportCombinedViewInternal {
     let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::comment_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
-      .first::<ReportCombinedViewInternal>(conn)
+      .first(conn)
       .await?;
 
     let res = InternalToCombinedView::map_to_enum(res);
@@ -209,7 +209,7 @@ impl ReportCombinedViewInternal {
     let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::post_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
-      .first::<ReportCombinedViewInternal>(conn)
+      .first(conn)
       .await?;
 
     let res = InternalToCombinedView::map_to_enum(res);
@@ -228,7 +228,7 @@ impl ReportCombinedViewInternal {
     let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::community_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
-      .first::<ReportCombinedViewInternal>(conn)
+      .first(conn)
       .await?;
 
     let res = InternalToCombinedView::map_to_enum(res);
@@ -247,7 +247,7 @@ impl ReportCombinedViewInternal {
     let res = Self::joins(my_person.id, my_person.instance_id)
       .filter(report_combined::private_message_report_id.eq(report_id))
       .select(ReportCombinedViewInternal::as_select())
-      .first::<ReportCombinedViewInternal>(conn)
+      .first(conn)
       .await?;
 
     let res = InternalToCombinedView::map_to_enum(res);
