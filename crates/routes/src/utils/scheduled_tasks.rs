@@ -14,6 +14,7 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -28,7 +29,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
@@ -403,23 +404,19 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let conn = &mut get_conn(pool).await?;
 
-  uplete::new(
-    community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(community_actions::received_ban_at)
-  .set_null(community_actions::ban_expires_at)
-  .as_query()
-  .execute(conn)
-  .await?;
+  uplete(community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(community_actions::received_ban_at)
+    .set_null(community_actions::ban_expires_at)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
 
-  uplete::new(
-    instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(instance_actions::received_ban_at)
-  .set_null(instance_actions::ban_expires_at)
-  .as_query()
-  .execute(conn)
-  .await?;
+  uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(instance_actions::received_ban_at)
+    .set_null(instance_actions::ban_expires_at)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
   Ok(())
 }
 

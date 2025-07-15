@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  utils::{get_conn, uplete, DbPool},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -14,6 +14,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
+use diesel_uplete::UpleteCount;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -106,7 +107,7 @@ pub trait Followable {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -122,7 +123,7 @@ pub trait Joinable {
   fn leave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -140,14 +141,14 @@ pub trait Likeable {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 
   fn remove_all_likes(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 
@@ -155,7 +156,7 @@ pub trait Likeable {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -171,7 +172,7 @@ pub trait Bannable {
   fn unban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -187,7 +188,7 @@ pub trait Saveable {
   fn unsave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -209,7 +210,7 @@ pub trait Readable {
   fn mark_as_unread(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -227,7 +228,7 @@ pub trait ReadComments {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -243,7 +244,7 @@ pub trait Hideable {
   fn unhide(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
 }
@@ -261,7 +262,7 @@ pub trait Blockable {
   fn unblock(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<uplete::Count>> + Send
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
   where
     Self: Sized;
   fn read_block(
