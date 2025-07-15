@@ -22,6 +22,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
+    combined::person_content::PersonContentCombined,
     comment::CommentActions,
     community::Community,
     instance::{Instance, InstanceForm},
@@ -491,7 +492,8 @@ async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   // CommentActions::fill_comment_like_history(pool).await?;
   // PostActions::fill_post_read_history(pool).await?;
   // PostActions::fill_read_comments_history(pool).await?;
-  PostActions::fill_post_like_history(pool).await?;
+  // PostActions::fill_post_like_history(pool).await?;
+  PersonContentCombined::fill_post_history(pool).await?;
 
   info!("Finished filling history.");
   Ok(())
