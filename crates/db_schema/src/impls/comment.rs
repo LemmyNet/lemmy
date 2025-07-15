@@ -33,8 +33,8 @@ use diesel::{
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use diesel_ltree::Ltree;
-use lemmy_db_schema_file::schema::{comment, comment_actions, comment_like, community, post};
 use diesel_uplete::{uplete, UpleteCount};
+use lemmy_db_schema_file::schema::{comment, comment_actions, comment_like, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -450,7 +450,7 @@ impl CommentActions {
         })
         .await?;
 
-      processed_rows += rows_inserted as i64;
+      processed_rows += i64::try_from(rows_inserted)?;
       let pct_complete = processed_rows * 100 / comment_like_count;
       info!(
         "comment_like -> comment_actions: {processed_rows} / {comment_like_count} , {pct_complete}% complete"

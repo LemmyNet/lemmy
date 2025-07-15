@@ -649,7 +649,7 @@ impl PostActions {
         })
         .await?;
 
-      processed_rows += rows_inserted as i64;
+      processed_rows += i64::try_from(rows_inserted)?;
       let pct_complete = processed_rows * 100 / post_read_count;
       info!(
         "post_read -> post_actions: {processed_rows} / {post_read_count} , {pct_complete}% complete"
@@ -734,7 +734,7 @@ impl PostActions {
         })
         .await?;
 
-      processed_rows += rows_inserted as i64;
+      processed_rows += i64::try_from(rows_inserted)?;
       let pct_complete = processed_rows * 100 / post_like_count;
       info!(
         "post_like -> post_actions: {processed_rows} / {post_like_count} , {pct_complete}% complete"
@@ -775,7 +775,7 @@ impl PostActions {
               .map(|cl| PostReadCommentsForm {
                 person_id: cl.0,
                 post_id: cl.1,
-                read_comments_amount: cl.2 as i32,
+                read_comments_amount: i32::try_from(cl.2).unwrap_or_default(),
                 read_comments_at: cl.3,
               })
               .collect::<Vec<PostReadCommentsForm>>();
@@ -822,7 +822,7 @@ impl PostActions {
         })
         .await?;
 
-      processed_rows += rows_inserted as i64;
+      processed_rows += i64::try_from(rows_inserted)?;
       let pct_complete = processed_rows * 100 / person_post_aggregates_count;
       info!(
         "person_post_aggregates -> post_actions: {processed_rows} / {person_post_aggregates_count} , {pct_complete}% complete"
