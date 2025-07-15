@@ -38,6 +38,7 @@ use lemmy_db_schema_file::schema::{comment, comment_actions, comment_like, commu
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
+  DB_BATCH_SIZE,
 };
 use tracing::info;
 use url::Url;
@@ -375,8 +376,6 @@ impl CommentActions {
   }
 
   pub async fn fill_comment_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let batch_size = 1000;
-
     let conn = &mut get_conn(pool).await?;
 
     info!("Filling comment_like history into comment_actions...");
@@ -389,7 +388,6 @@ impl CommentActions {
 
     let mut processed_rows = 0;
 
-    // Do transactions of 1000, from recent to past
     while processed_rows < comment_like_count {
       let rows_inserted = conn
         .run_transaction(|conn| {
@@ -397,7 +395,7 @@ impl CommentActions {
             // Select and map into comment like forms
             let forms = comment_like::table
               .order_by(comment_like::published.desc())
-              .limit(batch_size)
+              .limit(DB_BATCH_SIZE.try_into()?)
               .get_results::<(PersonId, CommentId, i16, DateTime<Utc>)>(conn)
               .await?
               .iter()

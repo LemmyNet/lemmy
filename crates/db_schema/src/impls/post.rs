@@ -55,6 +55,7 @@ use lemmy_db_schema_file::schema::{
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
+  DB_BATCH_SIZE,
 };
 use tracing::info;
 
@@ -583,8 +584,6 @@ impl PostActions {
   }
 
   pub async fn fill_post_read_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let batch_size = 1000;
-
     let conn = &mut get_conn(pool).await?;
 
     info!("Filling post_read history into post_actions...");
@@ -597,7 +596,6 @@ impl PostActions {
 
     let mut processed_rows = 0;
 
-    // Do transactions of 1000, from recent to past
     while processed_rows < post_read_count {
       let rows_inserted = conn
         .run_transaction(|conn| {
@@ -605,7 +603,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = post_read::table
               .order_by(post_read::published.desc())
-              .limit(batch_size)
+              .limit(DB_BATCH_SIZE.try_into()?)
               .get_results::<(PostId, PersonId, DateTime<Utc>)>(conn)
               .await?
               .iter()
@@ -664,8 +662,6 @@ impl PostActions {
   }
 
   pub async fn fill_post_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let batch_size = 1000;
-
     let conn = &mut get_conn(pool).await?;
 
     info!("Filling post_like history into post_actions...");
@@ -678,7 +674,6 @@ impl PostActions {
 
     let mut processed_rows = 0;
 
-    // Do transactions of 1000, from recent to past
     while processed_rows < post_like_count {
       let rows_inserted = conn
         .run_transaction(|conn| {
@@ -686,7 +681,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = post_like::table
               .order_by(post_like::published.desc())
-              .limit(batch_size)
+              .limit(DB_BATCH_SIZE.try_into()?)
               .get_results::<(PostId, PersonId, i16, DateTime<Utc>)>(conn)
               .await?
               .iter()
@@ -749,8 +744,6 @@ impl PostActions {
   }
 
   pub async fn fill_read_comments_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let batch_size = 1000;
-
     let conn = &mut get_conn(pool).await?;
 
     info!("Filling read_comments history into post_actions...");
@@ -763,7 +756,6 @@ impl PostActions {
 
     let mut processed_rows = 0;
 
-    // Do transactions of 1000, from recent to past
     while processed_rows < person_post_aggregates_count {
       let rows_inserted = conn
         .run_transaction(|conn| {
@@ -771,7 +763,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = person_post_aggregates::table
               .order_by(person_post_aggregates::published.desc())
-              .limit(batch_size)
+              .limit(DB_BATCH_SIZE.try_into()?)
               .get_results::<(PersonId, PostId, i64, DateTime<Utc>)>(conn)
               .await?
               .iter()

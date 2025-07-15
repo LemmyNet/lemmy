@@ -48,7 +48,10 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  DB_BATCH_SIZE,
+};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -194,7 +197,6 @@ async fn process_ranks_in_batches(
 ) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -212,7 +214,7 @@ async fn process_ranks_in_batches(
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -234,7 +236,6 @@ async fn process_ranks_in_batches(
 async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -257,7 +258,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
