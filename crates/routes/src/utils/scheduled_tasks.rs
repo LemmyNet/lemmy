@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
-    post::{Post, PostUpdateForm},
+    post::{Post, PostActions, PostUpdateForm},
   },
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
@@ -488,9 +488,10 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating history in a background thread...");
 
-  CommentActions::fill_comment_like_history(pool).await?;
   // These must be run in the correct migration order, IE, make sure the entire smoosh history is
   // finished before adding the later ones.
+  CommentActions::fill_comment_like_history(pool).await?;
+  PostActions::fill_post_read_history(pool).await?;
   Ok(())
 }
 

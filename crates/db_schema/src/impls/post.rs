@@ -1,15 +1,18 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
-  source::post::{
-    Post,
-    PostActions,
-    PostHideForm,
-    PostInsertForm,
-    PostLikeForm,
-    PostReadCommentsForm,
-    PostReadForm,
-    PostSavedForm,
-    PostUpdateForm,
+  source::{
+    history_status::{HistoryStatus, HistoryStatusUpdateForm},
+    post::{
+      Post,
+      PostActions,
+      PostHideForm,
+      PostInsertForm,
+      PostLikeForm,
+      PostReadCommentsForm,
+      PostReadForm,
+      PostSavedForm,
+      PostUpdateForm,
+    },
   },
   traits::{Crud, Hideable, Likeable, ReadComments, Readable, Saveable},
   utils::{
@@ -28,8 +31,9 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not, update},
+  dsl::{count, count_star, delete, insert_into, not, update},
   expression::SelectableHelper,
+  upsert::excluded,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -38,12 +42,13 @@ use diesel::{
   OptionalExtension,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{community, person, post, post_actions};
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use lemmy_db_schema_file::schema::{community, person, post, post_actions, post_read};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use tracing::info;
 
 impl Crud for Post {
   type InsertForm = PostInsertForm;
@@ -533,15 +538,6 @@ impl ReadComments for PostActions {
 }
 
 impl PostActions {
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
-      .collect::<Vec<_>>()
-  }
-}
-
-impl PostActions {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -566,6 +562,93 @@ impl PostActions {
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
+  }
+
+  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
+    post_ids
+      .iter()
+      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
+      .collect::<Vec<_>>()
+  }
+
+  pub async fn fill_post_read_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let batch_size = 1000;
+
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling post_read history into post_actions...");
+
+    // Get the total count of post_read rows, to show progress
+    let post_read_count = post_read::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    // Do transactions of 1000, from recent to past
+    while processed_rows < post_read_count {
+      let rows_inserted = conn
+        .run_transaction(|conn| {
+          async move {
+            // Select and map into comment like forms
+            let forms = post_read::table
+              .order_by(post_read::published.desc())
+              .limit(batch_size)
+              .get_results::<(PostId, PersonId, DateTime<Utc>)>(conn)
+              .await?
+              .iter()
+              .map(|cl| PostReadForm {
+                post_id: cl.0,
+                person_id: cl.1,
+                read_at: cl.2,
+              })
+              .collect::<Vec<PostReadForm>>();
+
+            // When this is None, the scanning is complete
+            let last_scanned_timestamp = forms.last().map(|f| f.read_at);
+
+            let inserted_count = insert_into(post_actions::table)
+              .values(forms)
+              .on_conflict((post_actions::person_id, post_actions::post_id))
+              .do_update()
+              .set(post_actions::read_at.eq(excluded(post_actions::read_at)))
+              .execute(conn)
+              .await?;
+
+            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
+                last_scanned_id: None,
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("post_read".into(), "post_actions".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from post_read
+              delete(post_read::table.filter(post_read::published.gt(last_scanned_timestamp)))
+                .execute(conn)
+                .await?;
+            }
+
+            Ok(inserted_count)
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += rows_inserted as i64;
+      let pct_complete = processed_rows * 100 / post_read_count;
+      info!(
+        "post_read -> post_actions: {processed_rows} / {post_read_count} , {pct_complete}% complete"
+      );
+    }
+
+    Ok(())
   }
 }
 
