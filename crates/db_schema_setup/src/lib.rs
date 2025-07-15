@@ -2,6 +2,7 @@ mod diff_check;
 use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use diesel::{
+  connection::LoadConnection,
   dsl::exists,
   migration::{Migration, MigrationVersion},
   pg::Pg,
@@ -16,7 +17,6 @@ use diesel::{
 };
 use diesel_migrations::MigrationHarness;
 use std::time::Instant;
-use diesel::connection::LoadConnection;
 use tracing::debug;
 
 diesel::table! {

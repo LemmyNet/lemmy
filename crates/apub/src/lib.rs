@@ -1,7 +1,7 @@
 use activitypub_federation::{config::UrlVerifier, error::Error as ActivityPubError};
 use async_trait::async_trait;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
-use lemmy_db_schema::utils::ActualDbPool;
+use lemmy_db_schema::utils::GenericDbPool;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType};
 use url::Url;
 
@@ -18,7 +18,7 @@ pub mod protocol;
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 
 #[derive(Clone)]
-pub struct VerifyUrlData(pub ActualDbPool);
+pub struct VerifyUrlData(pub GenericDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {

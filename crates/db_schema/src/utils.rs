@@ -2,12 +2,17 @@ pub mod queries;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
-use db_pool::r#async::ReusableConnectionPool;
 use db_pool::{
-  r#async::{DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool},
+  r#async::{
+    DatabasePool,
+    DatabasePoolBuilderTrait,
+    DieselAsyncPostgresBackend,
+    DieselDeadpool,
+    ReusableConnectionPool,
+  },
   PrivilegedPostgresConfig,
 };
-use deadpool::Runtime;
+use deadpool::{Runtime, Status};
 use diesel::{
   dsl,
   expression::AsExpression,
@@ -16,18 +21,21 @@ use diesel::{
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
-    ConnectionError, ConnectionResult,
+    ConnectionError,
+    ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
-  Expression, IntoSql,
+  Expression,
+  IntoSql,
 };
 use diesel_async::{
   async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-    AsyncDieselConnectionManager, ManagerConfig,
+    AsyncDieselConnectionManager,
+    ManagerConfig,
   },
   scoped_futures::ScopedBoxFuture,
   AsyncConnection,
@@ -42,11 +50,16 @@ use lemmy_utils::{
 use regex::Regex;
 use rustls::{
   client::danger::{
-    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
+    DangerousClientConfigBuilder,
+    HandshakeSignatureValid,
+    ServerCertVerified,
+    ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig, DigitallySignedStruct, SignatureScheme,
+  ClientConfig,
+  DigitallySignedStruct,
+  SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
@@ -66,7 +79,8 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 /// Some connection options to speed up queries
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
-pub type ReusableDbPool = ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
+pub type ReusableDbPool =
+  ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -81,6 +95,21 @@ pub enum DbPool<'a> {
 pub enum DbConn<'a> {
   Pool(PooledConnection<AsyncPgConnection>),
   Conn(&'a mut AsyncPgConnection),
+}
+
+#[derive(Clone)]
+pub enum GenericDbPool {
+  Actual(ActualDbPool),
+  Reusable(Arc<ReusableDbPool>),
+}
+
+impl GenericDbPool {
+  pub fn status(&self) -> Status {
+    match self {
+      GenericDbPool::Actual(pool) => pool.status(),
+      GenericDbPool::Reusable(pool) => pool.status(),
+    }
+  }
 }
 
 pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
@@ -154,6 +183,15 @@ impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
   }
 }
 
+impl<'a> From<&'a GenericDbPool> for DbPool<'a> {
+  fn from(value: &'a GenericDbPool) -> Self {
+    match value {
+      GenericDbPool::Actual(pool) => DbPool::Pool(pool),
+      GenericDbPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
+  }
+}
+
 /// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
 /// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
@@ -162,7 +200,8 @@ impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
 /// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a
 /// tuple with the values returned by the given functions.
 ///
-/// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
+/// The functions run concurrently if `$pool` has the `DbPool::Pool` or `DbPool::ReusablePool`
+/// variant.
 #[macro_export]
 macro_rules! try_join_with_pool {
   ($pool:ident => ($($func:expr),+)) => {{
@@ -188,6 +227,13 @@ macro_rules! try_join_with_pool {
           }
         }),+))
       }.await,
+      // Run concurrently with `try_join`
+      $crate::utils::DbPool::ReusablePool(__pool) => ::futures_util::try_join!(
+        $(async {
+          let mut __dbpool = $crate::utils::DbPool::ReusablePool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
     }
   }};
 }
