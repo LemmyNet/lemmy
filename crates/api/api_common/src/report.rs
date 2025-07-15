@@ -9,10 +9,6 @@ pub use lemmy_db_schema::{
   ReportType,
 };
 pub use lemmy_db_views_report_combined::{
-  api::{ListReports, ListReportsResponse},
-  ReportCombinedView,
-};
-pub use lemmy_db_views_reports::{
   api::{
     CommentReportResponse,
     CommunityReportResponse,
@@ -22,6 +18,8 @@ pub use lemmy_db_views_reports::{
     CreatePrivateMessageReport,
     GetReportCount,
     GetReportCountResponse,
+    ListReports,
+    ListReportsResponse,
     PostReportResponse,
     PrivateMessageReportResponse,
     ResolveCommentReport,
@@ -33,4 +31,5 @@ pub use lemmy_db_views_reports::{
   CommunityReportView,
   PostReportView,
   PrivateMessageReportView,
+  ReportCombinedView,
 };

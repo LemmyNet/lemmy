@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
   utils::get_conn,
 };
 use lemmy_db_views_community::{

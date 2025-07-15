@@ -58,7 +58,6 @@ members = [
   "crates/db_views/person",
   "crates/db_views/post",
   "crates/db_views/vote",
-  "crates/db_views/reports",
   "crates/db_views/local_image",
   "crates/db_views/comment",
   "crates/db_views/community",
@@ -138,7 +137,6 @@ lemmy_db_views_private_message = { version = "=1.0.0-alpha.5", path = "./crates/
 lemmy_db_views_readable_federation_state = { version = "=1.0.0-alpha.5", path = "./crates/db_views/readable_federation_state" }
 lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.5", path = "./crates/db_views/registration_applications" }
 lemmy_db_views_report_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/report_combined" }
-lemmy_db_views_reports = { version = "=1.0.0-alpha.5", path = "./crates/db_views/reports" }
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
 lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
 lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vote" }
@@ -218,12 +216,12 @@ derive-new = "0.7.0"
 html2text = "0.15.1"
 async-trait = "0.1.88"
 either = { version = "1.15.0", features = ["serde"] }
-extism = { git = "https://github.com/extism/extism.git", branch = "main", default-features = false, features = [
+extism = { version = "1.12.0", default-features = false, features = [
   "http",
   "register-http",
   "register-filesystem",
 ] }
-extism-convert = { git = "https://github.com/extism/extism.git", branch = "main" }
+extism-convert = "1.12.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
 
