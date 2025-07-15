@@ -15,7 +15,7 @@ use crate::{
     },
     post::Post,
   },
-  traits::{ApubActor, Bannable, Blockable, Crud, Followable, Joinable},
+  traits::{ApubActor, Bannable, Blockable, Crud, Followable},
   utils::{
     format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
@@ -83,9 +83,8 @@ impl Crud for Community {
   }
 }
 
-impl Joinable for CommunityActions {
-  type Form = CommunityModeratorForm;
-  async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl CommunityActions {
+  pub async fn join(pool: &mut DbPool<'_>, form: &CommunityModeratorForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(community_actions::table)
       .values(form)
@@ -101,7 +100,10 @@ impl Joinable for CommunityActions {
       .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
   }
 
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn leave(
+    pool: &mut DbPool<'_>,
+    form: &CommunityModeratorForm,
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::became_moderator_at)
@@ -693,7 +695,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Bannable, Crud, Followable, Joinable},
+    traits::{Bannable, Crud, Followable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use lemmy_utils::error::LemmyResult;

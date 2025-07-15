@@ -8,7 +8,7 @@ use lemmy_db_schema::{
     comment::Comment,
     post::{Post, PostActions, PostReadForm},
   },
-  traits::{Crud, Readable},
+  traits::Crud,
   SearchType,
 };
 use lemmy_db_views_community::CommunityView;

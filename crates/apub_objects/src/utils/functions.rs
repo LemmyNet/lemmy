@@ -18,7 +18,6 @@ use lemmy_db_schema::{
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
   },
-  traits::Joinable,
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};

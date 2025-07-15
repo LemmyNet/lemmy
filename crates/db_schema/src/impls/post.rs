@@ -11,7 +11,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Hideable, Likeable, ReadComments, Readable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
@@ -430,14 +430,15 @@ impl Saveable for PostActions {
   }
 }
 
-impl Readable for PostActions {
-  type Form = PostReadForm;
-
-  async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<usize> {
+impl PostActions {
+  pub async fn mark_as_read(pool: &mut DbPool<'_>, form: &PostReadForm) -> LemmyResult<usize> {
     Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
   }
 
-  async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn mark_as_unread(
+    pool: &mut DbPool<'_>,
+    form: &PostReadForm,
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
     uplete(
@@ -451,7 +452,10 @@ impl Readable for PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
-  async fn mark_many_as_read(pool: &mut DbPool<'_>, forms: &[Self::Form]) -> LemmyResult<usize> {
+  pub async fn mark_many_as_read(
+    pool: &mut DbPool<'_>,
+    forms: &[PostReadForm],
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -465,9 +469,8 @@ impl Readable for PostActions {
   }
 }
 
-impl Hideable for PostActions {
-  type Form = PostHideForm;
-  async fn hide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl PostActions {
+  pub async fn hide(pool: &mut DbPool<'_>, form: &PostHideForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -480,7 +483,7 @@ impl Hideable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntHidePost)
   }
 
-  async fn unhide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn unhide(pool: &mut DbPool<'_>, form: &PostHideForm) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
     uplete(
@@ -495,11 +498,11 @@ impl Hideable for PostActions {
   }
 }
 
-impl ReadComments for PostActions {
-  type Form = PostReadCommentsForm;
-  type IdType = PostId;
-
-  async fn update_read_comments(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl PostActions {
+  pub async fn update_read_comments(
+    pool: &mut DbPool<'_>,
+    form: &PostReadCommentsForm,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -512,10 +515,10 @@ impl ReadComments for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
   }
 
-  async fn remove_read_comments(
+  pub async fn remove_read_comments(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    post_id: Self::IdType,
+    post_id: PostId,
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
@@ -587,7 +590,7 @@ mod tests {
         PostUpdateForm,
       },
     },
-    traits::{Crud, Likeable, Readable, Saveable},
+    traits::{Crud, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use chrono::DateTime;

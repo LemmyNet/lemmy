@@ -343,7 +343,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
+    traits::{Bannable, Blockable, Crud, Followable, Likeable},
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views_local_user::LocalUserView;

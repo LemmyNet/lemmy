@@ -13,7 +13,7 @@ use lemmy_db_schema::{
     person::PersonActions,
     post::{PostActions, PostLikeForm, PostReadForm},
   },
-  traits::{Likeable, Readable},
+  traits::Likeable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
