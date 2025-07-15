@@ -459,6 +459,7 @@ impl CommentActions {
       );
     }
 
+    info!("Finished filling comment_like history into comment_actions.");
     Ok(())
   }
 }

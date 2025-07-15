@@ -490,8 +490,11 @@ async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   // These must be run in the correct migration order, IE, make sure the entire smoosh history is
   // finished before adding the later ones.
-  CommentActions::fill_comment_like_history(pool).await?;
-  PostActions::fill_post_read_history(pool).await?;
+  // CommentActions::fill_comment_like_history(pool).await?;
+  // PostActions::fill_post_read_history(pool).await?;
+  PostActions::fill_read_comments_history(pool).await?;
+
+  info!("Finished filling history.");
   Ok(())
 }
 

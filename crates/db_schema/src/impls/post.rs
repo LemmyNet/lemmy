@@ -43,7 +43,14 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
-use lemmy_db_schema_file::schema::{community, person, post, post_actions, post_read};
+use lemmy_db_schema_file::schema::{
+  community,
+  person,
+  person_post_aggregates,
+  post,
+  post_actions,
+  post_read,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -647,6 +654,96 @@ impl PostActions {
         "post_read -> post_actions: {processed_rows} / {post_read_count} , {pct_complete}% complete"
       );
     }
+
+    info!("Finished filling post_read history into post_actions.");
+    Ok(())
+  }
+
+  pub async fn fill_read_comments_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let batch_size = 1000;
+
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling read_comments history into post_actions...");
+
+    // Get the total count of post_read rows, to show progress
+    let person_post_aggregates_count = person_post_aggregates::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    // Do transactions of 1000, from recent to past
+    while processed_rows < person_post_aggregates_count {
+      let rows_inserted = conn
+        .run_transaction(|conn| {
+          async move {
+            // Select and map into comment like forms
+            let forms = person_post_aggregates::table
+              .order_by(person_post_aggregates::published.desc())
+              .limit(batch_size)
+              .get_results::<(PersonId, PostId, i64, DateTime<Utc>)>(conn)
+              .await?
+              .iter()
+              .map(|cl| PostReadCommentsForm {
+                person_id: cl.0,
+                post_id: cl.1,
+                read_comments_amount: cl.2 as i32,
+                read_comments_at: cl.3,
+              })
+              .collect::<Vec<PostReadCommentsForm>>();
+
+            // When this is None, the scanning is complete
+            let last_scanned_timestamp = forms.last().map(|f| f.read_comments_at);
+
+            let inserted_count = insert_into(post_actions::table)
+              .values(forms)
+              .on_conflict((post_actions::person_id, post_actions::post_id))
+              .do_update()
+              .set((
+                post_actions::read_comments_at.eq(excluded(post_actions::read_comments_at)),
+                post_actions::read_comments_amount.eq(excluded(post_actions::read_comments_amount)),
+              ))
+              .execute(conn)
+              .await?;
+
+            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
+                last_scanned_id: None,
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("person_post_aggregates".into(), "post_actions".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from person_post_aggregates
+              delete(
+                person_post_aggregates::table
+                  .filter(person_post_aggregates::published.gt(last_scanned_timestamp)),
+              )
+              .execute(conn)
+              .await?;
+            }
+
+            Ok(inserted_count)
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += rows_inserted as i64;
+      let pct_complete = processed_rows * 100 / person_post_aggregates_count;
+      info!(
+        "person_post_aggregates -> post_actions: {processed_rows} / {person_post_aggregates_count} , {pct_complete}% complete"
+      );
+    }
+
+    info!("Finished filling read_comments history into post_actions.");
 
     Ok(())
   }
