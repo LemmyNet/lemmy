@@ -28,15 +28,16 @@ impl Reportable for PrivateMessageReport {
       .with_lemmy_type(LemmyErrorType::CouldntCreateReport)
   }
 
-  async fn resolve(
+  async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
+    is_resolved: bool,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report::table.find(report_id))
       .set((
-        private_message_report::resolved.eq(true),
+        private_message_report::resolved.eq(is_resolved),
         private_message_report::resolver_id.eq(by_resolver_id),
         private_message_report::updated_at.eq(Utc::now()),
       ))
@@ -60,22 +61,5 @@ impl Reportable for PrivateMessageReport {
     _by_resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     Err(LemmyErrorType::NotFound.into())
-  }
-
-  async fn unresolve(
-    pool: &mut DbPool<'_>,
-    report_id: Self::IdType,
-    by_resolver_id: PersonId,
-  ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    update(private_message_report::table.find(report_id))
-      .set((
-        private_message_report::resolved.eq(false),
-        private_message_report::resolver_id.eq(by_resolver_id),
-        private_message_report::updated_at.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
   }
 }

@@ -11,9 +11,9 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, ResolveCommunityReport},
-  CommunityReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -25,15 +25,13 @@ pub async fn resolve_community_report(
   is_admin(&local_user_view)?;
 
   let report_id = data.report_id;
-  let person_id = local_user_view.person.id;
-  if data.resolved {
-    CommunityReport::resolve(&mut context.pool(), report_id, person_id).await?;
-  } else {
-    CommunityReport::unresolve(&mut context.pool(), report_id, person_id).await?;
-  }
+  let person = &local_user_view.person;
+  CommunityReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved)
+    .await?;
 
   let community_report_view =
-    CommunityReportView::read(&mut context.pool(), report_id, person_id).await?;
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person)
+      .await?;
   let site = Site::read_from_instance_id(
     &mut context.pool(),
     community_report_view.community.instance_id,

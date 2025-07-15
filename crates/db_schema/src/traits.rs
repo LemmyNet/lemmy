@@ -87,265 +87,143 @@ where
   }
 }
 
-pub trait Followable {
+pub trait Followable: Sized {
   type Form;
   type IdType;
   fn follow(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn follow_accepted(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     person_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn unfollow(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
-pub trait Joinable {
-  type Form;
-  fn join(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn leave(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
-}
-
-pub trait Likeable {
+pub trait Likeable: Sized {
   type Form;
   type IdType;
   fn like(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 
   fn remove_all_likes(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 
   fn remove_likes_in_community(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
-pub trait Bannable {
+pub trait Bannable: Sized {
   type Form;
   fn ban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn unban(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
-pub trait Saveable {
+pub trait Saveable: Sized {
   type Form;
   fn save(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn unsave(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 }
 
-pub trait Readable {
-  type Form;
-  fn mark_as_read(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
-  fn mark_many_as_read(
-    pool: &mut DbPool<'_>,
-    forms: &[Self::Form],
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
-  fn mark_as_unread(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
-}
-
-pub trait ReadComments {
-  type Form;
-  type IdType;
-  fn update_read_comments(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn remove_read_comments(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
-}
-
-pub trait Hideable {
-  type Form;
-  fn hide(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn unhide(
-    pool: &mut DbPool<'_>,
-    form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
-}
-
-pub trait Blockable {
+pub trait Blockable: Sized {
   type Form;
   type ObjectIdType;
   type ObjectType;
   fn block(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
   fn unblock(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
   fn read_block(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_item_id: Self::ObjectIdType,
-  ) -> impl Future<Output = LemmyResult<()>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<()>> + Send;
 
   fn read_blocks_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     // Note: cant use lemmyresult because of try_pool
-  ) -> impl Future<Output = LemmyResult<Vec<Self::ObjectType>>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Vec<Self::ObjectType>>> + Send;
 }
 
-pub trait Reportable {
+pub trait Reportable: Sized {
   type Form;
   type IdType;
   type ObjectIdType;
   fn report(
     pool: &mut DbPool<'_>,
     form: &Self::Form,
-  ) -> impl Future<Output = LemmyResult<Self>> + Send
-  where
-    Self: Sized;
-  fn resolve(
+  ) -> impl Future<Output = LemmyResult<Self>> + Send;
+  fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+    is_resolved: bool,
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
     report_creator_id: PersonId,
     resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
-  fn unresolve(
-    pool: &mut DbPool<'_>,
-    report_id: Self::IdType,
-    resolver_id: PersonId,
-  ) -> impl Future<Output = LemmyResult<usize>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
 }
 
-pub trait ApubActor {
+pub trait ApubActor: Sized {
   fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
   /// - actor_name is the name of the community or user to read.
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   fn read_from_name(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
   fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl>;
   fn actor_url(&self, settings: &Settings) -> LemmyResult<Url>;
@@ -368,7 +246,5 @@ pub trait PaginationCursorBuilder {
   fn from_cursor(
     cursor: &PaginationCursor,
     conn: &mut DbPool<'_>,
-  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send
-  where
-    Self: Sized;
+  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }

@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
-  traits::{Crud, Likeable, Readable},
+  traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
 use lemmy_db_views_community::CommunityView;
