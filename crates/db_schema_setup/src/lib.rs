@@ -263,7 +263,7 @@ where
 
 pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
-  run_with_connection(options, PgConnection::establish(&db_url)?)
+  run_with_connection(options, PgConnection::establish(db_url)?)
 }
 
 fn run_replaceable_schema<Conn>(conn: &mut Conn) -> anyhow::Result<()>
