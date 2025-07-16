@@ -604,7 +604,7 @@ mod tests {
       tag::{Tag, TagInsertForm},
     },
     test_data::TestData,
-    traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
+    traits::{Bannable, Blockable, Crud, Followable, Likeable},
     utils::{build_db_pool, get_conn, ActualDbPool, DbPool},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};

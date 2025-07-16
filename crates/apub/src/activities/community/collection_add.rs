@@ -33,7 +33,7 @@ use lemmy_db_schema::{
     person::Person,
     post::{Post, PostUpdateForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
