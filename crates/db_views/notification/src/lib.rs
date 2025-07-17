@@ -11,9 +11,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  utils::queries::person1_select,
   NotificationDataType,
-  Person1AliasAllColumnsTuple,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
@@ -24,8 +22,10 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
+    utils::queries::person1_select,
     utils::queries::{creator_banned, creator_is_admin, local_user_can_mod, post_tags_fragment},
     utils::queries::{creator_banned_from_community, creator_is_moderator},
+    Person1AliasAllColumnsTuple,
   },
 };
 
