@@ -13,7 +13,7 @@ use diesel::{
   QueryDsl,
   QueryableByName,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection};
 use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -49,7 +49,8 @@ use lemmy_db_schema_file::schema::{
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
-use std::time::Duration;
+use std::{convert::Infallible, time::Duration};
+use tokio::sync::Notify;
 use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
@@ -125,6 +126,29 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
+    }
+  });
+
+  let context_1 = context.clone();
+  // Update counters.
+  //
+  // This handles high-frequency changes more efficiently than triggers would. For example, if a
+  // counter update begins, and two posts are created during that update, then the next counter
+  // update will increment counters by 2. With triggers, the first post's insert transaction would
+  // include incrementing the counter by 1, and the second post's insert transaction would include
+  // waiting for the first post's insert transaction to finish before incrementing the counter by 1.
+  //
+  // To prevent users from sensing imperfectness or being misled because of delayed counter updates,
+  // queries use the `count` aggregate function to count items that have not yet been handled by a
+  // counter update. To minimize the chance that this involves scanning anything other than an empty
+  // index, the delay of a counter update is minimized by responding to notifications (sent by
+  // triggers) instead of schedule intervals.
+  tokio::spawn(async move {
+    loop {
+      match counter_update_loop(&mut context_1.pool()).await {
+        Ok(never) => match never {},
+        Err(e) => warn!("Counter update loop unexpectedly stopped and will restart: {e}"),
+      }
     }
   });
 
@@ -559,6 +583,37 @@ async fn build_update_instance_form(
   .await;
 
   Some(instance_form)
+}
+
+async fn counter_update_loop(pool: &mut DbPool<'_>) -> LemmyResult<Infallible> {
+  let mut conn = get_conn(pool).await?;
+  conn.batch_execute("LISTEN need_counter_update").await?;
+  let mut stream = conn.notification_stream();
+
+  let wakeup = Notify::new();
+
+  // To handle crashes and prevent race conditions, unconditionally update counters after the
+  // `LISTEN` statement.
+  wakeup.notify_one();
+
+  let listen_to_db = async {
+    loop {
+      let _: PgNotification = stream
+        .next
+        .await
+        .context("unexpected end of notification stream")??;
+      wakeup.notify_one();
+    }
+  };
+
+  let update_when_woke = async {
+    loop {
+      wakeup.notified().await;
+      // TODO: update counters here
+    }
+  };
+
+  tokio::select! {result = listen_to_db => result, result = update_when_woke => result}
 }
 
 #[cfg(test)]
