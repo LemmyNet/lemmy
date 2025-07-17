@@ -42,16 +42,11 @@ default = []
 
 [workspace]
 members = [
-  "crates/api/api",
-  "crates/api/api_crud",
-  "crates/api/api_common",
-  "crates/api/api_utils",
-  "crates/apub",
-  "crates/apub_objects",
   "crates/utils",
   "crates/db_schema",
   "crates/db_schema_file",
   "crates/db_schema_setup",
+  "crates/email",
   "crates/db_views/private_message",
   "crates/db_views/local_user",
   "crates/db_views/local_image",
@@ -73,9 +68,14 @@ members = [
   "crates/db_views/report_combined",
   "crates/db_views/search_combined",
   "crates/db_views/site",
-  "crates/routes",
+  "crates/api/api",
+  "crates/api/api_crud",
+  "crates/api/api_common",
+  "crates/api/api_utils",
+  "crates/apub",
+  "crates/apub_objects",
   "crates/federate",
-  "crates/email",
+  "crates/routes",
 ]
 
 [workspace.lints.clippy]

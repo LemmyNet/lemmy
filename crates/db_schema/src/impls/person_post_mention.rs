@@ -1,6 +1,5 @@
 use crate::{
-  diesel::OptionalExtension,
-  newtypes::{PersonId, PersonPostMentionId, PostId},
+  newtypes::{PersonId, PersonPostMentionId},
   source::person_post_mention::{
     PersonPostMention,
     PersonPostMentionInsertForm,
@@ -68,20 +67,5 @@ impl PersonPostMention {
     .get_results::<Self>(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonPostMention)
-  }
-
-  pub async fn read_by_post_and_person(
-    pool: &mut DbPool<'_>,
-    for_post_id: PostId,
-    for_recipient_id: PersonId,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    person_post_mention::table
-      .filter(person_post_mention::post_id.eq(for_post_id))
-      .filter(person_post_mention::recipient_id.eq(for_recipient_id))
-      .first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }

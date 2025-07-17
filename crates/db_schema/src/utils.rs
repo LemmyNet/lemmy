@@ -36,7 +36,6 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
-use regex::Regex;
 use rustls::{
   client::danger::{
     DangerousClientConfigBuilder,
@@ -52,7 +51,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, OnceLock},
   time::Duration,
 };
 use tracing::error;
@@ -238,7 +237,7 @@ impl<T> Commented<T> {
   }
 
   /// Adds `text` to the comment if `condition` is true
-  pub fn text_if(mut self, text: &str, condition: bool) -> Self {
+  fn text_if(mut self, text: &str, condition: bool) -> Self {
     if condition {
       if !self.comment.is_empty() {
         self.comment.push_str(", ");
@@ -302,10 +301,6 @@ pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
     }
     None => FETCH_LIMIT_DEFAULT,
   })
-}
-
-pub fn is_email_regex(test: &str) -> bool {
-  EMAIL_REGEX.is_match(test)
 }
 
 /// Takes an API optional text input, and converts it to an optional diesel DB update.
@@ -520,12 +515,6 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }
 
-#[allow(clippy::expect_used)]
-static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
-    .expect("compile email regex")
-});
-
 pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
@@ -662,12 +651,6 @@ mod tests {
       fuzzy_search(test),
       "%This%\\%is\\%%\\_a\\_%fuzzy%search%".to_string()
     );
-  }
-
-  #[test]
-  fn test_email() {
-    assert!(is_email_regex("gush@gmail.com"));
-    assert!(!is_email_regex("nada_neutho"));
   }
 
   #[test]
