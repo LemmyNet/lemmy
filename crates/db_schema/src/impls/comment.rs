@@ -272,7 +272,7 @@ impl Comment {
           async move {
             // Diesel can't do 'update X from Y', nor updates from joins, so you need to do custom
             // sql. I also tried individual row sets, and it was too slow.
-            let updated_rows = sql_query(format!(
+            let updated_rows = sql_query(
               r#"
               WITH ca AS (SELECT *
                 FROM comment_aggregates ca
@@ -291,7 +291,7 @@ impl Comment {
                 FROM ca WHERE c.id = ca.comment_id
                 RETURNING c.id;
             "#,
-            ))
+            )
             .bind::<BigInt, _>(DB_BATCH_SIZE)
             .get_results::<AggregatesUpdateResult>(conn)
             .await?;
