@@ -492,25 +492,28 @@ async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating history in a background thread...");
 
   // These must be run a logically correct order, otherwise data could be missing.
+
   // First fill the actions tables (smoosh migration)
-  // CommentActions::fill_comment_like_history(pool).await?;
-  // PostActions::fill_post_read_history(pool).await?;
-  // PostActions::fill_read_comments_history(pool).await?;
-  // PostActions::fill_post_like_history(pool).await?;
+  CommentActions::fill_comment_like_history(pool).await?;
+  PostActions::fill_post_read_history(pool).await?;
+  PostActions::fill_read_comments_history(pool).await?;
+  PostActions::fill_post_like_history(pool).await?;
+
   // Next fill the aggregates tables
-  // Post::fill_aggregates_history(pool).await?;
+  Post::fill_aggregates_history(pool).await?;
   Comment::fill_aggregates_history(pool).await?;
+
   // Finally fill the combined tables.
   // These are different from the above, in that they aren't source data, and
   // so don't do any actual DB deletes.
-  // PersonContentCombined::fill_post_history(pool).await?;
-  // PersonContentCombined::fill_comment_history(pool).await?;
-  // PersonSavedCombined::fill_post_history(pool).await?;
-  // PersonSavedCombined::fill_comment_history(pool).await?;
-  // SearchCombined::fill_post_history(pool).await?;
-  // SearchCombined::fill_comment_history(pool).await?;
-  // SearchCombined::fill_community_history(pool).await?;
-  // SearchCombined::fill_person_history(pool).await?;
+  PersonContentCombined::fill_post_history(pool).await?;
+  PersonContentCombined::fill_comment_history(pool).await?;
+  PersonSavedCombined::fill_post_history(pool).await?;
+  PersonSavedCombined::fill_comment_history(pool).await?;
+  SearchCombined::fill_post_history(pool).await?;
+  SearchCombined::fill_comment_history(pool).await?;
+  SearchCombined::fill_community_history(pool).await?;
+  SearchCombined::fill_person_history(pool).await?;
 
   info!("Finished filling history.");
   Ok(())
