@@ -759,9 +759,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn admin_types() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -982,9 +981,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn mod_types() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1384,9 +1382,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn hide_modlog_names() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

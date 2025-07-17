@@ -220,9 +220,8 @@ mod tests {
   use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn post_and_comment_vote_views() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;

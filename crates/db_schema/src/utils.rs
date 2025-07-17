@@ -2,7 +2,17 @@ pub mod queries;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
-use deadpool::Runtime;
+use db_pool::{
+  r#async::{
+    DatabasePool,
+    DatabasePoolBuilderTrait,
+    DieselAsyncPostgresBackend,
+    DieselDeadpool,
+    ReusableConnectionPool,
+  },
+  PrivilegedPostgresConfig,
+};
+use deadpool::{Runtime, Status};
 use diesel::{
   dsl,
   expression::AsExpression,
@@ -20,6 +30,7 @@ use diesel::{
   IntoSql,
 };
 use diesel_async::{
+  async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
@@ -55,6 +66,7 @@ use std::{
   sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
+use tokio::sync::OnceCell;
 use tracing::error;
 use url::Url;
 
@@ -67,6 +79,8 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 /// Some connection options to speed up queries
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
+pub type ReusableDbPool =
+  ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -74,6 +88,7 @@ pub type ActualDbPool = Pool<AsyncPgConnection>;
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
   Pool(&'a ActualDbPool),
+  ReusablePool(&'a ReusableDbPool),
   Conn(&'a mut AsyncPgConnection),
 }
 
@@ -82,10 +97,28 @@ pub enum DbConn<'a> {
   Conn(&'a mut AsyncPgConnection),
 }
 
+#[derive(Clone)]
+pub enum GenericDbPool {
+  Actual(ActualDbPool),
+  Reusable(Arc<ReusableDbPool>),
+}
+
+impl GenericDbPool {
+  pub fn status(&self) -> Status {
+    match self {
+      GenericDbPool::Actual(pool) => pool.status(),
+      GenericDbPool::Reusable(pool) => pool.status(),
+    }
+  }
+}
+
 pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
   Ok(match pool {
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
+    DbPool::ReusablePool(pool) => {
+      DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?)
+    }
   })
 }
 
@@ -144,6 +177,21 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
+impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
+  fn from(value: &'a ReusableDbPool) -> Self {
+    DbPool::ReusablePool(value)
+  }
+}
+
+impl<'a> From<&'a GenericDbPool> for DbPool<'a> {
+  fn from(value: &'a GenericDbPool) -> Self {
+    match value {
+      GenericDbPool::Actual(pool) => DbPool::Pool(pool),
+      GenericDbPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
+  }
+}
+
 /// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
 /// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
@@ -152,7 +200,8 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
 /// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a
 /// tuple with the values returned by the given functions.
 ///
-/// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
+/// The functions run concurrently if `$pool` has the `DbPool::Pool` or `DbPool::ReusablePool`
+/// variant.
 #[macro_export]
 macro_rules! try_join_with_pool {
   ($pool:ident => ($($func:expr),+)) => {{
@@ -178,6 +227,13 @@ macro_rules! try_join_with_pool {
           }
         }),+))
       }.await,
+      // Run concurrently with `try_join`
+      $crate::utils::DbPool::ReusablePool(__pool) => ::futures_util::try_join!(
+        $(async {
+          let mut __dbpool = $crate::utils::DbPool::ReusablePool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
     }
   }};
 }
@@ -516,8 +572,50 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 }
 
 #[allow(clippy::expect_used)]
-pub fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool().expect("db pool missing")
+pub async fn build_db_pool_for_tests(
+) -> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
+  static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
+    OnceCell::const_new();
+  let db_pool = POOL
+    .get_or_init(|| async {
+      let conn_string = SETTINGS.get_database_url();
+
+      let db_url = Url::parse(conn_string.as_str()).unwrap();
+
+      let config = PrivilegedPostgresConfig::new()
+        .host(db_url.host().unwrap().to_string())
+        .port(db_url.port().unwrap())
+        .username(db_url.username().to_string())
+        .password(Some(db_url.password().unwrap().to_string()));
+
+      let backend = DieselAsyncPostgresBackend::new(
+        config,
+        |manager| Pool::builder(manager).max_size(SETTINGS.database.pool_size),
+        |manager| Pool::builder(manager).max_size(2),
+        None,
+        move |conn| {
+          Box::pin(async {
+            let async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+              AsyncConnectionWrapper::from(conn);
+
+            lemmy_db_schema_setup::run_with_connection(
+              lemmy_db_schema_setup::Options::default().run(),
+              async_wrapper,
+            )
+            .expect("run migrations");
+
+            None
+          })
+        },
+      )
+      .await
+      .unwrap();
+
+      backend.create_database_pool().await.unwrap()
+    })
+    .await;
+
+  db_pool.pull_immutable().await
 }
 
 #[allow(clippy::expect_used)]

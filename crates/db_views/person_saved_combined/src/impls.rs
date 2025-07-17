@@ -346,9 +346,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_combined() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

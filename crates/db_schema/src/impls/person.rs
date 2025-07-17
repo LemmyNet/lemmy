@@ -471,9 +471,8 @@ mod tests {
   use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -527,9 +526,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn follow() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
@@ -555,9 +553,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_aggregates() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;

@@ -427,9 +427,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_convert_update_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // call with empty vec, returns all languages
@@ -445,10 +444,9 @@ mod tests {
     Ok(())
   }
   #[tokio::test]
-  #[serial]
   async fn test_convert_read_languages() -> LemmyResult<()> {
     use lemmy_db_schema_file::schema::language::dsl::{id, language};
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // call with all languages, returns empty vec
@@ -466,9 +464,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_site_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let data = TestData::create(pool).await?;
@@ -489,9 +486,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_user_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let data = TestData::create(pool).await?;
@@ -521,9 +517,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_community_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = TestData::create(pool).await?;
     let test_langs = test_langs1(pool).await?;
@@ -576,9 +571,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_validate_post_language() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = TestData::create(pool).await?;
     let test_langs = test_langs1(pool).await?;
