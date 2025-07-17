@@ -622,11 +622,13 @@ mod tests {
     Ok(())
   }
 
-  fn filter_pm(inbox: Vec<NotificationView>) -> Vec<NotificationView> {
-    inbox
-      .into_iter()
-      .filter(|f| matches!(f.data, NotificationData::PrivateMessage { .. }))
-      .collect::<Vec<NotificationView>>()
+  /// Useful in combination with filter_map
+  fn to_pm(x: NotificationView) -> Option<PrivateMessageView> {
+    if let NotificationData::PrivateMessage(v) = x.data {
+      Some(v)
+    } else {
+      None
+    }
   }
 
   #[tokio::test]
@@ -637,59 +639,41 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages = filter_pm(
-      NotificationQuery::default()
-        .list(pool, &data.timmy.person)
-        .await?,
-    );
+    let timmy_messages: Vec<_> = NotificationQuery::default()
+      .list(pool, &data.timmy.person)
+      .await?
+      .into_iter()
+      .filter_map(to_pm)
+      .collect();
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
-    if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
-      assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(pm.recipient.id, data.timmy.person.id);
-    } else {
-      panic!("wrong type");
-    }
-    if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
-      assert_eq!(pm.creator.id, data.timmy.person.id);
-      assert_eq!(pm.recipient.id, data.sara.person.id);
-    } else {
-      panic!("wrong type");
-    }
-    if let NotificationData::PrivateMessage(pm) = &timmy_messages[2].data {
-      assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(pm.recipient.id, data.timmy.person.id);
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
+    assert_eq!(timmy_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(timmy_messages[1].creator.id, data.timmy.person.id);
+    assert_eq!(timmy_messages[1].recipient.id, data.sara.person.id);
+    assert_eq!(timmy_messages[2].creator.id, data.sara.person.id);
+    assert_eq!(timmy_messages[2].recipient.id, data.timmy.person.id);
 
     let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(2, timmy_unread);
 
-    let timmy_unread_messages = filter_pm(
-      NotificationQuery {
-        unread_only: Some(true),
-        ..Default::default()
-      }
-      .list(pool, &data.timmy.person)
-      .await?,
-    );
+    let timmy_unread_messages: Vec<_> = NotificationQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?
+    .into_iter()
+    .filter_map(to_pm)
+    .collect();
 
     // The unread hides timmy's sent messages
     assert_length!(2, &timmy_unread_messages);
-    if let NotificationData::PrivateMessage(pm) = &timmy_messages[0].data {
-      assert_eq!(pm.creator.id, data.jessica.id);
-      assert_eq!(pm.recipient.id, data.timmy.person.id);
-    } else {
-      panic!("wrong type");
-    }
-    if let NotificationData::PrivateMessage(pm) = &timmy_messages[1].data {
-      assert_eq!(pm.creator.id, data.sara.person.id);
-      assert_eq!(pm.recipient.id, data.timmy.person.id);
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, data.timmy.person.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, data.sara.person.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, data.timmy.person.id);
 
     cleanup(data, pool).await?;
 
@@ -718,14 +702,15 @@ mod tests {
       )
     );
 
-    let timmy_messages = filter_pm(
-      NotificationQuery {
-        unread_only: Some(true),
-        ..Default::default()
-      }
-      .list(pool, &data.timmy.person)
-      .await?,
-    );
+    let timmy_messages: Vec<_> = NotificationQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?
+    .into_iter()
+    .filter_map(to_pm)
+    .collect();
 
     assert_length!(1, &timmy_messages);
 
@@ -758,14 +743,15 @@ mod tests {
     );
     assert!(inserted_instance_block.blocked_at.is_some());
 
-    let timmy_messages = filter_pm(
-      NotificationQuery {
-        unread_only: Some(true),
-        ..Default::default()
-      }
-      .list(pool, &data.timmy.person)
-      .await?,
-    );
+    let timmy_messages: Vec<_> = NotificationQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?
+    .into_iter()
+    .filter_map(to_pm)
+    .collect();
 
     assert_length!(0, &timmy_messages);
 
