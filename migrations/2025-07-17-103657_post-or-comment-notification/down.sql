@@ -35,6 +35,9 @@ CREATE TABLE inbox_combined (
     published_at timestamptz NOT NULL
 );
 
+ALTER TABLE private_message
+    ADD COLUMN read bool DEFAULT FALSE NOT NULL;
+
 -- copy back data to person_post_mention table
 INSERT INTO person_post_mention (recipient_id, post_id, read, published_at)
 SELECT
@@ -67,6 +70,16 @@ FROM
 WHERE
     kind = 'Mention'
     AND comment_id IS NOT NULL;
+
+-- copy back data to person_comment_mention table
+UPDATE
+    private_message p
+SET
+    read = n.read
+FROM
+    notification n
+WHERE
+    p.id = n.private_message_id;
 
 INSERT INTO inbox_combined (person_comment_mention_id, published_at)
 SELECT

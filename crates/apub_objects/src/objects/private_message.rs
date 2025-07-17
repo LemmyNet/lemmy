@@ -160,7 +160,6 @@ impl Object for ApubPrivateMessage {
       published_at: note.published,
       updated_at: note.updated,
       deleted: Some(false),
-      read: None,
       ap_id: Some(note.id.into()),
       local: Some(false),
     };

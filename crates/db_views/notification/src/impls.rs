@@ -142,14 +142,7 @@ impl NotificationView {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
-    let unread_filter = notification::read
-      .eq(false)
-      // If its unread, I only want the messages to me
-      .or(
-        private_message::read
-          .eq(false)
-          .and(private_message::recipient_id.eq(my_person.id)),
-      );
+    let unread_filter = notification::read.eq(false);
 
     let mut query = Self::joins(my_person)
       // Filter for your user
@@ -229,12 +222,7 @@ impl NotificationQuery {
       query = query
         // The recipient filter (IE only show replies to you)
         .filter(notification::recipient_id.eq(my_person.id))
-        .filter(
-          notification::read
-            .eq(false)
-            // If its unread, I only want the messages to me
-            .or(private_message::read.eq(false)),
-        );
+        .filter(notification::read.eq(false));
     } else {
       // A special case for private messages: show messages FROM you also.
       // Use a not-null checks to catch the others

@@ -58,6 +58,20 @@ SELECT
 FROM
     person_comment_mention;
 
+-- copy data from private_message table
+INSERT INTO notification (private_message_id, recipient_id, kind, read, published_at)
+SELECT
+    id,
+    recipient_id,
+    'PrivateMessage',
+    read,
+    published_at
+FROM
+    private_message;
+
+ALTER TABLE private_message
+    DROP COLUMN read;
+
 ALTER TABLE notification
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id) = 1);
 

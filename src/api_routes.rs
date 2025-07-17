@@ -68,7 +68,6 @@ use lemmy_api::{
     save::save_post,
     update_notifications::update_post_notifications,
   },
-  private_message::mark_read::mark_pm_as_read,
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
     community_report::{create::create_community_report, resolve::resolve_community_report},
@@ -327,7 +326,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
-          .route("/mark_as_read", post().to(mark_pm_as_read))
           .route("/report", post().to(create_pm_report))
           .route("/report/resolve", put().to(resolve_pm_report)),
       )

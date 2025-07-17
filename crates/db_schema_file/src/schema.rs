@@ -973,7 +973,6 @@ diesel::table! {
         recipient_id -> Int4,
         content -> Text,
         deleted -> Bool,
-        read -> Bool,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         #[max_length = 255]
