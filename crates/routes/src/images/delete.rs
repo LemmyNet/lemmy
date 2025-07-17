@@ -1,11 +1,9 @@
 use super::utils::delete_old_image;
 use actix_web::web::*;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  image::{CommunityIdQuery, DeleteImageParams},
-  request::{delete_image_from_pictrs, purge_image_from_pictrs},
+  request::{delete_image_alias, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -16,7 +14,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_community::api::CommunityIdQuery;
+use lemmy_db_views_local_image::api::DeleteImageParams;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_site_icon(
@@ -128,14 +129,14 @@ pub async fn delete_image(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  LocalImage::delete_by_alias_and_user(
+  LocalImage::validate_by_alias_and_user(
     &mut context.pool(),
     &data.filename,
-    local_user_view.local_user.id,
+    local_user_view.person.id,
   )
   .await?;
 
-  delete_image_from_pictrs(&data.filename, &context).await?;
+  delete_image_alias(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

@@ -9,11 +9,7 @@ variables:
   - &rust_image "rust:1.81"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
-  - install_diesel_cli: &install_diesel_cli
-      - apt-get update && apt-get install -y postgresql-client
-      # diesel_cli@2.2.8 is the last version that supports rust 1.81, which we are currently locked on due to perf regressions on rust 1.82+ :(
-      - cargo install --locked diesel_cli@2.2.8 --no-default-features --features postgres
-      - export PATH="$CARGO_HOME/bin:$PATH"
+  - &install_binstall "wget -q -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - &slow_check_paths
     - event: pull_request
       path:
@@ -46,9 +42,18 @@ steps:
       - event: [pull_request, tag]
 
   prettier_check:
-    image: tmknom/prettier:3.2.5
+    image: tmknom/prettier:3.6.2
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
+
+  bash_fmt:
+    image: alpine:3
+    commands:
+      - apk add shfmt
+      - shfmt -i 2 -d */**.bash
+      - shfmt -i 2 -d */**.sh
     when:
       - event: pull_request
 
@@ -60,10 +65,10 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: debian:bookworm
+    image: *rust_image
     commands:
-      - apt-get update
-      - apt-get --yes --no-install-recommends --no-install-suggests install pgformatter
+      - apt-get install perl make bash
+      - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
@@ -73,8 +78,9 @@ steps:
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
-      - rustup component add rustfmt
+      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     when:
       - event: pull_request
@@ -82,7 +88,8 @@ steps:
   cargo_shear:
     image: *rust_nightly_image
     commands:
-      - cargo install cargo-shear
+      - *install_binstall
+      - cargo binstall -y cargo-shear
       - cargo shear
     when:
       - event: pull_request
@@ -110,6 +117,7 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets -- -D warnings
@@ -133,8 +141,9 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
       LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release
@@ -145,20 +154,12 @@ steps:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
-  check_ts_bindings:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - ./scripts/ts_bindings_check.sh
-    when:
-      - event: pull_request
-
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
       - cargo check --package lemmy_api_common
     when: *slow_check_paths
@@ -167,6 +168,7 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     when: *slow_check_paths
@@ -175,24 +177,17 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when: *slow_check_paths
-
-  check_defaults_hjson_updated:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
   cargo_build:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
@@ -205,23 +200,17 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
+      - *install_binstall
       - cp crates/db_schema_file/src/schema.rs tmp.schema
       - target/lemmy_server migration --all run
-      - <<: *install_diesel_cli
+      - apt-get update && apt-get install -y postgresql-client
+      # diesel_cli@2.2.8 is the last version that supports rust 1.81, which we are currently locked on due to perf regressions on rust 1.82+ :(
+      - cargo binstall --locked diesel_cli@2.2.8 -y
+      - export PATH="$CARGO_HOME/bin:$PATH"
       - diesel print-schema
       - diff tmp.schema crates/db_schema_file/src/schema.rs
-    when: *slow_check_paths
-
-  check_db_perf_tool:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-    commands:
-      # same as scripts/db_perf.sh but without creating a new database server
-      - cargo run --package lemmy_db_perf -- --posts 10 --read-post-pages 1
     when: *slow_check_paths
 
   run_federation_tests:
@@ -259,7 +248,7 @@ steps:
         from_secret: docker_password
       platforms: linux/amd64, linux/arm64
       build_args:
-        - RUST_RELEASE_MODE=release
+        RUST_RELEASE_MODE: release
       tag: ${CI_COMMIT_TAG}
     when:
       - event: tag
@@ -302,22 +291,6 @@ steps:
     when:
       - event: tag
 
-  nightly_build:
-    image: woodpeckerci/plugin-docker-buildx
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      platforms: linux/amd64,linux/arm64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      tag: dev
-    when:
-      - event: cron
-
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
@@ -325,29 +298,39 @@ steps:
       CARGO_API_TOKEN:
         from_secret: cargo_api_token
     commands:
-      # Install cargo-workspaces
-      - cargo install cargo-workspaces
+      - *install_binstall
+      # Install cargo-workspaces, need pinned version for Rust 1.81 compat
+      - cargo binstall -y cargo-workspaces@0.3.6
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     when:
       - event: tag
 
-  notify_on_build:
+  notify_success:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build ${CI_PIPELINE_STATUS}: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+      - "curl -H'Title: ✔️ ${CI_REPO_NAME}/${CI_COMMIT_SOURCE_BRANCH}' -d'${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      - event: [pull_request, tag]
-        status: [failure, success]
+      - event: pull_request
+        status: [success]
+
+  notify_failure:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -H'Title: ❌ ${CI_REPO_NAME}/${CI_COMMIT_SOURCE_BRANCH}' -d'${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+    when:
+      - event: pull_request
+        status: [failure]
 
   notify_on_tag_deploy:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
+      - "curl -H'Title: ${CI_REPO_NAME}:${CI_COMMIT_TAG} deployed' -d'${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      - event: tag
+      event: tag
 
 services:
   database:

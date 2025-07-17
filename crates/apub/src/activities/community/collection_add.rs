@@ -1,29 +1,27 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    generate_to,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    activities::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
-    InCommunity,
+  protocol::activities::community::{
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
   },
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::AddType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
+};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,
@@ -35,28 +33,25 @@ use lemmy_db_schema::{
     person::Person,
     post::{Post, PostUpdateForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
-  pub async fn send_add_mod(
+  async fn send_add_mod(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
-      object: added_mod.id(),
+      object: added_mod.id().clone(),
       target: generate_moderators_url(&community.ap_id)?.into(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: AddType::Add,
       id: id.clone(),
     };
@@ -66,22 +61,19 @@ impl CollectionAdd {
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
-  pub async fn send_add_featured_post(
+  async fn send_add_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(
-      AddType::Add,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.ap_id)?.into(),
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind: AddType::Add,
       id: id.clone(),
     };
@@ -99,7 +91,7 @@ impl CollectionAdd {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CollectionAdd {
+impl Activity for CollectionAdd {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -120,7 +112,6 @@ impl ActivityHandler for CollectionAdd {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
@@ -149,7 +140,6 @@ impl ActivityHandler for CollectionAdd {
           };
           ModAddCommunity::create(&mut context.pool(), &form).await?;
         }
-        // TODO: send websocket notification about added mod
       }
       CollectionType::Featured => {
         let post = ObjectId::<ApubPost>::from(self.object)

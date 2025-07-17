@@ -5,24 +5,23 @@ use crate::{
     post_time_range_seconds_with_default,
   },
   fetcher::resolve_ap_identifier,
-  objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{GetPosts, GetPostsResponse},
-  utils::{check_conflicting_like_filters, check_private_instance},
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
-  traits::{PaginationCursorBuilder, Readable},
+  traits::PaginationCursorBuilder,
 };
-use lemmy_db_views::{
-  post::post_view::PostQuery,
-  structs::{LocalUserView, PostView, SiteView},
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::{
+  api::{GetPosts, GetPostsResponse},
+  impls::PostQuery,
+  PostView,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_posts(
@@ -44,15 +43,13 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
+  let multi_community_id = data.multi_community_id;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
+  // Show nsfw content if param is true, or if content_warning exists
   let show_nsfw = data.show_nsfw;
   let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
-
-  let liked_only = data.liked_only;
-  let disliked_only = data.disliked_only;
-  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
@@ -78,19 +75,10 @@ pub async fn list_posts(
     None
   };
 
-  let (cursor_data, cursor_before_data) = if let Some(cursor) = &data.page_cursor {
-    (
-      Some(PostView::from_cursor(cursor, &mut context.pool()).await?),
-      PostView::prefetch_cursor_before_data(
-        &mut context.pool(),
-        local_user,
-        data.page_back,
-        data.limit,
-      )
-      .await?,
-    )
+  let cursor_data = if let Some(cursor) = &data.page_cursor {
+    Some(PostView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
-    (None, None)
+    None
   };
   let page_back = data.page_back;
 
@@ -100,8 +88,7 @@ pub async fn list_posts(
     sort,
     time_range_seconds,
     community_id,
-    liked_only,
-    disliked_only,
+    multi_community_id,
     limit,
     show_hidden,
     show_read,
@@ -110,7 +97,6 @@ pub async fn list_posts(
     no_comments_only,
     keyword_blocks,
     cursor_data,
-    cursor_before_data,
     page_back,
   }
   .list(&site_view.site, &mut context.pool())

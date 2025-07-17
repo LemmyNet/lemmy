@@ -1,11 +1,9 @@
 use super::utils::{adapt_request, delete_old_image, make_send};
 use actix_web::{self, web::*, HttpRequest};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  image::{CommunityIdQuery, UploadImageResponse},
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
-  LemmyErrorType,
 };
 use lemmy_db_schema::{
   source::{
@@ -16,8 +14,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_db_views_community::api::CommunityIdQuery;
+use lemmy_db_views_local_image::api::UploadImageResponse;
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;
 use UploadType::*;
@@ -221,8 +221,9 @@ pub async fn do_upload_image(
     // but still a user may upload multiple and so we need to store all links in db for
     // to allow deletion via web ui.
     let form = LocalImageForm {
-      local_user_id: Some(local_user_view.local_user.id),
       pictrs_alias: image.file.to_string(),
+      person_id: local_user_view.person.id,
+      thumbnail_for_post_id: None,
     };
 
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

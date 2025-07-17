@@ -3,26 +3,25 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
     verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::community::ApubCommunity,
-  protocol::{
-    activities::community::lock_page::{LockPage, LockType, UndoLockPage},
-    InCommunity,
-  },
+  protocol::activities::community::lock_page::{LockPage, LockType, UndoLockPage},
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
-  traits::ActivityHandler,
+  traits::Activity,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -37,7 +36,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for LockPage {
+impl Activity for LockPage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -59,8 +58,8 @@ impl ActivityHandler for LockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_received_activity(&self.id, context).await?;
     let locked = Some(true);
+    let reason = self.summary;
     let form = PostUpdateForm {
       locked,
       ..Default::default()
@@ -72,6 +71,7 @@ impl ActivityHandler for LockPage {
       mod_person_id: self.actor.dereference(context).await?.id,
       post_id: post.id,
       locked,
+      reason,
     };
     ModLockPost::create(&mut context.pool(), &form).await?;
 
@@ -80,7 +80,7 @@ impl ActivityHandler for LockPage {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoLockPage {
+impl Activity for UndoLockPage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -93,7 +93,7 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let community = self.community(context).await?;
+    let community = self.object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
@@ -102,8 +102,8 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_received_activity(&self.id, context).await?;
     let locked = Some(false);
+    let reason = self.summary;
     let form = PostUpdateForm {
       locked,
       ..Default::default()
@@ -115,6 +115,7 @@ impl ActivityHandler for UndoLockPage {
       mod_person_id: self.actor.dereference(context).await?.id,
       post_id: post.id,
       locked,
+      reason,
     };
     ModLockPost::create(&mut context.pool(), &form).await?;
 
@@ -126,16 +127,15 @@ pub(crate) async fn send_lock_post(
   post: Post,
   actor: Person,
   locked: bool,
+  reason: Option<String>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
     .await?
     .into();
-  let id = generate_activity_id(
-    LockType::Lock,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(LockType::Lock, &context)?;
   let community_id = community.ap_id.inner().clone();
+
   let lock = LockPage {
     actor: actor.ap_id.clone().into(),
     to: generate_to(&community)?,
@@ -143,14 +143,12 @@ pub(crate) async fn send_lock_post(
     cc: vec![community_id.clone()],
     kind: LockType::Lock,
     id,
+    summary: reason.clone(),
   };
   let activity = if locked {
     AnnouncableActivities::LockPost(lock)
   } else {
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo, &context)?;
     let undo = UndoLockPage {
       actor: lock.actor.clone(),
       to: generate_to(&community)?,
@@ -158,6 +156,7 @@ pub(crate) async fn send_lock_post(
       kind: UndoType::Undo,
       id,
       object: lock,
+      summary: reason,
     };
     AnnouncableActivities::UndoLockPost(undo)
   };

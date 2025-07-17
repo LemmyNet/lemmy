@@ -1,25 +1,12 @@
-use super::{generate_to, verify_is_public};
 use crate::{
   activities::{
     community::send_activity_in_community,
     send_lemmy_activity,
     verify_mod_action,
     verify_person,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-    private_message::ApubPrivateMessage,
-  },
-  protocol::{
-    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
-    InCommunity,
-  },
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{
   config::Data,
@@ -28,7 +15,20 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{Actor, Object},
 };
-use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_api_utils::{context::LemmyContext, utils::purge_user_account};
+use lemmy_apub_objects::{
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    private_message::ApubPrivateMessage,
+  },
+  utils::{
+    functions::{generate_to, verify_is_public, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -40,6 +40,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 use url::Url;
@@ -92,10 +93,24 @@ pub(crate) async fn send_apub_delete_private_message(
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   if deleted {
-    let delete: Delete = Delete::new(actor, deletable, vec![recipient.id()], None, None, &context)?;
+    let delete: Delete = Delete::new(
+      actor,
+      deletable,
+      vec![recipient.id().clone()],
+      None,
+      None,
+      &context,
+    )?;
     send_lemmy_activity(&context, delete, actor, inbox, true).await?;
   } else {
-    let undo = UndoDelete::new(actor, deletable, vec![recipient.id()], None, None, &context)?;
+    let undo = UndoDelete::new(
+      actor,
+      deletable,
+      vec![recipient.id().clone()],
+      None,
+      None,
+      &context,
+    )?;
     send_lemmy_activity(&context, undo, actor, inbox, true).await?;
   };
   Ok(())
@@ -149,13 +164,13 @@ impl DeletableObjects {
     Err(diesel::NotFound.into())
   }
 
-  pub(crate) fn id(&self) -> Url {
+  pub(crate) fn id(&self) -> &Url {
     match self {
       DeletableObjects::Community(c) => c.id(),
       DeletableObjects::Person(p) => p.id(),
-      DeletableObjects::Comment(c) => c.ap_id.clone().into(),
-      DeletableObjects::Post(p) => p.ap_id.clone().into(),
-      DeletableObjects::PrivateMessage(p) => p.ap_id.clone().into(),
+      DeletableObjects::Comment(c) => c.ap_id.inner(),
+      DeletableObjects::Post(p) => p.ap_id.inner(),
+      DeletableObjects::PrivateMessage(p) => p.ap_id.inner(),
     }
   }
 }
@@ -259,10 +274,13 @@ async fn receive_delete_action(
       .await?;
     }
     DeletableObjects::Person(person) => {
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      let local_instance_id = site_view.site.instance_id;
+
       if do_purge_user_account.unwrap_or(false) {
-        purge_user_account(person.id, context).await?;
+        purge_user_account(person.id, local_instance_id, context).await?;
       } else {
-        Person::delete_account(&mut context.pool(), person.id).await?;
+        Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }
     }
     DeletableObjects::Post(post) => {

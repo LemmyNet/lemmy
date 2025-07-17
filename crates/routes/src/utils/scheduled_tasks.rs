@@ -3,7 +3,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{exists, not, IntervalDsl},
+  dsl::{count, exists, not, update, IntervalDsl},
   query_builder::AsQuery,
   sql_query,
   sql_types::{Integer, Timestamptz},
@@ -14,7 +14,8 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_api_common::{
+use diesel_uplete::uplete;
+use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
@@ -37,12 +38,15 @@ use lemmy_db_schema_file::schema::{
   federation_blocklist,
   instance,
   instance_actions,
+  local_site,
+  local_user,
   person,
   post,
   received_activity,
   sent_activity,
+  site,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -50,12 +54,29 @@ use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
-  // Setup the connections
-  let mut scheduler = AsyncScheduler::new();
-  startup_jobs(&mut context.pool())
-    .await
-    .inspect_err(|e| warn!("Failed to run startup tasks: {e}"))
-    .ok();
+  // https://github.com/mdsherry/clokwerk/issues/38
+  let mut scheduler = AsyncScheduler::with_tz(Utc);
+
+  let context_1 = context.clone();
+  // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
+    let context = context_1.clone();
+
+    async move {
+      update_hot_ranks(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update hot ranks: {e}"))
+        .ok();
+      delete_expired_captcha_answers(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to delete expired captcha answers: {e}"))
+        .ok();
+      publish_scheduled_posts(&context)
+        .await
+        .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
+        .ok();
+    }
+  });
 
   let context_1 = context.clone();
   // Update active counts expired bans and unpublished posts every hour
@@ -79,46 +100,13 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   });
 
   let context_1 = context.reset_request_count();
-  // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
-  scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.reset_request_count();
-
-    async move {
-      update_hot_ranks(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to update hot ranks: {e}"))
-        .ok();
-      delete_expired_captcha_answers(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to delete expired captcha answers: {e}"))
-        .ok();
-      publish_scheduled_posts(&context)
-        .await
-        .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
-        .ok();
-    }
-  });
-
-  let context_1 = context.clone();
-  // Clear old activities every week
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      clear_old_activities(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
-        .ok();
-    }
-  });
-
-  let context_1 = context.clone();
   // Daily tasks:
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
+  // - Delete old outgoing activities
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       overwrite_deleted_posts_and_comments(&mut context.pool())
@@ -133,6 +121,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
+      clear_old_activities(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
+        .ok();
     }
   });
 
@@ -141,18 +133,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     scheduler.run_pending().await;
     tokio::time::sleep(Duration::from_millis(1000)).await;
   }
-}
-
-/// Run these on server startup
-async fn startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  active_counts(pool).await?;
-  update_hot_ranks(pool).await?;
-  update_banned_when_expired(pool).await?;
-  delete_instance_block_when_expired(pool).await?;
-  clear_old_activities(pool).await?;
-  overwrite_deleted_posts_and_comments(pool).await?;
-  delete_old_denied_users(pool).await?;
-  Ok(())
 }
 
 /// Update the hot_rank columns for the aggregates tables
@@ -168,7 +148,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     &mut conn,
     "comment",
     "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.score, a.published)",
+    "SET hot_rank = r.hot_rank(a.score, a.published_at)",
   )
   .await?;
 
@@ -176,7 +156,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     &mut conn,
     "community",
     "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.subscribers, a.published)",
+    "SET hot_rank = r.hot_rank(a.subscribers, a.published_at)",
   )
   .await?;
 
@@ -187,7 +167,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
   #[diesel(sql_type = Timestamptz)]
-  published: DateTime<Utc>,
+  published_at: DateTime<Utc>,
 }
 
 /// Runs the hot rank update query in batches until all rows have been processed.
@@ -211,12 +191,12 @@ async fn process_ranks_in_batches(
     let updated_rows = sql_query(format!(
       r#"WITH batch AS (SELECT a.id
                FROM {table_name} a
-               WHERE a.published > $1 AND ({where_clause})
-               ORDER BY a.published
+               WHERE a.published_at > $1 AND ({where_clause})
+               ORDER BY a.published_at
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
          UPDATE {table_name} a {set_clause}
-             FROM batch WHERE a.id = batch.id RETURNING a.published;
+             FROM batch WHERE a.id = batch.id RETURNING a.published_at;
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
@@ -228,7 +208,7 @@ async fn process_ranks_in_batches(
     })?;
 
     processed_rows_count += updated_rows.len();
-    previous_batch_result = updated_rows.last().map(|row| row.published);
+    previous_batch_result = updated_rows.last().map(|row| row.published_at);
   }
   info!(
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
@@ -249,19 +229,19 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     let updated_rows = sql_query(
       r#"WITH batch AS (SELECT pa.id
            FROM post pa
-           WHERE pa.published > $1
+           WHERE pa.published_at > $1
            AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
-           ORDER BY pa.published
+           ORDER BY pa.published_at
            LIMIT $2
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
-      SET hot_rank = r.hot_rank(pa.score, pa.published),
-          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
-          scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
+      SET hot_rank = r.hot_rank(pa.score, pa.published_at),
+          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro_at),
+          scaled_rank = r.scaled_rank(pa.score, pa.published_at, ca.interactions_month)
       FROM batch, community ca
       WHERE pa.id = batch.id
       AND pa.community_id = ca.id
-      RETURNING pa.published;
+      RETURNING pa.published_at;
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
@@ -273,7 +253,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     })?;
 
     processed_rows_count += updated_rows.len();
-    previous_batch_result = updated_rows.last().map(|row| row.published);
+    previous_batch_result = updated_rows.last().map(|row| row.published_at);
   }
   info!(
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
@@ -286,7 +266,7 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
+    captcha_answer::table.filter(captcha_answer::published_at.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(&mut conn)
   .await?;
@@ -301,13 +281,14 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    sent_activity::table.filter(sent_activity::published.lt(now() - IntervalDsl::days(7))),
+    sent_activity::table.filter(sent_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
   .execute(&mut conn)
   .await?;
 
   diesel::delete(
-    received_activity::table.filter(received_activity::published.lt(now() - IntervalDsl::days(7))),
+    received_activity::table
+      .filter(received_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
   .execute(&mut conn)
   .await?;
@@ -329,7 +310,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   diesel::update(
     post::table
       .filter(post::deleted.eq(true))
-      .filter(post::updated.lt(now().nullable() - 1.months()))
+      .filter(post::updated_at.lt(now().nullable() - 1.months()))
       .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set((
@@ -343,7 +324,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
-      .filter(comment::updated.lt(now().nullable() - 1.months()))
+      .filter(comment::updated_at.lt(now().nullable() - 1.months()))
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
@@ -353,7 +334,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
   Ok(())
 }
 
-/// Re-calculate the site and community active counts every 12 hours
+/// Re-calculate the site, community active counts and local user count
 async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating active site and community aggregates ...");
 
@@ -382,6 +363,29 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .execute(&mut conn)
     .await?;
 
+  let mut conn = get_conn(pool).await?;
+
+  let user_count: i64 = local_user::table
+    .inner_join(
+      person::table.left_join(
+        instance_actions::table
+          .inner_join(instance::table.inner_join(site::table.inner_join(local_site::table))),
+      ),
+    )
+    // only count approved users
+    .filter(local_user::accepted_application)
+    // ignore banned and deleted accounts
+    .filter(instance_actions::received_ban_at.is_null())
+    .filter(not(person::deleted))
+    .select(count(local_user::id))
+    .get_result(&mut conn)
+    .await?;
+
+  update(local_site::table)
+    .set((local_site::users.eq(user_count),))
+    .execute(&mut conn)
+    .await?;
+
   info!("Done.");
   Ok(())
 }
@@ -391,16 +395,16 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
   let mut conn = get_conn(pool).await?;
 
-  uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
-    .set_null(community_actions::received_ban)
-    .set_null(community_actions::ban_expires)
+  uplete(community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(community_actions::received_ban_at)
+    .set_null(community_actions::ban_expires_at)
     .as_query()
     .execute(&mut conn)
     .await?;
 
-  uplete::new(instance_actions::table.filter(instance_actions::ban_expires.lt(now().nullable())))
-    .set_null(instance_actions::received_ban)
-    .set_null(instance_actions::ban_expires)
+  uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(instance_actions::received_ban_at)
+    .set_null(instance_actions::ban_expires_at)
     .as_query()
     .execute(&mut conn)
     .await?;
@@ -413,7 +417,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
   let mut conn = get_conn(pool).await?;
 
   diesel::delete(
-    federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
+    federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
   )
   .execute(&mut conn)
   .await?;
@@ -428,18 +432,18 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 
   let not_community_banned_action = community_actions::table
     .find((person::id, community::id))
-    .filter(community_actions::received_ban.is_not_null());
+    .filter(community_actions::received_ban_at.is_not_null());
 
   let not_local_banned_action = instance_actions::table
     .find((person::id, local_instance_id))
-    .filter(instance_actions::received_ban.is_not_null());
+    .filter(instance_actions::received_ban_at.is_not_null());
 
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
     .inner_join(person::table)
     // find all posts which have scheduled_publish_time that is in the  past
-    .filter(post::scheduled_publish_time.is_not_null())
-    .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+    .filter(post::scheduled_publish_time_at.is_not_null())
+    .filter(coalesce(post::scheduled_publish_time_at, now()).lt(now()))
     // make sure the post, person and community are still around
     .filter(not(post::deleted.or(post::removed)))
     .filter(not(person::deleted))
@@ -455,7 +459,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
   for (post, community) in scheduled_posts {
     // mark post as published in db
     let form = PostUpdateForm {
-      scheduled_publish_time: Some(None),
+      scheduled_publish_time_at: Some(None),
       ..Default::default()
     };
     Post::update(&mut context.pool(), post.id, &form).await?;
@@ -505,7 +509,7 @@ async fn build_update_instance_form(
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
   let mut instance_form = InstanceForm {
-    updated: Some(Utc::now()),
+    updated_at: Some(Utc::now()),
     ..InstanceForm::new(domain.to_string())
   };
 
@@ -561,8 +565,8 @@ async fn build_update_instance_form(
 mod tests {
 
   use super::*;
-  use lemmy_api_common::request::client_builder;
-  use lemmy_db_views::site::site_view::create_test_instance;
+  use lemmy_api_utils::request::client_builder;
+  use lemmy_db_schema::test_data::TestData;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
@@ -595,13 +599,19 @@ mod tests {
   #[serial]
   async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = create_test_instance(&mut context.pool()).await?;
+    let data = TestData::create(&mut context.pool()).await?;
 
-    startup_jobs(&mut context.pool()).await?;
+    active_counts(&mut context.pool()).await?;
+    update_hot_ranks(&mut context.pool()).await?;
+    update_banned_when_expired(&mut context.pool()).await?;
+    delete_instance_block_when_expired(&mut context.pool()).await?;
+    clear_old_activities(&mut context.pool()).await?;
+    overwrite_deleted_posts_and_comments(&mut context.pool()).await?;
+    delete_old_denied_users(&mut context.pool()).await?;
     update_instance_software(&mut context.pool(), context.client()).await?;
     delete_expired_captcha_answers(&mut context.pool()).await?;
     publish_scheduled_posts(&context).await?;
-    Instance::delete(&mut context.pool(), instance.id).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

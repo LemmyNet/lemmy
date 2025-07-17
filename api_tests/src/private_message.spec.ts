@@ -1,5 +1,5 @@
 jest.setTimeout(120000);
-import { PrivateMessageView } from "lemmy-js-client";
+import { LemmyError, PrivateMessageView } from "lemmy-js-client";
 import {
   alpha,
   beta,
@@ -12,14 +12,19 @@ import {
   reportPrivateMessage,
   unfollows,
   listInbox,
+  resolvePerson,
 } from "./shared";
 
 let recipient_id: number;
 
 beforeAll(async () => {
   await setupLogins();
-  await followBeta(alpha);
-  recipient_id = 3;
+  let betaUser = await beta.getMyUser();
+  let betaUserOnAlpha = await resolvePerson(
+    alpha,
+    betaUser.local_user_view.person.ap_id,
+  );
+  recipient_id = betaUserOnAlpha!.person.id;
 });
 
 afterAll(unfollows);
@@ -132,7 +137,7 @@ test("Create a private message report", async () => {
       pmRes.private_message_view.private_message.id,
       "a reason",
     ),
-  ).rejects.toStrictEqual(Error("couldnt_create_report"));
+  ).rejects.toStrictEqual(new LemmyError("couldnt_create_report"));
 
   // This one should pass
   let reason = "another reason";

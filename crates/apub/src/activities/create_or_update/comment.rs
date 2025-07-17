@@ -3,29 +3,28 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  mentions::MentionOrValue,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
-    InCommunity,
-  },
+  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   build_response::send_local_notifs,
   context::LemmyContext,
-  utils::check_post_deleted_or_removed,
+  utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
+};
+use lemmy_apub_objects::{
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    mentions::MentionOrValue,
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},
@@ -38,7 +37,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::{CommunityView, SiteView};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -62,14 +61,11 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), &context)?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: person.id().into(),
+      actor: person.id().clone().into(),
       to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
@@ -107,7 +103,7 @@ impl CreateOrUpdateNote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateNote {
+impl Activity for CreateOrUpdateNote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -138,7 +134,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_instance_id = site_view.site.instance_id;
 
-    insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
@@ -148,7 +143,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        CommunityView::check_is_mod_or_admin(
+        check_is_mod_or_admin(
           &mut context.pool(),
           creator.id,
           post.community_id,

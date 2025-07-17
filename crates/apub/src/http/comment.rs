@@ -1,17 +1,14 @@
 use super::check_community_content_fetchable;
-use crate::{
-  http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object},
-  objects::comment::ApubComment,
-};
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpRequest, HttpResponse};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::objects::comment::ApubComment;
 use lemmy_db_schema::{
   newtypes::CommentId,
   source::{comment::Comment, community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, FEDERATION_CONTEXT};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -32,11 +29,5 @@ pub(crate) async fn get_apub_comment(
   let community = Community::read(&mut context.pool(), post.community_id).await?;
   check_community_content_fetchable(&community, &request, &context).await?;
 
-  if !comment.local {
-    Ok(redirect_remote_object(&comment.ap_id))
-  } else if !comment.deleted && !comment.removed {
-    create_apub_response(&comment.into_json(&context).await?)
-  } else {
-    create_apub_tombstone_response(comment.ap_id.clone())
-  }
+  comment.http_response(&FEDERATION_CONTEXT, &context).await
 }

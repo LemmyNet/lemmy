@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub struct CaptchaAnswer {
   pub uuid: Uuid,
   pub answer: String,
-  pub published: DateTime<Utc>,
+  pub published_at: DateTime<Utc>,
 }
 
 #[skip_serializing_none]

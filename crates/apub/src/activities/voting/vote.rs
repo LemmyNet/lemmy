@@ -1,25 +1,22 @@
 use crate::{
   activities::{
     generate_activity_id,
-    verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
   },
-  insert_received_activity,
-  objects::person::ApubPerson,
-  protocol::{
-    activities::voting::vote::{Vote, VoteType},
-    InCommunity,
-  },
-  PostOrComment,
+  protocol::activities::voting::vote::{Vote, VoteType},
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
-use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
+use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_db_schema_file::enums::FederationMode;
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -31,16 +28,16 @@ impl Vote {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Vote> {
     Ok(Vote {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       object: object_id,
       kind: kind.clone(),
-      id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
+      id: generate_activity_id(kind, context)?,
     })
   }
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for Vote {
+impl Activity for Vote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -59,7 +56,6 @@ impl ActivityHandler for Vote {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
 

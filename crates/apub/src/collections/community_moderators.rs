@@ -1,7 +1,4 @@
-use crate::{
-  objects::{community::ApubCommunity, handle_community_moderators, person::ApubPerson},
-  protocol::collections::group_moderators::GroupModerators,
-};
+use crate::protocol::collections::group_moderators::GroupModerators;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -9,8 +6,12 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::Collection,
 };
-use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_api_utils::{context::LemmyContext, utils::generate_moderators_url};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::functions::handle_community_moderators,
+};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -63,9 +64,10 @@ impl Collection for ApubCommunityModerators {
 mod tests {
 
   use super::*;
-  use crate::{
-    objects::{community::tests::parse_lemmy_community, person::tests::parse_lemmy_person},
-    protocol::tests::file_to_json_object,
+  use lemmy_apub_objects::utils::test::{
+    file_to_json_object,
+    parse_lemmy_community,
+    parse_lemmy_person,
   };
   use lemmy_db_schema::{
     source::{
@@ -74,7 +76,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Joinable},
+    traits::Crud,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

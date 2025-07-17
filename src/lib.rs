@@ -1,5 +1,4 @@
-pub mod api_routes_v3;
-pub mod api_routes_v4;
+pub mod api_routes;
 
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
@@ -12,21 +11,21 @@ use actix_web::{
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
-  lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  objects::instance::ApubSite,
+  collections::fetch_community_collections,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
+use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
-use lemmy_db_schema_file::schema_setup;
+use lemmy_db_views_site::SiteView;
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
@@ -36,16 +35,16 @@ use lemmy_routes::{
   },
   nodeinfo,
   utils::{
-    code_migrations::run_advanced_migrations,
     cors_config,
     prometheus_metrics::{new_prometheus_metrics, serve_prometheus},
     scheduled_tasks,
+    setup_local_site::setup_local_site,
   },
   webfinger,
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  rate_limit::RateLimitCell,
+  rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
   VERSION,
@@ -130,7 +129,7 @@ enum CmdSubcommand {
   },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq, Eq)]
 enum MigrationSubcommand {
   /// Run up.sql for pending migrations, oldest to newest.
   Run,
@@ -147,8 +146,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }) = args.subcommand
   {
     let mut options = match subcommand {
-      MigrationSubcommand::Run => schema_setup::Options::default().run(),
-      MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
+      MigrationSubcommand::Run => lemmy_db_schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => lemmy_db_schema_setup::Options::default().revert(),
     }
     .print_output();
 
@@ -156,7 +155,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    schema_setup::run(options)?;
+    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url())?;
+
+    #[cfg(debug_assertions)]
+    if all && subcommand == MigrationSubcommand::Run {
+      println!("Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_db_schema_setup");
+    }
 
     return Ok(());
   }
@@ -173,14 +177,11 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Set up the connection pool
   let pool = build_db_pool()?;
 
-  // Run the Code-required migrations
-  run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;
-
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into()).await?;
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(&mut (&pool).into()).await?;
+  let site_view = setup_local_site(&mut (&pool).into(), &SETTINGS).await?;
   let federation_enabled = site_view.local_site.federation_enabled;
 
   if federation_enabled {
@@ -190,7 +191,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  let rate_limit_cell = RateLimitCell::new(rate_limit_config);
+  let rate_limit_cell = RateLimit::new(rate_limit_config);
 
   println!(
     "Starting HTTP server at {}:{}",
@@ -235,16 +236,17 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       Box::pin(match_outgoing_activities(d, c))
     }))
     .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+  FETCH_COMMUNITY_COLLECTIONS
+    .set(fetch_community_collections)
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();
-  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(
-    request_data.reset_request_count(),
-  ));
+  let outgoing_activities_task =
+    tokio::task::spawn(handle_outgoing_activities(request_data.clone()));
 
   if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
-    let _scheduled_tasks =
-      tokio::task::spawn(scheduled_tasks::setup(request_data.reset_request_count()));
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(request_data.clone()));
   }
 
   let server = if !args.disable_http_server {
@@ -255,7 +257,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     Some(create_http_server(
       federation_config.clone(),
       SETTINGS.clone(),
-      federation_enabled,
+      site_view,
     )?)
   } else {
     None
@@ -330,7 +332,7 @@ fn create_startup_server() -> LemmyResult<ServerHandle> {
 fn create_http_server(
   federation_config: FederationConfig<LemmyContext>,
   settings: Settings,
-  federation_enabled: bool,
+  site_view: SiteView,
 ) -> LemmyResult<ServerHandle> {
   // These must come before HttpServer creation so they can collect data across threads.
   let prom_api_metrics = new_prometheus_metrics()?;
@@ -340,7 +342,7 @@ fn create_http_server(
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
     let context: LemmyContext = federation_config.deref().clone();
-    let rate_limit_cell = federation_config.rate_limit_cell().clone();
+    let rate_limit = federation_config.rate_limit_cell().clone();
 
     let cors_config = cors_config(&settings);
     let app = App::new()
@@ -365,10 +367,9 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes_v3::config(cfg, &rate_limit_cell))
-      .configure(|cfg| api_routes_v4::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, &rate_limit))
       .configure(|cfg| {
-        if federation_enabled {
+        if site_view.local_site.federation_enabled {
           lemmy_apub::http::routes::config(cfg);
           webfinger::config(cfg);
         }
@@ -377,7 +378,7 @@ fn create_http_server(
       .configure(nodeinfo::config)
       .service(
         scope("/sitemap.xml")
-          .wrap(rate_limit_cell.message())
+          .wrap(rate_limit.message())
           .route("", get().to(get_sitemap)),
       )
   })

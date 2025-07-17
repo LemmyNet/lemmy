@@ -1,35 +1,31 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    generate_announce_activity_id,
-    generate_to,
-    send_lemmy_activity,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  activities::{generate_activity_id, generate_announce_activity_id, send_lemmy_activity},
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
-    Id,
     IdOrNestedObject,
-    InCommunity,
   },
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::community::ApubCommunity,
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::{Id, InCommunity},
+  },
+};
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for RawAnnouncableActivities {
+impl Activity for RawAnnouncableActivities {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -74,6 +70,12 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 }
 
+impl Id for RawAnnouncableActivities {
+  fn id(&self) -> &Url {
+    &self.id
+  }
+}
+
 impl AnnounceActivity {
   pub(crate) fn new(
     object: RawAnnouncableActivities,
@@ -88,7 +90,7 @@ impl AnnounceActivity {
     let id =
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
-      actor: community.id().into(),
+      actor: community.id().clone().into(),
       to: generate_to(community)?,
       object: IdOrNestedObject::NestedObject(object),
       cc: community
@@ -118,10 +120,7 @@ impl AnnounceActivity {
       // Hack: need to convert Page into a format which can be sent as activity, which requires
       //       adding actor field.
       let announcable_page = RawAnnouncableActivities {
-        id: generate_activity_id(
-          AnnounceType::Announce,
-          &context.settings().get_protocol_and_hostname(),
-        )?,
+        id: generate_activity_id(AnnounceType::Announce, context)?,
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
@@ -136,7 +135,7 @@ impl AnnounceActivity {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for AnnounceActivity {
+impl Activity for AnnounceActivity {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -153,7 +152,6 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
@@ -168,12 +166,6 @@ impl ActivityHandler for AnnounceActivity {
     // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
     object.receive(context).await
-  }
-}
-
-impl Id for RawAnnouncableActivities {
-  fn object_id(&self) -> &Url {
-    ActivityHandler::id(self)
   }
 }
 
@@ -212,7 +204,8 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityActions::check_has_local_followers(&mut context.pool(), community.id).await?
+      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community.id)
+        .await?
     }
   }
   Ok(())

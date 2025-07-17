@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, ops::Deref};
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
 #[serde(transparent)]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct SensitiveString(String);
 
 impl SensitiveString {

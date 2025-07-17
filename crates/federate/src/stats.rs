@@ -1,11 +1,10 @@
 use crate::util::{get_latest_activity_id, FederationQueueStateWithDomain};
 use chrono::Local;
-use lemmy_api_common::federate_retry_sleep_duration;
 use lemmy_db_schema::{
   newtypes::InstanceId,
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, federate_retry_sleep_duration};
 use std::{collections::HashMap, time::Duration};
 use tokio::{sync::mpsc::UnboundedReceiver, time::interval};
 use tracing::{debug, info, warn};

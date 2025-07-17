@@ -11,11 +11,7 @@ use crate::{
 use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  federate_retry_sleep_duration,
-  lemmy_utils::settings::structs::FederationWorkerConfig,
-};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
@@ -24,8 +20,12 @@ use lemmy_db_schema::{
   },
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
-use std::{collections::BinaryHeap, ops::Add, time::Duration};
+use lemmy_utils::{
+  error::LemmyResult,
+  federate_retry_sleep_duration,
+  settings::structs::FederationWorkerConfig,
+};
+use std::{cmp::max, collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
   time::sleep,
@@ -143,10 +143,11 @@ impl InstanceWorker {
       // send a new activity if there is one
       self.inbox_collector.update_communities().await?;
       let next_id_to_send = ActivityId(last_sent_id.0 + 1);
+      let successfuls_len: i64 = self.successfuls.len().try_into()?;
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
         let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
-          last_successful_id.0 + (self.successfuls.len() as i64) + i64::from(self.in_flight) + 1
+          last_successful_id.0 + successfuls_len + i64::from(self.in_flight) + 1
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {
@@ -200,7 +201,7 @@ impl InstanceWorker {
     if self.state.fail_count > 0 {
       let last_retry = self
         .state
-        .last_retry
+        .last_retry_at
         .context("impossible: if fail count set last retry also set")?;
       let elapsed = (Utc::now() - last_retry).to_std()?;
       let required = federate_retry_sleep_duration(self.state.fail_count);
@@ -264,7 +265,7 @@ impl InstanceWorker {
         SendActivityResult::Success(s) => {
           self.in_flight -= 1;
           if !s.was_skipped {
-            self.state.fail_count = 0;
+            self.state.fail_count = max(0, self.state.fail_count - 1);
             self.mark_instance_alive().await?;
           }
           self.successfuls.push(s);
@@ -279,7 +280,7 @@ impl InstanceWorker {
             // only count as one failure.
 
             self.state.fail_count = fail_count;
-            self.state.last_retry = Some(Utc::now());
+            self.state.last_retry_at = Some(Utc::now());
             force_write = true;
           }
         }
@@ -290,12 +291,15 @@ impl InstanceWorker {
   }
   async fn mark_instance_alive(&mut self) -> Result<()> {
     // Activity send successful, mark instance as alive if it hasn't been updated in a while.
-    let updated = self.instance.updated.unwrap_or(self.instance.published);
+    let updated = self
+      .instance
+      .updated_at
+      .unwrap_or(self.instance.published_at);
     if updated.add(Days::new(1)) < Utc::now() {
-      self.instance.updated = Some(Utc::now());
+      self.instance.updated_at = Some(Utc::now());
 
       let form = InstanceForm {
-        updated: Some(Utc::now()),
+        updated_at: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
       Instance::update(&mut self.pool(), self.instance.id, form)
@@ -334,7 +338,7 @@ impl InstanceWorker {
         .context("peek above ensures pop has value")?;
       last_id = next.activity_id;
       self.state.last_successful_id = Some(next.activity_id);
-      self.state.last_successful_published_time = next.published;
+      self.state.last_successful_published_time_at = next.published_at;
     }
 
     let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME)?;
@@ -357,12 +361,12 @@ impl InstanceWorker {
         .report_send_result
         .send(SendActivityResult::Success(SendSuccessInfo {
           activity_id,
-          published: None,
+          published_at: None,
           was_skipped: true,
         }))?;
       return Ok(());
     };
-    let activity = &ele.0;
+    let activity = &ele;
     let inbox_urls = self.inbox_collector.get_inbox_urls(activity).await?;
     if inbox_urls.is_empty() {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
@@ -378,7 +382,7 @@ impl InstanceWorker {
           // large to a small instance that's only subscribed to a few small communities,
           // then it will show the last published time as a days ago even though
           // federation is up to date.
-          published: Some(activity.published),
+          published_at: Some(activity.published_at),
           was_skipped: true,
         }))?;
       return Ok(());
@@ -390,8 +394,8 @@ impl InstanceWorker {
     let mut report = self.report_send_result.clone();
     tokio::spawn(async move {
       let res = SendRetryTask {
-        activity: &ele.0,
-        object: &ele.1,
+        activity: &ele,
+        object: &ele.data,
         inbox_urls,
         report: &mut report,
         initial_fail_count,
@@ -404,7 +408,7 @@ impl InstanceWorker {
       if let Err(e) = res {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
-          ele.0.ap_id,
+          ele.ap_id,
           e
         );
         // An error in this location means there is some deeper internal issue with the activity,
@@ -415,7 +419,7 @@ impl InstanceWorker {
         report
           .send(SendActivityResult::Success(SendSuccessInfo {
             activity_id,
-            published: None,
+            published_at: None,
             was_skipped: true,
           }))
           .ok();
@@ -453,7 +457,8 @@ mod test {
     protocol::context::WithContext,
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
-  use lemmy_api_common::utils::generate_inbox_url;
+  use futures::future::try_join_all;
+  use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{
@@ -466,6 +471,7 @@ mod test {
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
   use serial_test::serial;
+  use std::sync::{Arc, RwLock};
   use test_context::{test_context, AsyncTestContext};
   use tokio::{
     spawn,
@@ -484,6 +490,7 @@ mod test {
     cleaned_up: bool,
     wait_stop_server: ServerHandle,
     is_concurrent: bool,
+    respond_with_error: Arc<RwLock<bool>>,
   }
 
   impl Data {
@@ -506,7 +513,8 @@ mod test {
       let (inbox_sender, inbox_receiver) = unbounded_channel();
 
       // listen for received activities in background
-      let wait_stop_server = listen_activities(inbox_sender)?;
+      let respond_with_error = Arc::new(RwLock::new(false));
+      let wait_stop_server = listen_activities(inbox_sender, respond_with_error.clone())?;
 
       let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
         .ok()
@@ -536,6 +544,7 @@ mod test {
         wait_stop_server,
         cleaned_up: false,
         is_concurrent: concurrent_sends_per_instance > 1,
+        respond_with_error,
       })
     }
 
@@ -617,10 +626,9 @@ mod test {
     assert_eq!(data.instance.id, rcv.state.instance_id);
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
-    let mut sent = Vec::new();
-    for _ in 0..40 {
-      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-    }
+    let sent =
+      try_join_all((0..40).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+        .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
     compare_sent_with_receive(data, sent).await?;
@@ -646,10 +654,10 @@ mod test {
     let counts = vec![15, 20, 35];
     for count in counts {
       tracing::debug!("sending {} activities", count);
-      let mut sent = Vec::new();
-      for _ in 0..count {
-        sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
-      }
+      let sent = try_join_all(
+        (0..count).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)),
+      )
+      .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
       compare_sent_with_receive(data, sent).await?;
@@ -671,24 +679,80 @@ mod test {
     let instance =
       Instance::read_or_create(&mut data.context.pool(), data.instance.domain.clone()).await?;
 
-    assert!(instance.updated.is_some());
-
-    data.cleanup().await?;
+    assert!(instance.updated_at.is_some());
 
     Ok(())
   }
 
-  fn listen_activities(inbox_sender: UnboundedSender<String>) -> LemmyResult<ServerHandle> {
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn test_errors(data: &mut Data) -> LemmyResult<()> {
+    let form = InstanceForm::new(data.instance.domain.clone());
+    Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
+
+    // check initial state
+    let rcv = data.stats_receiver.recv().await.unwrap();
+    assert_eq!(0, rcv.state.fail_count);
+    assert_eq!(data.instance.id, rcv.state.instance_id);
+
+    // set receiver to return error for all inbox requests
+    *data.respond_with_error.write().unwrap() = true;
+
+    // send a few activities
+    try_join_all((0..5).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
+      .await?;
+
+    // it immediately performs first retry giving us 2 failures
+    wait_receive(2, &mut data.stats_receiver).await;
+
+    // another automatic retry after short wait
+    wait_receive(3, &mut data.stats_receiver).await;
+
+    // now make sends successful
+    *data.respond_with_error.write().unwrap() = false;
+
+    // fail count goes back to 0
+    wait_receive(0, &mut data.stats_receiver).await;
+
+    Ok(())
+  }
+
+  async fn wait_receive(
+    expected_fail_count: i32,
+    rec: &mut UnboundedReceiver<FederationQueueStateWithDomain>,
+  ) {
+    // loop until we get the latest event
+    for _ in 0..5 {
+      let rcv = rec.recv().await.unwrap();
+      if expected_fail_count == rcv.state.fail_count {
+        return;
+      }
+    }
+    panic!();
+  }
+
+  fn listen_activities(
+    inbox_sender: UnboundedSender<String>,
+    respond_with_error: Arc<RwLock<bool>>,
+  ) -> LemmyResult<ServerHandle> {
     let run = HttpServer::new(move || {
       App::new()
         .app_data(actix_web::web::Data::new(inbox_sender.clone()))
+        .app_data(actix_web::web::Data::new(respond_with_error.clone()))
         .route(
           "/inbox",
           web::post().to(
-            |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
+            move |inbox_sender: actix_web::web::Data<UnboundedSender<String>>,
+                  respond_with_error: actix_web::web::Data<Arc<RwLock<bool>>>,
+                  body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(actix_web::http::StatusCode::OK)
+              if *respond_with_error.read().unwrap() {
+                HttpResponse::new(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR)
+              } else {
+                HttpResponse::new(actix_web::http::StatusCode::OK)
+              }
             },
           ),
         )
@@ -712,18 +776,18 @@ mod test {
     wait: bool,
   ) -> LemmyResult<SentActivity> {
     // create outgoing activity
+    let id = format!(
+      "http://ds9.lemmy.ml/activities/like/{}",
+      uuid::Uuid::new_v4()
+    );
     let data = json!({
       "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
       "object": "http://ds9.lemmy.ml/comment/1",
       "type": "Like",
-      "id": format!("http://ds9.lemmy.ml/activities/like/{}", uuid::Uuid::new_v4()),
+      "id": id,
     });
     let form = SentActivityForm {
-      ap_id: Url::parse(&format!(
-        "http://local.com/activity/{}",
-        uuid::Uuid::new_v4()
-      ))?
-      .into(),
+      ap_id: Url::parse(&id)?.into(),
       data,
       sensitive: false,
       send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
@@ -741,6 +805,7 @@ mod test {
     Ok(sent)
   }
   async fn compare_sent_with_receive(data: &mut Data, mut sent: Vec<SentActivity>) -> Result<()> {
+    assert!(!sent.is_empty());
     let check_order = !data.is_concurrent; // allow out-of order receiving when running parallel
     let mut received = Vec::new();
     for _ in 0..sent.len() {

@@ -1,16 +1,15 @@
-use super::send_activity_from_user_or_community;
+use super::send_activity_from_user_or_community_or_multi;
 use crate::{
   activities::generate_activity_id,
-  insert_received_activity,
   protocol::activities::following::{follow::Follow, reject::RejectFollow},
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::RejectType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
@@ -23,23 +22,20 @@ impl RejectFollow {
     let user_or_community = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let reject = RejectFollow {
-      actor: user_or_community.id().into(),
-      to: Some([person.id().into()]),
+      actor: user_or_community.id().clone().into(),
+      to: Some([person.id().clone().into()]),
       object: follow,
       kind: RejectType::Reject,
-      id: generate_activity_id(
-        RejectType::Reject,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(RejectType::Reject, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_activity_from_user_or_community(context, reject, user_or_community, inbox).await
+    send_activity_from_user_or_community_or_multi(context, reject, user_or_community, inbox).await
   }
 }
 
 /// Handle rejected follows
 #[async_trait::async_trait]
-impl ActivityHandler for RejectFollow {
+impl Activity for RejectFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -61,7 +57,6 @@ impl ActivityHandler for RejectFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
 

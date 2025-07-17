@@ -9,17 +9,15 @@ pub mod update;
 #[cfg(test)]
 mod tests {
   use super::resolve_report::ResolveReport;
-  use crate::protocol::{
-    activities::community::{
-      announce::AnnounceActivity,
-      collection_add::CollectionAdd,
-      collection_remove::CollectionRemove,
-      lock_page::{LockPage, UndoLockPage},
-      report::Report,
-      update::UpdateCommunity,
-    },
-    tests::test_parse_lemmy_item,
+  use crate::protocol::activities::community::{
+    announce::AnnounceActivity,
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
+    lock_page::{LockPage, UndoLockPage},
+    report::Report,
+    update::Update,
   };
+  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
 
   #[test]
@@ -41,9 +39,7 @@ mod tests {
     test_parse_lemmy_item::<LockPage>("assets/lemmy/activities/community/lock_page.json")?;
     test_parse_lemmy_item::<UndoLockPage>("assets/lemmy/activities/community/undo_lock_page.json")?;
 
-    test_parse_lemmy_item::<UpdateCommunity>(
-      "assets/lemmy/activities/community/update_community.json",
-    )?;
+    test_parse_lemmy_item::<Update>("assets/lemmy/activities/community/update_community.json")?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
     test_parse_lemmy_item::<ResolveReport>(

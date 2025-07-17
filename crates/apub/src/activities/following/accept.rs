@@ -1,16 +1,14 @@
-use super::send_activity_from_user_or_community;
 use crate::{
-  activities::generate_activity_id,
-  insert_received_activity,
+  activities::{generate_activity_id, send_lemmy_activity},
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::AcceptType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
@@ -20,26 +18,23 @@ use url::Url;
 
 impl AcceptFollow {
   pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let user_or_community = follow.object.dereference_local(context).await?;
+    let target = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
-      actor: user_or_community.id().into(),
-      to: Some([person.id().into()]),
+      actor: target.id().clone().into(),
+      to: Some([person.id().clone().into()]),
       object: follow,
       kind: AcceptType::Accept,
-      id: generate_activity_id(
-        AcceptType::Accept,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(AcceptType::Accept, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_activity_from_user_or_community(context, accept, user_or_community, inbox).await
+    send_lemmy_activity(context, accept, &target, inbox, true).await
   }
 }
 
 /// Handle accepted follows
 #[async_trait::async_trait]
-impl ActivityHandler for AcceptFollow {
+impl Activity for AcceptFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -61,7 +56,6 @@ impl ActivityHandler for AcceptFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
     // This will throw an error if no follow was requested

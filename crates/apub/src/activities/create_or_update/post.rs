@@ -3,24 +3,23 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{
-    activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
-    InCommunity,
-  },
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Object},
 };
-use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
+use lemmy_api_utils::{build_response::send_local_notifs, context::LemmyContext};
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   newtypes::{PersonId, PostOrCommentId},
   source::{
@@ -31,7 +30,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -46,15 +45,12 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone(), context)?;
     Ok(CreateOrUpdatePage {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
       object: post.into_json(context).await?,
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind,
       id: id.clone(),
     })
@@ -89,7 +85,7 @@ impl CreateOrUpdatePage {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdatePage {
+impl Activity for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -116,7 +112,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_instance_id = site_view.site.instance_id;
 
-    insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default

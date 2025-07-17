@@ -1,16 +1,16 @@
-use crate::{
-  activities::deletion::DeletableObjects,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
-};
+use crate::{activities::deletion::DeletableObjects, protocol::IdOrNestedObject};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::DeleteType,
-  protocol::helpers::deserialize_one_or_many,
+  protocol::{helpers::deserialize_one_or_many, tombstone::Tombstone},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  utils::protocol::InCommunity,
+};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,

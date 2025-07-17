@@ -4,8 +4,8 @@ use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
@@ -18,6 +18,7 @@ pub enum LemmyErrorType {
   NotAModerator,
   NotAnAdmin,
   CantBlockYourself,
+  CantNoteYourself,
   CantBlockAdmin,
   CouldntUpdateUser,
   PasswordsDoNotMatch,
@@ -76,7 +77,6 @@ pub enum LemmyErrorType {
   NoEmailSetup,
   LocalSiteNotSetup,
   InvalidEmailAddress(String),
-  RateLimitError,
   InvalidName,
   InvalidCodeVerifier,
   InvalidDisplayName,
@@ -118,7 +118,7 @@ pub enum LemmyErrorType {
   EmailSendFailed,
   Slurs,
   RegistrationDenied {
-    #[cfg_attr(feature = "full", ts(optional))]
+    #[cfg_attr(feature = "ts-rs", ts(optional))]
     reason: Option<String>,
   },
   SiteNameRequired,
@@ -154,7 +154,7 @@ pub enum LemmyErrorType {
   TooManyScheduledPosts,
   CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
-    #[cfg_attr(feature = "full", ts(optional))]
+    #[cfg_attr(feature = "ts-rs", ts(optional))]
     error: Option<FederationError>,
   },
   CouldntParsePaginationToken,
@@ -192,12 +192,15 @@ pub enum LemmyErrorType {
   CouldntUpdateLocalSiteUrlBlocklist,
   CouldntCreateEmailVerification,
   EmailNotificationsDisabled,
+  MultiCommunityUpdateWrongUser,
+  CannotCombineCommunityIdAndMultiCommunityId,
+  MultiCommunityEntryLimitReached,
 }
 
 /// Federation related errors, these dont need to be translated.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 #[non_exhaustive]
 pub enum FederationError {
   InvalidCommunity,
@@ -238,7 +241,7 @@ cfg_if! {
     }
 
     /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
-    pub const MAX_API_PARAM_ELEMENTS: usize = 10_000;
+    pub(crate) const MAX_API_PARAM_ELEMENTS: usize = 10_000;
 
     impl<T> From<T> for LemmyError
     where
@@ -281,7 +284,6 @@ cfg_if! {
         match self.error_type {
           LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
           LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,
-          LemmyErrorType::RateLimitError => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
           _ => actix_web::http::StatusCode::BAD_REQUEST,
         }
       }

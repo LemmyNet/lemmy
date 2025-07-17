@@ -1,7 +1,10 @@
 use actix_web::{rt::System, web, App, HttpServer};
 use actix_web_prom::{PrometheusMetrics, PrometheusMetricsBuilder};
-use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
-use lemmy_utils::{error::LemmyResult, settings::structs::PrometheusConfig};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::PrometheusConfig,
+};
 use prometheus::{default_registry, Encoder, Gauge, Opts, TextEncoder};
 use std::{sync::Arc, thread};
 use tracing::error;
@@ -43,7 +46,7 @@ pub fn serve_prometheus(config: PrometheusConfig, lemmy_context: LemmyContext) -
           .app_data(web::Data::new(Arc::clone(&context)))
           .route("/metrics", web::get().to(metrics))
       })
-      .bind((config.bind, config.port as u16))
+      .bind((config.bind, config.port))
       .unwrap_or_else(|e| panic!("Cannot bind to {}:{}: {e}", config.bind, config.port))
       .run();
 
@@ -95,6 +98,9 @@ fn create_db_pool_metrics() -> LemmyResult<DbPoolMetrics> {
   Ok(metrics)
 }
 
+/// try_from does not support conversion from usize to f64
+/// https://stackoverflow.com/q/35974890
+#[allow(clippy::as_conversions)]
 fn collect_db_pool_metrics(context: &PromContext) {
   let pool_status = context.lemmy.inner_pool().status();
   context

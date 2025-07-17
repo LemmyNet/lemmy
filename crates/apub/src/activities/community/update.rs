@@ -2,28 +2,32 @@ use crate::{
   activities::{
     community::send_activity_in_community,
     generate_activity_id,
-    generate_to,
-    update_community_tags,
+    send_lemmy_activity,
     verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson, read_from_string_or_source_opt},
-  protocol::{activities::community::update::UpdateCommunity, objects::AttributedTo, InCommunity},
+  protocol::activities::community::update::Update,
 };
 use activitypub_federation::{
   config::Data,
-  kinds::activity::UpdateType,
-  traits::{ActivityHandler, Actor, Object},
+  kinds::{activity::UpdateType, public},
+  traits::{Activity, Object},
 };
-use chrono::Utc;
-use lemmy_api_common::context::LemmyContext;
+use either::Either;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{community::ApubCommunity, multi_community::ApubMultiCommunity, person::ApubPerson},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    protocol::InCommunity,
+  },
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityUpdateForm},
+    community::Community,
+    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
+    multi_community::MultiCommunity,
     person::Person,
   },
   traits::Crud,
@@ -38,20 +42,17 @@ pub(crate) async fn send_update_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(
-    UpdateType::Update,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
-  let update = UpdateCommunity {
-    actor: actor.id().into(),
+  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let update = Update {
+    actor: actor.id().clone().into(),
     to: generate_to(&community)?,
-    object: Box::new(community.clone().into_json(&context).await?),
-    cc: vec![community.id()],
+    object: Either::Left(community.clone().into_json(&context).await?),
+    cc: vec![community.id().clone()],
     kind: UpdateType::Update,
     id: id.clone(),
   };
 
-  let activity = AnnouncableActivities::UpdateCommunity(update);
+  let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
   send_activity_in_community(
     activity,
     &actor,
@@ -63,8 +64,31 @@ pub(crate) async fn send_update_community(
   .await
 }
 
+pub(crate) async fn send_update_multi_community(
+  multi: MultiCommunity,
+  actor: Person,
+  context: Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let multi: ApubMultiCommunity = multi.into();
+  let actor: ApubPerson = actor.into();
+  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let update = Update {
+    actor: actor.id().clone().into(),
+    to: vec![multi.ap_id.clone().into(), public()],
+    object: Either::Right(multi.clone().into_json(&context).await?),
+    cc: vec![],
+    kind: UpdateType::Update,
+    id: id.clone(),
+  };
+
+  let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
+  let mut inboxes = ActivitySendTargets::empty();
+  inboxes.add_inboxes(MultiCommunity::follower_inboxes(&mut context.pool(), multi.id).await?);
+  send_lemmy_activity(&context, activity, &actor, inboxes, false).await
+}
+
 #[async_trait::async_trait]
-impl ActivityHandler for UpdateCommunity {
+impl Activity for Update {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -77,53 +101,40 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
-    verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, &community, context).await?;
-    ApubCommunity::verify(&self.object, &community.ap_id.clone().into(), context).await?;
+    match &self.object {
+      Either::Left(c) => {
+        let community = self.community(context).await?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        verify_person_in_community(&self.actor, &community, context).await?;
+        verify_mod_action(&self.actor, &community, context).await?;
+        ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
+      }
+      Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,
+    }
     Ok(())
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
-    let community = self.community(context).await?;
+    match self.object {
+      Either::Left(ref c) => {
+        let old_community = self.community(context).await?;
 
-    let ap_id = self.object.id.to_string();
-    let community_update_form = CommunityUpdateForm {
-      title: Some(self.object.name.unwrap_or(self.object.preferred_username)),
-      description: Some(read_from_string_or_source_opt(
-        &self.object.summary,
-        &None,
-        &self.object.source,
-      )),
-      published: self.object.published,
-      updated: Some(self.object.updated),
-      nsfw: Some(self.object.sensitive.unwrap_or(false)),
-      ap_id: Some(self.object.id.into()),
-      public_key: Some(self.object.public_key.public_key_pem),
-      last_refreshed_at: Some(Utc::now()),
-      icon: Some(self.object.icon.map(|i| i.url.into())),
-      banner: Some(self.object.image.map(|i| i.url.into())),
-      followers_url: self.object.followers.map(Into::into),
-      inbox_url: Some(
-        self
-          .object
-          .endpoints
-          .map(|e| e.shared_inbox)
-          .unwrap_or(self.object.inbox)
-          .into(),
-      ),
-      moderators_url: self.object.attributed_to.and_then(AttributedTo::url),
-      posting_restricted_to_mods: self.object.posting_restricted_to_mods,
-      featured_url: self.object.featured.map(Into::into),
-      ..Default::default()
-    };
+        let community = ApubCommunity::from_json(c.clone(), context).await?;
 
-    update_community_tags(context, community.id, ap_id, self.object.tags_for_posts).await?;
-
-    Community::update(&mut context.pool(), community.id, &community_update_form).await?;
-
+        if old_community.visibility != community.visibility {
+          let actor = self.actor.dereference(context).await?;
+          let form = ModChangeCommunityVisibilityForm {
+            mod_person_id: actor.id,
+            community_id: old_community.id,
+            visibility: old_community.visibility,
+          };
+          ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+        }
+      }
+      Either::Right(m) => {
+        ApubMultiCommunity::from_json(m, context).await?;
+      }
+    }
     Ok(())
   }
 }

@@ -1,7 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_received_activity,
-  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
@@ -10,11 +8,12 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
 use lemmy_db_schema::source::activity::ActivitySendTargets;
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -26,14 +25,11 @@ pub(crate) async fn send_create_or_update_pm(
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
-  let id = generate_activity_id(
-    kind.clone(),
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let id = generate_activity_id(kind.clone(), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
-    actor: actor.id().into(),
-    to: [recipient.id().into()],
+    actor: actor.id().clone().into(),
+    to: [recipient.id().clone().into()],
     object: ApubPrivateMessage(pm_view.private_message.clone())
       .into_json(&context)
       .await?,
@@ -44,7 +40,7 @@ pub(crate) async fn send_create_or_update_pm(
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdatePrivateMessage {
+impl Activity for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -66,7 +62,6 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     ApubPrivateMessage::from_json(self.object, context).await?;
     Ok(())
   }

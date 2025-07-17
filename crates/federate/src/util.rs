@@ -1,16 +1,15 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_apub::{
-  activity_lists::SharedInboxActivities,
-  fetcher::{SiteOrCommunityOrUser, UserOrCommunity},
-};
+use either::Either::*;
+use lemmy_apub_objects::objects::SiteOrMultiOrCommunityOrUser;
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
     activity::SentActivity,
     community::Community,
     federation_queue_state::FederationQueueState,
+    multi_community::MultiCommunity,
     person::Person,
     site::Site,
   },
@@ -21,7 +20,6 @@ use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;
-use serde_json::Value;
 use std::{
   fmt::Debug,
   future::Future,
@@ -138,39 +136,45 @@ pub(crate) async fn get_actor_cached(
   pool: &mut DbPool<'_>,
   actor_type: ActorType,
   actor_apub_id: &Url,
-) -> Result<Arc<SiteOrCommunityOrUser>> {
-  static CACHE: LazyLock<Cache<Url, Arc<SiteOrCommunityOrUser>>> =
+) -> Result<Arc<SiteOrMultiOrCommunityOrUser>> {
+  static CACHE: LazyLock<Cache<Url, Arc<SiteOrMultiOrCommunityOrUser>>> =
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   CACHE
     .try_get_with(actor_apub_id.clone(), async {
       let url = actor_apub_id.clone().into();
-      let person = match actor_type {
-        ActorType::Site => SiteOrCommunityOrUser::Left(
+      let actor = match actor_type {
+        ActorType::Site => Left(Left(
           Site::read_from_apub_id(pool, &url)
             .await?
             .context("apub site not found")?
             .into(),
-        ),
-        ActorType::Community => SiteOrCommunityOrUser::Right(UserOrCommunity::Right(
+        )),
+        ActorType::Community => Right(Right(
           Community::read_from_apub_id(pool, &url)
             .await?
             .context("apub community not found")?
             .into(),
         )),
-        ActorType::Person => SiteOrCommunityOrUser::Right(UserOrCommunity::Left(
+        ActorType::Person => Right(Left(
           Person::read_from_apub_id(pool, &url)
             .await?
             .context("apub person not found")?
             .into(),
         )),
+        ActorType::MultiCommunity => Left(Right(
+          MultiCommunity::read_from_ap_id(pool, &url)
+            .await?
+            .context("apub multi-comm not found")?
+            .into(),
+        )),
       };
-      Result::<_, LemmyError>::Ok(Arc::new(person))
+      Result::<_, LemmyError>::Ok(Arc::new(actor))
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
 }
 
-type CachedActivityInfo = Option<Arc<(SentActivity, SharedInboxActivities)>>;
+type CachedActivityInfo = Option<Arc<SentActivity>>;
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
 /// Holes in serials are expected behaviour in postgresql
@@ -183,19 +187,10 @@ pub(crate) async fn get_activity_cached(
     LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = SentActivity::read(pool, activity_id).await;
-      let Ok(mut row) = row else {
-        return anyhow::Result::<_, anyhow::Error>::Ok(None);
-      };
-      // swap to avoid cloning
-      let mut data = Value::Null;
-      std::mem::swap(&mut row.data, &mut data);
-      let activity_actual: SharedInboxActivities = serde_json::from_value(data)?;
-
-      Ok(Some(Arc::new((row, activity_actual))))
+      Ok(Some(Arc::new(SentActivity::read(pool, activity_id).await?)))
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))
+    .map_err(|e: Arc<LemmyError>| anyhow::anyhow!("err getting activity: {e:?}"))
 }
 
 /// return the most current activity id (with 1 second cache)
@@ -212,7 +207,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       let latest_id = seq.unwrap_or(ActivityId(0));
-      anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
+      anyhow::Result::<_, anyhow::Error>::Ok(latest_id)
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting id: {e:?}"))
@@ -220,6 +215,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
 
 /// the domain name is needed for logging, pass it to the stats printer so it doesn't need to look
 /// up the domain itself
+#[derive(Debug)]
 pub(crate) struct FederationQueueStateWithDomain {
   pub domain: String,
   pub state: FederationQueueState,

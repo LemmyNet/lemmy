@@ -5,23 +5,23 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
-    verify_is_public,
-    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
-  insert_received_activity,
-  objects::person::ApubPerson,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Actor, Object},
 };
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
+};
+use lemmy_apub_objects::{
+  objects::person::ApubPerson,
+  utils::functions::{verify_is_public, verify_visibility},
 };
 use lemmy_db_schema::{
   source::{
@@ -47,12 +47,9 @@ impl UndoBlockUser {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let to = to(target)?;
 
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo, context)?;
     let undo = UndoBlockUser {
-      actor: mod_.id().into(),
+      actor: mod_.id().clone().into(),
       to,
       object: block,
       cc: generate_cc(target, &mut context.pool()).await?,
@@ -63,11 +60,11 @@ impl UndoBlockUser {
 
     let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
     match target {
-      SiteOrCommunity::Site(_) => {
+      SiteOrCommunity::Left(_) => {
         inboxes.set_all_instances();
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
-      SiteOrCommunity::Community(c) => {
+      SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);
         send_activity_in_community(activity, mod_, c, inboxes, true, context).await
       }
@@ -76,7 +73,7 @@ impl UndoBlockUser {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoBlockUser {
+impl Activity for UndoBlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -95,15 +92,14 @@ impl ActivityHandler for UndoBlockUser {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
-    let expires = self.object.end_time;
+    let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
-      SiteOrCommunity::Site(site) => {
+      SiteOrCommunity::Left(site) => {
         verify_is_public(&self.to, &self.cc)?;
-        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires);
+        let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::unban(pool, &form).await?;
 
         if self.restore_data.unwrap_or(false) {
@@ -122,12 +118,12 @@ impl ActivityHandler for UndoBlockUser {
           other_person_id: blocked_person.id,
           reason: self.object.summary,
           banned: Some(false),
-          expires,
+          expires_at,
           instance_id: site.instance_id,
         };
         ModBan::create(&mut context.pool(), &form).await?;
       }
-      SiteOrCommunity::Community(community) => {
+      SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
         let community_user_ban_form = CommunityPersonBanForm::new(community.id, blocked_person.id);
         CommunityActions::unban(&mut context.pool(), &community_user_ban_form).await?;
@@ -151,7 +147,7 @@ impl ActivityHandler for UndoBlockUser {
           community_id: community.id,
           reason: self.object.summary,
           banned: Some(false),
-          expires,
+          expires_at,
         };
         ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }

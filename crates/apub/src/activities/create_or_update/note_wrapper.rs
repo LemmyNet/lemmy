@@ -1,16 +1,11 @@
-use crate::{
-  objects::community::ApubCommunity,
-  protocol::{
-    activities::create_or_update::{
-      note::CreateOrUpdateNote,
-      note_wrapper::CreateOrUpdateNoteWrapper,
-      private_message::CreateOrUpdatePrivateMessage,
-    },
-    InCommunity,
-  },
+use crate::protocol::activities::create_or_update::{
+  note::CreateOrUpdateNote,
+  note_wrapper::CreateOrUpdateNoteWrapper,
+  private_message::CreateOrUpdatePrivateMessage,
 };
-use activitypub_federation::{config::Data, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use activitypub_federation::{config::Data, traits::Activity};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{objects::community::ApubCommunity, utils::protocol::InCommunity};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
@@ -19,7 +14,7 @@ use url::Url;
 /// makes it difficult to distinguish them. This wrapper handles receiving of both types, and
 /// routes them to the correct handler.
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateNoteWrapper {
+impl Activity for CreateOrUpdateNoteWrapper {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

@@ -10,11 +10,14 @@ pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
 #[cfg(feature = "full")]
+pub mod test_data;
+#[cfg(feature = "full")]
 pub mod aliases {
   use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
   diesel::alias!(
     community_actions as creator_community_actions: CreatorCommunityActions,
     instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
+    instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
     instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
@@ -33,14 +36,13 @@ use strum::{Display, EnumString};
 use {
   diesel::query_source::AliasedField,
   lemmy_db_schema_file::schema::{community_actions, instance_actions, person},
-  ts_rs::TS,
 };
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The search sort types.
 pub enum SearchSortType {
   #[default]
@@ -49,11 +51,32 @@ pub enum SearchSortType {
   Old,
 }
 
+/// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum CommunitySortType {
+  ActiveSixMonths,
+  #[default]
+  ActiveMonthly,
+  ActiveWeekly,
+  ActiveDaily,
+  Hot,
+  New,
+  Old,
+  NameAsc,
+  NameDesc,
+  Comments,
+  Posts,
+  Subscribers,
+  SubscribersLocal,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
   #[default]
@@ -62,11 +85,12 @@ pub enum SearchType {
   Posts,
   Communities,
   Users,
+  MultiCommunities,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the various modlog actions.
 pub enum ModlogActionType {
   All,
@@ -90,8 +114,8 @@ pub enum ModlogActionType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
 pub enum InboxDataType {
   All,
@@ -102,8 +126,8 @@ pub enum InboxDataType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
@@ -112,8 +136,8 @@ pub enum PersonContentType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for reports.
 pub enum ReportType {
   All,
@@ -126,8 +150,8 @@ pub enum ReportType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// The feature type for a post.
 pub enum PostFeatureType {
   #[default]
@@ -135,6 +159,19 @@ pub enum PostFeatureType {
   Local,
   /// Features to the top of the community.
   Community,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
+)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// The like_type for a persons liked content.
+pub enum LikeType {
+  #[default]
+  All,
+  LikedOnly,
+  DislikedOnly,
 }
 
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
@@ -153,8 +190,8 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::name>,
   AliasedField<aliases::Person1, person::display_name>,
   AliasedField<aliases::Person1, person::avatar>,
-  AliasedField<aliases::Person1, person::published>,
-  AliasedField<aliases::Person1, person::updated>,
+  AliasedField<aliases::Person1, person::published_at>,
+  AliasedField<aliases::Person1, person::updated_at>,
   AliasedField<aliases::Person1, person::ap_id>,
   AliasedField<aliases::Person1, person::bio>,
   AliasedField<aliases::Person1, person::local>,
@@ -180,8 +217,8 @@ pub type Person2AliasAllColumnsTuple = (
   AliasedField<aliases::Person2, person::name>,
   AliasedField<aliases::Person2, person::display_name>,
   AliasedField<aliases::Person2, person::avatar>,
-  AliasedField<aliases::Person2, person::published>,
-  AliasedField<aliases::Person2, person::updated>,
+  AliasedField<aliases::Person2, person::published_at>,
+  AliasedField<aliases::Person2, person::updated_at>,
   AliasedField<aliases::Person2, person::ap_id>,
   AliasedField<aliases::Person2, person::bio>,
   AliasedField<aliases::Person2, person::local>,
@@ -205,13 +242,13 @@ pub type Person2AliasAllColumnsTuple = (
 pub type CreatorCommunityActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorCommunityActions, community_actions::community_id>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::followed>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::followed_at>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::follow_state>,
   AliasedField<aliases::CreatorCommunityActions, community_actions::follow_approver_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban_at>,
+  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires_at>,
 );
 
 #[cfg(feature = "full")]
@@ -219,9 +256,9 @@ pub type CreatorCommunityActionsAllColumnsTuple = (
 pub type CreatorHomeInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
 );
 
 #[cfg(feature = "full")]
@@ -229,7 +266,17 @@ pub type CreatorHomeInstanceActionsAllColumnsTuple = (
 pub type CreatorLocalInstanceActionsAllColumnsTuple = (
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
   AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for creator home instance actions.
+pub type CreatorCommunityInstanceActionsAllColumnsTuple = (
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::person_id>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::instance_id>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::ban_expires_at>,
 );

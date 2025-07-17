@@ -1,17 +1,22 @@
 use crate::{
   activities::community::send_activity_in_community,
   activity_lists::AnnouncableActivities,
-  fetcher::PostOrComment,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::voting::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
-use lemmy_api_common::{
+use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
+};
+use lemmy_apub_objects::objects::{
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
+  PostOrComment,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -33,7 +38,8 @@ pub(crate) async fn send_like_activity(
   object_id: DbUrl,
   actor: Person,
   community: Community,
-  score: i16,
+  previous_score: Option<i16>,
+  new_score: i16,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let object_id: ObjectId<PostOrComment> = object_id.into();
@@ -42,13 +48,17 @@ pub(crate) async fn send_like_activity(
 
   let empty = ActivitySendTargets::empty();
   // score of 1 means upvote, -1 downvote, 0 undo a previous vote
-  if score != 0 {
-    let vote = Vote::new(object_id, &actor, score.try_into()?, &context)?;
+  if new_score != 0 {
+    let vote = Vote::new(object_id, &actor, new_score.try_into()?, &context)?;
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
-    // Lemmy API doesn't distinguish between Undo/Like and Undo/Dislike, so we hardcode it here.
-    let vote = Vote::new(object_id, &actor, VoteType::Like, &context)?;
+    let previous_vote_type = if previous_score.unwrap_or_default() > 0 {
+      VoteType::Like
+    } else {
+      VoteType::Dislike
+    };
+    let vote = Vote::new(object_id, &actor, previous_vote_type, &context)?;
     let undo_vote = UndoVote::new(vote, &actor, &context)?;
     let activity = AnnouncableActivities::UndoVote(undo_vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await

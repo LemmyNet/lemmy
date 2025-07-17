@@ -1,24 +1,21 @@
 use crate::{
   activities::{
     generate_activity_id,
-    verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
-  insert_received_activity,
-  objects::person::ApubPerson,
-  protocol::{
-    activities::voting::{undo_vote::UndoVote, vote::Vote},
-    InCommunity,
-  },
-  PostOrComment,
+  protocol::activities::voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
-  traits::{ActivityHandler, Actor},
+  traits::{Activity, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::{functions::verify_person_in_community, protocol::InCommunity},
+};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -29,19 +26,16 @@ impl UndoVote {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     Ok(UndoVote {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       object: vote,
       kind: UndoType::Undo,
-      id: generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(UndoType::Undo, context)?,
     })
   }
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoVote {
+impl Activity for UndoVote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -54,7 +48,7 @@ impl ActivityHandler for UndoVote {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
+    let community = self.object.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
@@ -62,7 +56,6 @@ impl ActivityHandler for UndoVote {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
     match object {

@@ -1,4 +1,4 @@
-pub mod uplete;
+pub mod queries;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
@@ -26,14 +26,14 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
+  scoped_futures::ScopedBoxFuture,
   AsyncConnection,
 };
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
-use lemmy_db_schema_file::schema_setup;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
 use regex::Regex;
@@ -59,7 +59,7 @@ use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 20;
-pub const FETCH_LIMIT_MAX: i64 = 50;
+pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
@@ -87,6 +87,21 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
   })
+}
+
+impl DbConn<'_> {
+  pub async fn run_transaction<'a, R, F>(&mut self, callback: F) -> LemmyResult<R>
+  where
+    F: for<'r> FnOnce(&'r mut AsyncPgConnection) -> ScopedBoxFuture<'a, 'r, LemmyResult<R>>
+      + Send
+      + 'a,
+    R: Send + 'a,
+  {
+    self
+      .deref_mut()
+      .transaction::<_, LemmyError, _>(callback)
+      .await
+  }
 }
 
 impl Deref for DbConn<'_> {
@@ -280,7 +295,7 @@ pub fn fuzzy_search(q: &str) -> String {
 pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
   Ok(match limit {
     Some(limit) => {
-      if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
+      if !(1..=FETCH_LIMIT_MAX.try_into()?).contains(&limit) {
         return Err(LemmyErrorType::InvalidFetchLimit.into());
       }
       limit
@@ -382,7 +397,7 @@ fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
   Ok(url.into())
 }
 
-fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
+fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
   let fut = async {
     /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
@@ -477,7 +492,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(db_url, config);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -495,7 +510,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  schema_setup::run(schema_setup::Options::default().run())?;
+  lemmy_db_schema_setup::run(lemmy_db_schema_setup::Options::default().run(), &db_url)?;
 
   Ok(pool)
 }
@@ -607,9 +622,36 @@ pub fn paginate<Q, C>(
   query
 }
 
+pub(crate) fn format_actor_url(
+  name: &str,
+  domain: &str,
+  prefix: char,
+  settings: &Settings,
+) -> LemmyResult<Url> {
+  let local_protocol_and_hostname = settings.get_protocol_and_hostname();
+  let local_hostname = &settings.hostname;
+  let url = if domain != local_hostname {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}@{domain}",)
+  } else {
+    format!("{local_protocol_and_hostname}/{prefix}/{name}")
+  };
+  Ok(Url::parse(&url)?)
+}
+
+/// Make sure the like score is 1, or -1
+///
+/// Uses a default NotFound error, that you should map to
+/// CouldntLikeComment/CouldntLikePost.
+pub(crate) fn validate_like(like_score: i16) -> LemmyResult<()> {
+  if [-1, 1].contains(&like_score) {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotFound.into())
+  }
+}
+
 #[cfg(test)]
 mod tests {
-
   use super::*;
   use pretty_assertions::assert_eq;
 

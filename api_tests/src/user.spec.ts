@@ -23,9 +23,11 @@ import {
   unfollows,
   getMyUser,
   getPersonDetails,
+  banPersonFromSite,
 } from "./shared";
 import {
   EditSite,
+  LemmyError,
   LemmyHttp,
   SaveUserSettings,
   UploadImage,
@@ -44,21 +46,21 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.ap_id).toBe(userTwo?.person.ap_id);
   expect(userOne?.person.avatar).toBe(userTwo?.person.avatar);
   expect(userOne?.person.banner).toBe(userTwo?.person.banner);
-  expect(userOne?.person.published).toBe(userTwo?.person.published);
+  expect(userOne?.person.published_at).toBe(userTwo?.person.published_at);
 }
 
 test("Create user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
-  let my_user = await getMyUser(user);
-  expect(my_user).toBeDefined();
-  apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let myUser = await getMyUser(user);
+  expect(myUser).toBeDefined();
+  apShortname = `${myUser.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
   await saveUserSettingsFederated(alpha);
-  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
-  let betaPerson = (await resolvePerson(beta, apShortname)).person;
+  let alphaPerson = await resolvePerson(alpha, apShortname);
+  let betaPerson = await resolvePerson(beta, apShortname);
   assertUserFederation(alphaPerson, betaPerson);
 
   // Catches a bug where when only the person or local_user changed
@@ -77,8 +79,7 @@ test("Delete user", async () => {
   let person_id = user_profile.local_user_view.person.id;
 
   // make a local post and comment
-  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
-    .community;
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
@@ -90,7 +91,7 @@ test("Delete user", async () => {
   expect(localComment).toBeDefined();
 
   // make a remote post and comment
-  let betaCommunity = (await resolveBetaCommunity(user)).community;
+  let betaCommunity = await resolveBetaCommunity(user);
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -102,9 +103,11 @@ test("Delete user", async () => {
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
-  await expect(getMyUser(user)).rejects.toStrictEqual(Error("incorrect_login"));
+  await expect(getMyUser(user)).rejects.toStrictEqual(
+    new LemmyError("incorrect_login"),
+  );
   await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
-    Error("not_found"),
+    new LemmyError("not_found"),
   );
 
   // check that posts and comments are marked as deleted on other instances.
@@ -119,13 +122,11 @@ test("Delete user", async () => {
     (await getComments(alpha, localComment.post_id)).comments[0].comment
       .deleted,
   ).toBe(true);
-  expect(
-    (await getComments(alpha, remoteComment.post_id)).comments[0].comment
-      .deleted,
-  ).toBe(true);
+  let comment = await alpha.getComment({ id: remoteComment.id });
+  expect(comment.comment_view.comment.deleted).toBe(true);
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
-  ).rejects.toStrictEqual(Error("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found"));
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
@@ -134,7 +135,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     fetchFunction,
   });
   await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
-    Error("incorrect_login"),
+    new LemmyError("incorrect_login"),
   );
   let site = await getSite(invalid_auth);
   expect(site.site_view).toBeDefined();
@@ -153,7 +154,7 @@ test("Create user with Arabic name", async () => {
   expect(my_user).toBeDefined();
   apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
-  let betaPerson1 = (await resolvePerson(beta, apShortname)).person;
+  let betaPerson1 = await resolvePerson(beta, apShortname);
   expect(betaPerson1!.person.name).toBe(name);
 
   let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id);
@@ -222,4 +223,41 @@ test("Set a new avatar, old avatar is deleted", async () => {
   expect(listMediaRes5.images.length).toBe(0);
   let my_user2 = await alpha.getMyUser();
   expect(my_user2.local_user_view.person.avatar).toBeUndefined();
+});
+
+test("Make sure banned user can delete their account", async () => {
+  let user = await registerUser(alpha, alphaUrl);
+  let myUser = await getMyUser(user);
+
+  // make a local post
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+  let localPost = (await createPost(user, alphaCommunity.community.id))
+    .post_view.post;
+  let postId = localPost.id;
+  expect(localPost).toBeDefined();
+
+  // Ban the user, keep data
+  let banUser = await banPersonFromSite(
+    alpha,
+    myUser.local_user_view.person.id,
+    true,
+    false,
+  );
+  expect(banUser.banned).toBe(true);
+
+  // Make sure post is there
+  let postAfterBan = await getPost(alpha, postId);
+  expect(postAfterBan.post_view.post.deleted).toBe(false);
+
+  // Delete account
+  let deleteAccount = await deleteUser(user);
+  expect(deleteAccount).toBeDefined();
+
+  // Make sure post is gone
+  let postAfterDelete = await getPost(alpha, postId);
+  expect(postAfterDelete.post_view.post.deleted).toBe(true);
+  expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
 });

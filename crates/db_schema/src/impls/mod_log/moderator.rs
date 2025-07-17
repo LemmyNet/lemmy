@@ -466,7 +466,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      published: inserted_mod_remove_post.published,
+      published_at: inserted_mod_remove_post.published_at,
     };
 
     // lock post
@@ -475,6 +475,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
       locked: None,
+      reason: None,
     };
     let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form).await?;
     let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id).await?;
@@ -483,7 +484,8 @@ mod tests {
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
       locked: true,
-      published: inserted_mod_lock_post.published,
+      reason: None,
+      published_at: inserted_mod_lock_post.published_at,
     };
 
     // feature post
@@ -502,7 +504,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       featured: false,
       is_featured_community: true,
-      published: inserted_mod_feature_post.published,
+      published_at: inserted_mod_feature_post.published_at,
     };
 
     // comment
@@ -523,7 +525,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      published: inserted_mod_remove_comment.published,
+      published_at: inserted_mod_remove_comment.published_at,
     };
 
     // community
@@ -544,7 +546,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      published: inserted_mod_remove_community.published,
+      published_at: inserted_mod_remove_community.published_at,
     };
 
     // ban from community
@@ -555,7 +557,7 @@ mod tests {
       community_id: inserted_community.id,
       reason: None,
       banned: None,
-      expires: None,
+      expires_at: None,
     };
     let inserted_mod_ban_from_community =
       ModBanFromCommunity::create(pool, &mod_ban_from_community_form).await?;
@@ -568,8 +570,8 @@ mod tests {
       other_person_id: inserted_person.id,
       reason: None,
       banned: true,
-      expires: None,
-      published: inserted_mod_ban_from_community.published,
+      expires_at: None,
+      published_at: inserted_mod_ban_from_community.published_at,
     };
 
     // ban
@@ -579,7 +581,7 @@ mod tests {
       other_person_id: inserted_person.id,
       reason: None,
       banned: None,
-      expires: None,
+      expires_at: None,
       instance_id: inserted_instance.id,
     };
     let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await?;
@@ -590,8 +592,8 @@ mod tests {
       other_person_id: inserted_person.id,
       reason: None,
       banned: true,
-      expires: None,
-      published: inserted_mod_ban.published,
+      expires_at: None,
+      published_at: inserted_mod_ban.published_at,
       instance_id: inserted_instance.id,
     };
 
@@ -611,7 +613,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      published: inserted_mod_add_community.published,
+      published_at: inserted_mod_add_community.published_at,
     };
 
     // mod add
@@ -628,7 +630,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      published: inserted_mod_add.published,
+      published_at: inserted_mod_add.published_at,
     };
 
     Comment::delete(pool, inserted_comment.id).await?;

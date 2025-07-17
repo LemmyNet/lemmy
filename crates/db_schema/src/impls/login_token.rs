@@ -54,7 +54,7 @@ impl LoginToken {
       .with_lemmy_type(LemmyErrorType::Deleted)
   }
 
-  /// Invalidate all logins of given user on password reset/change, account deletion or site ban.
+  /// Invalidate all logins of given user on password reset/change, or account deletion.
   pub async fn invalidate_all(pool: &mut DbPool<'_>, user_id_: LocalUserId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     delete(login_token.filter(user_id.eq(user_id_)))

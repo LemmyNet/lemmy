@@ -37,15 +37,12 @@ import {
 beforeAll(setupLogins);
 
 afterAll(async () => {
-  await Promise.all([unfollows(), deleteAllMedia(alpha)]);
+  await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth();
   expect(health.success).toBeTruthy();
-
-  // Before running this test, you need to delete all previous images in the DB
-  await deleteAllMedia(alpha);
 
   // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
   // in testing mode.
@@ -149,11 +146,7 @@ test("Purge post, linked image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   let community = await resolveBetaCommunity(user);
-  let post = await createPost(
-    user,
-    community.community!.community.id,
-    upload.image_url,
-  );
+  let post = await createPost(user, community!.community.id, upload.image_url);
   expect(post.post_view.post.url).toBe(upload.image_url);
   expect(post.post_view.image_details).toBeDefined();
 
@@ -194,16 +187,16 @@ test("Images in remote image post are proxied if setting enabled", async () => {
     post.body?.startsWith("![](http://lemmy-gamma:8561/api/v4/image/proxy?url"),
   ).toBeTruthy();
 
-  // Make sure that it ends with jpg, to be sure its an image
-  expect(post.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
+  // Make sure that it contains `jpg`, to be sure its an image
+  expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
-  expect(epsilonPostRes.post).toBeDefined();
+  expect(epsilonPostRes?.post).toBeDefined();
 
   // Fetch the post again, the metadata should be backgrounded now
   // Wait for the metadata to get fetched, since this is backgrounded now
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes.post!.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -219,8 +212,8 @@ test("Images in remote image post are proxied if setting enabled", async () => {
     ),
   ).toBeTruthy();
 
-  // Make sure that it ends with jpg, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
+  // Make sure that it contains `jpg`, to be sure its an image
+  expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
@@ -241,14 +234,14 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
     ),
   ).toBeTruthy();
 
-  // Make sure that it ends with png, to be sure its an image
-  expect(post.thumbnail_url?.endsWith(".png")).toBeTruthy();
+  // Make sure that it contains `png`, to be sure its an image
+  expect(post.thumbnail_url?.includes(".png")).toBeTruthy();
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
-  expect(epsilonPostRes.post).toBeDefined();
+  expect(epsilonPostRes?.post).toBeDefined();
 
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes.post!.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -259,8 +252,8 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
     ),
   ).toBeTruthy();
 
-  // Make sure that it ends with png, to be sure its an image
-  expect(epsilonPost.thumbnail_url?.endsWith(".png")).toBeTruthy();
+  // Make sure that it contains `png`, to be sure its an image
+  expect(epsilonPost.thumbnail_url?.includes(".png")).toBeTruthy();
 });
 
 test("No image proxying if setting is disabled", async () => {
@@ -270,7 +263,7 @@ test("No image proxying if setting is disabled", async () => {
     beta,
     community.community_view.community.ap_id,
   );
-  await followCommunity(beta, true, betaCommunity.community!.community.id);
+  await followCommunity(beta, true, betaCommunity!.community.id);
 
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
@@ -290,11 +283,9 @@ test("No image proxying if setting is disabled", async () => {
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
-  let betaPost = await waitForPost(
-    beta,
-    post.post_view.post,
-    res => res?.post.alt_text != null,
-  );
+  let betaPost = await waitForPost(beta, post.post_view.post, res => {
+    return res?.post.alt_text != null;
+  });
   expect(betaPost.post).toBeDefined();
 
   // remote image doesn't get proxied after federation

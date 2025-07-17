@@ -7,33 +7,28 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::site;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The site.
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Additional data for federated instances. This may be missing for other platforms which are not
+/// fully compatible. Basic data is guaranteed to be available via [[Instance]].
 pub struct Site {
   pub id: SiteId,
   pub name: String,
   /// A sidebar for the site in markdown.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub published_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// An icon URL.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<DbUrl>,
   /// A banner url.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   /// A shorter, one-line description of the site.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   /// The federated ap_id.
   pub ap_id: DbUrl,
@@ -48,7 +43,6 @@ pub struct Site {
   pub instance_id: InstanceId,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
-  #[cfg_attr(feature = "full", ts(optional))]
   pub content_warning: Option<String>,
 }
 
@@ -61,7 +55,7 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub sidebar: Option<String>,
   #[new(default)]
-  pub updated: Option<DateTime<Utc>>,
+  pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub icon: Option<DbUrl>,
   #[new(default)]
@@ -88,7 +82,7 @@ pub struct SiteInsertForm {
 pub struct SiteUpdateForm {
   pub name: Option<String>,
   pub sidebar: Option<Option<String>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   // when you want to null out a column, you have to send Some(None)), since sending None means you
   // just don't want to update that column.
   pub icon: Option<Option<DbUrl>>,

@@ -51,7 +51,7 @@ FROM
                     NULL
                 END) AS up,
             count(
-                CASE WHEN l.score = - 1 THEN
+                CASE WHEN l.score = -1 THEN
                     1
                 ELSE
                     NULL
@@ -396,7 +396,7 @@ FROM
             post_id,
             sum(score) AS score,
             sum(score) FILTER (WHERE score = 1) AS upvotes,
-            - sum(score) FILTER (WHERE score = - 1) AS downvotes
+            - sum(score) FILTER (WHERE score = -1) AS downvotes
         FROM
             post_like
         GROUP BY
@@ -492,4 +492,6 @@ SELECT
     NULL AS saved
 FROM
     post_aggregates_fast pav;
+
+CREATE INDEX idx_post_aggregates_fast_hot_rank_published ON post_aggregates_fast (hot_rank DESC, published DESC);
 

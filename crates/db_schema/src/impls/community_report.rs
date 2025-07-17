@@ -37,17 +37,18 @@ impl Reportable for CommunityReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
-  async fn resolve(
+  async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
+    is_resolved: bool,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(community_report::table.find(report_id_))
       .set((
-        community_report::resolved.eq(true),
+        community_report::resolved.eq(is_resolved),
         community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        community_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -71,7 +72,7 @@ impl Reportable for CommunityReport {
     .set((
       community_report::resolved.eq(true),
       community_report::resolver_id.eq(resolver_id),
-      community_report::updated.eq(Utc::now()),
+      community_report::updated_at.eq(Utc::now()),
     ))
     .execute(conn)
     .await
@@ -88,29 +89,7 @@ impl Reportable for CommunityReport {
       .set((
         community_report::resolved.eq(true),
         community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
-  }
-
-  /// unresolve a community report
-  ///
-  /// * `conn` - the postgres connection
-  /// * `report_id` - the id of the report to unresolve
-  /// * `by_resolver_id` - the id of the user unresolving the report
-  async fn unresolve(
-    pool: &mut DbPool<'_>,
-    report_id_: Self::IdType,
-    by_resolver_id: PersonId,
-  ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    update(community_report::table.find(report_id_))
-      .set((
-        community_report::resolved.eq(false),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated.eq(Utc::now()),
+        community_report::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await

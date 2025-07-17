@@ -3,12 +3,11 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  insert_received_activity,
-  objects::person::ApubPerson,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -29,7 +28,7 @@ use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResul
 use url::Url;
 
 #[async_trait::async_trait]
-impl ActivityHandler for UndoDelete {
+impl Activity for UndoDelete {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -48,7 +47,6 @@ impl ActivityHandler for UndoDelete {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    insert_received_activity(&self.id, context).await?;
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,
@@ -73,10 +71,7 @@ impl UndoDelete {
   ) -> LemmyResult<UndoDelete> {
     let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
 
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(UndoDelete {
       actor: actor.ap_id.clone().into(),

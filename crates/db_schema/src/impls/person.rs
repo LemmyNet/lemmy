@@ -1,16 +1,17 @@
 use crate::{
-  diesel::OptionalExtension,
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
+  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PersonId},
   source::person::{
     Person,
     PersonActions,
     PersonBlockForm,
     PersonFollowerForm,
     PersonInsertForm,
+    PersonNoteForm,
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{functions::lower, get_conn, uplete, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -21,7 +22,14 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{instance, local_user, person, person_actions};
+use diesel_uplete::{uplete, UpleteCount};
+use lemmy_db_schema_file::schema::{
+  instance,
+  instance_actions,
+  local_user,
+  person,
+  person_actions,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -83,14 +91,35 @@ impl Person {
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
   }
 
-  pub async fn delete_account(pool: &mut DbPool<'_>, person_id: PersonId) -> LemmyResult<Person> {
+  pub async fn delete_account(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    local_instance_id: InstanceId,
+  ) -> LemmyResult<Person> {
     let conn = &mut get_conn(pool).await?;
 
-    // Set the local user info to none
-    diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set(local_user::email.eq::<Option<String>>(None))
-      .execute(conn)
-      .await?;
+    // Set the local user email to none, only if they aren't banned locally.
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::person_id
+        .eq(person_id)
+        .and(instance_actions::instance_id.eq(local_instance_id)),
+    );
+
+    let not_banned_local_user_id = local_user::table
+      .left_join(instance_actions_join)
+      .filter(local_user::person_id.eq(person_id))
+      .filter(instance_actions::received_ban_at.nullable().is_null())
+      .select(local_user::id)
+      .first::<LocalUserId>(conn)
+      .await
+      .optional()?;
+
+    if let Some(local_user_id) = not_banned_local_user_id {
+      diesel::update(local_user::table.find(local_user_id))
+        .set(local_user::email.eq::<Option<String>>(None))
+        .execute(conn)
+        .await?;
+    };
 
     diesel::update(person::table.find(person_id))
       .set((
@@ -100,7 +129,7 @@ impl Person {
         person::bio.eq::<Option<String>>(None),
         person::matrix_user_id.eq::<Option<String>>(None),
         person::deleted.eq(true),
-        person::updated.eq(Utc::now()),
+        person::updated_at.eq(Utc::now()),
       ))
       .get_result::<Self>(conn)
       .await
@@ -118,11 +147,6 @@ impl Person {
     .await?
     .then_some(())
     .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
-  }
-
-  pub fn local_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
-    let domain = settings.get_protocol_and_hostname();
-    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
   }
 }
 
@@ -183,6 +207,21 @@ impl ApubActor for Person {
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'u', settings)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/u/{name}"))?.into())
+  }
 }
 
 impl Followable for PersonActions {
@@ -211,10 +250,10 @@ impl Followable for PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_id, target_id)))
-      .set_null(person_actions::followed)
+    uplete(person_actions::table.find((person_id, target_id)))
+      .set_null(person_actions::followed_at)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
       .await
@@ -240,10 +279,10 @@ impl Blockable for PersonActions {
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
-      .set_null(person_actions::blocked)
+    uplete(person_actions::table.find((form.person_id, form.target_id)))
+      .set_null(person_actions::blocked_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
@@ -257,7 +296,7 @@ impl Blockable for PersonActions {
     let conn = &mut get_conn(pool).await?;
     let find_action = person_actions::table
       .find((person_id, recipient_id))
-      .filter(person_actions::blocked.is_not_null());
+      .filter(person_actions::blocked_at.is_not_null());
 
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
@@ -274,7 +313,7 @@ impl Blockable for PersonActions {
     let target_person_alias = diesel::alias!(person as person1);
 
     person_actions::table
-      .filter(person_actions::blocked.is_not_null())
+      .filter(person_actions::blocked_at.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .inner_join(
         target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
@@ -282,7 +321,7 @@ impl Blockable for PersonActions {
       .select(target_person_alias.fields(person::all_columns))
       .filter(person_actions::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
-      .order_by(person_actions::blocked)
+      .order_by(person_actions::blocked_at)
       .load::<Person>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -290,17 +329,123 @@ impl Blockable for PersonActions {
 }
 
 impl PersonActions {
-  pub async fn list_followers(
+  pub async fn follower_inboxes(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> LemmyResult<Vec<Person>> {
+  ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
     person_actions::table
-      .filter(person_actions::followed.is_not_null())
+      .filter(person_actions::followed_at.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .filter(person_actions::target_id.eq(for_person_id))
-      .select(person::all_columns)
+      .select(person::inbox_url)
+      .distinct()
       .load(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn note(pool: &mut DbPool<'_>, form: &PersonNoteForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(person_actions::table)
+      .values(form)
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set(form)
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn delete_note(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: PersonId,
+  ) -> LemmyResult<UpleteCount> {
+    let conn = &mut get_conn(pool).await?;
+    uplete(person_actions::table.find((person_id, target_id)))
+      .set_null(person_actions::note)
+      .set_null(person_actions::noted_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: PersonId,
+    like_score: i16,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    let (upvotes_inc, downvotes_inc) = match like_score {
+      1 => (1, 0),
+      -1 => (0, 1),
+      _ => return Err(LemmyErrorType::NotFound.into()),
+    };
+
+    let voted_at = Utc::now();
+
+    insert_into(person_actions::table)
+      .values((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(upvotes_inc),
+        person_actions::downvotes.eq(downvotes_inc),
+      ))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
+        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
+      ))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// Removes a person like. A previous_score of zero throws an error.
+  pub async fn remove_like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    target_id: PersonId,
+    previous_score: i16,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    let (upvotes_inc, downvotes_inc) = match previous_score {
+      1 => (-1, 0),
+      -1 => (0, -1),
+      _ => return Err(LemmyErrorType::NotFound.into()),
+    };
+    let voted_at = Utc::now();
+
+    insert_into(person_actions::table)
+      .values((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(upvotes_inc),
+        person_actions::downvotes.eq(downvotes_inc),
+      ))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
+      .do_update()
+      .set((
+        person_actions::person_id.eq(person_id),
+        person_actions::target_id.eq(target_id),
+        person_actions::voted_at.eq(voted_at),
+        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
+        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
+      ))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -318,8 +463,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Followable, Likeable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::build_db_pool_for_tests,
   };
+  use diesel_uplete::UpleteCount;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -343,15 +489,15 @@ mod tests {
       avatar: None,
       banner: None,
       deleted: false,
-      published: inserted_person.published,
-      updated: None,
+      published_at: inserted_person.published_at,
+      updated_at: None,
       ap_id: inserted_person.ap_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
       private_key: None,
       public_key: "pubkey".to_owned(),
-      last_refreshed_at: inserted_person.published,
+      last_refreshed_at: inserted_person.published_at,
       inbox_url: inserted_person.inbox_url.clone(),
       matrix_user_id: None,
       instance_id: inserted_instance.id,
@@ -398,12 +544,12 @@ mod tests {
     assert_eq!(person_2.id, person_follower.person_id);
     assert!(person_follower.follow_pending.is_some_and(|x| !x));
 
-    let followers = PersonActions::list_followers(pool, person_1.id).await?;
-    assert_eq!(vec![person_2], followers);
+    let followers = PersonActions::follower_inboxes(pool, person_1.id).await?;
+    assert_eq!(vec![person_2.inbox_url], followers);
 
     let unfollow =
       PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), unfollow);
+    assert_eq!(UpleteCount::only_deleted(1), unfollow);
 
     Ok(())
   }

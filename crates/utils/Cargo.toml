@@ -7,6 +7,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "lemmy_utils"
@@ -23,7 +24,6 @@ workspace = true
 
 [features]
 full = [
-  "ts-rs",
   "diesel",
   "actix-web",
   "reqwest-middleware",
@@ -44,7 +44,9 @@ full = [
   "itertools",
   "markdown-it",
   "moka",
+  "actix-extensible-rate-limit",
 ]
+ts-rs = ["dep:ts-rs"]
 
 [package.metadata.cargo-shear]
 ignored = ["http"]
@@ -73,14 +75,17 @@ ts-rs = { workspace = true, optional = true }
 enum-map = { version = "2.7", optional = true }
 cfg-if = "1"
 clearurls = { version = "0.0.4", features = ["linkify"] }
-markdown-it-block-spoiler = "1.0.1"
-markdown-it-sub = "1.0.1"
-markdown-it-sup = "1.0.1"
-markdown-it-ruby = "1.0.1"
+markdown-it-block-spoiler = "1.0.2"
+markdown-it-sub = "1.0.2"
+markdown-it-sup = "1.0.2"
+markdown-it-ruby = "1.0.2"
 markdown-it-footnote = "0.2.0"
 moka = { workspace = true, optional = true }
 git-version = "0.3.9"
-unicode-segmentation = "1.9.0"
+unicode-segmentation = "1.12.0"
+invisible-characters = "0.1.3"
+actix-extensible-rate-limit = { git = "https://github.com/Nutomic/actix-extensible-rate-limit.git", branch = "make-extensible", optional = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
+unified-diff = { workspace = true }

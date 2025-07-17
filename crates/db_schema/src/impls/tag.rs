@@ -1,11 +1,22 @@
 use crate::{
-  newtypes::{CommunityId, TagId},
-  source::tag::{Tag, TagInsertForm, TagUpdateForm},
+  newtypes::{CommunityId, PostId, TagId},
+  source::{
+    community::Community,
+    tag::{Tag, TagInsertForm, TagUpdateForm, TagsView},
+  },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use chrono::Utc;
-use diesel::{insert_into, ExpressionMethods, QueryDsl};
+use diesel::{
+  deserialize::FromSql,
+  insert_into,
+  pg::{Pg, PgValue},
+  serialize::ToSql,
+  sql_types::{Json, Nullable},
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::tag;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -25,10 +36,9 @@ impl Tag {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn community_override_all_from_apub(
+  pub async fn community_update_from_apub(
     pool: &mut DbPool<'_>,
-    community_id: CommunityId,
-    community_ap_id: String,
+    community: &Community,
     ap_tags: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
     // Verify that each tag is actually in the given community.
@@ -36,10 +46,10 @@ impl Tag {
     // different community.
     let ap_tags: Vec<TagInsertForm> = ap_tags
       .into_iter()
-      .filter(|tag| tag.ap_id.as_str().starts_with(&community_ap_id))
+      .filter(|tag| tag.ap_id.as_str().starts_with(community.ap_id.as_ref()))
       .collect();
 
-    let known_tags = Tag::get_by_community(pool, community_id).await?;
+    let known_tags = Tag::get_by_community(pool, community.id).await?;
     let old_tags = known_tags
       .iter()
       .map(|tag| (tag.ap_id.clone(), tag))
@@ -70,7 +80,7 @@ impl Tag {
             old_tag.id,
             &TagUpdateForm {
               display_name: Some(tag.display_name.clone()),
-              updated: Some(Some(Utc::now())),
+              updated_at: Some(Some(Utc::now())),
               ..Default::default()
             },
           )
@@ -84,7 +94,7 @@ impl Tag {
         tag,
         &TagUpdateForm {
           deleted: Some(true),
-          updated: Some(Some(Utc::now())),
+          updated_at: Some(Some(Utc::now())),
           ..Default::default()
         },
       )
@@ -92,6 +102,10 @@ impl Tag {
     }
 
     Ok(())
+  }
+
+  pub async fn read_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Vec<Self>> {
+    todo!()
   }
 }
 
@@ -116,5 +130,27 @@ impl Crud for Tag {
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
+  }
+}
+
+impl FromSql<Nullable<Json>, Pg> for TagsView {
+  fn from_sql(bytes: PgValue) -> diesel::deserialize::Result<Self> {
+    let value = <serde_json::Value as FromSql<Json, Pg>>::from_sql(bytes)?;
+    Ok(serde_json::from_value::<TagsView>(value)?)
+  }
+  fn from_nullable_sql(
+    bytes: Option<<Pg as diesel::backend::Backend>::RawValue<'_>>,
+  ) -> diesel::deserialize::Result<Self> {
+    match bytes {
+      Some(bytes) => Self::from_sql(bytes),
+      None => Ok(Self(vec![])),
+    }
+  }
+}
+
+impl ToSql<Nullable<Json>, Pg> for TagsView {
+  fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
+    let value = serde_json::to_value(self)?;
+    <serde_json::Value as ToSql<Json, Pg>>::to_sql(&value, &mut out.reborrow())
   }
 }

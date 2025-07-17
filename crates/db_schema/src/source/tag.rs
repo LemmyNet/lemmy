@@ -3,14 +3,18 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
-use {lemmy_db_schema_file::schema::tag, ts_rs::TS};
+use {
+  diesel::{sql_types::Nullable, AsExpression, FromSqlRow},
+  lemmy_db_schema_file::schema::tag,
+};
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A tag that can be assigned to a post within a community.
 /// The tag object is created by the community moderators.
 /// The assignment happens by the post creator and can be updated by the community moderators.
@@ -29,9 +33,8 @@ pub struct Tag {
   pub display_name: String,
   /// the community that owns this tag
   pub community_id: CommunityId,
-  pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub updated: Option<DateTime<Utc>>,
+  pub published_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
   pub deleted: bool,
 }
 
@@ -51,7 +54,16 @@ pub struct TagUpdateForm {
   pub ap_id: Option<DbUrl>,
   pub display_name: Option<String>,
   pub community_id: Option<CommunityId>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
 }
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct TagsView(pub Vec<Tag>);
