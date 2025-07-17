@@ -53,7 +53,7 @@ impl SearchCombined {
               .select((post::published_at, post::score, post::id))
               .filter(post::id.lt(last_scanned_id))
               .order_by(post::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, i32, PostId)>(conn)
               .await?
               .iter()
@@ -133,7 +133,7 @@ impl SearchCombined {
               .select((comment::published_at, comment::score, comment::id))
               .filter(comment::id.lt(last_scanned_id))
               .order_by(comment::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, i32, CommentId)>(conn)
               .await?
               .iter()
@@ -221,7 +221,7 @@ impl SearchCombined {
               ))
               .filter(community::id.lt(last_scanned_id))
               .order_by(community::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, i32, CommunityId)>(conn)
               .await?
               .iter()
@@ -305,7 +305,7 @@ impl SearchCombined {
               .select((person::published_at, person::post_score, person::id))
               .filter(person::id.lt(last_scanned_id))
               .order_by(person::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, i32, PersonId)>(conn)
               .await?
               .iter()

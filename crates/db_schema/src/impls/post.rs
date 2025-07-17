@@ -33,7 +33,7 @@ use diesel::{
   dsl::{count, count_star, delete, insert_into, not, update},
   expression::SelectableHelper,
   sql_query,
-  sql_types::Integer,
+  sql_types::{BigInt, Integer},
   upsert::excluded,
   BoolExpressionMethods,
   DecoratableTarget,
@@ -406,7 +406,7 @@ impl Post {
                 RETURNING p.id;
             "#,
             ))
-            .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+            .bind::<BigInt, _>(DB_BATCH_SIZE)
             .get_results::<AggregatesUpdateResult>(conn)
             .await?;
 
@@ -699,7 +699,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = post_read::table
               .order_by(post_read::published.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(PostId, PersonId, DateTime<Utc>)>(conn)
               .await?
               .iter()
@@ -777,7 +777,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = post_like::table
               .order_by(post_like::published.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(PostId, PersonId, i16, DateTime<Utc>)>(conn)
               .await?
               .iter()
@@ -859,7 +859,7 @@ impl PostActions {
             // Select and map into comment like forms
             let forms = person_post_aggregates::table
               .order_by(person_post_aggregates::published.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(PersonId, PostId, i64, DateTime<Utc>)>(conn)
               .await?
               .iter()

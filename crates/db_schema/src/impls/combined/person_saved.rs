@@ -74,7 +74,7 @@ impl PersonSavedCombined {
               .filter(post_actions::id.lt(last_scanned_id))
               .filter(post_actions::saved_at.is_not_null())
               .order_by(post_actions::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, PersonId, PostId, i32)>(conn)
               .await?;
 
@@ -169,7 +169,7 @@ impl PersonSavedCombined {
               .filter(comment_actions::id.lt(last_scanned_id))
               .filter(comment_actions::saved_at.is_not_null())
               .order_by(comment_actions::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(DateTime<Utc>, PersonId, CommentId, i32)>(conn)
               .await?;
 

@@ -51,7 +51,7 @@ impl PersonContentCombined {
               .select((post::id, post::published_at))
               .filter(post::id.lt(last_scanned_id))
               .order_by(post::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(PostId, DateTime<Utc>)>(conn)
               .await?
               .iter()
@@ -134,7 +134,7 @@ impl PersonContentCombined {
               .select((comment::id, comment::published_at))
               .filter(comment::id.lt(last_scanned_id))
               .order_by(comment::id.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(CommentId, DateTime<Utc>)>(conn)
               .await?
               .iter()

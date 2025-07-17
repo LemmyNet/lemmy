@@ -26,7 +26,7 @@ use diesel::{
   dsl::{count_star, delete, insert_into},
   expression::SelectableHelper,
   sql_query,
-  sql_types::Integer,
+  sql_types::{BigInt, Integer},
   update,
   upsert::excluded,
   ExpressionMethods,
@@ -292,7 +292,7 @@ impl Comment {
                 RETURNING c.id;
             "#,
             ))
-            .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+            .bind::<BigInt, _>(DB_BATCH_SIZE)
             .get_results::<AggregatesUpdateResult>(conn)
             .await?;
 
@@ -496,7 +496,7 @@ impl CommentActions {
             // Select and map into comment like forms
             let forms = comment_like::table
               .order_by(comment_like::published.desc())
-              .limit(DB_BATCH_SIZE.try_into()?)
+              .limit(DB_BATCH_SIZE)
               .get_results::<(PersonId, CommentId, i16, DateTime<Utc>)>(conn)
               .await?
               .iter()

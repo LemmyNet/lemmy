@@ -6,7 +6,7 @@ use diesel::{
   dsl::{count, exists, not, update, IntervalDsl},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{Integer, Timestamptz},
+  sql_types::{BigInt, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -219,7 +219,7 @@ async fn process_ranks_in_batches(
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -263,7 +263,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
