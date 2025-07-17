@@ -4,3 +4,5 @@ CREATE TABLE community_community_follow (
     PRIMARY KEY (community_id, follower_id)
 );
 
+CREATE INDEX idx_community_community_follow_follower ON community_community_follow (follower_id);
+
