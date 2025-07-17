@@ -22,7 +22,11 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
-    combined::{person_content::PersonContentCombined, person_saved::PersonSavedCombined},
+    combined::{
+      person_content::PersonContentCombined,
+      person_saved::PersonSavedCombined,
+      search::SearchCombined,
+    },
     comment::CommentActions,
     community::Community,
     instance::{Instance, InstanceForm},
@@ -493,10 +497,16 @@ async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   // PostActions::fill_post_read_history(pool).await?;
   // PostActions::fill_read_comments_history(pool).await?;
   // PostActions::fill_post_like_history(pool).await?;
+  // TODO aggregates next
+  // TODO finally the combined
   // PersonContentCombined::fill_post_history(pool).await?;
   // PersonContentCombined::fill_comment_history(pool).await?;
   // PersonSavedCombined::fill_post_history(pool).await?;
-  PersonSavedCombined::fill_comment_history(pool).await?;
+  // PersonSavedCombined::fill_comment_history(pool).await?;
+  SearchCombined::fill_post_history(pool).await?;
+  SearchCombined::fill_comment_history(pool).await?;
+  SearchCombined::fill_community_history(pool).await?;
+  SearchCombined::fill_person_history(pool).await?;
 
   info!("Finished filling history.");
   Ok(())

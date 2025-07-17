@@ -44,8 +44,9 @@ ON CONFLICT (post_id)
         score = excluded.score;
 
 -- Don't bother with IDs since these are missing from the aggregates tables
+-- Also, the aggregates tables are completely removed in a later PR, so just use the source
 INSERT INTO history_status (source, dest)
-    VALUES ('post_aggregates', 'search_combined');
+    VALUES ('post', 'search_combined');
 
 INSERT INTO search_combined (published, score, comment_id)
 SELECT
@@ -62,7 +63,7 @@ ON CONFLICT (comment_id)
         score = excluded.score;
 
 INSERT INTO history_status (source, dest)
-    VALUES ('comment_aggregates', 'search_combined');
+    VALUES ('comment', 'search_combined');
 
 INSERT INTO search_combined (published, score, community_id)
 SELECT
@@ -79,7 +80,7 @@ ON CONFLICT (community_id)
         score = excluded.score;
 
 INSERT INTO history_status (source, dest)
-    VALUES ('community_aggregates', 'search_combined');
+    VALUES ('community', 'search_combined');
 
 INSERT INTO search_combined (published, score, person_id)
 SELECT
@@ -96,7 +97,7 @@ ON CONFLICT (person_id)
         score = excluded.score;
 
 INSERT INTO history_status (source, dest)
-    VALUES ('person_aggregates', 'search_combined');
+    VALUES ('person', 'search_combined');
 
 CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
 
