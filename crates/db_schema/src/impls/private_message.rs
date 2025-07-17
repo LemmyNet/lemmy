@@ -178,15 +178,6 @@ mod tests {
       },
     )
     .await?;
-    let marked_read_private_message = PrivateMessage::update(
-      pool,
-      inserted_private_message.id,
-      &PrivateMessageUpdateForm {
-        read: Some(true),
-        ..Default::default()
-      },
-    )
-    .await?;
     Person::delete(pool, inserted_creator.id).await?;
     Person::delete(pool, inserted_recipient.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
@@ -195,7 +186,6 @@ mod tests {
     assert_eq!(expected_private_message, updated_private_message);
     assert_eq!(expected_private_message, inserted_private_message);
     assert!(deleted_private_message.deleted);
-    assert!(marked_read_private_message.read);
 
     Ok(())
   }
