@@ -32,6 +32,8 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, count_star, delete, insert_into, not, update},
   expression::SelectableHelper,
+  sql_query,
+  sql_types::Integer,
   upsert::excluded,
   BoolExpressionMethods,
   DecoratableTarget,
@@ -49,6 +51,7 @@ use lemmy_db_schema_file::schema::{
   person_post_aggregates,
   post,
   post_actions,
+  post_aggregates,
   post_like,
   post_read,
 };
@@ -85,6 +88,13 @@ impl Crud for Post {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
+}
+
+/// Used for a custom update query
+#[derive(QueryableByName)]
+struct AggregatesUpdateResult {
+  #[diesel(sql_type = Integer)]
+  id: PostId,
 }
 
 impl Post {
@@ -350,6 +360,92 @@ impl Post {
       };
       Post::update(pool, self.id, &form).await?;
     }
+    Ok(())
+  }
+
+  pub async fn fill_aggregates_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling post_aggregates history into post...");
+
+    // Get the total count of post_aggregates rows, to show progress
+    let post_aggregates_count = post_aggregates::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    while processed_rows < post_aggregates_count {
+      let rows_updated = conn
+        .run_transaction(|conn| {
+          async move {
+            // Diesel can't do 'update X from Y', nor updates from joins, so you need to do custom
+            // sql. I also tried individual row sets, and it was too slow.
+            let updated_rows = sql_query(format!(
+              r#"
+              WITH pa AS (SELECT *
+                FROM post_aggregates pa
+                ORDER BY pa.post_id desc
+                LIMIT $1)
+              UPDATE post p
+                SET
+                  comments = pa.comments,
+                  score = pa.score,
+                  upvotes = pa.upvotes,
+                  downvotes = pa.downvotes,
+                  newest_comment_time_necro_at = pa.newest_comment_time_necro,
+                  newest_comment_time_at = pa.newest_comment_time,
+                  hot_rank = pa.hot_rank,
+                  hot_rank_active = pa.hot_rank_active,
+                  controversy_rank = pa.controversy_rank,
+                  scaled_rank = pa.scaled_rank,
+                  report_count = pa.report_count,
+                  unresolved_report_count = pa.unresolved_report_count
+                FROM pa WHERE p.id = pa.post_id
+                RETURNING p.id;
+            "#,
+            ))
+            .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+            .get_results::<AggregatesUpdateResult>(conn)
+            .await?;
+
+            // When this is None, the scanning is complete
+            let last_scanned_id = updated_rows.last().map(|f| f.id);
+
+            if let Some(last_scanned_id) = last_scanned_id {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: None,
+                last_scanned_id: Some(Some(last_scanned_id.0)),
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("post_aggregates".into(), "post".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from post_aggregates
+              delete(post_aggregates::table.filter(post_aggregates::post_id.gt(last_scanned_id)))
+                .execute(conn)
+                .await?;
+            }
+
+            Ok(updated_rows.len())
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += i64::try_from(rows_updated)?;
+      let pct_complete = processed_rows * 100 / post_aggregates_count;
+      info!(
+        "post_aggregates -> post: {processed_rows} / {post_aggregates_count} , {pct_complete}% complete"
+      );
+    }
+
+    info!("Finished filling post_aggregates history into post.");
     Ok(())
   }
 }

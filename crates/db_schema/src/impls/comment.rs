@@ -25,6 +25,8 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count_star, delete, insert_into},
   expression::SelectableHelper,
+  sql_query,
+  sql_types::Integer,
   update,
   upsert::excluded,
   ExpressionMethods,
@@ -34,7 +36,14 @@ use diesel::{
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use diesel_ltree::Ltree;
 use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{comment, comment_actions, comment_like, community, post};
+use lemmy_db_schema_file::schema::{
+  comment,
+  comment_actions,
+  comment_aggregates,
+  comment_like,
+  community,
+  post,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -243,6 +252,98 @@ impl Comment {
     }
     Ok(())
   }
+
+  pub async fn fill_aggregates_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+
+    info!("Filling comment_aggregates history into comment...");
+
+    // Get the total count of comment_aggregates rows, to show progress
+    let comment_aggregates_count = comment_aggregates::table
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+
+    let mut processed_rows = 0;
+
+    while processed_rows < comment_aggregates_count {
+      let rows_updated = conn
+        .run_transaction(|conn| {
+          async move {
+            // Diesel can't do 'update X from Y', nor updates from joins, so you need to do custom
+            // sql. I also tried individual row sets, and it was too slow.
+            let updated_rows = sql_query(format!(
+              r#"
+              WITH ca AS (SELECT *
+                FROM comment_aggregates ca
+                ORDER BY ca.comment_id desc
+                LIMIT $1)
+              UPDATE comment c
+                SET
+                  score = ca.score,
+                  upvotes = ca.upvotes,
+                  downvotes = ca.downvotes,
+                  child_count = ca.child_count,
+                  hot_rank = ca.hot_rank,
+                  controversy_rank = ca.controversy_rank,
+                  report_count = ca.report_count,
+                  unresolved_report_count = ca.unresolved_report_count
+                FROM ca WHERE c.id = ca.comment_id
+                RETURNING c.id;
+            "#,
+            ))
+            .bind::<Integer, _>(i32::try_from(DB_BATCH_SIZE)?)
+            .get_results::<AggregatesUpdateResult>(conn)
+            .await?;
+
+            // When this is None, the scanning is complete
+            let last_scanned_id = updated_rows.last().map(|f| f.id);
+
+            if let Some(last_scanned_id) = last_scanned_id {
+              // Update the history status
+              let history_form = HistoryStatusUpdateForm {
+                last_scanned_timestamp: None,
+                last_scanned_id: Some(Some(last_scanned_id.0)),
+              };
+              HistoryStatus::update_conn(
+                conn,
+                ("comment_aggregates".into(), "comment".into()),
+                &history_form,
+              )
+              .await?;
+
+              // Delete those rows from comment_aggregates
+              delete(
+                comment_aggregates::table
+                  .filter(comment_aggregates::comment_id.gt(last_scanned_id)),
+              )
+              .execute(conn)
+              .await?;
+            }
+
+            Ok(updated_rows.len())
+          }
+          .scope_boxed()
+        })
+        .await?;
+
+      processed_rows += i64::try_from(rows_updated)?;
+      let pct_complete = processed_rows * 100 / comment_aggregates_count;
+      info!(
+        "comment_aggregates -> comment: {processed_rows} / {comment_aggregates_count} , {pct_complete}% complete"
+      );
+    }
+
+    info!("Finished filling comment_aggregates history into comment.");
+    Ok(())
+  }
+}
+
+/// Used for a custom update query
+#[derive(QueryableByName)]
+struct AggregatesUpdateResult {
+  #[diesel(sql_type = Integer)]
+  id: CommentId,
 }
 
 impl Crud for Comment {

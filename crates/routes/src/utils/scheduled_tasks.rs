@@ -27,7 +27,7 @@ use lemmy_db_schema::{
       person_saved::PersonSavedCombined,
       search::SearchCombined,
     },
-    comment::CommentActions,
+    comment::{Comment, CommentActions},
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
@@ -491,22 +491,26 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating history in a background thread...");
 
-  // These must be run in the correct migration order, IE, make sure the entire smoosh history is
-  // finished before adding the later ones.
+  // These must be run a logically correct order, otherwise data could be missing.
+  // First fill the actions tables (smoosh migration)
   // CommentActions::fill_comment_like_history(pool).await?;
   // PostActions::fill_post_read_history(pool).await?;
   // PostActions::fill_read_comments_history(pool).await?;
   // PostActions::fill_post_like_history(pool).await?;
-  // TODO aggregates next
-  // TODO finally the combined
+  // Next fill the aggregates tables
+  // Post::fill_aggregates_history(pool).await?;
+  Comment::fill_aggregates_history(pool).await?;
+  // Finally fill the combined tables.
+  // These are different from the above, in that they aren't source data, and
+  // so don't do any actual DB deletes.
   // PersonContentCombined::fill_post_history(pool).await?;
   // PersonContentCombined::fill_comment_history(pool).await?;
   // PersonSavedCombined::fill_post_history(pool).await?;
   // PersonSavedCombined::fill_comment_history(pool).await?;
-  SearchCombined::fill_post_history(pool).await?;
-  SearchCombined::fill_comment_history(pool).await?;
-  SearchCombined::fill_community_history(pool).await?;
-  SearchCombined::fill_person_history(pool).await?;
+  // SearchCombined::fill_post_history(pool).await?;
+  // SearchCombined::fill_comment_history(pool).await?;
+  // SearchCombined::fill_community_history(pool).await?;
+  // SearchCombined::fill_person_history(pool).await?;
 
   info!("Finished filling history.");
   Ok(())
