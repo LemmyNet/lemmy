@@ -28,6 +28,8 @@ pub struct CommentReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
+  #[serde(skip)]
+  pub is_counted: bool,
 }
 
 #[derive(Clone)]

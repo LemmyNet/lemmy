@@ -679,6 +679,7 @@ mod tests {
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
       federation_pending: false,
+      is_counted: todo!(),
     };
 
     // Post Like

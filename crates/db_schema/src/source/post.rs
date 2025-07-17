@@ -84,6 +84,8 @@ pub struct Post {
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  #[serde(skip)]
+  pub is_counted: bool,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -201,6 +203,8 @@ pub struct PostActions {
   pub like_score: Option<i16>,
   /// When the post was hidden.
   pub hidden_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub like_is_counted: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]
