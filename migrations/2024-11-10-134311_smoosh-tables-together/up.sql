@@ -44,7 +44,7 @@ DROP TABLE comment_saved;
 
 -- Insert only last month from comment_like
 -- Create an index on published to speed up history updates
-CREATE INDEX idx_comment_like_published ON comment_like (published DESC);
+CREATE INDEX idx_comment_like_published_desc ON comment_like (published DESC);
 
 INSERT INTO comment_actions (person_id, comment_id, like_score, liked)
 SELECT
@@ -107,7 +107,7 @@ CREATE TABLE post_actions (
 
 -- post_like, post_read, and person_post_aggregates need history tables
 -- Create an index on published to speed up history updates
-CREATE INDEX idx_post_read_published ON post_read (published DESC);
+CREATE INDEX idx_post_read_published_desc ON post_read (published DESC);
 
 INSERT INTO post_actions (person_id, post_id, read)
 SELECT
@@ -131,7 +131,7 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
 DELETE FROM post_read
 WHERE published > CURRENT_DATE - interval '1 month';
 
-CREATE INDEX idx_person_post_aggregates_published ON person_post_aggregates (published DESC);
+CREATE INDEX idx_person_post_aggregates_published_desc ON person_post_aggregates (published DESC);
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -157,7 +157,7 @@ INSERT INTO history_status (source, dest, last_scanned_timestamp)
 DELETE FROM person_post_aggregates
 WHERE published > CURRENT_DATE - interval '1 month';
 
-CREATE INDEX idx_post_like_published ON post_like (published DESC);
+CREATE INDEX idx_post_like_published_desc ON post_like (published DESC);
 
 INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT
