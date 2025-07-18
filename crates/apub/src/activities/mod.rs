@@ -37,16 +37,13 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
     instance::InstanceActions,
-    tag::Tag,
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;

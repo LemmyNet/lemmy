@@ -1,12 +1,11 @@
 use crate::newtypes::{CommunityId, DbUrl, TagId};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::{sql_types::Nullable, AsExpression, FromSqlRow};
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::schema::tag;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use {
-  diesel::{sql_types::Nullable, AsExpression, FromSqlRow},
-  lemmy_db_schema_file::schema::tag,
-};
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -19,7 +18,7 @@ use {
 /// The tag object is created by the community moderators.
 /// The assignment happens by the post creator and can be updated by the community moderators.
 ///
-/// A tag is a federatable object that gives additional context to another object, which can be
+/// A tag is a federated object that gives additional context to another object, which can be
 /// displayed and filtered on. Currently, we only have community post tags, which is a tag that is
 /// created by the mods of a community, then assigned to posts by post authors as well as mods of a
 /// community, to categorize a post.

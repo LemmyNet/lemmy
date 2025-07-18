@@ -18,7 +18,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::tag;
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::{HashMap, HashSet};
 
@@ -104,8 +104,16 @@ impl Tag {
     Ok(())
   }
 
-  pub async fn read_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Vec<Self>> {
-    todo!()
+  pub async fn read_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Vec<Tag>> {
+    let conn = &mut get_conn(pool).await?;
+    tag::table
+      .left_join(post_tag::table)
+      .filter(post_tag::post_id.eq(post_id))
+      .filter(tag::deleted.eq(false))
+      .select(tag::all_columns)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

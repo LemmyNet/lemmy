@@ -25,16 +25,14 @@ test("Create, update, delete community tag", async () => {
   // Create a community first
   const communityRes = await createCommunity(alpha);
   let alphaCommunity = communityRes.community_view;
-  let betaCommunity = (
-    await resolveCommunity(beta, alphaCommunity.community.ap_id)
-  ).community;
-  if (!betaCommunity) {
-    throw "Missing gamma community";
-  }
+  let betaCommunity = (await resolveCommunity(
+    beta,
+    alphaCommunity.community.ap_id,
+  ))!;
   await followCommunity(beta, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g.community?.community_actions?.follow_state == "Accepted",
+    g => g?.community_actions!.follow_state == "Accepted",
   );
   const communityId = alphaCommunity.community.id;
 
@@ -54,12 +52,10 @@ test("Create, update, delete community tag", async () => {
   expect(alphaCommunity.post_tags.length).toBe(1);
   // verify tag federated
 
-  betaCommunity = (
-    await waitUntil(
-      () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-      g => g.community?.post_tags.length === 1,
-    )
-  ).community;
+  betaCommunity = (await waitUntil(
+    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
+    g => g!.post_tags.length === 1,
+  ))!;
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // Update the tag
@@ -82,14 +78,12 @@ test("Create, update, delete community tag", async () => {
   ).toBe(newTagName);
 
   // Verify tag update federated
-  betaCommunity = (
-    await waitUntil(
-      () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-      g =>
-        g.community?.post_tags.find(t => t.ap_id === createRes.ap_id)
-          ?.display_name === newTagName,
-    )
-  ).community;
+  betaCommunity = (await waitUntil(
+    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
+    g =>
+      g!.post_tags.find(t => t.ap_id === createRes.ap_id)?.display_name ===
+      newTagName,
+  ))!;
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // Delete the tag
@@ -108,12 +102,10 @@ test("Create, update, delete community tag", async () => {
   expect(alphaCommunity.post_tags.length).toBe(0);
 
   // Verify tag deletion federated
-  betaCommunity = (
-    await waitUntil(
-      () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-      g => g.community?.post_tags.length === 0,
-    )
-  ).community;
+  betaCommunity = (await waitUntil(
+    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
+    g => g!.post_tags.length === 0,
+  ))!;
   assertCommunityFederation(alphaCommunity, betaCommunity);
 });
 
@@ -124,16 +116,17 @@ test("Create and update post tags", async () => {
 
   // follow from beta
   const alphaCommunity = communityRes.community_view;
-  let betaCommunity = (
-    await resolveCommunity(beta, alphaCommunity.community.ap_id)
-  ).community;
+  let betaCommunity = await resolveCommunity(
+    beta,
+    alphaCommunity.community.ap_id,
+  );
   if (!betaCommunity) {
     throw "Missing gamma community";
   }
   await followCommunity(beta, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g.community?.community_actions?.follow_state == "Accepted",
+    g => g!.community_actions?.follow_state == "Accepted",
   );
 
   // Create two tags

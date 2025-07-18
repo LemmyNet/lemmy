@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::fetch_instance_actor_for_object,
-  protocol::{group::Group, tags::LemmyCommunityTag},
+  protocol::group::Group,
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
