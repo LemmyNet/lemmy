@@ -18,6 +18,9 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+full = []
+
 [dependencies]
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }

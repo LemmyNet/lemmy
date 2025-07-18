@@ -13,6 +13,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+full = []
+
 [dependencies]
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }

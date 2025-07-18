@@ -349,38 +349,6 @@ impl CommunityActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  /// Checks to make sure the acting moderator was added earlier than the target moderator
-  pub async fn is_higher_mod_check(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-    mod_person_id: PersonId,
-    target_person_ids: Vec<PersonId>,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    // Build the list of persons
-    let mut persons = target_person_ids;
-    persons.push(mod_person_id);
-    persons.dedup();
-
-    let res = community_actions::table
-      .filter(community_actions::became_moderator_at.is_not_null())
-      .filter(community_actions::community_id.eq(for_community_id))
-      .filter(community_actions::person_id.eq_any(persons))
-      .order_by(community_actions::became_moderator_at)
-      .select(community_actions::person_id)
-      // This does a limit 1 select first
-      .first::<PersonId>(conn)
-      .await?;
-
-    // If the first result sorted by published is the acting mod
-    if res == mod_person_id {
-      Ok(())
-    } else {
-      Err(LemmyErrorType::NotHigherMod)?
-    }
-  }
-
   /// Check if we should accept activity in remote community. This requires either:
   /// - Local follower of the community
   /// - Local post or comment in the community
@@ -848,16 +816,6 @@ mod tests {
     let moderator_person_ids = vec![inserted_bobby.id, inserted_artemis.id];
 
     // Make sure bobby is marked as a higher mod than artemis, and vice versa
-    let bobby_higher_check = CommunityActions::is_higher_mod_check(
-      pool,
-      inserted_community.id,
-      inserted_bobby.id,
-      moderator_person_ids.clone(),
-    )
-    .await;
-    assert!(bobby_higher_check.is_ok());
-
-    // Also check the other is_higher_mod_or_admin function just in case
     let bobby_higher_check_2 = LocalUser::is_higher_mod_or_admin_check(
       pool,
       inserted_community.id,
@@ -868,7 +826,7 @@ mod tests {
     assert!(bobby_higher_check_2.is_ok());
 
     // This should throw an error, since artemis was added later
-    let artemis_higher_check = CommunityActions::is_higher_mod_check(
+    let artemis_higher_check = LocalUser::is_higher_mod_or_admin_check(
       pool,
       inserted_community.id,
       inserted_artemis.id,

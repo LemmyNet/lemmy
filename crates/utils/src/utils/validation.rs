@@ -286,7 +286,7 @@ pub fn check_blocking_keywords_are_valid(blocking_keywords: &Vec<String>) -> Lem
   Ok(())
 }
 
-pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
+fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   // Parse and check for errors
   let mut url = Url::parse(url_str).or_else(|e| {
     if e == ParseError::RelativeUrlWithoutBase {
@@ -317,7 +317,7 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
-pub fn truncate_for_db(text: &str, len: usize) -> String {
+fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
