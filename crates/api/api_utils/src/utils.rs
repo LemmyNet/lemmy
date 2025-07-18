@@ -206,19 +206,6 @@ pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<
   }
 }
 
-pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
-  // Check for a site ban
-  if person_view.creator_banned {
-    Err(LemmyErrorType::SiteBan)?
-  }
-  // check for account deletion
-  else if person_view.person.deleted {
-    Err(LemmyErrorType::Deleted)?
-  } else {
-    Ok(())
-  }
-}
-
 /// Check if the user's email is verified if email verification is turned on
 /// However, skip checking verification if the user is an admin
 pub fn check_email_verified(
