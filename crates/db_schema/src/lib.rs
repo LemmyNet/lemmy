@@ -33,10 +33,7 @@ pub mod utils;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use {
-  diesel::query_source::AliasedField,
-  lemmy_db_schema_file::schema::{community_actions, instance_actions, person},
-};
+use {diesel::query_source::AliasedField, lemmy_db_schema_file::schema::person};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -235,48 +232,4 @@ pub type Person2AliasAllColumnsTuple = (
   AliasedField<aliases::Person2, person::post_score>,
   AliasedField<aliases::Person2, person::comment_count>,
   AliasedField<aliases::Person2, person::comment_score>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator community actions
-pub type CreatorCommunityActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorCommunityActions, community_actions::community_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::followed_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_state>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_approver_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator home instance actions.
-pub type CreatorHomeInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator local instance actions.
-pub type CreatorLocalInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator home instance actions.
-pub type CreatorCommunityInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::ban_expires_at>,
 );
