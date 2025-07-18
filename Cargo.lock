@@ -3107,10 +3107,10 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_person_liked_combined",
@@ -3143,10 +3143,10 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_custom_emoji",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_person_liked_combined",
@@ -3209,6 +3209,7 @@ dependencies = [
  "actix-web-httpauth",
  "anyhow",
  "chrono",
+ "derive-new",
  "diesel_ltree",
  "either",
  "encoding_rs",
@@ -3227,6 +3228,7 @@ dependencies = [
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
@@ -3316,6 +3318,7 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_private_message",
  "lemmy_db_views_site",
  "lemmy_utils",
  "moka",
@@ -3501,25 +3504,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_inbox_combined"
-version = "1.0.0-alpha.5"
-dependencies = [
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_private_message",
- "lemmy_utils",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
-]
-
-[[package]]
 name = "lemmy_db_views_local_image"
 version = "1.0.0-alpha.5"
 dependencies = [
@@ -3569,6 +3553,24 @@ dependencies = [
  "serde_with",
  "serial_test",
  "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_notification"
+version = "1.0.0-alpha.5"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_utils",
+ "serde",
+ "serde_with",
  "ts-rs",
 ]
 
@@ -3882,10 +3884,10 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_site",

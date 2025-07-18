@@ -38,7 +38,7 @@ import {
   createCommunity,
   listReports,
   getMyUser,
-  listInbox,
+  listNotifications,
   getModlog,
   getCommunity,
 } from "./shared";
@@ -48,7 +48,6 @@ import {
   AddModToCommunity,
   EditSite,
   EditPost,
-  PersonPostMentionView,
   PostReport,
   PostReportView,
   ReportCombinedView,
@@ -942,16 +941,15 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listInbox(beta, "PostMention"),
-    m => !!m.inbox[0],
+    () => listNotifications(beta, "Mention"),
+    m => !!m.notifications[0],
   );
 
-  const firstMention = mentionsRes.inbox[0] as PersonPostMentionView;
-  expect(firstMention.post.body).toBeDefined();
-  expect(firstMention.community.local).toBe(true);
+  const firstMention = mentionsRes.notifications[0].data as PostView;
+  expect(firstMention.post!.body).toBeDefined();
+  expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.post.score).toBe(1);
-  expect(firstMention.person_post_mention.post_id).toBe(betaPost.post.id);
+  expect(firstMention.post!.score).toBe(1);
 });
 
 test("Rewrite markdown links", async () => {

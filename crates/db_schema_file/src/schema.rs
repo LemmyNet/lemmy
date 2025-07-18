@@ -14,6 +14,10 @@ pub mod sql_types {
   pub struct CommunityFollowerState;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
+  pub struct CommunityNotificationsModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_visibility"))]
   pub struct CommunityVisibility;
 
@@ -30,8 +34,16 @@ pub mod sql_types {
   pub struct Ltree;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "notification_type_enum"))]
+  pub struct NotificationTypeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_listing_mode_enum"))]
   pub struct PostListingModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+  pub struct PostNotificationsModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_sort_type_enum"))]
@@ -157,16 +169,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_reply (id) {
-        id -> Int4,
-        recipient_id -> Int4,
-        comment_id -> Int4,
-        read -> Bool,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     comment_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -238,6 +240,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityFollowerState;
+    use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
         community_id -> Int4,
@@ -249,6 +252,7 @@ diesel::table! {
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        notifications -> Nullable<CommunityNotificationsModeEnum>,
     }
 }
 
@@ -344,17 +348,6 @@ diesel::table! {
         content_type -> Text,
         #[max_length = 50]
         blurhash -> Nullable<Varchar>,
-    }
-}
-
-diesel::table! {
-    inbox_combined (id) {
-        id -> Int4,
-        published_at -> Timestamptz,
-        comment_reply_id -> Nullable<Int4>,
-        person_comment_mention_id -> Nullable<Int4>,
-        person_post_mention_id -> Nullable<Int4>,
-        private_message_id -> Nullable<Int4>,
     }
 }
 
@@ -753,6 +746,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::NotificationTypeEnum;
+
+    notification (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Nullable<Int4>,
+        read -> Bool,
+        published_at -> Timestamptz,
+        kind -> NotificationTypeEnum,
+        post_id -> Nullable<Int4>,
+        private_message_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     oauth_account (oauth_provider_id, local_user_id) {
         local_user_id -> Int4,
         oauth_provider_id -> Int4,
@@ -839,16 +848,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_comment_mention (id) {
-        id -> Int4,
-        recipient_id -> Int4,
-        comment_id -> Int4,
-        read -> Bool,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     person_content_combined (id) {
         id -> Int4,
         published_at -> Timestamptz,
@@ -865,16 +864,6 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
-    person_post_mention (id) {
-        id -> Int4,
-        recipient_id -> Int4,
-        post_id -> Int4,
-        read -> Bool,
-        published_at -> Timestamptz,
     }
 }
 
@@ -934,6 +923,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::PostNotificationsModeEnum;
+
     post_actions (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
@@ -944,6 +936,7 @@ diesel::table! {
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
+        notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }
 
@@ -980,7 +973,6 @@ diesel::table! {
         recipient_id -> Int4,
         content -> Text,
         deleted -> Bool,
-        read -> Bool,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         #[max_length = 255]
@@ -1145,8 +1137,6 @@ diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_actions -> comment (comment_id));
 diesel::joinable!(comment_actions -> person (person_id));
-diesel::joinable!(comment_reply -> comment (comment_id));
-diesel::joinable!(comment_reply -> person (recipient_id));
 diesel::joinable!(comment_report -> comment (comment_id));
 diesel::joinable!(community -> instance (instance_id));
 diesel::joinable!(community_actions -> community (community_id));
@@ -1158,10 +1148,6 @@ diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
-diesel::joinable!(inbox_combined -> comment_reply (comment_reply_id));
-diesel::joinable!(inbox_combined -> person_comment_mention (person_comment_mention_id));
-diesel::joinable!(inbox_combined -> person_post_mention (person_post_mention_id));
-diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> person (person_id));
@@ -1214,19 +1200,19 @@ diesel::joinable!(multi_community_entry -> community (community_id));
 diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
+diesel::joinable!(notification -> comment (comment_id));
+diesel::joinable!(notification -> person (recipient_id));
+diesel::joinable!(notification -> post (post_id));
+diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
-diesel::joinable!(person_comment_mention -> comment (comment_id));
-diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
 diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
 diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
-diesel::joinable!(person_post_mention -> person (recipient_id));
-diesel::joinable!(person_post_mention -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1265,7 +1251,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   captcha_answer,
   comment,
   comment_actions,
-  comment_reply,
   comment_report,
   community,
   community_actions,
@@ -1278,7 +1263,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   federation_queue_state,
   image_details,
-  inbox_combined,
   instance,
   instance_actions,
   language,
@@ -1305,15 +1289,14 @@ diesel::allow_tables_to_appear_in_same_query!(
   multi_community,
   multi_community_entry,
   multi_community_follow,
+  notification,
   oauth_account,
   oauth_provider,
   password_reset_request,
   person,
   person_actions,
-  person_comment_mention,
   person_content_combined,
   person_liked_combined,
-  person_post_mention,
   person_saved_combined,
   post,
   post_actions,
