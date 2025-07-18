@@ -41,8 +41,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
-    post_tag::PostTag,
-    tag::Tag,
+    tag::{PostTag, PostTagForm, Tag},
   },
   traits::Crud,
 };
@@ -313,18 +312,13 @@ impl Object for ApubPost {
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
 
-    let post_tags_to_lookup: Vec<Url> = page
+    let post_tags_to_lookup: Vec<PostTagForm> = page
       .tag
       .iter()
       .filter_map(HashtagOrLemmyTag::community_tag_url)
+      .map(|tag_id| todo!())
       .collect();
-    PostTag::set_from_apub(
-      &mut context.pool(),
-      post.id,
-      post_tags_to_lookup,
-      community.id,
-    )
-    .await?;
+    PostTag::update(&mut context.pool(), post.id, post_tags_to_lookup).await?;
 
     let post_ = post.clone();
     let context_ = context.clone();

@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   newtypes::TagId,
   source::{
     post::Post,
-    post_tag::{PostTag, PostTagForm},
+    tag::{PostTag, PostTagForm},
   },
 };
 use lemmy_db_views_community::CommunityView;
@@ -44,6 +44,6 @@ pub async fn update_post_tags(
     })
     .collect::<Vec<PostTagForm>>();
 
-  PostTag::set(&mut context.pool(), &insert_tags).await?;
+  PostTag::update(&mut context.pool(), post.id, insert_tags).await?;
   Ok(())
 }

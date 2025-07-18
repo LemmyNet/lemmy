@@ -1,14 +1,15 @@
 use crate::{
+  diesel::SelectableHelper,
   newtypes::{CommunityId, PostId, TagId},
   source::{
     community::Community,
-    tag::{Tag, TagInsertForm, TagUpdateForm, TagsView},
+    tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use chrono::Utc;
 use diesel::{
+  delete,
   deserialize::FromSql,
   insert_into,
   pg::{Pg, PgValue},
@@ -17,7 +18,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::{HashMap, HashSet};
@@ -36,20 +37,13 @@ impl Tag {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn community_update_from_apub(
+  pub async fn update_many(
     pool: &mut DbPool<'_>,
     community: &Community,
     ap_tags: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
-    // Verify that each tag is actually in the given community.
-    // Needed to ensure that incoming AP updates of one community can not manipulate tags in a
-    // different community.
-    let ap_tags: Vec<TagInsertForm> = ap_tags
-      .into_iter()
-      .filter(|tag| tag.ap_id.as_str().starts_with(community.ap_id.as_ref()))
-      .collect();
-
     let known_tags = Tag::get_by_community(pool, community.id).await?;
+    let conn = &mut get_conn(pool).await?;
     let old_tags = known_tags
       .iter()
       .map(|tag| (tag.ap_id.clone(), tag))
@@ -58,48 +52,37 @@ impl Tag {
       .iter()
       .map(|tag| tag.ap_id.clone())
       .collect::<HashSet<_>>();
-
     let to_delete = known_tags
       .iter()
       .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
       .map(|tag| tag.id)
       .collect::<Vec<_>>();
     let to_insert = ap_tags
-      .iter()
+      .into_iter()
       .filter(|tag| !old_tags.contains_key(&tag.ap_id))
       .collect::<Vec<_>>();
-    for tag in to_insert {
-      Tag::create(pool, tag).await?;
-    }
-    // if display name is different, we need to update it
-    for tag in ap_tags {
-      if let Some(old_tag) = old_tags.get(&tag.ap_id) {
-        if old_tag.display_name != tag.display_name {
-          Tag::update(
-            pool,
-            old_tag.id,
-            &TagUpdateForm {
-              display_name: Some(tag.display_name.clone()),
-              updated_at: Some(Some(Utc::now())),
-              ..Default::default()
-            },
-          )
-          .await?;
+
+    conn
+      .run_transaction(|conn| {
+        async move {
+          for i in &to_insert {
+            insert_into(tag::table)
+              .values(i)
+              .on_conflict(tag::ap_id)
+              .do_update()
+              .set(i)
+              .execute(conn)
+              .await?;
+          }
+          diesel::update(tag::table.filter(tag::id.eq_any(to_delete)))
+            .set(tag::deleted.eq(true))
+            .execute(conn)
+            .await?;
+          Ok(())
         }
-      }
-    }
-    for tag in to_delete {
-      Tag::update(
-        pool,
-        tag,
-        &TagUpdateForm {
-          deleted: Some(true),
-          updated_at: Some(Some(Utc::now())),
-          ..Default::default()
-        },
-      )
+        .scope_boxed()
+      })
       .await?;
-    }
 
     Ok(())
   }
@@ -160,5 +143,33 @@ impl ToSql<Nullable<Json>, Pg> for TagsView {
   fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
     let value = serde_json::to_value(self)?;
     <serde_json::Value as ToSql<Json, Pg>>::to_sql(&value, &mut out.reborrow())
+  }
+}
+
+impl PostTag {
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    forms: Vec<PostTagForm>,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    conn
+      .run_transaction(|conn| {
+        async move {
+          delete(post_tag::table.filter(post_tag::post_id.eq(post_id)))
+            .execute(conn)
+            .await
+            .with_lemmy_type(LemmyErrorType::Deleted)?;
+
+          insert_into(post_tag::table)
+            .values(forms)
+            .returning(Self::as_select())
+            .get_results(conn)
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntCreatePostTag)
+        }
+        .scope_boxed()
+      })
+      .await
   }
 }

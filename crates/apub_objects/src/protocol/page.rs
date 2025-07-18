@@ -1,6 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::tags::LemmyCommunityTag,
+  protocol::tags::CommunityTag,
   utils::protocol::{
     AttributedTo,
     ImageObject,
@@ -174,7 +174,7 @@ pub enum HashtagType {
 #[serde(untagged)]
 pub enum HashtagOrLemmyTag {
   Hashtag(Hashtag),
-  LemmyCommunityPostTag(LemmyCommunityTag),
+  LemmyCommunityPostTag(CommunityTag),
   // more options can be added here in the future - as long es they have a unique type: property
 }
 
