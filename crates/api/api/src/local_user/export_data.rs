@@ -3,8 +3,8 @@ use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_inbox_combined::{impls::InboxCombinedQuery, InboxCombinedView};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData};
 use lemmy_db_views_person_content_combined::{
   impls::PersonContentCombinedQuery,
   PersonContentCombinedView,
@@ -46,18 +46,18 @@ pub async fn export_data(
   })
   .collect();
 
-  let inbox = InboxCombinedQuery {
+  let notifications = NotificationQuery {
     no_limit: Some(true),
-    ..InboxCombinedQuery::default()
+    show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
+    ..NotificationQuery::default()
   }
-  .list(pool, my_person_id, local_instance_id)
+  .list(pool, &local_user_view.person)
   .await?
   .into_iter()
-  .map(|u| match u {
-    InboxCombinedView::CommentReply(cr) => Comment(cr.comment),
-    InboxCombinedView::CommentMention(cm) => Comment(cm.comment),
-    InboxCombinedView::PostMention(pm) => Post(pm.post),
-    InboxCombinedView::PrivateMessage(pm) => PrivateMessage(pm.private_message),
+  .map(|u| match u.data {
+    NotificationData::Post(p) => Post(p.post),
+    NotificationData::Comment(c) => Comment(c.comment),
+    NotificationData::PrivateMessage(pm) => PrivateMessage(pm.private_message),
   })
   .collect();
 
@@ -93,7 +93,7 @@ pub async fn export_data(
   let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
 
   Ok(Json(ExportDataResponse {
-    inbox,
+    notifications,
     content,
     liked,
     read_posts,

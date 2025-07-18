@@ -1,9 +1,4 @@
-use lemmy_db_schema::newtypes::{
-  CommentReplyId,
-  PersonCommentMentionId,
-  PersonPostMentionId,
-  PrivateMessageId,
-};
+use lemmy_db_schema::newtypes::{NotificationId, PrivateMessageId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -26,26 +21,8 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Mark a comment reply as read.
-pub struct MarkCommentReplyAsRead {
-  pub comment_reply_id: CommentReplyId,
-  pub read: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Mark a person mention as read.
-pub struct MarkPersonCommentMentionAsRead {
-  pub person_comment_mention_id: PersonCommentMentionId,
-  pub read: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Mark a person mention as read.
-pub struct MarkPersonPostMentionAsRead {
-  pub person_post_mention_id: PersonPostMentionId,
+pub struct MarkNotificationAsRead {
+  pub notification_id: NotificationId,
   pub read: bool,
 }
 

@@ -21,13 +21,6 @@ pub async fn get_comment(
   check_private_instance(&local_user_view, &local_site)?;
 
   Ok(Json(
-    build_comment_response(
-      &context,
-      data.id,
-      local_user_view,
-      vec![],
-      local_instance_id,
-    )
-    .await?,
+    build_comment_response(&context, data.id, local_user_view, local_instance_id).await?,
   ))
 }
