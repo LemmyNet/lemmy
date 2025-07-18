@@ -257,6 +257,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    community_community_follow (target_id, community_id) {
+        target_id -> Int4,
+        community_id -> Int4,
+    }
+}
+
+diesel::table! {
     community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
@@ -1254,6 +1261,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   comment_report,
   community,
   community_actions,
+  community_community_follow,
   community_language,
   community_report,
   custom_emoji,

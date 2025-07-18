@@ -1,5 +1,5 @@
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person},
+  activities::{generate_activity_id, send_lemmy_activity},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
 use activitypub_federation::{
@@ -15,12 +15,14 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::CommunityActions,
+    community_community_follow::CommunityCommunityFollow,
+    instance::InstanceActions,
     multi_community::MultiCommunity,
     person::PersonActions,
   },
   traits::Followable,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoFollow {
@@ -57,7 +59,6 @@ impl Activity for UndoFollow {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
-    verify_person(&self.actor, context).await?;
     self.object.verify(context).await?;
     if let Some(to) = &self.to {
       verify_urls_match(to[0].inner(), self.object.object.inner())?;
@@ -66,8 +67,19 @@ impl Activity for UndoFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let person = self.actor.dereference(context).await?;
+    let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
+
+    // Handle remote community unfollowing a local community
+    if let (Right(community), Right(Left(follower))) = (&actor, &object) {
+      CommunityCommunityFollow::unfollow(&mut context.pool(), community.id, follower.id).await?;
+      return Ok(());
+    }
+
+    let person = actor.left().ok_or(FederationError::InvalidFollow(
+      "Groups can only follow public groups".to_string(),
+    ))?;
+    InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
 
     match object {
       Left(u) => {

@@ -4,14 +4,14 @@ use activitypub_federation::{
   kinds::activity::UndoType,
   protocol::helpers::deserialize_skip_error,
 };
-use lemmy_apub_objects::objects::person::ApubPerson;
+use lemmy_apub_objects::objects::{person::ApubPerson, UserOrCommunity};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollow {
-  pub(crate) actor: ObjectId<ApubPerson>,
+  pub(crate) actor: ObjectId<UserOrCommunity>,
   /// Optional, for compatibility with platforms that always expect recipient field
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) to: Option<[ObjectId<ApubPerson>; 1]>,
