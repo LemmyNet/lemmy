@@ -1,10 +1,15 @@
 use crate::{
-  newtypes::{CommunityId, TagId},
-  source::tag::{Tag, TagInsertForm, TagUpdateForm, TagsView},
+  diesel::SelectableHelper,
+  newtypes::{CommunityId, PostId, TagId},
+  source::{
+    community::Community,
+    tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
+  },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{
+  delete,
   deserialize::FromSql,
   insert_into,
   pg::{Pg, PgValue},
@@ -13,9 +18,10 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::tag;
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use std::collections::{HashMap, HashSet};
 
 impl Tag {
   pub async fn get_by_community(
@@ -27,6 +33,68 @@ impl Tag {
       .filter(tag::community_id.eq(search_community_id))
       .filter(tag::deleted.eq(false))
       .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn update_many(
+    pool: &mut DbPool<'_>,
+    community: &Community,
+    ap_tags: Vec<TagInsertForm>,
+  ) -> LemmyResult<()> {
+    let known_tags = Tag::get_by_community(pool, community.id).await?;
+    let conn = &mut get_conn(pool).await?;
+    let old_tags = known_tags
+      .iter()
+      .map(|tag| (tag.ap_id.clone(), tag))
+      .collect::<HashMap<_, _>>();
+    let new_tag_ids = ap_tags
+      .iter()
+      .map(|tag| tag.ap_id.clone())
+      .collect::<HashSet<_>>();
+    let to_delete = known_tags
+      .iter()
+      .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
+      .map(|tag| tag.id)
+      .collect::<Vec<_>>();
+    let to_insert = ap_tags
+      .into_iter()
+      .filter(|tag| !old_tags.contains_key(&tag.ap_id))
+      .collect::<Vec<_>>();
+
+    conn
+      .run_transaction(|conn| {
+        async move {
+          for i in &to_insert {
+            insert_into(tag::table)
+              .values(i)
+              .on_conflict(tag::ap_id)
+              .do_update()
+              .set(i)
+              .execute(conn)
+              .await?;
+          }
+          diesel::update(tag::table.filter(tag::id.eq_any(to_delete)))
+            .set(tag::deleted.eq(true))
+            .execute(conn)
+            .await?;
+          Ok(())
+        }
+        .scope_boxed()
+      })
+      .await?;
+
+    Ok(())
+  }
+
+  pub async fn read_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Vec<Tag>> {
+    let conn = &mut get_conn(pool).await?;
+    tag::table
+      .left_join(post_tag::table)
+      .filter(post_tag::post_id.eq(post_id))
+      .filter(tag::deleted.eq(false))
+      .select(tag::all_columns)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -75,5 +143,33 @@ impl ToSql<Nullable<Json>, Pg> for TagsView {
   fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
     let value = serde_json::to_value(self)?;
     <serde_json::Value as ToSql<Json, Pg>>::to_sql(&value, &mut out.reborrow())
+  }
+}
+
+impl PostTag {
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    forms: Vec<PostTagForm>,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    conn
+      .run_transaction(|conn| {
+        async move {
+          delete(post_tag::table.filter(post_tag::post_id.eq(post_id)))
+            .execute(conn)
+            .await
+            .with_lemmy_type(LemmyErrorType::Deleted)?;
+
+          insert_into(post_tag::table)
+            .values(forms)
+            .returning(Self::as_select())
+            .get_results(conn)
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntCreatePostTag)
+        }
+        .scope_boxed()
+      })
+      .await
   }
 }

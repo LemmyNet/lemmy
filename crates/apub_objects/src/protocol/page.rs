@@ -1,5 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::tags::CommunityTag,
   utils::protocol::{
     AttributedTo,
     ImageObject,
@@ -70,7 +71,11 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<Hashtag>,
+  /// This is a standard activitystreams property for any type of "association by reference"
+  /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
+  /// Lemmy (a) attaches the community (group) as a "hashtag" and (b) attaches
+  /// community-created post tags.
+  pub(crate) tag: Vec<HashtagOrLemmyTag>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -163,6 +168,23 @@ pub struct Hashtag {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum HashtagType {
   Hashtag,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum HashtagOrLemmyTag {
+  Hashtag(Hashtag),
+  LemmyCommunityPostTag(CommunityTag),
+  // more options can be added here in the future - as long es they have a unique type: property
+}
+
+impl HashtagOrLemmyTag {
+  pub fn community_tag_url(&self) -> Option<Url> {
+    match self {
+      HashtagOrLemmyTag::LemmyCommunityPostTag(t) => Some(t.id.clone()),
+      _ => None,
+    }
+  }
 }
 
 impl Page {

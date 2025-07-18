@@ -2,6 +2,7 @@ use crate::{
   protocol::page::{
     Attachment,
     Hashtag,
+    HashtagOrLemmyTag,
     HashtagType::{self},
     Page,
     PageType,
@@ -40,6 +41,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
+    tag::{PostTag, PostTagForm, Tag},
   },
   traits::Crud,
 };
@@ -139,6 +141,13 @@ impl Object for ApubPost {
       kind: HashtagType::Hashtag,
     };
 
+    let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
+      .await?
+      .into_iter()
+      .map(|tag| HashtagOrLemmyTag::LemmyCommunityPostTag(tag.into()))
+      .collect();
+    tags.push(HashtagOrLemmyTag::Hashtag(hashtag));
+
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
@@ -156,7 +165,7 @@ impl Object for ApubPost {
       published: Some(self.published_at),
       updated: self.updated_at,
       in_reply_to: None,
-      tag: vec![hashtag],
+      tag: tags,
     };
     Ok(page)
   }
@@ -302,6 +311,15 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
+
+    let post_tags_to_lookup: Vec<PostTagForm> = page
+      .tag
+      .iter()
+      .filter_map(HashtagOrLemmyTag::community_tag_url)
+      .map(|tag_id| todo!())
+      .collect();
+    PostTag::update(&mut context.pool(), post.id, post_tags_to_lookup).await?;
+
     let post_ = post.clone();
     let context_ = context.clone();
 
@@ -322,7 +340,7 @@ mod tests {
     objects::ApubPerson,
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{community::Community, person::Person, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

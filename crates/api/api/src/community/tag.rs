@@ -1,7 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_action};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+  utils::check_community_mod_action,
+};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -33,6 +37,11 @@ pub async fn create_community_tag(
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
 
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
+    &context,
+  )?;
+
   Ok(Json(tag))
 }
 
@@ -57,6 +66,11 @@ pub async fn update_community_tag(
 
   let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
 
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
+    &context,
+  )?;
+
   Ok(Json(tag))
 }
 
@@ -79,6 +93,11 @@ pub async fn delete_community_tag(
   };
 
   let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
+    &context,
+  )?;
 
   Ok(Json(tag))
 }

@@ -37,6 +37,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    tag::Tag,
   },
   traits::{ApubActor, Crud},
 };
@@ -117,7 +118,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
-
+    let post_tags = Tag::get_by_community(&mut data.pool(), community_id).await?;
     let group = Group {
       kind: GroupType::Group,
       id: self.id().clone().into(),
@@ -145,6 +146,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
+      tags: post_tags.into_iter().map(Into::into).collect(),
     };
     Ok(group)
   }
@@ -233,6 +235,13 @@ impl Object for ApubCommunity {
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
+
+    let tags = group
+      .tags
+      .iter()
+      .map(|t| t.into_insert_form(community.id))
+      .collect();
+    Tag::update_many(&mut context.pool(), &community, tags).await?;
 
     let community: ApubCommunity = community.into();
 
