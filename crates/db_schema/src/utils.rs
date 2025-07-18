@@ -5,7 +5,6 @@ use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
   dsl,
-  expression::AsExpression,
   helper_types::AsExprOf,
   pg::{data_types::PgInterval, Pg},
   query_builder::{Query, QueryFragment},
@@ -556,30 +555,10 @@ pub fn seconds_to_pg_interval(seconds: i32) -> PgInterval {
   PgInterval::from_microseconds(i64::from(seconds) * 1_000_000)
 }
 
-/// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`
-pub trait AsRecord: Expression + AsExpression<sql_types::Record<Self::SqlType>>
-where
-  Self::SqlType: 'static,
-{
-}
-
-impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T where
-  T::SqlType: 'static
-{
-}
-
 /// Output of `IntoSql::into_sql` for a type that implements `AsRecord`
 pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
-
-pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
-
-impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, Args> for F {}
-
-pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
-
-impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
 pub fn paginate<Q, C>(
   query: Q,
