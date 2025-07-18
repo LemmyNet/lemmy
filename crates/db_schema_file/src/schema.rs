@@ -146,9 +146,9 @@ diesel::table! {
         path -> Ltree,
         distinguished -> Bool,
         language_id -> Int4,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
+        score -> Int4,
+        upvotes -> Int4,
+        downvotes -> Int4,
         child_count -> Int4,
         hot_rank -> Float8,
         controversy_rank -> Float8,
@@ -160,11 +160,36 @@ diesel::table! {
 
 diesel::table! {
     comment_actions (person_id, comment_id) {
+        id -> Int4,
         person_id -> Int4,
         comment_id -> Int4,
         like_score -> Nullable<Int2>,
         liked_at -> Nullable<Timestamptz>,
         saved_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    comment_aggregates (comment_id) {
+        comment_id -> Int4,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        published -> Timestamptz,
+        child_count -> Int4,
+        hot_rank -> Float8,
+        controversy_rank -> Float8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
+    }
+}
+
+diesel::table! {
+    comment_like (person_id, comment_id) {
+        person_id -> Int4,
+        comment_id -> Int4,
+        score -> Int2,
+        published -> Timestamptz,
     }
 }
 
@@ -221,18 +246,18 @@ diesel::table! {
         #[max_length = 150]
         description -> Nullable<Varchar>,
         random_number -> Int2,
-        subscribers -> Int8,
-        posts -> Int8,
-        comments -> Int8,
-        users_active_day -> Int8,
-        users_active_week -> Int8,
-        users_active_month -> Int8,
-        users_active_half_year -> Int8,
+        subscribers -> Int4,
+        posts -> Int4,
+        comments -> Int4,
+        users_active_day -> Int4,
+        users_active_week -> Int4,
+        users_active_month -> Int4,
+        users_active_half_year -> Int4,
         hot_rank -> Float8,
-        subscribers_local -> Int8,
+        subscribers_local -> Int4,
         report_count -> Int2,
         unresolved_report_count -> Int2,
-        interactions_month -> Int8,
+        interactions_month -> Int4,
         local_removed -> Bool,
     }
 }
@@ -243,8 +268,9 @@ diesel::table! {
     use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
-        community_id -> Int4,
+        id -> Int4,
         person_id -> Int4,
+        community_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
@@ -341,6 +367,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    history_status (source, dest) {
+        id -> Int4,
+        source -> Text,
+        dest -> Text,
+        last_scanned_id -> Nullable<Int4>,
+        last_scanned_timestamp -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     image_details (link) {
         link -> Text,
         width -> Int4,
@@ -367,6 +403,7 @@ diesel::table! {
 
 diesel::table! {
     instance_actions (person_id, instance_id) {
+        id -> Int4,
         person_id -> Int4,
         instance_id -> Int4,
         blocked_at -> Nullable<Timestamptz>,
@@ -435,14 +472,14 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         disallow_nsfw_content -> Bool,
-        users -> Int8,
-        posts -> Int8,
-        comments -> Int8,
-        communities -> Int8,
-        users_active_day -> Int8,
-        users_active_week -> Int8,
-        users_active_month -> Int8,
-        users_active_half_year -> Int8,
+        users -> Int4,
+        posts -> Int4,
+        comments -> Int4,
+        communities -> Int4,
+        users_active_day -> Int4,
+        users_active_week -> Int4,
+        users_active_month -> Int4,
+        users_active_half_year -> Int4,
         disable_email_notifications -> Bool,
         suggested_communities -> Nullable<Int4>,
         multi_comm_follower -> Int4,
@@ -825,17 +862,18 @@ diesel::table! {
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
         instance_id -> Int4,
-        post_count -> Int8,
-        post_score -> Int8,
-        comment_count -> Int8,
-        comment_score -> Int8,
+        post_count -> Int4,
+        post_score -> Int4,
+        comment_count -> Int4,
+        comment_score -> Int4,
     }
 }
 
 diesel::table! {
     person_actions (person_id, target_id) {
-        target_id -> Int4,
+        id -> Int4,
         person_id -> Int4,
+        target_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
         blocked_at -> Nullable<Timestamptz>,
@@ -864,6 +902,15 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
+    person_post_aggregates (person_id, post_id) {
+        person_id -> Int4,
+        post_id -> Int4,
+        read_comments -> Int8,
+        published -> Timestamptz,
     }
 }
 
@@ -906,10 +953,10 @@ diesel::table! {
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
         scheduled_publish_time_at -> Nullable<Timestamptz>,
-        comments -> Int8,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
+        comments -> Int4,
+        score -> Int4,
+        upvotes -> Int4,
+        downvotes -> Int4,
         newest_comment_time_necro_at -> Timestamptz,
         newest_comment_time_at -> Timestamptz,
         hot_rank -> Float8,
@@ -927,16 +974,58 @@ diesel::table! {
     use super::sql_types::PostNotificationsModeEnum;
 
     post_actions (person_id, post_id) {
-        post_id -> Int4,
+        id -> Int4,
         person_id -> Int4,
+        post_id -> Int4,
         read_at -> Nullable<Timestamptz>,
         read_comments_at -> Nullable<Timestamptz>,
-        read_comments_amount -> Nullable<Int8>,
+        read_comments_amount -> Nullable<Int4>,
         saved_at -> Nullable<Timestamptz>,
         liked_at -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
         notifications -> Nullable<PostNotificationsModeEnum>,
+    }
+}
+
+diesel::table! {
+    post_aggregates (post_id) {
+        post_id -> Int4,
+        comments -> Int8,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        published -> Timestamptz,
+        newest_comment_time_necro -> Timestamptz,
+        newest_comment_time -> Timestamptz,
+        featured_community -> Bool,
+        featured_local -> Bool,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
+        community_id -> Int4,
+        creator_id -> Int4,
+        controversy_rank -> Float8,
+        instance_id -> Int4,
+        scaled_rank -> Float8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
+    }
+}
+
+diesel::table! {
+    post_like (person_id, post_id) {
+        post_id -> Int4,
+        person_id -> Int4,
+        score -> Int2,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    post_read (person_id, post_id) {
+        post_id -> Int4,
+        person_id -> Int4,
+        published -> Timestamptz,
     }
 }
 
@@ -1036,7 +1125,7 @@ diesel::table! {
     search_combined (id) {
         id -> Int4,
         published_at -> Timestamptz,
-        score -> Int8,
+        score -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
@@ -1137,6 +1226,9 @@ diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_actions -> comment (comment_id));
 diesel::joinable!(comment_actions -> person (person_id));
+diesel::joinable!(comment_aggregates -> comment (comment_id));
+diesel::joinable!(comment_like -> comment (comment_id));
+diesel::joinable!(comment_like -> person (person_id));
 diesel::joinable!(comment_report -> comment (comment_id));
 diesel::joinable!(community -> instance (instance_id));
 diesel::joinable!(community_actions -> community (community_id));
@@ -1213,6 +1305,8 @@ diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
 diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
+diesel::joinable!(person_post_aggregates -> person (person_id));
+diesel::joinable!(person_post_aggregates -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1221,6 +1315,14 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
+diesel::joinable!(post_aggregates -> community (community_id));
+diesel::joinable!(post_aggregates -> instance (instance_id));
+diesel::joinable!(post_aggregates -> person (creator_id));
+diesel::joinable!(post_aggregates -> post (post_id));
+diesel::joinable!(post_like -> person (person_id));
+diesel::joinable!(post_like -> post (post_id));
+diesel::joinable!(post_read -> person (person_id));
+diesel::joinable!(post_read -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
@@ -1251,6 +1353,8 @@ diesel::allow_tables_to_appear_in_same_query!(
   captcha_answer,
   comment,
   comment_actions,
+  comment_aggregates,
+  comment_like,
   comment_report,
   community,
   community_actions,
@@ -1262,6 +1366,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   federation_allowlist,
   federation_blocklist,
   federation_queue_state,
+  history_status,
   image_details,
   instance,
   instance_actions,
@@ -1297,9 +1402,13 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_actions,
   person_content_combined,
   person_liked_combined,
+  person_post_aggregates,
   person_saved_combined,
   post,
   post_actions,
+  post_aggregates,
+  post_like,
+  post_read,
   post_report,
   post_tag,
   private_message,

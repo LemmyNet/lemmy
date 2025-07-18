@@ -49,9 +49,9 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
+  pub score: i32,
+  pub upvotes: i32,
+  pub downvotes: i32,
   /// The total number of children in this comment branch.
   pub child_count: i32,
   #[serde(skip)]
@@ -125,6 +125,8 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
+  #[serde(skip)]
+  pub id: i32,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
