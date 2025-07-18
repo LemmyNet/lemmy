@@ -20,6 +20,7 @@ use lemmy_api::{
     random::get_random_community,
     tag::{create_community_tag, delete_community_tag, update_community_tag},
     transfer::transfer_community,
+    update_notifications::update_community_notifications,
   },
   local_user::{
     add_admin::add_admin,
@@ -41,11 +42,9 @@ use lemmy_api::{
     logout::logout,
     note_person::user_note_person,
     notifications::{
-      list_inbox::list_inbox,
+      list::list_notifications,
       mark_all_read::mark_all_notifications_read,
-      mark_comment_mention_read::mark_comment_mention_as_read,
-      mark_post_mention_read::mark_post_mention_as_read,
-      mark_reply_read::mark_reply_as_read,
+      mark_notification_read::mark_notification_as_read,
       unread_count::unread_count,
     },
     report_count::report_count,
@@ -67,8 +66,8 @@ use lemmy_api::{
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
     save::save_post,
+    update_notifications::update_post_notifications,
   },
-  private_message::mark_read::mark_pm_as_read,
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
     community_report::{create::create_community_report, resolve::resolve_community_report},
@@ -247,6 +246,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/tag", post().to(create_community_tag))
           .route("/tag", put().to(update_community_tag))
           .route("/tag", delete().to(delete_community_tag))
+          .route("/notifications", post().to(update_community_notifications))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -294,7 +294,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/like/list", get().to(list_post_likes))
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
-          .route("/report/resolve", put().to(resolve_post_report)),
+          .route("/report/resolve", put().to(resolve_post_report))
+          .route("/notifications", post().to(update_post_notifications)),
       )
       // Comment
       .service(
@@ -310,7 +311,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", put().to(update_comment))
           .route("/delete", post().to(delete_comment))
           .route("/remove", post().to(remove_comment))
-          .route("/mark_as_read", post().to(mark_reply_as_read))
           .route("/distinguish", post().to(distinguish_comment))
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))
@@ -326,7 +326,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
-          .route("/mark_as_read", post().to(mark_pm_as_read))
           .route("/report", post().to(create_pm_report))
           .route("/report/resolve", put().to(resolve_pm_report)),
       )
@@ -364,17 +363,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("", delete().to(delete_image))
               .route("/list", get().to(list_media)),
           )
-          .route("/inbox", get().to(list_inbox))
+          .route("/notifications", get().to(list_notifications))
           .route("/delete", post().to(delete_account))
-          .service(
-            scope("/mention")
-              .route(
-                "/comment/mark_as_read",
-                post().to(mark_comment_mention_as_read),
-              )
-              .route("/post/mark_as_read", post().to(mark_post_mention_as_read)),
-          )
           .route("/mark_as_read/all", post().to(mark_all_notifications_read))
+          .route("/mark_as_read", post().to(mark_notification_as_read))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))

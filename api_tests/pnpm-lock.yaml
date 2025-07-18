@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-rename-rate-limit-columns.1
-        version: 1.0.0-rename-rate-limit-columns.1
+        specifier: 1.0.0-post-notifications.5
+        version: 1.0.0-post-notifications.5
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1594,8 +1594,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@1.0.0-rename-rate-limit-columns.1:
-    resolution: {integrity: sha512-zlVJ4zkoI/7hNm6x7vr+Su2cRjAr8PQCA9j0GeK1UCMEIBLLSltknuRPC79VJY2sUhRAuR2JwTR0JtZ75SH2XQ==}
+  lemmy-js-client@1.0.0-post-notifications.5:
+    resolution: {integrity: sha512-2P0KPCordLRfuGTcgsU3pHSFJlVN5t91e04yhpUf5fZT7iTdlEctFQFtURsvfYPNYK/sdvsucqYbnpbbHJUCTA==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4404,7 +4404,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@1.0.0-rename-rate-limit-columns.1:
+  lemmy-js-client@1.0.0-post-notifications.5:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

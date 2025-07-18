@@ -27,7 +27,6 @@ use crate::{
     SITEMAP_LIMIT,
   },
 };
-use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, count_star, delete, insert_into, not, update},
@@ -45,22 +44,16 @@ use diesel::{
 };
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{
-  community,
-  person,
-  person_post_aggregates,
-  post,
-  post_actions,
-  post_aggregates,
-  post_like,
-  post_read,
+use lemmy_db_schema_file::{
+  enums::PostNotificationsMode,
+  schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
   DB_BATCH_SIZE,
 };
-use tracing::info;
+use url::Url;
 
 impl Crud for Post {
   type InsertForm = PostInsertForm;
@@ -923,6 +916,45 @@ impl PostActions {
     info!("Finished filling read_comments history into post_actions.");
 
     Ok(())
+  }
+
+  pub async fn update_notification_state(
+    post_id: PostId,
+    person_id: PersonId,
+    new_state: PostNotificationsMode,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let form = (
+      post_actions::person_id.eq(person_id),
+      post_actions::post_id.eq(post_id),
+      post_actions::notifications.eq(new_state),
+    );
+
+    insert_into(post_actions::table)
+      .values(form.clone())
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+
+  pub async fn list_subscribers(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    post_actions::table
+      .inner_join(local_user::table.on(post_actions::person_id.eq(local_user::person_id)))
+      .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::notifications.eq(PostNotificationsMode::AllComments))
+      .select(local_user::person_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

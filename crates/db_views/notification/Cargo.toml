@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_inbox_combined"
+name = "lemmy_db_views_notification"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -23,19 +23,16 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
-  "lemmy_db_views_private_message/full",
 ]
-ts-rs = [
-  "dep:ts-rs",
-  "lemmy_db_schema/ts-rs",
-  "lemmy_db_views_private_message/ts-rs",
-]
+ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
 [dependencies]
-lemmy_db_views_private_message = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_private_message = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
@@ -44,6 +41,3 @@ i-love-jesus = { workspace = true, optional = true }
 serde_with = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { workspace = true }
-serial_test = { workspace = true }
-tokio = { workspace = true }
