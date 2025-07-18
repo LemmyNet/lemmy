@@ -253,9 +253,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_community_follow (community_id, follower_id) {
+    community_community_follow (target_id, community_id) {
+        target_id -> Int4,
         community_id -> Int4,
-        follower_id -> Int4,
     }
 }
 
