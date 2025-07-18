@@ -1307,8 +1307,6 @@ diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
 diesel::joinable!(person_post_aggregates -> person (person_id));
 diesel::joinable!(person_post_aggregates -> post (post_id));
-diesel::joinable!(person_post_mention -> person (recipient_id));
-diesel::joinable!(person_post_mention -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1357,8 +1355,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   comment_actions,
   comment_aggregates,
   comment_like,
-  comment_reply,
-  comment_reply,
   comment_report,
   community,
   community_actions,

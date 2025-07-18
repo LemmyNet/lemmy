@@ -46,13 +46,24 @@ use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
-  schema::{community, local_user, person, post, post_actions},
+  schema::{
+    community,
+    local_user,
+    person,
+    person_post_aggregates,
+    post,
+    post_actions,
+    post_aggregates,
+    post_like,
+    post_read,
+  },
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
   DB_BATCH_SIZE,
 };
+use tracing::info;
 use url::Url;
 
 impl Crud for Post {
