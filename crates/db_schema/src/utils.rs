@@ -528,11 +528,6 @@ pub mod functions {
     fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
   }
 
-  define_sql_function! {
-    #[sql_name = "r.controversy_rank"]
-    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
-  }
-
   define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
   define_sql_function!(fn lower(x: Text) -> Text);
