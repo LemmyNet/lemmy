@@ -325,6 +325,10 @@ mod tests {
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
     *,
   };
+  use diesel::{
+    dsl::{not, sql},
+    sql_types,
+  };
   use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
@@ -401,6 +405,13 @@ mod tests {
 
     // Check the test data we inserted before after running migrations
     check_test_data(&mut conn)?;
+
+    // Check the current schema
+    assert_eq!(
+      get_foreign_keys_with_missing_indexes(&mut conn)?,
+      Vec::<String>::new(),
+      "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
+    );
 
     // Check for early return
     assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
@@ -635,5 +646,51 @@ mod tests {
     assert_eq!(replies[1].1, TEST_USER_ID_2);
 
     Ok(())
+  }
+
+  const FOREIGN_KEY: &str = "f";
+
+  fn get_foreign_keys_with_missing_indexes(conn: &mut PgConnection) -> LemmyResult<Vec<String>> {
+    diesel::table! {
+      pg_constraint (table_oid, name, kind, column_numbers) {
+        #[sql_name = "conrelid"]
+        table_oid -> Oid,
+        #[sql_name = "conname"]
+        name -> Text,
+        #[sql_name = "contype"]
+        kind -> Text,
+        #[sql_name = "conkey"]
+        column_numbers -> Array<Int2>,
+      }
+    }
+
+    diesel::table! {
+      pg_index (table_oid, key_length, column_numbers) {
+        #[sql_name = "indrelid"]
+        table_oid -> Oid,
+        #[sql_name = "indnkeyatts"]
+        key_length -> Int2,
+        #[sql_name = "indkey"]
+        column_numbers -> Array<Int2>,
+      }
+    }
+
+    diesel::allow_tables_to_appear_in_same_query!(pg_constraint, pg_index);
+
+    let matching_index = pg_index::table
+      .filter(pg_index::table_oid.eq(pg_constraint::table_oid))
+      // Check if the index's key (not columns listed with `INCLUDE`) starts with the foreign key.
+      // TODO: use Diesel array slice function when it's added.
+      .filter(sql::<sql_types::Bool>(
+        "((pg_index.indkey[:pg_index.indnkeyatts])[:array_length(pg_constraint.conkey, 1)] = pg_constraint.conkey)"
+      ));
+
+    let res = pg_constraint::table
+      .select(pg_constraint::name)
+      .filter(pg_constraint::kind.eq(FOREIGN_KEY))
+      .filter(not(exists(matching_index)))
+      .load(conn)?;
+
+    Ok(res)
   }
 }
