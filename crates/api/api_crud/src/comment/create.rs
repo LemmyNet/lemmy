@@ -2,8 +2,9 @@ use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  build_response::{build_comment_response, send_local_notifs},
+  build_response::build_comment_response,
   context::LemmyContext,
+  notify::NotifyData,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -19,11 +20,9 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  newtypes::PostOrCommentId,
   source::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-    comment_reply::{CommentReply, CommentReplyUpdateForm},
-    person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
+    notification::Notification,
   },
   traits::{Crud, Likeable},
 };
@@ -33,7 +32,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 pub async fn create_comment(
@@ -113,20 +112,14 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
-  let inserted_comment_id = inserted_comment.id;
-
-  // Scan the comment for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&content);
-  let do_send_email = !local_site.disable_email_notifications;
-  let recipient_ids = send_local_notifs(
-    mentions,
-    PostOrCommentId::Comment(inserted_comment_id),
+  NotifyData::new(
+    &post,
+    Some(&inserted_comment),
     &local_user_view.person,
-    do_send_email,
-    &context,
-    Some(&local_user_view),
-    local_instance_id,
+    &post_view.community,
+    !local_site.disable_email_notifications,
   )
+  .send(&context)
   .await?;
 
   // You like your own comment by default
@@ -153,30 +146,10 @@ pub async fn create_comment(
   // then mark the parent as read.
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
-    let person_id = local_user_view.person.id;
-    let parent_id = parent.id;
-    let comment_reply =
-      CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(Some(reply)) = comment_reply {
-      CommentReply::update(
-        &mut context.pool(),
-        reply.id,
-        &CommentReplyUpdateForm { read: Some(true) },
-      )
-      .await?;
-    }
-
-    // If the parent has PersonCommentMentions mark them as read too
-    let person_comment_mention =
-      PersonCommentMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id)
-        .await;
-    if let Ok(Some(mention)) = person_comment_mention {
-      PersonCommentMention::update(
-        &mut context.pool(),
-        mention.id,
-        &PersonCommentMentionUpdateForm { read: Some(true) },
-      )
-      .await?;
+    let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await;
+    if let Ok(notif) = notif {
+      let person_id = local_user_view.person.id;
+      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, person_id).await?;
     }
   }
 
@@ -185,7 +158,6 @@ pub async fn create_comment(
       &context,
       inserted_comment.id,
       Some(local_user_view),
-      recipient_ids,
       local_instance_id,
     )
     .await?,

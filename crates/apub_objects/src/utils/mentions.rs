@@ -34,7 +34,7 @@ pub struct Mention {
   pub kind: MentionType,
 }
 
-pub struct MentionsAndAddresses {
+pub(crate) struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
   pub tags: Vec<MentionOrValue>,
 }
@@ -42,7 +42,7 @@ pub struct MentionsAndAddresses {
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the persons / addresses that go in the cc field.
-pub async fn collect_non_local_mentions(
+pub(crate) async fn collect_non_local_mentions(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<MentionsAndAddresses> {

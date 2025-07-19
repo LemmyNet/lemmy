@@ -24,14 +24,14 @@ import {
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  ListInboxResponse,
-  ListInbox,
   InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
   PersonView,
+  ListNotifications,
+  ListNotificationsResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -384,16 +384,16 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function listInbox(
+export async function listNotifications(
   api: LemmyHttp,
   type_?: InboxDataType,
   unread_only: boolean = false,
-): Promise<ListInboxResponse> {
-  let form: ListInbox = {
+): Promise<ListNotificationsResponse> {
+  let form: ListNotifications = {
     unread_only,
     type_,
   };
-  return api.listInbox(form);
+  return api.listNotifications(form);
 }
 
 export async function resolveComment(
