@@ -3962,7 +3962,6 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "regex",
- "reqwest-middleware",
  "serde",
  "serde_json",
  "smart-default",

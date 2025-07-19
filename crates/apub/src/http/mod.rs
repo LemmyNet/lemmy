@@ -84,13 +84,13 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
 }
 
 #[derive(Deserialize)]
-pub struct ActivityQuery {
+struct ActivityQuery {
   type_: String,
   id: String,
 }
 
 /// Return the ActivityPub json representation of a local activity over HTTP.
-pub(crate) async fn get_activity(
+async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {

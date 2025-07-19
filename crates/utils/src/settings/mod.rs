@@ -1,7 +1,6 @@
 use crate::{error::LemmyResult, location_info};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use regex::Regex;
 use std::{env, fs, sync::LazyLock};
 use structs::{PictrsConfig, Settings};
 use url::Url;
@@ -25,15 +24,6 @@ pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
   } else {
     Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
   }
-});
-
-#[allow(clippy::expect_used)]
-static WEBFINGER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(
-    "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
-    SETTINGS.hostname
-  ))
-  .expect("compile webfinger regex")
 });
 
 impl Settings {
@@ -63,7 +53,7 @@ impl Settings {
   }
 
   /// Returns either "http" or "https", depending on tls_enabled setting
-  pub fn get_protocol_string(&self) -> &'static str {
+  fn get_protocol_string(&self) -> &'static str {
     if self.tls_enabled {
       "https"
     } else {
@@ -90,10 +80,6 @@ impl Settings {
         .context(location_info!())?)
       .to_string(),
     )
-  }
-
-  pub fn webfinger_regex(&self) -> Regex {
-    WEBFINGER_REGEX.clone()
   }
 
   pub fn pictrs(&self) -> LemmyResult<PictrsConfig> {

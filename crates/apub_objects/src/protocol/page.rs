@@ -251,7 +251,7 @@ impl InCommunity for Page {
 }
 
 /// Only allows deserialization if the field is missing or null. If it is present, throws an error.
-pub fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
   D: Deserializer<'de>,
 {
