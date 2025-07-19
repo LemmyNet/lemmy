@@ -4,10 +4,7 @@ use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
 use db_pool::{
   r#async::{
-    DatabasePool,
-    DatabasePoolBuilderTrait,
-    DieselAsyncPostgresBackend,
-    DieselDeadpool,
+    DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool,
     ReusableConnectionPool,
   },
   PrivilegedPostgresConfig,
@@ -20,21 +17,18 @@ use diesel::{
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
-    ConnectionError,
-    ConnectionResult,
+    ConnectionError, ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
-  Expression,
-  IntoSql,
+  Expression, IntoSql,
 };
 use diesel_async::{
   async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-    AsyncDieselConnectionManager,
-    ManagerConfig,
+    AsyncDieselConnectionManager, ManagerConfig,
   },
   scoped_futures::ScopedBoxFuture,
   AsyncConnection,
@@ -48,16 +42,11 @@ use lemmy_utils::{
 };
 use rustls::{
   client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
+    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
+  ClientConfig, DigitallySignedStruct, SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
@@ -574,13 +563,18 @@ pub async fn build_db_pool_for_tests(
     .get_or_init(|| async {
       let conn_string = SETTINGS.get_database_url();
 
-      let db_url = Url::parse(conn_string.as_str()).unwrap();
+      let db_url = Url::parse(conn_string.as_str()).expect("db url");
 
       let config = PrivilegedPostgresConfig::new()
-        .host(db_url.host().unwrap().to_string())
-        .port(db_url.port().unwrap())
+        .host(db_url.host().expect("db host").to_string())
+        .port(db_url.port().expect("db port"))
         .username(db_url.username().to_string())
-        .password(Some(db_url.password().unwrap().to_string()));
+        .password(Some(
+          db_url
+            .password()
+            .expect("db password")
+            .to_string(),
+        ));
 
       let backend = DieselAsyncPostgresBackend::new(
         config,
@@ -603,9 +597,9 @@ pub async fn build_db_pool_for_tests(
         },
       )
       .await
-      .unwrap();
+      .expect("diesel postgres backend");
 
-      backend.create_database_pool().await.unwrap()
+      backend.create_database_pool().await.expect("create db pool")
     })
     .await;
 

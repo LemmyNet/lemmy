@@ -51,7 +51,6 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
-  use serial_test::serial;
 
   #[tokio::test]
   async fn test_captcha_happy_path() -> LemmyResult<()> {

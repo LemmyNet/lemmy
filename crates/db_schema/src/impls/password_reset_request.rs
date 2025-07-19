@@ -58,7 +58,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
   async fn test_password_reset() -> LemmyResult<()> {

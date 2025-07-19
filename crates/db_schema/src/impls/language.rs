@@ -49,7 +49,6 @@ mod tests {
   use crate::{source::language::Language, utils::build_db_pool_for_tests};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
   async fn test_languages() -> LemmyResult<()> {

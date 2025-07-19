@@ -54,7 +54,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn read_local_site(pool: &mut DbPool<'_>) -> LemmyResult<LocalSite> {
     let conn = &mut get_conn(pool).await?;

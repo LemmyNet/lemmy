@@ -103,7 +103,6 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;

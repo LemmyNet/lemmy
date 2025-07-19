@@ -112,7 +112,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
   use url::Url;
 
   #[tokio::test]
