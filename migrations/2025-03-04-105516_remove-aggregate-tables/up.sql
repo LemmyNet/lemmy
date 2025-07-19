@@ -1,5 +1,7 @@
 -- Even only selecting the last month of data, this one still took 80m.
 -- The deletes also take a long time.
+SET session_replication_role = replica;
+
 -- merge comment_aggregates into comment table
 ALTER TABLE comment
     ADD COLUMN score int NOT NULL DEFAULT 0,

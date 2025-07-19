@@ -1,5 +1,7 @@
 -- Creates combined tables for
 -- Search: (post, comment, community, person)
+SET session_replication_role = replica;
+
 CREATE TABLE search_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,

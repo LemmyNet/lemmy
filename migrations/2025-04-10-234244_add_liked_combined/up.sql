@@ -1,6 +1,7 @@
 -- Creates combined tables for
 -- person_liked: (comment, post)
---
+SET session_replication_role = REPLICA;
+
 -- This one is special, because you use the liked date, not the ordinary published
 CREATE TABLE person_liked_combined (
     id serial PRIMARY KEY,

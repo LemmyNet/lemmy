@@ -7,6 +7,8 @@
 -- A code migration will handle the rest of the history in the background.
 --
 -- Create a table to store background history filling status
+SET session_replication_role = REPLICA;
+
 CREATE TABLE history_status (
     id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     source text NOT NULL,
