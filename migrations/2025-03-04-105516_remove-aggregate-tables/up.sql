@@ -1,8 +1,4 @@
--- Even only selecting the last month of data, this one still took 80m.
--- The deletes also take a long time.
-SET session_replication_role = replica;
-
--- merge comment_aggregates into comment table
+-- Merge comment_aggregates into comment table
 ALTER TABLE comment
     ADD COLUMN score int NOT NULL DEFAULT 0,
     ADD COLUMN upvotes int NOT NULL DEFAULT 0,
@@ -13,7 +9,23 @@ ALTER TABLE comment
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
--- 14m
+-- Disable the triggers temporarily
+ALTER TABLE comment DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
+
 UPDATE
     comment
 SET
@@ -28,26 +40,29 @@ SET
 FROM
     comment_aggregates AS ca
 WHERE
-    comment.id = ca.comment_id
-    AND ca.published > CURRENT_DATE - interval '1 month';
+    comment.id = ca.comment_id;
 
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_id)
-SELECT
-    'comment_aggregates',
-    'comment',
-    min(comment_id)
-FROM
-    comment_aggregates
+DROP TABLE comment_aggregates;
+
+-- Re-enable triggers after upserts
+ALTER TABLE comment ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
 WHERE
-    published > CURRENT_DATE - interval '1 month';
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
 
--- Delete that data
-DELETE FROM comment_aggregates
-WHERE published > CURRENT_DATE - interval '1 month';
-
-ALTER TABLE comment_aggregates
-    ALTER CONSTRAINT comment_aggregates_comment_id_fkey NOT DEFERRABLE;
+-- reindex
+REINDEX comment;
 
 -- 30s-2m each
 CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DESC);
@@ -76,7 +91,23 @@ ALTER TABLE post
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
--- 8m
+-- Disable the triggers temporarily
+ALTER TABLE post DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'post');
+
 UPDATE
     post
 SET
@@ -96,23 +127,30 @@ SET
 FROM
     post_aggregates AS pa
 WHERE
-    post.id = pa.post_id
-    AND pa.published > CURRENT_DATE - interval '1 month';
-
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_id)
-SELECT
-    'post_aggregates',
-    'post',
-    min(post_id)
-FROM
-    post_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month';
+    post.id = pa.post_id;
 
 -- Delete that data
-DELETE FROM post_aggregates
-WHERE published > CURRENT_DATE - interval '1 month';
+DROP TABLE post_aggregates;
+
+-- Re-enable triggers after upserts
+ALTER TABLE post ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'post');
+
+-- reindex
+REINDEX post;
 
 ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
@@ -199,6 +237,23 @@ ALTER TABLE community
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN interactions_month int NOT NULL DEFAULT 0;
 
+-- Disable the triggers temporarily
+ALTER TABLE community DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'community');
+
 UPDATE
     community
 SET
@@ -219,6 +274,28 @@ FROM
 WHERE
     community.id = ca.community_id;
 
+DROP TABLE community_aggregates;
+
+-- Re-enable triggers after upserts
+ALTER TABLE community ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'community');
+
+-- reindex
+REINDEX community;
+
 CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
 CREATE INDEX idx_community_nonzero_hotrank ON public.community USING btree (published)
@@ -229,12 +306,28 @@ CREATE INDEX idx_community_subscribers ON public.community USING btree (subscrib
 CREATE INDEX idx_community_users_active_month ON public.community USING btree (users_active_month DESC);
 
 -- merge person_aggregates into person table
--- 15m
 ALTER TABLE person
     ADD COLUMN post_count int NOT NULL DEFAULT 0,
     ADD COLUMN post_score int NOT NULL DEFAULT 0,
     ADD COLUMN comment_count int NOT NULL DEFAULT 0,
     ADD COLUMN comment_score int NOT NULL DEFAULT 0;
+
+-- Disable the triggers temporarily
+ALTER TABLE person DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'person');
 
 UPDATE
     person
@@ -248,7 +341,29 @@ FROM
 WHERE
     person.id = pa.person_id;
 
--- merge site_aggregates into person table
+DROP TABLE person_aggregates;
+
+-- Re-enable triggers after upserts
+ALTER TABLE person ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'person');
+
+-- reindex
+REINDEX person;
+
+-- merge site_aggregates into local_site table
 ALTER TABLE local_site
     ADD COLUMN users int NOT NULL DEFAULT 1,
     ADD COLUMN posts int NOT NULL DEFAULT 0,
@@ -258,6 +373,23 @@ ALTER TABLE local_site
     ADD COLUMN users_active_week int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_month int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_half_year int NOT NULL DEFAULT 0;
+
+-- Disable the triggers temporarily
+ALTER TABLE local_site DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
 
 UPDATE
     local_site
@@ -275,12 +407,51 @@ FROM
 WHERE
     local_site.site_id = sa.site_id;
 
+DROP TABLE site_aggregates;
+
+-- Re-enable triggers after upserts
+ALTER TABLE local_site ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
+
+-- reindex
+REINDEX local_site;
+
 -- merge local_user_vote_display_mode into local_user table
 ALTER TABLE local_user
     ADD COLUMN show_score boolean NOT NULL DEFAULT FALSE,
     ADD COLUMN show_upvotes boolean NOT NULL DEFAULT TRUE,
     ADD COLUMN show_downvotes boolean NOT NULL DEFAULT TRUE,
     ADD COLUMN show_upvote_percentage boolean NOT NULL DEFAULT FALSE;
+
+-- Disable the triggers temporarily
+ALTER TABLE local_user DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_user');
 
 UPDATE
     local_user
@@ -294,5 +465,25 @@ FROM
 WHERE
     local_user.id = v.local_user_id;
 
-DROP TABLE community_aggregates, person_aggregates, site_aggregates, local_user_vote_display_mode;
+DROP TABLE local_user_vote_display_mode;
+
+-- Re-enable triggers after upserts
+ALTER TABLE local_user ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_user');
+
+-- reindex
+REINDEX local_user;
 

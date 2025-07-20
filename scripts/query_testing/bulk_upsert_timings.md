@@ -52,3 +52,5 @@ WHEN NOT MATCHED THEN
     INSERT (person_id, post_id, read)
         VALUES (pr.person_id, pr.post_id, pr.published);
 ```
+
+## comment aggregate bulk update: 3881s / 65m
