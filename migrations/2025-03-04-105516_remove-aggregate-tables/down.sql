@@ -1,6 +1,6 @@
 -- move comment_aggregates back into separate table
 CREATE TABLE IF NOT EXISTS comment_aggregates (
-    comment_id int PRIMARY KEY NOT NULL REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    comment_id int PRIMARY KEY NOT NULL REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     score bigint NOT NULL DEFAULT 0,
     upvotes bigint NOT NULL DEFAULT 0,
     downvotes bigint NOT NULL DEFAULT 0,
@@ -64,7 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_comment_aggregates_score ON comment_aggregates US
 
 -- move comment_aggregates back into separate table
 CREATE TABLE IF NOT EXISTS post_aggregates (
-    post_id int PRIMARY KEY NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    post_id int PRIMARY KEY NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comments bigint NOT NULL DEFAULT 0,
     score bigint NOT NULL DEFAULT 0,
     upvotes bigint NOT NULL DEFAULT 0,
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
     featured_local boolean NOT NULL DEFAULT FALSE,
     hot_rank double precision NOT NULL DEFAULT 0.0001,
     hot_rank_active double precision NOT NULL DEFAULT 0.0001,
-    community_id integer NOT NULL REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    creator_id integer NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    community_id integer NOT NULL REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    creator_id integer NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     controversy_rank double precision NOT NULL DEFAULT 0,
-    instance_id integer NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    instance_id integer NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     scaled_rank double precision NOT NULL DEFAULT 0.0001,
     report_count smallint NOT NULL DEFAULT 0,
     unresolved_report_count smallint NOT NULL DEFAULT 0
@@ -296,7 +296,7 @@ CREATE INDEX idx_community_aggregates_users_active_month ON public.community_agg
 
 -- move person_aggregates back into separate table
 CREATE TABLE person_aggregates (
-    person_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    person_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_count bigint NOT NULL DEFAULT 0,
     post_score bigint NOT NULL DEFAULT 0,
     comment_count bigint NOT NULL DEFAULT 0,
@@ -321,9 +321,8 @@ ALTER TABLE person
     DROP COLUMN comment_count,
     DROP COLUMN comment_score;
 
-SET CONSTRAINTS person_aggregates_person_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS person_aggregates_person_id_fkey DEFERRED;
+ALTER TABLE person_aggregates
+    ALTER CONSTRAINT person_aggregates_person_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
 CREATE INDEX idx_person_aggregates_comment_score ON public.person_aggregates USING btree (comment_score DESC);
 
@@ -331,7 +330,7 @@ CREATE INDEX idx_person_aggregates_person ON public.person_aggregates USING btre
 
 -- move site_aggregates back into separate table
 CREATE TABLE site_aggregates (
-    site_id int PRIMARY KEY NOT NULL REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    site_id int PRIMARY KEY NOT NULL REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE,
     users bigint NOT NULL DEFAULT 1,
     posts bigint NOT NULL DEFAULT 0,
     comments bigint NOT NULL DEFAULT 0,
@@ -393,15 +392,11 @@ ALTER TABLE local_user
 
 CREATE INDEX idx_search_combined_score ON public.search_combined USING btree (score DESC, id DESC);
 
-SET CONSTRAINTS site_aggregates_site_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS site_aggregates_site_id_fkey DEFERRED;
+ALTER TABLE site_aggregates
+    ALTER CONSTRAINT site_aggregates_site_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
 CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USING btree ((TRUE));
 
 ALTER TABLE community_aggregates
     ALTER CONSTRAINT community_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED;
-
-DELETE FROM history_status
-WHERE source IN ('comment_aggregates', 'post_aggregates');
 

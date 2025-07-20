@@ -306,13 +306,15 @@ CREATE INDEX IF NOT EXISTS idx_person_post_aggregates_post ON person_post_aggreg
 
 CREATE INDEX IF NOT EXISTS idx_post_like_post ON post_like (post_id);
 
+CREATE INDEX idx_comment_like_comment ON comment_like (comment_id);
+
 DROP INDEX idx_person_actions_person, idx_person_actions_target, idx_post_actions_person, idx_post_actions_post;
 
 -- Drop `NOT NULL` indexes of columns that still exist
-DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null, idx_comment_actions_person, idx_community_actions_person, idx_instance_actions_instance, idx_instance_actions_person, idx_comment_like_published_desc, idx_person_post_aggregates_published_desc, idx_post_like_published_desc, idx_post_read_published_desc;
+DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null, idx_comment_actions_person, idx_community_actions_person, idx_instance_actions_instance, idx_instance_actions_person;
 
 -- Drop statistics of columns that still exist
 DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
 
-DROP TABLE history_status, comment_actions, post_actions;
+DROP TABLE comment_actions, post_actions;
 
