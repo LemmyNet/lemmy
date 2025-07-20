@@ -62,7 +62,7 @@ WHERE
             relname = 'comment');
 
 -- reindex
-REINDEX comment;
+REINDEX TABLE comment;
 
 -- 30s-2m each
 CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DESC);
@@ -150,13 +150,8 @@ WHERE
             relname = 'post');
 
 -- reindex
-REINDEX post;
+REINDEX TABLE post;
 
-ALTER TABLE post_aggregates
-    ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT post_aggregates_creator_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT post_aggregates_instance_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT post_aggregates_post_id_fkey NOT DEFERRABLE;
 
 CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
 
@@ -294,7 +289,7 @@ WHERE
             relname = 'community');
 
 -- reindex
-REINDEX community;
+REINDEX TABLE community;
 
 CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
@@ -361,7 +356,7 @@ WHERE
             relname = 'person');
 
 -- reindex
-REINDEX person;
+REINDEX TABLE person;
 
 -- merge site_aggregates into local_site table
 ALTER TABLE local_site
@@ -427,7 +422,7 @@ WHERE
             relname = 'local_site');
 
 -- reindex
-REINDEX local_site;
+REINDEX TABLE local_site;
 
 -- merge local_user_vote_display_mode into local_user table
 ALTER TABLE local_user
@@ -485,5 +480,5 @@ WHERE
             relname = 'local_user');
 
 -- reindex
-REINDEX local_user;
+REINDEX TABLE local_user;
 
