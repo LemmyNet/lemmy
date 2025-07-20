@@ -170,30 +170,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_aggregates (comment_id) {
-        comment_id -> Int4,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
-        published -> Timestamptz,
-        child_count -> Int4,
-        hot_rank -> Float8,
-        controversy_rank -> Float8,
-        report_count -> Int2,
-        unresolved_report_count -> Int2,
-    }
-}
-
-diesel::table! {
-    comment_like (person_id, comment_id) {
-        person_id -> Int4,
-        comment_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     comment_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -363,16 +339,6 @@ diesel::table! {
         fail_count -> Int4,
         last_retry_at -> Nullable<Timestamptz>,
         last_successful_published_time_at -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    history_status (source, dest) {
-        id -> Int4,
-        source -> Text,
-        dest -> Text,
-        last_scanned_id -> Nullable<Int4>,
-        last_scanned_timestamp -> Nullable<Timestamptz>,
     }
 }
 
@@ -906,15 +872,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_post_aggregates (person_id, post_id) {
-        person_id -> Int4,
-        post_id -> Int4,
-        read_comments -> Int8,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
         saved_at -> Timestamptz,
@@ -985,47 +942,6 @@ diesel::table! {
         like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
         notifications -> Nullable<PostNotificationsModeEnum>,
-    }
-}
-
-diesel::table! {
-    post_aggregates (post_id) {
-        post_id -> Int4,
-        comments -> Int8,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
-        published -> Timestamptz,
-        newest_comment_time_necro -> Timestamptz,
-        newest_comment_time -> Timestamptz,
-        featured_community -> Bool,
-        featured_local -> Bool,
-        hot_rank -> Float8,
-        hot_rank_active -> Float8,
-        community_id -> Int4,
-        creator_id -> Int4,
-        controversy_rank -> Float8,
-        instance_id -> Int4,
-        scaled_rank -> Float8,
-        report_count -> Int2,
-        unresolved_report_count -> Int2,
-    }
-}
-
-diesel::table! {
-    post_like (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    post_read (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
     }
 }
 
@@ -1226,9 +1142,6 @@ diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_actions -> comment (comment_id));
 diesel::joinable!(comment_actions -> person (person_id));
-diesel::joinable!(comment_aggregates -> comment (comment_id));
-diesel::joinable!(comment_like -> comment (comment_id));
-diesel::joinable!(comment_like -> person (person_id));
 diesel::joinable!(comment_report -> comment (comment_id));
 diesel::joinable!(community -> instance (instance_id));
 diesel::joinable!(community_actions -> community (community_id));
@@ -1305,8 +1218,6 @@ diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
 diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
-diesel::joinable!(person_post_aggregates -> person (person_id));
-diesel::joinable!(person_post_aggregates -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1315,14 +1226,6 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
-diesel::joinable!(post_aggregates -> community (community_id));
-diesel::joinable!(post_aggregates -> instance (instance_id));
-diesel::joinable!(post_aggregates -> person (creator_id));
-diesel::joinable!(post_aggregates -> post (post_id));
-diesel::joinable!(post_like -> person (person_id));
-diesel::joinable!(post_like -> post (post_id));
-diesel::joinable!(post_read -> person (person_id));
-diesel::joinable!(post_read -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(post_tag -> post (post_id));
 diesel::joinable!(post_tag -> tag (tag_id));
@@ -1353,8 +1256,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   captcha_answer,
   comment,
   comment_actions,
-  comment_aggregates,
-  comment_like,
   comment_report,
   community,
   community_actions,
@@ -1366,7 +1267,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   federation_allowlist,
   federation_blocklist,
   federation_queue_state,
-  history_status,
   image_details,
   instance,
   instance_actions,
@@ -1402,13 +1302,9 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_actions,
   person_content_combined,
   person_liked_combined,
-  person_post_aggregates,
   person_saved_combined,
   post,
   post_actions,
-  post_aggregates,
-  post_like,
-  post_read,
   post_report,
   post_tag,
   private_message,
