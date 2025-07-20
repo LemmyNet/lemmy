@@ -1,6 +1,6 @@
 # post_read -> post_actions bulk upsert timings
 
-## normal: 491s
+## normal, 1 month: 491s
 
 Insert on post_actions (cost=0.57..371215.69 rows=0 width=0) (actual time=169235.026..169235.026 rows=0 loops=1) Conflict Resolution: UPDATE Conflict Arbiter Indexes: post_actions_pkey Tuples Inserted: 5175253 Conflicting Tuples: 0 -> Index Scan using idx_post_read_published_desc on post_read (cost=0.57..371215.69 rows=5190811 width=58) (actual time=47.762..39310.551 rows=5175253 loops=1) Index Cond: (published > (CURRENT_DATE - '6 mons'::interval)) Planning Time: 0.234 ms Trigger for constraint post_actions_person_id_fkey: time=118828.666 calls=5175253 Trigger for constraint post_actions_post_id_fkey: time=203098.355 calls=5175253 JIT: Functions: 6 Options: Inlining false, Optimization false, Expressions true, Deforming true Timing: Generation 0.448 ms, Inlining 0.000 ms, Optimization 0.201 ms, Emission 44.721 ms, Total 45.369 ms Execution Time: 491991.365 ms (15 rows)
 
