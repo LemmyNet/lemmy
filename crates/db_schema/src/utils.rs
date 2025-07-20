@@ -50,7 +50,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock, OnceLock},
+  sync::Arc,
   time::Duration,
 };
 use tracing::error;
