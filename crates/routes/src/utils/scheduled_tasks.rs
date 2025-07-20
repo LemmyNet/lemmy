@@ -609,7 +609,7 @@ async fn counter_update_loop(pool: &mut DbPool<'_>) -> LemmyResult<Infallible> {
   let update_when_woke = async {
     loop {
       wakeup.notified().await;
-      // TODO: update counters here
+      // TODO: update counters here (there must be an additional filter to prevent integer overflow errors from being thrown)
     }
   };
 
