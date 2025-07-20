@@ -22,16 +22,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
-    combined::{
-      person_content::PersonContentCombined,
-      person_saved::PersonSavedCombined,
-      search::SearchCombined,
-    },
-    comment::{Comment, CommentActions},
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
-    post::{Post, PostActions, PostUpdateForm},
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
   utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
@@ -63,17 +57,6 @@ use tracing::{info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
-  // Run startup jobs in a background thread
-  let context_1 = context.clone();
-  tokio::spawn(async move {
-    let context = context_1.clone();
-
-    run_startup_jobs(&mut context.pool())
-      .await
-      .inspect_err(|e| warn!("Failed to run startup tasks: {e}"))
-      .ok();
-  });
-
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
@@ -484,38 +467,6 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     ActivityChannel::submit_activity(send_activity, context)?;
     send_webmention(post, &community);
   }
-  Ok(())
-}
-
-/// Running startup jobs, like filling background history
-async fn run_startup_jobs(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  info!("Updating history in a background thread...");
-
-  // These must be run a logically correct order, otherwise data could be missing.
-
-  // First fill the actions tables (smoosh migration)
-  CommentActions::fill_comment_like_history(pool).await?;
-  PostActions::fill_post_read_history(pool).await?;
-  PostActions::fill_read_comments_history(pool).await?;
-  PostActions::fill_post_like_history(pool).await?;
-
-  // Next fill the aggregates tables
-  Post::fill_aggregates_history(pool).await?;
-  Comment::fill_aggregates_history(pool).await?;
-
-  // Finally fill the combined tables.
-  // These are different from the above, in that they aren't source data, and
-  // so don't do any actual DB deletes.
-  PersonContentCombined::fill_post_history(pool).await?;
-  PersonContentCombined::fill_comment_history(pool).await?;
-  PersonSavedCombined::fill_post_history(pool).await?;
-  PersonSavedCombined::fill_comment_history(pool).await?;
-  SearchCombined::fill_post_history(pool).await?;
-  SearchCombined::fill_comment_history(pool).await?;
-  SearchCombined::fill_community_history(pool).await?;
-  SearchCombined::fill_person_history(pool).await?;
-
-  info!("Finished filling history.");
   Ok(())
 }
 

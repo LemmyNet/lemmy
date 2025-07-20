@@ -1,16 +1,13 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId},
-  source::{
-    comment::{
-      Comment,
-      CommentActions,
-      CommentInsertForm,
-      CommentLikeForm,
-      CommentSavedForm,
-      CommentUpdateForm,
-    },
-    history_status::{HistoryStatus, HistoryStatusUpdateForm},
+  source::comment::{
+    Comment,
+    CommentActions,
+    CommentInsertForm,
+    CommentLikeForm,
+    CommentSavedForm,
+    CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
@@ -23,33 +20,21 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count_star, delete, insert_into},
+  dsl::insert_into,
   expression::SelectableHelper,
-  sql_query,
-  sql_types::{BigInt, Integer},
   update,
-  upsert::excluded,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  comment_aggregates,
-  comment_like,
-  community,
-  post,
-};
+use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
-  DB_BATCH_SIZE,
 };
-use tracing::info;
 use url::Url;
 
 impl Comment {
@@ -252,98 +237,6 @@ impl Comment {
     }
     Ok(())
   }
-
-  pub async fn fill_aggregates_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling comment_aggregates history into comment...");
-
-    // Get the total count of comment_aggregates rows, to show progress
-    let comment_aggregates_count = comment_aggregates::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < comment_aggregates_count {
-      let rows_updated = conn
-        .run_transaction(|conn| {
-          async move {
-            // Diesel can't do 'update X from Y', nor updates from joins, so you need to do custom
-            // sql. I also tried individual row sets, and it was too slow.
-            let updated_rows = sql_query(
-              r#"
-              WITH ca AS (SELECT *
-                FROM comment_aggregates ca
-                ORDER BY ca.comment_id desc
-                LIMIT $1)
-              UPDATE comment c
-                SET
-                  score = ca.score,
-                  upvotes = ca.upvotes,
-                  downvotes = ca.downvotes,
-                  child_count = ca.child_count,
-                  hot_rank = ca.hot_rank,
-                  controversy_rank = ca.controversy_rank,
-                  report_count = ca.report_count,
-                  unresolved_report_count = ca.unresolved_report_count
-                FROM ca WHERE c.id = ca.comment_id
-                RETURNING c.id;
-            "#,
-            )
-            .bind::<BigInt, _>(DB_BATCH_SIZE)
-            .get_results::<AggregatesUpdateResult>(conn)
-            .await?;
-
-            // When this is None, the scanning is complete
-            let last_scanned_id = updated_rows.last().map(|f| f.id);
-
-            if let Some(last_scanned_id) = last_scanned_id {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: None,
-                last_scanned_id: Some(Some(last_scanned_id.0)),
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("comment_aggregates".into(), "comment".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from comment_aggregates
-              delete(
-                comment_aggregates::table
-                  .filter(comment_aggregates::comment_id.gt(last_scanned_id)),
-              )
-              .execute(conn)
-              .await?;
-            }
-
-            Ok(updated_rows.len())
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_updated)?;
-      let pct_complete = processed_rows * 100 / comment_aggregates_count;
-      info!(
-        "comment_aggregates -> comment: {processed_rows} / {comment_aggregates_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling comment_aggregates history into comment.");
-    Ok(())
-  }
-}
-
-/// Used for a custom update query
-#[derive(QueryableByName)]
-struct AggregatesUpdateResult {
-  #[diesel(sql_type = Integer)]
-  id: CommentId,
 }
 
 impl Crud for Comment {
@@ -474,90 +367,6 @@ impl CommentActions {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn fill_comment_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling comment_like history into comment_actions...");
-
-    // Get the total count of comment_like rows, to show progress
-    let comment_like_count = comment_like::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < comment_like_count {
-      let rows_inserted = conn
-        .run_transaction(|conn| {
-          async move {
-            // Select and map into comment like forms
-            let forms = comment_like::table
-              .order_by(comment_like::published.desc())
-              .limit(DB_BATCH_SIZE)
-              .get_results::<(PersonId, CommentId, i16, DateTime<Utc>)>(conn)
-              .await?
-              .iter()
-              .map(|cl| CommentLikeForm {
-                person_id: cl.0,
-                comment_id: cl.1,
-                like_score: cl.2,
-                liked_at: cl.3,
-              })
-              .collect::<Vec<CommentLikeForm>>();
-
-            // When this is None, the scanning is complete
-            let last_scanned_timestamp = forms.last().map(|f| f.liked_at);
-
-            let inserted_count = insert_into(comment_actions::table)
-              .values(forms)
-              .on_conflict((comment_actions::comment_id, comment_actions::person_id))
-              .do_update()
-              .set((
-                comment_actions::like_score.eq(excluded(comment_actions::like_score)),
-                comment_actions::liked_at.eq(excluded(comment_actions::liked_at)),
-              ))
-              .execute(conn)
-              .await?;
-
-            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
-                last_scanned_id: None,
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("comment_like".into(), "comment_actions".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from comment_like
-              delete(
-                comment_like::table.filter(comment_like::published.gt(last_scanned_timestamp)),
-              )
-              .execute(conn)
-              .await?;
-            }
-
-            Ok(inserted_count)
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_inserted)?;
-      let pct_complete = processed_rows * 100 / comment_like_count;
-      info!(
-        "comment_like -> comment_actions: {processed_rows} / {comment_like_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling comment_like history into comment_actions.");
-    Ok(())
   }
 }
 

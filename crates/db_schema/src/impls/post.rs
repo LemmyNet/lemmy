@@ -1,18 +1,15 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
-  source::{
-    history_status::{HistoryStatus, HistoryStatusUpdateForm},
-    post::{
-      Post,
-      PostActions,
-      PostHideForm,
-      PostInsertForm,
-      PostLikeForm,
-      PostReadCommentsForm,
-      PostReadForm,
-      PostSavedForm,
-      PostUpdateForm,
-    },
+  source::post::{
+    Post,
+    PostActions,
+    PostHideForm,
+    PostInsertForm,
+    PostLikeForm,
+    PostReadCommentsForm,
+    PostReadForm,
+    PostSavedForm,
+    PostUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
@@ -29,11 +26,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, count_star, delete, insert_into, not, update},
+  dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
-  sql_query,
-  sql_types::{BigInt, Integer},
-  upsert::excluded,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -42,28 +36,16 @@ use diesel::{
   OptionalExtension,
   QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
-  schema::{
-    community,
-    local_user,
-    person,
-    person_post_aggregates,
-    post,
-    post_actions,
-    post_aggregates,
-    post_like,
-    post_read,
-  },
+  schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
-  DB_BATCH_SIZE,
 };
-use tracing::info;
 use url::Url;
 
 impl Crud for Post {
@@ -92,13 +74,6 @@ impl Crud for Post {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
   }
-}
-
-/// Used for a custom update query
-#[derive(QueryableByName)]
-struct AggregatesUpdateResult {
-  #[diesel(sql_type = Integer)]
-  id: PostId,
 }
 
 impl Post {
@@ -366,92 +341,6 @@ impl Post {
     }
     Ok(())
   }
-
-  pub async fn fill_aggregates_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling post_aggregates history into post...");
-
-    // Get the total count of post_aggregates rows, to show progress
-    let post_aggregates_count = post_aggregates::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < post_aggregates_count {
-      let rows_updated = conn
-        .run_transaction(|conn| {
-          async move {
-            // Diesel can't do 'update X from Y', nor updates from joins, so you need to do custom
-            // sql. I also tried individual row sets, and it was too slow.
-            let updated_rows = sql_query(
-              r#"
-              WITH pa AS (SELECT *
-                FROM post_aggregates pa
-                ORDER BY pa.post_id desc
-                LIMIT $1)
-              UPDATE post p
-                SET
-                  comments = pa.comments,
-                  score = pa.score,
-                  upvotes = pa.upvotes,
-                  downvotes = pa.downvotes,
-                  newest_comment_time_necro_at = pa.newest_comment_time_necro,
-                  newest_comment_time_at = pa.newest_comment_time,
-                  hot_rank = pa.hot_rank,
-                  hot_rank_active = pa.hot_rank_active,
-                  controversy_rank = pa.controversy_rank,
-                  scaled_rank = pa.scaled_rank,
-                  report_count = pa.report_count,
-                  unresolved_report_count = pa.unresolved_report_count
-                FROM pa WHERE p.id = pa.post_id
-                RETURNING p.id;
-            "#,
-            )
-            .bind::<BigInt, _>(DB_BATCH_SIZE)
-            .get_results::<AggregatesUpdateResult>(conn)
-            .await?;
-
-            // When this is None, the scanning is complete
-            let last_scanned_id = updated_rows.last().map(|f| f.id);
-
-            if let Some(last_scanned_id) = last_scanned_id {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: None,
-                last_scanned_id: Some(Some(last_scanned_id.0)),
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("post_aggregates".into(), "post".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from post_aggregates
-              delete(post_aggregates::table.filter(post_aggregates::post_id.gt(last_scanned_id)))
-                .execute(conn)
-                .await?;
-            }
-
-            Ok(updated_rows.len())
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_updated)?;
-      let pct_complete = processed_rows * 100 / post_aggregates_count;
-      info!(
-        "post_aggregates -> post: {processed_rows} / {post_aggregates_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling post_aggregates history into post.");
-    Ok(())
-  }
 }
 
 impl Likeable for PostActions {
@@ -662,252 +551,6 @@ impl PostActions {
       .iter()
       .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>()
-  }
-
-  pub async fn fill_post_read_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling post_read history into post_actions...");
-
-    // Get the total count of post_read rows, to show progress
-    let post_read_count = post_read::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < post_read_count {
-      let rows_inserted = conn
-        .run_transaction(|conn| {
-          async move {
-            // Select and map into comment like forms
-            let forms = post_read::table
-              .order_by(post_read::published.desc())
-              .limit(DB_BATCH_SIZE)
-              .get_results::<(PostId, PersonId, DateTime<Utc>)>(conn)
-              .await?
-              .iter()
-              .map(|cl| PostReadForm {
-                post_id: cl.0,
-                person_id: cl.1,
-                read_at: cl.2,
-              })
-              .collect::<Vec<PostReadForm>>();
-
-            // When this is None, the scanning is complete
-            let last_scanned_timestamp = forms.last().map(|f| f.read_at);
-
-            let inserted_count = insert_into(post_actions::table)
-              .values(forms)
-              .on_conflict((post_actions::person_id, post_actions::post_id))
-              .do_update()
-              .set(post_actions::read_at.eq(excluded(post_actions::read_at)))
-              .execute(conn)
-              .await?;
-
-            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
-                last_scanned_id: None,
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("post_read".into(), "post_actions".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from post_read
-              delete(post_read::table.filter(post_read::published.gt(last_scanned_timestamp)))
-                .execute(conn)
-                .await?;
-            }
-
-            Ok(inserted_count)
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_inserted)?;
-      let pct_complete = processed_rows * 100 / post_read_count;
-      info!(
-        "post_read -> post_actions: {processed_rows} / {post_read_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling post_read history into post_actions.");
-    Ok(())
-  }
-
-  pub async fn fill_post_like_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling post_like history into post_actions...");
-
-    // Get the total count of post_like rows, to show progress
-    let post_like_count = post_like::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < post_like_count {
-      let rows_inserted = conn
-        .run_transaction(|conn| {
-          async move {
-            // Select and map into comment like forms
-            let forms = post_like::table
-              .order_by(post_like::published.desc())
-              .limit(DB_BATCH_SIZE)
-              .get_results::<(PostId, PersonId, i16, DateTime<Utc>)>(conn)
-              .await?
-              .iter()
-              .map(|cl| PostLikeForm {
-                post_id: cl.0,
-                person_id: cl.1,
-                like_score: cl.2,
-                liked_at: cl.3,
-              })
-              .collect::<Vec<PostLikeForm>>();
-
-            // When this is None, the scanning is complete
-            let last_scanned_timestamp = forms.last().map(|f| f.liked_at);
-
-            let inserted_count = insert_into(post_actions::table)
-              .values(forms)
-              .on_conflict((post_actions::person_id, post_actions::post_id))
-              .do_update()
-              .set((
-                post_actions::liked_at.eq(excluded(post_actions::liked_at)),
-                post_actions::like_score.eq(excluded(post_actions::like_score)),
-              ))
-              .execute(conn)
-              .await?;
-
-            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
-                last_scanned_id: None,
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("post_like".into(), "post_actions".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from post_like
-              delete(post_like::table.filter(post_like::published.gt(last_scanned_timestamp)))
-                .execute(conn)
-                .await?;
-            }
-
-            Ok(inserted_count)
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_inserted)?;
-      let pct_complete = processed_rows * 100 / post_like_count;
-      info!(
-        "post_like -> post_actions: {processed_rows} / {post_like_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling post_like history into post_actions.");
-    Ok(())
-  }
-
-  pub async fn fill_read_comments_history(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    info!("Filling read_comments history into post_actions...");
-
-    // Get the total count of post_read rows, to show progress
-    let person_post_aggregates_count = person_post_aggregates::table
-      .select(count_star())
-      .first::<i64>(conn)
-      .await?;
-
-    let mut processed_rows = 0;
-
-    while processed_rows < person_post_aggregates_count {
-      let rows_inserted = conn
-        .run_transaction(|conn| {
-          async move {
-            // Select and map into comment like forms
-            let forms = person_post_aggregates::table
-              .order_by(person_post_aggregates::published.desc())
-              .limit(DB_BATCH_SIZE)
-              .get_results::<(PersonId, PostId, i64, DateTime<Utc>)>(conn)
-              .await?
-              .iter()
-              .map(|cl| PostReadCommentsForm {
-                person_id: cl.0,
-                post_id: cl.1,
-                read_comments_amount: i32::try_from(cl.2).unwrap_or_default(),
-                read_comments_at: cl.3,
-              })
-              .collect::<Vec<PostReadCommentsForm>>();
-
-            // When this is None, the scanning is complete
-            let last_scanned_timestamp = forms.last().map(|f| f.read_comments_at);
-
-            let inserted_count = insert_into(post_actions::table)
-              .values(forms)
-              .on_conflict((post_actions::person_id, post_actions::post_id))
-              .do_update()
-              .set((
-                post_actions::read_comments_at.eq(excluded(post_actions::read_comments_at)),
-                post_actions::read_comments_amount.eq(excluded(post_actions::read_comments_amount)),
-              ))
-              .execute(conn)
-              .await?;
-
-            if let Some(last_scanned_timestamp) = last_scanned_timestamp {
-              // Update the history status
-              let history_form = HistoryStatusUpdateForm {
-                last_scanned_timestamp: Some(Some(last_scanned_timestamp)),
-                last_scanned_id: None,
-              };
-              HistoryStatus::update_conn(
-                conn,
-                ("person_post_aggregates".into(), "post_actions".into()),
-                &history_form,
-              )
-              .await?;
-
-              // Delete those rows from person_post_aggregates
-              delete(
-                person_post_aggregates::table
-                  .filter(person_post_aggregates::published.gt(last_scanned_timestamp)),
-              )
-              .execute(conn)
-              .await?;
-            }
-
-            Ok(inserted_count)
-          }
-          .scope_boxed()
-        })
-        .await?;
-
-      processed_rows += i64::try_from(rows_inserted)?;
-      let pct_complete = processed_rows * 100 / person_post_aggregates_count;
-      info!(
-        "person_post_aggregates -> post_actions: {processed_rows} / {person_post_aggregates_count} , {pct_complete}% complete"
-      );
-    }
-
-    info!("Finished filling read_comments history into post_actions.");
-
-    Ok(())
   }
 
   pub async fn update_notification_state(
