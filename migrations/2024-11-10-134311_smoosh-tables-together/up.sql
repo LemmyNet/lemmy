@@ -2,22 +2,8 @@
 -- This creates the tables:
 -- post_actions, comment_actions, community_actions, instance_actions, and person_actions.
 --
--- Fetching the full history takes too long to complete for production instances.
--- Due to this, for some large tables (post_like, post_read, comment_like, etc), only fill the last month of data.
--- A code migration will handle the rest of the history in the background.
 --
 -- Create a table to store background history filling status
-SET session_replication_role = REPLICA;
-
-CREATE TABLE history_status (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
-    source text NOT NULL,
-    dest text NOT NULL,
-    last_scanned_id int,
-    last_scanned_timestamp timestamptz,
-    PRIMARY KEY (source, dest)
-);
-
 -- comment_actions
 CREATE TABLE comment_actions (
     id int GENERATED ALWAYS AS IDENTITY UNIQUE,
@@ -25,52 +11,51 @@ CREATE TABLE comment_actions (
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     like_score smallint,
     liked timestamptz,
-    saved timestamptz,
-    PRIMARY KEY (person_id, comment_id)
+    saved timestamptz
 );
 
+-- Disable the triggers temporarily
+ALTER TABLE comment_actions DISABLE TRIGGER ALL;
+
 -- Insert all comment_saved
-INSERT INTO comment_actions (person_id, comment_id, saved)
+INSERT INTO comment_actions (person_id, comment_id, like_score, liked, saved)
 SELECT
     person_id,
     comment_id,
-    published
-FROM
-    comment_saved
-ON CONFLICT (person_id,
-    comment_id)
-    DO UPDATE SET
-        saved = excluded.saved;
-
-DROP TABLE comment_saved;
-
--- Insert only last month from comment_like
--- Create an index on published to speed up history updates
-CREATE INDEX idx_comment_like_published_desc ON comment_like (published DESC);
-
-INSERT INTO comment_actions (person_id, comment_id, like_score, liked)
-SELECT
+    max(like_score),
+    max(liked),
+    max(saved)
+FROM (
+    SELECT
+        person_id,
+        comment_id,
+        score AS like_score,
+        published AS liked,
+        NULL::timestamptz AS saved
+    FROM
+        comment_like
+    UNION ALL
+    SELECT
+        person_id,
+        comment_id,
+        NULL::int,
+        NULL::timestamptz,
+        published
+    FROM
+        comment_saved)
+GROUP BY
     person_id,
-    comment_id,
-    score,
-    published
-FROM
-    comment_like
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (person_id,
-    comment_id)
-    DO UPDATE SET
-        liked = excluded.liked,
-        like_score = excluded.like_score;
+    comment_id;
 
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('comment_like', 'comment_actions', CURRENT_DATE - interval '1 month');
+-- Drop the tables
+DROP TABLE comment_saved, comment_like;
 
--- Delete that data
-DELETE FROM comment_like
-WHERE published > CURRENT_DATE - interval '1 month';
+-- Re-enable triggers after upserts
+ALTER TABLE comment_actions ENABLE TRIGGER ALL;
+
+-- add the primary key
+ALTER TABLE comment_actions
+    ADD PRIMARY KEY (person_id, comment_id);
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
 -- a group (e.g. `liked IS NOT NULL` and `like_score IS NOT NULL` both work)
@@ -103,116 +88,104 @@ CREATE TABLE post_actions (
     saved timestamptz,
     liked timestamptz,
     like_score smallint,
-    hidden timestamptz,
-    PRIMARY KEY (person_id, post_id)
+    hidden timestamptz
 );
 
--- post_like, post_read, and person_post_aggregates need history tables
--- Create an index on published to speed up history updates
-CREATE INDEX idx_post_read_published_desc ON post_read (published DESC);
+-- Disable the triggers temporarily
+ALTER TABLE post_actions DISABLE TRIGGER ALL;
 
-INSERT INTO post_actions (person_id, post_id, read)
+-- Here's an SO link on merges, but this turned out to be slower than a
+-- disabled triggers + disabled primary key + full union select + insert with group by
+-- SO link on merges: https://stackoverflow.com/a/74066614/1655478
+INSERT INTO post_actions (person_id, post_id, read, read_comments, read_comments_amount, saved, liked, like_score, hidden)
 SELECT
     person_id,
     post_id,
-    published
-FROM
-    post_read
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        read = excluded.read;
-
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_read', 'post_actions', CURRENT_DATE - interval '1 month');
-
--- Delete that data
-DELETE FROM post_read
-WHERE published > CURRENT_DATE - interval '1 month';
-
-CREATE INDEX idx_person_post_aggregates_published_desc ON person_post_aggregates (published DESC);
-
-INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
-SELECT
+    max(read),
+    max(read_comments),
+    max(read_comments_amount),
+    max(saved),
+    max(liked),
+    max(like_score),
+    max(hidden)
+FROM (
+    SELECT
+        person_id,
+        post_id,
+        published AS read,
+        NULL::timestamptz AS read_comments,
+        NULL::int AS read_comments_amount,
+        NULL::timestamptz AS saved,
+        NULL::timestamptz AS liked,
+        NULL::int AS like_score,
+        NULL::timestamptz AS hidden
+    FROM
+        post_read
+    UNION ALL
+    SELECT
+        person_id,
+        post_id,
+        NULL::timestamptz,
+        published,
+        read_comments,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::int,
+        NULL::timestamptz
+    FROM
+        person_post_aggregates
+    UNION ALL
+    SELECT
+        person_id,
+        post_id,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::int,
+        published,
+        NULL::timestamptz,
+        NULL::int,
+        NULL::timestamptz
+    FROM
+        post_saved
+    UNION ALL
+    SELECT
+        person_id,
+        post_id,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::int,
+        NULL::timestamptz,
+        published,
+        score,
+        NULL::timestamptz
+    FROM
+        post_like
+    UNION ALL
+    SELECT
+        person_id,
+        post_id,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::int,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::int,
+        published
+    FROM
+        post_hide)
+GROUP BY
     person_id,
-    post_id,
-    published,
-    read_comments
-FROM
-    person_post_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        read_comments = excluded.read_comments,
-        read_comments_amount = excluded.read_comments_amount;
+    post_id;
 
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('person_post_aggregates', 'post_actions', CURRENT_DATE - interval '1 month');
+-- Drop the tables
+DROP TABLE post_read, person_post_aggregates, post_like, post_saved, post_hide;
 
--- Delete that data
-DELETE FROM person_post_aggregates
-WHERE published > CURRENT_DATE - interval '1 month';
+-- Add the primary key
+ALTER TABLE post_actions
+    ADD PRIMARY KEY (person_id, post_id);
 
-CREATE INDEX idx_post_like_published_desc ON post_like (published DESC);
-
-INSERT INTO post_actions (person_id, post_id, liked, like_score)
-SELECT
-    person_id,
-    post_id,
-    published,
-    score
-FROM
-    post_like
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        liked = excluded.liked,
-        like_score = excluded.like_score;
-
--- Update history status
-INSERT INTO history_status (source, dest, last_scanned_timestamp)
-    VALUES ('post_like', 'post_actions', CURRENT_DATE - interval '1 month');
-
--- Delete that data
-DELETE FROM post_like
-WHERE published > CURRENT_DATE - interval '1 month';
-
--- insert saved, hidden, read with full history
-INSERT INTO post_actions (person_id, post_id, saved)
-SELECT
-    person_id,
-    post_id,
-    published
-FROM
-    post_saved
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        saved = excluded.saved;
-
-DROP TABLE post_saved;
-
-INSERT INTO post_actions (person_id, post_id, hidden)
-SELECT
-    person_id,
-    post_id,
-    published
-FROM
-    post_hide
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        hidden = excluded.hidden;
-
-DROP TABLE post_hide;
+-- Re-enable triggers after upserts
+ALTER TABLE post_actions ENABLE TRIGGER ALL;
 
 -- Create indexes
 CREATE INDEX idx_post_actions_person ON post_actions (person_id);
@@ -256,65 +229,88 @@ CREATE TABLE community_actions (
     blocked timestamptz,
     became_moderator timestamptz,
     received_ban timestamptz,
-    ban_expires timestamptz,
-    PRIMARY KEY (person_id, community_id)
+    ban_expires timestamptz
 );
 
-INSERT INTO community_actions (person_id, community_id, followed, follow_state, follow_approver_id)
+-- disable triggers
+ALTER TABLE community_actions DISABLE TRIGGER ALL;
+
+INSERT INTO community_actions (person_id, community_id, followed, follow_state, follow_approver_id, blocked, became_moderator, received_ban, ban_expires)
 SELECT
     person_id,
     community_id,
-    published,
-    state,
-    approver_id
-FROM
-    community_follower
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        followed = excluded.followed,
-        follow_state = excluded.follow_state,
-        follow_approver_id = excluded.follow_approver_id;
-
-INSERT INTO community_actions (person_id, community_id, received_ban, ban_expires)
-SELECT
+    max(followed),
+    max(follow_state),
+    max(follow_approver_id),
+    max(blocked),
+    max(became_moderator),
+    max(received_ban),
+    max(ban_expires)
+FROM (
+    SELECT
+        person_id,
+        community_id,
+        published AS followed,
+        state AS follow_state,
+        approver_id AS follow_approver_id,
+        NULL::timestamptz AS blocked,
+        NULL::timestamptz AS became_moderator,
+        NULL::timestamptz AS received_ban,
+        NULL::timestamptz AS ban_expires
+    FROM
+        community_follower
+    UNION ALL
+    SELECT
+        person_id,
+        community_id,
+        NULL::timestamptz,
+        NULL::community_follower_state,
+        NULL::int,
+        published,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        NULL::timestamptz
+    FROM
+        community_block
+    UNION ALL
+    SELECT
+        person_id,
+        community_id,
+        NULL::timestamptz,
+        NULL::community_follower_state,
+        NULL::int,
+        NULL::timestamptz,
+        published,
+        NULL::timestamptz,
+        NULL::timestamptz
+    FROM
+        community_moderator
+    UNION ALL
+    SELECT
+        person_id,
+        community_id,
+        NULL::timestamptz,
+        NULL::community_follower_state,
+        NULL::int,
+        NULL::timestamptz,
+        NULL::timestamptz,
+        published,
+        expires
+    FROM
+        community_person_ban)
+GROUP BY
     person_id,
-    community_id,
-    published,
-    expires
-FROM
-    community_person_ban
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        received_ban = excluded.received_ban,
-        ban_expires = excluded.ban_expires;
+    community_id;
 
-INSERT INTO community_actions (person_id, community_id, blocked)
-SELECT
-    person_id,
-    community_id,
-    published
-FROM
-    community_block
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        blocked = excluded.blocked;
-
-INSERT INTO community_actions (person_id, community_id, became_moderator)
-SELECT
-    person_id,
-    community_id,
-    published
-FROM
-    community_moderator
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        became_moderator = excluded.became_moderator;
-
+-- Drop the old tables
 DROP TABLE community_follower, community_block, community_moderator, community_person_ban;
+
+-- Re-enable triggers after upserts
+ALTER TABLE community_actions ENABLE TRIGGER ALL;
+
+-- add the primary key
+ALTER TABLE community_actions
+    ADD PRIMARY KEY (person_id, community_id);
 
 -- Create indexes
 CREATE INDEX idx_community_actions_person ON community_actions (person_id);
@@ -357,9 +353,11 @@ CREATE TABLE instance_actions (
     id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
-    blocked timestamptz,
-    PRIMARY KEY (person_id, instance_id)
+    blocked timestamptz
 );
+
+-- disable triggers
+ALTER TABLE instance_actions DISABLE TRIGGER ALL;
 
 INSERT INTO instance_actions (person_id, instance_id, blocked)
 SELECT
@@ -367,13 +365,16 @@ SELECT
     instance_id,
     published
 FROM
-    instance_block
-ON CONFLICT (person_id,
-    instance_id)
-    DO UPDATE SET
-        blocked = excluded.blocked;
+    instance_block;
 
 DROP TABLE instance_block;
+
+-- Re-enable triggers after upserts
+ALTER TABLE instance_actions ENABLE TRIGGER ALL;
+
+-- add the primary key
+ALTER TABLE instance_actions
+    ADD PRIMARY KEY (person_id, instance_id);
 
 -- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
 -- with other tables would make it harder to do everything correctly when adding another action type
@@ -396,35 +397,47 @@ CREATE TABLE person_actions (
     target_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     followed timestamptz,
     follow_pending boolean,
-    blocked timestamptz,
-    PRIMARY KEY (person_id, target_id)
+    blocked timestamptz
 );
 
-INSERT INTO person_actions (person_id, target_id, followed, follow_pending)
-SELECT
-    follower_id,
-    person_id,
-    published,
-    pending
-FROM
-    person_follower
-ON CONFLICT (person_id,
-    target_id)
-    DO UPDATE SET
-        followed = excluded.followed,
-        follow_pending = excluded.follow_pending;
+-- disable triggers
+ALTER TABLE person_actions DISABLE TRIGGER ALL;
 
-INSERT INTO person_actions (person_id, target_id, blocked)
+INSERT INTO person_actions (person_id, target_id, followed, follow_pending, blocked)
 SELECT
     person_id,
     target_id,
-    published
-FROM
-    person_block
-ON CONFLICT (person_id,
-    target_id)
-    DO UPDATE SET
-        blocked = excluded.blocked;
+    max(followed),
+    cast(max(follow_pending) AS boolean),
+    max(blocked)
+FROM (
+    SELECT
+        follower_id AS person_id,
+        person_id AS target_id,
+        published AS followed,
+        pending::int AS follow_pending,
+        NULL::timestamptz AS blocked
+    FROM
+        person_follower
+    UNION ALL
+    SELECT
+        person_id,
+        target_id,
+        NULL::timestamptz,
+        NULL::int,
+        published
+    FROM
+        person_block)
+GROUP BY
+    person_id,
+    target_id;
+
+-- enable triggers
+ALTER TABLE person_actions ENABLE TRIGGER ALL;
+
+-- add primary key
+ALTER TABLE person_actions
+    ADD PRIMARY KEY (person_id, target_id);
 
 DROP TABLE person_block, person_follower;
 
