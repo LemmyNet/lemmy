@@ -75,10 +75,14 @@ impl Note {
     //
     // A separate task is spawned for the recursive call. Otherwise, when the async executor polls
     // the task this is in, the poll function's call stack would grow with the level of recursion,
-    // so a stack overflow would be possible. This stack overflow prevention relies on the total
-    // laziness that the async keyword provides
-    // (https://rust-lang.github.io/rfcs/2394-async_await.html#async-functions), so you must not
-    // change this function to `pub fn get_parents(...) -> impl Future<Output = ...>`.
+    // so a stack overflow would be possible.
+    //
+    // The stack overflow prevention relies on the total laziness that the async keyword provides
+    // (https://rust-lang.github.io/rfcs/2394-async_await.html#async-functions). This means you need
+    // to be careful if you want to change `Note::get_parents` and `CreateOrUpdateNote::verify` from
+    // `async fn foo(...) -> T` to `fn foo(...) -> impl Future<Output = T>`. Between each level of
+    // recursion, there must be the beginning of at least one `async` block or `async fn`,
+    // otherwise there might be multiple levels of recursion before the first poll.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
