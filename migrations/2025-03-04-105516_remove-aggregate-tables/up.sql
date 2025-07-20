@@ -152,7 +152,6 @@ WHERE
 -- reindex
 REINDEX TABLE post;
 
-
 CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
 
 CREATE INDEX idx_post_community_controversy ON post USING btree (community_id, featured_local DESC, controversy_rank DESC, id DESC);
