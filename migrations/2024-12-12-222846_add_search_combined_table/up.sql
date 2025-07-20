@@ -1,22 +1,5 @@
 -- Creates combined tables for
 -- Search: (post, comment, community, person)
-SET session_replication_role = replica;
-
-CREATE TABLE search_combined (
-    id serial PRIMARY KEY,
-    published timestamptz NOT NULL,
-    -- This is used for the top sort
-    -- For persons: its post score
-    -- For comments: score,
-    -- For posts: score,
-    -- For community: users active monthly
-    score int NOT NULL DEFAULT 0,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
-);
-
 -- Add published to person_aggregates (it was missing for some reason)
 ALTER TABLE person_aggregates
     ADD COLUMN published timestamptz NOT NULL DEFAULT now();
@@ -30,76 +13,72 @@ FROM
 WHERE
     pa.person_id = p.id;
 
+-- score is used for the top sort
+-- For persons: its post score
+-- For comments: score,
+-- For posts: score,
+-- For community: users active monthly
+CREATE TABLE search_combined (
+    id int GENERATED ALWAYS AS IDENTITY,
+    published timestamptz NOT NULL,
+    score int NOT NULL DEFAULT 0,
+    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
+    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
+);
+
+-- Disable the triggers temporarily
+ALTER TABLE search_combined DISABLE TRIGGER ALL;
+
 -- Updating the history
-INSERT INTO search_combined (published, score, post_id)
+INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
 SELECT
     published,
     score,
-    post_id
+    post_id,
+    NULL::int AS comment_id,
+    NULL::int AS community_id,
+    NULL::int AS person_id
 FROM
     post_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (post_id)
-    DO UPDATE SET
-        published = excluded.published,
-        score = excluded.score;
-
--- Don't bother with IDs since these are missing from the aggregates tables
--- Also, the aggregates tables are completely removed in a later PR, so just use the source
-INSERT INTO history_status (source, dest)
-    VALUES ('post', 'search_combined');
-
-INSERT INTO search_combined (published, score, comment_id)
+UNION ALL
 SELECT
     published,
     score,
-    comment_id
+    NULL::int,
+    comment_id,
+    NULL::int,
+    NULL::int
 FROM
     comment_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (comment_id)
-    DO UPDATE SET
-        published = excluded.published,
-        score = excluded.score;
-
-INSERT INTO history_status (source, dest)
-    VALUES ('comment', 'search_combined');
-
-INSERT INTO search_combined (published, score, community_id)
+UNION ALL
 SELECT
     published,
     users_active_month,
-    community_id
+    NULL::int,
+    NULL::int,
+    community_id,
+    NULL::int
 FROM
     community_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (community_id)
-    DO UPDATE SET
-        published = excluded.published,
-        score = excluded.score;
-
-INSERT INTO history_status (source, dest)
-    VALUES ('community', 'search_combined');
-
-INSERT INTO search_combined (published, score, person_id)
+UNION ALL
 SELECT
     published,
     post_score,
+    NULL::int,
+    NULL::int,
+    NULL::int,
     person_id
 FROM
-    person_aggregates
-WHERE
-    published > CURRENT_DATE - interval '1 month'
-ON CONFLICT (person_id)
-    DO UPDATE SET
-        published = excluded.published,
-        score = excluded.score;
+    person_aggregates;
 
-INSERT INTO history_status (source, dest)
-    VALUES ('person', 'search_combined');
+-- Re-enable triggers after upserts
+ALTER TABLE search_combined ENABLE TRIGGER ALL;
+
+-- add the primary key
+ALTER TABLE search_combined
+    ADD PRIMARY KEY (id);
 
 CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
 
