@@ -43,6 +43,10 @@ impl Object for ApubMultiCommunity {
   type Kind = Feed;
   type Error = LemmyError;
 
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
+  }
+
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
@@ -60,6 +64,10 @@ impl Object for ApubMultiCommunity {
 
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     Err(LemmyErrorType::NotFound.into())
+  }
+
+  fn is_deleted(&self) -> bool {
+    self.deleted
   }
 
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
@@ -115,10 +123,6 @@ impl Object for ApubMultiCommunity {
 }
 
 impl Actor for ApubMultiCommunity {
-  fn id(&self) -> Url {
-    self.ap_id.inner().clone()
-  }
-
   fn public_key_pem(&self) -> &str {
     &self.public_key
   }

@@ -3,7 +3,7 @@ use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
   kinds::link::MentionType,
-  traits::Actor,
+  traits::Object,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
@@ -34,7 +34,7 @@ pub struct Mention {
   pub kind: MentionType,
 }
 
-pub struct MentionsAndAddresses {
+pub(crate) struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
   pub tags: Vec<MentionOrValue>,
 }
@@ -42,12 +42,12 @@ pub struct MentionsAndAddresses {
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the persons / addresses that go in the cc field.
-pub async fn collect_non_local_mentions(
+pub(crate) async fn collect_non_local_mentions(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<MentionsAndAddresses> {
   let parent_creator = get_comment_parent_creator(&mut context.pool(), comment).await?;
-  let mut addressed_ccs: Vec<Url> = vec![parent_creator.id()];
+  let mut addressed_ccs: Vec<Url> = vec![parent_creator.id().clone()];
 
   // Add the mention tag
   let parent_creator_tag = Mention {
@@ -77,7 +77,7 @@ pub async fn collect_non_local_mentions(
       addressed_ccs.push(person.ap_id.to_string().parse()?);
 
       let mention_tag = Mention {
-        href: person.id(),
+        href: person.id().clone(),
         name: Some(mention.full_name()),
         kind: MentionType::Mention,
       };

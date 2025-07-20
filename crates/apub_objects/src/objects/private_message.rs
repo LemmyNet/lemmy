@@ -14,9 +14,10 @@ use activitypub_federation::{
   },
   traits::Object,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
 };
@@ -29,6 +30,7 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -59,8 +61,8 @@ impl Object for ApubPrivateMessage {
   type Kind = PrivateMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
-    None
+  fn id(&self) -> &Url {
+    self.ap_id.inner()
   }
 
   async fn read_from_id(
@@ -77,6 +79,10 @@ impl Object for ApubPrivateMessage {
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
     Err(LemmyErrorType::NotFound.into())
+  }
+
+  fn is_deleted(&self) -> bool {
+    self.removed || self.deleted
   }
 
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<PrivateMessage> {
@@ -154,7 +160,6 @@ impl Object for ApubPrivateMessage {
       published_at: note.published,
       updated_at: note.updated,
       deleted: Some(false),
-      read: None,
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
@@ -162,6 +167,8 @@ impl Object for ApubPrivateMessage {
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let pm = DbPrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_private_message", &pm)?;
+    let view = PrivateMessageView::read(&mut context.pool(), pm.id).await?;
+    notify_private_message(&view, pm.updated_at.is_none(), context).await?;
     Ok(pm.into())
   }
 }

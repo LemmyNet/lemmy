@@ -8,9 +8,9 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{PostReportResponse, ResolvePostReport},
-  PostReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -21,10 +21,11 @@ pub async fn resolve_post_report(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
   let report_id = data.report_id;
-  let person_id = local_user_view.person.id;
-  let report = PostReportView::read(&mut context.pool(), report_id, person_id).await?;
+  let person = &local_user_view.person;
+  let report =
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   check_community_mod_action(
     &local_user_view,
     &report.community,
@@ -33,13 +34,10 @@ pub async fn resolve_post_report(
   )
   .await?;
 
-  if data.resolved {
-    PostReport::resolve(&mut context.pool(), report_id, person_id).await?;
-  } else {
-    PostReport::unresolve(&mut context.pool(), report_id, person_id).await?;
-  }
+  PostReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved).await?;
 
-  let post_report_view = PostReportView::read(&mut context.pool(), report_id, person_id).await?;
+  let post_report_view =
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::SendResolveReport {

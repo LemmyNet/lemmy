@@ -24,14 +24,14 @@ import {
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  ListInboxResponse,
-  ListInbox,
   InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
   PersonView,
+  ListNotifications,
+  ListNotificationsResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -159,12 +159,12 @@ export async function setupLogins() {
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
     registration_mode: "Open",
-    rate_limit_message: 999,
-    rate_limit_post: 999,
-    rate_limit_comment: 999,
-    rate_limit_register: 999,
-    rate_limit_search: 999,
-    rate_limit_image: 999,
+    rate_limit_message_max_requests: 999,
+    rate_limit_post_max_requests: 999,
+    rate_limit_comment_max_requests: 999,
+    rate_limit_register_max_requests: 999,
+    rate_limit_search_max_requests: 999,
+    rate_limit_image_max_requests: 999,
   };
   await alpha.editSite(editSiteForm);
   await beta.editSite(editSiteForm);
@@ -384,16 +384,16 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function listInbox(
+export async function listNotifications(
   api: LemmyHttp,
   type_?: InboxDataType,
   unread_only: boolean = false,
-): Promise<ListInboxResponse> {
-  let form: ListInbox = {
+): Promise<ListNotificationsResponse> {
+  let form: ListNotifications = {
     unread_only,
     type_,
   };
-  return api.listInbox(form);
+  return api.listNotifications(form);
 }
 
 export async function resolveComment(

@@ -2,15 +2,15 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
-  build_response::{build_comment_response, send_local_notifs},
+  build_response::build_comment_response,
   context::LemmyContext,
+  notify::NotifyData,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  newtypes::PostOrCommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
@@ -21,7 +21,7 @@ use lemmy_db_views_comment::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 pub async fn update_comment(
@@ -79,17 +79,14 @@ pub async fn update_comment(
   plugin_hook_after("after_update_local_comment", &updated_comment)?;
 
   // Do the mentions / recipients
-  let updated_comment_content = updated_comment.content.clone();
-  let mentions = scrape_text_for_mentions(&updated_comment_content);
-  let recipient_ids = send_local_notifs(
-    mentions,
-    PostOrCommentId::Comment(comment_id),
+  NotifyData::new(
+    &orig_comment.post,
+    Some(&updated_comment),
     &local_user_view.person,
+    &orig_comment.community,
     false,
-    &context,
-    Some(&local_user_view),
-    local_instance_id,
   )
+  .send(&context)
   .await?;
 
   ActivityChannel::submit_activity(
@@ -102,7 +99,6 @@ pub async fn update_comment(
       &context,
       updated_comment.id,
       Some(local_user_view),
-      recipient_ids,
       local_instance_id,
     )
     .await?,

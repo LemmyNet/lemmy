@@ -332,12 +332,6 @@ impl PictrsFile {
       self.file
     ))
   }
-  pub fn delete_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
-    Url::parse(&format!(
-      "{protocol_and_hostname}/api/v4/image/{}",
-      self.file
-    ))
-  }
 }
 
 /// Stores extra details about a Pictrs image.

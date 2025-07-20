@@ -10,9 +10,9 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Object},
 };
-use lemmy_api_utils::{build_response::send_local_notifs, context::LemmyContext};
+use lemmy_api_utils::{context::LemmyContext, notify::NotifyData};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
@@ -21,7 +21,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::{PersonId, PostOrCommentId},
+  newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
     community::Community,
@@ -31,10 +31,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::mention::scrape_text_for_mentions,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -47,10 +44,10 @@ impl CreateOrUpdatePage {
   ) -> LemmyResult<CreateOrUpdatePage> {
     let id = generate_activity_id(kind.clone(), context)?;
     Ok(CreateOrUpdatePage {
-      actor: actor.id().into(),
+      actor: actor.id().clone().into(),
       to: generate_to(community)?,
       object: post.into_json(context).await?,
-      cc: vec![community.id()],
+      cc: vec![community.id().clone()],
       kind,
       id: id.clone(),
     })
@@ -85,7 +82,7 @@ impl CreateOrUpdatePage {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdatePage {
+impl Activity for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -110,7 +107,6 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let local_instance_id = site_view.site.instance_id;
 
     let post = ApubPost::from_json(self.object, context).await?;
 
@@ -125,18 +121,10 @@ impl ActivityHandler for CreateOrUpdatePage {
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
-    // Send the post body mentions
-    let mentions = scrape_text_for_mentions(&post.body.clone().unwrap_or_default());
-    send_local_notifs(
-      mentions,
-      PostOrCommentId::Post(post.id),
-      &actor,
-      do_send_email,
-      context,
-      None,
-      local_instance_id,
-    )
-    .await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    NotifyData::new(&post.0, None, &actor, &community, do_send_email)
+      .send(context)
+      .await?;
 
     Ok(())
   }

@@ -20,7 +20,7 @@ use activitypub_federation::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
   },
-  traits::{ActivityHandler, Object},
+  traits::{Activity, Object},
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
@@ -200,7 +200,7 @@ impl Attachment {
 
 // Used for community outbox, so that it can be compatible with Pleroma/Mastodon.
 #[async_trait::async_trait]
-impl ActivityHandler for Page {
+impl Activity for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
   fn id(&self) -> &Url {
@@ -251,7 +251,7 @@ impl InCommunity for Page {
 }
 
 /// Only allows deserialization if the field is missing or null. If it is present, throws an error.
-pub fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
   D: Deserializer<'de>,
 {

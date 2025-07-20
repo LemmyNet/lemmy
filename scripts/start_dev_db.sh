@@ -12,13 +12,11 @@ export LEMMY_DATABASE_URL=$DATABASE_URL
 export PGDATABASE=lemmy
 
 # If cluster exists, stop the server and delete the cluster
-if [[ -d $PGDATA ]]
-then
+if [[ -d $PGDATA ]]; then
   # Only stop server if it is running
   pg_status_exit_code=0
-  (pg_ctl status > /dev/null) || pg_status_exit_code=$?
-  if [[ ${pg_status_exit_code} -ne 3 ]]
-  then
+  (pg_ctl status >/dev/null) || pg_status_exit_code=$?
+  if [[ ${pg_status_exit_code} -ne 3 ]]; then
     pg_ctl stop --silent
   fi
 

@@ -24,13 +24,13 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    person::{Person, PersonActions, PersonUpdateForm},
+    person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::{Blockable, Crud, Likeable, ReadComments},
+  traits::{Crud, Likeable},
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
@@ -56,6 +56,7 @@ use lemmy_utils::{
   },
   CacheLock,
   CACHE_DURATION_FEDERATION,
+  MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
@@ -205,19 +206,6 @@ pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<
   }
 }
 
-pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
-  // Check for a site ban
-  if person_view.creator_banned {
-    Err(LemmyErrorType::SiteBan)?
-  }
-  // check for account deletion
-  else if person_view.person.deleted {
-    Err(LemmyErrorType::Deleted)?
-  } else {
-    Ok(())
-  }
-}
-
 /// Check if the user's email is verified if email verification is turned on
 /// However, skip checking verification if the user is an admin
 pub fn check_email_verified(
@@ -318,19 +306,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
-}
-
-pub async fn check_person_instance_community_block(
-  my_id: PersonId,
-  potential_blocker_id: PersonId,
-  community_instance_id: InstanceId,
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
-  InstanceActions::read_block(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
-  Ok(())
 }
 
 pub async fn check_local_vote_mode(
@@ -449,17 +424,17 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   l: &LocalSiteRateLimit,
 ) -> EnumMap<ActionType, BucketConfig> {
   enum_map! {
-    ActionType::Message => (l.message, l.message_per_second),
-    ActionType::Post => (l.post, l.post_per_second),
-    ActionType::Register => (l.register, l.register_per_second),
-    ActionType::Image => (l.image, l.image_per_second),
-    ActionType::Comment => (l.comment, l.comment_per_second),
-    ActionType::Search => (l.search, l.search_per_second),
-    ActionType::ImportUserSettings => (l.import_user_settings, l.import_user_settings_per_second),
+    ActionType::Message => (l.message_max_requests, l.message_interval_seconds),
+    ActionType::Post => (l.post_max_requests, l.post_interval_seconds),
+    ActionType::Register => (l.register_max_requests, l.register_interval_seconds),
+    ActionType::Image => (l.image_max_requests, l.image_interval_seconds),
+    ActionType::Comment => (l.comment_max_requests, l.comment_interval_seconds),
+    ActionType::Search => (l.search_max_requests, l.search_interval_seconds),
+    ActionType::ImportUserSettings => (l.import_user_settings_max_requests, l.import_user_settings_interval_seconds),
   }
-  .map(|_key, (capacity, secs_to_refill)| BucketConfig {
-    capacity: u32::try_from(capacity).unwrap_or(0),
-    secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
+  .map(|_key, (max_requests, interval)| BucketConfig {
+    max_requests: u32::try_from(max_requests).unwrap_or(0),
+    interval: u32::try_from(interval).unwrap_or(0),
   })
 }
 
@@ -623,11 +598,15 @@ pub async fn remove_or_restore_user_data(
       )
       .await?;
     }
+
+    // Remove post and comment votes
+    PostActions::remove_all_likes(pool, banned_person_id).await?;
+    CommentActions::remove_all_likes(pool, banned_person_id).await?;
   }
 
   // Posts
   let removed_or_restored_posts =
-    Post::update_removed_for_creator(pool, banned_person_id, None, None, removed).await?;
+    Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -709,10 +688,18 @@ pub async fn remove_or_restore_user_data_in_community(
   reason: &Option<String>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  // These actions are only possible when removing, not restoring
+  if remove {
+    // Remove post and comment votes
+    PostActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+    CommentActions::remove_likes_in_community(pool, banned_person_id, community_id).await?;
+  }
+
   // Posts
   let posts =
-    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), None, remove)
+    Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
+
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
@@ -1002,9 +989,26 @@ pub fn send_webmention(post: Post, community: &Community) {
   };
 }
 
+/// Returns error if new comment exceeds maximum depth.
+///
+/// Top-level comments have a path like `0.123` where 123 is the comment id. At the second level
+/// it is `0.123.456`, containing the parent id and current comment id.
+pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
+  let path = &comment.path.0;
+  let length = path.split('.').count();
+  // Need to increment by one because the path always starts with 0
+  if length > MAX_COMMENT_DEPTH_LIMIT + 1 {
+    Err(LemmyErrorType::MaxCommentDepthReached)?
+  } else {
+    Ok(())
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+  use diesel_ltree::Ltree;
+  use lemmy_db_schema::newtypes::LanguageId;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1080,6 +1084,48 @@ mod tests {
         .is_ok()
     );
 
+    Ok(())
+  }
+
+  #[test]
+  fn test_comment_depth() -> LemmyResult<()> {
+    let mut comment = Comment {
+      id: CommentId(0),
+      creator_id: PersonId(0),
+      post_id: PostId(0),
+      content: String::new(),
+      removed: false,
+      published_at: Utc::now(),
+      updated_at: None,
+      deleted: false,
+      ap_id: Url::parse("http://example.com")?.into(),
+      local: false,
+      path: Ltree("0.123".to_string()),
+      distinguished: false,
+      language_id: LanguageId(0),
+      score: 0,
+      upvotes: 0,
+      downvotes: 0,
+      child_count: 0,
+      hot_rank: 0.0,
+      controversy_rank: 0.0,
+      report_count: 0,
+      unresolved_report_count: 0,
+      federation_pending: false,
+    };
+    assert!(check_comment_depth(&comment).is_ok());
+    comment.path = Ltree("0.123.456".to_string());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // build path with items 1 to 50 which is still acceptable
+    let mut path = "0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31.32.33.34.35.36.37.38.39.40.41.42.43.44.45.46.47.48.49.50".to_string();
+    comment.path = Ltree(path.clone());
+    assert!(check_comment_depth(&comment).is_ok());
+
+    // add one more item and we exceed the max depth
+    path.push_str(".51");
+    comment.path = Ltree(path);
+    assert!(check_comment_depth(&comment).is_err());
     Ok(())
   }
 }

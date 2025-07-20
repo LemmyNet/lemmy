@@ -11,11 +11,11 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, Object},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
-  build_response::send_local_notifs,
   context::LemmyContext,
+  notify::NotifyData,
   utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
 };
 use lemmy_apub_objects::{
@@ -27,7 +27,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::{PersonId, PostOrCommentId},
+  newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentActions, CommentLikeForm},
@@ -38,10 +38,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::mention::scrape_text_for_mentions,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
 
@@ -65,7 +62,7 @@ impl CreateOrUpdateNote {
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: person.id().into(),
+      actor: person.id().clone().into(),
       to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
@@ -103,7 +100,7 @@ impl CreateOrUpdateNote {
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateNote {
+impl Activity for CreateOrUpdateNote {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -137,12 +134,12 @@ impl ActivityHandler for CreateOrUpdateNote {
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
+    let (post, _) = self.object.get_parents(context).await?;
     if let (Some(distinguished), Some(existing_comment)) =
       (self.object.distinguished, existing_comment)
     {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
-        let (post, _) = self.object.get_parents(context).await?;
         check_is_mod_or_admin(
           &mut context.pool(),
           creator.id,
@@ -172,19 +169,10 @@ impl ActivityHandler for CreateOrUpdateNote {
     // anyway.
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
-    let mentions = scrape_text_for_mentions(&comment.content);
-    // TODO: this fails in local community comment as CommentView::read() returns nothing
-    //       without passing LocalUser
-    send_local_notifs(
-      mentions,
-      PostOrCommentId::Comment(comment.id),
-      &actor,
-      do_send_email,
-      context,
-      None,
-      local_instance_id,
-    )
-    .await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    NotifyData::new(&post.0, Some(&comment.0), &actor, &community, do_send_email)
+      .send(context)
+      .await?;
     Ok(())
   }
 }

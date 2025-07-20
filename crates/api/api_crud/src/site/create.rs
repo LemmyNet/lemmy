@@ -114,19 +114,23 @@ pub async fn create_site(
   LocalSite::update(&mut context.pool(), &local_site_form).await?;
 
   let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm {
-    message: data.rate_limit_message,
-    message_per_second: not_zero(data.rate_limit_message_per_second),
-    post: data.rate_limit_post,
-    post_per_second: not_zero(data.rate_limit_post_per_second),
-    register: data.rate_limit_register,
-    register_per_second: not_zero(data.rate_limit_register_per_second),
-    image: data.rate_limit_image,
-    image_per_second: not_zero(data.rate_limit_image_per_second),
-    comment: data.rate_limit_comment,
-    comment_per_second: not_zero(data.rate_limit_comment_per_second),
-    search: data.rate_limit_search,
-    search_per_second: not_zero(data.rate_limit_search_per_second),
-    ..Default::default()
+    message_max_requests: data.rate_limit_message_max_requests,
+    message_interval_seconds: not_zero(data.rate_limit_message_interval_seconds),
+    post_max_requests: data.rate_limit_post_max_requests,
+    post_interval_seconds: not_zero(data.rate_limit_post_interval_seconds),
+    register_max_requests: data.rate_limit_register_max_requests,
+    register_interval_seconds: not_zero(data.rate_limit_register_interval_seconds),
+    image_max_requests: data.rate_limit_image_max_requests,
+    image_interval_seconds: not_zero(data.rate_limit_image_interval_seconds),
+    comment_max_requests: data.rate_limit_comment_max_requests,
+    comment_interval_seconds: not_zero(data.rate_limit_comment_interval_seconds),
+    search_max_requests: data.rate_limit_search_max_requests,
+    search_interval_seconds: not_zero(data.rate_limit_search_interval_seconds),
+    import_user_settings_max_requests: data.rate_limit_import_user_settings_max_requests,
+    import_user_settings_interval_seconds: not_zero(
+      data.rate_limit_import_user_settings_interval_seconds,
+    ),
+    updated_at: Some(Some(Utc::now())),
   };
 
   LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
