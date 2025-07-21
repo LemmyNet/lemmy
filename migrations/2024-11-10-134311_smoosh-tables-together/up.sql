@@ -1,9 +1,6 @@
 -- Consolidates  all the old tables like post_read, post_like, into post_actions, to reduce joins and increase performance.
 -- This creates the tables:
 -- post_actions, comment_actions, community_actions, instance_actions, and person_actions.
---
---
--- Create a table to store background history filling status
 -- comment_actions
 CREATE TABLE comment_actions (
     id int GENERATED ALWAYS AS IDENTITY UNIQUE,
