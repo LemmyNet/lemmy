@@ -408,7 +408,7 @@ mod tests {
 
     // Check the current schema
     assert_eq!(
-      get_foreign_keys_with_missing_indexes(&mut conn)?,
+      get_foreign_keys_with_missing_indexes(conn)?,
       Vec::<String>::new(),
       "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
     );
