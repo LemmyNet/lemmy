@@ -6,7 +6,7 @@ ALTER TABLE person_mention RENAME TO person_comment_mention;
 
 -- Create the new post_mention table
 CREATE TABLE person_post_mention (
-    id serial PRIMARY KEY,
+    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     read boolean DEFAULT FALSE NOT NULL,
@@ -14,13 +14,16 @@ CREATE TABLE person_post_mention (
 );
 
 CREATE TABLE inbox_combined (
-    id serial PRIMARY KEY,
+    id int GENERATED ALWAYS AS IDENTITY,
     published timestamptz NOT NULL,
     comment_reply_id int UNIQUE REFERENCES comment_reply ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     person_comment_mention_id int UNIQUE REFERENCES person_comment_mention ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     person_post_mention_id int UNIQUE REFERENCES person_post_mention ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     private_message_id int UNIQUE REFERENCES private_message ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
 );
+
+-- Disable the triggers temporarily
+ALTER TABLE inbox_combined DISABLE TRIGGER ALL;
 
 -- Updating the history
 INSERT INTO inbox_combined (published, comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id)
@@ -59,6 +62,13 @@ SELECT
     id
 FROM
     private_message;
+
+-- Re-enable triggers after upserts
+ALTER TABLE inbox_combined ENABLE TRIGGER ALL;
+
+-- add the primary key
+ALTER TABLE inbox_combined
+    ADD PRIMARY KEY (id);
 
 CREATE INDEX idx_inbox_combined_published ON inbox_combined (published DESC, id DESC);
 
