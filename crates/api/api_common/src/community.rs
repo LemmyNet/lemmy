@@ -45,7 +45,6 @@ pub mod actions {
       PurgeCommunity,
       RemoveCommunity,
       TransferCommunity,
-      UpdateCommunityTag,
     };
     pub use lemmy_db_views_community_follower::{
       api::{
