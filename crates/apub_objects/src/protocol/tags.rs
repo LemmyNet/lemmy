@@ -14,14 +14,7 @@ enum CommunityTagType {
   PostTag,
 }
 
-/// A tag that a community owns, that is (currently) added to a post.
-/// In the community (group), we attach the list of available tags as the "lemmy:tagsForPosts"
-/// property.
-///
-/// In the post, the tags are added to the standard "tag" property.
-///
-/// Or in AP terms, this is a tag that is owned by a group, and added to a page that has the group
-/// as the audience.
+/// A tag that a community owns, that is added to a post.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct CommunityTag {
   #[serde(rename = "type")]

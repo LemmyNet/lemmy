@@ -8,6 +8,8 @@ use lemmy_db_schema_file::schema::tag;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+/// A tag that is created by community moderators, and assigned to posts by the creator
+/// or by mods.
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
@@ -15,23 +17,11 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A tag that can be assigned to a post within a community.
-/// The tag object is created by the community moderators.
-/// The assignment happens by the post creator and can be updated by the community moderators.
-///
-/// A tag is a federated object that gives additional context to another object, which can be
-/// displayed and filtered on. Currently, we only have community post tags, which is a tag that is
-/// created by the mods of a community, then assigned to posts by post authors as well as mods of a
-/// community, to categorize a post.
-///
-/// In the future we may add more tag types, depending on the requirements, this will lead to either
-/// expansion of this table (community_id optional, addition of tag_type enum) or split of this
-/// table / creation of new tables.
 pub struct Tag {
   pub id: TagId,
   pub ap_id: DbUrl,
   pub name: String,
-  /// the community that owns this tag
+  /// The community that this tag belongs to
   pub community_id: CommunityId,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
@@ -59,13 +49,13 @@ pub struct TagUpdateForm {
   pub deleted: Option<bool>,
 }
 
+/// We wrap this in a struct so we can implement FromSqlRow<Json> for it
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
 #[serde(transparent)]
 #[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
 pub struct TagsView(pub Vec<Tag>);
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -79,8 +69,7 @@ pub struct TagsView(pub Vec<Tag>);
 #[cfg_attr(feature = "full", diesel(primary_key(post_id, tag_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// An association between a post and a tag. Created/updated by the post author or mods of a
-/// community. In the future, more access controls could be added, for example that specific tag
-/// types can only be added by mods.
+/// community.
 pub struct PostTag {
   pub post_id: PostId,
   pub tag_id: TagId,

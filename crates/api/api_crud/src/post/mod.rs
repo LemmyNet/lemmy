@@ -51,10 +51,9 @@ async fn update_post_tags(
     return Ok(());
   };
 
+  // Check if user is either the post author or a community mod
   let is_author = Post::is_post_creator(local_user_view.person.id, post.creator_id);
-
   if !is_author {
-    // Check if user is either the post author or a community mod
     check_community_mod_action(local_user_view, community, false, &mut context.pool()).await?;
   }
 

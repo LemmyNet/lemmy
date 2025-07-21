@@ -58,7 +58,6 @@ pub struct Group {
   pub updated: Option<DateTime<Utc>>,
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
-  /// We add available post tags as a custom field on the group.
   #[serde(default)]
   pub(crate) tag: Vec<CommunityTag>,
 }
