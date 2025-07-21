@@ -141,7 +141,7 @@ pub async fn create_post(
   update_post_tags(
     &context,
     &inserted_post,
-    &community,
+    community,
     &data.tags,
     &local_user_view,
   )

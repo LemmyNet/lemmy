@@ -175,7 +175,6 @@ pub enum HashtagType {
 pub enum HashtagOrLemmyTag {
   Hashtag(Hashtag),
   CommunityTag(CommunityTag),
-  // more options can be added here in the future - as long es they have a unique type: property
 }
 
 impl HashtagOrLemmyTag {

@@ -58,6 +58,6 @@ async fn update_post_tags(
     check_community_mod_action(local_user_view, community, false, &mut context.pool()).await?;
   }
 
-  PostTag::update(&mut context.pool(), &post, tags.clone()).await?;
+  PostTag::update(&mut context.pool(), post, tags.clone()).await?;
   Ok(())
 }

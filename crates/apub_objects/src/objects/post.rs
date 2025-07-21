@@ -325,7 +325,6 @@ impl Object for ApubPost {
       .filter_map(HashtagOrLemmyTag::community_tag_url)
     {
       // add community tags, ignoring those which havent been fetched yet
-      // TODO: this includes full tag data so we can insert without fetch
       if let Ok(t) = Tag::read_apub(&mut context.pool(), &t.into()).await {
         tags.push(t.id);
       }

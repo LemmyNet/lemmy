@@ -241,6 +241,7 @@ impl Object for ApubCommunity {
       .iter()
       .map(|t| t.into_insert_form(community.id))
       .collect();
+    dbg!(&tags);
     Tag::update_many(&mut context.pool(), &community, tags).await?;
 
     let community: ApubCommunity = community.into();
