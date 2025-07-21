@@ -7,7 +7,6 @@ CREATE TABLE tag (
     id serial PRIMARY KEY,
     ap_id text NOT NULL UNIQUE,
     name varchar(255) NOT NULL,
-    display_name varchar(255),
     community_id int NOT NULL REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
     published timestamptz NOT NULL DEFAULT now(),
     updated timestamptz,

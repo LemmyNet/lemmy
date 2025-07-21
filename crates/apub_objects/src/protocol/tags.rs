@@ -28,7 +28,6 @@ pub struct CommunityTag {
   kind: CommunityTagType,
   pub id: Url,
   pub name: String,
-  pub display_name: Option<String>,
 }
 
 impl From<Tag> for CommunityTag {
@@ -37,7 +36,6 @@ impl From<Tag> for CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
       name: tag.name,
-      display_name: tag.display_name,
     }
   }
 }
@@ -47,7 +45,6 @@ impl CommunityTag {
     TagInsertForm {
       ap_id: self.id.clone().into(),
       name: self.name.clone(),
-      display_name: self.display_name.clone(),
       community_id,
       deleted: Some(false),
     }

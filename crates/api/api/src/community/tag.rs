@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_community::api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag};
+use lemmy_db_views_community::api::{CreateCommunityTag, DeleteCommunityTag};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_actor_name};
@@ -39,41 +39,12 @@ pub async fn create_community_tag(
   // Create the tag
   let tag_form = TagInsertForm {
     name: data.name.clone(),
-    display_name: data.display_name.clone(),
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
-
-  ActivityChannel::submit_activity(
-    SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
-    &context,
-  )?;
-
-  Ok(Json(tag))
-}
-
-pub async fn update_community_tag(
-  data: Json<UpdateCommunityTag>,
-  context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
-) -> LemmyResult<Json<Tag>> {
-  let tag = Tag::read(&mut context.pool(), data.tag_id).await?;
-  let community = Community::read(&mut context.pool(), tag.community_id).await?;
-
-  // Verify that only mods can update tags
-  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
-
-  // Update the tag
-  let tag_form = TagUpdateForm {
-    display_name: data.display_name.clone(),
-    updated_at: Some(Some(Utc::now())),
-    ..Default::default()
-  };
-
-  let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),

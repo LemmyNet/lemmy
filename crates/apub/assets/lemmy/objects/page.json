@@ -32,8 +32,7 @@
     {
       "type": "PostTag",
       "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
-      "display_name": "news",
-      "name": "A post about news"
+      "name": "news"
     }
   ],
   "published": "2021-02-26T12:35:34.292626Z"

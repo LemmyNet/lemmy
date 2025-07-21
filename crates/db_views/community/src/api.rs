@@ -136,7 +136,6 @@ pub struct CreateCommunity {
 pub struct CreateCommunityTag {
   pub community_id: CommunityId,
   pub name: String,
-  pub display_name: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -280,16 +279,6 @@ pub struct RemoveCommunity {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Update a community tag.
-pub struct UpdateCommunityTag {
-  pub tag_id: TagId,
-  pub display_name: Option<String>,
 }
 
 #[skip_serializing_none]

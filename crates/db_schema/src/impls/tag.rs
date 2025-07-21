@@ -27,11 +27,11 @@ use std::collections::HashSet;
 impl Tag {
   pub async fn get_by_community(
     pool: &mut DbPool<'_>,
-    search_community_id: CommunityId,
+    community_id: CommunityId,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     tag::table
-      .filter(tag::community_id.eq(search_community_id))
+      .filter(tag::community_id.eq(community_id))
       .filter(tag::deleted.eq(false))
       .load::<Self>(conn)
       .await
@@ -55,7 +55,6 @@ impl Tag {
       .map(|t| TagInsertForm {
         ap_id: t.ap_id,
         name: t.name,
-        display_name: None,
         community_id: t.community_id,
         deleted: Some(true),
       });
