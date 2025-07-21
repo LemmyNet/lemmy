@@ -30,17 +30,15 @@ pub struct CommunityTag {
   pub name: String,
 }
 
-impl From<Tag> for CommunityTag {
-  fn from(tag: Tag) -> Self {
+impl CommunityTag {
+  pub fn to_json(tag: Tag) -> Self {
     CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
       name: tag.name,
     }
   }
-}
 
-impl CommunityTag {
   pub fn into_insert_form(&self, community_id: CommunityId) -> TagInsertForm {
     TagInsertForm {
       ap_id: self.id.clone().into(),

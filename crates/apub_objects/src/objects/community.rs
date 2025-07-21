@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::fetch_instance_actor_for_object,
-  protocol::group::Group,
+  protocol::{group::Group, tags::CommunityTag},
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
@@ -118,7 +118,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
-    let post_tags = Tag::get_by_community(&mut data.pool(), community_id).await?;
+    let post_tags = Tag::read_for_community(&mut data.pool(), community_id).await?;
     let group = Group {
       kind: GroupType::Group,
       id: self.id().clone().into(),
@@ -146,7 +146,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
-      tag: post_tags.into_iter().map(Into::into).collect(),
+      tag: post_tags.into_iter().map(CommunityTag::to_json).collect(),
     };
     Ok(group)
   }

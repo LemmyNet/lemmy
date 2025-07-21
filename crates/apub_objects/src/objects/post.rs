@@ -1,11 +1,14 @@
 use crate::{
-  protocol::page::{
-    Attachment,
-    Hashtag,
-    HashtagOrLemmyTag,
-    HashtagType::{self},
-    Page,
-    PageType,
+  protocol::{
+    page::{
+      Attachment,
+      Hashtag,
+      HashtagOrLemmyTag,
+      HashtagType::{self},
+      Page,
+      PageType,
+    },
+    tags::CommunityTag,
   },
   utils::{
     functions::{
@@ -140,7 +143,7 @@ impl Object for ApubPost {
     let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
       .await?
       .into_iter()
-      .map(|tag| HashtagOrLemmyTag::CommunityTag(tag.into()))
+      .map(|tag| HashtagOrLemmyTag::CommunityTag(CommunityTag::to_json(tag)))
       .collect();
 
     // Add automatic hashtag based on community name
@@ -322,6 +325,7 @@ impl Object for ApubPost {
       .filter_map(HashtagOrLemmyTag::community_tag_url)
     {
       // add community tags, ignoring those which havent been fetched yet
+      // TODO: this includes full tag data so we can insert without fetch
       if let Ok(t) = Tag::read_apub(&mut context.pool(), &t.into()).await {
         tags.push(t.id);
       }

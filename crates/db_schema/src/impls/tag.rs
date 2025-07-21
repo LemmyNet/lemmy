@@ -25,7 +25,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 
 impl Tag {
-  pub async fn get_by_community(
+  pub async fn read_for_community(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> LemmyResult<Vec<Self>> {
@@ -43,7 +43,7 @@ impl Tag {
     community: &Community,
     mut forms: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
-    let known_tags = Tag::get_by_community(pool, community.id).await?;
+    let known_tags = Tag::read_for_community(pool, community.id).await?;
     let conn = &mut get_conn(pool).await?;
     let new_tag_ids = forms
       .iter()
@@ -160,7 +160,7 @@ impl PostTag {
     tag_ids: Vec<TagId>,
   ) -> LemmyResult<Vec<Self>> {
     // validate tags
-    let community_tags = Tag::get_by_community(pool, post.community_id)
+    let community_tags = Tag::read_for_community(pool, post.community_id)
       .await?
       .into_iter()
       .map(|t| t.id)

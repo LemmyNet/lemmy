@@ -21,14 +21,17 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{
-  community::ApubCommunity,
-  multi_community::ApubMultiCommunity,
-  multi_community_collection::ApubFeedCollection,
-  SiteOrMultiOrCommunityOrUser,
+use lemmy_apub_objects::{
+  objects::{
+    community::ApubCommunity,
+    multi_community::ApubMultiCommunity,
+    multi_community_collection::ApubFeedCollection,
+    SiteOrMultiOrCommunityOrUser,
+  },
+  protocol::tags::CommunityTag,
 };
 use lemmy_db_schema::{
-  source::{community::Community, multi_community::MultiCommunity},
+  source::{community::Community, multi_community::MultiCommunity, tag::Tag},
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
@@ -191,6 +194,35 @@ pub(crate) async fn get_apub_person_multi_community_follows(
 
   let collection = ApubFeedCollection::read_local(&multi, &context).await?;
   Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+}
+
+#[derive(Deserialize, Clone)]
+pub(crate) struct CommunityTagPath {
+  community_name: String,
+  tag_name: String,
+}
+
+/// Return the ActivityPub json representation of a local community over HTTP.
+pub(crate) async fn get_apub_community_tag_http(
+  info: Path<CommunityTagPath>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let community: ApubCommunity =
+    Community::read_from_name(&mut context.pool(), &info.community_name, true)
+      .await?
+      .ok_or(LemmyErrorType::NotFound)?
+      .into();
+
+  check_community_fetchable(&community)?;
+
+  let tag = Tag::read_for_community(&mut context.pool(), community.id)
+    .await?
+    .into_iter()
+    .map(CommunityTag::to_json)
+    .find(|t| t.name == info.tag_name)
+    .ok_or(LemmyErrorType::NotFound)?;
+
+  Ok(create_http_response(tag, &FEDERATION_CONTEXT)?)
 }
 
 #[cfg(test)]
