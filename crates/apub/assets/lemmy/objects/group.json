@@ -43,6 +43,14 @@
       "name": "Deutsch"
     }
   ],
+  "tag": [
+    {
+      "type": "PostTag",
+      "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
+      "display_name": "news",
+      "name": "A post about news"
+    }
+  ],
   "published": "2019-06-02T16:43:50.799554Z",
   "updated": "2021-03-10T17:18:10.498868Z"
 }

@@ -146,7 +146,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
-      tags: post_tags.into_iter().map(Into::into).collect(),
+      tag: post_tags.into_iter().map(Into::into).collect(),
     };
     Ok(group)
   }
@@ -237,7 +237,7 @@ impl Object for ApubCommunity {
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let tags = group
-      .tags
+      .tag
       .iter()
       .map(|t| t.into_insert_form(community.id))
       .collect();

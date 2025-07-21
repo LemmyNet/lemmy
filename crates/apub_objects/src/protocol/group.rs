@@ -60,5 +60,5 @@ pub struct Group {
   pub(crate) discoverable: Option<bool>,
   /// We add available post tags as a custom field on the group.
   #[serde(default)]
-  pub(crate) tags: Vec<CommunityTag>,
+  pub(crate) tag: Vec<CommunityTag>,
 }
