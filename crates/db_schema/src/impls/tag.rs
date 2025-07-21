@@ -24,6 +24,30 @@ use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 
+impl Crud for Tag {
+  type InsertForm = TagInsertForm;
+  type UpdateForm = TagUpdateForm;
+  type IdType = TagId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(tag::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreateTag)
+  }
+
+  async fn update(pool: &mut DbPool<'_>, pid: TagId, form: &Self::UpdateForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(tag::table.find(pid))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
+  }
+}
+
 impl Tag {
   pub async fn read_for_community(
     pool: &mut DbPool<'_>,
@@ -104,30 +128,6 @@ impl Tag {
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-}
-
-impl Crud for Tag {
-  type InsertForm = TagInsertForm;
-  type UpdateForm = TagUpdateForm;
-  type IdType = TagId;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(tag::table)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateTag)
-  }
-
-  async fn update(pool: &mut DbPool<'_>, pid: TagId, form: &Self::UpdateForm) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(tag::table.find(pid))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
   }
 }
 
