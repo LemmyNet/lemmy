@@ -2,9 +2,8 @@ use crate::newtypes::{CommunityId, DbUrl, PostId, TagId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{sql_types::Nullable, AsExpression, FromSqlRow};
-use lemmy_db_schema_file::schema::post_tag;
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::tag;
+use lemmy_db_schema_file::schema::{post_tag, tag};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

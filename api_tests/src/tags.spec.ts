@@ -12,10 +12,13 @@ import {
   waitUntil,
   assertCommunityFederation,
   waitForPost,
+  gamma,
+  resolvePerson,
+  getCommunity,
 } from "./shared";
 import { CreateCommunityTag } from "lemmy-js-client/dist/types/CreateCommunityTag";
 import { DeleteCommunityTag } from "lemmy-js-client/dist/types/DeleteCommunityTag";
-import { EditPost } from "lemmy-js-client";
+import { AddModToCommunity, EditPost } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
@@ -98,35 +101,53 @@ test("Create, and delete a community tag", async () => {
 test("Create and update post tags", async () => {
   // Create a community
   let communityRes = await createCommunity(alpha);
-  const communityId = communityRes.community_view.community.id;
+  const alphaCommunity = communityRes.community_view;
 
-  // Create two tags
+  // add gamma as remote mod
+  let gammaOnAlpha = await resolvePerson(alpha, "lemmy_gamma@lemmy-gamma:8561");
+
+  let form: AddModToCommunity = {
+    community_id: communityRes.community_view.community.id,
+    person_id: gammaOnAlpha?.person.id as number,
+    added: true,
+  };
+  alpha.addModToCommunity(form);
+
+  let gammaCommunity = await resolveCommunity(
+    gamma,
+    alphaCommunity.community.ap_id,
+  );
+  console.log(gammaCommunity);
+
+  // Remote mod gamma create two tags
   const tag1Name = "news";
   let createForm1: CreateCommunityTag = {
     name: tag1Name,
-    community_id: communityId,
+    community_id: gammaCommunity!.community.id,
   };
-  let tag1Res = await alpha.createCommunityTag(createForm1);
+  let tag1Res = await gamma.createCommunityTag(createForm1);
   expect(tag1Res.id).toBeDefined();
 
   const tag2Name = "meme";
   let createForm2: CreateCommunityTag = {
     name: tag2Name,
-    community_id: communityId,
+    community_id: gammaCommunity!.community.id,
   };
-  let tag2Res = await alpha.createCommunityTag(createForm2);
+  let tag2Res = await gamma.createCommunityTag(createForm2);
   expect(tag2Res.id).toBeDefined();
 
-  // follow from beta
-  const alphaCommunity = communityRes.community_view;
+  await waitUntil(
+    () => getCommunity(alpha, communityRes.community_view.community.id),
+    c => c.community_view.post_tags.length > 0,
+  );
+
   let betaCommunity = await resolveCommunity(
     beta,
     alphaCommunity.community.ap_id,
   );
-  if (!betaCommunity) {
-    throw "Missing gamma community";
-  }
-  await followCommunity(beta, true, betaCommunity.community.id);
+
+  // follow from beta
+  await followCommunity(beta, true, betaCommunity!.community.id);
   await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
     g => g!.community_actions?.follow_state == "Accepted",
@@ -135,20 +156,20 @@ test("Create and update post tags", async () => {
   // Create a post
   let postRes = await beta.createPost({
     name: randomString(10),
-    community_id: betaCommunity.community.id,
+    community_id: betaCommunity!.community.id,
   });
   expect(postRes.post_view.post.id).toBeDefined();
 
   // Update post tags
   let updateForm: EditPost = {
     post_id: postRes.post_view.post.id,
-    tags: [betaCommunity.post_tags[0].id, betaCommunity.post_tags[1].id],
+    tags: [betaCommunity!.post_tags[0].id, betaCommunity!.post_tags[1].id],
   };
   let updateRes = await beta.editPost(updateForm);
   expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(updateRes.post_view.tags?.length).toBe(2);
   expect(updateRes.post_view.tags?.map(t => t.id).sort()).toEqual(
-    [betaCommunity.post_tags[0].id, betaCommunity.post_tags[1].id].sort(),
+    [betaCommunity!.post_tags[0].id, betaCommunity!.post_tags[1].id].sort(),
   );
 
   // wait post tags federated
@@ -163,11 +184,11 @@ test("Create and update post tags", async () => {
   );
 
   // Update post to remove one tag
-  updateForm.tags = [betaCommunity.post_tags[0].id];
+  updateForm.tags = [betaCommunity!.post_tags[0].id];
   updateRes = await beta.editPost(updateForm);
   expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(updateRes.post_view.tags?.length).toBe(1);
-  expect(updateRes.post_view.tags?.[0].id).toBe(betaCommunity.post_tags[0].id);
+  expect(updateRes.post_view.tags?.[0].id).toBe(betaCommunity!.post_tags[0].id);
 
   // wait post tags federated
 

@@ -195,7 +195,7 @@ impl Object for ApubCommunity {
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
-      local: Some(false),
+      local: Some(group.id.is_local(context)),
       last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
