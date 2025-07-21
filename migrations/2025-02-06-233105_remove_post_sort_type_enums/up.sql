@@ -132,3 +132,8 @@ WHERE
         WHERE
             relname = 'local_site');
 
+-- reindex
+REINDEX TABLE local_user;
+
+REINDEX TABLE local_site;
+

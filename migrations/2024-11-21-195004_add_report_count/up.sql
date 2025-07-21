@@ -73,6 +73,9 @@ WHERE
         WHERE
             relname = 'post_aggregates');
 
+-- reindex
+REINDEX TABLE post_aggregates;
+
 ALTER TABLE comment_aggregates
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
@@ -144,4 +147,7 @@ WHERE
             pg_class
         WHERE
             relname = 'comment_aggregates');
+
+-- reindex
+REINDEX TABLE comment_aggregates;
 
