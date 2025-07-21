@@ -14,8 +14,6 @@ CREATE INDEX idx_admin_purge_post_admin ON admin_purge_post (admin_person_id);
 
 CREATE INDEX idx_mod_remove_comment_comment ON mod_remove_comment (comment_id);
 
-CREATE INDEX idx_person_comment_mention_comment ON person_comment_mention (comment_id);
-
 CREATE INDEX idx_person_liked_combined_comment ON person_liked_combined (comment_id);
 
 CREATE INDEX idx_person_saved_combined_comment ON person_saved_combined (comment_id);
@@ -119,8 +117,6 @@ CREATE INDEX idx_mod_lock_post_post ON mod_lock_post (post_id);
 CREATE INDEX idx_mod_remove_post_post ON mod_remove_post (post_id);
 
 CREATE INDEX idx_person_liked_combined_post ON person_liked_combined (post_id);
-
-CREATE INDEX idx_person_post_mention_post ON person_post_mention (post_id);
 
 CREATE INDEX idx_person_saved_combined_post ON person_saved_combined (post_id);
 
