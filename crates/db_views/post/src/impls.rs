@@ -599,9 +599,8 @@ mod tests {
         PostReadForm,
         PostUpdateForm,
       },
-      post_tag::{PostTag, PostTagForm},
       site::Site,
-      tag::{Tag, TagInsertForm},
+      tag::{PostTag, Tag, TagInsertForm},
     },
     test_data::TestData,
     traits::{Bannable, Blockable, Crud, Followable, Likeable},
@@ -770,17 +769,7 @@ mod tests {
       };
 
       let post_with_tags = Post::create(pool, &new_post).await?;
-      let inserted_tags = vec![
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_1.id,
-        },
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_2.id,
-        },
-      ];
-      PostTag::set(pool, &inserted_tags).await?;
+      PostTag::update(pool, &post_with_tags, vec![tag_1.id, tag_2.id]).await?;
 
       let tegan = LocalUserView {
         local_user: inserted_tegan_local_user,

@@ -41,7 +41,7 @@ use lemmy_db_schema::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
-    tag::{PostTag, PostTagForm, Tag},
+    tag::{PostTag, Tag},
   },
   traits::Crud,
 };
@@ -135,17 +135,20 @@ impl Object for ApubPost {
       })
       .into_iter()
       .collect();
+
+    // Add tags defined by community and applied to this post
+    let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
+      .await?
+      .into_iter()
+      .map(|tag| HashtagOrLemmyTag::CommunityTag(tag.into()))
+      .collect();
+
+    // Add automatic hashtag based on community name
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
       name: format!("#{}", &community.name),
       kind: HashtagType::Hashtag,
     };
-
-    let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
-      .await?
-      .into_iter()
-      .map(|tag| HashtagOrLemmyTag::LemmyCommunityPostTag(tag.into()))
-      .collect();
     tags.push(HashtagOrLemmyTag::Hashtag(hashtag));
 
     let page = Page {
@@ -312,13 +315,19 @@ impl Object for ApubPost {
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
 
-    let post_tags_to_lookup: Vec<PostTagForm> = page
+    let mut tags = vec![];
+    for t in page
       .tag
       .iter()
       .filter_map(HashtagOrLemmyTag::community_tag_url)
-      .map(|tag_id| todo!())
-      .collect();
-    PostTag::update(&mut context.pool(), post.id, post_tags_to_lookup).await?;
+    {
+      // add community tags, ignoring those which havent been fetched yet
+      if let Ok(t) = Tag::read_apub(&mut context.pool(), &t.into()).await {
+        tags.push(t.id);
+      }
+    }
+
+    PostTag::update(&mut context.pool(), &post, tags).await?;
 
     let post_ = post.clone();
     let context_ = context.clone();

@@ -6,7 +6,6 @@ pub mod multi_community_collection;
 pub mod person;
 pub mod post;
 pub mod private_message;
-pub mod tag;
 
 use comment::ApubComment;
 use community::ApubCommunity;

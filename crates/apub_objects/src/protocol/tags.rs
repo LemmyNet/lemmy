@@ -7,11 +7,11 @@ use url::Url;
 
 /// The [ActivityStreams vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag)
 /// defines that any object can have a list of tags associated with it.
-/// Tags in AS can be of any type, so we define our own types. For now, only `CommunityPostTag`:
+/// Tags in AS can be of any type, so we define our own types.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
 enum CommunityTagType {
   #[default]
-  CommunityTag,
+  PostTag,
 }
 
 /// A tag that a community owns, that is (currently) added to a post.
@@ -28,7 +28,7 @@ pub struct CommunityTag {
   kind: CommunityTagType,
   pub id: Url,
   // the name of the tag can be updated by the moderators of the community. The ID is fixed.
-  pub display_name: String,
+  pub name: String,
 }
 
 impl From<Tag> for CommunityTag {
@@ -36,7 +36,7 @@ impl From<Tag> for CommunityTag {
     CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
-      display_name: tag.display_name,
+      name: tag.display_name,
     }
   }
 }
@@ -45,7 +45,7 @@ impl CommunityTag {
   pub fn into_insert_form(&self, community_id: CommunityId) -> TagInsertForm {
     TagInsertForm {
       ap_id: self.id.clone().into(),
-      display_name: self.display_name.clone(),
+      display_name: self.name.clone(),
       community_id,
     }
   }

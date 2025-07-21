@@ -174,14 +174,14 @@ pub enum HashtagType {
 #[serde(untagged)]
 pub enum HashtagOrLemmyTag {
   Hashtag(Hashtag),
-  LemmyCommunityPostTag(CommunityTag),
+  CommunityTag(CommunityTag),
   // more options can be added here in the future - as long es they have a unique type: property
 }
 
 impl HashtagOrLemmyTag {
   pub fn community_tag_url(&self) -> Option<Url> {
     match self {
-      HashtagOrLemmyTag::LemmyCommunityPostTag(t) => Some(t.id.clone()),
+      HashtagOrLemmyTag::CommunityTag(t) => Some(t.id.clone()),
       _ => None,
     }
   }

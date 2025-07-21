@@ -1,6 +1,9 @@
 use chrono::{DateTime, TimeZone, Utc};
-use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::post::Post;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_action};
+use lemmy_db_schema::{
+  newtypes::TagId,
+  source::{community::Community, post::Post, tag::PostTag},
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -35,4 +38,26 @@ async fn convert_published_time(
   } else {
     Ok(None)
   }
+}
+
+async fn update_post_tags(
+  context: &LemmyContext,
+  post: &Post,
+  community: &Community,
+  tags: &Option<Vec<TagId>>,
+  local_user_view: &LocalUserView,
+) -> LemmyResult<()> {
+  let Some(tags) = tags else {
+    return Ok(());
+  };
+
+  let is_author = Post::is_post_creator(local_user_view.person.id, post.creator_id);
+
+  if !is_author {
+    // Check if user is either the post author or a community mod
+    check_community_mod_action(local_user_view, community, false, &mut context.pool()).await?;
+  }
+
+  PostTag::update(&mut context.pool(), &post, tags.clone()).await?;
+  Ok(())
 }

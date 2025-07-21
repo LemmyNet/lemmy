@@ -1,8 +1,9 @@
 use crate::{
   diesel::SelectableHelper,
-  newtypes::{CommunityId, PostId, TagId},
+  newtypes::{CommunityId, DbUrl, PostId, TagId},
   source::{
     community::Community,
+    post::Post,
     tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
   traits::Crud,
@@ -98,6 +99,17 @@ impl Tag {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub async fn read_apub(pool: &mut DbPool<'_>, ap_id: &DbUrl) -> LemmyResult<Tag> {
+    let conn = &mut get_conn(pool).await?;
+    tag::table
+      .filter(tag::ap_id.eq(ap_id))
+      .filter(tag::deleted.eq(false))
+      .select(tag::all_columns)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 impl Crud for Tag {
@@ -149,18 +161,36 @@ impl ToSql<Nullable<Json>, Pg> for TagsView {
 impl PostTag {
   pub async fn update(
     pool: &mut DbPool<'_>,
-    post_id: PostId,
-    forms: Vec<PostTagForm>,
+    post: &Post,
+    tag_ids: Vec<TagId>,
   ) -> LemmyResult<Vec<Self>> {
+    // validate tags
+    let community_tags = Tag::get_by_community(pool, post.community_id)
+      .await?
+      .into_iter()
+      .map(|t| t.id)
+      .collect::<HashSet<_>>();
+    if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
+      return Err(LemmyErrorType::TagNotInCommunity.into());
+    }
+
     let conn = &mut get_conn(pool).await?;
+
     conn
       .run_transaction(|conn| {
         async move {
-          delete(post_tag::table.filter(post_tag::post_id.eq(post_id)))
+          delete(post_tag::table.filter(post_tag::post_id.eq(post.id)))
             .execute(conn)
             .await
             .with_lemmy_type(LemmyErrorType::Deleted)?;
 
+          let forms = tag_ids
+            .into_iter()
+            .map(|tag_id| PostTagForm {
+              post_id: post.id,
+              tag_id,
+            })
+            .collect::<Vec<_>>();
           insert_into(post_tag::table)
             .values(forms)
             .returning(Self::as_select())
