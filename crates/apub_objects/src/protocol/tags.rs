@@ -27,8 +27,8 @@ pub struct CommunityTag {
   #[serde(rename = "type")]
   kind: CommunityTagType,
   pub id: Url,
-  // the name of the tag can be updated by the moderators of the community. The ID is fixed.
   pub name: String,
+  pub display_name: Option<String>,
 }
 
 impl From<Tag> for CommunityTag {
@@ -36,7 +36,8 @@ impl From<Tag> for CommunityTag {
     CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
-      name: tag.display_name,
+      name: tag.name,
+      display_name: tag.display_name,
     }
   }
 }
@@ -45,7 +46,8 @@ impl CommunityTag {
   pub fn into_insert_form(&self, community_id: CommunityId) -> TagInsertForm {
     TagInsertForm {
       ap_id: self.id.clone().into(),
-      display_name: self.name.clone(),
+      name: self.name.clone(),
+      display_name: self.display_name.clone(),
       community_id,
       deleted: Some(false),
     }

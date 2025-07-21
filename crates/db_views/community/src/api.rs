@@ -135,7 +135,8 @@ pub struct CreateCommunity {
 /// Create a tag for a community.
 pub struct CreateCommunityTag {
   pub community_id: CommunityId,
-  pub display_name: String,
+  pub name: String,
+  pub display_name: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -288,7 +289,7 @@ pub struct TransferCommunity {
 /// Update a community tag.
 pub struct UpdateCommunityTag {
   pub tag_id: TagId,
-  pub display_name: String,
+  pub display_name: Option<String>,
 }
 
 #[skip_serializing_none]

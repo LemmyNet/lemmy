@@ -30,7 +30,8 @@ use serde_with::skip_serializing_none;
 pub struct Tag {
   pub id: TagId,
   pub ap_id: DbUrl,
-  pub display_name: String,
+  pub name: String,
+  pub display_name: Option<String>,
   /// the community that owns this tag
   pub community_id: CommunityId,
   pub published_at: DateTime<Utc>,
@@ -43,7 +44,8 @@ pub struct Tag {
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 pub struct TagInsertForm {
   pub ap_id: DbUrl,
-  pub display_name: String,
+  pub name: String,
+  pub display_name: Option<String>,
   pub community_id: CommunityId,
   pub deleted: Option<bool>,
 }

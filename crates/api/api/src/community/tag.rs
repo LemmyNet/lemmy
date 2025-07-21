@@ -15,24 +15,33 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::{error::LemmyResult, utils::validation::tag_name_length_check};
+use lemmy_db_views_site::SiteView;
+use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_actor_name};
+use url::Url;
 
 pub async fn create_community_tag(
   data: Json<CreateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
+  // reuse this existing function for validation
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
+
   let community = Community::read(&mut context.pool(), data.community_id).await?;
 
-  tag_name_length_check(&data.display_name)?;
   // Verify that only mods can create tags
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
+  let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
+
   // Create the tag
   let tag_form = TagInsertForm {
+    name: data.name.clone(),
     display_name: data.display_name.clone(),
     community_id: data.community_id,
-    ap_id: community.build_tag_ap_id(&data.display_name)?,
+    ap_id: ap_id.into(),
     deleted: Some(false),
   };
 
@@ -57,10 +66,9 @@ pub async fn update_community_tag(
   // Verify that only mods can update tags
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
-  tag_name_length_check(&data.display_name)?;
   // Update the tag
   let tag_form = TagUpdateForm {
-    display_name: Some(data.display_name.clone()),
+    display_name: data.display_name.clone(),
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };

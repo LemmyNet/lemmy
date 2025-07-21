@@ -54,7 +54,8 @@ impl Tag {
       .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
       .map(|t| TagInsertForm {
         ap_id: t.ap_id,
-        display_name: t.display_name,
+        name: t.name,
+        display_name: None,
         community_id: t.community_id,
         deleted: Some(true),
       });

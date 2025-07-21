@@ -29,8 +29,6 @@ const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
-const TAG_NAME_MIN_LENGTH: usize = 3;
-const TAG_NAME_MAX_LENGTH: usize = 100;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -146,19 +144,6 @@ pub fn site_or_community_description_length_check(description: &str) -> LemmyRes
     description,
     SITE_DESCRIPTION_MAX_LENGTH,
     LemmyErrorType::SiteDescriptionLengthOverflow,
-  )
-}
-
-pub fn tag_name_length_check(tag_name: &str) -> LemmyResult<()> {
-  min_length_check(
-    tag_name,
-    TAG_NAME_MIN_LENGTH,
-    LemmyErrorType::InvalidTagName,
-  )?;
-  max_length_check(
-    tag_name,
-    TAG_NAME_MAX_LENGTH,
-    LemmyErrorType::InvalidTagName,
   )
 }
 
