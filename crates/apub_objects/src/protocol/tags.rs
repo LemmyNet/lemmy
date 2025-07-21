@@ -47,6 +47,7 @@ impl CommunityTag {
       ap_id: self.id.clone().into(),
       display_name: self.name.clone(),
       community_id,
+      deleted: Some(false),
     }
   }
 }

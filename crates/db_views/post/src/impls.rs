@@ -730,6 +730,7 @@ mod tests {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
           display_name: "Test Tag 1".into(),
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;
@@ -739,6 +740,7 @@ mod tests {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
           display_name: "Test Tag 2".into(),
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;

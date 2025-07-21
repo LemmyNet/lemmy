@@ -22,7 +22,7 @@ use diesel::{
 use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 impl Tag {
   pub async fn get_by_community(
@@ -41,44 +41,39 @@ impl Tag {
   pub async fn update_many(
     pool: &mut DbPool<'_>,
     community: &Community,
-    ap_tags: Vec<TagInsertForm>,
+    mut forms: Vec<TagInsertForm>,
   ) -> LemmyResult<()> {
     let known_tags = Tag::get_by_community(pool, community.id).await?;
     let conn = &mut get_conn(pool).await?;
-    let old_tags = known_tags
-      .iter()
-      .map(|tag| (tag.ap_id.clone(), tag))
-      .collect::<HashMap<_, _>>();
-    let new_tag_ids = ap_tags
+    let new_tag_ids = forms
       .iter()
       .map(|tag| tag.ap_id.clone())
       .collect::<HashSet<_>>();
-    let to_delete = known_tags
-      .iter()
-      .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
-      .map(|tag| tag.id)
-      .collect::<Vec<_>>();
-    let to_insert = ap_tags
+    let delete_forms = known_tags
       .into_iter()
-      .filter(|tag| !old_tags.contains_key(&tag.ap_id))
-      .collect::<Vec<_>>();
+      .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
+      .map(|t| TagInsertForm {
+        ap_id: t.ap_id,
+        display_name: t.display_name,
+        community_id: t.community_id,
+        deleted: Some(true),
+      });
+    forms.extend(delete_forms);
 
     conn
       .run_transaction(|conn| {
         async move {
-          for i in &to_insert {
+          // on conflict do update doesnt work with vec so we need a loop
+          for f in forms {
             insert_into(tag::table)
-              .values(i)
+              .values(&f)
               .on_conflict(tag::ap_id)
               .do_update()
-              .set(i)
+              .set(&f)
               .execute(conn)
               .await?;
           }
-          diesel::update(tag::table.filter(tag::id.eq_any(to_delete)))
-            .set(tag::deleted.eq(true))
-            .execute(conn)
-            .await?;
+
           Ok(())
         }
         .scope_boxed()

@@ -45,6 +45,7 @@ pub struct TagInsertForm {
   pub ap_id: DbUrl,
   pub display_name: String,
   pub community_id: CommunityId,
+  pub deleted: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
