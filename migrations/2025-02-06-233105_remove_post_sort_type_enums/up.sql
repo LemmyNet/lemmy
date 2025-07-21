@@ -22,7 +22,20 @@ WHERE
         FROM
             pg_class
         WHERE
-            relname IN ('local_user', 'local_site'));
+            relname = 'local_user');
+
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
 
 UPDATE
     local_user
@@ -104,5 +117,18 @@ WHERE
         FROM
             pg_class
         WHERE
-            relname IN ('local_user', 'local_site'));
+            relname = 'local_user');
+
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
 
