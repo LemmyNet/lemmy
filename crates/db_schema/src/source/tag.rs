@@ -20,6 +20,8 @@ pub struct Tag {
   pub id: TagId,
   pub ap_id: DbUrl,
   pub name: String,
+  pub description: Option<String>,
+  pub background_color: Option<String>,
   /// The community that this tag belongs to
   pub community_id: CommunityId,
   pub published_at: DateTime<Utc>,
@@ -33,6 +35,8 @@ pub struct Tag {
 pub struct TagInsertForm {
   pub ap_id: DbUrl,
   pub name: String,
+  pub description: Option<String>,
+  pub background_color: Option<String>,
   pub community_id: CommunityId,
   pub deleted: Option<bool>,
 }
@@ -42,6 +46,8 @@ pub struct TagInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 pub struct TagUpdateForm {
   pub ap_id: Option<DbUrl>,
+  pub description: Option<Option<String>>,
+  pub background_color: Option<Option<String>>,
   pub community_id: Option<CommunityId>,
   pub published_at: Option<DateTime<Utc>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,

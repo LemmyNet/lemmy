@@ -239,7 +239,7 @@ impl Object for ApubCommunity {
     let tags = group
       .tag
       .iter()
-      .map(|t| t.into_insert_form(community.id))
+      .map(|t| t.to_insert_form(community.id))
       .collect();
     Tag::update_many(&mut context.pool(), &community, tags).await?;
 

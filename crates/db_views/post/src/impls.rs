@@ -729,6 +729,8 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
           name: "Test Tag 1".into(),
+          description: None,
+          background_color: None,
           community_id: community.id,
           deleted: Some(false),
         },
@@ -739,6 +741,8 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
           name: "Test Tag 2".into(),
+          description: None,
+          background_color: None,
           community_id: community.id,
           deleted: Some(false),
         },

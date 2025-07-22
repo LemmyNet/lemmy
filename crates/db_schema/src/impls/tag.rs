@@ -81,6 +81,8 @@ impl Tag {
         name: t.name,
         community_id: t.community_id,
         deleted: Some(true),
+        description: None,
+        background_color: None,
       });
     forms.extend(delete_forms);
 

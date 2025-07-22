@@ -139,7 +139,7 @@ pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
 }
 
 /// Checks the site / community description length, the limit as defined in the DB.
-pub fn site_or_community_description_length_check(description: &str) -> LemmyResult<()> {
+pub fn description_length_check(description: &str) -> LemmyResult<()> {
   max_length_check(
     description,
     SITE_DESCRIPTION_MAX_LENGTH,
@@ -355,6 +355,7 @@ mod tests {
       check_urls_are_valid,
       clean_url,
       clean_urls_in_text,
+      description_length_check,
       is_url_blocked,
       is_valid_actor_name,
       is_valid_bio_field,
@@ -363,7 +364,6 @@ mod tests {
       is_valid_post_title,
       is_valid_url,
       site_name_length_check,
-      site_or_community_description_length_check,
       truncate_for_db,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
@@ -546,14 +546,14 @@ Line3",
 
   #[test]
   fn test_valid_site_description() {
-    assert!(site_or_community_description_length_check(
+    assert!(description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH)
         .map(|_| 'A')
         .collect::<String>()
     )
     .is_ok());
 
-    let invalid_result = site_or_community_description_length_check(
+    let invalid_result = description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
         .map(|_| 'A')
         .collect::<String>(),

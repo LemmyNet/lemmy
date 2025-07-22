@@ -4,7 +4,7 @@ use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_mod_action,
+  utils::{check_community_mod_action, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -14,14 +14,17 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_community::{
-  api::{CreateCommunityTag, DeleteCommunityTag},
+  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   CommunityView,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
-  utils::validation::{check_api_elements_count, is_valid_actor_name},
+  utils::{
+    slurs::check_slurs,
+    validation::{check_api_elements_count, description_length_check, is_valid_actor_name},
+  },
 };
 use url::Url;
 
@@ -43,12 +46,18 @@ pub async fn create_community_tag(
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   check_api_elements_count(community_view.post_tags.0.len())?;
+  if let Some(desc) = &data.description {
+    description_length_check(desc)?;
+    check_slurs(desc, &slur_regex(&context).await?)?;
+  }
 
   let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
 
   // Create the tag
   let tag_form = TagInsertForm {
     name: data.name.clone(),
+    description: data.description.clone(),
+    background_color: data.background_color.clone(),
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
@@ -61,6 +70,34 @@ pub async fn create_community_tag(
     &context,
   )?;
 
+  Ok(Json(tag))
+}
+
+pub async fn update_community_tag(
+  data: Json<UpdateCommunityTag>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<Tag>> {
+  let tag = Tag::read(&mut context.pool(), data.tag_id).await?;
+  let community = Community::read(&mut context.pool(), tag.community_id).await?;
+
+  // Verify that only mods can update tags
+  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+
+  if let Some(desc) = &data.description {
+    description_length_check(desc)?;
+    check_slurs(desc, &slur_regex(&context).await?)?;
+  }
+
+  // Update the tag
+  let tag_form = TagUpdateForm {
+    description: Some(data.description.clone()),
+    background_color: Some(data.background_color.clone()),
+    updated_at: Some(Some(Utc::now())),
+    ..Default::default()
+  };
+
+  let tag = Tag::update(&mut context.pool(), data.tag_id, &tag_form).await?;
   Ok(Json(tag))
 }
 
