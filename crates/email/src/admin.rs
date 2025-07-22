@@ -1,4 +1,4 @@
-use crate::{send_email, user_language};
+use crate::{send::send_email, user_language};
 use lemmy_db_schema::utils::DbPool;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{error::LemmyResult, settings::structs::Settings};

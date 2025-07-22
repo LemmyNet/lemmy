@@ -1,4 +1,4 @@
-use crate::{send_email, user_email, user_language};
+use crate::{send::send_email, user_email, user_language};
 use lemmy_db_schema::{
   source::{
     email_verification::{EmailVerification, EmailVerificationForm},

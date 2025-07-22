@@ -1,4 +1,4 @@
-use crate::{inbox_link, send_email, user_language};
+use crate::{inbox_link, send::send_email, user_language};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{comment::Comment, community::Community, person::Person, post::Post},
