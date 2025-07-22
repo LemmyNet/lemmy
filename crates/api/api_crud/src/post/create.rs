@@ -1,5 +1,5 @@
 use super::convert_published_time;
-use crate::{community_use_pending, post::update_post_tags};
+use crate::community_use_pending;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
@@ -21,7 +21,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+  source::{
+    post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+    tag::PostTag,
+  },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
@@ -138,14 +141,9 @@ pub async fn create_post(
 
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
-  update_post_tags(
-    &context,
-    &inserted_post,
-    community,
-    &data.tags,
-    &local_user_view,
-  )
-  .await?;
+  if let Some(tags) = &data.tags {
+    PostTag::update(&mut context.pool(), &inserted_post, tags.clone()).await?;
+  }
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time_at.is_none() {

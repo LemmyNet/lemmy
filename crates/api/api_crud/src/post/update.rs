@@ -1,5 +1,4 @@
 use super::convert_published_time;
-use crate::post::update_post_tags;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
@@ -11,6 +10,7 @@ use lemmy_api_utils::{
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
+    check_community_mod_action,
     check_community_user_action,
     check_nsfw_allowed,
     get_url_blocklist,
@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
+    tag::PostTag,
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
@@ -102,17 +103,36 @@ pub async fn update_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  update_post_tags(
-    &context,
-    &orig_post.post,
-    &orig_post.community,
-    &data.tags,
+  let is_post_creator = Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id);
+  let is_moderator = check_community_mod_action(
     &local_user_view,
+    &orig_post.community,
+    false,
+    &mut context.pool(),
   )
-  .await?;
+  .await
+  .is_ok();
+
+  // both creator and moderator can change tags
+  if is_post_creator || is_moderator {
+    if let Some(tags) = &data.tags {
+      PostTag::update(&mut context.pool(), &orig_post.post, tags.clone()).await?;
+
+      // moderator cannot make any other changes, so return here
+      if is_moderator {
+        return build_post_response(
+          context.deref(),
+          orig_post.community.id,
+          local_user_view,
+          post_id,
+        )
+        .await;
+      }
+    }
+  }
 
   // Verify that only the creator can edit
-  if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
+  if !is_post_creator {
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
