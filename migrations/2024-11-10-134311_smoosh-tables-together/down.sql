@@ -241,21 +241,18 @@ ALTER TABLE community_follower
     DROP COLUMN blocked,
     DROP COLUMN became_moderator,
     DROP COLUMN received_ban,
-    DROP COLUMN ban_expires,
-    DROP COLUMN id;
+    DROP COLUMN ban_expires;
 
 ALTER TABLE instance_block
     ALTER COLUMN published SET NOT NULL,
-    ALTER COLUMN published SET DEFAULT now(),
-    DROP COLUMN id;
+    ALTER COLUMN published SET DEFAULT now();
 
 ALTER TABLE person_follower
     DROP CONSTRAINT person_actions_check_followed,
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN pending SET NOT NULL,
-    DROP COLUMN blocked,
-    DROP COLUMN id;
+    DROP COLUMN blocked;
 
 -- Rename associated stuff
 ALTER INDEX community_actions_pkey RENAME TO community_follower_pkey;
