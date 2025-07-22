@@ -56,8 +56,6 @@ pub struct InstanceForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct InstanceActions {
   #[serde(skip)]
-  pub id: i32,
-  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub instance_id: InstanceId,

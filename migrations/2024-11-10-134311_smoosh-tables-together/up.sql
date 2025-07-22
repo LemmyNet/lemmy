@@ -3,7 +3,6 @@
 -- post_actions, comment_actions, community_actions, instance_actions, and person_actions.
 -- comment_actions
 CREATE TABLE comment_actions (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     like_score smallint,
@@ -76,7 +75,6 @@ ALTER TABLE comment_actions
 
 -- post_actions
 CREATE TABLE post_actions (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     read timestamptz,
@@ -217,7 +215,6 @@ ALTER TABLE post_actions
 
 -- community_actions
 CREATE TABLE community_actions (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     followed timestamptz,
@@ -347,7 +344,6 @@ ALTER TABLE community_actions
 
 -- instance_actions
 CREATE TABLE instance_actions (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     blocked timestamptz
@@ -389,7 +385,6 @@ ALTER TABLE instance_actions
 
 -- person_actions
 CREATE TABLE person_actions (
-    id int GENERATED ALWAYS AS IDENTITY UNIQUE,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     target_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
     followed timestamptz,

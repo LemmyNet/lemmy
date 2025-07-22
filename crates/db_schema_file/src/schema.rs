@@ -160,7 +160,6 @@ diesel::table! {
 
 diesel::table! {
     comment_actions (person_id, comment_id) {
-        id -> Int4,
         person_id -> Int4,
         comment_id -> Int4,
         like_score -> Nullable<Int2>,
@@ -244,7 +243,6 @@ diesel::table! {
     use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
-        id -> Int4,
         person_id -> Int4,
         community_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
@@ -369,7 +367,6 @@ diesel::table! {
 
 diesel::table! {
     instance_actions (person_id, instance_id) {
-        id -> Int4,
         person_id -> Int4,
         instance_id -> Int4,
         blocked_at -> Nullable<Timestamptz>,
@@ -837,7 +834,6 @@ diesel::table! {
 
 diesel::table! {
     person_actions (person_id, target_id) {
-        id -> Int4,
         person_id -> Int4,
         target_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
@@ -931,7 +927,6 @@ diesel::table! {
     use super::sql_types::PostNotificationsModeEnum;
 
     post_actions (person_id, post_id) {
-        id -> Int4,
         person_id -> Int4,
         post_id -> Int4,
         read_at -> Nullable<Timestamptz>,

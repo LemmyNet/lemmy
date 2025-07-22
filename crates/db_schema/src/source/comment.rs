@@ -126,8 +126,6 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
   #[serde(skip)]
-  pub id: i32,
-  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
