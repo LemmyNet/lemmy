@@ -13,10 +13,16 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_community::api::{CreateCommunityTag, DeleteCommunityTag};
+use lemmy_db_views_community::{
+  api::{CreateCommunityTag, DeleteCommunityTag},
+  CommunityView,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_actor_name};
+use lemmy_utils::{
+  error::LemmyResult,
+  utils::validation::{check_api_elements_count, is_valid_actor_name},
+};
 use url::Url;
 
 pub async fn create_community_tag(
@@ -29,10 +35,14 @@ pub async fn create_community_tag(
   let local_site = site_view.local_site;
   is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
 
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community_view =
+    CommunityView::read(&mut context.pool(), data.community_id, None, false).await?;
+  let community = community_view.community;
 
   // Verify that only mods can create tags
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+
+  check_api_elements_count(community_view.post_tags.0.len())?;
 
   let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
 
