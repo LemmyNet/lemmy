@@ -109,8 +109,8 @@ impl Tag {
 
   pub async fn read_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Vec<Tag>> {
     let conn = &mut get_conn(pool).await?;
-    tag::table
-      .left_join(post_tag::table)
+    post_tag::table
+      .inner_join(tag::table)
       .filter(post_tag::post_id.eq(post_id))
       .filter(tag::deleted.eq(false))
       .select(tag::all_columns)
