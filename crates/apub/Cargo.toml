@@ -15,11 +15,11 @@ name = "lemmy_apub"
 path = "src/lib.rs"
 doctest = false
 
-[lints]
-workspace = true
-
 [features]
 full = []
+
+[lints]
+workspace = true
 
 [dependencies]
 lemmy_db_views_comment = { workspace = true, features = ["full"] }

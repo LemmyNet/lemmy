@@ -20,8 +20,8 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
-use lemmy_db_views_inbox_combined::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_registration_applications::api::{
   ApproveRegistrationApplication,
   ListRegistrationApplicationsResponse,

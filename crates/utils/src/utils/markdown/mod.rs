@@ -20,19 +20,6 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   parser
 });
 
-/// Replace special HTML characters in API parameters to prevent XSS attacks.
-///
-/// Taken from https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.md#output-encoding-for-html-contexts
-///
-/// `>` is left in place because it is interpreted as markdown quote.
-pub fn sanitize_html(text: &str) -> String {
-  text
-    .replace('&', "&amp;")
-    .replace('<', "&lt;")
-    .replace('\"', "&quot;")
-    .replace('\'', "&#x27;")
-}
-
 pub fn markdown_to_html(text: &str) -> String {
   MARKDOWN_PARSER.parse(text).xrender()
 }
@@ -230,17 +217,5 @@ mod tests {
     assert!(markdown_check_for_blocked_urls("rt.com.example.com", &set).is_err());
 
     Ok(())
-  }
-
-  #[test]
-  fn test_sanitize_html() {
-    let sanitized = sanitize_html("<script>alert('xss');</script> hello &\"'");
-    let expected = "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;";
-    assert_eq!(expected, sanitized);
-
-    let sanitized =
-      sanitize_html("Polling the group: what do y'all know about the Orion browser from Kagi?");
-    let expected = "Polling the group: what do y&#x27;all know about the Orion browser from Kagi?";
-    assert_eq!(expected, sanitized);
   }
 }

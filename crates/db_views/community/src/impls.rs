@@ -260,7 +260,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Followable, Joinable},
+    traits::{Crud, Followable},
     utils::{build_db_pool_for_tests, DbPool},
     CommunitySortType,
   };

@@ -5,7 +5,6 @@ use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
   dsl,
-  expression::AsExpression,
   helper_types::AsExprOf,
   pg::{data_types::PgInterval, Pg},
   query_builder::{Query, QueryFragment},
@@ -36,7 +35,6 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
-use regex::Regex;
 use rustls::{
   client::danger::{
     DangerousClientConfigBuilder,
@@ -52,7 +50,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, OnceLock},
   time::Duration,
 };
 use tracing::error;
@@ -238,7 +236,7 @@ impl<T> Commented<T> {
   }
 
   /// Adds `text` to the comment if `condition` is true
-  pub fn text_if(mut self, text: &str, condition: bool) -> Self {
+  fn text_if(mut self, text: &str, condition: bool) -> Self {
     if condition {
       if !self.comment.is_empty() {
         self.comment.push_str(", ");
@@ -302,10 +300,6 @@ pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
     }
     None => FETCH_LIMIT_DEFAULT,
   })
-}
-
-pub fn is_email_regex(test: &str) -> bool {
-  EMAIL_REGEX.is_match(test)
 }
 
 /// Takes an API optional text input, and converts it to an optional diesel DB update.
@@ -520,12 +514,6 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }
 
-#[allow(clippy::expect_used)]
-static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
-    .expect("compile email regex")
-});
-
 pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
@@ -538,13 +526,6 @@ pub mod functions {
     #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
   }
-
-  define_sql_function! {
-    #[sql_name = "r.controversy_rank"]
-    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
-  }
-
-  define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
   define_sql_function!(fn lower(x: Text) -> Text);
 
@@ -574,30 +555,10 @@ pub fn seconds_to_pg_interval(seconds: i32) -> PgInterval {
   PgInterval::from_microseconds(i64::from(seconds) * 1_000_000)
 }
 
-/// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`
-pub trait AsRecord: Expression + AsExpression<sql_types::Record<Self::SqlType>>
-where
-  Self::SqlType: 'static,
-{
-}
-
-impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T where
-  T::SqlType: 'static
-{
-}
-
 /// Output of `IntoSql::into_sql` for a type that implements `AsRecord`
 pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
-
-pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
-
-impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, Args> for F {}
-
-pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
-
-impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
 pub fn paginate<Q, C>(
   query: Q,
@@ -662,12 +623,6 @@ mod tests {
       fuzzy_search(test),
       "%This%\\%is\\%%\\_a\\_%fuzzy%search%".to_string()
     );
-  }
-
-  #[test]
-  fn test_email() {
-    assert!(is_email_regex("gush@gmail.com"));
-    assert!(!is_email_regex("nada_neutho"));
   }
 
   #[test]

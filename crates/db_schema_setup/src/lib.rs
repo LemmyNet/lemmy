@@ -325,6 +325,10 @@ mod tests {
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
     *,
   };
+  use diesel::{
+    dsl::{not, sql},
+    sql_types,
+  };
   use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
@@ -401,6 +405,13 @@ mod tests {
 
     // Check the test data we inserted before after running migrations
     check_test_data(&mut conn)?;
+
+    // Check the current schema
+    assert_eq!(
+      get_foreign_keys_with_missing_indexes(&mut conn)?,
+      Vec::<String>::new(),
+      "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
+    );
 
     // Check for early return
     assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
@@ -519,7 +530,7 @@ mod tests {
   }
 
   fn check_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
-    use lemmy_db_schema_file::schema::{comment, comment_reply, community, person, post};
+    use lemmy_db_schema_file::schema::{comment, community, notification, person, post};
 
     // Check users
     let users: Vec<(i32, String, Option<String>, String, String)> = person::table
@@ -622,18 +633,64 @@ mod tests {
     assert_eq!(comments[1].6, 0); // Zero upvotes
 
     // Check comment replies
-    let replies: Vec<(i32, i32)> = comment_reply::table
-      .select((comment_reply::comment_id, comment_reply::recipient_id))
-      .order_by(comment_reply::comment_id)
+    let replies: Vec<(Option<i32>, i32)> = notification::table
+      .select((notification::comment_id, notification::recipient_id))
+      .order_by(notification::comment_id)
       .load(conn)
       .map_err(|e| anyhow!("Failed to read comment replies: {}", e))?;
 
     assert_eq!(replies.len(), 2);
-    assert_eq!(replies[0].0, TEST_COMMENT_ID_1);
+    assert_eq!(replies[0].0, Some(TEST_COMMENT_ID_1));
     assert_eq!(replies[0].1, TEST_USER_ID_1);
-    assert_eq!(replies[1].0, TEST_COMMENT_ID_2);
+    assert_eq!(replies[1].0, Some(TEST_COMMENT_ID_2));
     assert_eq!(replies[1].1, TEST_USER_ID_2);
 
     Ok(())
+  }
+
+  const FOREIGN_KEY: &str = "f";
+
+  fn get_foreign_keys_with_missing_indexes(conn: &mut PgConnection) -> LemmyResult<Vec<String>> {
+    diesel::table! {
+      pg_constraint (table_oid, name, kind, column_numbers) {
+        #[sql_name = "conrelid"]
+        table_oid -> Oid,
+        #[sql_name = "conname"]
+        name -> Text,
+        #[sql_name = "contype"]
+        kind -> Text,
+        #[sql_name = "conkey"]
+        column_numbers -> Array<Int2>,
+      }
+    }
+
+    diesel::table! {
+      pg_index (table_oid, key_length, column_numbers) {
+        #[sql_name = "indrelid"]
+        table_oid -> Oid,
+        #[sql_name = "indnkeyatts"]
+        key_length -> Int2,
+        #[sql_name = "indkey"]
+        column_numbers -> Array<Int2>,
+      }
+    }
+
+    diesel::allow_tables_to_appear_in_same_query!(pg_constraint, pg_index);
+
+    let matching_index = pg_index::table
+      .filter(pg_index::table_oid.eq(pg_constraint::table_oid))
+      // Check if the index's key (not columns listed with `INCLUDE`) starts with the foreign key.
+      // TODO: use Diesel array slice function when it's added.
+      .filter(sql::<sql_types::Bool>(
+        "((pg_index.indkey[:pg_index.indnkeyatts])[:array_length(pg_constraint.conkey, 1)] = pg_constraint.conkey)"
+      ));
+
+    let res = pg_constraint::table
+      .select(pg_constraint::name)
+      .filter(pg_constraint::kind.eq(FOREIGN_KEY))
+      .filter(not(exists(matching_index)))
+      .load(conn)?;
+
+    Ok(res)
   }
 }

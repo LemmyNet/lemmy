@@ -25,7 +25,7 @@ use lemmy_db_schema::{
       CommunityModeratorForm,
     },
   },
-  traits::{ApubActor, Crud, Followable, Joinable},
+  traits::{ApubActor, Crud, Followable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CommunityResponse, CreateCommunity};

@@ -29,15 +29,16 @@ impl Reportable for PostReport {
       .with_lemmy_type(LemmyErrorType::CouldntCreateReport)
   }
 
-  async fn resolve(
+  async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
+    is_resolved: bool,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(post_report::table.find(report_id))
       .set((
-        post_report::resolved.eq(true),
+        post_report::resolved.eq(is_resolved),
         post_report::resolver_id.eq(by_resolver_id),
         post_report::updated_at.eq(Utc::now()),
       ))
@@ -79,23 +80,6 @@ impl Reportable for PostReport {
     update(post_report::table.filter(post_report::post_id.eq(post_id_)))
       .set((
         post_report::resolved.eq(true),
-        post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated_at.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
-  }
-
-  async fn unresolve(
-    pool: &mut DbPool<'_>,
-    report_id: Self::IdType,
-    by_resolver_id: PersonId,
-  ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    update(post_report::table.find(report_id))
-      .set((
-        post_report::resolved.eq(false),
         post_report::resolver_id.eq(by_resolver_id),
         post_report::updated_at.eq(Utc::now()),
       ))
@@ -156,10 +140,10 @@ mod tests {
 
     let (person, report) = init(pool).await?;
 
-    let resolved_count = PostReport::resolve(pool, report.id, person.id).await?;
+    let resolved_count = PostReport::update_resolved(pool, report.id, person.id, true).await?;
     assert_eq!(resolved_count, 1);
 
-    let unresolved_count = PostReport::unresolve(pool, report.id, person.id).await?;
+    let unresolved_count = PostReport::update_resolved(pool, report.id, person.id, false).await?;
     assert_eq!(unresolved_count, 1);
 
     Person::delete(pool, person.id).await?;

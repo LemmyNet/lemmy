@@ -11,7 +11,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Hideable, Likeable, ReadComments, Readable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
@@ -24,7 +24,6 @@ use crate::{
     SITEMAP_LIMIT,
   },
 };
-use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not, update},
@@ -39,11 +38,15 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{community, person, post, post_actions};
+use lemmy_db_schema_file::{
+  enums::PostNotificationsMode,
+  schema::{community, local_user, person, post, post_actions},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
+use url::Url;
 
 impl Crud for Post {
   type InsertForm = PostInsertForm;
@@ -430,14 +433,15 @@ impl Saveable for PostActions {
   }
 }
 
-impl Readable for PostActions {
-  type Form = PostReadForm;
-
-  async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<usize> {
+impl PostActions {
+  pub async fn mark_as_read(pool: &mut DbPool<'_>, form: &PostReadForm) -> LemmyResult<usize> {
     Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
   }
 
-  async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn mark_as_unread(
+    pool: &mut DbPool<'_>,
+    form: &PostReadForm,
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
     uplete(
@@ -451,7 +455,10 @@ impl Readable for PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
-  async fn mark_many_as_read(pool: &mut DbPool<'_>, forms: &[Self::Form]) -> LemmyResult<usize> {
+  pub async fn mark_many_as_read(
+    pool: &mut DbPool<'_>,
+    forms: &[PostReadForm],
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -465,9 +472,8 @@ impl Readable for PostActions {
   }
 }
 
-impl Hideable for PostActions {
-  type Form = PostHideForm;
-  async fn hide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl PostActions {
+  pub async fn hide(pool: &mut DbPool<'_>, form: &PostHideForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -480,7 +486,7 @@ impl Hideable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntHidePost)
   }
 
-  async fn unhide(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn unhide(pool: &mut DbPool<'_>, form: &PostHideForm) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
     uplete(
@@ -495,11 +501,11 @@ impl Hideable for PostActions {
   }
 }
 
-impl ReadComments for PostActions {
-  type Form = PostReadCommentsForm;
-  type IdType = PostId;
-
-  async fn update_read_comments(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl PostActions {
+  pub async fn update_read_comments(
+    pool: &mut DbPool<'_>,
+    form: &PostReadCommentsForm,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(post_actions::table)
@@ -511,25 +517,6 @@ impl ReadComments for PostActions {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
   }
-
-  async fn remove_read_comments(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: Self::IdType,
-  ) -> LemmyResult<UpleteCount> {
-    let conn = &mut get_conn(pool).await?;
-
-    uplete(
-      post_actions::table
-        .filter(post_actions::post_id.eq(post_id))
-        .filter(post_actions::person_id.eq(person_id)),
-    )
-    .set_null(post_actions::read_comments_amount)
-    .set_null(post_actions::read_comments_at)
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
-  }
 }
 
 impl PostActions {
@@ -539,9 +526,7 @@ impl PostActions {
       .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>()
   }
-}
 
-impl PostActions {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -567,6 +552,45 @@ impl PostActions {
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
   }
+
+  pub async fn update_notification_state(
+    post_id: PostId,
+    person_id: PersonId,
+    new_state: PostNotificationsMode,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let form = (
+      post_actions::person_id.eq(person_id),
+      post_actions::post_id.eq(post_id),
+      post_actions::notifications.eq(new_state),
+    );
+
+    insert_into(post_actions::table)
+      .values(form.clone())
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+
+  pub async fn list_subscribers(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    post_actions::table
+      .inner_join(local_user::table.on(post_actions::person_id.eq(local_user::person_id)))
+      .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::notifications.eq(PostNotificationsMode::AllComments))
+      .select(local_user::person_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 #[cfg(test)]
@@ -587,7 +611,7 @@ mod tests {
         PostUpdateForm,
       },
     },
-    traits::{Crud, Likeable, Readable, Saveable},
+    traits::{Crud, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use chrono::DateTime;

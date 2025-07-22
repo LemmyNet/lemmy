@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
   utils::get_conn,
 };
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};

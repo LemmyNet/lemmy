@@ -16,9 +16,9 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, CreateCommunityReport},
-  CommunityReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
@@ -33,13 +33,13 @@ pub async fn create_community_report(
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
   let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
   let report_form = CommunityReportForm {
-    creator_id: person_id,
+    creator_id: person.id,
     community_id,
     original_community_banner: community.banner,
     original_community_description: community.description,
@@ -53,7 +53,8 @@ pub async fn create_community_report(
   let report = CommunityReport::report(&mut context.pool(), &report_form).await?;
 
   let community_report_view =
-    CommunityReportView::read(&mut context.pool(), report.id, person_id).await?;
+    ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person)
+      .await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
