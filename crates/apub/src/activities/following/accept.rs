@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
 
 impl AcceptFollow {
@@ -57,7 +57,8 @@ impl Activity for AcceptFollow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
-    let person = self.object.actor.dereference(context).await?;
+    let actor = self.object.actor.dereference(context).await?;
+    let person = actor.left().ok_or(FederationError::Unreachable)?;
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
