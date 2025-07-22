@@ -48,7 +48,7 @@ pub(crate) struct CommunityPath {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct CommunityIsFollowerQuery {
+pub(crate) struct CommunityIsFollowerQuery {
   is_follower: Option<ObjectId<SiteOrMultiOrCommunityOrUser>>,
 }
 

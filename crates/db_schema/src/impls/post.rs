@@ -517,25 +517,6 @@ impl PostActions {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
   }
-
-  pub async fn remove_read_comments(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> LemmyResult<UpleteCount> {
-    let conn = &mut get_conn(pool).await?;
-
-    uplete(
-      post_actions::table
-        .filter(post_actions::post_id.eq(post_id))
-        .filter(post_actions::person_id.eq(person_id)),
-    )
-    .set_null(post_actions::read_comments_amount)
-    .set_null(post_actions::read_comments_at)
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
-  }
 }
 
 impl PostActions {

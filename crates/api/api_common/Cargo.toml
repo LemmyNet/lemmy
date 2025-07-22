@@ -18,6 +18,7 @@ doctest = false
 workspace = true
 
 [features]
+full = []
 ts-rs = [
   "lemmy_utils/ts-rs",
   "lemmy_db_schema/ts-rs",

@@ -91,7 +91,7 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   links_offsets
 }
 
-pub trait UrlAndTitle {
+trait UrlAndTitle {
   fn url_len(&self) -> usize;
   fn title_len(&self) -> usize;
 }
