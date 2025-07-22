@@ -37,14 +37,20 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
-  utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{
+    check_nsfw_allowed,
+    get_url_blocklist,
+    process_markdown_opt,
+    slur_regex,
+    update_post_tags,
+  },
 };
 use lemmy_db_schema::{
   source::{
     community::Community,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
-    tag::{PostTag, Tag},
+    tag::Tag,
   },
   traits::Crud,
 };
@@ -59,7 +65,7 @@ use lemmy_utils::{
     validation::{is_url_blocked, is_valid_url},
   },
 };
-use std::ops::Deref;
+use std::{collections::HashSet, ops::Deref};
 use stringreader::StringReader;
 use url::Url;
 
@@ -321,18 +327,19 @@ impl Object for ApubPost {
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
 
-    let mut tags = vec![];
-    for t in dbg!(page.tag)
+    // write post tags
+    let post_tag_ap_ids = page
+      .tag
       .iter()
       .filter_map(HashtagOrLemmyTag::community_tag_url)
-    {
-      // add community tags, ignoring those which havent been fetched yet
-      if let Ok(t) = Tag::read_apub(&mut context.pool(), &t.into()).await {
-        tags.push(t.id);
-      }
-    }
-
-    PostTag::update(&mut context.pool(), &post, tags).await?;
+      .collect::<HashSet<_>>();
+    let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
+    let post_tags = community_tags
+      .into_iter()
+      .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
+      .map(|t| t.id)
+      .collect();
+    update_post_tags(&post, &post_tags, context).await?;
 
     let post_ = post.clone();
     let context_ = context.clone();

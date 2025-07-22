@@ -17,14 +17,12 @@ use lemmy_api_utils::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
+    update_post_tags,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::{
-    post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
-    tag::PostTag,
-  },
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
@@ -142,7 +140,7 @@ pub async fn create_post(
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
   if let Some(tags) = &data.tags {
-    PostTag::update(&mut context.pool(), &inserted_post, tags.clone()).await?;
+    update_post_tags(&inserted_post, tags, &context).await?;
   }
 
   let community_id = community.id;

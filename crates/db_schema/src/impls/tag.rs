@@ -157,18 +157,8 @@ impl PostTag {
   pub async fn update(
     pool: &mut DbPool<'_>,
     post: &Post,
-    tag_ids: Vec<TagId>,
+    tag_ids: &Vec<TagId>,
   ) -> LemmyResult<Vec<Self>> {
-    // validate tags
-    let community_tags = Tag::read_for_community(pool, post.community_id)
-      .await?
-      .into_iter()
-      .map(|t| t.id)
-      .collect::<HashSet<_>>();
-    if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
-      return Err(LemmyErrorType::TagNotInCommunity.into());
-    }
-
     let conn = &mut get_conn(pool).await?;
 
     conn
@@ -183,7 +173,7 @@ impl PostTag {
             .into_iter()
             .map(|tag_id| PostTagForm {
               post_id: post.id,
-              tag_id,
+              tag_id: *tag_id,
             })
             .collect::<Vec<_>>();
           insert_into(post_tag::table)

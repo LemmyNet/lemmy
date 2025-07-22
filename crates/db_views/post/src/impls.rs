@@ -771,7 +771,7 @@ mod tests {
       };
 
       let post_with_tags = Post::create(pool, &new_post).await?;
-      PostTag::update(pool, &post_with_tags, vec![tag_1.id, tag_2.id]).await?;
+      PostTag::update(pool, &post_with_tags, &vec![tag_1.id, tag_2.id]).await?;
 
       let tegan = LocalUserView {
         local_user: inserted_tegan_local_user,

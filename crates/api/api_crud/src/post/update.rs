@@ -17,6 +17,7 @@ use lemmy_api_utils::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
+    update_post_tags,
   },
 };
 use lemmy_db_schema::{
@@ -24,7 +25,6 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
-    tag::PostTag,
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
@@ -116,9 +116,9 @@ pub async fn update_post(
   // both creator and moderator can change tags
   if is_post_creator || is_moderator {
     if let Some(tags) = &data.tags {
-      PostTag::update(&mut context.pool(), &orig_post.post, tags.clone()).await?;
+      update_post_tags(&orig_post.post, &tags, &context).await?;
 
-      // moderator cannot make any other changes, so return here
+      // moderator cannot make any other changes, so federate and return here
       if is_moderator {
         generate_post_link_metadata(
           orig_post.post.clone(),
