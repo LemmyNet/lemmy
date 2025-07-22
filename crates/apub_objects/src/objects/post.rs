@@ -182,14 +182,17 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
+    let community = page.community(context).await?;
     if let Err(e) = verify_is_remote_object(&page.id, context) {
       if let Ok(post) = page.id.dereference_local(context).await {
         post.set_not_pending(&mut context.pool()).await?;
       }
-      return Err(e.into());
+      // allow mods to edit the post
+      // TODO: we dont have access to person id here, only in `create_or_update`
+      // TODO: should only allow changing tags and nsfw, nothing else
+      //verify_mod_action(mod_id, &community, context).await?;
     }
 
-    let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
@@ -319,8 +322,7 @@ impl Object for ApubPost {
     plugin_hook_after("after_receive_federated_post", &post)?;
 
     let mut tags = vec![];
-    for t in page
-      .tag
+    for t in dbg!(page.tag)
       .iter()
       .filter_map(HashtagOrLemmyTag::community_tag_url)
     {

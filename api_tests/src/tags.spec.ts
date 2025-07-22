@@ -101,7 +101,7 @@ test("Create, and delete a community tag", async () => {
 test("Create and update post tags", async () => {
   // Create a community
   let communityRes = await createCommunity(alpha);
-  const alphaCommunity = communityRes.community_view;
+  let alphaCommunity = communityRes.community_view;
 
   // add gamma as remote mod
   let gammaOnAlpha = await resolvePerson(alpha, "lemmy_gamma@lemmy-gamma:8561");
@@ -117,7 +117,6 @@ test("Create and update post tags", async () => {
     gamma,
     alphaCommunity.community.ap_id,
   );
-  console.log(gammaCommunity);
 
   // Remote mod gamma create two tags
   const tag1Name = "news";
@@ -153,22 +152,16 @@ test("Create and update post tags", async () => {
     g => g!.community_actions?.follow_state == "Accepted",
   );
 
-  // Create a post
+  // Create a post with tags
   let postRes = await beta.createPost({
     name: randomString(10),
     community_id: betaCommunity!.community.id,
+    tags: [betaCommunity!.post_tags[0].id, betaCommunity!.post_tags[1].id],
   });
   expect(postRes.post_view.post.id).toBeDefined();
-
-  // Update post tags
-  let updateForm: EditPost = {
-    post_id: postRes.post_view.post.id,
-    tags: [betaCommunity!.post_tags[0].id, betaCommunity!.post_tags[1].id],
-  };
-  let updateRes = await beta.editPost(updateForm);
-  expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
-  expect(updateRes.post_view.tags?.length).toBe(2);
-  expect(updateRes.post_view.tags?.map(t => t.id).sort()).toEqual(
+  expect(postRes.post_view.post.id).toBe(postRes.post_view.post.id);
+  expect(postRes.post_view.tags?.length).toBe(2);
+  expect(postRes.post_view.tags?.map(t => t.id).sort()).toEqual(
     [betaCommunity!.post_tags[0].id, betaCommunity!.post_tags[1].id].sort(),
   );
 
@@ -183,19 +176,24 @@ test("Create and update post tags", async () => {
     [tag1Res.ap_id, tag2Res.ap_id].sort(),
   );
 
-  // Update post to remove one tag
-  updateForm.tags = [betaCommunity!.post_tags[0].id];
-  updateRes = await beta.editPost(updateForm);
+  // Mod on alpha updates post to remove one tag
+  communityRes = await getCommunity(
+    alpha,
+    communityRes.community_view.community.id,
+  );
+  alphaCommunity = communityRes.community_view;
+  let updateRes = await alpha.editPost({
+    post_id: postRes.post_view.post.id,
+    tags: [alphaCommunity!.post_tags[0].id],
+  });
   expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(updateRes.post_view.tags?.length).toBe(1);
   expect(updateRes.post_view.tags?.[0].id).toBe(betaCommunity!.post_tags[0].id);
 
   // wait post tags federated
-
-  alphaPost = await waitForPost(
-    beta,
-    postRes.post_view.post,
-    p => (p?.tags.length ?? 0) === 1,
-  );
-  expect(alphaPost?.tags.map(t => t.ap_id)).toEqual([tag1Res.ap_id]);
+  let betaPost = await waitForPost(beta, postRes.post_view.post, p => {
+    console.log(p?.tags);
+    return (p?.tags.length ?? 0) === 1;
+  });
+  expect(betaPost?.tags.map(t => t.ap_id)).toEqual([tag1Res.ap_id]);
 });

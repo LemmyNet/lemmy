@@ -120,6 +120,13 @@ pub async fn update_post(
 
       // moderator cannot make any other changes, so return here
       if is_moderator {
+        generate_post_link_metadata(
+          orig_post.post.clone(),
+          custom_thumbnail.flatten().map(Into::into),
+          |post| Some(SendActivityData::UpdatePost(post)),
+          context.clone(),
+        )
+        .await?;
         return build_post_response(
           context.deref(),
           orig_post.community.id,

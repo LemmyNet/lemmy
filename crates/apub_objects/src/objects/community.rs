@@ -15,10 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
-  protocol::{
-    values::MediaTypeHtml,
-    verification::{verify_domains_match, verify_is_remote_object},
-  },
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
