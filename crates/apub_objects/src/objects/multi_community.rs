@@ -1,11 +1,15 @@
-use crate::{objects::ApubSite, protocol::multi_community::Feed, utils::functions::GetActorType};
+use crate::{
+  objects::ApubSite,
+  protocol::multi_community::Feed,
+  utils::functions::{check_apub_id_valid_with_strictness, GetActorType},
+};
 use activitypub_federation::{
   config::Data,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_is_remote_object},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
@@ -16,7 +20,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  utils::slurs::{check_slurs, check_slurs_opt},
+};
 use std::ops::Deref;
 use url::Url;
 
@@ -91,9 +98,16 @@ impl Object for ApubMultiCommunity {
   async fn verify(
     json: &Self::Kind,
     expected_domain: &Url,
-    _context: &Data<LemmyContext>,
+    context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
+    check_apub_id_valid_with_strictness(json.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, json.id.inner())?;
+    verify_is_remote_object(&json.id, context)?;
+
+    let slur_regex = slur_regex(context).await?;
+
+    check_slurs(&json.name, &slur_regex)?;
+    check_slurs_opt(&json.summary, &slur_regex)?;
     Ok(())
   }
 
