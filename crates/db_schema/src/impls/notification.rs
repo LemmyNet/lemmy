@@ -17,6 +17,7 @@ impl Notification {
     let conn = &mut get_conn(pool).await?;
     insert_into(notification::table)
       .values(form)
+      .on_conflict_do_nothing()
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreateNotification)

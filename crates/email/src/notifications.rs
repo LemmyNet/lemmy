@@ -7,28 +7,28 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
 use tracing::warn;
 
-pub enum NotificationEmailData<'a> {
+pub enum NotificationEmailData {
   Mention {
-    content: &'a str,
-    person: &'a Person,
+    content: String,
+    person: Person,
   },
   PostSubscribed {
-    post: &'a Post,
-    comment: &'a Comment,
+    post: Post,
+    comment: Comment,
   },
   CommunitySubscribed {
-    post: &'a Post,
-    community: &'a Community,
+    post: Post,
+    community: Community,
   },
   Reply {
-    comment: &'a Comment,
-    person: &'a Person,
-    parent_comment: &'a Option<Comment>,
-    post: &'a Post,
+    comment: Comment,
+    person: Person,
+    parent_comment: Option<Comment>,
+    post: Post,
   },
   PrivateMessage {
-    sender: &'a Person,
-    content: &'a str,
+    sender: Person,
+    content: String,
   },
 }
 
@@ -36,7 +36,7 @@ pub async fn send_notification_email(
   local_user_view: &LocalUserView,
   link: DbUrl,
   settings: &Settings,
-  data: NotificationEmailData<'_>,
+  data: NotificationEmailData,
 ) {
   if local_user_view.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
@@ -46,7 +46,7 @@ pub async fn send_notification_email(
   let lang = user_language(local_user_view);
   let (subject, body) = match data {
     NotificationEmailData::Mention { content, person } => {
-      let content = markdown_to_html(content);
+      let content = markdown_to_html(&content);
       (
         lang.notification_mentioned_by_subject(&person.name),
         lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
@@ -73,32 +73,37 @@ pub async fn send_notification_email(
     NotificationEmailData::Reply {
       comment,
       person,
-      parent_comment,
+      parent_comment: Some(parent_comment),
       post,
     } => {
       let content = markdown_to_html(&comment.content);
-      if let Some(parent_comment) = parent_comment {
-        (
-          lang.notification_comment_reply_subject(&person.name),
-          lang.notification_comment_reply_body(
-            link,
-            &content,
-            &inbox_link,
-            &parent_comment.content,
-            &post.name,
-            &person.name,
-          ),
-        )
-      } else {
-        (
-          lang.notification_post_reply_subject(&person.name),
-          lang.notification_post_reply_body(link, &content, &inbox_link, &post.name, &person.name),
-        )
-      }
+      (
+        lang.notification_comment_reply_subject(&person.name),
+        lang.notification_comment_reply_body(
+          link,
+          &content,
+          &inbox_link,
+          &parent_comment.content,
+          &post.name,
+          &person.name,
+        ),
+      )
+    }
+    NotificationEmailData::Reply {
+      comment,
+      person,
+      parent_comment: None,
+      post,
+    } => {
+      let content = markdown_to_html(&comment.content);
+      (
+        lang.notification_post_reply_subject(&person.name),
+        lang.notification_post_reply_body(link, &content, &inbox_link, &post.name, &person.name),
+      )
     }
     NotificationEmailData::PrivateMessage { sender, content } => {
       let sender_name = &sender.name;
-      let content = markdown_to_html(content);
+      let content = markdown_to_html(&content);
       (
         lang.notification_private_message_subject(sender_name),
         lang.notification_private_message_body(inbox_link, &content, sender_name),

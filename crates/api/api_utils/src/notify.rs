@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{DbUrl, PersonId},
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{Blockable, Crud},
+  traits::{ApubActor, Blockable, Crud},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -35,15 +35,48 @@ pub struct NotifyData<'a> {
   do_send_email: bool,
 }
 
+struct SendEmail {
+  person_id: PersonId,
+  local_url: DbUrl,
+  data: NotificationEmailData,
+  kind: NotificationTypes,
+}
+
 impl NotifyData<'_> {
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator.
   pub async fn send(self, context: &LemmyContext) -> LemmyResult<()> {
-    notify_parent_creator(&self, context).await?;
+    let mut email = notify_parent_creator(&self, context).await?;
 
-    notify_mentions(&self, context).await?;
+    email.append(&mut notify_mentions(&self, context).await?);
 
-    notify_subscribers(&self, context).await?;
+    email.append(&mut notify_subscribers(&self, context).await?);
+
+    for e in email {
+      // Dont get notified about own actions
+      if self.creator.id == e.person_id {
+        continue;
+      }
+
+      if self
+        .check_notifications_allowed(e.person_id, context)
+        .await
+        .is_err()
+      {
+        continue;
+      };
+
+      self.insert(e.person_id, e.kind, context).await?;
+
+      let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), e.person_id).await else {
+        // is a remote user, ignore
+        continue;
+      };
+
+      if self.do_send_email {
+        send_notification_email(&user_view, e.local_url, context.settings(), e.data).await;
+      }
+    }
 
     Ok(())
   }
@@ -132,8 +165,8 @@ pub async fn notify_private_message(
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     if !site_view.local_site.disable_email_notifications {
       let d = NotificationEmailData::PrivateMessage {
-        sender: &view.creator,
-        content: &view.private_message.content,
+        sender: view.creator.clone(),
+        content: view.private_message.content.clone(),
       };
       send_notification_email(
         &local_recipient,
@@ -147,9 +180,12 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
+async fn notify_parent_creator(
+  data: &NotifyData<'_>,
+  context: &LemmyContext,
+) -> LemmyResult<Vec<SendEmail>> {
   let Some(comment) = data.comment_opt.as_ref() else {
-    return Ok(());
+    return Ok(vec![]);
   };
 
   // Get the parent data
@@ -161,88 +197,51 @@ async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) ->
       (data.post.creator_id, None)
     };
 
-  // Dont send notification to yourself
-  if parent_creator_id == data.creator.id {
-    return Ok(());
-  }
-
-  let is_blocked = data
-    .check_notifications_allowed(parent_creator_id, context)
-    .await
-    .is_err();
-  if is_blocked {
-    return Ok(());
-  }
-
-  let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await
-  else {
-    return Ok(());
-  };
-
-  data
-    .insert(user_view.person.id, NotificationTypes::Reply, context)
-    .await?;
-
-  if data.do_send_email {
-    let d = NotificationEmailData::Reply {
-      comment,
-      person: data.creator,
-      parent_comment: &parent_comment,
-      post: data.post,
-    };
-    send_notification_email(
-      &user_view,
-      comment.local_url(context.settings())?.into(),
-      context.settings(),
-      d,
-    )
-    .await;
-  }
-  Ok(())
+  Ok(vec![SendEmail {
+    person_id: parent_creator_id,
+    local_url: comment.local_url(context.settings())?.into(),
+    data: NotificationEmailData::Reply {
+      comment: (*comment).clone(),
+      person: data.creator.clone(),
+      parent_comment: parent_comment.clone(),
+      post: data.post.clone(),
+    },
+    kind: NotificationTypes::Reply,
+  }])
 }
 
-async fn notify_mentions(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
+async fn notify_mentions(
+  data: &NotifyData<'_>,
+  context: &LemmyContext,
+) -> LemmyResult<Vec<SendEmail>> {
   let mentions = scrape_text_for_mentions(&data.content())
     .into_iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&data.creator.name));
+  let mut res = vec![];
   for mention in mentions {
-    // Ignore error if user is remote
-    let Ok(user_view) = LocalUserView::read_from_name(&mut context.pool(), &mention.name).await
+    let Ok(Some(person)) = Person::read_from_name(&mut context.pool(), &mention.name, false).await
     else {
+      // Ignore error if user is remote
       continue;
     };
 
-    let is_blocked = data
-      .check_notifications_allowed(user_view.person.id, context)
-      .await
-      .is_err();
-    if is_blocked {
-      continue;
-    };
-
-    data
-      .insert(user_view.person.id, NotificationTypes::Mention, context)
-      .await?;
-
-    // Send an email to those local users that have notifications on
-    if data.do_send_email {
-      let d = NotificationEmailData::Mention {
-        content: &data.content(),
-        person: data.creator,
-      };
-      send_notification_email(
-        &user_view,
-        data.link(context)?.into(),
-        context.settings(),
-        d,
-      )
-      .await;
-    }
+    res.push(SendEmail {
+      person_id: person.id,
+      local_url: data.link(context)?.into(),
+      data: NotificationEmailData::Mention {
+        content: data.content().clone(),
+        person: data.creator.clone(),
+      },
+      kind: NotificationTypes::Mention,
+    })
   }
-  Ok(())
+  Ok(res)
 }
 
-async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> LemmyResult<()> {
+async fn notify_subscribers(
+  data: &NotifyData<'_>,
+  context: &LemmyContext,
+) -> LemmyResult<Vec<SendEmail>> {
   let is_post = data.comment_opt.is_none();
   let subscribers = vec![
     PostActions::list_subscribers(data.post.id, &mut context.pool()).await?,
@@ -253,39 +252,29 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
   .flatten()
   .collect::<Vec<_>>();
 
+  let mut res = vec![];
   for person_id in subscribers {
-    if data
-      .check_notifications_allowed(person_id, context)
-      .await
-      .is_err()
-    {
-      continue;
+    let post = data.post.clone();
+    let d = if let Some(comment) = data.comment_opt {
+      NotificationEmailData::PostSubscribed {
+        post,
+        comment: comment.clone(),
+      }
+    } else {
+      NotificationEmailData::CommunitySubscribed {
+        community: data.community.clone(),
+        post,
+      }
     };
-
-    data
-      .insert(person_id, NotificationTypes::Subscribed, context)
-      .await?;
-
-    if data.do_send_email {
-      let user_view = LocalUserView::read_person(&mut context.pool(), person_id).await?;
-      let post = data.post;
-      let community = data.community;
-      let d = if let Some(comment) = data.comment_opt {
-        NotificationEmailData::PostSubscribed { post, comment }
-      } else {
-        NotificationEmailData::CommunitySubscribed { community, post }
-      };
-      send_notification_email(
-        &user_view,
-        data.link(context)?.into(),
-        context.settings(),
-        d,
-      )
-      .await;
-    }
+    res.push(SendEmail {
+      person_id,
+      local_url: data.link(context)?.into(),
+      data: d,
+      kind: NotificationTypes::Subscribed,
+    });
   }
 
-  Ok(())
+  Ok(res)
 }
 
 #[cfg(test)]
