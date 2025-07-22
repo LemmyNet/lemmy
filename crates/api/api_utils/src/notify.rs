@@ -19,13 +19,7 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
-use lemmy_email::notifications::{
-  send_community_subscribed_email,
-  send_mention_email,
-  send_post_subscribed_email,
-  send_private_message_email,
-  send_reply_email,
-};
+use lemmy_email::notifications::{send_notification_email, NotificationEmailData};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -137,11 +131,15 @@ pub async fn notify_private_message(
   if is_create {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     if !site_view.local_site.disable_email_notifications {
-      send_private_message_email(
-        &view.creator,
+      let d = NotificationEmailData::PrivateMessage {
+        sender: &view.creator,
+        content: &view.private_message.content,
+      };
+      send_notification_email(
         &local_recipient,
-        &view.private_message.content,
+        view.private_message.local_url(context.settings())?.into(),
         context.settings(),
+        d,
       )
       .await;
     }
@@ -186,15 +184,19 @@ async fn notify_parent_creator(data: &NotifyData<'_>, context: &LemmyContext) ->
     .await?;
 
   if data.do_send_email {
-    send_reply_email(
-      &user_view,
+    let d = NotificationEmailData::Reply {
       comment,
-      data.creator,
-      &parent_comment,
-      data.post,
+      person: data.creator,
+      parent_comment: &parent_comment,
+      post: data.post,
+    };
+    send_notification_email(
+      &user_view,
+      comment.local_url(context.settings())?.into(),
       context.settings(),
+      d,
     )
-    .await?;
+    .await;
   }
   Ok(())
 }
@@ -224,12 +226,15 @@ async fn notify_mentions(data: &NotifyData<'_>, context: &LemmyContext) -> Lemmy
 
     // Send an email to those local users that have notifications on
     if data.do_send_email {
-      send_mention_email(
+      let d = NotificationEmailData::Mention {
+        content: &data.content(),
+        person: data.creator,
+      };
+      send_notification_email(
         &user_view,
-        &data.content(),
-        data.creator,
         data.link(context)?.into(),
         context.settings(),
+        d,
       )
       .await;
     }
@@ -263,25 +268,20 @@ async fn notify_subscribers(data: &NotifyData<'_>, context: &LemmyContext) -> Le
 
     if data.do_send_email {
       let user_view = LocalUserView::read_person(&mut context.pool(), person_id).await?;
-      if let Some(comment) = data.comment_opt {
-        send_post_subscribed_email(
-          &user_view,
-          data.post,
-          comment,
-          data.link(context)?.into(),
-          context.settings(),
-        )
-        .await;
+      let post = data.post;
+      let community = data.community;
+      let d = if let Some(comment) = data.comment_opt {
+        NotificationEmailData::PostSubscribed { post, comment }
       } else {
-        send_community_subscribed_email(
-          &user_view,
-          data.post,
-          data.community,
-          data.link(context)?.into(),
-          context.settings(),
-        )
-        .await;
-      }
+        NotificationEmailData::CommunitySubscribed { community, post }
+      };
+      send_notification_email(
+        &user_view,
+        data.link(context)?.into(),
+        context.settings(),
+        d,
+      )
+      .await;
     }
   }
 
