@@ -25,7 +25,6 @@ full = [
   "bcrypt",
   "lemmy_utils",
   "activitypub_federation",
-  "regex",
   "serde_json",
   "diesel_ltree",
   "diesel-async",
@@ -61,7 +60,6 @@ diesel-async = { workspace = true, features = [
   "postgres",
 ], optional = true }
 diesel-uplete = { workspace = true, optional = true }
-regex = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.2", optional = true, features = ["rt_tokio_1"] }
