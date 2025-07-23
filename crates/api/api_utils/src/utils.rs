@@ -486,11 +486,8 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
-pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
-  let is_nsfw = nsfw.unwrap_or_default();
-  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
-
-  if nsfw_disallowed && is_nsfw {
+pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: &LocalSite) -> LemmyResult<()> {
+  if local_site.disallow_nsfw_content && nsfw.unwrap_or_default() {
     Err(LemmyErrorType::NsfwNotAllowed)?
   }
 

@@ -24,10 +24,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{
-    values::MediaTypeMarkdownOrHtml,
-    verification::{verify_domains_match, verify_is_remote_object},
-  },
+  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
 use anyhow::anyhow;
@@ -48,6 +45,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     community::Community,
+    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
     tag::Tag,
@@ -189,15 +187,9 @@ impl Object for ApubPost {
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
     let community = page.community(context).await?;
-    if let Err(e) = verify_is_remote_object(&page.id, context) {
-      if let Ok(post) = page.id.dereference_local(context).await {
-        post.set_not_pending(&mut context.pool()).await?;
-      }
-      // allow mods to edit the post
-      // TODO: we dont have access to person id here, only in `create_or_update`
-      // TODO: should only allow changing tags and nsfw, nothing else
-      //verify_mod_action(mod_id, &community, context).await?;
-    }
+
+    // Doesnt call verify_is_remote_object() because the community might be edited by a
+    // remote mod. This is safe as we validate `expected_domain`.
 
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
@@ -211,10 +203,7 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = SiteView::read_local(&mut context.pool())
-      .await
-      .ok()
-      .map(|s| s.local_site);
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -264,24 +253,6 @@ impl Object for ApubPost {
       None
     };
 
-    // Ensure that all posts in NSFW communities are marked as NSFW
-    let nsfw = if community.nsfw {
-      Some(true)
-    } else {
-      page.sensitive
-    };
-
-    // If NSFW is not allowed, reject NSFW posts and delete existing
-    // posts that get updated to be NSFW
-    let block_for_nsfw = check_nsfw_allowed(nsfw, local_site.as_ref());
-    if let Err(e) = block_for_nsfw {
-      // TODO: Remove locally generated thumbnail if one exists, depends on
-      //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
-      //       safely do this.
-      Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
-      Err(e)?
-    }
-
     let url_blocklist = get_url_blocklist(context).await?;
 
     let url = if let Some(url) = url {
@@ -304,8 +275,11 @@ impl Object for ApubPost {
     let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
-      LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())
-        .await?,
+      LanguageTag::to_language_id_single(
+        page.language.clone().unwrap_or_default(),
+        &mut context.pool(),
+      )
+      .await?,
     );
 
     let mut form = PostInsertForm {
@@ -315,9 +289,10 @@ impl Object for ApubPost {
       published_at: page.published,
       updated_at: page.updated,
       deleted: Some(false),
-      nsfw,
+      nsfw: post_nsfw(&page, &community, &local_site, context).await?,
       ap_id: Some(page.id.clone().into()),
-      local: Some(false),
+      // May be a local post which is updated by remote mod.
+      local: Some(page.id.is_local(context)),
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
@@ -327,19 +302,7 @@ impl Object for ApubPost {
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
 
-    // write post tags
-    let post_tag_ap_ids = page
-      .tag
-      .iter()
-      .filter_map(HashtagOrLemmyTag::community_tag_url)
-      .collect::<HashSet<_>>();
-    let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
-    let post_tags = community_tags
-      .into_iter()
-      .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
-      .map(|t| t.id)
-      .collect();
-    update_post_tags(&post, &post_tags, context).await?;
+    update_apub_post_tags(&page, &post, context).await?;
 
     let post_ = post.clone();
     let context_ = context.clone();
@@ -352,6 +315,52 @@ impl Object for ApubPost {
 
     Ok(post.into())
   }
+}
+
+pub async fn update_apub_post_tags(
+  page: &Page,
+  post: &Post,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let post_tag_ap_ids = page
+    .tag
+    .iter()
+    .filter_map(HashtagOrLemmyTag::community_tag_url)
+    .collect::<HashSet<_>>();
+  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
+  let post_tags = community_tags
+    .into_iter()
+    .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
+    .map(|t| t.id)
+    .collect();
+  update_post_tags(&post, &post_tags, context).await?;
+  Ok(())
+}
+
+pub async fn post_nsfw(
+  page: &Page,
+  community: &Community,
+  local_site: &LocalSite,
+  context: &LemmyContext,
+) -> LemmyResult<Option<bool>> {
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    page.sensitive
+  };
+
+  // If NSFW is not allowed, reject NSFW posts and delete existing
+  // posts that get updated to be NSFW
+  let block_for_nsfw = check_nsfw_allowed(nsfw, local_site);
+  if let Err(e) = block_for_nsfw {
+    // TODO: Remove locally generated thumbnail if one exists, depends on
+    //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
+    //       safely do this.
+    Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
+    Err(e)?
+  }
+  Ok(nsfw)
 }
 
 #[cfg(test)]

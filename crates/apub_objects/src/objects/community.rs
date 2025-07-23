@@ -159,7 +159,7 @@ impl Object for ApubCommunity {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
 
-    // This doesnt call verify_is_remote_object() because the community might be edited by a
+    // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
 
     let slur_regex = slur_regex(context).await?;
@@ -172,10 +172,7 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
-    let local_site = SiteView::read_local(&mut context.pool())
-      .await
-      .ok()
-      .map(|s| s.local_site);
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
@@ -188,7 +185,7 @@ impl Object for ApubCommunity {
     let visibility = Some(community_visibility(&group));
 
     // If NSFW is not allowed, then remove NSFW communities
-    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+    let removed = check_nsfw_allowed(group.sensitive, &local_site)
       .err()
       .map(|_| true);
 
