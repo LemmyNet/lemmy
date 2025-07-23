@@ -1,4 +1,7 @@
-use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessageId};
+use crate::{
+  newtypes::{CommentId, ModlogCombinedId, NotificationId, PersonId, PostId, PrivateMessageId},
+  source::combined::modlog::ModlogCombined,
+};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -69,5 +72,12 @@ impl NotificationInsertForm {
       recipient_id,
       kind: NotificationTypes::PrivateMessage,
     }
+  }
+  pub fn new_mod_action(
+    id: ModlogCombinedId,
+    recipient_id: PersonId,
+    kind: NotificationTypes,
+  ) -> Self {
+    todo!()
   }
 }

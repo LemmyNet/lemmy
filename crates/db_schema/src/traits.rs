@@ -1,6 +1,7 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
   utils::{get_conn, DbPool},
+  ModlogActionType,
 };
 use diesel::{
   associations::HasTable,
@@ -247,4 +248,12 @@ pub trait PaginationCursorBuilder {
     cursor: &PaginationCursor,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
+}
+
+pub trait ModActionNotify {
+  fn kind() -> ModlogActionType;
+  fn target_person_id(&self) -> PersonId;
+  fn reason(&self) -> &str;
+  // True if this mod action restores a comment that was previously removed, or unbans a user etc
+  fn is_revert(&self) -> bool;
 }

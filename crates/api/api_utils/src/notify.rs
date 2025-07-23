@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud},
+  traits::{ApubActor, Blockable, Crud, ModActionNotify},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -269,6 +269,31 @@ pub async fn notify_private_message(
       );
     }
   }
+  Ok(())
+}
+
+pub async fn notify_mod_action<T: ModActionNotify>(
+  action: T,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let Ok(local_recipient) =
+    LocalUserView::read_person(&mut context.pool(), action.target_person_id()).await
+  else {
+    return Ok(());
+  };
+
+  // TODO: is there any good way to get the ModlogCombinedId here? otherwise we need to get rid
+  //       of triggers and insert to ModlogCombined from Rust. Or otherwise the `notification`
+  //       table would need a separate column for each possible mod action
+  let form = NotificationInsertForm::new_mod_action(
+    todo!(),
+    local_recipient.person.id,
+    NotificationTypes::PrivateMessage,
+  );
+  Notification::create(&mut context.pool(), &[form]).await?;
+
+  // TODO: send email
+  // TODO: how to handle email text, do we add a separate translation string for each mod action?
   Ok(())
 }
 
