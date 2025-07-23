@@ -1,17 +1,8 @@
 -- Creates combined tables for
 -- person_content: (comment, post)
 -- person_saved: (comment, post)
-CREATE TABLE person_content_combined (
-    id int GENERATED ALWAYS AS IDENTITY,
-    published timestamptz NOT NULL,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
-);
-
--- Disable the triggers temporarily
-ALTER TABLE person_content_combined DISABLE TRIGGER ALL;
-
-INSERT INTO person_content_combined (published, post_id, comment_id)
+-- TODO I have a feeling not including person_id on this table is a mistake, the join might not be fast.
+CREATE TABLE person_content_combined AS
 SELECT
     published,
     id AS post_id,
@@ -26,31 +17,20 @@ SELECT
 FROM
     comment;
 
--- Re-enable triggers after upserts
-ALTER TABLE person_content_combined ENABLE TRIGGER ALL;
-
--- add the primary key
+-- Add the constraints
 ALTER TABLE person_content_combined
-    ADD PRIMARY KEY (id);
-
--- This one is special, because you use the saved date, not the ordinary published
-CREATE TABLE person_saved_combined (
-    id int GENERATED ALWAYS AS IDENTITY,
-    saved timestamptz NOT NULL,
-    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
-);
-
--- Disable the triggers temporarily
-ALTER TABLE person_saved_combined DISABLE TRIGGER ALL;
+    ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN published SET NOT NULL,
+    ADD CONSTRAINT person_content_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_content_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_content_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
 
 -- This is for local_users only
-INSERT INTO person_saved_combined (saved, person_id, post_id, comment_id)
+CREATE TABLE person_saved_combined AS
 SELECT
-    pa.saved,
-    pa.person_id,
-    pa.post_id,
+    pa.saved AS saved,
+    pa.person_id AS person_id,
+    pa.post_id AS post_id,
     NULL::int AS comment_id
 FROM
     post_actions pa,
@@ -71,24 +51,18 @@ WHERE
     ca.person_id = lu.person_id
     AND ca.saved IS NOT NULL;
 
--- add the primary key
+-- Add the constraints
 ALTER TABLE person_saved_combined
-    ADD PRIMARY KEY (id);
-
-CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
-
-CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
-
-ALTER TABLE person_saved_combined
-    ALTER CONSTRAINT person_saved_combined_person_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_saved_combined_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_saved_combined_comment_id_fkey NOT DEFERRABLE,
+    ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN saved SET NOT NULL,
+    ADD CONSTRAINT person_saved_combined_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_saved_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_saved_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_saved_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1),
     ADD CONSTRAINT person_saved_combined_person_post_uniq UNIQUE (person_id, post_id),
     ADD CONSTRAINT person_saved_combined_person_comment_uniq UNIQUE (person_id, comment_id);
 
-ALTER TABLE person_content_combined
-    ALTER CONSTRAINT person_content_combined_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_content_combined_comment_id_fkey NOT DEFERRABLE,
-    ADD CONSTRAINT person_content_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
+CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
+
+CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
 
