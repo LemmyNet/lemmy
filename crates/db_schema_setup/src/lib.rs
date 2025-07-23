@@ -349,10 +349,10 @@ mod tests {
     *,
   };
   use diesel::{
+    connection::SimpleConnection,
     dsl::{not, sql},
     sql_types,
   };
-  use diesel::connection::SimpleConnection;
   use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
