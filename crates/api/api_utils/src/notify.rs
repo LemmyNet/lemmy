@@ -45,51 +45,53 @@ struct CollectedNotifyData<'a> {
 
 impl NotifyData {
   /// Scans the post/comment content for mentions, then sends notifications via db and email
-  /// to mentioned users and parent creator.
+  /// to mentioned users and parent creator. Spawns a task for background processing.
   pub fn send(self, context: &LemmyContext) {
     let context = context.clone();
-    spawn_try_task(async move {
-      let mut collected = self.notify_parent_creator(&context).await?;
+    spawn_try_task(self.send_internal(context))
+  }
 
-      collected.append(&mut self.notify_mentions(&context).await?);
+  /// Logic for send(), in separate function so it can run serially in tests.
+  pub async fn send_internal(self, context: LemmyContext) -> LemmyResult<()> {
+    let mut collected = self.notify_parent_creator(&context).await?;
 
-      collected.append(&mut self.notify_subscribers(&context).await?);
+    collected.append(&mut self.notify_mentions(&context).await?);
 
-      let mut forms = vec![];
-      for c in collected {
-        // Dont get notified about own actions
-        if self.creator.id == c.person_id {
-          continue;
-        }
+    collected.append(&mut self.notify_subscribers(&context).await?);
 
-        if self
-          .check_notifications_allowed(c.person_id, &context)
-          .await
-          .is_err()
-        {
-          continue;
-        };
-
-        forms.push(if let Some(comment) = &self.comment_opt {
-          NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
-        } else {
-          NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
-        });
-
-        let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.person_id).await
-        else {
-          // is a remote user, ignore
-          continue;
-        };
-
-        if self.do_send_email {
-          send_notification_email(user_view, c.local_url, c.data, context.settings());
-        }
+    let mut forms = vec![];
+    for c in collected {
+      // Dont get notified about own actions
+      if self.creator.id == c.person_id {
+        continue;
       }
-      Notification::create(&mut context.pool(), &forms).await?;
 
-      Ok(())
-    })
+      if self
+        .check_notifications_allowed(c.person_id, &context)
+        .await
+        .is_err()
+      {
+        continue;
+      };
+
+      forms.push(if let Some(comment) = &self.comment_opt {
+        NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
+      } else {
+        NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
+      });
+
+      let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.person_id).await else {
+        // is a remote user, ignore
+        continue;
+      };
+
+      if self.do_send_email {
+        send_notification_email(user_view, c.local_url, c.data, context.settings());
+      }
+    }
+    Notification::create(&mut context.pool(), &forms).await?;
+
+    Ok(())
   }
 
   async fn check_notifications_allowed(
@@ -425,7 +427,8 @@ mod tests {
       community: data.community.clone(),
       do_send_email: false,
     }
-    .send(&context);
+    .send_internal(context.app_data().clone())
+    .await?;
 
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
