@@ -159,6 +159,9 @@ impl Object for ApubCommunity {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
 
+    // This doesnt call verify_is_remote_object() because the community might be edited by a
+    // remote mod. This is safe as we validate `expected_domain`.
+
     let slur_regex = slur_regex(context).await?;
 
     check_slurs(&group.preferred_username, &slur_regex)?;
@@ -195,6 +198,7 @@ impl Object for ApubCommunity {
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
+      // May be a local community which is updated by remote mod.
       local: Some(group.id.is_local(context)),
       last_refreshed_at: Some(Utc::now()),
       icon,
