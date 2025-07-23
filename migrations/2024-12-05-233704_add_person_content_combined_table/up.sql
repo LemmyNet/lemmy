@@ -23,6 +23,8 @@ ALTER TABLE person_content_combined
     ALTER COLUMN published SET NOT NULL,
     ADD CONSTRAINT person_content_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_content_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD UNIQUE (post_id),
+    ADD UNIQUE (comment_id),
     ADD CONSTRAINT person_content_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
 
 -- This is for local_users only
@@ -59,8 +61,8 @@ ALTER TABLE person_saved_combined
     ADD CONSTRAINT person_saved_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_saved_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_saved_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1),
-    ADD CONSTRAINT person_saved_combined_person_post_uniq UNIQUE (person_id, post_id),
-    ADD CONSTRAINT person_saved_combined_person_comment_uniq UNIQUE (person_id, comment_id);
+    ADD UNIQUE (person_id, post_id),
+    ADD UNIQUE (person_id, comment_id);
 
 CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
 
