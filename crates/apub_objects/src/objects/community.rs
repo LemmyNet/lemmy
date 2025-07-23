@@ -236,12 +236,13 @@ impl Object for ApubCommunity {
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
-    let tags = group
+    let new_tags = group
       .tag
       .iter()
       .map(|t| t.to_insert_form(community.id))
       .collect();
-    Tag::update_many(&mut context.pool(), &community, tags).await?;
+    let existing_tags = Tag::read_for_community(&mut context.pool(), community.id).await?;
+    Tag::update_many(&mut context.pool(), new_tags, existing_tags).await?;
 
     let community: ApubCommunity = community.into();
 

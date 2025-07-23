@@ -2,7 +2,6 @@ use crate::{
   diesel::SelectableHelper,
   newtypes::{CommunityId, DbUrl, PostId, TagId},
   source::{
-    community::Community,
     post::Post,
     tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
@@ -64,16 +63,15 @@ impl Tag {
 
   pub async fn update_many(
     pool: &mut DbPool<'_>,
-    community: &Community,
     mut forms: Vec<TagInsertForm>,
+    existing_tags: Vec<Tag>,
   ) -> LemmyResult<()> {
-    let known_tags = Tag::read_for_community(pool, community.id).await?;
     let conn = &mut get_conn(pool).await?;
     let new_tag_ids = forms
       .iter()
       .map(|tag| tag.ap_id.clone())
       .collect::<HashSet<_>>();
-    let delete_forms = known_tags
+    let delete_forms = existing_tags
       .into_iter()
       .filter(|tag| !new_tag_ids.contains(&tag.ap_id))
       .map(|t| TagInsertForm {
