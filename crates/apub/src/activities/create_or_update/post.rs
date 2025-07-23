@@ -129,7 +129,7 @@ impl Activity for CreateOrUpdatePage {
           let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
           let form = PostUpdateForm {
             updated_at: Some(Some(Utc::now())),
-            nsfw: post_nsfw(&self.object, &community, &local_site, context).await?,
+            nsfw: post_nsfw(&self.object, &community, Some(&local_site), context).await?,
             ..Default::default()
           };
           Post::update(&mut context.pool(), post.id, &form).await?;

@@ -172,7 +172,10 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
-    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
@@ -185,7 +188,7 @@ impl Object for ApubCommunity {
     let visibility = Some(community_visibility(&group));
 
     // If NSFW is not allowed, then remove NSFW communities
-    let removed = check_nsfw_allowed(group.sensitive, &local_site)
+    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
       .err()
       .map(|_| true);
 

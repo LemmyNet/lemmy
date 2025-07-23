@@ -51,7 +51,7 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
-  check_nsfw_allowed(data.nsfw, &local_site)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;

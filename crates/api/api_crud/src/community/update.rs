@@ -41,7 +41,7 @@ pub async fn update_community(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
-  check_nsfw_allowed(data.nsfw, &local_site)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)

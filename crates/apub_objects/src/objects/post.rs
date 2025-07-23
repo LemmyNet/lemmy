@@ -203,7 +203,10 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -289,7 +292,7 @@ impl Object for ApubPost {
       published_at: page.published,
       updated_at: page.updated,
       deleted: Some(false),
-      nsfw: post_nsfw(&page, &community, &local_site, context).await?,
+      nsfw: post_nsfw(&page, &community, local_site.as_ref(), context).await?,
       ap_id: Some(page.id.clone().into()),
       // May be a local post which is updated by remote mod.
       local: Some(page.id.is_local(context)),
@@ -340,7 +343,7 @@ pub async fn update_apub_post_tags(
 pub async fn post_nsfw(
   page: &Page,
   community: &Community,
-  local_site: &LocalSite,
+  local_site: Option<&LocalSite>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<bool>> {
   // Ensure that all posts in NSFW communities are marked as NSFW

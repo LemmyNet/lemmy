@@ -33,7 +33,7 @@ pub async fn mod_update_post(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
 
-  check_nsfw_allowed(data.nsfw, &local_site)?;
+  check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let post_id = data.post_id;
   let orig_post =
