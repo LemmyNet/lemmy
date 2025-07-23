@@ -55,6 +55,7 @@ impl NotifyData {
 
       collected.append(&mut notify_subscribers(&self, &context).await?);
 
+      let mut forms = vec![];
       for c in collected {
         // Dont get notified about own actions
         if self.creator.id == c.person_id {
@@ -69,7 +70,11 @@ impl NotifyData {
           continue;
         };
 
-        self.insert(c.person_id, c.kind, &context).await?;
+        forms.push(if let Some(comment) = &self.comment_opt {
+          NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
+        } else {
+          NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
+        });
 
         let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.person_id).await
         else {
@@ -81,6 +86,7 @@ impl NotifyData {
           send_notification_email(user_view, c.local_url, c.data, context.settings());
         }
       }
+      Notification::create(&mut context.pool(), &forms).await?;
 
       Ok(())
     })
@@ -132,20 +138,6 @@ impl NotifyData {
       Ok(self.post.local_url(context.settings())?)
     }
   }
-
-  async fn insert(
-    &self,
-    recipient_id: PersonId,
-    kind: NotificationTypes,
-    context: &LemmyContext,
-  ) -> LemmyResult<Notification> {
-    let form = if let Some(comment) = &self.comment_opt {
-      NotificationInsertForm::new_comment(comment.id, recipient_id, kind)
-    } else {
-      NotificationInsertForm::new_post(self.post.id, recipient_id, kind)
-    };
-    Notification::create(&mut context.pool(), &form).await
-  }
 }
 
 pub async fn notify_private_message(
@@ -164,7 +156,7 @@ pub async fn notify_private_message(
     local_recipient.person.id,
     NotificationTypes::PrivateMessage,
   );
-  Notification::create(&mut context.pool(), &form).await?;
+  Notification::create(&mut context.pool(), &[form]).await?;
 
   if is_create {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -489,20 +481,20 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Timmy mentions sara in a comment
-    let timmy_mention_sara_comment_form = NotificationInsertForm::new_comment(
+    let timmy_mention_sara_form = NotificationInsertForm::new_comment(
       data.timmy_comment.id,
       data.sara.person.id,
       NotificationTypes::Mention,
     );
-    Notification::create(pool, &timmy_mention_sara_comment_form).await?;
 
     // Jessica mentions sara in a post
-    let jessica_mention_sara_post_form = NotificationInsertForm::new_post(
+    let jessica_mention_sara_form = NotificationInsertForm::new_post(
       data.jessica_post.id,
       data.sara.person.id,
       NotificationTypes::Mention,
     );
-    Notification::create(pool, &jessica_mention_sara_post_form).await?;
+    let forms = [jessica_mention_sara_form, timmy_mention_sara_form];
+    Notification::create(pool, &forms).await?;
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =

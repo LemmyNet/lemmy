@@ -13,7 +13,7 @@ use lemmy_db_schema_file::schema::notification;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Notification {
-  pub async fn create(pool: &mut DbPool<'_>, form: &NotificationInsertForm) -> LemmyResult<Self> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &[NotificationInsertForm]) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(notification::table)
       .values(form)
