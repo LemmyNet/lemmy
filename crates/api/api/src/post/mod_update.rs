@@ -61,7 +61,7 @@ pub async fn mod_update_post(
   plugin_hook_after("after_update_local_post", &post_form)?;
 
   if let Some(tags) = &data.tags {
-    update_post_tags(&updated_post, &tags, &context).await?;
+    update_post_tags(&updated_post, tags, &context).await?;
   }
 
   build_post_response(context.deref(), community.id, local_user_view, post_id).await

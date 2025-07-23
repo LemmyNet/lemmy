@@ -1004,7 +1004,7 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
 
 pub async fn update_post_tags(
   post: &Post,
-  tag_ids: &Vec<TagId>,
+  tag_ids: &[TagId],
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   // validate tags

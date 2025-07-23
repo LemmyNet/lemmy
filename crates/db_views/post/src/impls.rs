@@ -729,8 +729,8 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
           name: "Test Tag 1".into(),
+          display_name: None,
           description: None,
-          background_color: None,
           community_id: community.id,
           deleted: Some(false),
         },
@@ -741,8 +741,8 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
           name: "Test Tag 2".into(),
+          display_name: None,
           description: None,
-          background_color: None,
           community_id: community.id,
           deleted: Some(false),
         },
@@ -775,7 +775,7 @@ mod tests {
       };
 
       let post_with_tags = Post::create(pool, &new_post).await?;
-      PostTag::update(pool, &post_with_tags, &vec![tag_1.id, tag_2.id]).await?;
+      PostTag::update(pool, &post_with_tags, &[tag_1.id, tag_2.id]).await?;
 
       let tegan = LocalUserView {
         local_user: inserted_tegan_local_user,

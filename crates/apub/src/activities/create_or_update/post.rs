@@ -110,34 +110,34 @@ impl Activity for CreateOrUpdatePage {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    if verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_err() {
-      if verify_is_remote_object(&self.object.id, context).is_err() {
-        if let Ok(post) = self.object.id.dereference_local(context).await {
-          post.set_not_pending(&mut context.pool()).await?;
-        }
-
-        // allow mods to edit the post
-        if let Ok(Some(post)) =
-          Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into_inner()).await
-        {
-          let community = Community::read(&mut context.pool(), post.community_id).await?;
-          if verify_mod_action(&self.actor, &community, context)
-            .await
-            .is_ok()
-          {
-            let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
-            let form = PostUpdateForm {
-              updated_at: Some(Some(Utc::now())),
-              nsfw: post_nsfw(&self.object, &community, &local_site, context).await?,
-              ..Default::default()
-            };
-            Post::update(&mut context.pool(), post.id, &form).await?;
-            update_apub_post_tags(&self.object, &post, context).await?;
-          }
-        }
-
-        return Ok(());
+    if verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_err()
+      && verify_is_remote_object(&self.object.id, context).is_err()
+    {
+      if let Ok(post) = self.object.id.dereference_local(context).await {
+        post.set_not_pending(&mut context.pool()).await?;
       }
+
+      // allow mods to edit the post
+      if let Ok(Some(post)) =
+        Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into_inner()).await
+      {
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        if verify_mod_action(&self.actor, &community, context)
+          .await
+          .is_ok()
+        {
+          let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+          let form = PostUpdateForm {
+            updated_at: Some(Some(Utc::now())),
+            nsfw: post_nsfw(&self.object, &community, &local_site, context).await?,
+            ..Default::default()
+          };
+          Post::update(&mut context.pool(), post.id, &form).await?;
+          update_apub_post_tags(&self.object, &post, context).await?;
+        }
+      }
+
+      return Ok(());
     }
 
     verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;

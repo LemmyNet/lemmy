@@ -148,7 +148,7 @@ pub async fn update_post(
   plugin_hook_after("after_update_local_post", &post_form)?;
 
   if let Some(tags) = &data.tags {
-    update_post_tags(&orig_post.post, &tags, &context).await?;
+    update_post_tags(&orig_post.post, tags, &context).await?;
   }
 
   NotifyData::new(

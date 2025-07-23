@@ -332,8 +332,8 @@ pub async fn update_apub_post_tags(
     .into_iter()
     .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
     .map(|t| t.id)
-    .collect();
-  update_post_tags(&post, &post_tags, context).await?;
+    .collect::<Vec<_>>();
+  update_post_tags(post, &post_tags, context).await?;
   Ok(())
 }
 
