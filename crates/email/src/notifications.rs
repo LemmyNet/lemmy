@@ -6,28 +6,28 @@ use lemmy_db_schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
 
-pub enum NotificationEmailData {
+pub enum NotificationEmailData<'a> {
   Mention {
     content: String,
-    person: Person,
+    person: &'a Person,
   },
   PostSubscribed {
-    post: Post,
-    comment: Comment,
+    post: &'a Post,
+    comment: &'a Comment,
   },
   CommunitySubscribed {
-    post: Post,
-    community: Community,
+    post: &'a Post,
+    community: &'a Community,
   },
   Reply {
-    comment: Comment,
-    person: Person,
+    comment: &'a Comment,
+    person: &'a Person,
     parent_comment: Option<Comment>,
-    post: Post,
+    post: &'a Post,
   },
   PrivateMessage {
-    sender: Person,
-    content: String,
+    sender: &'a Person,
+    content: &'a String,
   },
 }
 
@@ -102,7 +102,7 @@ pub fn send_notification_email(
     }
     NotificationEmailData::PrivateMessage { sender, content } => {
       let sender_name = &sender.name;
-      let content = markdown_to_html(&content);
+      let content = markdown_to_html(content);
       (
         lang.notification_private_message_subject(sender_name),
         lang.notification_private_message_body(inbox_link, &content, sender_name),

@@ -3825,7 +3825,6 @@ dependencies = [
  "lettre",
  "rosetta-build",
  "rosetta-i18n",
- "tracing",
  "uuid",
 ]
 

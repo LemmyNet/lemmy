@@ -36,10 +36,10 @@ pub struct NotifyData {
   do_send_email: bool,
 }
 
-struct CollectedNotifyData {
+struct CollectedNotifyData<'a> {
   person_id: PersonId,
   local_url: DbUrl,
-  data: NotificationEmailData,
+  data: NotificationEmailData<'a>,
   kind: NotificationTypes,
 }
 
@@ -170,8 +170,8 @@ pub async fn notify_private_message(
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     if !site_view.local_site.disable_email_notifications {
       let d = NotificationEmailData::PrivateMessage {
-        sender: view.creator.clone(),
-        content: view.private_message.content.clone(),
+        sender: &view.creator,
+        content: &view.private_message.content,
       };
       send_notification_email(
         local_recipient,
@@ -184,10 +184,10 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-async fn notify_parent_creator(
-  data: &NotifyData,
+async fn notify_parent_creator<'a>(
+  data: &'a NotifyData,
   context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData>> {
+) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
   let Some(comment) = data.comment_opt.as_ref() else {
     return Ok(vec![]);
   };
@@ -205,19 +205,19 @@ async fn notify_parent_creator(
     person_id: parent_creator_id,
     local_url: comment.local_url(context.settings())?.into(),
     data: NotificationEmailData::Reply {
-      comment: (*comment).clone(),
-      person: data.creator.clone(),
-      parent_comment: parent_comment.clone(),
-      post: data.post.clone(),
+      comment,
+      person: &data.creator,
+      parent_comment,
+      post: &data.post,
     },
     kind: NotificationTypes::Reply,
   }])
 }
 
-async fn notify_mentions(
-  data: &NotifyData,
+async fn notify_mentions<'a>(
+  data: &'a NotifyData,
   context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData>> {
+) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
   let mentions = scrape_text_for_mentions(&data.content())
     .into_iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&data.creator.name));
@@ -234,7 +234,7 @@ async fn notify_mentions(
       local_url: data.link(context)?.into(),
       data: NotificationEmailData::Mention {
         content: data.content().clone(),
-        person: data.creator.clone(),
+        person: &data.creator,
       },
       kind: NotificationTypes::Mention,
     })
@@ -242,10 +242,10 @@ async fn notify_mentions(
   Ok(res)
 }
 
-async fn notify_subscribers(
-  data: &NotifyData,
+async fn notify_subscribers<'a>(
+  data: &'a NotifyData,
   context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData>> {
+) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
   let is_post = data.comment_opt.is_none();
   let subscribers = vec![
     PostActions::list_subscribers(data.post.id, &mut context.pool()).await?,
@@ -258,16 +258,15 @@ async fn notify_subscribers(
 
   let mut res = vec![];
   for person_id in subscribers {
-    let post = data.post.clone();
     let d = if let Some(comment) = &data.comment_opt {
       NotificationEmailData::PostSubscribed {
-        post,
-        comment: comment.clone(),
+        post: &data.post,
+        comment,
       }
     } else {
       NotificationEmailData::CommunitySubscribed {
-        community: data.community.clone(),
-        post,
+        community: &data.community,
+        post: &data.post,
       }
     };
     res.push(CollectedNotifyData {
