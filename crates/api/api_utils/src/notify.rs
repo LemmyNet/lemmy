@@ -49,11 +49,11 @@ impl NotifyData {
   pub fn send(self, context: &LemmyContext) {
     let context = context.clone();
     spawn_try_task(async move {
-      let mut collected = notify_parent_creator(&self, &context).await?;
+      let mut collected = self.notify_parent_creator(&context).await?;
 
-      collected.append(&mut notify_mentions(&self, &context).await?);
+      collected.append(&mut self.notify_mentions(&context).await?);
 
-      collected.append(&mut notify_subscribers(&self, &context).await?);
+      collected.append(&mut self.notify_subscribers(&context).await?);
 
       let mut forms = vec![];
       for c in collected {
@@ -138,6 +138,103 @@ impl NotifyData {
       Ok(self.post.local_url(context.settings())?)
     }
   }
+
+  async fn notify_parent_creator<'a>(
+    &'a self,
+    context: &LemmyContext,
+  ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
+    let Some(comment) = self.comment_opt.as_ref() else {
+      return Ok(vec![]);
+    };
+
+    // Get the parent data
+    let (parent_creator_id, parent_comment) =
+      if let Some(parent_comment_id) = comment.parent_comment_id() {
+        let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
+        (parent_comment.creator_id, Some(parent_comment))
+      } else {
+        (self.post.creator_id, None)
+      };
+
+    Ok(vec![CollectedNotifyData {
+      person_id: parent_creator_id,
+      local_url: comment.local_url(context.settings())?.into(),
+      data: NotificationEmailData::Reply {
+        comment,
+        person: &self.creator,
+        parent_comment,
+        post: &self.post,
+      },
+      kind: NotificationTypes::Reply,
+    }])
+  }
+
+  async fn notify_mentions<'a>(
+    &'a self,
+    context: &LemmyContext,
+  ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
+    let mentions = scrape_text_for_mentions(&self.content())
+      .into_iter()
+      .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+    let mut res = vec![];
+    for mention in mentions {
+      let Ok(Some(person)) =
+        Person::read_from_name(&mut context.pool(), &mention.name, false).await
+      else {
+        // Ignore error if user is remote
+        continue;
+      };
+
+      res.push(CollectedNotifyData {
+        person_id: person.id,
+        local_url: self.link(context)?.into(),
+        data: NotificationEmailData::Mention {
+          content: self.content().clone(),
+          person: &self.creator,
+        },
+        kind: NotificationTypes::Mention,
+      })
+    }
+    Ok(res)
+  }
+
+  async fn notify_subscribers<'a>(
+    &'a self,
+    context: &LemmyContext,
+  ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
+    let is_post = self.comment_opt.is_none();
+    let subscribers = vec![
+      PostActions::list_subscribers(self.post.id, &mut context.pool()).await?,
+      CommunityActions::list_subscribers(self.post.community_id, is_post, &mut context.pool())
+        .await?,
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
+    let mut res = vec![];
+    for person_id in subscribers {
+      let d = if let Some(comment) = &self.comment_opt {
+        NotificationEmailData::PostSubscribed {
+          post: &self.post,
+          comment,
+        }
+      } else {
+        NotificationEmailData::CommunitySubscribed {
+          community: &self.community,
+          post: &self.post,
+        }
+      };
+      res.push(CollectedNotifyData {
+        person_id,
+        local_url: self.link(context)?.into(),
+        data: d,
+        kind: NotificationTypes::Subscribed,
+      });
+    }
+
+    Ok(res)
+  }
 }
 
 pub async fn notify_private_message(
@@ -174,102 +271,6 @@ pub async fn notify_private_message(
     }
   }
   Ok(())
-}
-
-async fn notify_parent_creator<'a>(
-  data: &'a NotifyData,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-  let Some(comment) = data.comment_opt.as_ref() else {
-    return Ok(vec![]);
-  };
-
-  // Get the parent data
-  let (parent_creator_id, parent_comment) =
-    if let Some(parent_comment_id) = comment.parent_comment_id() {
-      let parent_comment = Comment::read(&mut context.pool(), parent_comment_id).await?;
-      (parent_comment.creator_id, Some(parent_comment))
-    } else {
-      (data.post.creator_id, None)
-    };
-
-  Ok(vec![CollectedNotifyData {
-    person_id: parent_creator_id,
-    local_url: comment.local_url(context.settings())?.into(),
-    data: NotificationEmailData::Reply {
-      comment,
-      person: &data.creator,
-      parent_comment,
-      post: &data.post,
-    },
-    kind: NotificationTypes::Reply,
-  }])
-}
-
-async fn notify_mentions<'a>(
-  data: &'a NotifyData,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-  let mentions = scrape_text_for_mentions(&data.content())
-    .into_iter()
-    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&data.creator.name));
-  let mut res = vec![];
-  for mention in mentions {
-    let Ok(Some(person)) = Person::read_from_name(&mut context.pool(), &mention.name, false).await
-    else {
-      // Ignore error if user is remote
-      continue;
-    };
-
-    res.push(CollectedNotifyData {
-      person_id: person.id,
-      local_url: data.link(context)?.into(),
-      data: NotificationEmailData::Mention {
-        content: data.content().clone(),
-        person: &data.creator,
-      },
-      kind: NotificationTypes::Mention,
-    })
-  }
-  Ok(res)
-}
-
-async fn notify_subscribers<'a>(
-  data: &'a NotifyData,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-  let is_post = data.comment_opt.is_none();
-  let subscribers = vec![
-    PostActions::list_subscribers(data.post.id, &mut context.pool()).await?,
-    CommunityActions::list_subscribers(data.post.community_id, is_post, &mut context.pool())
-      .await?,
-  ]
-  .into_iter()
-  .flatten()
-  .collect::<Vec<_>>();
-
-  let mut res = vec![];
-  for person_id in subscribers {
-    let d = if let Some(comment) = &data.comment_opt {
-      NotificationEmailData::PostSubscribed {
-        post: &data.post,
-        comment,
-      }
-    } else {
-      NotificationEmailData::CommunitySubscribed {
-        community: &data.community,
-        post: &data.post,
-      }
-    };
-    res.push(CollectedNotifyData {
-      person_id,
-      local_url: data.link(context)?.into(),
-      data: d,
-      kind: NotificationTypes::Subscribed,
-    });
-  }
-
-  Ok(res)
 }
 
 #[cfg(test)]
