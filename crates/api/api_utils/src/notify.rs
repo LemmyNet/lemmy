@@ -487,6 +487,7 @@ mod tests {
       data.sara.person.id,
       NotificationTypes::Mention,
     );
+    Notification::create(pool, &[timmy_mention_sara_form]).await?;
 
     // Jessica mentions sara in a post
     let jessica_mention_sara_form = NotificationInsertForm::new_post(
@@ -494,8 +495,7 @@ mod tests {
       data.sara.person.id,
       NotificationTypes::Mention,
     );
-    let forms = [jessica_mention_sara_form, timmy_mention_sara_form];
-    Notification::create(pool, &forms).await?;
+    Notification::create(pool, &[jessica_mention_sara_form]).await?;
 
     // Test to make sure counts and blocks work correctly
     let sara_unread_mentions =
