@@ -5,7 +5,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
-use tracing::warn;
 
 pub enum NotificationEmailData {
   Mention {
@@ -32,18 +31,18 @@ pub enum NotificationEmailData {
   },
 }
 
-pub async fn send_notification_email(
-  local_user_view: &LocalUserView,
+pub fn send_notification_email(
+  local_user_view: LocalUserView,
   link: DbUrl,
-  settings: &Settings,
   data: NotificationEmailData,
+  settings: &'static Settings,
 ) {
   if local_user_view.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 
   let inbox_link = inbox_link(settings);
-  let lang = user_language(local_user_view);
+  let lang = user_language(&local_user_view);
   let (subject, body) = match data {
     NotificationEmailData::Mention { content, person } => {
       let content = markdown_to_html(&content);
@@ -111,18 +110,13 @@ pub async fn send_notification_email(
     }
   };
 
-  if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      &subject,
+  if let Some(user_email) = local_user_view.local_user.email {
+    send_email(
+      subject,
       user_email,
-      &local_user_view.person.name,
-      &body,
+      local_user_view.person.name,
+      body,
       settings,
-    )
-    .await
-    {
-      Ok(_o) => _o,
-      Err(e) => warn!("{}", e),
-    };
+    );
   }
 }

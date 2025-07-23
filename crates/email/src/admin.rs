@@ -7,7 +7,7 @@ use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
+  settings: &'static Settings,
 ) -> LemmyResult<()> {
   // Collect the admins with emails
   let admins = LocalUserView::list_admins_with_emails(pool).await?;
@@ -17,12 +17,12 @@ pub async fn send_new_applicant_email_to_admins(
     settings.get_protocol_and_hostname(),
   );
 
-  for admin in &admins {
-    if let Some(email) = &admin.local_user.email {
-      let lang = user_language(admin);
+  for admin in admins {
+    let lang = user_language(&admin);
+    if let Some(email) = admin.local_user.email {
       let subject = lang.new_application_subject(&settings.hostname, applicant_username);
       let body = lang.new_application_body(applications_link);
-      send_email(&subject, email, &admin.person.name, &body, settings).await?;
+      send_email(subject, email, admin.person.name, body, settings);
     }
   }
   Ok(())
@@ -33,20 +33,20 @@ pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
+  settings: &'static Settings,
 ) -> LemmyResult<()> {
   // Collect the admins with emails
   let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
-  for admin in &admins {
-    if let Some(email) = &admin.local_user.email {
-      let lang = user_language(admin);
+  for admin in admins {
+    let lang = user_language(&admin);
+    if let Some(email) = admin.local_user.email {
       let subject =
         lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
       let body = lang.new_report_body(reports_link);
-      send_email(&subject, email, &admin.person.name, &body, settings).await?;
+      send_email(subject, email, admin.person.name, body, settings);
     }
   }
   Ok(())

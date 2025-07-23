@@ -113,14 +113,13 @@ pub async fn create_comment(
   plugin_hook_after("after_create_local_comment", &inserted_comment)?;
 
   NotifyData::new(
-    &post,
-    Some(&inserted_comment),
-    &local_user_view.person,
-    &post_view.community,
+    post.clone(),
+    Some(inserted_comment.clone()),
+    local_user_view.person.clone(),
+    post_view.community,
     !local_site.disable_email_notifications,
   )
-  .send(&context)
-  .await?;
+  .send(&context);
 
   // You like your own comment by default
   let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, 1);

@@ -163,14 +163,13 @@ pub async fn update_post(
   plugin_hook_after("after_update_local_post", &post_form)?;
 
   NotifyData::new(
-    &updated_post,
+    updated_post.clone(),
     None,
-    &local_user_view.person,
-    &orig_post.community,
+    local_user_view.person.clone(),
+    orig_post.community.clone(),
     false,
   )
-  .send(&context)
-  .await?;
+  .send(&context);
 
   // send out federation/webmention if necessary
   match (
