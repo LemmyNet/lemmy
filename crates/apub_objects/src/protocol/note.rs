@@ -70,16 +70,30 @@ impl Note {
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // We use recursion here to fetch the entire comment chain up to the top-level parent. This is
     // necessary because we need to know the post and parent comment in order to insert a new
-    // comment. However it can also lead to stack overflow when fetching many comments recursively.
-    // To avoid this we check the request count against max comment depth, which based on testing
-    // can be handled without risking stack overflow. This is not a perfect solution, because in
-    // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
-    // or so.
-    // A cleaner solution would be converting the recursion into a loop, but that is tricky.
+    // comment. However it can also lead to too much resource consumption when fetching many
+    // comments recursively. To avoid this we check the request count against max comment depth.
+    //
+    // A separate task is spawned for the recursive call. Otherwise, when the async executor polls
+    // the task this is in, the poll function's call stack would grow with the level of recursion,
+    // so a stack overflow would be possible.
+    //
+    // The stack overflow prevention relies on the total laziness that the async keyword provides
+    // (https://rust-lang.github.io/rfcs/2394-async_await.html#async-functions). This means you need
+    // to be careful if you want to change `Note::get_parents` and `CreateOrUpdateNote::verify` from
+    // `async fn foo(...) -> T` to `fn foo(...) -> impl Future<Output = T>`. Between each level of
+    // recursion, there must be the beginning of at least one `async` block or `async fn`,
+    // otherwise there might be multiple levels of recursion before the first poll.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
-    let parent = self.in_reply_to.dereference(context).await?;
+    let parent = tokio::spawn({
+      let in_reply_to = self.in_reply_to.clone();
+      let context = context.clone();
+      // This is wrapped in an async block only to satisfy the borrow checker. This wrapping is not
+      // needed for the stack overflow prevention.
+      async move { in_reply_to.dereference(&context).await }
+    })
+    .await??;
     match parent {
       PostOrComment::Left(p) => Ok((p.clone(), None)),
       PostOrComment::Right(c) => {
