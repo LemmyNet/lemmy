@@ -109,7 +109,7 @@ FROM
     comment_reply;
 
 ALTER TABLE ONLY person_post_mention
-    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
+    ADD CONSTRAINT person_post_mention_recipient_id_post_id_key UNIQUE (recipient_id, post_id);
 
 ALTER TABLE inbox_combined
     ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
