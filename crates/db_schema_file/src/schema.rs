@@ -158,11 +158,11 @@ diesel::table! {
 
 diesel::table! {
     comment_actions (person_id, comment_id) {
-        person_id -> Int4,
-        comment_id -> Int4,
-        like_score -> Nullable<Int2>,
         liked_at -> Nullable<Timestamptz>,
         saved_at -> Nullable<Timestamptz>,
+        person_id -> Int4,
+        comment_id -> Int4,
+        like_score_is_positive -> Nullable<Bool>,
     }
 }
 
@@ -241,15 +241,15 @@ diesel::table! {
     use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
-        follow_state -> Nullable<CommunityFollowerState>,
-        follow_approver_id -> Nullable<Int4>,
         blocked_at -> Nullable<Timestamptz>,
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        community_id -> Int4,
+        person_id -> Int4,
+        follow_state -> Nullable<CommunityFollowerState>,
+        follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
     }
 }
@@ -372,11 +372,11 @@ diesel::table! {
 
 diesel::table! {
     instance_actions (person_id, instance_id) {
-        person_id -> Int4,
-        instance_id -> Int4,
         blocked_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        person_id -> Int4,
+        instance_id -> Int4,
     }
 }
 
@@ -839,16 +839,16 @@ diesel::table! {
 
 diesel::table! {
     person_actions (person_id, target_id) {
-        target_id -> Int4,
-        person_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
-        follow_pending -> Nullable<Bool>,
         blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
-        note -> Nullable<Text>,
         voted_at -> Nullable<Timestamptz>,
+        target_id -> Int4,
+        person_id -> Int4,
         upvotes -> Nullable<Int4>,
         downvotes -> Nullable<Int4>,
+        note -> Nullable<Text>,
+        follow_pending -> Nullable<Bool>,
     }
 }
 
@@ -863,12 +863,12 @@ diesel::table! {
 
 diesel::table! {
     person_liked_combined (id) {
-        id -> Int4,
         liked_at -> Timestamptz,
-        like_score -> Int2,
+        id -> Int4,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        like_score_is_positive -> Bool,
     }
 }
 
@@ -929,16 +929,16 @@ diesel::table! {
     use super::sql_types::PostNotificationsModeEnum;
 
     post_actions (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
         read_at -> Nullable<Timestamptz>,
         read_comments_at -> Nullable<Timestamptz>,
-        read_comments_amount -> Nullable<Int4>,
         saved_at -> Nullable<Timestamptz>,
         liked_at -> Nullable<Timestamptz>,
-        like_score -> Nullable<Int2>,
         hidden_at -> Nullable<Timestamptz>,
+        post_id -> Int4,
+        person_id -> Int4,
+        read_comments_amount -> Nullable<Int4>,
         notifications -> Nullable<PostNotificationsModeEnum>,
+        like_score_is_positive -> Nullable<Bool>,
     }
 }
 
