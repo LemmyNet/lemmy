@@ -50,8 +50,6 @@ CREATE INDEX idx_admin_block_instance_instance ON admin_block_instance (instance
 
 CREATE INDEX idx_community_instance ON community (instance_id);
 
-CREATE INDEX idx_instance_actions_instance ON instance_actions (instance_id);
-
 CREATE INDEX idx_mod_ban_instance ON mod_ban (instance_id);
 
 CREATE INDEX idx_multi_community_instance ON multi_community (instance_id);

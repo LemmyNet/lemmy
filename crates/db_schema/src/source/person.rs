@@ -56,12 +56,12 @@ pub struct Person {
   /// Whether the person is a bot account.
   pub bot_account: bool,
   pub instance_id: InstanceId,
-  pub post_count: i64,
+  pub post_count: i32,
   #[serde(skip)]
-  pub post_score: i64,
-  pub comment_count: i64,
+  pub post_score: i32,
+  pub comment_count: i32,
   #[serde(skip)]
-  pub comment_score: i64,
+  pub comment_score: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -135,9 +135,9 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PersonActions {
   #[serde(skip)]
-  pub target_id: PersonId,
-  #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
+  pub target_id: PersonId,
   #[serde(skip)]
   pub followed_at: Option<DateTime<Utc>>,
   #[serde(skip)]

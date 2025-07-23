@@ -308,7 +308,7 @@ impl Post {
       .select(community::interactions_month)
       .inner_join(post::table.on(community::id.eq(post::community_id)))
       .filter(post::id.eq(post_id))
-      .first::<i64>(conn)
+      .first::<i32>(conn)
       .await?;
 
     diesel::update(post::table.find(post_id))
@@ -520,13 +520,6 @@ impl PostActions {
 }
 
 impl PostActions {
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
-      .collect::<Vec<_>>()
-  }
-
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -551,6 +544,13 @@ impl PostActions {
       .get(1)
       .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
     Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
+  }
+
+  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
+    post_ids
+      .iter()
+      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
+      .collect::<Vec<_>>()
   }
 
   pub async fn update_notification_state(

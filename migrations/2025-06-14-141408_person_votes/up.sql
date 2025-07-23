@@ -6,6 +6,9 @@ ALTER TABLE person_actions
 ALTER TABLE local_user
     ADD COLUMN show_person_votes boolean NOT NULL DEFAULT TRUE;
 
+-- Disable the triggers temporarily
+ALTER TABLE person_actions DISABLE TRIGGER ALL;
+
 -- Adding vote history
 -- This union alls the comment and post actions tables,
 -- inner joins to local_user for the above to filter out non-locals
@@ -46,4 +49,7 @@ ON CONFLICT (person_id,
         voted_at = now(),
         upvotes = excluded.upvotes,
         downvotes = excluded.downvotes;
+
+-- Re-enable the triggers
+ALTER TABLE person_actions ENABLE TRIGGER ALL;
 
