@@ -57,6 +57,7 @@ WHERE
 ALTER TABLE person_saved_combined
     ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ALTER COLUMN saved SET NOT NULL,
+    ALTER COLUMN person_id SET NOT NULL,
     ADD CONSTRAINT person_saved_combined_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_saved_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_saved_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,

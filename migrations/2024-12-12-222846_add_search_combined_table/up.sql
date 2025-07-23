@@ -22,7 +22,7 @@ WHERE
 CREATE TABLE search_combined AS
 SELECT
     published,
-    score,
+    score::int,
     post_id,
     NULL::int AS comment_id,
     NULL::int AS community_id,
@@ -32,7 +32,7 @@ FROM
 UNION ALL
 SELECT
     published,
-    score,
+    score::int,
     NULL::int,
     comment_id,
     NULL::int,
@@ -42,7 +42,7 @@ FROM
 UNION ALL
 SELECT
     published,
-    users_active_month,
+    users_active_month::int,
     NULL::int,
     NULL::int,
     community_id,
@@ -52,7 +52,7 @@ FROM
 UNION ALL
 SELECT
     published,
-    post_score,
+    post_score::int,
     NULL::int,
     NULL::int,
     NULL::int,

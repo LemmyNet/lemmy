@@ -7,7 +7,7 @@ CREATE TABLE comment_actions AS
 SELECT
     person_id,
     comment_id,
-    max(like_score) AS like_score,
+    cast(max(like_score) AS smallint) AS like_score,
     max(liked) AS liked,
     max(saved) AS saved
 FROM (
@@ -67,10 +67,10 @@ SELECT
     post_id,
     max(read) AS read,
     max(read_comments) AS read_comments,
-    max(read_comments_amount) AS read_comments_amount,
+    cast(max(read_comments_amount) AS int) AS read_comments_amount,
     max(saved) AS saved,
     max(liked) AS liked,
-    max(like_score) AS like_score,
+    cast(max(like_score) AS smallint) AS like_score,
     max(hidden) AS hidden
 FROM (
     SELECT
