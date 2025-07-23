@@ -51,12 +51,10 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_captcha_happy_path() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(
@@ -81,9 +79,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_captcha_repeat_answer_fails() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(

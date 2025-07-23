@@ -510,7 +510,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
   use url::Url;
 
   struct Data {
@@ -653,9 +652,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn combined() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -830,9 +828,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -904,9 +901,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn person() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -986,9 +982,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn post() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1117,9 +1112,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn nsfw_post() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1146,9 +1140,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn nsfw_comment() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1176,9 +1169,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn comment() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1283,9 +1275,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn multi_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

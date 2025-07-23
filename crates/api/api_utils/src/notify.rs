@@ -491,9 +491,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn mentions() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -632,7 +631,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn read_private_messages() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -681,7 +679,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn ensure_private_message_person_block() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -723,7 +720,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn ensure_private_message_instance_block() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
