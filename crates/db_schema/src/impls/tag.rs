@@ -15,6 +15,7 @@ use diesel::{
   pg::{Pg, PgValue},
   serialize::ToSql,
   sql_types::{Json, Nullable},
+  upsert::excluded,
   ExpressionMethods,
   QueryDsl,
 };
@@ -87,16 +88,17 @@ impl Tag {
     conn
       .run_transaction(|conn| {
         async move {
-          // on conflict do update doesnt work with vec so we need a loop
-          for f in forms {
-            insert_into(tag::table)
-              .values(&f)
-              .on_conflict(tag::ap_id)
-              .do_update()
-              .set(&f)
-              .execute(conn)
-              .await?;
-          }
+          insert_into(tag::table)
+            .values(&forms)
+            .on_conflict(tag::ap_id)
+            .do_update()
+            .set((
+              tag::description.eq(excluded(tag::description)),
+              tag::background_color.eq(excluded(tag::background_color)),
+              tag::deleted.eq(excluded(tag::deleted)),
+            ))
+            .execute(conn)
+            .await?;
 
           Ok(())
         }
