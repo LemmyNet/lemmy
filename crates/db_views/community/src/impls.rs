@@ -266,7 +266,6 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
-  use serial_test::serial;
   use std::collections::HashSet;
   use url::Url;
 

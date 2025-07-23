@@ -294,7 +294,6 @@ mod tests {
     traits::{Crud, Followable},
     utils::build_db_pool_for_tests,
   };
-  use serial_test::serial;
 
   #[tokio::test]
   async fn test_has_followers_from_instance() -> LemmyResult<()> {

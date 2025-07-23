@@ -600,7 +600,6 @@ mod tests {
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,

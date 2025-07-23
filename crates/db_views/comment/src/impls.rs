@@ -349,7 +349,6 @@ mod tests {
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   // TODO rename these
   struct Data {
