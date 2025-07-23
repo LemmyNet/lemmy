@@ -83,7 +83,7 @@ pub async fn remove_comment(
     reason: data.reason.clone(),
   };
   let action = ModRemoveComment::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action, &context).await?;
+  notify_mod_action(action, context.app_data());
 
   let updated_comment_id = updated_comment.id;
 

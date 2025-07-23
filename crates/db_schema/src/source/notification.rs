@@ -1,6 +1,10 @@
-use crate::{
-  newtypes::{CommentId, ModlogCombinedId, NotificationId, PersonId, PostId, PrivateMessageId},
-  source::combined::modlog::ModlogCombined,
+use crate::newtypes::{
+  CommentId,
+  ModlogCombinedId,
+  NotificationId,
+  PersonId,
+  PostId,
+  PrivateMessageId,
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
