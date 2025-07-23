@@ -172,7 +172,7 @@ impl PostTag {
             .with_lemmy_type(LemmyErrorType::Deleted)?;
 
           let forms = tag_ids
-            .into_iter()
+            .iter()
             .map(|tag_id| PostTagForm {
               post_id: post.id,
               tag_id: *tag_id,

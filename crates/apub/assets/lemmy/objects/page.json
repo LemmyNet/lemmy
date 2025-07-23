@@ -30,7 +30,7 @@
   },
   "tag": [
     {
-      "type": "PostTag",
+      "type": "CommunityPostTag",
       "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
       "name": "news"
     }

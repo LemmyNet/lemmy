@@ -11,7 +11,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
 enum CommunityTagType {
   #[default]
-  PostTag,
+  CommunityPostTag,
 }
 
 /// A tag that a community owns, that is added to a post.
