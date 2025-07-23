@@ -159,7 +159,7 @@ impl PostTag {
   pub async fn update(
     pool: &mut DbPool<'_>,
     post: &Post,
-    tag_ids: &Vec<TagId>,
+    tag_ids: &[TagId],
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
