@@ -78,10 +78,10 @@ impl Tag {
       .map(|t| TagInsertForm {
         ap_id: t.ap_id,
         name: t.name,
+        display_name: None,
         community_id: t.community_id,
         deleted: Some(true),
         description: None,
-        background_color: None,
       });
     forms.extend(delete_forms);
 
@@ -93,8 +93,8 @@ impl Tag {
             .on_conflict(tag::ap_id)
             .do_update()
             .set((
+              tag::display_name.eq(excluded(tag::display_name)),
               tag::description.eq(excluded(tag::description)),
-              tag::background_color.eq(excluded(tag::background_color)),
               tag::deleted.eq(excluded(tag::deleted)),
             ))
             .execute(conn)

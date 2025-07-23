@@ -21,8 +21,9 @@ pub struct CommunityTag {
   kind: CommunityTagType,
   pub id: Url,
   pub name: String,
+  /// custom field
+  pub display_name: Option<String>,
   pub content: Option<String>,
-  pub background_color: Option<String>,
 }
 
 impl CommunityTag {
@@ -31,8 +32,8 @@ impl CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
       name: tag.name,
+      display_name: tag.display_name,
       content: tag.description,
-      background_color: tag.background_color,
     }
   }
 
@@ -40,8 +41,8 @@ impl CommunityTag {
     TagInsertForm {
       ap_id: self.id.clone().into(),
       name: self.name.clone(),
+      display_name: self.display_name.clone(),
       description: self.content.clone(),
-      background_color: self.background_color.clone(),
       community_id,
       deleted: Some(false),
     }

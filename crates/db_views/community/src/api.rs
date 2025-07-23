@@ -353,6 +353,7 @@ pub struct UpdateCommunityNotifications {
 pub struct CreateCommunityTag {
   pub community_id: CommunityId,
   pub name: String,
+  pub display_name: Option<String>,
   pub description: Option<String>,
   /// Hex code like `#ff00aa`
   pub background_color: Option<String>,
@@ -365,6 +366,7 @@ pub struct CreateCommunityTag {
 /// Make changes to a community tag
 pub struct UpdateCommunityTag {
   pub tag_id: TagId,
+  pub display_name: Option<String>,
   pub description: Option<String>,
   /// Hex code like `#ff00aa`
   pub background_color: Option<String>,

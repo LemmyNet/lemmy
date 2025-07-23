@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     tag::{Tag, TagInsertForm, TagUpdateForm},
   },
   traits::Crud,
+  utils::diesel_string_update,
 };
 use lemmy_db_views_community::{
   api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
@@ -56,8 +57,8 @@ pub async fn create_community_tag(
   // Create the tag
   let tag_form = TagInsertForm {
     name: data.name.clone(),
+    display_name: data.display_name.clone(),
     description: data.description.clone(),
-    background_color: data.background_color.clone(),
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
@@ -91,8 +92,8 @@ pub async fn update_community_tag(
 
   // Update the tag
   let tag_form = TagUpdateForm {
-    description: Some(data.description.clone()),
-    background_color: Some(data.background_color.clone()),
+    display_name: diesel_string_update(data.display_name.as_deref()),
+    description: diesel_string_update(data.description.as_deref()),
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };

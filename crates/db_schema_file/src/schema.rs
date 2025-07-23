@@ -1107,9 +1107,9 @@ diesel::table! {
         ap_id -> Text,
         #[max_length = 255]
         name -> Varchar,
-        description -> Nullable<Text>,
         #[max_length = 255]
-        background_color -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
+        description -> Nullable<Text>,
         community_id -> Int4,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
