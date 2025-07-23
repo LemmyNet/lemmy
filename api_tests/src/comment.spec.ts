@@ -854,6 +854,14 @@ test("Dont send a comment reply to a blocked community", async () => {
 /// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
 /// fetched recursively. Ensure that it works properly.
 test("Fetch a deeply nested comment", async () => {
+  const alphaCommunity = await resolveCommunity(
+    alpha,
+    "!main@lemmy-alpha:8541",
+  );
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+  const postOnAlphaRes = await createPost(alpha, alphaCommunity.community.id);
   let lastComment;
   for (let i = 1; i < 50; i++) {
     let commentRes = await createComment(
