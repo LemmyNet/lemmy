@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::AcceptType,
   protocol::helpers::deserialize_skip_error,
 };
-use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
+use lemmy_apub_objects::objects::{community::ApubCommunity, UserOrCommunity};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -14,7 +14,7 @@ pub struct AcceptFollow {
   pub(crate) actor: ObjectId<ApubCommunity>,
   /// Optional, for compatibility with platforms that always expect recipient field
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) to: Option<[ObjectId<ApubPerson>; 1]>,
+  pub(crate) to: Option<[ObjectId<UserOrCommunity>; 1]>,
   pub(crate) object: Follow,
   #[serde(rename = "type")]
   pub(crate) kind: AcceptType,
