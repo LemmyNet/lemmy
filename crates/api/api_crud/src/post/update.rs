@@ -10,7 +10,6 @@ use lemmy_api_utils::{
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
-    check_community_mod_action,
     check_community_user_action,
     check_nsfw_allowed,
     get_url_blocklist,
@@ -103,43 +102,8 @@ pub async fn update_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  let is_post_creator = Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id);
-  let is_moderator = check_community_mod_action(
-    &local_user_view,
-    &orig_post.community,
-    false,
-    &mut context.pool(),
-  )
-  .await
-  .is_ok();
-
-  // both creator and moderator can change tags
-  if is_post_creator || is_moderator {
-    if let Some(tags) = &data.tags {
-      update_post_tags(&orig_post.post, &tags, &context).await?;
-
-      // moderator cannot make any other changes, so federate and return here
-      if is_moderator {
-        generate_post_link_metadata(
-          orig_post.post.clone(),
-          custom_thumbnail.flatten().map(Into::into),
-          |post| Some(SendActivityData::UpdatePost(post)),
-          context.clone(),
-        )
-        .await?;
-        return build_post_response(
-          context.deref(),
-          orig_post.community.id,
-          local_user_view,
-          post_id,
-        )
-        .await;
-      }
-    }
-  }
-
   // Verify that only the creator can edit
-  if !is_post_creator {
+  if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
@@ -182,6 +146,10 @@ pub async fn update_post(
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(&orig_post.post, &tags, &context).await?;
+  }
 
   NotifyData::new(
     &updated_post,
