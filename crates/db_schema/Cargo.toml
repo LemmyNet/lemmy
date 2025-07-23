@@ -83,5 +83,4 @@ db-pool = { git = "https://github.com/momentary-lapse/db-pool.git", branch = "ed
 
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
