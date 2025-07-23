@@ -257,9 +257,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_community_follow (target_id, community_id) {
+    community_community_follow (community_id, target_id) {
         target_id -> Int4,
         community_id -> Int4,
+        published_at -> Timestamptz,
     }
 }
 
@@ -856,31 +857,31 @@ diesel::table! {
 
 diesel::table! {
     person_content_combined (id) {
-        id -> Int4,
         published_at -> Timestamptz,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
     }
 }
 
 diesel::table! {
     person_liked_combined (id) {
-        id -> Int4,
         liked_at -> Timestamptz,
         like_score -> Int2,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
     }
 }
 
 diesel::table! {
     person_saved_combined (id) {
-        id -> Int4,
         saved_at -> Timestamptz,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
     }
 }
 
@@ -1041,13 +1042,13 @@ diesel::table! {
 
 diesel::table! {
     search_combined (id) {
-        id -> Int4,
         published_at -> Timestamptz,
         score -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
+        id -> Int4,
         multi_community_id -> Nullable<Int4>,
     }
 }

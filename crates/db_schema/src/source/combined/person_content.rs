@@ -18,10 +18,10 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", cursor_keys_module(name = person_content_combined_keys))]
 /// A combined table for a persons contents (posts and comments)
 pub struct PersonContentCombined {
-  pub id: PersonContentCombinedId,
   pub published_at: DateTime<Utc>,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
+  pub id: PersonContentCombinedId,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
