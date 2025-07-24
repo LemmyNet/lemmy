@@ -22,7 +22,7 @@ pub async fn send_new_applicant_email_to_admins(
     if let Some(email) = admin.local_user.email {
       let subject = lang.new_application_subject(&settings.hostname, applicant_username);
       let body = lang.new_application_body(applications_link);
-      send_email(subject, email, admin.person.name, body, settings);
+      send_email(subject, email, admin.person.name, body, settings)?;
     }
   }
   Ok(())
@@ -46,7 +46,7 @@ pub async fn send_new_report_email_to_admins(
       let subject =
         lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
       let body = lang.new_report_body(reports_link);
-      send_email(subject, email, admin.person.name, body, settings);
+      send_email(subject, email, admin.person.name, body, settings)?;
     }
   }
   Ok(())

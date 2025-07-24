@@ -48,7 +48,9 @@ impl NotifyData {
   /// to mentioned users and parent creator. Spawns a task for background processing.
   pub fn send(self, context: &LemmyContext) {
     let context = context.clone();
-    spawn_try_task(self.send_internal(context))
+    // TODO: Do we also need to cancel this on shutdown? Will get very verbose without a generic
+    // solution.
+    spawn_try_task(self.send_internal(context));
   }
 
   /// Logic for send(), in separate function so it can run serially in tests.
@@ -86,7 +88,7 @@ impl NotifyData {
       };
 
       if self.do_send_email {
-        send_notification_email(user_view, c.local_url, c.data, context.settings());
+        send_notification_email(user_view, c.local_url, c.data, context.settings())?;
       }
     }
     Notification::create(&mut context.pool(), &forms).await?;
@@ -266,7 +268,7 @@ pub async fn notify_private_message(
         view.private_message.local_url(context.settings())?,
         d,
         context.settings(),
-      );
+      )?;
     }
   }
   Ok(())

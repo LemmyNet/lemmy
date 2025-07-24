@@ -1,6 +1,7 @@
+use crate::{EmailParams, EMAIL_CHANNEL};
 use lemmy_db_schema::sensitive::SensitiveString;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
   spawn_try_task,
 };
@@ -17,6 +18,43 @@ use uuid::Uuid;
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 
 pub(crate) fn send_email(
+  subject: String,
+  to_email: SensitiveString,
+  to_username: String,
+  html: String,
+  settings: &'static Settings,
+) -> LemmyResult<()> {
+  if let Some(sender) = EMAIL_CHANNEL.weak_sender.upgrade() {
+    let params = EmailParams {
+      subject,
+      to_email,
+      to_username,
+      html,
+      settings,
+    };
+    sender.send(params)?;
+  }
+  Ok(())
+}
+
+pub async fn send_email_task() -> LemmyResult<()> {
+  let x = || async move {
+    let mut lock = EMAIL_CHANNEL.receiver.lock().await;
+    lock.recv().await
+  };
+  while let Some(params) = x().await {
+    send_email_internal(
+      params.subject,
+      params.to_email,
+      params.to_username,
+      params.html,
+      params.settings,
+    );
+  }
+  Ok(())
+}
+
+fn send_email_internal(
   subject: String,
   to_email: SensitiveString,
   to_username: String,
@@ -67,5 +105,5 @@ pub(crate) fn send_email(
       .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
 
     Ok(())
-  })
+  });
 }

@@ -4,7 +4,11 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  error::LemmyResult,
+  settings::structs::Settings,
+  utils::markdown::markdown_to_html,
+};
 
 pub enum NotificationEmailData<'a> {
   Mention {
@@ -36,9 +40,9 @@ pub fn send_notification_email(
   link: DbUrl,
   data: NotificationEmailData,
   settings: &'static Settings,
-) {
+) -> LemmyResult<()> {
   if local_user_view.banned || !local_user_view.local_user.send_notifications_to_email {
-    return;
+    return Ok(());
   }
 
   let inbox_link = inbox_link(settings);
@@ -117,6 +121,7 @@ pub fn send_notification_email(
       local_user_view.person.name,
       body,
       settings,
-    );
+    )?;
   }
+  Ok(())
 }

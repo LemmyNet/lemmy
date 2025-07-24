@@ -237,6 +237,7 @@ lemmy_api_utils = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_federate = { workspace = true }
 lemmy_db_views_site = { workspace = true }
+lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
