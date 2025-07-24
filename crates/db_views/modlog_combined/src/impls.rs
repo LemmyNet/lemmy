@@ -636,7 +636,11 @@ mod tests {
       instance::Instance,
       mod_log::{
         admin::{
+          AdminAdd,
+          AdminAddForm,
           AdminAllowInstanceForm,
+          AdminBan,
+          AdminBanForm,
           AdminBlockInstance,
           AdminBlockInstanceForm,
           AdminPurgeComment,
@@ -647,14 +651,10 @@ mod tests {
           AdminPurgePersonForm,
           AdminPurgePost,
           AdminPurgePostForm,
-        },
-        moderator::{
-          AdminAdd,
-          AdminAddForm,
-          AdminBan,
-          AdminBanForm,
           AdminRemoveCommunity,
           AdminRemoveCommunityForm,
+        },
+        moderator::{
           ModAddToCommunity,
           ModAddToCommunityForm,
           ModBanFromCommunity,

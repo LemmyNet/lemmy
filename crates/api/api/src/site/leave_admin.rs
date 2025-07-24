@@ -6,7 +6,7 @@ use lemmy_db_schema::{
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::moderator::{AdminAdd, AdminAddForm},
+    mod_log::admin::{AdminAdd, AdminAddForm},
     oauth_provider::OAuthProvider,
     tagline::Tagline,
   },

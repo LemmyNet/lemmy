@@ -3,7 +3,7 @@ use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::moderator::{AdminAdd, AdminAddForm},
+    mod_log::admin::{AdminAdd, AdminAddForm},
   },
   traits::Crud,
 };

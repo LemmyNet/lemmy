@@ -14,13 +14,9 @@ use lemmy_db_schema::{
     comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::moderator::{
-      AdminRemoveCommunity,
-      AdminRemoveCommunityForm,
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemovePost,
-      ModRemovePostForm,
+    mod_log::{
+      admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
+      moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
     },
     post::{Post, PostUpdateForm},
     post_report::PostReport,

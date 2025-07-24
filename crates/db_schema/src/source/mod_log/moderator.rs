@@ -1,10 +1,6 @@
 use crate::newtypes::{
-  AdminAddId,
-  AdminBanId,
-  AdminRemoveCommunityId,
   CommentId,
   CommunityId,
-  InstanceId,
   ModAddToCommunityId,
   ModBanFromCommunityId,
   ModChangeCommunityVisibilityId,
@@ -20,9 +16,6 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::CommunityVisibility;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{
-  admin_add,
-  admin_ban,
-  admin_remove_community,
   mod_add_to_community,
   mod_ban_from_community,
   mod_change_community_visibility,
@@ -140,32 +133,6 @@ pub struct ModRemoveCommentForm {
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_remove_community))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// When a moderator removes a community.
-pub struct AdminRemoveCommunity {
-  pub id: AdminRemoveCommunityId,
-  pub mod_person_id: PersonId,
-  pub community_id: CommunityId,
-  pub reason: Option<String>,
-  pub removed: bool,
-  pub published_at: DateTime<Utc>,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_remove_community))]
-pub struct AdminRemoveCommunityForm {
-  pub mod_person_id: PersonId,
-  pub community_id: CommunityId,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-}
-
-#[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_ban_from_community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -193,25 +160,6 @@ pub struct ModBanFromCommunityForm {
   pub expires_at: Option<DateTime<Utc>>,
 }
 
-#[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_ban))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// When someone is banned from the site.
-pub struct AdminBan {
-  pub id: AdminBanId,
-  pub mod_person_id: PersonId,
-  pub other_person_id: PersonId,
-  pub reason: Option<String>,
-  pub banned: bool,
-  pub expires_at: Option<DateTime<Utc>>,
-  pub published_at: DateTime<Utc>,
-  pub instance_id: InstanceId,
-}
-
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_change_community_visibility))]
 pub struct ModChangeCommunityVisibilityForm {
@@ -233,17 +181,6 @@ pub struct ModChangeCommunityVisibility {
   pub mod_person_id: PersonId,
   pub published_at: DateTime<Utc>,
   pub visibility: CommunityVisibility,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_ban))]
-pub struct AdminBanForm {
-  pub mod_person_id: PersonId,
-  pub other_person_id: PersonId,
-  pub reason: Option<String>,
-  pub banned: Option<bool>,
-  pub expires_at: Option<DateTime<Utc>>,
-  pub instance_id: InstanceId,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -292,27 +229,4 @@ pub struct ModTransferCommunityForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_add))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// When someone is added as a site admin.
-pub struct AdminAdd {
-  pub id: AdminAddId,
-  pub mod_person_id: PersonId,
-  pub other_person_id: PersonId,
-  pub removed: bool,
-  pub published_at: DateTime<Utc>,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = admin_add))]
-pub struct AdminAddForm {
-  pub mod_person_id: PersonId,
-  pub other_person_id: PersonId,
-  pub removed: Option<bool>,
 }

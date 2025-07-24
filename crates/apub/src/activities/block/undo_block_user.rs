@@ -28,7 +28,10 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::moderator::{AdminBan, AdminBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::{
+      admin::{AdminBan, AdminBanForm},
+      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    },
   },
   traits::{Bannable, Crud},
 };

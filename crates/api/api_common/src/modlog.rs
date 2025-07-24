@@ -23,17 +23,17 @@ pub use lemmy_db_schema::{
     combined::modlog::ModlogCombined,
     mod_log::{
       admin::{
+        AdminAdd,
         AdminAllowInstance,
+        AdminBan,
         AdminBlockInstance,
         AdminPurgeComment,
         AdminPurgeCommunity,
         AdminPurgePerson,
         AdminPurgePost,
+        AdminRemoveCommunity,
       },
       moderator::{
-        AdminAdd,
-        AdminBan,
-        AdminRemoveCommunity,
         ModAddToCommunity,
         ModBanFromCommunity,
         ModChangeCommunityVisibility,

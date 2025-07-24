@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::moderator::{AdminRemoveCommunity, AdminRemoveCommunityForm},
+    mod_log::admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
   },
   traits::{Crud, Reportable},
 };
