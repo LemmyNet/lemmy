@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-instance-user-blocking.6
-        version: 1.0.0-instance-user-blocking.6
+        specifier: 1.0.0-instance-user-blocking.7
+        version: 1.0.0-instance-user-blocking.7
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1637,8 +1637,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-instance-user-blocking.6:
-    resolution: {integrity: sha512-/umcgW3GU604j0BOS76ocXcrFIRSS/pYZrJNmKv4voNaOfPi8koJWy5beExXbkASK2IqeQ8UBAe4mLchSuHb6w==}
+  lemmy-js-client@1.0.0-instance-user-blocking.7:
+    resolution: {integrity: sha512-uLVpu7jgpJGERCrBgSKrsvLIrk1q24EIZ/VAieYTbXWEwWqu7eQ/1nPk95AQfv0koVjxDjlSub6AzDt84/Qd6w==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4327,7 +4327,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-instance-user-blocking.6:
+  lemmy-js-client@1.0.0-instance-user-blocking.7:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

@@ -41,7 +41,6 @@ import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowI
 import {
   CommunityReport,
   CommunityReportView,
-  CommunityView,
   EditCommunity,
   FollowMultiCommunity,
   GetPosts,

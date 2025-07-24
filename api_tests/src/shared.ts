@@ -23,7 +23,6 @@ import {
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
@@ -32,6 +31,7 @@ import {
   UserBlockInstanceCommunitiesParams,
   ListNotifications,
   ListNotificationsResponse,
+  NotificationDataType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -386,7 +386,7 @@ export async function getUnreadCount(
 
 export async function listNotifications(
   api: LemmyHttp,
-  type_?: InboxDataType,
+  type_?: NotificationDataType,
   unread_only: boolean = false,
 ): Promise<ListNotificationsResponse> {
   let form: ListNotifications = {
