@@ -4,6 +4,39 @@
 -- Because of a postgres bug, you can't assign this to a new enum value,
 -- unless you run an unsafe commit first. So just use active.
 -- https://dba.stackexchange.com/questions/280371/postgres-unsafe-use-of-new-value-of-enum-type
+--
+-- Disable the triggers temporarily
+ALTER TABLE local_user DISABLE TRIGGER ALL;
+
+ALTER TABLE local_site DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_user');
+
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
+
 UPDATE
     local_user
 SET
@@ -66,4 +99,41 @@ ALTER TABLE local_user
 
 ALTER TABLE local_site
     ADD COLUMN default_post_time_range_seconds integer;
+
+-- Re-enable the triggers
+ALTER TABLE local_user ENABLE TRIGGER ALL;
+
+ALTER TABLE local_site ENABLE TRIGGER ALL;
+
+-- re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_user');
+
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'local_site');
+
+-- reindex
+REINDEX TABLE local_user;
+
+REINDEX TABLE local_site;
 

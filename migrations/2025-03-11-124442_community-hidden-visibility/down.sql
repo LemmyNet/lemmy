@@ -8,18 +8,18 @@ ALTER TABLE community
     ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public',
     ADD COLUMN description_new varchar(150),
     ADD COLUMN random_number_new smallint NOT NULL DEFAULT random_smallint (),
-    ADD COLUMN subscribers_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN posts_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN comments_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_day_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_week_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_month_new bigint NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_half_year_new bigint NOT NULL DEFAULT 0,
+    ADD COLUMN subscribers_new int NOT NULL DEFAULT 0,
+    ADD COLUMN posts_new int NOT NULL DEFAULT 0,
+    ADD COLUMN comments_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_day_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_week_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_month_new int NOT NULL DEFAULT 0,
+    ADD COLUMN users_active_half_year_new int NOT NULL DEFAULT 0,
     ADD COLUMN hot_rank_new double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN subscribers_local_new bigint NOT NULL DEFAULT 0,
+    ADD COLUMN subscribers_local_new int NOT NULL DEFAULT 0,
     ADD COLUMN report_count_new smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count_new smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month_new bigint NOT NULL DEFAULT 0;
+    ADD COLUMN interactions_month_new int NOT NULL DEFAULT 0;
 
 UPDATE
     community
@@ -61,10 +61,6 @@ SET
         report_count,
         unresolved_report_count,
         interactions_month);
-
-SET CONSTRAINTS community_instance_id_fkey IMMEDIATE;
-
-SET CONSTRAINTS community_instance_id_fkey DEFERRED;
 
 ALTER TABLE community
     ALTER COLUMN instance_id_new SET NOT NULL,
@@ -129,7 +125,7 @@ ALTER TABLE community RENAME COLUMN interactions_month_new TO interactions_month
 ALTER TABLE community
     ADD CONSTRAINT community_featured_url_key UNIQUE (featured_url),
     ADD CONSTRAINT community_moderators_url_key UNIQUE (moderators_url),
-    ADD CONSTRAINT community_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT community_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- same changes as up.sql, but the other way round
 UPDATE

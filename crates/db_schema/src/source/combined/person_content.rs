@@ -18,8 +18,22 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", cursor_keys_module(name = person_content_combined_keys))]
 /// A combined table for a persons contents (posts and comments)
 pub struct PersonContentCombined {
-  pub id: PersonContentCombinedId,
   pub published_at: DateTime<Utc>,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
+  pub id: PersonContentCombinedId,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_content_combined))]
+pub struct PersonContentCombinedPostInsertForm {
+  pub post_id: PostId,
+  pub published_at: DateTime<Utc>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_content_combined))]
+pub struct PersonContentCombinedCommentInsertForm {
+  pub comment_id: CommentId,
+  pub published_at: DateTime<Utc>,
 }

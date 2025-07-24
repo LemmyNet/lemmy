@@ -6,7 +6,7 @@ use diesel::{
   dsl::{count, exists, not, update, IntervalDsl},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{Integer, Timestamptz},
+  sql_types::{BigInt, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -47,7 +47,10 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  DB_BATCH_SIZE,
+};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -140,12 +143,12 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
 async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating hot ranks for all history...");
 
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
-  process_post_aggregates_ranks_in_batches(&mut conn).await?;
+  process_post_aggregates_ranks_in_batches(conn).await?;
 
   process_ranks_in_batches(
-    &mut conn,
+    conn,
     "comment",
     "a.hot_rank != 0",
     "SET hot_rank = r.hot_rank(a.score, a.published_at)",
@@ -153,7 +156,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   .await?;
 
   process_ranks_in_batches(
-    &mut conn,
+    conn,
     "community",
     "a.hot_rank != 0",
     "SET hot_rank = r.hot_rank(a.subscribers, a.published_at)",
@@ -182,7 +185,6 @@ async fn process_ranks_in_batches(
 ) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -200,7 +202,7 @@ async fn process_ranks_in_batches(
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -222,7 +224,6 @@ async fn process_ranks_in_batches(
 async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -245,7 +246,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -263,12 +264,12 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 }
 
 async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     captcha_answer::table.filter(captcha_answer::published_at.lt(now() - IntervalDsl::minutes(10))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
 
@@ -278,19 +279,19 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()
 /// Clear old activities (this table gets very large)
 async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Clearing old activities...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     sent_activity::table.filter(sent_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
 
   diesel::delete(
     received_activity::table
       .filter(received_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
   Ok(())
@@ -305,7 +306,7 @@ async fn delete_old_denied_users(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 /// overwrite posts and comments 30d after deletion
 async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Overwriting deleted posts...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::update(
     post::table
@@ -317,7 +318,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
     post::body.eq(DELETED_REPLACEMENT_TEXT),
     post::name.eq(DELETED_REPLACEMENT_TEXT),
   ))
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
 
   info!("Overwriting deleted comments...");
@@ -328,7 +329,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
   Ok(())
@@ -338,7 +339,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
 async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating active site and community aggregates ...");
 
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   let intervals = vec![
     ("1 day", "day"),
@@ -352,20 +353,16 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
       "update local_site set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
-    sql_query(update_site_stmt).execute(&mut conn).await?;
+    sql_query(update_site_stmt).execute(conn).await?;
 
     let update_community_stmt = format!("update community ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.id = mv.community_id_", abbr, full_form);
-    sql_query(update_community_stmt).execute(&mut conn).await?;
+    sql_query(update_community_stmt).execute(conn).await?;
   }
 
   let update_interactions_stmt = "update community ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.id = mv.community_id_";
-  sql_query(update_interactions_stmt)
-    .execute(&mut conn)
-    .await?;
+  sql_query(update_interactions_stmt).execute(conn).await?;
 
-  let mut conn = get_conn(pool).await?;
-
-  let user_count: i64 = local_user::table
+  let user_count = local_user::table
     .inner_join(
       person::table.left_join(
         instance_actions::table
@@ -378,12 +375,13 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .filter(instance_actions::received_ban_at.is_null())
     .filter(not(person::deleted))
     .select(count(local_user::id))
-    .get_result(&mut conn)
-    .await?;
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
 
   update(local_site::table)
-    .set((local_site::users.eq(user_count),))
-    .execute(&mut conn)
+    .set(local_site::users.eq(user_count))
+    .execute(conn)
     .await?;
 
   info!("Done.");
@@ -393,20 +391,20 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 /// Set banned to false after ban expires
 async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   uplete(community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())))
     .set_null(community_actions::received_ban_at)
     .set_null(community_actions::ban_expires_at)
     .as_query()
-    .execute(&mut conn)
+    .execute(conn)
     .await?;
 
   uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
     .set_null(instance_actions::received_ban_at)
     .set_null(instance_actions::ban_expires_at)
     .as_query()
-    .execute(&mut conn)
+    .execute(conn)
     .await?;
   Ok(())
 }
@@ -414,12 +412,12 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 /// Set banned to false after ban expires
 async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Delete instance blocks when expired ...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   Ok(())
 }
@@ -428,7 +426,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()> {
   let pool = &mut context.pool();
   let local_instance_id = SiteView::read_local(pool).await?.instance.id;
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   let not_community_banned_action = community_actions::table
     .find((person::id, community::id))
@@ -453,7 +451,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
     .select((post::all_columns, community::all_columns))
-    .get_results::<(Post, Community)>(&mut conn)
+    .get_results::<(Post, Community)>(conn)
     .await?;
 
   for (post, community) in scheduled_posts {
@@ -483,9 +481,9 @@ async fn update_instance_software(
   client: &ClientWithMiddleware,
 ) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
-  let instances = instance::table.get_results::<Instance>(&mut conn).await?;
+  let instances = instance::table.get_results::<Instance>(conn).await?;
 
   for instance in instances {
     if let Some(form) = build_update_instance_form(&instance.domain, client).await {

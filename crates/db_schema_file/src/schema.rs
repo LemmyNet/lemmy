@@ -246,8 +246,8 @@ diesel::table! {
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
-        community_id -> Int4,
         person_id -> Int4,
+        community_id -> Int4,
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
@@ -255,9 +255,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_community_follow (target_id, community_id) {
+    community_community_follow (community_id, target_id) {
         target_id -> Int4,
         community_id -> Int4,
+        published_at -> Timestamptz,
     }
 }
 
@@ -440,14 +441,14 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         disallow_nsfw_content -> Bool,
-        users -> Int8,
-        posts -> Int8,
-        comments -> Int8,
-        communities -> Int8,
-        users_active_day -> Int8,
-        users_active_week -> Int8,
-        users_active_month -> Int8,
-        users_active_half_year -> Int8,
+        users -> Int4,
+        posts -> Int4,
+        comments -> Int4,
+        communities -> Int4,
+        users_active_day -> Int4,
+        users_active_week -> Int4,
+        users_active_month -> Int4,
+        users_active_half_year -> Int4,
         disable_email_notifications -> Bool,
         suggested_communities -> Nullable<Int4>,
         multi_comm_follower -> Int4,
@@ -843,8 +844,8 @@ diesel::table! {
         blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
         voted_at -> Nullable<Timestamptz>,
-        target_id -> Int4,
         person_id -> Int4,
+        target_id -> Int4,
         upvotes -> Nullable<Int4>,
         downvotes -> Nullable<Int4>,
         note -> Nullable<Text>,
@@ -854,10 +855,10 @@ diesel::table! {
 
 diesel::table! {
     person_content_combined (id) {
-        id -> Int4,
         published_at -> Timestamptz,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
     }
 }
 
@@ -868,17 +869,18 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
         like_score_is_positive -> Bool,
     }
 }
 
 diesel::table! {
     person_saved_combined (id) {
-        id -> Int4,
         saved_at -> Timestamptz,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
+        id -> Int4,
     }
 }
 
@@ -934,8 +936,8 @@ diesel::table! {
         saved_at -> Nullable<Timestamptz>,
         liked_at -> Nullable<Timestamptz>,
         hidden_at -> Nullable<Timestamptz>,
-        post_id -> Int4,
         person_id -> Int4,
+        post_id -> Int4,
         read_comments_amount -> Nullable<Int4>,
         notifications -> Nullable<PostNotificationsModeEnum>,
         like_score_is_positive -> Nullable<Bool>,
@@ -1036,13 +1038,13 @@ diesel::table! {
 
 diesel::table! {
     search_combined (id) {
-        id -> Int4,
         published_at -> Timestamptz,
         score -> Nullable<Int4>,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         person_id -> Nullable<Int4>,
+        id -> Int4,
         multi_community_id -> Nullable<Int4>,
     }
 }

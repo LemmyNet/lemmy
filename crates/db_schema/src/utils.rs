@@ -50,7 +50,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, OnceLock},
+  sync::Arc,
   time::Duration,
 };
 use tracing::error;
@@ -62,8 +62,6 @@ pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
-/// Some connection options to speed up queries
-const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
@@ -370,38 +368,8 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   }
 }
 
-/// Sets a few additional config options necessary for starting lemmy
-fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
-  let mut url = Url::parse(config)?;
-
-  // Set `lemmy.protocol_and_hostname` so triggers can use it
-  let lemmy_protocol_and_hostname_option =
-    "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
-  let mut options = CONNECTION_OPTIONS.to_vec();
-  options.push(&lemmy_protocol_and_hostname_option);
-
-  // Create the connection uri portion
-  let options_segments = options
-    .iter()
-    .map(|o| "-c ".to_owned() + o)
-    .collect::<Vec<String>>()
-    .join(" ");
-
-  url.set_query(Some(&format!("options={options_segments}")));
-  Ok(url.into())
-}
-
 fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    /// Use a once_lock to create the postgres connection config, since this config never changes
-    static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
-
-    let config = POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| {
-      build_config_options_uri_segment(config)
-        .inspect_err(|e| error!("Couldn't parse postgres connection URI: {e}"))
-        .unwrap_or_default()
-    });
-
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
       let rustls_config = DangerousClientConfigBuilder {
@@ -481,7 +449,7 @@ impl ServerCertVerifier for NoCertVerifier {
 }
 
 pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
-  let db_url = SETTINGS.get_database_url();
+  let db_url = SETTINGS.get_database_url_with_options()?;
   // diesel-async does not support any TLS connections out of the box, so we need to manually
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
@@ -515,16 +483,16 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
 }
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamptz};
+  use diesel::sql_types::{Int4, Text, Timestamptz};
 
   define_sql_function! {
     #[sql_name = "r.hot_rank"]
-    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
+    fn hot_rank(score: Int4, time: Timestamptz) -> Double;
   }
 
   define_sql_function! {
     #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
+    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Double;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);

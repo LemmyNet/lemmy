@@ -1,28 +1,14 @@
 -- Creates combined tables for
 -- person_liked: (comment, post)
---
 -- This one is special, because you use the liked date, not the ordinary published
-CREATE TABLE person_liked_combined (
-    id serial PRIMARY KEY,
-    liked timestamptz NOT NULL,
-    like_score smallint NOT NULL,
-    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
-);
-
-CREATE INDEX idx_person_liked_combined_published ON person_liked_combined (liked DESC, id DESC);
-
-CREATE INDEX idx_person_liked_combined ON person_liked_combined (person_id);
-
 -- Updating the history
-INSERT INTO person_liked_combined (liked, like_score, person_id, post_id, comment_id)
+CREATE TABLE person_liked_combined AS
 SELECT
     pa.liked,
     pa.like_score,
     pa.person_id,
     pa.post_id,
-    NULL::int
+    NULL::int AS comment_id
 FROM
     post_actions pa
     INNER JOIN person p ON pa.person_id = p.id
@@ -43,12 +29,17 @@ WHERE
     liked IS NOT NULL
     AND p.local = TRUE;
 
--- Make sure only one of the columns is not null
 ALTER TABLE person_liked_combined
-    ADD CONSTRAINT person_liked_combined_person_id_comment_id_key UNIQUE (person_id, comment_id),
-    ADD CONSTRAINT person_liked_combined_person_id_post_id_key UNIQUE (person_id, post_id),
-    ADD CONSTRAINT person_liked_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1),
-    ALTER CONSTRAINT person_liked_combined_person_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_liked_combined_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_liked_combined_comment_id_fkey NOT DEFERRABLE;
+    ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN liked SET NOT NULL,
+    ALTER COLUMN like_score SET NOT NULL,
+    ALTER COLUMN person_id SET NOT NULL,
+    ADD CONSTRAINT person_liked_combined_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_liked_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT person_liked_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD UNIQUE (person_id, post_id),
+    ADD UNIQUE (person_id, comment_id),
+    ADD CONSTRAINT person_liked_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
+
+CREATE INDEX idx_person_liked_combined ON person_liked_combined (person_id);
 

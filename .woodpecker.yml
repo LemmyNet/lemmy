@@ -334,8 +334,7 @@ steps:
 
 services:
   database:
-    # 15-alpine image necessary because of diesel tests
-    image: pgautoupgrade/pgautoupgrade:15-alpine
+    image: pgautoupgrade/pgautoupgrade:16-alpine
     environment:
       POSTGRES_DB: lemmy
       POSTGRES_USER: postgres

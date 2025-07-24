@@ -8,6 +8,6 @@ use url::Url;
 pub struct GroupOutbox {
   pub(crate) r#type: OrderedCollectionType,
   pub(crate) id: Url,
-  pub(crate) total_items: i64,
+  pub(crate) total_items: i32,
   pub(crate) ordered_items: Vec<AnnounceActivity>,
 }
