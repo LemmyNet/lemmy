@@ -526,16 +526,20 @@ pub async fn purge_post_images(
 }
 
 /// Delete local images attributed to a person
-async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
+fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) {
+  let context_ = context.clone();
+  spawn_try_task(async move {
+    let pictrs_uploads =
+      LocalImageView::get_all_by_person_id(&mut context_.pool(), person_id).await?;
 
-  // Delete their images
-  for upload in pictrs_uploads {
-    delete_image_alias(&upload.local_image.pictrs_alias, context)
-      .await
-      .ok();
-  }
-  Ok(())
+    // Delete their images
+    for upload in pictrs_uploads {
+      delete_image_alias(&upload.local_image.pictrs_alias, &context_)
+        .await
+        .ok();
+    }
+    Ok(())
+  });
 }
 
 /// Removes or restores user data.
@@ -550,7 +554,7 @@ pub async fn remove_or_restore_user_data(
 
   // These actions are only possible when removing, not restoring
   if removed {
-    delete_local_user_images(banned_person_id, context).await?;
+    delete_local_user_images(banned_person_id, context);
 
     // Update the fields to None
     Person::update(
@@ -737,7 +741,7 @@ pub async fn purge_user_account(
 
   // Delete their local images, if they're a local user
   // No need to update avatar and banner, those are handled in Person::delete_account
-  delete_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(person_id, context);
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
