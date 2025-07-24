@@ -13,10 +13,10 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityUpdateForm},
     mod_log::moderator::{
+      AdminRemoveCommunity,
+      AdminRemoveCommunityForm,
       ModRemoveComment,
       ModRemoveCommentForm,
-      ModRemoveCommunity,
-      ModRemoveCommunityForm,
       ModRemovePost,
       ModRemovePostForm,
     },
@@ -93,13 +93,13 @@ impl UndoDelete {
         if community.local {
           Err(FederationError::OnlyLocalAdminCanRestoreCommunity)?
         }
-        let form = ModRemoveCommunityForm {
+        let form = AdminRemoveCommunityForm {
           mod_person_id: actor.id,
           community_id: community.id,
           removed: Some(false),
           reason: None,
         };
-        ModRemoveCommunity::create(&mut context.pool(), &form).await?;
+        AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(
           &mut context.pool(),
           community.id,

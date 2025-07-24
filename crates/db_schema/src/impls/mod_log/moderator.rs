@@ -1,24 +1,26 @@
 use crate::{
   newtypes::{
-    ModAddCommunityId,
-    ModAddId,
+    AdminAddId,
+    AdminBanId,
+    AdminRemoveCommunityId,
+    ModAddToCommunityId,
     ModBanFromCommunityId,
-    ModBanId,
     ModChangeCommunityVisibilityId,
     ModFeaturePostId,
     ModLockPostId,
     ModRemoveCommentId,
-    ModRemoveCommunityId,
     ModRemovePostId,
     ModTransferCommunityId,
   },
   source::mod_log::moderator::{
-    ModAdd,
-    ModAddCommunity,
-    ModAddCommunityForm,
-    ModAddForm,
-    ModBan,
-    ModBanForm,
+    AdminAdd,
+    AdminAddForm,
+    AdminBan,
+    AdminBanForm,
+    AdminRemoveCommunity,
+    AdminRemoveCommunityForm,
+    ModAddToCommunity,
+    ModAddToCommunityForm,
     ModBanFromCommunity,
     ModBanFromCommunityForm,
     ModChangeCommunityVisibility,
@@ -29,8 +31,6 @@ use crate::{
     ModLockPostForm,
     ModRemoveComment,
     ModRemoveCommentForm,
-    ModRemoveCommunity,
-    ModRemoveCommunityForm,
     ModRemovePost,
     ModRemovePostForm,
     ModTransferCommunity,
@@ -42,15 +42,15 @@ use crate::{
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
-  mod_add,
-  mod_add_community,
-  mod_ban,
+  admin_add,
+  admin_ban,
+  admin_remove_community,
+  mod_add_to_community,
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
   mod_lock_post,
   mod_remove_comment,
-  mod_remove_community,
   mod_remove_post,
   mod_transfer_community,
 };
@@ -196,14 +196,14 @@ impl ModRemoveComment {
   }
 }
 
-impl Crud for ModRemoveCommunity {
-  type InsertForm = ModRemoveCommunityForm;
-  type UpdateForm = ModRemoveCommunityForm;
-  type IdType = ModRemoveCommunityId;
+impl Crud for AdminRemoveCommunity {
+  type InsertForm = AdminRemoveCommunityForm;
+  type UpdateForm = AdminRemoveCommunityForm;
+  type IdType = AdminRemoveCommunityId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_community::table)
+    insert_into(admin_remove_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -216,7 +216,7 @@ impl Crud for ModRemoveCommunity {
     form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_remove_community::table.find(from_id))
+    diesel::update(admin_remove_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -252,14 +252,14 @@ impl Crud for ModBanFromCommunity {
   }
 }
 
-impl Crud for ModBan {
-  type InsertForm = ModBanForm;
-  type UpdateForm = ModBanForm;
-  type IdType = ModBanId;
+impl Crud for AdminBan {
+  type InsertForm = AdminBanForm;
+  type UpdateForm = AdminBanForm;
+  type IdType = AdminBanId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_ban::table)
+    insert_into(admin_ban::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -272,7 +272,7 @@ impl Crud for ModBan {
     form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_ban::table.find(from_id))
+    diesel::update(admin_ban::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -308,14 +308,14 @@ impl Crud for ModChangeCommunityVisibility {
   }
 }
 
-impl Crud for ModAddCommunity {
-  type InsertForm = ModAddCommunityForm;
-  type UpdateForm = ModAddCommunityForm;
-  type IdType = ModAddCommunityId;
+impl Crud for ModAddToCommunity {
+  type InsertForm = ModAddToCommunityForm;
+  type UpdateForm = ModAddToCommunityForm;
+  type IdType = ModAddToCommunityId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_add_community::table)
+    insert_into(mod_add_to_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -328,7 +328,7 @@ impl Crud for ModAddCommunity {
     form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_add_community::table.find(from_id))
+    diesel::update(mod_add_to_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -364,14 +364,14 @@ impl Crud for ModTransferCommunity {
   }
 }
 
-impl Crud for ModAdd {
-  type InsertForm = ModAddForm;
-  type UpdateForm = ModAddForm;
-  type IdType = ModAddId;
+impl Crud for AdminAdd {
+  type InsertForm = AdminAddForm;
+  type UpdateForm = AdminAddForm;
+  type IdType = AdminAddId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_add::table)
+    insert_into(admin_add::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -384,7 +384,7 @@ impl Crud for ModAdd {
     form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_add::table.find(from_id))
+    diesel::update(admin_add::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -530,23 +530,23 @@ mod tests {
 
     // community
 
-    let mod_remove_community_form = ModRemoveCommunityForm {
+    let admin_remove_community_form = AdminRemoveCommunityForm {
       mod_person_id: inserted_mod.id,
       community_id: inserted_community.id,
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_community =
-      ModRemoveCommunity::create(pool, &mod_remove_community_form).await?;
+    let inserted_admin_remove_community =
+      AdminRemoveCommunity::create(pool, &admin_remove_community_form).await?;
     let read_mod_remove_community =
-      ModRemoveCommunity::read(pool, inserted_mod_remove_community.id).await?;
-    let expected_mod_remove_community = ModRemoveCommunity {
-      id: inserted_mod_remove_community.id,
+      AdminRemoveCommunity::read(pool, inserted_admin_remove_community.id).await?;
+    let expected_admin_remove_community = AdminRemoveCommunity {
+      id: inserted_admin_remove_community.id,
       community_id: inserted_community.id,
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      published_at: inserted_mod_remove_community.published_at,
+      published_at: inserted_admin_remove_community.published_at,
     };
 
     // ban from community
@@ -576,7 +576,7 @@ mod tests {
 
     // ban
 
-    let mod_ban_form = ModBanForm {
+    let admin_ban_form = AdminBanForm {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       reason: None,
@@ -584,53 +584,55 @@ mod tests {
       expires_at: None,
       instance_id: inserted_instance.id,
     };
-    let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await?;
-    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await?;
-    let expected_mod_ban = ModBan {
-      id: inserted_mod_ban.id,
+    let inserted_admin_ban = AdminBan::create(pool, &admin_ban_form).await?;
+    let read_mod_ban = AdminBan::read(pool, inserted_admin_ban.id).await?;
+    let expected_admin_ban = AdminBan {
+      id: inserted_admin_ban.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       reason: None,
       banned: true,
       expires_at: None,
-      published_at: inserted_mod_ban.published_at,
+      published_at: inserted_admin_ban.published_at,
       instance_id: inserted_instance.id,
     };
 
     // mod add community
 
-    let mod_add_community_form = ModAddCommunityForm {
+    let mod_add_to_community_form = ModAddToCommunityForm {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       community_id: inserted_community.id,
       removed: None,
     };
-    let inserted_mod_add_community = ModAddCommunity::create(pool, &mod_add_community_form).await?;
-    let read_mod_add_community = ModAddCommunity::read(pool, inserted_mod_add_community.id).await?;
-    let expected_mod_add_community = ModAddCommunity {
-      id: inserted_mod_add_community.id,
+    let inserted_mod_add_to_community =
+      ModAddToCommunity::create(pool, &mod_add_to_community_form).await?;
+    let read_mod_add_to_community =
+      ModAddToCommunity::read(pool, inserted_mod_add_to_community.id).await?;
+    let expected_mod_add_to_community = ModAddToCommunity {
+      id: inserted_mod_add_to_community.id,
       community_id: inserted_community.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      published_at: inserted_mod_add_community.published_at,
+      published_at: inserted_mod_add_to_community.published_at,
     };
 
-    // mod add
+    // admin add
 
-    let mod_add_form = ModAddForm {
+    let admin_add_form = AdminAddForm {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: None,
     };
-    let inserted_mod_add = ModAdd::create(pool, &mod_add_form).await?;
-    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id).await?;
-    let expected_mod_add = ModAdd {
-      id: inserted_mod_add.id,
+    let inserted_admin_add = AdminAdd::create(pool, &admin_add_form).await?;
+    let read_mod_add = AdminAdd::read(pool, inserted_admin_add.id).await?;
+    let expected_admin_add = AdminAdd {
+      id: inserted_admin_add.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      published_at: inserted_mod_add.published_at,
+      published_at: inserted_admin_add.published_at,
     };
 
     Comment::delete(pool, inserted_comment.id).await?;
@@ -644,11 +646,11 @@ mod tests {
     assert_eq!(expected_mod_lock_post, read_mod_lock_post);
     assert_eq!(expected_mod_feature_post, read_mod_feature_post);
     assert_eq!(expected_mod_remove_comment, read_mod_remove_comment);
-    assert_eq!(expected_mod_remove_community, read_mod_remove_community);
+    assert_eq!(expected_admin_remove_community, read_mod_remove_community);
     assert_eq!(expected_mod_ban_from_community, read_mod_ban_from_community);
-    assert_eq!(expected_mod_ban, read_mod_ban);
-    assert_eq!(expected_mod_add_community, read_mod_add_community);
-    assert_eq!(expected_mod_add, read_mod_add);
+    assert_eq!(expected_admin_ban, read_mod_ban);
+    assert_eq!(expected_mod_add_to_community, read_mod_add_to_community);
+    assert_eq!(expected_admin_add, read_mod_add);
 
     Ok(())
   }

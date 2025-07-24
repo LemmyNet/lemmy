@@ -604,7 +604,7 @@ CALL r.create_modlog_combined_trigger ('admin_purge_person');
 CALL r.create_modlog_combined_trigger ('admin_purge_post');
 CALL r.create_modlog_combined_trigger ('admin_add');
 CALL r.create_modlog_combined_trigger ('mod_add_to_community');
-CALL r.create_modlog_combined_trigger ('admin_instance_ban');
+CALL r.create_modlog_combined_trigger ('admin_ban');
 CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
 CALL r.create_modlog_combined_trigger ('mod_change_community_visibility');
