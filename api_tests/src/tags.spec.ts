@@ -183,10 +183,10 @@ test("Create and update post tags", async () => {
   );
   alphaCommunity = communityRes.community_view;
   let updateRes = await alpha.modEditPost({
-    post_id: postRes.post_view.post.id,
+    post_id: alphaPost.post.id,
     tags: [alphaCommunity!.post_tags[0].id],
   });
-  expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
+  expect(updateRes.post_view.post.ap_id).toBe(postRes.post_view.post.ap_id);
   expect(updateRes.post_view.tags?.length).toBe(1);
   expect(updateRes.post_view.tags?.[0].id).toBe(
     alphaCommunity!.post_tags[0].id,
