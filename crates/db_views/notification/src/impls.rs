@@ -28,10 +28,12 @@ use lemmy_db_schema::{
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
       creator_local_user_admin_join,
+      filter_blocked,
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_persons_actions_join,
+      my_instance_communities_actions_join,
+      my_instance_persons_actions_join_1,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -42,15 +44,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::NotificationTypes,
-  schema::{
-    comment,
-    instance_actions,
-    notification,
-    person,
-    person_actions,
-    post,
-    private_message,
-  },
+  schema::{comment, notification, person, post, private_message},
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -107,8 +101,10 @@ impl NotificationView {
       my_comment_actions_join(Some(my_person.id));
     let my_local_user_admin_join: my_local_user_admin_join =
       my_local_user_admin_join(Some(my_person.id));
-    let my_instance_persons_actions_join: my_instance_persons_actions_join =
-      my_instance_persons_actions_join(Some(my_person_id));
+    let my_instance_communities_actions_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(Some(my_person.id));
+    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+      my_instance_persons_actions_join_1(Some(my_person.id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(my_person.instance_id);
@@ -127,7 +123,8 @@ impl NotificationView {
       .left_join(creator_local_instance_actions_join)
       .left_join(my_local_user_admin_join)
       .left_join(my_community_actions_join)
-      .left_join(my_instance_persons_actions_join)
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
@@ -150,8 +147,7 @@ impl NotificationView {
       // Filter unreads
       .filter(unread_filter)
       // Don't count replies from blocked users
-      .filter(person_actions::blocked_at.is_null())
-      .filter(instance_actions::blocked_at.is_null())
+      .filter(filter_blocked())
       .select(count(notification::id))
       .into_boxed();
 
@@ -242,9 +238,7 @@ impl NotificationQuery {
     };
 
     // Dont show replies from blocked users or instances
-    query = query
-      .filter(person_actions::blocked_at.is_null())
-      .filter(instance_actions::blocked_at.is_null());
+    query = query.filter(filter_blocked());
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -294,7 +288,8 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       community,
       creator: v.creator,
       community_actions: v.community_actions,
-      instance_actions: v.instance_actions,
+      instance_communities_actions: v.instance_communities_actions,
+      instance_persons_actions: v.instance_persons_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
       creator_is_admin: v.creator_is_admin,
@@ -311,7 +306,8 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator: v.creator,
       image_details: v.image_details,
       community_actions: v.community_actions,
-      instance_actions: v.instance_actions,
+      instance_communities_actions: v.instance_communities_actions,
+      instance_persons_actions: v.instance_persons_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,
       creator_is_admin: v.creator_is_admin,

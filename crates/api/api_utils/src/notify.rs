@@ -62,7 +62,10 @@ impl NotifyData<'_> {
     let pool = &mut context.pool();
     // TODO: this needs too many queries for each user
     PersonActions::read_block(pool, potential_blocker_id, self.post.creator_id).await?;
-    InstanceActions::read_block(pool, potential_blocker_id, self.community.instance_id).await?;
+    InstanceActions::read_communities_block(pool, potential_blocker_id, self.community.instance_id)
+      .await?;
+    InstanceActions::read_persons_block(pool, potential_blocker_id, self.creator.instance_id)
+      .await?;
     CommunityActions::read_block(pool, potential_blocker_id, self.post.community_id).await?;
     let post_notifications = PostActions::read(pool, self.post.id, potential_blocker_id)
       .await
@@ -300,7 +303,7 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
-      instance::{Instance, InstanceActions, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstancePersonsBlockForm},
       notification::{Notification, NotificationInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
@@ -732,21 +735,19 @@ mod tests {
 
     // Make sure instance_blocks are working
     let timmy_blocks_instance_form =
-      InstancePersonsBlockForm::new(data.timmy.id, data.sara.instance_id);
+      InstancePersonsBlockForm::new(data.timmy.person.id, data.sara.person.instance_id);
 
     let inserted_instance_block =
       InstanceActions::block_persons(pool, &timmy_blocks_instance_form).await?;
 
     assert_eq!(
-      (data.timmy.id, data.sara.instance_id, true),
+      (data.timmy.person.id, data.sara.person.instance_id, true),
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,
         inserted_instance_block.blocked_persons_at.is_some()
       )
     );
-    );
-    assert!(inserted_instance_block.blocked_at.is_some());
 
     let timmy_messages: Vec<_> = NotificationQuery {
       unread_only: Some(true),

@@ -233,9 +233,9 @@ impl InstanceActions {
   pub async fn unblock_communities(
     pool: &mut DbPool<'_>,
     form: &InstanceCommunitiesBlockForm,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+    uplete(instance_actions::table.find((form.person_id, form.instance_id)))
       .set_null(instance_actions::blocked_communities_at)
       .get_result(conn)
       .await
@@ -294,9 +294,9 @@ impl InstanceActions {
   pub async fn unblock_persons(
     pool: &mut DbPool<'_>,
     form: &InstancePersonsBlockForm,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+    uplete(instance_actions::table.find((form.person_id, form.instance_id)))
       .set_null(instance_actions::blocked_persons_at)
       .get_result(conn)
       .await
