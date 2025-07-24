@@ -1,6 +1,6 @@
 -- Add post aggregates
 CREATE TABLE post_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     comments bigint NOT NULL DEFAULT 0,
     score bigint NOT NULL DEFAULT 0,

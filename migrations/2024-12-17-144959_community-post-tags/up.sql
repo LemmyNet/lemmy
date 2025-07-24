@@ -4,7 +4,7 @@
 -- this will lead to either expansion of this table (community_id optional, addition of tag_type enum)
 -- or split of this table / creation of new tables.
 CREATE TABLE tag (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ap_id text NOT NULL UNIQUE,
     name varchar(255) NOT NULL,
     display_name varchar(255),

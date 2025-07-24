@@ -53,7 +53,7 @@ ALTER TABLE mod_transfer_community RENAME COLUMN when_ TO published;
 -- mod_remove_post
 -- mod_transfer_community
 CREATE TABLE modlog_combined (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     published timestamptz NOT NULL,
     admin_allow_instance_id int UNIQUE REFERENCES admin_allow_instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     admin_block_instance_id int UNIQUE REFERENCES admin_block_instance ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,

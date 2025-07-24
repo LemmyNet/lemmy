@@ -1,5 +1,5 @@
 CREATE TABLE multi_community (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     instance_id int NOT NULL REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
     name varchar(255) NOT NULL,

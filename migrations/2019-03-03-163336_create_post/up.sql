@@ -1,5 +1,5 @@
 CREATE TABLE post (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name varchar(100) NOT NULL,
     url text, -- These are both optional, a post can just have a title
     body text,
@@ -12,7 +12,7 @@ CREATE TABLE post (
 );
 
 CREATE TABLE post_like (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     score smallint NOT NULL, -- -1, or 1 for dislike, like, no row for no opinion
@@ -21,7 +21,7 @@ CREATE TABLE post_like (
 );
 
 CREATE TABLE post_saved (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),
@@ -29,7 +29,7 @@ CREATE TABLE post_saved (
 );
 
 CREATE TABLE post_read (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),

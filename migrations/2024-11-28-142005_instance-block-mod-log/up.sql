@@ -2,7 +2,7 @@ ALTER TABLE federation_blocklist
     ADD COLUMN expires timestamptz;
 
 CREATE TABLE admin_block_instance (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     instance_id int NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     admin_person_id int NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     blocked bool NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE admin_block_instance (
 );
 
 CREATE TABLE admin_allow_instance (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     instance_id int NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     admin_person_id int NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     allowed bool NOT NULL,

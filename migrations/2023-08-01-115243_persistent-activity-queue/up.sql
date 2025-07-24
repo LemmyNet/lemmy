@@ -20,7 +20,7 @@ ALTER TABLE sent_activity
     ALTER COLUMN actor_apub_id DROP DEFAULT;
 
 CREATE TABLE federation_queue_state (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     instance_id integer NOT NULL UNIQUE REFERENCES instance (id),
     last_successful_id bigint NOT NULL,
     fail_count integer NOT NULL,

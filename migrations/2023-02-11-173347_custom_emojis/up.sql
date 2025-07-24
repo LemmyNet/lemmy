@@ -1,5 +1,5 @@
 CREATE TABLE custom_emoji (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_site_id int REFERENCES local_site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     shortcode varchar(128) NOT NULL UNIQUE,
     image_url text NOT NULL UNIQUE,
@@ -10,7 +10,7 @@ CREATE TABLE custom_emoji (
 );
 
 CREATE TABLE custom_emoji_keyword (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     custom_emoji_id int REFERENCES custom_emoji ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     keyword varchar(128) NOT NULL,
     UNIQUE (custom_emoji_id, keyword)

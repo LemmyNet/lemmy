@@ -2,7 +2,7 @@ ALTER TABLE local_user
     ALTER COLUMN password_encrypted DROP NOT NULL;
 
 CREATE TABLE oauth_provider (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     display_name text NOT NULL,
     issuer text NOT NULL,
     authorization_endpoint text NOT NULL,

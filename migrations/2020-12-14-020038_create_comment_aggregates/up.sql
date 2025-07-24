@@ -1,6 +1,6 @@
 -- Add comment aggregates
 CREATE TABLE comment_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     score bigint NOT NULL DEFAULT 0,
     upvotes bigint NOT NULL DEFAULT 0,

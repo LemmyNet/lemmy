@@ -4,7 +4,7 @@ ALTER TABLE post
 
 -- Add the mod table
 CREATE TABLE mod_sticky_post (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     mod_user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     stickied boolean DEFAULT TRUE,

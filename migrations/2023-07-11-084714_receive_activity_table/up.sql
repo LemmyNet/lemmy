@@ -2,7 +2,7 @@
 -- we change data column from jsonb to json for decreased size
 -- https://stackoverflow.com/a/22910602
 CREATE TABLE sent_activity (
-    id bigserial PRIMARY KEY,
+    id bigINTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ap_id text UNIQUE NOT NULL,
     data json NOT NULL,
     sensitive boolean NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE sent_activity (
 
 -- incoming activities, we only need the id to avoid processing the same activity multiple times
 CREATE TABLE received_activity (
-    id bigserial PRIMARY KEY,
+    id bigINTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ap_id text UNIQUE NOT NULL,
     published timestamp NOT NULL DEFAULT now()
 );

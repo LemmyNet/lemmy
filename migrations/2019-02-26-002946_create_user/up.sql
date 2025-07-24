@@ -1,5 +1,5 @@
 CREATE TABLE user_ (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name varchar(20) NOT NULL,
     fedi_name varchar(40) NOT NULL,
     preferred_username varchar(20),
@@ -14,7 +14,7 @@ CREATE TABLE user_ (
 );
 
 CREATE TABLE user_ban (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),
     UNIQUE (user_id)

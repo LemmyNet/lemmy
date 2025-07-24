@@ -6,7 +6,7 @@
 -- Every comment should have a row here, because all comments have a recipient,
 -- either the post creator, or the parent commenter.
 CREATE TABLE comment_reply (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read boolean DEFAULT FALSE NOT NULL,

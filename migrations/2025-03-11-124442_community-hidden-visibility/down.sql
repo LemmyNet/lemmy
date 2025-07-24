@@ -174,7 +174,7 @@ REINDEX TABLE community;
 
 -- revert modlog table changes
 CREATE TABLE mod_hide_community (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),

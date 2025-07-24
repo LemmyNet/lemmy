@@ -1,5 +1,5 @@
 CREATE TABLE remote_image (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     link text NOT NULL UNIQUE,
     published timestamptz DEFAULT now() NOT NULL
 );
