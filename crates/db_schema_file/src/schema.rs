@@ -1,61 +1,71 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "actor_type_enum"))]
-  pub struct ActorTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "actor_type_enum"))]
+    pub struct ActorTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "comment_sort_type_enum"))]
-  pub struct CommentSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+    pub struct CommentSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_follower_state"))]
-  pub struct CommunityFollowerState;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_follower_state"))]
+    pub struct CommunityFollowerState;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
-  pub struct CommunityNotificationsModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
+    pub struct CommunityNotificationsModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_visibility"))]
-  pub struct CommunityVisibility;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_visibility"))]
+    pub struct CommunityVisibility;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "federation_mode_enum"))]
+    pub struct FederationModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "listing_type_enum"))]
-  pub struct ListingTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "listing_type_enum"))]
+    pub struct ListingTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "ltree"))]
-  pub struct Ltree;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "ltree"))]
+    pub struct Ltree;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "notification_type_enum"))]
-  pub struct NotificationTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "notification_type_enum"))]
+    pub struct NotificationTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_listing_mode_enum"))]
-  pub struct PostListingModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+    pub struct PostListingModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
-  pub struct PostNotificationsModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+    pub struct PostNotificationsModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_sort_type_enum"))]
-  pub struct PostSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_sort_type_enum"))]
+    pub struct PostSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "registration_mode_enum"))]
-  pub struct RegistrationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "registration_mode_enum"))]
+    pub struct RegistrationModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "vote_show_enum"))]
-  pub struct VoteShowEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "vote_show_enum"))]
+    pub struct VoteShowEnum;
+}
+
+diesel::table! {
+    admin_add (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
+        removed -> Bool,
+        published_at -> Timestamptz,
+    }
 }
 
 diesel::table! {
@@ -78,6 +88,19 @@ diesel::table! {
         reason -> Nullable<Text>,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    admin_instance_ban (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
+        reason -> Nullable<Text>,
+        banned -> Bool,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+        instance_id -> Int4,
     }
 }
 
@@ -115,6 +138,17 @@ diesel::table! {
         admin_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    admin_remove_community (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        community_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Bool,
         published_at -> Timestamptz,
     }
 }
@@ -257,9 +291,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_community_follow (target_id, community_id) {
+    community_community_follow (community_id, target_id) {
         target_id -> Int4,
         community_id -> Int4,
+        published_at -> Timestamptz,
     }
 }
 
@@ -562,36 +597,13 @@ diesel::table! {
 }
 
 diesel::table! {
-    mod_add (id) {
-        id -> Int4,
-        mod_person_id -> Int4,
-        other_person_id -> Int4,
-        removed -> Bool,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    mod_add_community (id) {
+    mod_add_to_community (id) {
         id -> Int4,
         mod_person_id -> Int4,
         other_person_id -> Int4,
         community_id -> Int4,
         removed -> Bool,
         published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    mod_ban (id) {
-        id -> Int4,
-        mod_person_id -> Int4,
-        other_person_id -> Int4,
-        reason -> Nullable<Text>,
-        banned -> Bool,
-        expires_at -> Nullable<Timestamptz>,
-        published_at -> Timestamptz,
-        instance_id -> Int4,
     }
 }
 
@@ -655,17 +667,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    mod_remove_community (id) {
-        id -> Int4,
-        mod_person_id -> Int4,
-        community_id -> Int4,
-        reason -> Nullable<Text>,
-        removed -> Bool,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     mod_remove_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -696,14 +697,14 @@ diesel::table! {
         admin_purge_community_id -> Nullable<Int4>,
         admin_purge_person_id -> Nullable<Int4>,
         admin_purge_post_id -> Nullable<Int4>,
-        mod_add_id -> Nullable<Int4>,
-        mod_add_community_id -> Nullable<Int4>,
-        mod_ban_id -> Nullable<Int4>,
+        admin_add_id -> Nullable<Int4>,
+        mod_add_to_community_id -> Nullable<Int4>,
+        admin_instance_ban_id -> Nullable<Int4>,
         mod_ban_from_community_id -> Nullable<Int4>,
         mod_feature_post_id -> Nullable<Int4>,
         mod_lock_post_id -> Nullable<Int4>,
         mod_remove_comment_id -> Nullable<Int4>,
-        mod_remove_community_id -> Nullable<Int4>,
+        admin_remove_community_id -> Nullable<Int4>,
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
@@ -1133,12 +1134,15 @@ diesel::joinable!(admin_allow_instance -> instance (instance_id));
 diesel::joinable!(admin_allow_instance -> person (admin_person_id));
 diesel::joinable!(admin_block_instance -> instance (instance_id));
 diesel::joinable!(admin_block_instance -> person (admin_person_id));
+diesel::joinable!(admin_instance_ban -> instance (instance_id));
 diesel::joinable!(admin_purge_comment -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> post (post_id));
 diesel::joinable!(admin_purge_community -> person (admin_person_id));
 diesel::joinable!(admin_purge_person -> person (admin_person_id));
 diesel::joinable!(admin_purge_post -> community (community_id));
 diesel::joinable!(admin_purge_post -> person (admin_person_id));
+diesel::joinable!(admin_remove_community -> community (community_id));
+diesel::joinable!(admin_remove_community -> person (mod_person_id));
 diesel::joinable!(comment -> language (language_id));
 diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
@@ -1168,8 +1172,7 @@ diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
-diesel::joinable!(mod_add_community -> community (community_id));
-diesel::joinable!(mod_ban -> instance (instance_id));
+diesel::joinable!(mod_add_to_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
@@ -1179,26 +1182,24 @@ diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
 diesel::joinable!(mod_remove_comment -> person (mod_person_id));
-diesel::joinable!(mod_remove_community -> community (community_id));
-diesel::joinable!(mod_remove_community -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
+diesel::joinable!(modlog_combined -> admin_add (admin_add_id));
 diesel::joinable!(modlog_combined -> admin_allow_instance (admin_allow_instance_id));
 diesel::joinable!(modlog_combined -> admin_block_instance (admin_block_instance_id));
+diesel::joinable!(modlog_combined -> admin_instance_ban (admin_instance_ban_id));
 diesel::joinable!(modlog_combined -> admin_purge_comment (admin_purge_comment_id));
 diesel::joinable!(modlog_combined -> admin_purge_community (admin_purge_community_id));
 diesel::joinable!(modlog_combined -> admin_purge_person (admin_purge_person_id));
 diesel::joinable!(modlog_combined -> admin_purge_post (admin_purge_post_id));
-diesel::joinable!(modlog_combined -> mod_add (mod_add_id));
-diesel::joinable!(modlog_combined -> mod_add_community (mod_add_community_id));
-diesel::joinable!(modlog_combined -> mod_ban (mod_ban_id));
+diesel::joinable!(modlog_combined -> admin_remove_community (admin_remove_community_id));
+diesel::joinable!(modlog_combined -> mod_add_to_community (mod_add_to_community_id));
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
 diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
-diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
 diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(multi_community -> instance (instance_id));
@@ -1249,78 +1250,78 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-  admin_allow_instance,
-  admin_block_instance,
-  admin_purge_comment,
-  admin_purge_community,
-  admin_purge_person,
-  admin_purge_post,
-  captcha_answer,
-  comment,
-  comment_actions,
-  comment_report,
-  community,
-  community_actions,
-  community_community_follow,
-  community_language,
-  community_report,
-  custom_emoji,
-  custom_emoji_keyword,
-  email_verification,
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  image_details,
-  instance,
-  instance_actions,
-  language,
-  local_image,
-  local_site,
-  local_site_rate_limit,
-  local_site_url_blocklist,
-  local_user,
-  local_user_keyword_block,
-  local_user_language,
-  login_token,
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_change_community_visibility,
-  mod_feature_post,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_transfer_community,
-  modlog_combined,
-  multi_community,
-  multi_community_entry,
-  multi_community_follow,
-  notification,
-  oauth_account,
-  oauth_provider,
-  password_reset_request,
-  person,
-  person_actions,
-  person_content_combined,
-  person_liked_combined,
-  person_saved_combined,
-  post,
-  post_actions,
-  post_report,
-  post_tag,
-  private_message,
-  private_message_report,
-  received_activity,
-  registration_application,
-  remote_image,
-  report_combined,
-  search_combined,
-  secret,
-  sent_activity,
-  site,
-  site_language,
-  tag,
-  tagline,
+    admin_add,
+    admin_allow_instance,
+    admin_block_instance,
+    admin_instance_ban,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
+    admin_remove_community,
+    captcha_answer,
+    comment,
+    comment_actions,
+    comment_report,
+    community,
+    community_actions,
+    community_community_follow,
+    community_language,
+    community_report,
+    custom_emoji,
+    custom_emoji_keyword,
+    email_verification,
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    image_details,
+    instance,
+    instance_actions,
+    language,
+    local_image,
+    local_site,
+    local_site_rate_limit,
+    local_site_url_blocklist,
+    local_user,
+    local_user_keyword_block,
+    local_user_language,
+    login_token,
+    mod_add_to_community,
+    mod_ban_from_community,
+    mod_change_community_visibility,
+    mod_feature_post,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_post,
+    mod_transfer_community,
+    modlog_combined,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    notification,
+    oauth_account,
+    oauth_provider,
+    password_reset_request,
+    person,
+    person_actions,
+    person_content_combined,
+    person_liked_combined,
+    person_saved_combined,
+    post,
+    post_actions,
+    post_report,
+    post_tag,
+    private_message,
+    private_message_report,
+    received_activity,
+    registration_application,
+    remote_image,
+    report_combined,
+    search_combined,
+    secret,
+    sent_activity,
+    site,
+    site_language,
+    tag,
+    tagline,
 );
