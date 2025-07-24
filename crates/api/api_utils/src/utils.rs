@@ -8,7 +8,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -24,13 +24,14 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     oauth_account::OAuthAccount,
-    person::{Person, PersonActions, PersonUpdateForm},
+    person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::{PostTag, Tag},
   },
-  traits::{Blockable, Crud, Likeable, ReadComments},
+  traits::{Crud, Likeable},
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
@@ -60,7 +61,7 @@ use lemmy_utils::{
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -180,7 +181,7 @@ pub fn is_top_mod(
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
-  read_comments: i64,
+  read_comments: i32,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
@@ -200,19 +201,6 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
 /// Check for account deletion
 pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<()> {
   if local_user_view.person.deleted {
-    Err(LemmyErrorType::Deleted)?
-  } else {
-    Ok(())
-  }
-}
-
-pub fn check_person_valid(person_view: &PersonView) -> LemmyResult<()> {
-  // Check for a site ban
-  if person_view.creator_banned {
-    Err(LemmyErrorType::SiteBan)?
-  }
-  // check for account deletion
-  else if person_view.person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
@@ -319,23 +307,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
-}
-
-/// Checks to see if a user can receive comment reply notification
-pub async fn check_person_instance_community_block(
-  pool: &mut DbPool<'_>,
-  my_id: PersonId,
-  my_instance_id: InstanceId,
-  potential_blocker_id: PersonId,
-  community_id: CommunityId,
-  community_instance_id: InstanceId,
-) -> LemmyResult<()> {
-  PersonActions::read_block(pool, potential_blocker_id, my_id).await?;
-  InstanceActions::read_communities_block(pool, potential_blocker_id, community_instance_id)
-    .await?;
-  InstanceActions::read_persons_block(pool, potential_blocker_id, my_instance_id).await?;
-  CommunityActions::read_block(pool, potential_blocker_id, community_id).await?;
-  Ok(())
 }
 
 pub async fn check_local_vote_mode(
@@ -515,6 +486,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
+// `local_site` is optional so that tests work easily
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
   let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
@@ -554,16 +526,20 @@ pub async fn purge_post_images(
 }
 
 /// Delete local images attributed to a person
-async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
+fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) {
+  let context_ = context.clone();
+  spawn_try_task(async move {
+    let pictrs_uploads =
+      LocalImageView::get_all_by_person_id(&mut context_.pool(), person_id).await?;
 
-  // Delete their images
-  for upload in pictrs_uploads {
-    delete_image_alias(&upload.local_image.pictrs_alias, context)
-      .await
-      .ok();
-  }
-  Ok(())
+    // Delete their images
+    for upload in pictrs_uploads {
+      delete_image_alias(&upload.local_image.pictrs_alias, &context_)
+        .await
+        .ok();
+    }
+    Ok(())
+  });
 }
 
 /// Removes or restores user data.
@@ -578,7 +554,7 @@ pub async fn remove_or_restore_user_data(
 
   // These actions are only possible when removing, not restoring
   if removed {
-    delete_local_user_images(banned_person_id, context).await?;
+    delete_local_user_images(banned_person_id, context);
 
     // Update the fields to None
     Person::update(
@@ -765,7 +741,7 @@ pub async fn purge_user_account(
 
   // Delete their local images, if they're a local user
   // No need to update avatar and banner, those are handled in Person::delete_account
-  delete_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(person_id, context);
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
@@ -1032,6 +1008,24 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+pub async fn update_post_tags(
+  post: &Post,
+  tag_ids: &[TagId],
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  // validate tags
+  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id)
+    .await?
+    .into_iter()
+    .map(|t| t.id)
+    .collect::<HashSet<_>>();
+  if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
+    return Err(LemmyErrorType::TagNotInCommunity.into());
+  }
+  PostTag::update(&mut context.pool(), post, tag_ids).await?;
+  Ok(())
 }
 
 #[cfg(test)]

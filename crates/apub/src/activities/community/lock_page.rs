@@ -3,7 +3,6 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
   protocol::activities::community::lock_page::{LockPage, LockType, UndoLockPage},
@@ -18,7 +17,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::community::ApubCommunity,
   utils::{
-    functions::{generate_to, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
 };

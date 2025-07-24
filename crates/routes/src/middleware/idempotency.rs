@@ -26,7 +26,7 @@ const CLEANUP_INTERVAL_SECS: u32 = 120;
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
 /// store nanoseconds
 #[derive(PartialEq, Debug, Clone, Copy, Hash)]
-pub struct InstantSecs {
+struct InstantSecs {
   pub secs: u32,
 }
 

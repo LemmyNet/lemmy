@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::fetch_instance_actor_for_object,
-  protocol::group::Group,
+  protocol::{group::Group, tags::CommunityTag},
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
@@ -37,6 +37,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    tag::Tag,
   },
   traits::{ApubActor, Crud},
 };
@@ -117,7 +118,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
-
+    let post_tags = Tag::read_for_community(&mut data.pool(), community_id).await?;
     let group = Group {
       kind: GroupType::Group,
       id: self.id().clone().into(),
@@ -145,6 +146,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
+      tag: post_tags.into_iter().map(CommunityTag::to_json).collect(),
     };
     Ok(group)
   }
@@ -156,6 +158,9 @@ impl Object for ApubCommunity {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
+
+    // Doesnt call verify_is_remote_object() because the community might be edited by a
+    // remote mod. This is safe as we validate `expected_domain`.
 
     let slur_regex = slur_regex(context).await?;
 
@@ -193,7 +198,8 @@ impl Object for ApubCommunity {
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
-      local: Some(false),
+      // May be a local community which is updated by remote mod.
+      local: Some(group.id.is_local(context)),
       last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
@@ -233,6 +239,14 @@ impl Object for ApubCommunity {
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
+
+    let new_tags = group
+      .tag
+      .iter()
+      .map(|t| t.to_insert_form(community.id))
+      .collect();
+    let existing_tags = Tag::read_for_community(&mut context.pool(), community.id).await?;
+    Tag::update_many(&mut context.pool(), new_tags, existing_tags).await?;
 
     let community: ApubCommunity = community.into();
 

@@ -18,7 +18,7 @@ pub mod search;
 ///
 /// In case the requesting user is logged in and the object was not found locally, it is attempted
 /// to fetch via webfinger from the original instance.
-pub async fn resolve_ap_identifier<ActorType, DbActor>(
+pub(crate) async fn resolve_ap_identifier<ActorType, DbActor>(
   identifier: &str,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,

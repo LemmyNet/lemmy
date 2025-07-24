@@ -49,9 +49,9 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
+  pub score: i32,
+  pub upvotes: i32,
+  pub downvotes: i32,
   /// The total number of children in this comment branch.
   pub child_count: i32,
   #[serde(skip)]

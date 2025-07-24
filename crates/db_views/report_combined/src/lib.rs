@@ -10,21 +10,20 @@ use lemmy_db_schema::source::{
   private_message::PrivateMessage,
   private_message_report::PrivateMessageReport,
 };
-use lemmy_db_views_reports::{
-  CommentReportView,
-  CommunityReportView,
-  PostReportView,
-  PrivateMessageReportView,
-};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{
-    utils::queries::{local_user_is_admin, person1_select, person2_select},
-    Person1AliasAllColumnsTuple,
-    Person2AliasAllColumnsTuple,
+  lemmy_db_schema::utils::queries::{
+    creator_banned_from_community,
+    creator_banned_within_community,
+    creator_is_moderator,
+    local_user_is_admin,
+    person1_select,
+    person2_select,
   },
+  lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,
 };
 
@@ -61,7 +60,7 @@ pub struct ReportCombinedViewInternal {
       select_expression = person1_select().nullable()
     )
   )]
-  pub item_creator: Option<Person>,
+  pub creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person2AliasAllColumnsTuple>,
@@ -69,6 +68,30 @@ pub struct ReportCombinedViewInternal {
     )
   )]
   pub resolver: Option<Person>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = local_user_is_admin()
+    )
+  )]
+  pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_moderator()
+    )
+  )]
+  pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_within_community()
+    )
+  )]
+  pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_banned_from_community()
+    )
+  )]
+  pub creator_banned_from_community: bool,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -79,12 +102,6 @@ pub struct ReportCombinedViewInternal {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_is_admin()
-    )
-  )]
-  pub item_creator_is_admin: bool,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -97,4 +114,78 @@ pub enum ReportCombinedView {
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
   Community(CommunityReportView),
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// A private message report view.
+pub struct PrivateMessageReportView {
+  pub private_message_report: PrivateMessageReport,
+  pub private_message: PrivateMessage,
+  pub creator: Person,
+  pub private_message_creator: Person,
+  pub resolver: Option<Person>,
+  pub creator_is_admin: bool,
+  pub creator_banned: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// A comment report view.
+pub struct CommentReportView {
+  pub comment_report: CommentReport,
+  pub comment: Comment,
+  pub post: Post,
+  pub community: Community,
+  pub creator: Person,
+  pub comment_creator: Person,
+  pub comment_actions: Option<CommentActions>,
+  pub resolver: Option<Person>,
+  pub person_actions: Option<PersonActions>,
+  pub community_actions: Option<CommunityActions>,
+  pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// A community report view.
+pub struct CommunityReportView {
+  pub community_report: CommunityReport,
+  pub community: Community,
+  pub creator: Person,
+  pub resolver: Option<Person>,
+  pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// A post report view.
+pub struct PostReportView {
+  pub post_report: PostReport,
+  pub post: Post,
+  pub community: Community,
+  pub creator: Person,
+  pub post_creator: Person,
+  pub community_actions: Option<CommunityActions>,
+  pub post_actions: Option<PostActions>,
+  pub person_actions: Option<PersonActions>,
+  pub resolver: Option<Person>,
+  pub creator_is_admin: bool,
+  pub creator_is_moderator: bool,
+  pub creator_banned: bool,
+  pub creator_banned_from_community: bool,
 }

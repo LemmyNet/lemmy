@@ -26,7 +26,6 @@ pub struct PrivateMessage {
   pub recipient_id: PersonId,
   pub content: String,
   pub deleted: bool,
-  pub read: bool,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
@@ -47,8 +46,6 @@ pub struct PrivateMessageInsertForm {
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
-  pub read: Option<bool>,
-  #[new(default)]
   pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub updated_at: Option<DateTime<Utc>>,
@@ -64,7 +61,6 @@ pub struct PrivateMessageInsertForm {
 pub struct PrivateMessageUpdateForm {
   pub content: Option<String>,
   pub deleted: Option<bool>,
-  pub read: Option<bool>,
   pub published_at: Option<DateTime<Utc>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,

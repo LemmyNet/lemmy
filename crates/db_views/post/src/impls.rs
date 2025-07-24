@@ -570,6 +570,7 @@ mod tests {
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
+  use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
@@ -608,13 +609,12 @@ mod tests {
         PostReadForm,
         PostUpdateForm,
       },
-      post_tag::{PostTag, PostTagForm},
       site::Site,
-      tag::{Tag, TagInsertForm},
+      tag::{PostTag, Tag, TagInsertForm},
     },
     test_data::TestData,
-    traits::{Bannable, Blockable, Crud, Followable, Hideable, Joinable, Likeable, Readable},
-    utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool},
+    traits::{Bannable, Blockable, Crud, Followable, Likeable},
+    utils::{build_db_pool, get_conn, ActualDbPool, DbPool},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
@@ -738,8 +738,11 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
-          display_name: "Test Tag 1".into(),
+          name: "Test Tag 1".into(),
+          display_name: None,
+          description: None,
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;
@@ -747,8 +750,11 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
-          display_name: "Test Tag 2".into(),
+          name: "Test Tag 2".into(),
+          display_name: None,
+          description: None,
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;
@@ -779,17 +785,7 @@ mod tests {
       };
 
       let post_with_tags = Post::create(pool, &new_post).await?;
-      let inserted_tags = vec![
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_1.id,
-        },
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_2.id,
-        },
-      ];
-      PostTag::set(pool, &inserted_tags).await?;
+      PostTag::update(pool, &post_with_tags, &[tag_1.id, tag_2.id]).await?;
 
       let tegan = LocalUserView {
         local_user: inserted_tegan_local_user,
@@ -1022,7 +1018,7 @@ mod tests {
     );
 
     let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
     Ok(())
   }
 
@@ -1068,7 +1064,7 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(uplete::Count::only_deleted(1), note_removed);
+    assert_eq!(UpleteCount::only_deleted(1), note_removed);
     assert!(post_listing.person_actions.is_none());
 
     Ok(())
@@ -1161,7 +1157,7 @@ mod tests {
     // Remove the like
     let like_removed =
       PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     let person_like_removed =
       PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
@@ -1221,7 +1217,7 @@ mod tests {
 
     let like_removed =
       PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     Ok(())
   }
@@ -2462,8 +2458,8 @@ mod tests {
     .await?;
 
     assert_eq!(2, post_view.tags.0.len());
-    assert_eq!(data.tag_1.display_name, post_view.tags.0[0].display_name);
-    assert_eq!(data.tag_2.display_name, post_view.tags.0[1].display_name);
+    assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
+    assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(2, all_posts[0].tags.0.len()); // post with tags

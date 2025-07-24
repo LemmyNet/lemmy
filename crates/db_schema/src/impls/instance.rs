@@ -17,7 +17,6 @@ use crate::{
     functions::{coalesce, lower},
     get_conn,
     now,
-    uplete,
     DbPool,
   },
 };
@@ -31,6 +30,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
   federation_blocklist,
@@ -92,10 +92,10 @@ impl Instance {
     instance_id: InstanceId,
     form: InstanceForm,
   ) -> LemmyResult<usize> {
-    let mut conn = get_conn(pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(instance::table.find(instance_id))
       .set(form)
-      .execute(&mut conn)
+      .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
   }
@@ -373,10 +373,10 @@ impl Bannable for InstanceActions {
         .await?,
     )
   }
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      uplete::new(instance_actions::table.find((form.person_id, form.instance_id)))
+      uplete(instance_actions::table.find((form.person_id, form.instance_id)))
         .set_null(instance_actions::received_ban_at)
         .set_null(instance_actions::ban_expires_at)
         .get_result(conn)

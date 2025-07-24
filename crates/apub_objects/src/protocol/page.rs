@@ -1,5 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::tags::CommunityTag,
   utils::protocol::{
     AttributedTo,
     ImageObject,
@@ -70,7 +71,9 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<Hashtag>,
+  /// Contains hashtags and post tags.
+  /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
+  pub(crate) tag: Vec<HashtagOrLemmyTag>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -165,6 +168,22 @@ pub enum HashtagType {
   Hashtag,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum HashtagOrLemmyTag {
+  Hashtag(Hashtag),
+  CommunityTag(CommunityTag),
+}
+
+impl HashtagOrLemmyTag {
+  pub fn community_tag_url(&self) -> Option<Url> {
+    match self {
+      HashtagOrLemmyTag::CommunityTag(t) => Some(t.id.clone()),
+      _ => None,
+    }
+  }
+}
+
 impl Page {
   pub fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
@@ -251,7 +270,7 @@ impl InCommunity for Page {
 }
 
 /// Only allows deserialization if the field is missing or null. If it is present, throws an error.
-pub fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
   D: Deserializer<'de>,
 {

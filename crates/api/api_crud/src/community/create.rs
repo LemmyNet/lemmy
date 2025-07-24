@@ -25,7 +25,7 @@ use lemmy_db_schema::{
       CommunityModeratorForm,
     },
   },
-  traits::{ApubActor, Crud, Followable, Joinable},
+  traits::{ApubActor, Crud, Followable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CommunityResponse, CreateCommunity};
@@ -35,11 +35,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      site_or_community_description_length_check,
-    },
+    validation::{description_length_check, is_valid_actor_name, is_valid_body_field},
   },
 };
 
@@ -69,7 +65,7 @@ pub async fn create_community(
 
   let description = data.description.clone();
   if let Some(desc) = &description {
-    site_or_community_description_length_check(desc)?;
+    description_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 

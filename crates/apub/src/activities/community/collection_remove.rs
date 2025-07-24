@@ -1,5 +1,5 @@
 use crate::{
-  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
+  activities::{community::send_activity_in_community, generate_activity_id},
   activity_lists::AnnouncableActivities,
   protocol::activities::community::collection_remove::CollectionRemove,
 };
@@ -16,7 +16,7 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
-    functions::{generate_to, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
     post::{Post, PostUpdateForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;

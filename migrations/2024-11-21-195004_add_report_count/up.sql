@@ -4,9 +4,22 @@ ALTER TABLE post_aggregates
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
-ALTER TABLE comment_aggregates
-    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+-- Disable the triggers temporarily
+ALTER TABLE post_aggregates DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'post_aggregates');
 
 -- Update the historical counts
 -- Posts
@@ -43,6 +56,47 @@ FROM (
 WHERE
     a.post_id = cnt.post_id;
 
+-- Re-enable triggers after upserts
+ALTER TABLE post_aggregates ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'post_aggregates');
+
+-- reindex
+REINDEX TABLE post_aggregates;
+
+ALTER TABLE comment_aggregates
+    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+
+-- Disable the triggers temporarily
+ALTER TABLE comment_aggregates DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment_aggregates');
+
 -- Comments
 UPDATE
     comment_aggregates AS a
@@ -76,4 +130,24 @@ FROM (
         comment_id) cnt
 WHERE
     a.comment_id = cnt.comment_id;
+
+-- Re-enable triggers after upserts
+ALTER TABLE comment_aggregates ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment_aggregates');
+
+-- reindex
+REINDEX TABLE comment_aggregates;
 

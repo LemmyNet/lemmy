@@ -1,7 +1,6 @@
 jest.setTimeout(120000);
 
 import { AddModToCommunity } from "lemmy-js-client/dist/types/AddModToCommunity";
-import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
   beta,
@@ -35,12 +34,14 @@ import {
   resolveBetaCommunity,
   reportCommunity,
   randomString,
+  assertCommunityFederation,
   listReports,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
   CommunityReport,
   CommunityReportView,
+  CommunityView,
   EditCommunity,
   FollowMultiCommunity,
   GetPosts,
@@ -53,26 +54,6 @@ import {
 
 beforeAll(setupLogins);
 afterAll(unfollows);
-
-function assertCommunityFederation(
-  communityOne?: CommunityView,
-  communityTwo?: CommunityView,
-) {
-  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
-  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
-  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
-  expect(communityOne?.community.description).toBe(
-    communityTwo?.community.description,
-  );
-  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
-  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
-  expect(communityOne?.community.published_at).toBe(
-    communityTwo?.community.published_at,
-  );
-  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
-  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
-  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
-}
 
 test("Create community", async () => {
   let communityRes = await createCommunity(alpha);

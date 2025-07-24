@@ -13,7 +13,7 @@ use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
-  traits::{PaginationCursorBuilder, Readable},
+  traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{

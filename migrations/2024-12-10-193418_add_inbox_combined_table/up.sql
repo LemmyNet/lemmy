@@ -6,30 +6,22 @@ ALTER TABLE person_mention RENAME TO person_comment_mention;
 
 -- Create the new post_mention table
 CREATE TABLE person_post_mention (
-    id serial PRIMARY KEY,
-    recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
-    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE NOT NULL,
+    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read boolean DEFAULT FALSE NOT NULL,
-    published timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE inbox_combined (
-    id serial PRIMARY KEY,
-    published timestamptz NOT NULL,
-    comment_reply_id int UNIQUE REFERENCES comment_reply ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    person_comment_mention_id int UNIQUE REFERENCES person_comment_mention ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    person_post_mention_id int UNIQUE REFERENCES person_post_mention ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    private_message_id int UNIQUE REFERENCES private_message ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
+    published timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (recipient_id, post_id)
 );
 
 -- Updating the history
-INSERT INTO inbox_combined (published, comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id)
+CREATE TABLE inbox_combined AS
 SELECT
     published,
-    id,
-    NULL::int,
-    NULL::int,
-    NULL::int
+    id AS comment_reply_id,
+    NULL::int AS person_comment_mention_id,
+    NULL::int AS person_post_mention_id,
+    NULL::int AS private_message_id
 FROM
     comment_reply
 UNION ALL
@@ -60,20 +52,20 @@ SELECT
 FROM
     private_message;
 
+ALTER TABLE inbox_combined
+    ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN published SET NOT NULL,
+    ADD CONSTRAINT inbox_combined_comment_reply_id_fkey FOREIGN KEY (comment_reply_id) REFERENCES comment_reply ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT inbox_combined_person_comment_mention_id_fkey FOREIGN KEY (person_comment_mention_id) REFERENCES person_comment_mention ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT inbox_combined_person_post_mention_id_fkey FOREIGN KEY (person_post_mention_id) REFERENCES person_post_mention ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT inbox_combined_private_message_id_fkey FOREIGN KEY (private_message_id) REFERENCES private_message ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD UNIQUE (comment_reply_id),
+    ADD UNIQUE (person_comment_mention_id),
+    ADD UNIQUE (person_post_mention_id),
+    ADD UNIQUE (private_message_id),
+    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
+
 CREATE INDEX idx_inbox_combined_published ON inbox_combined (published DESC, id DESC);
 
 CREATE INDEX idx_inbox_combined_published_asc ON inbox_combined (reverse_timestamp_sort (published) DESC, id DESC);
-
-ALTER TABLE person_post_mention
-    ALTER CONSTRAINT person_post_mention_recipient_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT person_post_mention_post_id_fkey NOT DEFERRABLE,
-    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
-
--- Make sure only one of the columns is not null
-ALTER TABLE inbox_combined
-    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1),
-    ALTER CONSTRAINT inbox_combined_comment_reply_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT inbox_combined_person_comment_mention_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT inbox_combined_person_post_mention_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT inbox_combined_private_message_id_fkey NOT DEFERRABLE;
 

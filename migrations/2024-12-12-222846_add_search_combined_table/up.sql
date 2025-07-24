@@ -1,20 +1,5 @@
 -- Creates combined tables for
 -- Search: (post, comment, community, person)
-CREATE TABLE search_combined (
-    id serial PRIMARY KEY,
-    published timestamptz NOT NULL,
-    -- This is used for the top sort
-    -- For persons: its post score
-    -- For comments: score,
-    -- For posts: score,
-    -- For community: users active monthly
-    score bigint NOT NULL DEFAULT 0,
-    post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
-    person_id int UNIQUE REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE
-);
-
 -- Add published to person_aggregates (it was missing for some reason)
 ALTER TABLE person_aggregates
     ADD COLUMN published timestamptz NOT NULL DEFAULT now();
@@ -28,21 +13,26 @@ FROM
 WHERE
     pa.person_id = p.id;
 
+-- score is used for the top sort
+-- For persons: its post score
+-- For comments: score,
+-- For posts: score,
+-- For community: users active monthly
 -- Updating the history
-INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
+CREATE TABLE search_combined AS
 SELECT
     published,
-    score,
+    score::int,
     post_id,
-    NULL::int,
-    NULL::int,
-    NULL::int
+    NULL::int AS comment_id,
+    NULL::int AS community_id,
+    NULL::int AS person_id
 FROM
     post_aggregates
 UNION ALL
 SELECT
     published,
-    score,
+    score::int,
     NULL::int,
     comment_id,
     NULL::int,
@@ -52,7 +42,7 @@ FROM
 UNION ALL
 SELECT
     published,
-    users_active_month,
+    users_active_month::int,
     NULL::int,
     NULL::int,
     community_id,
@@ -62,7 +52,7 @@ FROM
 UNION ALL
 SELECT
     published,
-    post_score,
+    post_score::int,
     NULL::int,
     NULL::int,
     NULL::int,
@@ -70,17 +60,25 @@ SELECT
 FROM
     person_aggregates;
 
+-- Add the constraints
+ALTER TABLE search_combined
+    ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN published SET NOT NULL,
+    ALTER COLUMN score SET NOT NULL,
+    ALTER COLUMN score SET DEFAULT 0,
+    ADD CONSTRAINT search_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT search_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT search_combined_community_id_fkey FOREIGN KEY (community_id) REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT search_combined_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD UNIQUE (post_id),
+    ADD UNIQUE (comment_id),
+    ADD UNIQUE (community_id),
+    ADD UNIQUE (person_id),
+    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1);
+
 CREATE INDEX idx_search_combined_published ON search_combined (published DESC, id DESC);
 
 CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
-
--- Make sure only one of the columns is not null
-ALTER TABLE search_combined
-    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id) = 1),
-    ALTER CONSTRAINT search_combined_post_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT search_combined_comment_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT search_combined_community_id_fkey NOT DEFERRABLE,
-    ALTER CONSTRAINT search_combined_person_id_fkey NOT DEFERRABLE;
 

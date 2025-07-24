@@ -7,7 +7,7 @@ use actix_web::middleware::DefaultHeaders;
 ///   * 3 days = 60s * 60m * 24h * 3d = `259200` seconds
 ///
 /// Mastodon & other activitypub server defaults to 3d
-pub fn cache_header(seconds: usize) -> DefaultHeaders {
+fn cache_header(seconds: usize) -> DefaultHeaders {
   DefaultHeaders::new().add(("Cache-Control", format!("public, max-age={seconds}")))
 }
 
