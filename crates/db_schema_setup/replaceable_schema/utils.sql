@@ -1,40 +1,39 @@
 -- Each calculation used in triggers should be a single SQL language
 -- expression so it can be inlined in migrations.
-CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
-    RETURNS float
+CREATE FUNCTION r.controversy_rank (upvotes integer, downvotes integer)
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
         OR upvotes <= 0 THEN
-        0
+        NULL
     ELSE
         (
             upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
-            downvotes::float / upvotes::float
+            downvotes::real / upvotes::real
         ELSE
-            upvotes::float / downvotes::float
+            upvotes::real / downvotes::real
     END
     END;
 
-CREATE FUNCTION r.hot_rank (score numeric, published_at timestamp with time zone)
-    RETURNS double precision
+CREATE FUNCTION r.hot_rank (score integer, age smallint)
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
-    -- after a week, it will default to 0.
-    CASE WHEN (
-now() - published_at) > '0 days'
-        AND (
-now() - published_at) < '7 days' THEN
+    -- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0 (stored as null).
+    CASE WHEN age IS NOT NULL THEN
         -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
         log (
-            greatest (2, score + 2)) / power (((EXTRACT(EPOCH FROM (now() - published_at)) / 3600) + 2), 1.8)
+            greatest (2, score + 2)) / power (((
+            -- Age in hours
+            age::real / 180) + 2), 1.8)
     ELSE
         -- if the post is from the future, set hot score to 0. otherwise you can game the post to
         -- always be on top even with only 1 vote by setting it to the future
-        0.0
+        NULL
     END;
 
-CREATE FUNCTION r.scaled_rank (score numeric, published_at timestamp with time zone, interactions_month numeric)
-    RETURNS double precision
+CREATE FUNCTION r.scaled_rank (score integer, age smallint, interactions_month integer)
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
     -- Add 2 to avoid divide by zero errors
@@ -42,7 +41,7 @@ CREATE FUNCTION r.scaled_rank (score numeric, published_at timestamp with time z
     -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
     RETURN (
-        r.hot_rank (score, published_at) / log(2 + interactions_month)
+        r.hot_rank (score, age) / log(2 + interactions_month)
 );
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
@@ -154,14 +153,14 @@ $a$;
 -- Edit community aggregates to include voters as active users
 CREATE OR REPLACE FUNCTION r.community_aggregates_activity (i text)
     RETURNS TABLE (
-        count_ bigint,
+        count_ integer,
         community_id_ integer)
     LANGUAGE plpgsql
     AS $$
 BEGIN
     RETURN query
     SELECT
-        count(*),
+        count(*)::integer,
         community_id
     FROM (
         SELECT
@@ -215,14 +214,14 @@ $$;
 -- Community aggregate function for adding up total number of interactions
 CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
     RETURNS TABLE (
-        count_ bigint,
+        count_ integer,
         community_id_ integer)
     LANGUAGE plpgsql
     AS $$
 BEGIN
     RETURN query
     SELECT
-        COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
+        COALESCE(sum(comments + upvotes + downvotes)::integer, 0) AS count_,
         community_id AS community_id_
     FROM
         post
