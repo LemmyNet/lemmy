@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud},
+  traits::{ApubActor, Blockable, Crud, ModActionNotify},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -270,6 +270,57 @@ pub async fn notify_private_message(
     }
   }
   Ok(())
+}
+
+/*
+TODO
+
+The following actions need to notify (both from api and federation):
+ModRemoveComment
+ModRemoveCommunity -> actually an admin action, needs rename. should notify all community mods?
+ModRemovePost
+ModBan -> ban user from site, needs rename
+ModBanFromCommunity
+ModLockPost
+ModAdd -> add instance admin, needs rename
+ModAddCommunity
+ModFeaturePost
+ModChangeCommunityVisibility -> should this notify and if so who?
+ModTransferCommunity -> notify both old and new top mods?
+
+Purges should probably be secret:
+- AdminPurgeComment
+- AdminPurgeCommunity
+- AdminPurgePerson
+- AdminPurgePost
+
+These dont affect any specific user and dont need to notify:
+- AdminAllowInstance
+- AdminBlockInstance
+*/
+pub fn notify_mod_action<T>(action: T, context: &LemmyContext)
+where
+  T: ModActionNotify + Send + 'static,
+{
+  let context = context.clone();
+  spawn_try_task(async move {
+    let Ok(local_recipient) =
+      LocalUserView::read_person(&mut context.pool(), action.target_person_id()).await
+    else {
+      return Ok(());
+    };
+
+    // TODO: Is there any good way to get the ModlogCombinedId here? Otherwise we need to get rid
+    //       of triggers and insert to ModlogCombined from Rust. Or otherwise the `notification`
+    //       table would need a separate column for each possible mod action.
+    let form = NotificationInsertForm::new_mod_action(todo!(), local_recipient.person.id, todo!());
+    Notification::create(&mut context.pool(), &[form]).await?;
+
+    // TODO: Send email
+    // TODO: How to handle email text, do we add a separate translation string for each mod action?
+    //       Or a single text with `mod_action_type` mentioned in the subject/body.
+    Ok(())
+  })
 }
 
 #[cfg(test)]

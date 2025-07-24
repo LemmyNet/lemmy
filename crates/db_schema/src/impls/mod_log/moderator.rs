@@ -11,6 +11,7 @@ use crate::{
     ModRemoveCommunityId,
     ModRemovePostId,
     ModTransferCommunityId,
+    PersonId,
   },
   source::mod_log::moderator::{
     ModAdd,
@@ -36,8 +37,9 @@ use crate::{
     ModTransferCommunity,
     ModTransferCommunityForm,
   },
-  traits::Crud,
+  traits::{Crud, ModActionNotify},
   utils::{get_conn, DbPool},
+  ModlogActionType,
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -389,6 +391,21 @@ impl Crud for ModAdd {
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+  }
+}
+
+impl ModActionNotify for ModRemoveComment {
+  fn kind() -> ModlogActionType {
+    ModlogActionType::ModRemoveComment
+  }
+  fn target_person_id(&self) -> PersonId {
+    todo!()
+  }
+  fn reason(&self) -> &str {
+    todo!()
+  }
+  fn is_revert(&self) -> bool {
+    todo!()
   }
 }
 
