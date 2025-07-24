@@ -1,7 +1,6 @@
 use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
-  instance::InstanceActions,
   person::{Person, PersonActions},
   post::Post,
   tag::TagsView,
@@ -10,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{helper_types::Nullable, Queryable, Selectable},
+  diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::{
     comment_creator_is_admin,
     comment_select_remove_deletes,
@@ -18,10 +17,8 @@ use {
     creator_banned_within_community,
     creator_is_moderator,
     local_user_can_mod_comment,
-    my_instance_persons_actions_select,
     post_tags_fragment,
   },
-  lemmy_db_schema::MyInstancePersonsActionsAllColumnsTuple,
 };
 
 pub mod api;
@@ -54,12 +51,6 @@ pub struct CommentView {
   pub comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_communities_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<MyInstancePersonsActionsAllColumnsTuple>,
-      select_expression = my_instance_persons_actions_select()))]
-  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = comment_creator_is_admin()
@@ -110,8 +101,6 @@ pub struct CommentSlimView {
   pub creator: Person,
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
-  pub instance_communities_actions: Option<InstanceActions>,
-  pub instance_persons_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,

@@ -4,7 +4,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -20,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{helper_types::Nullable, Queryable, Selectable},
+  diesel::{Queryable, Selectable},
   lemmy_db_schema::{
     utils::queries::{
       creator_banned,
@@ -28,11 +27,9 @@ use {
       creator_is_admin,
       creator_is_moderator,
       local_user_can_mod,
-      my_instance_persons_actions_select,
       person1_select,
       post_tags_fragment,
     },
-    MyInstancePersonsActionsAllColumnsTuple,
     Person1AliasAllColumnsTuple,
   },
 };
@@ -68,12 +65,6 @@ struct NotificationViewInternal {
   image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
   community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_communities_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(
-      select_expression_type = Nullable<MyInstancePersonsActionsAllColumnsTuple>,
-      select_expression = my_instance_persons_actions_select()))]
-  pub instance_persons_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

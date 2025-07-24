@@ -2117,12 +2117,6 @@ mod tests {
 
     assert!(post_view.creator_banned);
 
-    // This should be none, since john wasn't banned, only the creator.
-    assert!(post_view.instance_communities_actions.is_none());
-    assert!(post_view.instance_persons_actions.is_none());
-
-    assert!(post_view.creator_banned);
-
     Person::delete(pool, banned_person.id).await?;
     Ok(())
   }
