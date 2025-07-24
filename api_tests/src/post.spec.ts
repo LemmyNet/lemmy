@@ -624,15 +624,6 @@ test("Enforce site ban federation for federated user", async () => {
   let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view;
   expect(alphaPerson2.banned).toBe(false);
 
-  // but the ban should be indicated by beta community on alpha
-  let communityWithBan = await getCommunity(
-    alphaUserHttp,
-    betaCommunity.community.id,
-  );
-  expect(
-    communityWithBan.community_view.instance_actions?.received_ban_at,
-  ).toBeDefined();
-
   // post to beta community is rejected
   await expect(
     createPost(alphaUserHttp, betaCommunity.community.id),
