@@ -5,6 +5,7 @@ use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
     check_is_mod_or_admin,
@@ -63,6 +64,8 @@ pub async fn mod_update_post(
   if let Some(tags) = &data.tags {
     update_post_tags(&updated_post, tags, &context).await?;
   }
+
+  ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post.clone()), &context)?;
 
   build_post_response(context.deref(), community.id, local_user_view, post_id).await
 }

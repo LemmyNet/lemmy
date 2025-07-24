@@ -182,17 +182,18 @@ test("Create and update post tags", async () => {
     communityRes.community_view.community.id,
   );
   alphaCommunity = communityRes.community_view;
-  let updateRes = await alpha.editPost({
+  let updateRes = await alpha.modEditPost({
     post_id: postRes.post_view.post.id,
     tags: [alphaCommunity!.post_tags[0].id],
   });
   expect(updateRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(updateRes.post_view.tags?.length).toBe(1);
-  expect(updateRes.post_view.tags?.[0].id).toBe(betaCommunity!.post_tags[0].id);
+  expect(updateRes.post_view.tags?.[0].id).toBe(
+    alphaCommunity!.post_tags[0].id,
+  );
 
   // wait post tags federated
   let betaPost = await waitForPost(beta, postRes.post_view.post, p => {
-    console.log(p?.tags);
     return (p?.tags.length ?? 0) === 1;
   });
   expect(betaPost?.tags.map(t => t.ap_id)).toEqual([tag1Res.ap_id]);

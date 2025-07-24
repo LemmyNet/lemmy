@@ -355,8 +355,6 @@ pub struct CreateCommunityTag {
   pub name: String,
   pub display_name: Option<String>,
   pub description: Option<String>,
-  /// Hex code like `#ff00aa`
-  pub background_color: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -368,8 +366,6 @@ pub struct UpdateCommunityTag {
   pub tag_id: TagId,
   pub display_name: Option<String>,
   pub description: Option<String>,
-  /// Hex code like `#ff00aa`
-  pub background_color: Option<String>,
 }
 
 #[skip_serializing_none]
