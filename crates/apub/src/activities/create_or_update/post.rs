@@ -9,14 +9,19 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::{verify_domains_match, verify_urls_match},
+  protocol::verification::{verify_domains_match, verify_is_remote_object, verify_urls_match},
   traits::{Activity, Object},
 };
+use chrono::Utc;
 use lemmy_api_utils::{context::LemmyContext, notify::NotifyData};
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::{post_nsfw, update_apub_post_tags, ApubPost},
+  },
   utils::{
-    functions::{generate_to, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -26,7 +31,7 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::Community,
     person::Person,
-    post::{Post, PostActions, PostLikeForm},
+    post::{Post, PostActions, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
 };
@@ -100,12 +105,42 @@ impl Activity for CreateOrUpdatePage {
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-    verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    if verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_err()
+      && verify_is_remote_object(&self.object.id, context).is_err()
+    {
+      if let Ok(post) = self.object.id.dereference_local(context).await {
+        post.set_not_pending(&mut context.pool()).await?;
+      }
+
+      // allow mods to edit the post
+      if let Ok(Some(post)) =
+        Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into_inner()).await
+      {
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        if verify_mod_action(&self.actor, &community, context)
+          .await
+          .is_ok()
+        {
+          let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+          let form = PostUpdateForm {
+            updated_at: Some(Some(Utc::now())),
+            nsfw: post_nsfw(&self.object, &community, Some(&local_site), context).await?,
+            ..Default::default()
+          };
+          Post::update(&mut context.pool(), post.id, &form).await?;
+          update_apub_post_tags(&self.object, &post, context).await?;
+        }
+      }
+
+      return Ok(());
+    }
+
+    verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     let post = ApubPost::from_json(self.object, context).await?;

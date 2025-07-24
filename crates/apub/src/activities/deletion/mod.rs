@@ -1,10 +1,5 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    send_lemmy_activity,
-    verify_mod_action,
-    verify_person,
-  },
+  activities::{community::send_activity_in_community, send_lemmy_activity, verify_person},
   activity_lists::AnnouncableActivities,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -25,7 +20,13 @@ use lemmy_apub_objects::{
     private_message::ApubPrivateMessage,
   },
   utils::{
-    functions::{generate_to, verify_is_public, verify_person_in_community, verify_visibility},
+    functions::{
+      generate_to,
+      verify_is_public,
+      verify_mod_action,
+      verify_person_in_community,
+      verify_visibility,
+    },
     protocol::InCommunity,
   },
 };

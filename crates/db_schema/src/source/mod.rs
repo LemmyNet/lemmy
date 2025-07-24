@@ -36,7 +36,6 @@ pub mod password_reset_request;
 pub mod person;
 pub mod post;
 pub mod post_report;
-pub mod post_tag;
 pub mod private_message;
 pub mod private_message_report;
 pub mod registration_application;

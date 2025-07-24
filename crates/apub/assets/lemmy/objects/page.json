@@ -28,5 +28,12 @@
     "identifier": "fr",
     "name": "Français"
   },
+  "tag": [
+    {
+      "type": "CommunityPostTag",
+      "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
+      "name": "news"
+    }
+  ],
   "published": "2021-02-26T12:35:34.292626Z"
 }

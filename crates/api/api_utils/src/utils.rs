@@ -8,7 +8,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::{PostTag, Tag},
   },
   traits::{Crud, Likeable},
   utils::DbPool,
@@ -60,7 +61,7 @@ use lemmy_utils::{
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -485,6 +486,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
+// `local_site` is optional so that tests work easily
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
   let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
@@ -1002,6 +1004,24 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+pub async fn update_post_tags(
+  post: &Post,
+  tag_ids: &[TagId],
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  // validate tags
+  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id)
+    .await?
+    .into_iter()
+    .map(|t| t.id)
+    .collect::<HashSet<_>>();
+  if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
+    return Err(LemmyErrorType::TagNotInCommunity.into());
+  }
+  PostTag::update(&mut context.pool(), post, tag_ids).await?;
+  Ok(())
 }
 
 #[cfg(test)]

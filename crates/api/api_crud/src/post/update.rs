@@ -9,7 +9,6 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
-  tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
@@ -17,6 +16,7 @@ use lemmy_api_utils::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
+    update_post_tags,
   },
 };
 use lemmy_db_schema::{
@@ -28,7 +28,6 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
 };
-use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{EditPost, PostResponse},
@@ -103,20 +102,6 @@ pub async fn update_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  if let Some(tags) = &data.tags {
-    // post view does not include communityview.post_tags
-    let community_view =
-      CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
-    update_post_tags(
-      &context,
-      &orig_post.post,
-      &community_view,
-      tags,
-      &local_user_view,
-    )
-    .await?;
-  }
-
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
     Err(LemmyErrorType::NoPostEditAllowed)?
@@ -161,6 +146,10 @@ pub async fn update_post(
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
+
+  if let Some(tags) = &data.tags {
+    update_post_tags(&orig_post.post, tags, &context).await?;
+  }
 
   NotifyData::new(
     &updated_post,

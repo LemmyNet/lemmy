@@ -1,10 +1,14 @@
 use crate::{
-  protocol::page::{
-    Attachment,
-    Hashtag,
-    HashtagType::{self},
-    Page,
-    PageType,
+  protocol::{
+    page::{
+      Attachment,
+      Hashtag,
+      HashtagOrLemmyTag,
+      HashtagType::{self},
+      Page,
+      PageType,
+    },
+    tags::CommunityTag,
   },
   utils::{
     functions::{
@@ -20,10 +24,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{
-    values::MediaTypeMarkdownOrHtml,
-    verification::{verify_domains_match, verify_is_remote_object},
-  },
+  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
 use anyhow::anyhow;
@@ -33,13 +34,21 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
-  utils::{check_nsfw_allowed, get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{
+    check_nsfw_allowed,
+    get_url_blocklist,
+    process_markdown_opt,
+    slur_regex,
+    update_post_tags,
+  },
 };
 use lemmy_db_schema::{
   source::{
     community::Community,
+    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
+    tag::Tag,
   },
   traits::Crud,
 };
@@ -54,7 +63,7 @@ use lemmy_utils::{
     validation::{is_url_blocked, is_valid_url},
   },
 };
-use std::ops::Deref;
+use std::{collections::HashSet, ops::Deref};
 use stringreader::StringReader;
 use url::Url;
 
@@ -133,11 +142,21 @@ impl Object for ApubPost {
       })
       .into_iter()
       .collect();
+
+    // Add tags defined by community and applied to this post
+    let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
+      .await?
+      .into_iter()
+      .map(|tag| HashtagOrLemmyTag::CommunityTag(CommunityTag::to_json(tag)))
+      .collect();
+
+    // Add automatic hashtag based on community name
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
       name: format!("#{}", &community.name),
       kind: HashtagType::Hashtag,
     };
+    tags.push(HashtagOrLemmyTag::Hashtag(hashtag));
 
     let page = Page {
       kind: PageType::Page,
@@ -156,7 +175,7 @@ impl Object for ApubPost {
       published: Some(self.published_at),
       updated: self.updated_at,
       in_reply_to: None,
-      tag: vec![hashtag],
+      tag: tags,
     };
     Ok(page)
   }
@@ -167,14 +186,11 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
     verify_domains_match(page.id.inner(), expected_domain)?;
-    if let Err(e) = verify_is_remote_object(&page.id, context) {
-      if let Ok(post) = page.id.dereference_local(context).await {
-        post.set_not_pending(&mut context.pool()).await?;
-      }
-      return Err(e.into());
-    }
-
     let community = page.community(context).await?;
+
+    // Doesnt call verify_is_remote_object() because the community might be edited by a
+    // remote mod. This is safe as we validate `expected_domain`.
+
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
@@ -240,24 +256,6 @@ impl Object for ApubPost {
       None
     };
 
-    // Ensure that all posts in NSFW communities are marked as NSFW
-    let nsfw = if community.nsfw {
-      Some(true)
-    } else {
-      page.sensitive
-    };
-
-    // If NSFW is not allowed, reject NSFW posts and delete existing
-    // posts that get updated to be NSFW
-    let block_for_nsfw = check_nsfw_allowed(nsfw, local_site.as_ref());
-    if let Err(e) = block_for_nsfw {
-      // TODO: Remove locally generated thumbnail if one exists, depends on
-      //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
-      //       safely do this.
-      Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
-      Err(e)?
-    }
-
     let url_blocklist = get_url_blocklist(context).await?;
 
     let url = if let Some(url) = url {
@@ -280,8 +278,11 @@ impl Object for ApubPost {
     let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
-      LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())
-        .await?,
+      LanguageTag::to_language_id_single(
+        page.language.clone().unwrap_or_default(),
+        &mut context.pool(),
+      )
+      .await?,
     );
 
     let mut form = PostInsertForm {
@@ -291,9 +292,10 @@ impl Object for ApubPost {
       published_at: page.published,
       updated_at: page.updated,
       deleted: Some(false),
-      nsfw,
+      nsfw: post_nsfw(&page, &community, local_site.as_ref(), context).await?,
       ap_id: Some(page.id.clone().into()),
-      local: Some(false),
+      // May be a local post which is updated by remote mod.
+      local: Some(page.id.is_local(context)),
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
@@ -302,6 +304,9 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("after_receive_federated_post", &post)?;
+
+    update_apub_post_tags(&page, &post, context).await?;
+
     let post_ = post.clone();
     let context_ = context.clone();
 
@@ -315,6 +320,52 @@ impl Object for ApubPost {
   }
 }
 
+pub async fn update_apub_post_tags(
+  page: &Page,
+  post: &Post,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let post_tag_ap_ids = page
+    .tag
+    .iter()
+    .filter_map(HashtagOrLemmyTag::community_tag_url)
+    .collect::<HashSet<_>>();
+  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
+  let post_tags = community_tags
+    .into_iter()
+    .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
+    .map(|t| t.id)
+    .collect::<Vec<_>>();
+  update_post_tags(post, &post_tags, context).await?;
+  Ok(())
+}
+
+pub async fn post_nsfw(
+  page: &Page,
+  community: &Community,
+  local_site: Option<&LocalSite>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<bool>> {
+  // Ensure that all posts in NSFW communities are marked as NSFW
+  let nsfw = if community.nsfw {
+    Some(true)
+  } else {
+    page.sensitive
+  };
+
+  // If NSFW is not allowed, reject NSFW posts and delete existing
+  // posts that get updated to be NSFW
+  let block_for_nsfw = check_nsfw_allowed(nsfw, local_site);
+  if let Err(e) = block_for_nsfw {
+    // TODO: Remove locally generated thumbnail if one exists, depends on
+    //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
+    //       safely do this.
+    Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
+    Err(e)?
+  }
+  Ok(nsfw)
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -322,7 +373,7 @@ mod tests {
     objects::ApubPerson,
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::{community::Community, person::Person, site::Site};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

@@ -3357,7 +3357,6 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "pretty_assertions",
- "regex",
  "rustls 0.23.27",
  "serde",
  "serde_json",
