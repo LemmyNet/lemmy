@@ -26,6 +26,7 @@ use lemmy_apub::{
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_views_site::SiteView;
+use lemmy_email::{cancel_email_task, send_email_task};
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
@@ -47,6 +48,7 @@ use lemmy_utils::{
   rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
+  spawn_try_task,
   VERSION,
 };
 use mimalloc::MiMalloc;
@@ -54,7 +56,7 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
 use std::{ops::Deref, time::Duration};
-use tokio::signal::unix::SignalKind;
+use tokio::{signal::unix::SignalKind, try_join};
 use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
 
 #[global_allocator]
@@ -243,6 +245,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task =
     tokio::task::spawn(handle_outgoing_activities(request_data.clone()));
+  let send_email_task = spawn_try_task(send_email_task());
 
   if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
@@ -296,6 +299,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       tracing::warn!("Received terminate, shutting down gracefully...");
     }
   }
+
+  // Wait for incoming background tasks to complete
+  // TODO: Would be good to make these parallel as well, how to do that with options?
+  //       https://stackoverflow.com/questions/63589668/how-to-tokiojoin-multiple-tasks#69424585
   if let Some(server) = server {
     server.stop(true).await;
   }
@@ -303,8 +310,11 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     federate.cancel().await?;
   }
 
-  // Wait for outgoing apub sends to complete
-  ActivityChannel::close(outgoing_activities_task).await?;
+  // Wait for outgoing background tasks to complete
+  try_join!(
+    ActivityChannel::close(outgoing_activities_task),
+    cancel_email_task(send_email_task),
+  )?;
 
   Ok(())
 }

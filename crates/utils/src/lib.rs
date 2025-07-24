@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
 use std::cmp::min;
+use tokio::task::JoinHandle;
 
 cfg_if! {
   if #[cfg(feature = "full")] {
@@ -81,7 +82,7 @@ pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
 /// * attaches the spawned task to the tracing span of the caller for better logging
 pub fn spawn_try_task(
   task: impl futures::Future<Output = Result<(), error::LemmyError>> + Send + 'static,
-) {
+) -> JoinHandle<()>{
   use tracing::Instrument;
   tokio::spawn(
     async {
@@ -91,7 +92,7 @@ pub fn spawn_try_task(
     }
     .in_current_span(), /* this makes sure the inner tracing gets the same context as where
                          * spawn was called */
-  );
+  )
 }
 
 pub fn build_cache<K, V>() -> Cache<K, V>

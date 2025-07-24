@@ -3825,6 +3825,7 @@ dependencies = [
  "lettre",
  "rosetta-build",
  "rosetta-i18n",
+ "tokio",
  "uuid",
 ]
 
@@ -3920,6 +3921,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_setup",
  "lemmy_db_views_site",
+ "lemmy_email",
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",

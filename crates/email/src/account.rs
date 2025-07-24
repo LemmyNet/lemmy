@@ -30,7 +30,7 @@ pub async fn send_password_reset_email(
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let email = user_email(user)?;
   let body = lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, user.person.name.clone(), body, settings);
+  send_email(subject, email, user.person.name.clone(), body, settings)?;
 
   // Insert the row after successful send, to avoid using daily reset limit while
   // email sending is broken.
@@ -69,7 +69,7 @@ pub async fn send_verification_email(
     lang.verify_email_body(&settings.hostname, &user.person.name, verify_link)
   };
 
-  send_email(subject, new_email, user.person.name.clone(), body, settings);
+  send_email(subject, new_email, user.person.name.clone(), body, settings)?;
   Ok(())
 }
 
@@ -100,7 +100,7 @@ pub fn send_application_approved_email(
   let subject = lang.registration_approved_subject(&user.person.name);
   let email = user_email(user)?;
   let body = lang.registration_approved_body(&settings.hostname);
-  send_email(subject, email, user.person.name.clone(), body, settings);
+  send_email(subject, email, user.person.name.clone(), body, settings)?;
   Ok(())
 }
 
@@ -119,7 +119,7 @@ pub fn send_application_denied_email(
     }
     None => lang.registration_denied_body(&settings.hostname),
   };
-  send_email(subject, email, user.person.name.clone(), body, settings);
+  send_email(subject, email, user.person.name.clone(), body, settings)?;
   Ok(())
 }
 
@@ -137,6 +137,6 @@ pub fn send_email_verified_email(
     user.person.name.clone(),
     body.to_string(),
     settings,
-  );
+  )?;
   Ok(())
 }
