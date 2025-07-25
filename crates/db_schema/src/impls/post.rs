@@ -549,7 +549,7 @@ impl PostActions {
   pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
     post_ids
       .iter()
-      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
       .collect::<Vec<_>>()
   }
 
