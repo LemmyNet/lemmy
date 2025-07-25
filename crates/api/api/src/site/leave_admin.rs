@@ -6,7 +6,7 @@ use lemmy_db_schema::{
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::moderator::{ModAdd, ModAddForm},
+    mod_log::admin::{AdminAdd, AdminAddForm},
     oauth_provider::OAuthProvider,
     tagline::Tagline,
   },
@@ -57,13 +57,13 @@ pub async fn leave_admin(
   .await?;
 
   // Mod tables
-  let form = ModAddForm {
+  let form = AdminAddForm {
     mod_person_id: my_person_id,
     other_person_id: my_person_id,
     removed: Some(true),
   };
 
-  ModAdd::create(&mut context.pool(), &form).await?;
+  AdminAdd::create(&mut context.pool(), &form).await?;
 
   // Reread site and admins
   let site_view = SiteView::read_local(&mut context.pool()).await?;

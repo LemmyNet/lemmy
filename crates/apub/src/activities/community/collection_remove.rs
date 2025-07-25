@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -120,13 +120,13 @@ impl Activity for CollectionRemove {
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
-        let form = ModAddCommunityForm {
+        let form = ModAddToCommunityForm {
           mod_person_id: actor.id,
           other_person_id: remove_mod.id,
           community_id: community.id,
           removed: Some(true),
         };
-        ModAddCommunity::create(&mut context.pool(), &form).await?;
+        ModAddToCommunity::create(&mut context.pool(), &form).await?;
 
         // TODO: send websocket notification about removed mod
       }

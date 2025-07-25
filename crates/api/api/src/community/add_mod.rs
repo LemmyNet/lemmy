@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
   },
   traits::Crud,
   utils::get_conn,
@@ -68,14 +68,14 @@ pub async fn add_mod_to_community(
         }
 
         // Mod tables
-        let form = ModAddCommunityForm {
+        let form = ModAddToCommunityForm {
           mod_person_id: local_user_view.person.id,
           other_person_id: tx_data.person_id,
           community_id: tx_data.community_id,
           removed: Some(!tx_data.added),
         };
 
-        ModAddCommunity::create(&mut conn.into(), &form).await?;
+        ModAddToCommunity::create(&mut conn.into(), &form).await?;
 
         Ok(())
       }
