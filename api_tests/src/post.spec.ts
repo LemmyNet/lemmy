@@ -40,7 +40,6 @@ import {
   getMyUser,
   listNotifications,
   getModlog,
-  getCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
