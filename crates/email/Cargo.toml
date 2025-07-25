@@ -26,7 +26,6 @@ lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
-tracing = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 rosetta-i18n = { workspace = true }
 html2text = { workspace = true }

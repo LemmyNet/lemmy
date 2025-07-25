@@ -27,10 +27,7 @@ use lemmy_db_views_registration_applications::api::{
   ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
-  CACHE_DURATION_API,
-};
+use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
 use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
@@ -196,7 +193,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  let approval = approve_registration_application(
+  approve_registration_application(
     Json(ApproveRegistrationApplication {
       id: app_with_email.id,
       approve: true,
@@ -205,9 +202,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     context.clone(),
     admin_local_user_view.clone(),
   )
-  .await;
-  // Approval should be processed up until email sending is attempted
-  assert!(approval.is_err_and(|e| e.error_type == LemmyErrorType::NoEmailSetup));
+  .await?;
 
   expected_unread_applications -= 1;
 
@@ -290,7 +285,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  let deny = approve_registration_application(
+  approve_registration_application(
     Json(ApproveRegistrationApplication {
       id: app_with_email_2.id,
       approve: false,
@@ -299,8 +294,7 @@ async fn test_application_approval() -> LemmyResult<()> {
     context.clone(),
     admin_local_user_view.clone(),
   )
-  .await;
-  assert!(deny.is_err_and(|e| e.error_type == LemmyErrorType::NoEmailSetup));
+  .await?;
 
   expected_unread_applications -= 1;
 

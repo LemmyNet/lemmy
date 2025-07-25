@@ -48,7 +48,7 @@ pub async fn verify_email(
     .await?;
   }
 
-  send_email_verified_email(&local_user_view, context.settings()).await?;
+  send_email_verified_email(&local_user_view, context.settings())?;
 
   Ok(Json(SuccessResponse::default()))
 }
