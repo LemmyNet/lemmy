@@ -157,9 +157,7 @@ impl Activity for CreateOrUpdatePage {
     let actor = self.actor.dereference(context).await?;
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    NotifyData::new(&post.0, None, &actor, &community, do_send_email)
-      .send(context)
-      .await?;
+    NotifyData::new(post.0, None, actor.0, community, do_send_email).send(context);
 
     Ok(())
   }

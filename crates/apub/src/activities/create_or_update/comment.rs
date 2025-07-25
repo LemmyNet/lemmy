@@ -170,9 +170,7 @@ impl Activity for CreateOrUpdateNote {
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    NotifyData::new(&post.0, Some(&comment.0), &actor, &community, do_send_email)
-      .send(context)
-      .await?;
+    NotifyData::new(post.0, Some(comment.0), actor.0, community, do_send_email).send(context);
     Ok(())
   }
 }
