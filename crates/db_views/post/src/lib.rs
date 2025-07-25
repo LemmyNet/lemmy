@@ -1,7 +1,6 @@
 use lemmy_db_schema::source::{
   community::{Community, CommunityActions},
   images::ImageDetails,
-  instance::InstanceActions,
   person::{Person, PersonActions},
   post::{Post, PostActions},
   tag::TagsView,
@@ -16,8 +15,6 @@ use {
   lemmy_db_schema::utils::queries::{
     creator_banned_from_community,
     creator_banned_within_community,
-  },
-  lemmy_db_schema::utils::queries::{
     creator_is_moderator,
     local_user_can_mod_post,
     post_creator_is_admin,
@@ -50,8 +47,6 @@ pub struct PostView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_creator_is_admin()

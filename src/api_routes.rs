@@ -52,7 +52,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
-    user_block_instance::user_block_instance,
+    user_block_instance::{user_block_instance_communities, user_block_instance_persons},
     validate_auth::validate_auth,
     verify_email::verify_email,
   },
@@ -382,7 +382,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/block")
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
-              .route("/instance", post().to(user_block_instance)),
+              .route(
+                "/instance/communities",
+                post().to(user_block_instance_communities),
+              )
+              .route("/instance/persons", post().to(user_block_instance_persons)),
           )
           .route("/saved", get().to(list_person_saved))
           .route("/read", get().to(list_person_read))

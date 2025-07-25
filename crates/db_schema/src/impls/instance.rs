@@ -3,9 +3,16 @@ use crate::{
   newtypes::{InstanceId, PersonId},
   source::{
     federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm, InstanceForm},
+    instance::{
+      Instance,
+      InstanceActions,
+      InstanceBanForm,
+      InstanceCommunitiesBlockForm,
+      InstanceForm,
+      InstancePersonsBlockForm,
+    },
   },
-  traits::{Bannable, Blockable},
+  traits::Bannable,
   utils::{
     functions::{coalesce, lower},
     get_conn,
@@ -206,12 +213,11 @@ impl Instance {
   }
 }
 
-impl Blockable for InstanceActions {
-  type Form = InstanceBlockForm;
-  type ObjectIdType = InstanceId;
-  type ObjectType = Instance;
-
-  async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl InstanceActions {
+  pub async fn block_communities(
+    pool: &mut DbPool<'_>,
+    form: &InstanceCommunitiesBlockForm,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(instance_actions::table)
       .values(form)
@@ -221,27 +227,31 @@ impl Blockable for InstanceActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::InstanceBlockCommunitiesAlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
+  pub async fn unblock_communities(
+    pool: &mut DbPool<'_>,
+    form: &InstanceCommunitiesBlockForm,
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(instance_actions::table.find((form.person_id, form.instance_id)))
-      .set_null(instance_actions::blocked_at)
+      .set_null(instance_actions::blocked_communities_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::InstanceBlockCommunitiesAlreadyExists)
   }
 
-  async fn read_block(
+  /// Checks to see if there's a block for the instances communities
+  pub async fn read_communities_block(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    instance_id: Self::ObjectIdType,
+    instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = instance_actions::table
       .find((person_id, instance_id))
-      .filter(instance_actions::blocked_at.is_not_null());
+      .filter(instance_actions::blocked_communities_at.is_not_null());
     select(not(exists(find_action)))
       .get_result::<bool>(conn)
       .await?
@@ -249,24 +259,83 @@ impl Blockable for InstanceActions {
       .ok_or(LemmyErrorType::InstanceIsBlocked.into())
   }
 
-  async fn read_blocks_for_person(
+  pub async fn read_communities_block_for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<Vec<Self::ObjectType>> {
+  ) -> LemmyResult<Vec<Instance>> {
     let conn = &mut get_conn(pool).await?;
     instance_actions::table
-      .filter(instance_actions::blocked_at.is_not_null())
+      .filter(instance_actions::blocked_communities_at.is_not_null())
       .inner_join(instance::table)
       .select(instance::all_columns)
       .filter(instance_actions::person_id.eq(person_id))
-      .order_by(instance_actions::blocked_at)
+      .order_by(instance_actions::blocked_communities_at)
       .load::<Instance>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-}
 
-impl InstanceActions {
+  pub async fn block_persons(
+    pool: &mut DbPool<'_>,
+    form: &InstancePersonsBlockForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(instance_actions::table)
+      .values(form)
+      .on_conflict((instance_actions::person_id, instance_actions::instance_id))
+      .do_update()
+      .set(form)
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::InstanceBlockPersonsAlreadyExists)
+  }
+
+  pub async fn unblock_persons(
+    pool: &mut DbPool<'_>,
+    form: &InstancePersonsBlockForm,
+  ) -> LemmyResult<UpleteCount> {
+    let conn = &mut get_conn(pool).await?;
+    uplete(instance_actions::table.find((form.person_id, form.instance_id)))
+      .set_null(instance_actions::blocked_persons_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::InstanceBlockPersonsAlreadyExists)
+  }
+
+  /// Checks to see if there's a block either from the instance person.
+  pub async fn read_persons_block(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    instance_id: InstanceId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let find_action = instance_actions::table
+      .find((person_id, instance_id))
+      .filter(instance_actions::blocked_persons_at.is_not_null());
+    select(not(exists(find_action)))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::InstanceIsBlocked.into())
+  }
+
+  pub async fn read_persons_block_for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> LemmyResult<Vec<Instance>> {
+    let conn = &mut get_conn(pool).await?;
+    instance_actions::table
+      .filter(instance_actions::blocked_persons_at.is_not_null())
+      .inner_join(instance::table)
+      .select(instance::all_columns)
+      .filter(instance_actions::person_id.eq(person_id))
+      .order_by(instance_actions::blocked_persons_at)
+      .load::<Instance>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
   pub async fn check_ban(
     pool: &mut DbPool<'_>,
     person_id: PersonId,

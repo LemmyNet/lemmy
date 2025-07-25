@@ -1,6 +1,5 @@
 use lemmy_db_schema::source::{
   community::{Community, CommunityActions},
-  instance::InstanceActions,
   multi_community::MultiCommunity,
   person::Person,
   tag::TagsView,
@@ -29,8 +28,6 @@ pub struct CommunityView {
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_community_can_mod()

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   source::{
     comment::{CommentActions, CommentSavedForm},
     community::{CommunityActions, CommunityBlockForm, CommunityFollowerForm},
-    instance::{Instance, InstanceActions, InstanceBlockForm},
+    instance::{Instance, InstanceActions, InstanceCommunitiesBlockForm, InstancePersonsBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
     post::{PostActions, PostSavedForm},
@@ -98,7 +98,8 @@ pub async fn import_settings(
   let url_count = data.followed_communities.len()
     + data.blocked_communities.len()
     + data.blocked_users.len()
-    + data.blocked_instances.len()
+    + data.blocked_instances_communities.len()
+    + data.blocked_instances_persons.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
   check_api_elements_count(url_count)?;
@@ -197,10 +198,23 @@ pub async fn import_settings(
     )
     .await?;
 
-    try_join_all(data.blocked_instances.iter().map(|domain| async {
+    try_join_all(
+      data
+        .blocked_instances_communities
+        .iter()
+        .map(|domain| async {
+          let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
+          let form = InstanceCommunitiesBlockForm::new(person_id, instance.id);
+          InstanceActions::block_communities(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .await?;
+
+    try_join_all(data.blocked_instances_persons.iter().map(|domain| async {
       let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
-      let form = InstanceBlockForm::new(person_id, instance.id);
-      InstanceActions::block(&mut context.pool(), &form).await?;
+      let form = InstancePersonsBlockForm::new(person_id, instance.id);
+      InstanceActions::block_persons(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;

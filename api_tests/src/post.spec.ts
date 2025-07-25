@@ -40,7 +40,6 @@ import {
   getMyUser,
   listNotifications,
   getModlog,
-  getCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -371,7 +370,11 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(beta, postRes.post_view.post, p => !p || p.post.deleted);
+  await waitForPost(
+    beta,
+    postRes.post_view.post,
+    p => p?.post?.deleted || p == undefined,
+  );
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -531,7 +534,7 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.creator_banned!,
+    res => res?.creator_banned == true,
   );
   expect(alphaUserOnBeta1?.creator_banned).toBe(true);
 
@@ -623,15 +626,6 @@ test("Enforce site ban federation for federated user", async () => {
   // User should not be shown to be banned from alpha
   let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view;
   expect(alphaPerson2.banned).toBe(false);
-
-  // but the ban should be indicated by beta community on alpha
-  let communityWithBan = await getCommunity(
-    alphaUserHttp,
-    betaCommunity.community.id,
-  );
-  expect(
-    communityWithBan.community_view.instance_actions?.received_ban_at,
-  ).toBeDefined();
 
   // post to beta community is rejected
   await expect(
@@ -830,7 +824,7 @@ test("Report a post", async () => {
       () =>
         listReports(beta).then(p =>
           p.reports.find(r => {
-            return checkPostReportName(r, gammaReport) && r.resolver != null;
+            return checkPostReportName(r, gammaReport) && !!r.resolver;
           }),
         ),
       res => !!res,

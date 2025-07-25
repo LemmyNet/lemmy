@@ -129,7 +129,8 @@ pub enum LemmyErrorType {
   InvalidUrlScheme,
   CouldntSendWebmention,
   ContradictingFilters,
-  InstanceBlockAlreadyExists,
+  InstanceBlockCommunitiesAlreadyExists,
+  InstanceBlockPersonsAlreadyExists,
   /// Thrown when an API call is submitted with more than 1000 array elements, see
   /// [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
