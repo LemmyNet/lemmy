@@ -1,6 +1,6 @@
 -- create user follower table with two references to persons
 CREATE TABLE person_follower (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     follower_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),

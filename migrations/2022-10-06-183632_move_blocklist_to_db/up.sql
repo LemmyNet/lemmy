@@ -1,7 +1,7 @@
 -- Create an instance table
 -- Holds any connected or unconnected domain
 CREATE TABLE instance (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     domain varchar(255) NOT NULL UNIQUE,
     published timestamp NOT NULL DEFAULT now(),
     updated timestamp NULL
@@ -80,14 +80,14 @@ ALTER TABLE community
 
 -- Create allowlist and blocklist tables
 CREATE TABLE federation_allowlist (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE NOT NULL UNIQUE,
     published timestamp NOT NULL DEFAULT now(),
     updated timestamp NULL
 );
 
 CREATE TABLE federation_blocklist (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE NOT NULL UNIQUE,
     published timestamp NOT NULL DEFAULT now(),
     updated timestamp NULL
@@ -96,7 +96,7 @@ CREATE TABLE federation_blocklist (
 -- Move all the extra site settings-type columns to a local_site table
 -- Add a lot of other fields currently in the lemmy.hjson
 CREATE TABLE local_site (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     site_id int REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL UNIQUE,
     -- Site table fields
     site_setup boolean DEFAULT FALSE NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE local_site (
 
 -- local_site_rate_limit is its own table, so as to not go over 32 columns, and force diesel to use the 64-column-tables feature
 CREATE TABLE local_site_rate_limit (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_site_id int REFERENCES local_site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL UNIQUE,
     message int DEFAULT 180 NOT NULL,
     message_per_second int DEFAULT 60 NOT NULL,

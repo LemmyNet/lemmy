@@ -2,7 +2,7 @@
 -- It can then be joined to post_aggregates to get an unread count:
 -- unread = post_aggregates.comments - person_post_aggregates.read_comments
 CREATE TABLE person_post_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read_comments bigint NOT NULL DEFAULT 0,

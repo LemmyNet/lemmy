@@ -13,7 +13,7 @@ ALTER TABLE local_user
     ADD COLUMN email_verified boolean NOT NULL DEFAULT FALSE;
 
 CREATE TABLE email_verification (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_user_id int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     email text NOT NULL,
     verification_token text NOT NULL

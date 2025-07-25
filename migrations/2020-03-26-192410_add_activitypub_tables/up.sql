@@ -1,7 +1,7 @@
 -- The Activitypub activity table
 -- All user actions must create a row here.
 CREATE TABLE activity (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- Ensures that the user is set up here.
     data jsonb NOT NULL,
     local boolean NOT NULL DEFAULT TRUE,

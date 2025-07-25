@@ -1,6 +1,6 @@
 -- Add community aggregates
 CREATE TABLE community_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     subscribers bigint NOT NULL DEFAULT 0,
     posts bigint NOT NULL DEFAULT 0,

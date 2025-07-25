@@ -1,5 +1,5 @@
 CREATE TABLE activity (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     data jsonb NOT NULL,
     local boolean NOT NULL DEFAULT TRUE,
     published timestamp NOT NULL DEFAULT now(),

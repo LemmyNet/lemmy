@@ -13,7 +13,7 @@ ALTER TABLE local_user
     ADD COLUMN accepted_application boolean NOT NULL DEFAULT FALSE;
 
 CREATE TABLE registration_application (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_user_id int REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     answer text NOT NULL,
     admin_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,

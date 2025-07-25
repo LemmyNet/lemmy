@@ -1,7 +1,7 @@
 -- Creates combined tables for
 -- Reports: (comment, post, and private_message)
 CREATE TABLE report_combined (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     published timestamptz NOT NULL,
     post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
     comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,

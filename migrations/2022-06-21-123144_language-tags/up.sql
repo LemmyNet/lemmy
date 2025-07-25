@@ -6,7 +6,7 @@ LANGUAGE (
 );
 
 CREATE TABLE local_user_language (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_user_id int REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     language_id int REFERENCES
     LANGUAGE ON
@@ -19,6 +19,15 @@ ALTER TABLE local_user RENAME COLUMN lang TO interface_language;
 INSERT INTO
 LANGUAGE (id, code, name)
     VALUES (0, 'und', 'Undetermined');
+
+ALTER TABLE LANGUAGE
+    ALTER COLUMN id DROP DEFAULT;
+
+DROP SEQUENCE language_id_seq;
+
+ALTER TABLE LANGUAGE
+    ALTER COLUMN id
+    ADD GENERATED ALWAYS AS IDENTITY;
 
 ALTER TABLE post
     ADD COLUMN language_id integer REFERENCES LANGUAGE NOT

@@ -1,6 +1,6 @@
 -- Add site aggregates
 CREATE TABLE site_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     site_id int REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     users bigint NOT NULL DEFAULT 1,
     posts bigint NOT NULL DEFAULT 0,

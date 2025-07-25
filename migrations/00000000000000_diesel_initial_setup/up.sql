@@ -8,7 +8,7 @@
 -- # Example
 --
 -- ```sql
--- CREATE TABLE users (id SERIAL PRIMARY KEY, updated_at TIMESTAMP NOT NULL DEFAULT NOW());
+-- CREATE TABLE users (id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, updated_at TIMESTAMP NOT NULL DEFAULT NOW());
 --
 -- SELECT diesel_manage_updated_at('users');
 -- ```

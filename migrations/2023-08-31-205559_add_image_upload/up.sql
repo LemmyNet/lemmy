@@ -1,5 +1,5 @@
 CREATE TABLE image_upload (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     local_user_id int REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     pictrs_alias text NOT NULL UNIQUE,
     pictrs_delete_token text NOT NULL,

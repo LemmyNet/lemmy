@@ -1,5 +1,5 @@
 CREATE TABLE site_language (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     site_id int REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     language_id int REFERENCES
     LANGUAGE ON
@@ -8,7 +8,7 @@ CREATE TABLE site_language (
 );
 
 CREATE TABLE community_language (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     language_id int REFERENCES
     LANGUAGE ON

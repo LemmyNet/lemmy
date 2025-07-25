@@ -1,5 +1,5 @@
 CREATE TABLE instance_block (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),

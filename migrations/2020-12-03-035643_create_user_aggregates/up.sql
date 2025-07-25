@@ -1,6 +1,6 @@
 -- Add user aggregates
 CREATE TABLE user_aggregates (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_count bigint NOT NULL DEFAULT 0,
     post_score bigint NOT NULL DEFAULT 0,

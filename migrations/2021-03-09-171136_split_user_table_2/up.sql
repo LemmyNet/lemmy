@@ -10,7 +10,7 @@ ALTER SEQUENCE user__id_seq
 
 -- create a new table local_user
 CREATE TABLE local_user (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     password_encrypted text NOT NULL,
     email text UNIQUE,

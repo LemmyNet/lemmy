@@ -340,7 +340,7 @@ mod tests {
   const INITIAL_MIGRATIONS_COUNT: u64 = 40;
 
   // Test data IDs
-  const TEST_USER_ID_1: i32 = 101;
+  const TEST_USER_ID_1: i32 = 2;
   const USER1_NAME: &str = "test_user_1";
   const USER1_ACTOR_ID: &str = "test_user_1@fedi.example";
   const USER1_PREFERRED_NAME: &str = "preferred_1";
@@ -348,7 +348,7 @@ mod tests {
   const USER1_PASSWORD: &str = "test_password_1";
   const USER1_PUBLIC_KEY: &str = "test_public_key_1";
 
-  const TEST_USER_ID_2: i32 = 102;
+  const TEST_USER_ID_2: i32 = 3;
   const USER2_NAME: &str = "test_user_2";
   const USER2_ACTOR_ID: &str = "test_user_2@fedi.example";
   const USER2_PREFERRED_NAME: &str = "preferred2";
@@ -356,7 +356,7 @@ mod tests {
   const USER2_PASSWORD: &str = "test_password_2";
   const USER2_PUBLIC_KEY: &str = "test_public_key_2";
 
-  const TEST_COMMUNITY_ID_1: i32 = 101;
+  const TEST_COMMUNITY_ID_1: i32 = 2;
   const COMMUNITY_NAME: &str = "test_community_1";
   const COMMUNITY_TITLE: &str = "Test Community 1";
   const COMMUNITY_DESCRIPTION: &str = "This is a test community.";
@@ -364,17 +364,17 @@ mod tests {
   const COMMUNITY_ACTOR_ID: &str = "https://fedi.example/community/12345";
   const COMMUNITY_PUBLIC_KEY: &str = "test_public_key_community_1";
 
-  const TEST_POST_ID_1: i32 = 101;
+  const TEST_POST_ID_1: i32 = 1;
   const POST_NAME: &str = "Post Title";
   const POST_URL: &str = "https://fedi.example/post/12345";
   const POST_BODY: &str = "Post Body.";
   const POST_AP_ID: &str = "https://fedi.example/post/12345";
 
-  const TEST_COMMENT_ID_1: i32 = 101;
+  const TEST_COMMENT_ID_1: i32 = 2;
   const COMMENT1_CONTENT: &str = "Comment";
   const COMMENT1_AP_ID: &str = "https://fedi.example/comment/12345";
 
-  const TEST_COMMENT_ID_2: i32 = 102;
+  const TEST_COMMENT_ID_2: i32 = 3;
   const COMMENT2_CONTENT: &str = "Reply";
   const COMMENT2_AP_ID: &str = "https://fedi.example/comment/12346";
 
@@ -446,9 +446,8 @@ mod tests {
   fn insert_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
     // Users
     conn.batch_execute(&format!(
-      "INSERT INTO user_ (id, name, actor_id, preferred_username, password_encrypted, email, public_key) \
-          VALUES ({}, '{}', '{}', '{}', '{}', '{}', '{}')",
-      TEST_USER_ID_1,
+      "INSERT INTO user_ ( name, actor_id, preferred_username, password_encrypted, email, public_key) \
+          VALUES ( '{}', '{}', '{}', '{}', '{}', '{}')",
       USER1_NAME,
       USER1_ACTOR_ID,
       USER1_PREFERRED_NAME,
@@ -458,9 +457,8 @@ mod tests {
     ))?;
 
     conn.batch_execute(&format!(
-      "INSERT INTO user_ (id, name, actor_id, preferred_username, password_encrypted, email, public_key) \
-          VALUES ({}, '{}', '{}', '{}', '{}', '{}', '{}')",
-      TEST_USER_ID_2,
+      "INSERT INTO user_ ( name, actor_id, preferred_username, password_encrypted, email, public_key) \
+          VALUES ( '{}', '{}', '{}', '{}', '{}', '{}')",
       USER2_NAME,
       USER2_ACTOR_ID,
       USER2_PREFERRED_NAME,
@@ -471,9 +469,8 @@ mod tests {
 
     // Community
     conn.batch_execute(&format!(
-      "INSERT INTO community (id, actor_id, public_key, name, title, description, category_id, creator_id) \
-          VALUES ({}, '{}', '{}', '{}', '{}', '{}', {}, {})",
-      TEST_COMMUNITY_ID_1,
+      "INSERT INTO community ( actor_id, public_key, name, title, description, category_id, creator_id) \
+          VALUES ( '{}', '{}', '{}', '{}', '{}', {}, {})",
       COMMUNITY_ACTOR_ID,
       COMMUNITY_PUBLIC_KEY,
       COMMUNITY_NAME,
@@ -491,33 +488,22 @@ mod tests {
 
     // Post
     conn.batch_execute(&format!(
-      "INSERT INTO post (id, name, url, body, creator_id, community_id, ap_id) \
-          VALUES ({}, '{}', '{}', '{}', {}, {}, '{}')",
-      TEST_POST_ID_1,
-      POST_NAME,
-      POST_URL,
-      POST_BODY,
-      TEST_USER_ID_1,
-      TEST_COMMUNITY_ID_1,
-      POST_AP_ID
+      "INSERT INTO post ( name, url, body, creator_id, community_id, ap_id) \
+          VALUES ('{}', '{}', '{}', {}, {}, '{}')",
+      POST_NAME, POST_URL, POST_BODY, TEST_USER_ID_1, TEST_COMMUNITY_ID_1, POST_AP_ID
     ))?;
 
     // Comment
     conn.batch_execute(&format!(
-      "INSERT INTO comment (id, creator_id, post_id, parent_id, content, ap_id) \
-           VALUES ({}, {}, {}, NULL, '{}', '{}')",
-      TEST_COMMENT_ID_1, TEST_USER_ID_2, TEST_POST_ID_1, COMMENT1_CONTENT, COMMENT1_AP_ID
+      "INSERT INTO comment ( creator_id, post_id, parent_id, content, ap_id) \
+           VALUES ( {}, {}, NULL, '{}', '{}')",
+      TEST_USER_ID_2, TEST_POST_ID_1, COMMENT1_CONTENT, COMMENT1_AP_ID
     ))?;
 
     conn.batch_execute(&format!(
-      "INSERT INTO comment (id, creator_id, post_id, parent_id, content, ap_id) \
-           VALUES ({}, {}, {}, {}, '{}', '{}')",
-      TEST_COMMENT_ID_2,
-      TEST_USER_ID_1,
-      TEST_POST_ID_1,
-      TEST_COMMENT_ID_1,
-      COMMENT2_CONTENT,
-      COMMENT2_AP_ID
+      "INSERT INTO comment ( creator_id, post_id, parent_id, content, ap_id) \
+           VALUES ( {}, {}, {}, '{}', '{}')",
+      TEST_USER_ID_1, TEST_POST_ID_1, TEST_COMMENT_ID_1, COMMENT2_CONTENT, COMMENT2_AP_ID
     ))?;
 
     conn.batch_execute(&format!(

@@ -1,6 +1,6 @@
 -- Creating private message
 CREATE TABLE private_message (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     recipient_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     content text NOT NULL,
@@ -113,7 +113,7 @@ CREATE UNIQUE INDEX idx_user_mview_id ON user_mview (id);
 -- Not going to do it now because of the complications
 --
 -- create table private_message (
---   id serial primary key,
+--   id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 --   creator_id int references user_ on update cascade on delete cascade not null,
 --   content text not null,
 --   deleted boolean default false not null,
@@ -122,7 +122,7 @@ CREATE UNIQUE INDEX idx_user_mview_id ON user_mview (id);
 -- );
 --
 -- create table private_message_recipient (
---   id serial primary key,
+--   id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 --   private_message_id int references private_message on update cascade on delete cascade not null,
 --   recipient_id int references user_ on update cascade on delete cascade not null,
 --   read boolean default false not null,

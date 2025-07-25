@@ -1,5 +1,5 @@
 CREATE TABLE category (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name varchar(100) NOT NULL UNIQUE
 );
 
@@ -32,7 +32,7 @@ INSERT INTO category (name)
     ('Other');
 
 CREATE TABLE community (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name varchar(20) NOT NULL UNIQUE,
     title varchar(100) NOT NULL,
     description text,
@@ -44,7 +44,7 @@ CREATE TABLE community (
 );
 
 CREATE TABLE community_moderator (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),
@@ -52,7 +52,7 @@ CREATE TABLE community_moderator (
 );
 
 CREATE TABLE community_follower (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),
@@ -60,7 +60,7 @@ CREATE TABLE community_follower (
 );
 
 CREATE TABLE community_user_ban (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamp NOT NULL DEFAULT now(),
@@ -71,7 +71,7 @@ INSERT INTO community (name, title, category_id, creator_id)
     VALUES ('main', 'The Default Community', 1, 1);
 
 CREATE TABLE site (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name varchar(20) NOT NULL UNIQUE,
     description text,
     creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,

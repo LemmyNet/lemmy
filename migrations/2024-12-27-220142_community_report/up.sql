@@ -1,5 +1,5 @@
 CREATE TABLE community_report (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     original_community_name text NOT NULL,

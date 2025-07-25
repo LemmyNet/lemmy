@@ -1,5 +1,5 @@
 CREATE TABLE private_message_report (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- user reporting comment
     private_message_id int REFERENCES private_message ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- comment being reported
     original_pm_text text NOT NULL,

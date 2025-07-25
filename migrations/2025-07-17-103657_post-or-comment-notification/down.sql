@@ -7,7 +7,7 @@ CREATE TABLE person_post_mention (
 );
 
 CREATE TABLE person_mention (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read bool NOT NULL DEFAULT FALSE,
@@ -18,7 +18,7 @@ CREATE TABLE person_mention (
 ALTER TABLE person_mention RENAME TO person_comment_mention;
 
 CREATE TABLE comment_reply (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read bool NOT NULL DEFAULT FALSE,

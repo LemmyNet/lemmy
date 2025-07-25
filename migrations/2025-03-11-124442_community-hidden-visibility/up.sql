@@ -53,7 +53,7 @@ ALTER TABLE modlog_combined
 DROP TABLE mod_hide_community;
 
 CREATE TABLE mod_change_community_visibility (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamptz NOT NULL DEFAULT now(),

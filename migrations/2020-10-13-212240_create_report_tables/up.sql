@@ -1,5 +1,5 @@
 CREATE TABLE comment_report (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- user reporting comment
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- comment being reported
     original_comment_text text NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE comment_report (
 );
 
 CREATE TABLE post_report (
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- user reporting post
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL, -- post being reported
     original_post_name varchar(100) NOT NULL,
