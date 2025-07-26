@@ -1,13 +1,83 @@
+-- TODO: update other migrations to handle columns becoming nullable
+CREATE FUNCTION get_score (upvotes_nullable integer, downvotes_nullable integer)
+    RETURNS integer
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN coalesce (
+        upvotes_nullable, 1) - coalesce (
+        downvotes_nullable, 0
+);
+
+CREATE FUNCTION inner_get_controversy_rank (upvotes integer, downvotes integer)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
+        OR upvotes <= 0 THEN
+        0
+    ELSE
+        (
+            upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
+            downvotes::real / upvotes::real
+        ELSE
+            upvotes::real / downvotes::real
+    END
+    END;
+
+CREATE FUNCTION get_controversy_rank (upvotes_nullable integer, downvotes_nullable integer)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN inner_get_controversy_rank (
+coalesce(upvotes_nullable, 1), coalesce(downvotes_nullable, 0)
+);
+
+CREATE FUNCTION inner_get_hot_rank (score integer, age smallint)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN
+    -- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0.
+    CASE WHEN age IS NOT NULL THEN
+        -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
+        log (
+            greatest (2, score + 2)) / power (((
+            -- Age in hours
+            age::real / 180) + 2), 1.8)
+    ELSE
+        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
+        -- always be on top even with only 1 vote by setting it to the future
+        0
+    END;
+
+CREATE FUNCTION get_hot_rank (upvotes_nullable integer, downvotes_nullable integer, age smallint)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN inner_get_hot_rank (
+        get_score (upvotes_nullable, downvotes_nullable), age
+);
+
+CREATE FUNCTION get_scaled_rank (upvotes_nullable integer, downvotes_nullable integer, age smallint, community_interactions_month_nullable integer)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE
+    -- Add 2 to avoid divide by zero errors
+    -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
+    -- There may need to be a scale factor multiplied to interactions_month, to make
+    -- the log curve less pronounced. This can be tuned in the future.
+    RETURN CASE WHEN age IS NOT NULL THEN
+        (
+            get_hot_rank (upvotes_nullable, downvotes_nullable, age) / log(2 + coalesce(community_interactions_month_nullable, 0)))
+    ELSE
+        0
+    END;
+
 -- Merge comment_aggregates into comment table
 ALTER TABLE comment
-    ADD COLUMN score int NOT NULL DEFAULT 0,
-    ADD COLUMN upvotes int NOT NULL DEFAULT 0,
-    ADD COLUMN downvotes int NOT NULL DEFAULT 0,
-    ADD COLUMN child_count int NOT NULL DEFAULT 0,
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+-- TODO: maybe rename these columns and add getter functions
+    ADD COLUMN upvotes int,
+    ADD COLUMN downvotes int,
+    ADD COLUMN child_count int,
+    -- Unlike with other columns, a null value for `age` does not represent one specific default value, but instead indicates that the comment is either supposedly from the future or exceeds the maximum age for hot ranks.
+    ADD COLUMN age smallint,
+    ADD COLUMN report_count smallint,
+    ADD COLUMN unresolved_report_count smallint;
 
 -- Disable the triggers temporarily
 ALTER TABLE comment DISABLE TRIGGER ALL;
@@ -29,18 +99,34 @@ WHERE
 UPDATE
     comment
 SET
-    score = ca.score,
-    upvotes = ca.upvotes,
-    downvotes = ca.downvotes,
-    child_count = ca.child_count,
-    hot_rank = ca.hot_rank,
-    controversy_rank = ca.controversy_rank,
-    report_count = ca.report_count,
-    unresolved_report_count = ca.unresolved_report_count
+    -- The values that columns typically have shortly after insertion are stored as null so they don't take up space.
+    upvotes = nullif (ca.upvotes, 1),
+    downvotes = nullif (ca.downvotes, 0),
+    child_count = nullif (ca.child_count, 0),
+    age = CASE WHEN comment_is_young THEN
+        new_age
+    ELSE
+        NULL
+    END,
+    report_count = nullif (ca.report_count, 0),
+    unresolved_report_count = nullif (ca.unresolved_report_count, 0)
 FROM
-    comment_aggregates AS ca
+    comment_aggregates AS ca,
+    LATERAL (
+        SELECT
+            extract(microseconds FROM (now() - ca.published)) / 20000000 AS new_age),
+    LATERAL (
+        SELECT
+            new_age >= 0
+            AND new_age <= 20 * 32767 AS comment_is_young)
 WHERE
-    comment.id = ca.comment_id;
+    comment.id = ca.comment_id
+    AND (ca.upvotes != 1
+        OR ca.downvotes != 0
+        OR ca.child_count != 0
+        OR ca.report_count != 0
+        OR ca.unresolved_report_count != 0
+        OR comment_is_young);
 
 DROP TABLE comment_aggregates;
 
@@ -65,31 +151,28 @@ WHERE
 REINDEX TABLE comment;
 
 -- 30s-2m each
-CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DESC);
+CREATE INDEX idx_comment_controversy ON comment USING btree (get_controversy_rank (upvotes, downvotes) DESC);
 
-CREATE INDEX idx_comment_hot ON comment USING btree (hot_rank DESC, score DESC);
+CREATE INDEX idx_comment_hot ON comment USING btree (get_hot_rank (upvotes, downvotes, age) DESC, get_score (upvotes, downvotes) DESC);
 
-CREATE INDEX idx_comment_nonzero_hotrank ON comment USING btree (published)
-WHERE (hot_rank <> (0)::double precision);
+CREATE INDEX idx_comment_young ON comment USING btree (published)
+WHERE (age IS NOT NULL);
 
 --CREATE INDEX idx_comment_published on comment USING btree (published DESC);
-CREATE INDEX idx_comment_score ON comment USING btree (score DESC);
+CREATE INDEX idx_comment_score ON comment USING btree (get_score (upvotes, downvotes) DESC);
 
 -- merge post_aggregates into post table
 ALTER TABLE post
-    ADD COLUMN comments int NOT NULL DEFAULT 0,
-    ADD COLUMN score int NOT NULL DEFAULT 0,
-    ADD COLUMN upvotes int NOT NULL DEFAULT 0,
-    ADD COLUMN downvotes int NOT NULL DEFAULT 0,
-    ADD COLUMN newest_comment_time_necro timestamp with time zone NOT NULL DEFAULT now(),
-    ADD COLUMN newest_comment_time timestamp with time zone NOT NULL DEFAULT now(),
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN hot_rank_active double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN scaled_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+    ADD COLUMN newest_comment_time_necro timestamp with time zone, -- TODO: remove if unused
+    ADD COLUMN newest_comment_time timestamp with time zone,
+    ADD COLUMN community_interactions_month int,
+    ADD COLUMN comments int,
+    ADD COLUMN upvotes int,
+    ADD COLUMN downvotes int,
+    ADD COLUMN age smallint,
+    ADD COLUMN newest_non_necro_comment_age smallint,
+    ADD COLUMN report_count smallint,
+    ADD COLUMN unresolved_report_count smallint;
 
 -- Disable the triggers temporarily
 ALTER TABLE post DISABLE TRIGGER ALL;
@@ -111,23 +194,56 @@ WHERE
 UPDATE
     post
 SET
-    comments = pa.comments,
-    score = pa.score,
-    upvotes = pa.upvotes,
-    downvotes = pa.downvotes,
-    newest_comment_time_necro = pa.newest_comment_time_necro,
-    newest_comment_time = pa.newest_comment_time,
-    hot_rank = pa.hot_rank,
-    hot_rank_active = pa.hot_rank_active,
-    controversy_rank = pa.controversy_rank,
-    instance_id = pa.instance_id,
-    scaled_rank = pa.scaled_rank,
-    report_count = pa.report_count,
-    unresolved_report_count = pa.unresolved_report_count
+    newest_comment_time_necro = nullif (pa.newest_comment_time_necro, pa.published),
+    newest_comment_time = nullif (pa.newest_comment_time, pa.published),
+    community_interactions_month = (
+        SELECT
+            ca.interactions_month
+        FROM
+            community_aggregates AS ca
+        WHERE
+            ca.community_id = pa.community_id
+            AND post_is_young
+            AND ca.interactions_month != 0),
+    comments = nullif (pa.comments, 0),
+    upvotes = nullif (pa.upvotes, 1),
+    downvotes = nullif (pa.downvotes, 0),
+    age = CASE WHEN post_is_young THEN
+        new_age
+    ELSE
+        NULL
+    END,
+    newest_non_necro_comment_age = CASE WHEN comment_is_young THEN
+        new_newest_non_necro_comment_age
+    ELSE
+        NULL
+    END,
+    report_count = nullif (pa.report_count, 0),
+    unresolved_report_count = nullif (pa.unresolved_report_count, 0)
 FROM
-    post_aggregates AS pa
+    post_aggregates AS pa,
+    LATERAL (
+        SELECT
+            extract(microseconds FROM (now() - pa.published)) / 20000000 AS new_age,
+            extract(microseconds FROM (now() - pa.newest_comment_time_necro)) / 20000000 AS new_newest_non_necro_comment_age),
+    LATERAL (
+        SELECT
+            new_age >= 0
+            AND new_age <= 20 * 32767 AS post_is_young,
+            new_newest_non_necro_comment_age >= 0
+            AND new_newest_non_necro_comment_age <= 20 * 32767 AS comment_is_young)
 WHERE
-    post.id = pa.post_id;
+    post.id = pa.post_id
+    AND (pa.newest_comment_time_necro != pa.published
+        OR pa.newest_comment_time != pa.published
+        -- no need to separately check `community_interactions_month` here because of how the subselect uses `post_is_young`
+        OR pa.comments != 0
+        OR pa.upvotes != 1
+        OR pa.downvotes != 0
+        OR post_is_young
+        OR comment_is_young
+        OR pa.report_count != 0
+        OR pa.unresolved_report_count != 0);
 
 -- Delete that data
 DROP TABLE post_aggregates;
@@ -152,65 +268,66 @@ WHERE
 -- reindex
 REINDEX TABLE post;
 
-CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
+CREATE INDEX idx_post_community_active ON post USING btree (community_id, featured_local DESC, get_hot_rank (upvotes, downvotes, coalesce(newest_non_necro_comment_age, age)), published DESC, id DESC);
 
-CREATE INDEX idx_post_community_controversy ON post USING btree (community_id, featured_local DESC, controversy_rank DESC, id DESC);
+CREATE INDEX idx_post_community_controversy ON post USING btree (community_id, featured_local DESC, get_controversy_rank (upvotes, downvotes) DESC, id DESC);
 
-CREATE INDEX idx_post_community_hot ON post USING btree (community_id, featured_local DESC, hot_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_community_hot ON post USING btree (community_id, featured_local DESC, get_hot_rank (upvotes, downvotes, age) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_community_most_comments ON post USING btree (community_id, featured_local DESC, comments DESC, published DESC, id DESC);
+CREATE INDEX idx_post_community_most_comments ON post USING btree (community_id, featured_local DESC, coalesce(comments, 0) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 -- INDEX idx_post_community_published ON post USING btree (community_id, featured_local DESC, published DESC);
 --CREATE INDEX idx_post_community_published_asc ON post USING btree (community_id, featured_local DESC, reverse_timestamp_sort (published) DESC);
-CREATE INDEX idx_post_community_scaled ON post USING btree (community_id, featured_local DESC, scaled_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_community_scaled ON post USING btree (community_id, featured_local DESC, get_scaled_rank (upvotes, downvotes, age, community_interactions_month) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_community_score ON post USING btree (community_id, featured_local DESC, score DESC, published DESC, id DESC);
+CREATE INDEX idx_post_community_score ON post USING btree (community_id, featured_local DESC, get_score (upvotes, downvotes) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_active ON post USING btree (community_id, featured_community DESC, hot_rank_active DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_community_active ON post USING btree (community_id, featured_community DESC, get_hot_rank (upvotes, downvotes, coalesce(newest_non_necro_comment_age, age)) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_controversy ON post USING btree (community_id, featured_community DESC, controversy_rank DESC, id DESC);
+CREATE INDEX idx_post_featured_community_controversy ON post USING btree (community_id, featured_community DESC, get_controversy_rank (upvotes, downvotes) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_hot ON post USING btree (community_id, featured_community DESC, hot_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_community_hot ON post USING btree (community_id, featured_community DESC, get_hot_rank (upvotes, downvotes, age) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_most_comments ON post USING btree (community_id, featured_community DESC, comments DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_community_most_comments ON post USING btree (community_id, featured_community DESC, coalesce(comments, 0) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 --CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC);
 CREATE INDEX idx_post_featured_community_published_asc ON post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_scaled ON post USING btree (community_id, featured_community DESC, scaled_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_community_scaled ON post USING btree (community_id, featured_community DESC, get_scaled_rank (upvotes, downvotes, age, community_interactions_month) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_score ON post USING btree (community_id, featured_community DESC, score DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_community_score ON post USING btree (community_id, featured_community DESC, get_score (upvotes, downvotes) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_active ON post USING btree (featured_local DESC, hot_rank_active DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_local_active ON post USING btree (featured_local DESC, get_hot_rank (upvotes, downvotes, coalesce(newest_non_necro_comment_age, age)) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_controversy ON post USING btree (featured_local DESC, controversy_rank DESC, id DESC);
+CREATE INDEX idx_post_featured_local_controversy ON post USING btree (featured_local DESC, get_controversy_rank (upvotes, downvotes) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_hot ON post USING btree (featured_local DESC, hot_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_local_hot ON post USING btree (featured_local DESC, get_hot_rank (upvotes, downvotes, age) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_most_comments ON post USING btree (featured_local DESC, comments DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_local_most_comments ON post USING btree (featured_local DESC, coalesce(comments, 0) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 CREATE INDEX idx_post_featured_local_published ON post USING btree (featured_local DESC, published DESC, id DESC);
 
 CREATE INDEX idx_post_featured_local_published_asc ON post USING btree (featured_local DESC, reverse_timestamp_sort (published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_scaled ON post USING btree (featured_local DESC, scaled_rank DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_local_scaled ON post USING btree (featured_local DESC, get_scaled_rank (upvotes, downvotes, age, community_interactions_month) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_score ON post USING btree (featured_local DESC, score DESC, published DESC, id DESC);
+CREATE INDEX idx_post_featured_local_score ON post USING btree (featured_local DESC, get_score (upvotes, downvotes) DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_nonzero_hotrank ON post USING btree (published DESC)
-WHERE ((hot_rank <> (0)::double precision) OR (hot_rank_active <> (0)::double precision));
+CREATE INDEX idx_post_young ON post USING btree (published DESC)
+WHERE
+    age IS NOT NULL OR newest_non_necro_comment_age IS NOT NULL;
 
 CREATE INDEX idx_post_published ON post USING btree (published DESC);
 
@@ -218,18 +335,18 @@ CREATE INDEX idx_post_published_asc ON post USING btree (reverse_timestamp_sort 
 
 -- merge community_aggregates into community table
 ALTER TABLE community
-    ADD COLUMN subscribers int NOT NULL DEFAULT 0,
-    ADD COLUMN posts int NOT NULL DEFAULT 0,
-    ADD COLUMN comments int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_day int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_week int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_month int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_half_year int NOT NULL DEFAULT 0,
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN subscribers_local int NOT NULL DEFAULT 0,
-    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month int NOT NULL DEFAULT 0;
+    ADD COLUMN subscribers int,
+    ADD COLUMN posts int,
+    ADD COLUMN comments int,
+    ADD COLUMN users_active_day int,
+    ADD COLUMN users_active_week int,
+    ADD COLUMN users_active_month int,
+    ADD COLUMN users_active_half_year int,
+    ADD COLUMN subscribers_local int,
+    ADD COLUMN interactions_month int,
+    ADD COLUMN age smallint,
+    ADD COLUMN report_count smallint,
+    ADD COLUMN unresolved_report_count smallint;
 
 -- Disable the triggers temporarily
 ALTER TABLE community DISABLE TRIGGER ALL;
@@ -251,22 +368,45 @@ WHERE
 UPDATE
     community
 SET
-    subscribers = ca.subscribers,
-    posts = ca.posts,
-    comments = ca.comments,
-    users_active_day = ca.users_active_day,
-    users_active_week = ca.users_active_week,
-    users_active_month = ca.users_active_month,
-    users_active_half_year = ca.users_active_half_year,
-    hot_rank = ca.hot_rank,
-    subscribers_local = ca.subscribers_local,
-    report_count = ca.report_count,
-    unresolved_report_count = ca.unresolved_report_count,
-    interactions_month = ca.interactions_month
+    subscribers = nullif (ca.subscribers, 1),
+    posts = nullif (ca.posts, 0),
+    comments = nullif (ca.comments, 0),
+    users_active_day = nullif (ca.users_active_day, 0),
+    users_active_week = nullif (ca.users_active_week, 0),
+    users_active_month = nullif (ca.users_active_month, 0),
+    users_active_half_year = nullif (ca.users_active_half_year, 0),
+    subscribers_local = nullif (ca.subscribers_local, 0),
+    interactions_month = nullif (ca.interactions_month, 0),
+    age = CASE WHEN community_is_young THEN
+        new_age
+    ELSE
+        NULL
+    END,
+    report_count = nullif (ca.report_count, 0),
+    unresolved_report_count = nullif (ca.unresolved_report_count, 0)
 FROM
-    community_aggregates AS ca
+    community_aggregates AS ca,
+    LATERAL (
+        SELECT
+            extract(microseconds FROM (now() - ca.published)) / 20000000 AS new_age),
+    LATERAL (
+        SELECT
+            new_age >= 0
+            AND new_age <= 20 * 32767 AS community_is_young)
 WHERE
-    community.id = ca.community_id;
+    community.id = ca.community_id
+    AND (ca.subscribers != 1
+        OR ca.posts != 0
+        OR ca.comments != 0
+        OR ca.users_active_day != 0
+        OR ca.users_active_week != 0
+        OR ca.users_active_month != 0
+        OR ca.users_active_half_year != 0
+        OR ca.subscribers_local != 0
+        OR ca.interactions_month != 0
+        OR community_is_young
+        OR ca.report_count != 0
+        OR ca.unresolved_report_count != 0);
 
 DROP TABLE community_aggregates;
 
@@ -290,21 +430,21 @@ WHERE
 -- reindex
 REINDEX TABLE community;
 
-CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
+CREATE INDEX idx_community_hot ON public.community USING btree (inner_get_hot_rank (coalesce(subscribers, 1), age) DESC);
 
-CREATE INDEX idx_community_nonzero_hotrank ON public.community USING btree (published)
-WHERE (hot_rank <> (0)::double precision);
+CREATE INDEX idx_community_young ON public.community USING btree (published)
+WHERE (age IS NOT NULL);
 
-CREATE INDEX idx_community_subscribers ON public.community USING btree (subscribers DESC);
+CREATE INDEX idx_community_subscribers ON public.community USING btree (coalesce(subscribers, 1) DESC);
 
-CREATE INDEX idx_community_users_active_month ON public.community USING btree (users_active_month DESC);
+CREATE INDEX idx_community_users_active_month ON public.community USING btree (coalesce(users_active_month, 0) DESC);
 
 -- merge person_aggregates into person table
 ALTER TABLE person
-    ADD COLUMN post_count int NOT NULL DEFAULT 0,
-    ADD COLUMN post_score int NOT NULL DEFAULT 0,
-    ADD COLUMN comment_count int NOT NULL DEFAULT 0,
-    ADD COLUMN comment_score int NOT NULL DEFAULT 0;
+    ADD COLUMN post_count int,
+    ADD COLUMN post_score int,
+    ADD COLUMN comment_count int,
+    ADD COLUMN comment_score int;
 
 -- Disable the triggers temporarily
 ALTER TABLE person DISABLE TRIGGER ALL;
@@ -326,14 +466,18 @@ WHERE
 UPDATE
     person
 SET
-    post_count = pa.post_count,
-    post_score = pa.post_score,
-    comment_count = pa.comment_count,
-    comment_score = pa.comment_score
+    post_count = nullif (pa.post_count, 0),
+    post_score = nullif (pa.post_score, 0),
+    comment_count = nullif (pa.comment_count, 0),
+    comment_score = nullif (pa.comment_score, 0)
 FROM
     person_aggregates AS pa
 WHERE
-    person.id = pa.person_id;
+    person.id = pa.person_id
+    AND (pa.post_count != 0
+        OR pa.post_score != 0
+        OR pa.comment_count != 0
+        OR pa.comment_score != 0);
 
 DROP TABLE person_aggregates;
 

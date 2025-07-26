@@ -920,8 +920,9 @@ diesel::table! {
         upvotes -> Nullable<Int4>,
         downvotes -> Nullable<Int4>,
         age -> Nullable<Int2>,
+        newest_non_necro_comment_age -> Nullable<Int2>,
         report_count -> Nullable<Int2>,
-        unresolved_report_count -> <Int2>,
+        unresolved_report_count -> Nullable<Int2>,
         federation_pending -> Bool,
     }
 }
