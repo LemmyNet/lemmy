@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use either::Either;
 use html2md::parse_html;
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
@@ -321,4 +321,34 @@ pub fn community_visibility(group: &Group) -> CommunityVisibility {
   } else {
     CommunityVisibility::Public
   }
+}
+
+/// Verify that mod action in community was performed by a moderator.
+///
+/// * `mod_id` - Activitypub ID of the mod or admin who performed the action
+/// * `object_id` - Activitypub ID of the actor or object that is being moderated
+/// * `community` - The community inside which moderation is happening
+pub async fn verify_mod_action(
+  mod_id: &ObjectId<ApubPerson>,
+  community: &Community,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  // mod action comes from the same instance as the community, so it was presumably done
+  // by an instance admin.
+  // TODO: federate instance admin status and check it here
+  if mod_id.inner().domain() == community.ap_id.domain() {
+    return Ok(());
+  }
+
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site_view.site.instance_id;
+
+  let mod_ = mod_id.dereference(context).await?;
+  check_is_mod_or_admin(
+    &mut context.pool(),
+    mod_.id,
+    community.id,
+    local_instance_id,
+  )
+  .await
 }

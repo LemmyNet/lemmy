@@ -83,6 +83,17 @@ pub struct EditPost {
   pub tags: Option<Vec<TagId>>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Mods can change some metadata for posts
+pub struct ModEditPost {
+  pub post_id: PostId,
+  pub nsfw: Option<bool>,
+  pub tags: Option<Vec<TagId>>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]

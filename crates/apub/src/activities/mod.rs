@@ -33,7 +33,6 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_is_mod_or_admin,
 };
 use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
 use lemmy_db_schema::{
@@ -44,7 +43,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -67,36 +65,6 @@ async fn verify_person(
   let person = person_id.dereference(context).await?;
   InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   Ok(())
-}
-
-/// Verify that mod action in community was performed by a moderator.
-///
-/// * `mod_id` - Activitypub ID of the mod or admin who performed the action
-/// * `object_id` - Activitypub ID of the actor or object that is being moderated
-/// * `community` - The community inside which moderation is happening
-pub(crate) async fn verify_mod_action(
-  mod_id: &ObjectId<ApubPerson>,
-  community: &Community,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  // mod action comes from the same instance as the community, so it was presumably done
-  // by an instance admin.
-  // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == community.ap_id.domain() {
-    return Ok(());
-  }
-
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_instance_id = site_view.site.instance_id;
-
-  let mod_ = mod_id.dereference(context).await?;
-  check_is_mod_or_admin(
-    &mut context.pool(),
-    mod_.id,
-    community.id,
-    local_instance_id,
-  )
-  .await
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {

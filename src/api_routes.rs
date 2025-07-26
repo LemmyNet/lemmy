@@ -65,6 +65,7 @@ use lemmy_api::{
     lock::lock_post,
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
+    mod_update::mod_update_post,
     save::save_post,
     update_notifications::update_post_notifications,
   },
@@ -295,7 +296,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/notifications", post().to(update_post_notifications)),
+          .route("/notifications", post().to(update_post_notifications))
+          .route("/mod_update", put().to(mod_update_post)),
       )
       // Comment
       .service(

@@ -1110,7 +1110,11 @@ diesel::table! {
     tag (id) {
         id -> Int4,
         ap_id -> Text,
-        display_name -> Text,
+        #[max_length = 255]
+        name -> Varchar,
+        #[max_length = 255]
+        display_name -> Nullable<Varchar>,
+        description -> Nullable<Text>,
         community_id -> Int4,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
