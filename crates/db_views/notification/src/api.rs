@@ -1,4 +1,4 @@
-use lemmy_db_schema::newtypes::{NotificationId, PrivateMessageId};
+use lemmy_db_schema::newtypes::NotificationId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
