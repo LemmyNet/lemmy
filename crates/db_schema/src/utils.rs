@@ -557,12 +557,12 @@ pub async fn build_db_pool_for_tests(
         None,
         move |conn| {
           Box::pin(async {
-            let async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+            let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
               AsyncConnectionWrapper::from(conn);
 
             lemmy_db_schema_setup::run_with_connection(
               lemmy_db_schema_setup::Options::default().run(),
-              async_wrapper,
+              &mut async_wrapper,
             )
             .expect("run migrations");
 

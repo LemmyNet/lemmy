@@ -191,7 +191,7 @@ pub enum Branch {
   ReplaceableSchemaNotRebuilt,
 }
 
-pub fn run_with_connection<Conn>(options: Options, &mut conn: Conn) -> anyhow::Result<Branch>
+pub fn run_with_connection<Conn>(options: Options, conn: &mut Conn) -> anyhow::Result<Branch>
 where
   Conn: Connection<Backend = Pg> + MigrationHarness<Pg> + LoadConnection,
 {
