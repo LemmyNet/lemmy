@@ -599,9 +599,8 @@ mod tests {
         PostReadForm,
         PostUpdateForm,
       },
-      post_tag::{PostTag, PostTagForm},
       site::Site,
-      tag::{Tag, TagInsertForm},
+      tag::{PostTag, Tag, TagInsertForm},
     },
     test_data::TestData,
     traits::{Bannable, Blockable, Crud, Followable, Likeable},
@@ -729,8 +728,11 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
-          display_name: "Test Tag 1".into(),
+          name: "Test Tag 1".into(),
+          display_name: None,
+          description: None,
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;
@@ -738,8 +740,11 @@ mod tests {
         pool,
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
-          display_name: "Test Tag 2".into(),
+          name: "Test Tag 2".into(),
+          display_name: None,
+          description: None,
           community_id: community.id,
+          deleted: Some(false),
         },
       )
       .await?;
@@ -770,17 +775,7 @@ mod tests {
       };
 
       let post_with_tags = Post::create(pool, &new_post).await?;
-      let inserted_tags = vec![
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_1.id,
-        },
-        PostTagForm {
-          post_id: post_with_tags.id,
-          tag_id: tag_2.id,
-        },
-      ];
-      PostTag::set(pool, &inserted_tags).await?;
+      PostTag::update(pool, &post_with_tags, &[tag_1.id, tag_2.id]).await?;
 
       let tegan = LocalUserView {
         local_user: inserted_tegan_local_user,
@@ -2356,8 +2351,8 @@ mod tests {
     .await?;
 
     assert_eq!(2, post_view.tags.0.len());
-    assert_eq!(data.tag_1.display_name, post_view.tags.0[0].display_name);
-    assert_eq!(data.tag_2.display_name, post_view.tags.0[1].display_name);
+    assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
+    assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(2, all_posts[0].tags.0.len()); // post with tags

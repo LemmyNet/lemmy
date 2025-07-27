@@ -61,17 +61,13 @@ impl NotificationInsertForm {
       kind,
     }
   }
-  pub fn new_private_message(
-    private_message_id: PrivateMessageId,
-    recipient_id: PersonId,
-    kind: NotificationTypes,
-  ) -> Self {
+  pub fn new_private_message(private_message_id: PrivateMessageId, recipient_id: PersonId) -> Self {
     Self {
       post_id: None,
       comment_id: None,
       private_message_id: Some(private_message_id),
       recipient_id,
-      kind,
+      kind: NotificationTypes::PrivateMessage,
     }
   }
 }

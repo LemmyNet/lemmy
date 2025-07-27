@@ -248,6 +248,8 @@ serde_json = { workspace = true }
 rustls = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
 mimalloc = "0.1.46"
 
 # Speedup RSA key generation

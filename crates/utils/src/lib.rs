@@ -49,6 +49,9 @@ pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = DAY;
 
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 
+/// Doing DB transactions of bigger batches than this tend to cause seq scans.
+pub const DB_BATCH_SIZE: i64 = 1000;
+
 #[macro_export]
 macro_rules! location_info {
   () => {

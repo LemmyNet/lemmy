@@ -5,7 +5,6 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
-    verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
   protocol::activities::block::block_user::BlockUser,
@@ -22,7 +21,12 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
-  utils::functions::{verify_is_public, verify_person_in_community, verify_visibility},
+  utils::functions::{
+    verify_is_public,
+    verify_mod_action,
+    verify_person_in_community,
+    verify_visibility,
+  },
 };
 use lemmy_db_schema::{
   source::{

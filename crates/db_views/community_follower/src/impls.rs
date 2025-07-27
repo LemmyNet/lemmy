@@ -66,13 +66,14 @@ impl CommunityFollowerView {
   pub async fn count_community_followers(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> LemmyResult<i64> {
+  ) -> LemmyResult<i32> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
       .select(count_star())
       .first::<i64>(conn)
       .await
+      .map(i32::try_from)?
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 

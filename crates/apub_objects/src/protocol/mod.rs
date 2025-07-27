@@ -5,6 +5,7 @@ pub mod note;
 pub mod page;
 pub mod person;
 pub mod private_message;
+pub mod tags;
 
 #[cfg(test)]
 mod tests {

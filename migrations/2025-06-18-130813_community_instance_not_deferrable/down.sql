@@ -1,3 +1,0 @@
-ALTER TABLE community
-    ALTER CONSTRAINT community_instance_id_fkey DEFERRABLE INITIALLY DEFERRED;
-

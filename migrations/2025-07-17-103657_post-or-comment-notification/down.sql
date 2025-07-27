@@ -1,5 +1,5 @@
 CREATE TABLE person_post_mention (
-    id serial PRIMARY KEY,
+    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read bool NOT NULL DEFAULT FALSE,
@@ -27,7 +27,7 @@ CREATE TABLE comment_reply (
 );
 
 CREATE TABLE inbox_combined (
-    id serial PRIMARY KEY,
+    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     comment_reply_id int REFERENCES comment_reply (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     person_comment_mention_id int REFERENCES person_comment_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     person_post_mention_id int REFERENCES person_post_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
@@ -109,7 +109,7 @@ FROM
     comment_reply;
 
 ALTER TABLE ONLY person_post_mention
-    ADD CONSTRAINT person_post_mention_unique UNIQUE (recipient_id, post_id);
+    ADD CONSTRAINT person_post_mention_recipient_id_post_id_key UNIQUE (recipient_id, post_id);
 
 ALTER TABLE inbox_combined
     ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);

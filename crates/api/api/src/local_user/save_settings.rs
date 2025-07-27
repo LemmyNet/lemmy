@@ -51,15 +51,15 @@ pub async fn save_user_settings(
   let email_deref = data.email.as_deref().map(str::to_lowercase);
   let email = diesel_string_update(email_deref.as_deref());
 
-  if let Some(Some(email)) = &email {
+  if let Some(Some(email)) = email.clone() {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
+      LocalUser::check_is_email_taken(&mut context.pool(), &email).await?;
       send_verification_email(
         &site_view.local_site,
         &local_user_view,
-        email,
+        email.into(),
         &mut context.pool(),
         context.settings(),
       )
