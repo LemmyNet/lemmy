@@ -600,6 +600,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 
 [[package]]
+name = "bb8"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89aabfae550a5c44b43ab941844ffcd2e993cb6900b342debf59e9ea74acdb8"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
 name = "bcrypt"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1374,6 +1386,22 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+]
+
+[[package]]
+name = "db-pool"
+version = "0.6.0"
+source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021-test#aba15f15f194ce4d0b7a313cf8f077b8b3bec81c"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "deadpool",
+ "diesel",
+ "diesel-async",
+ "futures",
+ "parking_lot",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -3343,6 +3371,7 @@ dependencies = [
  "activitypub_federation",
  "bcrypt",
  "chrono",
+ "db-pool",
  "deadpool",
  "derive-new",
  "diesel",
@@ -3361,7 +3390,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "strum",
  "tokio",
  "tokio-postgres",
@@ -3420,7 +3448,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3439,7 +3466,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3458,7 +3484,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3533,7 +3558,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3551,7 +3575,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3588,7 +3611,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3610,7 +3632,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3631,7 +3652,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3652,7 +3672,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3721,7 +3740,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3741,7 +3759,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3764,7 +3781,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3808,7 +3824,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
