@@ -3,7 +3,7 @@ pub use lemmy_db_schema::{
   source::post::{Post, PostActions},
   PostFeatureType,
 };
-pub use lemmy_db_schema_file::enums::PostListingMode;
+pub use lemmy_db_schema_file::enums::{PostListingMode, PostNotificationsMode};
 pub use lemmy_db_views_post::{
   api::{
     GetPost,
@@ -29,6 +29,7 @@ pub mod actions {
     MarkManyPostsAsRead,
     MarkPostAsRead,
     SavePost,
+    UpdatePostNotifications,
   };
 
   pub mod moderation {
@@ -37,6 +38,7 @@ pub mod actions {
       ListPostLikes,
       ListPostLikesResponse,
       LockPost,
+      ModEditPost,
       PurgePost,
       RemovePost,
     };
