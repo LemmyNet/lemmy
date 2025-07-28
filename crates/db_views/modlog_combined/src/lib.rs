@@ -4,23 +4,23 @@ use lemmy_db_schema::source::{
   instance::Instance,
   mod_log::{
     admin::{
+      AdminAdd,
       AdminAllowInstance,
+      AdminBan,
       AdminBlockInstance,
       AdminPurgeComment,
       AdminPurgeCommunity,
       AdminPurgePerson,
       AdminPurgePost,
+      AdminRemoveCommunity,
     },
     moderator::{
-      ModAdd,
-      ModAddCommunity,
-      ModBan,
+      ModAddToCommunity,
       ModBanFromCommunity,
       ModChangeCommunityVisibility,
       ModFeaturePost,
       ModLockPost,
       ModRemoveComment,
-      ModRemoveCommunity,
       ModRemovePost,
       ModTransferCommunity,
     },
@@ -47,8 +47,8 @@ pub mod impls;
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is added as a community moderator.
-pub struct ModAddCommunityView {
-  pub mod_add_community: ModAddCommunity,
+pub struct ModAddToCommunityView {
+  pub mod_add_to_community: ModAddToCommunity,
   pub moderator: Option<Person>,
   pub community: Community,
   pub other_person: Person,
@@ -61,8 +61,8 @@ pub struct ModAddCommunityView {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is added as a site moderator.
-pub struct ModAddView {
-  pub mod_add: ModAdd,
+pub struct AdminAddView {
+  pub admin_add: AdminAdd,
   pub moderator: Option<Person>,
   pub other_person: Person,
 }
@@ -88,8 +88,8 @@ pub struct ModBanFromCommunityView {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is banned from the site.
-pub struct ModBanView {
-  pub mod_ban: ModBan,
+pub struct AdminBanView {
+  pub admin_ban: AdminBan,
   pub moderator: Option<Person>,
   pub other_person: Person,
 }
@@ -144,9 +144,9 @@ pub struct ModRemoveCommentView {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// When a moderator removes a community.
-pub struct ModRemoveCommunityView {
-  pub mod_remove_community: ModRemoveCommunity,
+/// When an admin removes a community.
+pub struct AdminRemoveCommunityView {
+  pub admin_remove_community: AdminRemoveCommunity,
   pub moderator: Option<Person>,
   pub community: Community,
 }
@@ -290,11 +290,11 @@ pub(crate) struct ModlogCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_post: Option<AdminPurgePost>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_add: Option<ModAdd>,
+  pub admin_add: Option<AdminAdd>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_add_community: Option<ModAddCommunity>,
+  pub mod_add_to_community: Option<ModAddToCommunity>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_ban: Option<ModBan>,
+  pub admin_ban: Option<AdminBan>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_ban_from_community: Option<ModBanFromCommunity>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -306,7 +306,7 @@ pub(crate) struct ModlogCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_comment: Option<ModRemoveComment>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_remove_community: Option<ModRemoveCommunity>,
+  pub admin_remove_community: Option<AdminRemoveCommunity>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_post: Option<ModRemovePost>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -345,15 +345,15 @@ pub enum ModlogCombinedView {
   AdminPurgeCommunity(AdminPurgeCommunityView),
   AdminPurgePerson(AdminPurgePersonView),
   AdminPurgePost(AdminPurgePostView),
-  ModAdd(ModAddView),
-  ModAddCommunity(ModAddCommunityView),
-  ModBan(ModBanView),
+  AdminAdd(AdminAddView),
+  ModAddToCommunity(ModAddToCommunityView),
+  AdminBan(AdminBanView),
   ModBanFromCommunity(ModBanFromCommunityView),
   ModFeaturePost(ModFeaturePostView),
   ModChangeCommunityVisibility(ModChangeCommunityVisibilityView),
   ModLockPost(ModLockPostView),
   ModRemoveComment(ModRemoveCommentView),
-  ModRemoveCommunity(ModRemoveCommunityView),
+  AdminRemoveCommunity(AdminRemoveCommunityView),
   ModRemovePost(ModRemovePostView),
   ModTransferCommunity(ModTransferCommunityView),
 }

@@ -504,41 +504,41 @@ fn create_modlog_items(
         &v.admin_purge_post.reason,
         settings,
       ),
-      ModlogCombinedView::ModAdd(v) => build_modlog_item(
+      ModlogCombinedView::AdminAdd(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_add.published_at,
+        &v.admin_add.published_at,
         &modlog_url,
         &format!(
           "{} admin {}",
-          removed_added_str(v.mod_add.removed),
+          removed_added_str(v.admin_add.removed),
           &v.other_person.name
         ),
         &None,
         settings,
       ),
-      ModlogCombinedView::ModAddCommunity(v) => build_modlog_item(
+      ModlogCombinedView::ModAddToCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_add_community.published_at,
+        &v.mod_add_to_community.published_at,
         &modlog_url,
         &format!(
           "{} mod {} to /c/{}",
-          removed_added_str(v.mod_add_community.removed),
+          removed_added_str(v.mod_add_to_community.removed),
           &v.other_person.name,
           &v.community.name
         ),
         &None,
         settings,
       ),
-      ModlogCombinedView::ModBan(v) => build_modlog_item(
+      ModlogCombinedView::AdminBan(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_ban.published_at,
+        &v.admin_ban.published_at,
         &modlog_url,
         &format!(
           "{} {}",
-          banned_unbanned_str(v.mod_ban.banned),
+          banned_unbanned_str(v.admin_ban.banned),
           &v.other_person.name
         ),
-        &v.mod_ban.reason,
+        &v.admin_ban.reason,
         settings,
       ),
       ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
@@ -609,16 +609,16 @@ fn create_modlog_items(
         &v.mod_remove_comment.reason,
         settings,
       ),
-      ModlogCombinedView::ModRemoveCommunity(v) => build_modlog_item(
+      ModlogCombinedView::AdminRemoveCommunity(v) => build_modlog_item(
         &v.moderator,
-        &v.mod_remove_community.published_at,
+        &v.admin_remove_community.published_at,
         &modlog_url,
         &format!(
           "{} community /c/{}",
-          removed_restored_str(v.mod_remove_community.removed),
+          removed_restored_str(v.admin_remove_community.removed),
           &v.community.name
         ),
-        &v.mod_remove_community.reason,
+        &v.admin_remove_community.reason,
         settings,
       ),
       ModlogCombinedView::ModRemovePost(v) => build_modlog_item(

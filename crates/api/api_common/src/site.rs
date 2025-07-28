@@ -9,7 +9,7 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_schema_file::enums::RegistrationMode;
 pub use lemmy_db_views_site::{
-  api::{GetSiteResponse, SiteResponse},
+  api::{GetSiteResponse, PostOrCommentOrPrivateMessage, SiteResponse},
   SiteView,
 };
 

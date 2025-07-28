@@ -4,7 +4,7 @@ pub use lemmy_db_schema::{
   NotificationDataType,
 };
 pub use lemmy_db_views_notification::{
-  api::{GetUnreadCountResponse, MarkNotificationAsRead, MarkPrivateMessageAsRead},
+  api::{GetUnreadCountResponse, MarkNotificationAsRead},
   ListNotifications,
   ListNotificationsResponse,
   NotificationView,

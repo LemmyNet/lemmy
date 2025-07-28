@@ -14,13 +14,9 @@ use lemmy_db_schema::{
     comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::moderator::{
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemoveCommunity,
-      ModRemoveCommunityForm,
-      ModRemovePost,
-      ModRemovePostForm,
+    mod_log::{
+      admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
+      moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
     },
     post::{Post, PostUpdateForm},
     post_report::PostReport,
@@ -113,13 +109,13 @@ pub(in crate::activities) async fn receive_remove_action(
         Err(FederationError::OnlyLocalAdminCanRemoveCommunity)?
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
-      let form = ModRemoveCommunityForm {
+      let form = AdminRemoveCommunityForm {
         mod_person_id: actor.id,
         community_id: community.id,
         removed: Some(true),
         reason,
       };
-      ModRemoveCommunity::create(&mut context.pool(), &form).await?;
+      AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
       Community::update(
         &mut context.pool(),
         community.id,
