@@ -747,9 +747,8 @@ pub struct UserSettingsBackup {
   #[serde(default)]
   pub blocked_users: Vec<Url>,
   #[serde(default)]
-  /// Only kept for v0.19 compatibility
-  pub blocked_instances: Vec<String>,
   #[serde(default)]
+  #[serde(alias = "blocked_instances")] // the name used by v0.19
   pub blocked_instances_communities: Vec<String>,
   #[serde(default)]
   pub blocked_instances_persons: Vec<String>,
