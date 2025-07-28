@@ -57,7 +57,7 @@ async fn list_comments_common(
   ));
   let time_range_seconds =
     post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
-  let limit = fetch_limit_with_default(data.limit, local_user, local_site);
+  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
   let max_depth = data.max_depth;
   let parent_id = data.parent_id;
 

@@ -93,10 +93,12 @@ fn fetch_limit_with_default(
   limit: Option<i64>,
   local_user: Option<&LocalUser>,
   local_site: &LocalSite,
-) -> Option<i64> {
-  limit
-    .or(local_user.and_then(|u| u.default_fetch_limit.map(i64::from)))
-    .or(local_site.default_fetch_limit.map(i64::from))
+) -> i64 {
+  limit.unwrap_or(
+    local_user
+      .map(|u| i64::from(u.default_items_per_page))
+      .unwrap_or(i64::from(local_site.default_items_per_page)),
+  )
 }
 
 async fn resolve_person_id_from_id_or_username(

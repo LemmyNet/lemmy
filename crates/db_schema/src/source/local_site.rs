@@ -96,7 +96,7 @@ pub struct LocalSite {
   pub disable_email_notifications: bool,
   pub suggested_communities: Option<MultiCommunityId>,
   pub multi_comm_follower: PersonId,
-  pub default_fetch_limit: Option<i32>,
+  pub default_items_per_page: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -164,8 +164,6 @@ pub struct LocalSiteInsertForm {
   pub suggested_communities: Option<MultiCommunityId>,
   #[new(default)]
   pub multi_comm_follower: Option<PersonId>,
-  #[new(default)]
-  pub default_fetch_limit: Option<i32>,
 }
 
 #[derive(Clone, Default)]
@@ -202,5 +200,5 @@ pub struct LocalSiteUpdateForm {
   pub disallow_nsfw_content: Option<bool>,
   pub disable_email_notifications: Option<bool>,
   pub suggested_communities: Option<MultiCommunityId>,
-  pub default_fetch_limit: Option<Option<i32>>,
+  pub default_items_per_page: Option<i32>,
 }

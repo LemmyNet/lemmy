@@ -454,7 +454,7 @@ diesel::table! {
         disable_email_notifications -> Bool,
         suggested_communities -> Nullable<Int4>,
         multi_comm_follower -> Int4,
-        default_fetch_limit -> Nullable<Int4>,
+        default_items_per_page -> Int4,
     }
 }
 
@@ -535,7 +535,7 @@ diesel::table! {
         show_downvotes -> VoteShowEnum,
         show_upvote_percentage -> Bool,
         show_person_votes -> Bool,
-        default_fetch_limit -> Nullable<Int4>,
+        default_items_per_page -> Int4,
     }
 }
 

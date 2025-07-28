@@ -65,7 +65,7 @@ pub async fn list_posts(
   ));
   let time_range_seconds =
     post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
-  let limit = fetch_limit_with_default(data.limit, local_user, local_site);
+  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
 
   let keyword_blocks = if let Some(local_user) = local_user {
     Some(LocalUserKeywordBlock::read(&mut context.pool(), local_user.id).await?)

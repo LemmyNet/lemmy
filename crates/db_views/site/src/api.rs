@@ -217,7 +217,7 @@ pub struct EditSite {
   /// A default time range limit to apply to post sorts, in seconds. 0 means none.
   pub default_post_time_range_seconds: Option<i32>,
   /// A default fetch limit for number of items returned.
-  pub default_fetch_limit: Option<i32>,
+  pub default_items_per_page: Option<i32>,
   /// The default comment sort, usually "hot"
   pub default_comment_sort_type: Option<CommentSortType>,
   /// An optional page of legal information
@@ -494,7 +494,7 @@ pub struct SaveUserSettings {
   /// A default time range limit to apply to post sorts, in seconds. 0 means none.
   pub default_post_time_range_seconds: Option<i32>,
   /// A default fetch limit for number of items returned.
-  pub default_fetch_limit: Option<i32>,
+  pub default_items_per_page: Option<i32>,
   /// The default comment sort, usually "hot"
   pub default_comment_sort_type: Option<CommentSortType>,
   /// The language of the lemmy interface
