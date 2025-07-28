@@ -22,6 +22,7 @@ pub use lemmy_db_views_community::{
     ListCommunitiesResponse,
     ListMultiCommunities,
     ListMultiCommunitiesResponse,
+    UpdateCommunityNotifications,
     UpdateMultiCommunity,
   },
   CommunityView,
