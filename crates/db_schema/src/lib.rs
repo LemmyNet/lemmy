@@ -47,6 +47,8 @@ pub mod utils;
 #[cfg(feature = "full")]
 mod schema_setup;
 
+#[cfg(feature = "full")]
+pub use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]

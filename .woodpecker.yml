@@ -108,7 +108,7 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel -e no-dev"
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     when: *slow_check_paths
 
   lemmy_api_common_works_with_wasm:

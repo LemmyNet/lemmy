@@ -3093,7 +3093,6 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "diesel_ltree",
  "encoding_rs",
  "enum-map",
  "futures",

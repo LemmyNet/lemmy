@@ -1013,8 +1013,10 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
 mod tests {
 
   use super::*;
-  use diesel_ltree::Ltree;
-  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
+  use lemmy_db_schema::{
+    newtypes::{CommentId, LanguageId},
+    Ltree,
+  };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
