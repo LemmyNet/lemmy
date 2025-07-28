@@ -45,7 +45,7 @@ config_args=(
 )
 
 # Create cluster
-pg_ctl init --silent --options="--username=postgres --auth=trust --no-instructions"
+pg_ctl init --silent --options="--username=postgres --auth=trust --no-instructions --no-sync"
 
 # Start server
 pg_ctl start --silent --options="${config_args[*]}"

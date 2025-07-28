@@ -6,7 +6,11 @@ use crate::{
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::actor::GroupType,
-  protocol::{helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml},
+  protocol::{
+    helpers::{deserialize_last, deserialize_skip_error},
+    public_key::PublicKey,
+    values::MediaTypeHtml,
+  },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -36,10 +40,10 @@ pub struct Group {
   pub(crate) media_type: Option<MediaTypeHtml>,
   // short instance description
   pub summary: Option<String>,
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub icon: Option<ImageObject>,
   /// banner
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub image: Option<ImageObject>,
   // lemmy extension
   pub sensitive: Option<bool>,
