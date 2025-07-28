@@ -96,7 +96,7 @@ impl PaginationCursorBuilder for CommunityView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     Community::read(pool, CommunityId(id)).await
   }
 }

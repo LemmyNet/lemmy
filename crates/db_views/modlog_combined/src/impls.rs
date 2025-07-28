@@ -254,11 +254,7 @@ impl PaginationCursorBuilder for ModlogCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(prefix, id)] = cursor.prefixes_and_ids()?;
 
     let mut query = modlog_combined::table
       .select(Self::CursorData::as_select())
