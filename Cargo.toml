@@ -217,8 +217,10 @@ chrono = { workspace = true }
 prometheus = { version = "0.13.4", features = ["process"] }
 serial_test = { workspace = true }
 clap = { workspace = true }
-mimalloc = "0.1.46"
 actix-web-prom = "0.8.0"
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+mimalloc = "0.1.46"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

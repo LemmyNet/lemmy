@@ -43,6 +43,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
   settings::structs::{PictrsImageMode, Settings},
+  spawn_try_task,
   utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
@@ -628,24 +629,28 @@ pub async fn read_site_for_actor(
 }
 
 /// Delete a local_user's images
-async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context.pool(), person_id).await {
-    let pictrs_uploads =
-      LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
-        .await?;
+async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) {
+  let context_ = context.clone();
+  spawn_try_task(async move {
+    if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context_.pool(), person_id).await
+    {
+      let pictrs_uploads =
+        LocalImageView::get_all_by_local_user_id(&mut context_.pool(), local_user.local_user.id)
+          .await?;
 
-    // Delete their images
-    for upload in pictrs_uploads {
-      delete_image_from_pictrs(
-        &upload.local_image.pictrs_alias,
-        &upload.local_image.pictrs_delete_token,
-        context,
-      )
-      .await
-      .ok();
+      // Delete their images
+      for upload in pictrs_uploads {
+        delete_image_from_pictrs(
+          &upload.local_image.pictrs_alias,
+          &upload.local_image.pictrs_delete_token,
+          &context_,
+        )
+        .await
+        .ok();
+      }
     }
-  }
-  Ok(())
+    Ok(())
+  });
 }
 
 pub async fn remove_user_data(
@@ -670,7 +675,7 @@ pub async fn remove_user_data(
   // Posts
   Post::update_removed_for_creator(pool, banned_person_id, None, true).await?;
 
-  delete_local_user_images(banned_person_id, context).await?;
+  delete_local_user_images(banned_person_id, context).await;
 
   // Communities
   // Remove all communities where they're the top mod
@@ -756,7 +761,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
 
   // Delete their local images, if they're a local user
   // No need to update avatar and banner, those are handled in Person::delete_account
-  delete_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(person_id, context).await;
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
@@ -1008,8 +1013,10 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
 mod tests {
 
   use super::*;
-  use diesel_ltree::Ltree;
-  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
+  use lemmy_db_schema::{
+    newtypes::{CommentId, LanguageId},
+    Ltree,
+  };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
