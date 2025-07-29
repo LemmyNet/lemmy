@@ -211,8 +211,16 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
-    let blocked_instances = instance_actions::table
-      .filter(instance_actions::blocked_at.is_not_null())
+    let blocked_instances_communities = instance_actions::table
+      .filter(instance_actions::blocked_communities_at.is_not_null())
+      .filter(instance_actions::person_id.eq(person_id_))
+      .inner_join(instance::table)
+      .select(instance::domain)
+      .get_results(conn)
+      .await?;
+
+    let blocked_instances_persons = instance_actions::table
+      .filter(instance_actions::blocked_persons_at.is_not_null())
       .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
@@ -227,7 +235,8 @@ impl LocalUser {
       saved_comments,
       blocked_communities,
       blocked_users,
-      blocked_instances,
+      blocked_instances_communities,
+      blocked_instances_persons,
     })
   }
 
@@ -382,7 +391,8 @@ pub struct UserBackupLists {
   pub saved_comments: Vec<DbUrl>,
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
-  pub blocked_instances: Vec<String>,
+  pub blocked_instances_communities: Vec<String>,
+  pub blocked_instances_persons: Vec<String>,
 }
 
 #[cfg(test)]

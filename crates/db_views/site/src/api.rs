@@ -439,7 +439,8 @@ pub struct MyUserInfo {
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<Community>,
-  pub instance_blocks: Vec<Instance>,
+  pub instance_communities_blocks: Vec<Instance>,
+  pub instance_persons_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
   pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
@@ -561,8 +562,17 @@ pub struct UpdateTotpResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Block an instance as user
-pub struct UserBlockInstanceParams {
+/// Block an instance's persons.
+pub struct UserBlockInstancePersonsParams {
+  pub instance_id: InstanceId,
+  pub block: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Block an instance's communities.
+pub struct UserBlockInstanceCommunitiesParams {
   pub instance_id: InstanceId,
   pub block: bool,
 }
@@ -713,6 +723,7 @@ pub enum PostOrCommentOrPrivateMessage {
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UserSettingsBackup {
@@ -736,7 +747,10 @@ pub struct UserSettingsBackup {
   #[serde(default)]
   pub blocked_users: Vec<Url>,
   #[serde(default)]
-  pub blocked_instances: Vec<String>,
+  #[serde(alias = "blocked_instances")] // the name used by v0.19
+  pub blocked_instances_communities: Vec<String>,
+  #[serde(default)]
+  pub blocked_instances_persons: Vec<String>,
 }
 
 #[skip_serializing_none]

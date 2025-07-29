@@ -19,6 +19,7 @@ pub mod aliases {
     instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
     instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
     instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
+    instance_actions as my_instance_persons_actions: MyInstancePersonsActions,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
@@ -33,7 +34,10 @@ pub mod utils;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
-use {diesel::query_source::AliasedField, lemmy_db_schema_file::schema::person};
+use {
+  diesel::query_source::AliasedField,
+  lemmy_db_schema_file::schema::{instance_actions, person},
+};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -232,4 +236,15 @@ pub type Person2AliasAllColumnsTuple = (
   AliasedField<aliases::Person2, person::post_score>,
   AliasedField<aliases::Person2, person::comment_count>,
   AliasedField<aliases::Person2, person::comment_score>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for more my instance persons actions
+pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,
 );

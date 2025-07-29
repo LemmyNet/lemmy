@@ -20,18 +20,18 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
-  UserBlockInstanceParams,
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
   PersonView,
+  UserBlockInstanceCommunitiesParams,
   ListNotifications,
   ListNotificationsResponse,
+  NotificationDataType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -386,7 +386,7 @@ export async function getUnreadCount(
 
 export async function listNotifications(
   api: LemmyHttp,
-  type_?: InboxDataType,
+  type_?: NotificationDataType,
   unread_only: boolean = false,
 ): Promise<ListNotificationsResponse> {
   let form: ListNotifications = {
@@ -880,16 +880,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function userBlockInstance(
+export function userBlockInstanceCommunities(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
 ): Promise<SuccessResponse> {
-  let form: UserBlockInstanceParams = {
+  let form: UserBlockInstanceCommunitiesParams = {
     instance_id,
     block,
   };
-  return api.userBlockInstance(form);
+  return api.userBlockInstanceCommunities(form);
 }
 
 export function blockCommunity(
