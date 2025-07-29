@@ -227,7 +227,7 @@ impl InstanceActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockCommunitiesAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   pub async fn unblock_communities(
@@ -239,7 +239,7 @@ impl InstanceActions {
       .set_null(instance_actions::blocked_communities_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockCommunitiesAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   /// Checks to see if there's a block for the instances communities
@@ -288,7 +288,7 @@ impl InstanceActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockPersonsAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   pub async fn unblock_persons(
@@ -300,7 +300,7 @@ impl InstanceActions {
       .set_null(instance_actions::blocked_persons_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::InstanceBlockPersonsAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   /// Checks to see if there's a block either from the instance person.

@@ -238,7 +238,7 @@ impl Followable for PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   /// Currently no user following
@@ -257,7 +257,7 @@ impl Followable for PersonActions {
       .set_null(person_actions::follow_pending)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 }
 
@@ -276,7 +276,7 @@ impl Blockable for PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
@@ -285,7 +285,7 @@ impl Blockable for PersonActions {
       .set_null(person_actions::blocked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   async fn read_block(
