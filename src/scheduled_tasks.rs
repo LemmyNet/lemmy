@@ -45,7 +45,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     let context = context_1.clone();
 
     async move {
-      active_counts(&mut context.pool()).await;
+      active_counts(&mut context.pool(), ONE_DAY).await;
       update_banned_when_expired(&mut context.pool()).await;
     }
   });
@@ -79,6 +79,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     let context = context_1.clone();
 
     async move {
+      all_active_counts(&mut context.pool(), ALL_ACTIVE_INTERVALS).await;
       overwrite_deleted_posts_and_comments(&mut context.pool()).await;
       delete_old_denied_users(&mut context.pool()).await;
       update_instance_software(&mut context.pool(), context.client())
@@ -356,45 +357,71 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
   }
 }
 
-/// Re-calculate the site and community active counts every 12 hours
-async fn active_counts(pool: &mut DbPool<'_>) {
-  info!("Updating active site and community aggregates ...");
+/// A struct containing active interval data
+struct ActiveInterval<'a> {
+  postgres_interval: &'a str,
+  column_append: &'a str,
+}
+
+const ONE_DAY: ActiveInterval = ActiveInterval {
+  postgres_interval: "1 day",
+  column_append: "day",
+};
+const ONE_WEEK: ActiveInterval = ActiveInterval {
+  postgres_interval: "1 week",
+  column_append: "week",
+};
+const ONE_MONTH: ActiveInterval = ActiveInterval {
+  postgres_interval: "1 month",
+  column_append: "month",
+};
+const SIX_MONTHS: ActiveInterval = ActiveInterval {
+  postgres_interval: "6 months",
+  column_append: "half_year",
+};
+
+const ALL_ACTIVE_INTERVALS: [ActiveInterval<'_>; 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
+
+/// Re-calculate the site and community active counts for a given interval
+async fn active_counts(pool: &mut DbPool<'_>, interval: ActiveInterval<'_>) {
+  info!(
+    "Updating active site and community aggregates for {}.",
+    interval.postgres_interval
+  );
 
   let conn = get_conn(pool).await;
 
   match conn {
     Ok(mut conn) => {
-      let intervals = vec![
-        ("1 day", "day"),
-        ("1 week", "week"),
-        ("1 month", "month"),
-        ("6 months", "half_year"),
-      ];
-
-      for i in &intervals {
-        let update_site_stmt = format!(
+      let update_site_stmt = format!(
       "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
-      i.1, i.0
+      interval.column_append, interval.postgres_interval
     );
-        sql_query(update_site_stmt)
-          .execute(&mut conn)
-          .await
-          .map_err(|e| error!("Failed to update site stats: {e}"))
-          .ok();
+      sql_query(update_site_stmt)
+        .execute(&mut conn)
+        .await
+        .map_err(|e| error!("Failed to update site stats: {e}"))
+        .ok();
 
-        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
-        sql_query(update_community_stmt)
-          .execute(&mut conn)
-          .await
-          .map_err(|e| error!("Failed to update community stats: {e}"))
-          .ok();
-      }
+      let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", interval.column_append, interval.postgres_interval);
+      sql_query(update_community_stmt)
+        .execute(&mut conn)
+        .await
+        .map_err(|e| error!("Failed to update community stats: {e}"))
+        .ok();
 
       info!("Done.");
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");
     }
+  }
+}
+
+/// Re-calculate all the active counts
+async fn all_active_counts(pool: &mut DbPool<'_>, intervals: [ActiveInterval<'_>; 4]) {
+  for i in intervals {
+    active_counts(pool, i).await;
   }
 }
 
