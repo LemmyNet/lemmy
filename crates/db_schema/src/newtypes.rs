@@ -480,7 +480,7 @@ impl PaginationCursor {
     )
   }
 
-  pub fn prefixes_and_ids(&self) -> Vec<(char, i32)> {
+  pub fn prefixes_and_ids<const N: usize>(&self) -> LemmyResult<[(char, i32); N]> {
     let default_prefix = 'Z';
     let default_id = 0;
     self
@@ -496,17 +496,9 @@ impl PaginationCursor {
           (default_prefix, default_id)
         }
       })
-      .collect()
-  }
-
-  pub fn first_id(&self) -> LemmyResult<i32> {
-    Ok(
-      self
-        .prefixes_and_ids()
-        .as_slice()
-        .first()
-        .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
-        .1,
-    )
+      // TODO: use `Iterator::next_chunk` when it becomes available
+      .collect::<Vec<_>>()
+      .try_into()
+      .map_err(|_vec| LemmyErrorType::CouldntParsePaginationToken.into())
   }
 }

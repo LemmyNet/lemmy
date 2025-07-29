@@ -29,7 +29,7 @@ impl PaginationCursorBuilder for RegistrationApplicationView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     RegistrationApplication::read(pool, RegistrationApplicationId(id)).await
   }
 }

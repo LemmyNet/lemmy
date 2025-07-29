@@ -47,16 +47,9 @@ impl VoteView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PostActions> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, person_id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let (_, post_id) = pids
-      .get(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
 
-    PostActions::read(pool, PostId(*post_id), PersonId(*person_id)).await
+    PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
   pub async fn list_for_post(
@@ -129,16 +122,9 @@ impl VoteView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<CommentActions> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, person_id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let (_, comment_id) = pids
-      .get(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(_, person_id), (_, comment_id)] = cursor.prefixes_and_ids()?;
 
-    CommentActions::read(pool, CommentId(*comment_id), PersonId(*person_id)).await
+    CommentActions::read(pool, CommentId(comment_id), PersonId(person_id)).await
   }
 
   pub async fn list_for_comment(
