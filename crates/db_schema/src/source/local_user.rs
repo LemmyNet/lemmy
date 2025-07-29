@@ -84,6 +84,7 @@ pub struct LocalUser {
   pub show_downvotes: VoteShow,
   pub show_upvote_percentage: bool,
   pub show_person_votes: bool,
+  pub default_items_per_page: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -198,4 +199,5 @@ pub struct LocalUserUpdateForm {
   pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
   pub show_person_votes: Option<bool>,
+  pub default_items_per_page: Option<i32>,
 }

@@ -222,6 +222,7 @@ mod tests {
         default_post_sort_type: sara_local_user.default_post_sort_type,
         default_comment_sort_type: sara_local_user.default_comment_sort_type,
         default_listing_type: sara_local_user.default_listing_type,
+        default_items_per_page: sara_local_user.default_items_per_page,
         interface_language: sara_local_user.interface_language,
         show_avatars: sara_local_user.show_avatars,
         send_notifications_to_email: sara_local_user.send_notifications_to_email,

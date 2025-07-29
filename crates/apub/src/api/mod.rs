@@ -87,6 +87,20 @@ fn comment_sort_type_with_default(
   )
 }
 
+/// Returns a default page fetch limit.
+/// Order is the given, then local user default, then site default.
+fn fetch_limit_with_default(
+  limit: Option<i64>,
+  local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
+) -> i64 {
+  limit.unwrap_or(
+    local_user
+      .map(|u| i64::from(u.default_items_per_page))
+      .unwrap_or(i64::from(local_site.default_items_per_page)),
+  )
+}
+
 async fn resolve_person_id_from_id_or_username(
   person_id: &Option<PersonId>,
   username: &Option<String>,

@@ -102,6 +102,7 @@ pub async fn save_user_settings(
   let default_post_sort_type = data.default_post_sort_type;
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);
+  let default_items_per_page = data.default_items_per_page;
   let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
@@ -148,6 +149,7 @@ pub async fn save_user_settings(
     default_post_time_range_seconds,
     default_comment_sort_type,
     default_listing_type,
+    default_items_per_page,
     theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),
     open_links_in_new_tab: data.open_links_in_new_tab,
