@@ -146,7 +146,7 @@ impl Person {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
+    .ok_or(LemmyErrorType::UsernameAlreadyTaken.into())
   }
 }
 

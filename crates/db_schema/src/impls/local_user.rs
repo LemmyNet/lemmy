@@ -150,7 +150,7 @@ impl LocalUser {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
+    .ok_or(LemmyErrorType::EmailAlreadyTaken.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView
