@@ -357,36 +357,18 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
   }
 }
 
-/// A struct containing active interval data
-struct ActiveInterval<'a> {
-  postgres_interval: &'a str,
-  column_append: &'a str,
-}
+const ONE_DAY: (&str, &str) = ("1 day", "day");
+const ONE_WEEK: (&str, &str) = ("1 week", "week");
+const ONE_MONTH: (&str, &str) = ("1 month", "month");
+const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 
-const ONE_DAY: ActiveInterval = ActiveInterval {
-  postgres_interval: "1 day",
-  column_append: "day",
-};
-const ONE_WEEK: ActiveInterval = ActiveInterval {
-  postgres_interval: "1 week",
-  column_append: "week",
-};
-const ONE_MONTH: ActiveInterval = ActiveInterval {
-  postgres_interval: "1 month",
-  column_append: "month",
-};
-const SIX_MONTHS: ActiveInterval = ActiveInterval {
-  postgres_interval: "6 months",
-  column_append: "half_year",
-};
-
-const ALL_ACTIVE_INTERVALS: [ActiveInterval<'_>; 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
+const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
 /// Re-calculate the site and community active counts for a given interval
-async fn active_counts(pool: &mut DbPool<'_>, interval: ActiveInterval<'_>) {
+async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
   info!(
     "Updating active site and community aggregates for {}.",
-    interval.postgres_interval
+    interval.0
   );
 
   let conn = get_conn(pool).await;
@@ -395,7 +377,7 @@ async fn active_counts(pool: &mut DbPool<'_>, interval: ActiveInterval<'_>) {
     Ok(mut conn) => {
       let update_site_stmt = format!(
       "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
-      interval.column_append, interval.postgres_interval
+      interval.1, interval.0
     );
       sql_query(update_site_stmt)
         .execute(&mut conn)
@@ -403,7 +385,7 @@ async fn active_counts(pool: &mut DbPool<'_>, interval: ActiveInterval<'_>) {
         .map_err(|e| error!("Failed to update site stats: {e}"))
         .ok();
 
-      let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", interval.column_append, interval.postgres_interval);
+      let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", interval.1, interval.0);
       sql_query(update_community_stmt)
         .execute(&mut conn)
         .await
@@ -419,7 +401,7 @@ async fn active_counts(pool: &mut DbPool<'_>, interval: ActiveInterval<'_>) {
 }
 
 /// Re-calculate all the active counts
-async fn all_active_counts(pool: &mut DbPool<'_>, intervals: [ActiveInterval<'_>; 4]) {
+async fn all_active_counts(pool: &mut DbPool<'_>, intervals: [(&str, &str); 4]) {
   for i in intervals {
     active_counts(pool, i).await;
   }
