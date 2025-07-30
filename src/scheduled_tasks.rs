@@ -9,7 +9,12 @@ use diesel::{
   QueryDsl,
   QueryableByName,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  scoped_futures::ScopedFutureExt,
+  AsyncConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
@@ -364,6 +369,20 @@ const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 
 const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
+#[derive(QueryableByName)]
+struct SiteAggregatesSelectResult {
+  #[diesel(sql_type = Integer)]
+  count_: i32,
+}
+
+#[derive(QueryableByName)]
+struct CommunityAggregatesSelectResult {
+  #[diesel(sql_type = Integer)]
+  count_: i32,
+  #[diesel(sql_type = Integer)]
+  community_id_: i32,
+}
+
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
   info!(
@@ -375,22 +394,77 @@ async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
 
   match conn {
     Ok(mut conn) => {
-      let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
-      interval.1, interval.0
-    );
-      sql_query(update_site_stmt)
-        .execute(&mut conn)
-        .await
-        .map_err(|e| error!("Failed to update site stats: {e}"))
-        .ok();
+      // Select the site count result first
+      let site_count_res = sql_query(format!(
+        "select * from r.site_aggregates_activity('{}')",
+        interval.0
+      ))
+      .get_result::<SiteAggregatesSelectResult>(&mut conn)
+      .await;
 
-      let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", interval.1, interval.0);
-      sql_query(update_community_stmt)
-        .execute(&mut conn)
-        .await
-        .map_err(|e| error!("Failed to update community stats: {e}"))
-        .ok();
+      match site_count_res {
+        Ok(site_count) => {
+          // Update the site count
+          sql_query(format!(
+            "update site_aggregates set users_active_{} = $1 where site_id = 1",
+            interval.1,
+          ))
+          .bind::<Integer, _>(site_count.count_)
+          .execute(&mut conn)
+          .await
+          .map_err(|e| error!("Failed to update site stats: {e}"))
+          .ok();
+        }
+        Err(_) => {
+          error!("Failed to fetch site count");
+        }
+      }
+
+      // Select the community counts results first
+      // This is a table of results
+      let community_counts_res = sql_query(format!(
+        "select * from r.community_aggregates_activity('{}')",
+        interval.0
+      ))
+      .get_results::<CommunityAggregatesSelectResult>(&mut conn)
+      .await;
+
+      match community_counts_res {
+        Ok(community_counts) => {
+          // Split up into 1000 community transaction batches
+          let chunks = community_counts.chunks(1000);
+
+          for chunk in chunks {
+            // Moving the chunk into the async fails, so map the results into an iterator
+            let batch = chunk
+              .iter()
+              .map(|f| (f.count_, f.community_id_))
+              .collect::<Vec<(i32, i32)>>();
+
+            conn
+              .transaction::<_, diesel::result::Error, _>(|conn| {
+                async move {
+                  for agg_res in batch {
+                    sql_query(format!(
+                      "update community_aggregates ca set users_active_{} = $1 where ca.community_id = $2",
+                      interval.1
+                    ))
+                    .bind::<Integer, _>(agg_res.0)
+                    .bind::<Integer, _>(agg_res.1)
+                    .execute(conn)
+                    .await?;
+                  }
+                  Ok(())
+              }.scope_boxed()
+            })
+            .await
+            .ok();
+          }
+        }
+        Err(_) => {
+          error!("Failed to fetch community_aggregates counts");
+        }
+      }
 
       info!("Done.");
     }
