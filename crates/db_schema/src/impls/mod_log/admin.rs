@@ -59,7 +59,7 @@ impl Crud for AdminPurgePerson {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -72,7 +72,7 @@ impl Crud for AdminPurgePerson {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -87,7 +87,7 @@ impl Crud for AdminPurgeCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -100,7 +100,7 @@ impl Crud for AdminPurgeCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -115,7 +115,7 @@ impl Crud for AdminPurgePost {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -128,7 +128,7 @@ impl Crud for AdminPurgePost {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -143,7 +143,7 @@ impl Crud for AdminPurgeComment {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -156,7 +156,7 @@ impl Crud for AdminPurgeComment {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -171,7 +171,7 @@ impl Crud for AdminAllowInstance {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -184,7 +184,7 @@ impl Crud for AdminAllowInstance {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -199,7 +199,7 @@ impl Crud for AdminBlockInstance {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -212,7 +212,7 @@ impl Crud for AdminBlockInstance {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -227,7 +227,7 @@ impl Crud for AdminRemoveCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -240,7 +240,7 @@ impl Crud for AdminRemoveCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -255,7 +255,7 @@ impl Crud for AdminBan {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -268,7 +268,7 @@ impl Crud for AdminBan {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -283,7 +283,7 @@ impl Crud for AdminAdd {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -296,6 +296,6 @@ impl Crud for AdminAdd {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

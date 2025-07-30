@@ -24,7 +24,7 @@ impl Crud for RegistrationApplication {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateRegistrationApplication)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -37,7 +37,7 @@ impl Crud for RegistrationApplication {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateRegistrationApplication)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

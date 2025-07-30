@@ -58,7 +58,7 @@ impl Crud for Person {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   async fn update(
     pool: &mut DbPool<'_>,
@@ -70,7 +70,7 @@ impl Crud for Person {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -88,7 +88,7 @@ impl Person {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete_account(
@@ -133,7 +133,7 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {

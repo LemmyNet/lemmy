@@ -16,7 +16,7 @@ impl SentActivity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntInsertActivity)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_from_apub_id(pool: &mut DbPool<'_>, object_id: &DbUrl) -> LemmyResult<Self> {
@@ -53,7 +53,7 @@ impl ReceivedActivity {
       // new activity inserted successfully
       Ok(())
     } else {
-      Err(LemmyErrorType::CouldntInsertActivity.into())
+      Err(LemmyErrorType::CouldntCreate.into())
     }
   }
 }

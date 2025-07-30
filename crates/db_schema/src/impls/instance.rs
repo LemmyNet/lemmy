@@ -74,7 +74,7 @@ impl Instance {
           .set(&form)
           .get_result::<Self>(conn)
           .await
-          .with_lemmy_type(LemmyErrorType::CouldntCreateSite)
+          .with_lemmy_type(LemmyErrorType::CouldntCreate)
       }
     }
   }
@@ -97,7 +97,7 @@ impl Instance {
       .set(form)
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<usize> {
