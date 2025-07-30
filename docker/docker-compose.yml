@@ -104,20 +104,7 @@ services:
     # You can use this technique to add them here
     # https://stackoverflow.com/a/30850095/1655478
     hostname: postgres
-    command:
-      [
-        "postgres",
-        "-c",
-        "session_preload_libraries=auto_explain",
-        "-c",
-        "auto_explain.log_min_duration=5ms",
-        "-c",
-        "auto_explain.log_analyze=true",
-        "-c",
-        "auto_explain.log_triggers=true",
-        "-c",
-        "track_activity_query_size=1048576",
-      ]
+    command: postgres -c config_file=/etc/postgresql.conf
     ports:
       # use a different port so it doesn't conflict with potential postgres db running on the host
       - "5433:5432"
@@ -127,5 +114,6 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
+      - ./customPostgresql.conf:/etc/postgresql.conf:Z
     restart: unless-stopped
     logging: *default-logging
