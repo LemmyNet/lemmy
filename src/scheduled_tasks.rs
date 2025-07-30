@@ -9,12 +9,7 @@ use diesel::{
   QueryDsl,
   QueryableByName,
 };
-use diesel_async::{
-  scoped_futures::ScopedFutureExt,
-  AsyncConnection,
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
@@ -370,23 +365,21 @@ const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
 #[derive(QueryableByName)]
-struct SiteAggregatesSelectResult {
+struct SiteActivitySelectResult {
   #[diesel(sql_type = Integer)]
-  count_: i32,
+  site_aggregates_activity: i32,
 }
 
 #[derive(QueryableByName)]
-struct CommunityAggregatesSelectResult {
+struct CommunityAggregatesUpdateResult {
   #[diesel(sql_type = Integer)]
-  count_: i32,
-  #[diesel(sql_type = Integer)]
-  community_id_: i32,
+  community_id: i32,
 }
 
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
   info!(
-    "Updating active site and community aggregates for {}.",
+    "Updating active site and community aggregates for {}...",
     interval.0
   );
 
@@ -394,79 +387,8 @@ async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
 
   match conn {
     Ok(mut conn) => {
-      // Select the site count result first
-      let site_count_res = sql_query(format!(
-        "select * from r.site_aggregates_activity('{}')",
-        interval.0
-      ))
-      .get_result::<SiteAggregatesSelectResult>(&mut conn)
-      .await;
-
-      match site_count_res {
-        Ok(site_count) => {
-          // Update the site count
-          sql_query(format!(
-            "update site_aggregates set users_active_{} = $1 where site_id = 1",
-            interval.1,
-          ))
-          .bind::<Integer, _>(site_count.count_)
-          .execute(&mut conn)
-          .await
-          .map_err(|e| error!("Failed to update site stats: {e}"))
-          .ok();
-        }
-        Err(_) => {
-          error!("Failed to fetch site count");
-        }
-      }
-
-      // Select the community counts results first
-      // This is a table of results
-      let community_counts_res = sql_query(format!(
-        "select * from r.community_aggregates_activity('{}')",
-        interval.0
-      ))
-      .get_results::<CommunityAggregatesSelectResult>(&mut conn)
-      .await;
-
-      match community_counts_res {
-        Ok(community_counts) => {
-          // Split up into 1000 community transaction batches
-          let chunks = community_counts.chunks(1000);
-
-          for chunk in chunks {
-            // Moving the chunk into the async fails, so map the results into an iterator
-            let batch = chunk
-              .iter()
-              .map(|f| (f.count_, f.community_id_))
-              .collect::<Vec<(i32, i32)>>();
-
-            conn
-              .transaction::<_, diesel::result::Error, _>(|conn| {
-                async move {
-                  for agg_res in batch {
-                    sql_query(format!(
-                      "update community_aggregates ca set users_active_{} = $1 where ca.community_id = $2",
-                      interval.1
-                    ))
-                    .bind::<Integer, _>(agg_res.0)
-                    .bind::<Integer, _>(agg_res.1)
-                    .execute(conn)
-                    .await?;
-                  }
-                  Ok(())
-              }.scope_boxed()
-            })
-            .await
-            .ok();
-          }
-        }
-        Err(_) => {
-          error!("Failed to fetch community_aggregates counts");
-        }
-      }
-
-      info!("Done.");
+      process_site_aggregates(&mut conn, interval).await;
+      process_community_aggregates(&mut conn, interval).await;
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");
@@ -479,6 +401,110 @@ async fn all_active_counts(pool: &mut DbPool<'_>, intervals: [(&str, &str); 4]) 
   for i in intervals {
     active_counts(pool, i).await;
   }
+}
+
+async fn process_site_aggregates(conn: &mut AsyncPgConnection, interval: (&str, &str)) {
+  // Select the site count result first
+  let site_activity_res = sql_query(format!(
+    "select * from r.site_aggregates_activity('{}')",
+    interval.0
+  ))
+  .get_result::<SiteActivitySelectResult>(conn)
+  .await;
+
+  match site_activity_res {
+    Ok(res) => {
+      let processed_rows = res.site_aggregates_activity;
+
+      // Update the site count
+      sql_query(format!(
+        "update site_aggregates set users_active_{} = $1 where site_id = 1",
+        interval.1,
+      ))
+      .bind::<Integer, _>(processed_rows)
+      .execute(conn)
+      .await
+      .map_err(|e| error!("Failed to update site stats: {e}"))
+      .ok();
+
+      info!(
+        "Finished site_aggregates active_{} (processed {} rows)",
+        interval.1, processed_rows
+      );
+    }
+    Err(e) => {
+      error!("Failed to fetch site activity: {e}");
+    }
+  }
+}
+
+async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&str, &str)) {
+  // Select the community count results into a temp table.
+  let caggs_temp_table = "community_aggregates_temp_table";
+
+  let create_table_res = sql_query(format!(
+    "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.community_aggregates_activity('{}')",
+    interval.0
+  ))
+  .execute(conn)
+  .await;
+
+  match create_table_res {
+    Ok(_) => {
+      // Split up into 1000 community transaction batches
+      let update_batch_size = 1000;
+      let mut processed_rows_count = 0;
+      let mut prev_community_id_res = Some(0);
+
+      while let Some(prev_community_id) = prev_community_id_res {
+        let result = sql_query(format!(
+          "UPDATE community_aggregates a
+            SET users_active_{} = b.count_
+            FROM (
+              SELECT count_, community_id_
+              FROM {caggs_temp_table}
+              WHERE community_id_ > $1
+              ORDER BY community_id_
+              LIMIT $2
+              FOR UPDATE SKIP LOCKED
+            ) AS b
+            WHERE a.community_id = b.community_id_
+            RETURNING a.community_id
+            ",
+          interval.1
+        ))
+        .bind::<Integer, _>(prev_community_id)
+        .bind::<Integer, _>(update_batch_size)
+        .get_results::<CommunityAggregatesUpdateResult>(conn)
+        .await;
+
+        match result {
+          Ok(updated_rows) => {
+            processed_rows_count += updated_rows.len();
+            prev_community_id_res = updated_rows.last().map(|row| row.community_id);
+          }
+          Err(e) => {
+            error!("Failed to update community_aggregates: {}", e);
+            break;
+          }
+        };
+      }
+
+      // Drop the temp table just in case
+      sql_query(format!("DROP TABLE IF EXISTS {caggs_temp_table}"))
+        .execute(conn)
+        .await
+        .ok();
+
+      info!(
+        "Finished community_aggregates active_{} (processed {} rows)",
+        interval.1, processed_rows_count
+      );
+    }
+    Err(e) => {
+      error!("Failed to fetch community aggregates count: {e}");
+    }
+  };
 }
 
 /// Set banned to false after ban expires
