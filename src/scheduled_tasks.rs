@@ -440,7 +440,7 @@ async fn process_site_aggregates(conn: &mut AsyncPgConnection, interval: (&str, 
 
 async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&str, &str)) {
   // Select the community count results into a temp table.
-  let caggs_temp_table = "community_aggregates_temp_table";
+  let caggs_temp_table = &format!("community_aggregates_temp_table_{}", interval.1);
 
   let create_table_res = sql_query(format!(
     "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.community_aggregates_activity('{}')",
