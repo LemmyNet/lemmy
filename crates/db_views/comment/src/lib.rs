@@ -1,7 +1,6 @@
 use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
-  instance::InstanceActions,
   person::{Person, PersonActions},
   post::Post,
   tag::TagsView,
@@ -14,13 +13,11 @@ use {
   lemmy_db_schema::utils::queries::{
     comment_creator_is_admin,
     comment_select_remove_deletes,
-    local_user_can_mod_comment,
-    post_tags_fragment,
-  },
-  lemmy_db_schema::utils::queries::{
     creator_banned_from_community,
     creator_banned_within_community,
     creator_is_moderator,
+    local_user_can_mod_comment,
+    post_tags_fragment,
   },
 };
 
@@ -54,8 +51,6 @@ pub struct CommentView {
   pub comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = comment_creator_is_admin()
@@ -106,7 +101,6 @@ pub struct CommentSlimView {
   pub creator: Person,
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
-  pub instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,

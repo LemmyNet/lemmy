@@ -5,7 +5,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     person::{Person, PersonActions},
     post::{Post, PostActions},
     tag::TagsView,
@@ -22,9 +21,12 @@ use {
   lemmy_db_schema::utils::queries::{
     creator_banned_from_community,
     creator_banned_within_community,
+    creator_is_admin,
     creator_is_moderator,
+    local_user_can_mod,
+    post_tags_fragment,
   },
-  lemmy_db_schema::utils::queries::{creator_is_admin, local_user_can_mod, post_tags_fragment},
+
   lemmy_db_views_local_user::LocalUserView,
 };
 
@@ -48,8 +50,6 @@ pub(crate) struct PersonSavedCombinedViewInternal {
   pub community: Community,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

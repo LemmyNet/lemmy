@@ -284,7 +284,7 @@ pub struct ModRemoveCommentId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ModRemoveCommunityId(pub i32);
+pub struct AdminRemoveCommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -308,7 +308,7 @@ pub struct ModBanFromCommunityId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ModBanId(pub i32);
+pub struct AdminBanId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -320,7 +320,7 @@ pub struct ModChangeCommunityVisibilityId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ModAddCommunityId(pub i32);
+pub struct ModAddToCommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -332,7 +332,7 @@ pub struct ModTransferCommunityId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ModAddId(pub i32);
+pub struct AdminAddId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -480,7 +480,7 @@ impl PaginationCursor {
     )
   }
 
-  pub fn prefixes_and_ids(&self) -> Vec<(char, i32)> {
+  pub fn prefixes_and_ids<const N: usize>(&self) -> LemmyResult<[(char, i32); N]> {
     let default_prefix = 'Z';
     let default_id = 0;
     self
@@ -496,17 +496,9 @@ impl PaginationCursor {
           (default_prefix, default_id)
         }
       })
-      .collect()
-  }
-
-  pub fn first_id(&self) -> LemmyResult<i32> {
-    Ok(
-      self
-        .prefixes_and_ids()
-        .as_slice()
-        .first()
-        .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
-        .1,
-    )
+      // TODO: use `Iterator::next_chunk` when it becomes available
+      .collect::<Vec<_>>()
+      .try_into()
+      .map_err(|_vec| LemmyErrorType::CouldntParsePaginationToken.into())
   }
 }

@@ -535,21 +535,14 @@ impl PostActions {
   }
 
   pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, person_id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let (_, post_id) = pids
-      .get(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    Self::read(pool, PostId(*post_id), PersonId(*person_id)).await
+    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
+    Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
   pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
     post_ids
       .iter()
-      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
       .collect::<Vec<_>>()
   }
 

@@ -5,17 +5,19 @@ use crate::{
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
+    my_instance_persons_actions,
     person1,
     person2,
   },
   newtypes::{InstanceId, PersonId},
+  MyInstancePersonsActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
 use diesel::{
   dsl::{case_when, exists, not},
   expression::SqlLiteral,
-  helper_types::{Eq, NotEq},
+  helper_types::{Eq, NotEq, Nullable},
   sql_types::Json,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -50,11 +52,16 @@ use lemmy_db_schema_file::{
 /// hidden, unless the user followed the community explicitly.
 #[diesel::dsl::auto_type]
 pub fn filter_blocked() -> _ {
-  instance_actions::blocked_at
+  instance_actions::blocked_communities_at
     .is_null()
     .or(community_actions::followed_at.is_not_null())
     .and(community_actions::blocked_at.is_null())
     .and(person_actions::blocked_at.is_null())
+    .and(
+      my_instance_persons_actions
+        .field(instance_actions::blocked_persons_at)
+        .is_null(),
+    )
 }
 
 /// Checks that the creator_local_user is an admin.
@@ -336,7 +343,7 @@ pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
 
 /// Your instance actions for the community's instance.
 #[diesel::dsl::auto_type]
-pub fn my_instance_actions_community_join(my_person_id: Option<PersonId>) -> _ {
+pub fn my_instance_communities_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
     instance_actions::instance_id
       .eq(community::instance_id)
@@ -346,7 +353,7 @@ pub fn my_instance_actions_community_join(my_person_id: Option<PersonId>) -> _ {
 
 /// Your instance actions for the person's instance.
 #[diesel::dsl::auto_type]
-pub fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
+pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
     instance_actions::instance_id
       .eq(person::instance_id)
@@ -354,6 +361,29 @@ pub fn my_instance_actions_person_join(my_person_id: Option<PersonId>) -> _ {
   )
 }
 
+/// The select for the my_instance_persons_actions alias
+pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
+  my_instance_persons_actions
+    .fields(instance_actions::all_columns)
+    .nullable()
+}
+
+/// Your instance actions for the person's instance.
+/// A dupe of the above function, but aliased
+#[diesel::dsl::auto_type]
+pub fn my_instance_persons_actions_join_1(my_person_id: Option<PersonId>) -> _ {
+  my_instance_persons_actions.on(
+    my_instance_persons_actions
+      .field(instance_actions::instance_id)
+      .eq(person::instance_id)
+      .and(
+        my_instance_persons_actions
+          .field(instance_actions::person_id)
+          .nullable()
+          .eq(my_person_id),
+      ),
+  )
+}
 #[diesel::dsl::auto_type]
 pub fn image_details_join() -> _ {
   image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()))

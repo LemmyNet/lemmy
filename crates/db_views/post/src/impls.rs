@@ -41,7 +41,8 @@ use lemmy_db_schema::{
       filter_not_unlisted_or_is_subscribed,
       image_details_join,
       my_community_actions_join,
-      my_instance_actions_community_join,
+      my_instance_communities_actions_join,
+      my_instance_persons_actions_join_1,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -82,7 +83,7 @@ impl PaginationCursorBuilder for PostView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     Post::read(pool, PostId(id)).await
   }
 }
@@ -98,8 +99,10 @@ impl PostView {
       my_community_actions_join(my_person_id);
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(my_person_id);
+    let my_instance_communities_actions_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(my_person_id);
+    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+      my_instance_persons_actions_join_1(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -108,15 +111,16 @@ impl PostView {
       .inner_join(person::table)
       .inner_join(community::table)
       .left_join(image_details_join())
-      .left_join(my_community_actions_join)
-      .left_join(my_person_actions_join)
-      .left_join(my_post_actions_join)
-      .left_join(my_instance_actions_community_join)
-      .left_join(my_local_user_admin_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_actions_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_post_actions_join)
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
+      .left_join(my_local_user_admin_join)
   }
 
   pub async fn read(
@@ -583,7 +587,13 @@ mod tests {
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      instance::{Instance, InstanceActions, InstanceBanForm, InstanceBlockForm},
+      instance::{
+        Instance,
+        InstanceActions,
+        InstanceBanForm,
+        InstanceCommunitiesBlockForm,
+        InstancePersonsBlockForm,
+      },
       keyword_block::LocalUserKeywordBlock,
       language::Language,
       local_site::{LocalSite, LocalSiteUpdateForm},
@@ -1541,10 +1551,12 @@ mod tests {
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_instance_block(data: &mut Data) -> LemmyResult<()> {
-    const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
-    const POST_LISTING_WITH_BLOCKED: [&str; 4] = [
-      POST_FROM_BLOCKED_INSTANCE,
+  async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult<()> {
+    const POST_FROM_BLOCKED_INSTANCE_COMMS: &str = "post on blocked instance";
+    const HOWARD_POST: &str = "howard post";
+    const POST_LISTING_WITH_BLOCKED: [&str; 5] = [
+      HOWARD_POST,
+      POST_FROM_BLOCKED_INSTANCE_COMMS,
       POST_WITH_TAGS,
       POST_BY_BOT,
       POST,
@@ -1553,10 +1565,11 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
+    let blocked_instance_comms =
+      Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
 
     let community_form = CommunityInsertForm::new(
-      blocked_instance.id,
+      blocked_instance_comms.id,
       "test_community_4".to_string(),
       "none".to_owned(),
       "pubkey".to_string(),
@@ -1566,25 +1579,37 @@ mod tests {
     let post_form = PostInsertForm {
       language_id: Some(LanguageId(1)),
       ..PostInsertForm::new(
-        POST_FROM_BLOCKED_INSTANCE.to_string(),
+        POST_FROM_BLOCKED_INSTANCE_COMMS.to_string(),
         data.bot.person.id,
         inserted_community.id,
       )
     };
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
+    // Create a person on that comm-blocked instance,
+    // have them create a post from a non-instance-comm blocked community.
+    // Make sure others can see it.
+    let howard_form = PersonInsertForm::test_form(blocked_instance_comms.id, "howard");
+    let howard = Person::create(pool, &howard_form).await?;
+    let howard_post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(HOWARD_POST.to_string(), howard.id, data.community.id)
+    };
+    let _post_from_blocked_instance_user = Post::create(pool, &howard_post_form).await?;
+
     // no instance block, should return all posts
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
-    // block the instance
-    let block_form = InstanceBlockForm::new(data.tegan.person.id, blocked_instance.id);
-    InstanceActions::block(pool, &block_form).await?;
+    // block the instance communities
+    let block_form =
+      InstanceCommunitiesBlockForm::new(data.tegan.person.id, blocked_instance_comms.id);
+    InstanceActions::block_communities(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
-      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      vec![HOWARD_POST, POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_blocked)
     );
     assert!(post_listings_blocked
@@ -1603,11 +1628,92 @@ mod tests {
     CommunityActions::unfollow(pool, data.tegan.person.id, inserted_community.id).await?;
 
     // after unblocking it should return all posts again
-    InstanceActions::unblock(pool, &block_form).await?;
+    InstanceActions::unblock_communities(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
-    Instance::delete(pool, blocked_instance.id).await?;
+    Instance::delete(pool, blocked_instance_comms.id).await?;
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()> {
+    const POST_FROM_BLOCKED_INSTANCE_USERS: &str = "post from blocked instance user";
+    const POST_TO_UNBLOCKED_COMM: &str = "post to unblocked comm";
+    const POST_LISTING_WITH_BLOCKED: [&str; 5] = [
+      POST_TO_UNBLOCKED_COMM,
+      POST_FROM_BLOCKED_INSTANCE_USERS,
+      POST_WITH_TAGS,
+      POST_BY_BOT,
+      POST,
+    ];
+
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let blocked_instance_persons =
+      Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
+
+    let howard_form = PersonInsertForm::test_form(blocked_instance_persons.id, "howard");
+    let howard = Person::create(pool, &howard_form).await?;
+
+    let community_form = CommunityInsertForm::new(
+      blocked_instance_persons.id,
+      "test_community_8".to_string(),
+      "none".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &community_form).await?;
+
+    // Create a post from the blocked user on a safe community
+    let blocked_post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        POST_FROM_BLOCKED_INSTANCE_USERS.to_string(),
+        howard.id,
+        data.community.id,
+      )
+    };
+    let post_from_blocked_instance = Post::create(pool, &blocked_post_form).await?;
+
+    // Also create a post from an unblocked user
+    let unblocked_post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        POST_TO_UNBLOCKED_COMM.to_string(),
+        data.bot.person.id,
+        inserted_community.id,
+      )
+    };
+    let _post_to_unblocked_comm = Post::create(pool, &unblocked_post_form).await?;
+
+    // no instance block, should return all posts
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
+
+    // block the instance communities
+    let block_form =
+      InstancePersonsBlockForm::new(data.tegan.person.id, blocked_instance_persons.id);
+    InstanceActions::block_persons(pool, &block_form).await?;
+
+    // now posts from users on that instance should be hidden
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(
+      vec![POST_TO_UNBLOCKED_COMM, POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_blocked)
+    );
+    assert!(post_listings_blocked
+      .iter()
+      .all(|p| p.post.id != post_from_blocked_instance.id));
+
+    // after unblocking it should return all posts again
+    InstanceActions::unblock_persons(pool, &block_form).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
+
+    Instance::delete(pool, blocked_instance_persons.id).await?;
     Ok(())
   }
 
@@ -2008,11 +2114,6 @@ mod tests {
     .await?;
 
     assert!(post_view.creator_banned);
-
-    assert!(post_view.creator_banned);
-
-    // This should be none, since john wasn't banned, only the creator.
-    assert!(post_view.instance_actions.is_none());
 
     assert!(post_view.creator_banned);
 

@@ -1,5 +1,12 @@
 use super::comment_sort_type_with_default;
-use crate::{api::listing_type_with_default, fetcher::resolve_ap_identifier};
+use crate::{
+  api::{
+    fetch_limit_with_default,
+    listing_type_with_default,
+    post_time_range_seconds_with_default,
+  },
+  fetcher::resolve_ap_identifier,
+};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
@@ -31,7 +38,9 @@ async fn list_comments_common(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<CommentsCommonOutput> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  check_private_instance(&local_user_view, &site_view.local_site)?;
+  let local_site = &site_view.local_site;
+
+  check_private_instance(&local_user_view, local_site)?;
 
   let community_id = if let Some(name) = &data.community_name {
     Some(
@@ -42,21 +51,20 @@ async fn list_comments_common(
   } else {
     data.community_id
   };
-  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
-    data.sort,
-    local_user_ref,
-    &site_view.local_site,
+    data.sort, local_user, local_site,
   ));
-  let time_range_seconds = data.time_range_seconds;
+  let time_range_seconds =
+    post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
+  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
   let max_depth = data.max_depth;
-  let limit = data.limit;
   let parent_id = data.parent_id;
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user_view.as_ref().map(|u| &u.local_user),
-    &site_view.local_site,
+    local_site,
     community_id,
   ));
 

@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
@@ -132,13 +132,13 @@ impl Activity for CollectionAdd {
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
-          let form = ModAddCommunityForm {
+          let form = ModAddToCommunityForm {
             mod_person_id: actor.id,
             other_person_id: new_mod.id,
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddCommunity::create(&mut context.pool(), &form).await?;
+          ModAddToCommunity::create(&mut context.pool(), &form).await?;
         }
       }
       CollectionType::Featured => {

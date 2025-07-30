@@ -4,7 +4,10 @@ use crate::{
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,
-  protocol::{helpers::deserialize_skip_error, public_key::PublicKey},
+  protocol::{
+    helpers::{deserialize_last, deserialize_skip_error},
+    public_key::PublicKey,
+  },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -38,9 +41,10 @@ pub struct Person {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   /// user avatar
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub(crate) icon: Option<ImageObject>,
   /// user banner
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub(crate) image: Option<ImageObject>,
   pub(crate) matrix_user_id: Option<String>,
   pub(crate) endpoints: Option<Endpoints>,
