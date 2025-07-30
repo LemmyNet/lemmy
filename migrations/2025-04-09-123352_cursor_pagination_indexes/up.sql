@@ -25,28 +25,28 @@ DROP INDEX idx_community_users_active_month;
 
 CREATE INDEX idx_community_lower_name ON community USING btree (lower((name)::text) DESC, id DESC);
 
-CREATE INDEX idx_community_hot ON community USING btree (inner_get_hot_rank (coalesce(subscribers, 1), age) DESC, id DESC);
+CREATE INDEX idx_community_hot ON community USING btree (inner_get_hot_rank (coalesce(non_1_subscribers, 1), age) DESC, id DESC);
 
 CREATE INDEX idx_community_published ON community USING btree (published DESC, id DESC);
 
-CREATE INDEX idx_community_subscribers ON community USING btree (coalesce(subscribers, 1) DESC, id DESC);
+CREATE INDEX idx_community_subscribers ON community USING btree (coalesce(non_1_subscribers, 1) DESC, id DESC);
 
 CREATE INDEX idx_community_title ON community USING btree (title DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_month ON community USING btree (coalesce(users_active_month, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_month ON community USING btree (coalesce(non_0_users_active_month, 0) DESC, id DESC);
 
 -- Create a few missing ones
-CREATE INDEX idx_community_users_active_half_year ON community USING btree (coalesce(users_active_half_year, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_half_year ON community USING btree (coalesce(non_0_users_active_half_year, 0) DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_week ON community USING btree (coalesce(users_active_week, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_week ON community USING btree (coalesce(non_0_users_active_week, 0) DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_day ON community USING btree (coalesce(users_active_day, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_day ON community USING btree (coalesce(non_0_users_active_day, 0) DESC, id DESC);
 
-CREATE INDEX idx_community_subscribers_local ON community USING btree (coalesce(0, subscribers_local) DESC, id DESC);
+CREATE INDEX idx_community_subscribers_local ON community USING btree (coalesce(0, non_0_subscribers_local) DESC, id DESC);
 
-CREATE INDEX idx_community_comments ON community USING btree (coalesce(comments, 0) DESC, id DESC);
+CREATE INDEX idx_community_comments ON community USING btree (coalesce(non_0_comments, 0) DESC, id DESC);
 
-CREATE INDEX idx_community_posts ON community USING btree (coalesce(posts, 0) DESC, id DESC);
+CREATE INDEX idx_community_posts ON community USING btree (coalesce(non_0_posts, 0) DESC, id DESC);
 
 -- Fix the post reverse_timestamp key sorts.
 DROP INDEX idx_post_featured_community_published_asc;
