@@ -67,7 +67,7 @@ impl LocalUser {
       Err(Error::QueryBuilderError(_)) => Ok(0),
       other => other,
     }
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> LemmyResult<usize> {
@@ -90,7 +90,7 @@ impl LocalUser {
       .set((local_user::password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
@@ -99,7 +99,7 @@ impl LocalUser {
       .set(local_user::email_verified.eq(true))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn set_all_users_registration_applications_accepted(
@@ -110,7 +110,7 @@ impl LocalUser {
       .set(local_user::accepted_application.eq(true))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete_old_denied_local_users(pool: &mut DbPool<'_>) -> LemmyResult<usize> {
@@ -150,7 +150,7 @@ impl LocalUser {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
+    .ok_or(LemmyErrorType::EmailAlreadyTaken.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView

@@ -59,7 +59,7 @@ impl Crud for Post {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -72,7 +72,7 @@ impl Crud for Post {
       .set(new_post)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -100,7 +100,7 @@ impl Post {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn list_featured_for_community(
@@ -153,7 +153,7 @@ impl Post {
       ))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn creator_post_ids_in_community(
@@ -205,7 +205,7 @@ impl Post {
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn update_removed_for_creator_and_instance(
@@ -223,7 +223,7 @@ impl Post {
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn update_removed_for_creator(
@@ -238,7 +238,7 @@ impl Post {
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
@@ -271,7 +271,7 @@ impl Post {
       .set(post::deleted.eq(true))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn user_scheduled_post_count(
@@ -323,7 +323,7 @@ impl Post {
       ))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
@@ -350,7 +350,7 @@ impl Likeable for PostActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     insert_into(post_actions::table)
       .values(form)
@@ -360,7 +360,7 @@ impl Likeable for PostActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikePost)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn remove_like(
@@ -374,7 +374,7 @@ impl Likeable for PostActions {
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn remove_all_likes(
@@ -388,7 +388,7 @@ impl Likeable for PostActions {
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn remove_likes_in_community(
@@ -405,7 +405,7 @@ impl Likeable for PostActions {
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -421,7 +421,7 @@ impl Saveable for PostActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
@@ -429,7 +429,7 @@ impl Saveable for PostActions {
       .set_null(post_actions::saved_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -452,7 +452,7 @@ impl PostActions {
     .set_null(post_actions::read_at)
     .get_result(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn mark_many_as_read(
@@ -468,7 +468,7 @@ impl PostActions {
       .set(post_actions::read_at.eq(now().nullable()))
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -483,7 +483,7 @@ impl PostActions {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntHidePost)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn unhide(pool: &mut DbPool<'_>, form: &PostHideForm) -> LemmyResult<UpleteCount> {
@@ -497,7 +497,7 @@ impl PostActions {
     .set_null(post_actions::hidden_at)
     .get_result(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntHidePost)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -515,7 +515,7 @@ impl PostActions {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateReadComments)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

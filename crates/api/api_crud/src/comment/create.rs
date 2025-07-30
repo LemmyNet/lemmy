@@ -86,7 +86,7 @@ pub async fn create_comment(
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      Err(LemmyErrorType::CouldntCreateComment)?
+      Err(LemmyErrorType::CouldntCreate)?
     }
     check_comment_depth(parent)?;
   }
