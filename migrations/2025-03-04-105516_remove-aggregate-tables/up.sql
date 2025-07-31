@@ -6,51 +6,53 @@ CREATE FUNCTION get_score (non_1_upvotes integer, non_0_downvotes integer)
         non_0_downvotes, 0
 );
 
-CREATE FUNCTION inner_get_controversy_rank (upvotes integer, downvotes integer)
-    RETURNS real
-    LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
-        OR upvotes <= 0 THEN
-        0
-    ELSE
-        (
-            upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
-            downvotes::real / upvotes::real
-        ELSE
-            upvotes::real / downvotes::real
-    END
-    END;
-
 CREATE FUNCTION get_controversy_rank (non_1_upvotes integer, non_0_downvotes integer)
     RETURNS real
     LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN inner_get_controversy_rank (
-coalesce(non_1_upvotes, 1), coalesce(non_0_downvotes, 0)
-);
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN non_0_downvotes IS NULL
+        OR non_1_upvotes IS NOT DISTINCT FROM 0 THEN
+        -- upvotes = 0 or downvotes = 0
+        0
+    WHEN non_1_upvotes IS NULL THEN
+        -- upvotes = 1 and downvotes > 0
+        (
+            1 + non_0_downvotes) ^ (
+            1 / non_0_downvotes::real)
+    ELSE
+        -- non_1_upvotes and non_0_downvotes are not null
+        (
+            non_1_upvotes + non_0_downvotes) ^ (
+            CASE WHEN non_1_upvotes > non_0_downvotes THEN
+                non_0_downvotes::real / non_1_upvotes::real
+            ELSE
+                non_1_upvotes::real / non_0_downvotes::real
+            END)
+    END;
 
-CREATE FUNCTION inner_get_hot_rank (score integer, age smallint)
+CREATE FUNCTION inner_get_hot_rank (clamped_score_plus_2 integer, non_null_age smallint)
     RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
-    -- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0.
-    CASE WHEN age IS NOT NULL THEN
-        -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
-        log (
-            greatest (2, score + 2)) / power (((
-            -- Age in hours
-            age::real / 180) + 2), 1.8)
-    ELSE
-        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
-        -- always be on top even with only 1 vote by setting it to the future
-        0
-    END;
+    -- Use greatest(2,score+2), so that the hot_rank will be positive and not ignored.
+    log (
+        clamped_score_plus_2) * power (((
+        -- Age in hours
+        non_null_age::real / 180) + 2), -1.8
+);
 
+-- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0.
+--
+-- if the post is from the future, set hot score to 0. otherwise you can game the post to
+-- always be on top even with only 1 vote by setting it to the future
 CREATE FUNCTION get_hot_rank (non_1_upvotes integer, non_0_downvotes integer, age smallint)
     RETURNS real
     LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN inner_get_hot_rank (
-        get_score (non_1_upvotes, non_0_downvotes), age
-);
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN age IS NULL THEN
+        0
+    ELSE
+        inner_get_hot_rank (
+            2 + greatest (0, get_score (non_1_upvotes, non_0_downvotes)), age)
+    END;
 
 CREATE FUNCTION get_scaled_rank (non_1_upvotes integer, non_0_downvotes integer, age smallint, non_0_community_interactions_month integer)
     RETURNS real
@@ -60,11 +62,30 @@ CREATE FUNCTION get_scaled_rank (non_1_upvotes integer, non_0_downvotes integer,
     -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
     -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
-    RETURN CASE WHEN age IS NOT NULL THEN
-        (
-            get_hot_rank (non_1_upvotes, non_0_downvotes, age) / log(2 + coalesce(non_0_community_interactions_month, 0)))
-    ELSE
+    RETURN CASE WHEN age IS NULL THEN
         0
+    ELSE
+        inner_get_hot_rank (
+            2 + greatest (0, get_score (non_1_upvotes, non_0_downvotes)), age) / log (
+            CASE WHEN non_0_community_interactions_month IS NULL THEN
+                2
+            ELSE
+                2 + non_0_community_interactions_month
+            END)
+    END;
+
+CREATE FUNCTION get_community_hot_rank (non_1_subscribers integer, age smallint)
+    RETURNS real
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN age IS NULL THEN
+        0
+    ELSE
+        inner_get_hot_rank (
+            CASE WHEN non_1_subscribers IS NULL THEN
+                3
+            ELSE
+                2 + non_1_subscribers
+            END, age)
     END;
 
 -- Merge comment_aggregates into comment table
@@ -428,7 +449,7 @@ WHERE
 -- reindex
 REINDEX TABLE community;
 
-CREATE INDEX idx_community_hot ON public.community USING btree (inner_get_hot_rank (coalesce(non_1_subscribers, 1), age) DESC);
+CREATE INDEX idx_community_hot ON public.community USING btree (get_community_hot_rank (non_1_subscribers, age) DESC);
 
 CREATE INDEX idx_community_young ON public.community USING btree (published)
 WHERE (age IS NOT NULL);
