@@ -442,6 +442,10 @@ async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&
   // Select the community count results into a temp table.
   let caggs_temp_table = &format!("community_aggregates_temp_table_{}", interval.1);
 
+  // Drop temp table before and after, just in case
+  let drop_caggs_temp_table = format!("DROP TABLE IF EXISTS {caggs_temp_table}");
+  sql_query(&drop_caggs_temp_table).execute(conn).await.ok();
+
   let create_table_res = sql_query(format!(
     "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.community_aggregates_activity('{}')",
     interval.0
@@ -466,7 +470,6 @@ async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&
               WHERE community_id_ > $1
               ORDER BY community_id_
               LIMIT $2
-              FOR UPDATE SKIP LOCKED
             ) AS b
             WHERE a.community_id = b.community_id_
             RETURNING a.community_id
@@ -491,10 +494,7 @@ async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&
       }
 
       // Drop the temp table just in case
-      sql_query(format!("DROP TABLE IF EXISTS {caggs_temp_table}"))
-        .execute(conn)
-        .await
-        .ok();
+      sql_query(drop_caggs_temp_table).execute(conn).await.ok();
 
       info!(
         "Finished community_aggregates active_{} (processed {} rows)",
