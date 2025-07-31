@@ -443,8 +443,8 @@ async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&
   let caggs_temp_table = &format!("community_aggregates_temp_table_{}", interval.1);
 
   // Drop temp table before and after, just in case
-  let drop_caggs_temp_table = format!("DROP TABLE IF EXISTS {caggs_temp_table}");
-  sql_query(&drop_caggs_temp_table).execute(conn).await.ok();
+  let drop_caggs_temp_table = &format!("DROP TABLE IF EXISTS {caggs_temp_table}");
+  sql_query(drop_caggs_temp_table).execute(conn).await.ok();
 
   let create_table_res = sql_query(format!(
     "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.community_aggregates_activity('{}')",
