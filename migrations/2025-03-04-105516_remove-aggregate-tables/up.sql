@@ -1,4 +1,3 @@
--- TODO: update other migrations to handle columns becoming nullable
 CREATE FUNCTION get_score (non_1_upvotes integer, non_0_downvotes integer)
     RETURNS integer
     LANGUAGE sql
