@@ -35,7 +35,7 @@ impl Crud for Tag {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateTag)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(pool: &mut DbPool<'_>, pid: TagId, form: &Self::UpdateForm) -> LemmyResult<Self> {
@@ -44,7 +44,7 @@ impl Crud for Tag {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateTag)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -183,7 +183,7 @@ impl PostTag {
             .returning(Self::as_select())
             .get_results(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntCreatePostTag)
+            .with_lemmy_type(LemmyErrorType::CouldntCreate)
         }
         .scope_boxed()
       })

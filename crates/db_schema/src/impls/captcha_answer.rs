@@ -15,7 +15,7 @@ impl CaptchaAnswer {
       .values(captcha)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateCaptchaAnswer)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn check_captcha(

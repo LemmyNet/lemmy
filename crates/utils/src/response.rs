@@ -61,13 +61,13 @@ mod tests {
   #[actix_web::test]
   async fn test_lemmy_errors_are_not_modified() {
     async fn lemmy_error_service() -> actix_web::Result<String, LemmyError> {
-      Err(LemmyError::from(LemmyErrorType::EmailAlreadyExists))
+      Err(LemmyError::from(LemmyErrorType::AlreadyExists))
     }
 
     check_for_jsonification(
       lemmy_error_service,
       StatusCode::BAD_REQUEST,
-      "{\"error\":\"email_already_exists\"}",
+      "{\"error\":\"already_exists\"}",
     )
     .await;
   }

@@ -31,7 +31,7 @@ impl LocalSiteRateLimit {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateRateLimit)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   pub async fn update(
     pool: &mut DbPool<'_>,

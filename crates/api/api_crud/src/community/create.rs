@@ -81,7 +81,7 @@ pub async fn create_community(
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
   let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
-    Err(LemmyErrorType::CommunityAlreadyExists)?
+    Err(LemmyErrorType::AlreadyExists)?
   }
 
   let keypair = generate_actor_keypair()?;

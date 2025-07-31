@@ -394,7 +394,7 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta cannot delete the post
   await expect(deletePost(beta, true, betaPost2.post)).rejects.toStrictEqual(
-    new LemmyError("no_post_edit_allowed"),
+    new LemmyError("couldnt_update"),
   );
 });
 

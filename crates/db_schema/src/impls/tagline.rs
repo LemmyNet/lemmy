@@ -21,7 +21,7 @@ impl Crud for Tagline {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateTagline)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -34,7 +34,7 @@ impl Crud for Tagline {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateTagline)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

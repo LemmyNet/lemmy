@@ -34,7 +34,7 @@ pub async fn delete_comment(
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {
-    Err(LemmyErrorType::CouldntUpdateComment)?
+    Err(LemmyErrorType::CouldntUpdate)?
   }
 
   check_community_user_action(

@@ -15,7 +15,7 @@ impl EmailVerification {
       .values(form)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateEmailVerification)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_for_token(pool: &mut DbPool<'_>, token: &str) -> LemmyResult<Self> {

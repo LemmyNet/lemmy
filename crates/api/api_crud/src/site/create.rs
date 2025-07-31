@@ -147,7 +147,7 @@ pub async fn create_site(
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    Err(LemmyErrorType::SiteAlreadyExists)?
+    Err(LemmyErrorType::AlreadyExists)?
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
@@ -197,7 +197,7 @@ mod tests {
     let invalid_payloads = [
       (
         "CreateSite attempted on set up LocalSite",
-        LemmyErrorType::SiteAlreadyExists,
+        LemmyErrorType::AlreadyExists,
         &LocalSite {
           site_setup: true,
           private_instance: true,
