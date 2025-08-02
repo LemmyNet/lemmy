@@ -1,8 +1,17 @@
-use activitypub_federation::{config::UrlVerifier, error::Error as ActivityPubError};
+use activitypub_federation::{
+  config::{Data, UrlVerifier},
+  error::Error as ActivityPubError,
+};
 use async_trait::async_trait;
-use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
-use lemmy_db_schema::utils::ActualDbPool;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType};
+use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::{
+  objects::PostOrComment,
+  utils::functions::{check_apub_id_valid, local_site_data_cached},
+};
+use lemmy_db_schema::{source::community::Community, traits::Crud, utils::ActualDbPool};
+use lemmy_db_views_post::PostView;
+use lemmy_db_views_site::SiteView;
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 pub mod activities;
@@ -12,6 +21,29 @@ pub mod collections;
 pub mod fetcher;
 pub mod http;
 pub mod protocol;
+
+pub(crate) async fn post_or_comment_community(
+  post_or_comment: &PostOrComment,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Community> {
+  match post_or_comment {
+    PostOrComment::Left(p) => Community::read(&mut context.pool(), p.community_id).await,
+    PostOrComment::Right(c) => {
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      Ok(
+        PostView::read(
+          &mut context.pool(),
+          c.post_id,
+          None,
+          site_view.instance.id,
+          false,
+        )
+        .await?
+        .community,
+      )
+    }
+  }
+}
 
 /// Maximum number of outgoing HTTP requests to fetch a single object. Needs to be high enough
 /// to fetch a new community with posts, moderators and featured posts.

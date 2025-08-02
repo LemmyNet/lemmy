@@ -1,0 +1,12 @@
+{
+  "actor": "https://lemmy-alpha/u/lemmy_aplha",
+  "to": [
+    "https://lemmy-alpha/c/test",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "https://lemmy-alpha/comment/1",
+  "cc": ["https://lemmy-alpha/c/test"],
+  "type": "Lock",
+  "id": "https://lemmy-alpha/activities/lock/ae02478a-c7fa-4cc9-9838-eae131d3e9fa",
+  "summary": "A reason for a lock"
+}

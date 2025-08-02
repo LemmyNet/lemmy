@@ -3,7 +3,7 @@ use crate::{
     block::{send_ban_from_community, send_ban_from_site},
     community::{
       collection_add::{send_add_mod_to_community, send_feature_post},
-      lock_page::send_lock_post,
+      lock::send_lock,
       update::{send_update_community, send_update_multi_community},
     },
     create_or_update::private_message::send_create_or_update_pm,
@@ -34,7 +34,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::functions::GetActorType,
+};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
@@ -191,7 +194,14 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockPost(post, actor, locked, reason) => {
-        send_lock_post(post, actor, locked, reason, context).await
+        send_lock(
+          PostOrComment::Left(post.into()),
+          actor,
+          locked,
+          reason,
+          context,
+        )
+        .await
       }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
@@ -217,6 +227,16 @@ pub async fn match_outgoing_activities(
         let deletable = DeletableObjects::Comment(comment.into());
         send_apub_delete_in_community(
           moderator, community, deletable, reason, is_removed, &context,
+        )
+        .await
+      }
+      LockComment(comment, actor, locked, reason) => {
+        send_lock(
+          PostOrComment::Right(comment.into()),
+          actor,
+          locked,
+          reason,
+          context,
         )
         .await
       }

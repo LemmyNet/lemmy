@@ -12,6 +12,7 @@ use crate::newtypes::{
   ModBanFromCommunityId,
   ModChangeCommunityVisibilityId,
   ModFeaturePostId,
+  ModLockCommentId,
   ModLockPostId,
   ModRemoveCommentId,
   ModRemovePostId,
@@ -54,4 +55,5 @@ pub struct ModlogCombined {
   pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
   pub mod_remove_post_id: Option<ModRemovePostId>,
   pub mod_transfer_community_id: Option<ModTransferCommunityId>,
+  pub mod_lock_comment_id: Option<ModLockCommentId>,
 }

@@ -4,6 +4,7 @@ use lemmy_api::{
     distinguish::distinguish_comment,
     like::like_comment,
     list_comment_likes::list_comment_likes,
+    lock::lock_comment,
     save::save_comment,
   },
   community::{
@@ -317,6 +318,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
+          .route("/lock", post().to(lock_comment))
           .route("/list", get().to(list_comments))
           .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
