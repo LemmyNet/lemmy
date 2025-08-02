@@ -43,6 +43,7 @@ import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
 import { GetPost } from "lemmy-js-client/dist/types/GetPost";
 import { GetPostResponse } from "lemmy-js-client/dist/types/GetPostResponse";
+import { LockComment } from "lemmy-js-client/dist/types/LockComment";
 import { LockPost } from "lemmy-js-client/dist/types/LockPost";
 import { Login } from "lemmy-js-client/dist/types/Login";
 import { Post } from "lemmy-js-client/dist/types/Post";
@@ -362,6 +363,18 @@ export async function getPost(
     id: post_id,
   };
   return api.getPost(form);
+}
+
+export async function lockComment(
+  api: LemmyHttp,
+  locked: boolean,
+  comment: Comment,
+): Promise<CommentResponse> {
+  let form: LockComment = {
+    comment_id: comment.id,
+    locked,
+  };
+  return api.lockComment(form);
 }
 
 export async function getComments(
