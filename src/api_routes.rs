@@ -1,7 +1,11 @@
 use actix_web::{guard, web::*};
 use lemmy_api::{
   comment::{
-    distinguish::distinguish_comment, like::like_comment, list_comment_likes::list_comment_likes, lock::lock_comment, save::save_comment
+    distinguish::distinguish_comment,
+    like::like_comment,
+    list_comment_likes::list_comment_likes,
+    lock::lock_comment,
+    save::save_comment,
   },
   community::{
     add_mod::add_mod_to_community,

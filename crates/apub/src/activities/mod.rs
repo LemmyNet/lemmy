@@ -34,7 +34,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_apub_objects::{objects::{person::ApubPerson, PostOrComment}, utils::functions::GetActorType};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::functions::GetActorType,
+};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
@@ -191,7 +194,14 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockPost(post, actor, locked, reason) => {
-        send_lock(PostOrComment::Left(post.into()), actor, locked, reason, context).await
+        send_lock(
+          PostOrComment::Left(post.into()),
+          actor,
+          locked,
+          reason,
+          context,
+        )
+        .await
       }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
@@ -221,7 +231,14 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockComment(comment, actor, locked, reason) => {
-	send_lock(PostOrComment::Right(comment.into()), actor, locked, reason, context).await
+        send_lock(
+          PostOrComment::Right(comment.into()),
+          actor,
+          locked,
+          reason,
+          context,
+        )
+        .await
       }
       LikePostOrComment {
         object_id,

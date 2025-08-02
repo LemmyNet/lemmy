@@ -908,7 +908,10 @@ test("Distinguish comment", async () => {
 test("Lock comment", async () => {
   let newBetaApi = await registerUser(beta, betaUrl);
 
-  const alphaCommunity = await resolveCommunity(alpha, "!main@lemmy-alpha:8541",);
+  const alphaCommunity = await resolveCommunity(
+    alpha,
+    "!main@lemmy-alpha:8541",
+  );
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
@@ -932,13 +935,21 @@ test("Lock comment", async () => {
   if (!betaComment1) {
     throw "unable to locate comment on beta";
   }
-  
-  let comment2 = await createComment(alpha, post.post_view.post.id, comment1.comment_view.comment.id);
+
+  let comment2 = await createComment(
+    alpha,
+    post.post_view.post.id,
+    comment1.comment_view.comment.id,
+  );
   let betaComment2 = await resolveComment(beta, comment2.comment_view.comment);
   if (!betaComment2) {
     throw "unable to locate comment on beta";
   }
-  let comment3 = await createComment(newBetaApi, betaPost.post.id, betaComment2.comment.id);
+  let comment3 = await createComment(
+    newBetaApi,
+    betaPost.post.id,
+    betaComment2.comment.id,
+  );
 
   // Lock comment2 and wait for it to federate
   await lockComment(alpha, true, comment2.comment_view.comment);
@@ -946,12 +957,16 @@ test("Lock comment", async () => {
 
   // Make sure newBeta can't respond to comment3
   await expect(
-    createComment(newBetaApi, betaPost.post.id, comment3.comment_view.comment.id)
+    createComment(
+      newBetaApi,
+      betaPost.post.id,
+      comment3.comment_view.comment.id,
+    ),
   ).rejects.toStrictEqual(new LemmyError("locked"));
 
   // newBeta should still be able to respond to comment1
   await expect(
-    createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id)
+    createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
   ).toBeDefined();
 });
 

@@ -15,7 +15,15 @@ use lemmy_db_schema::source::{
       AdminRemoveCommunity,
     },
     moderator::{
-      ModAddToCommunity, ModBanFromCommunity, ModChangeCommunityVisibility, ModFeaturePost, ModLockComment, ModLockPost, ModRemoveComment, ModRemovePost, ModTransferCommunity
+      ModAddToCommunity,
+      ModBanFromCommunity,
+      ModChangeCommunityVisibility,
+      ModFeaturePost,
+      ModLockComment,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemovePost,
+      ModTransferCommunity,
     },
   },
   person::Person,

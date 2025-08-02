@@ -67,8 +67,8 @@ use lemmy_db_schema_file::{
     mod_ban_from_community,
     mod_change_community_visibility,
     mod_feature_post,
-    mod_lock_post,
     mod_lock_comment,
+    mod_lock_post,
     mod_remove_comment,
     mod_remove_post,
     mod_transfer_community,
@@ -116,7 +116,7 @@ impl ModlogCombinedViewInternal {
         .or(mod_add_to_community::other_person_id.eq(other_person))
         .or(admin_ban::other_person_id.eq(other_person))
         .or(mod_ban_from_community::other_person_id.eq(other_person))
-      // Some tables don't have the other_person_id directly, so you need to join
+        // Some tables don't have the other_person_id directly, so you need to join
         .or(
           mod_feature_post::id
             .is_not_null()
@@ -138,11 +138,11 @@ impl ModlogCombinedViewInternal {
             .and(post::creator_id.eq(other_person)),
         )
         .or(mod_transfer_community::other_person_id.eq(other_person))
-	.or(
+        .or(
           mod_lock_comment::id
             .is_not_null()
             .and(comment::creator_id.eq(other_person)),
-        )
+        ),
     );
 
     let comment_join = comment::table.on(mod_remove_comment::comment_id.eq(comment::id));
@@ -355,7 +355,7 @@ impl ModlogCombinedQuery<'_> {
         ModLockPost => query.filter(modlog_combined::mod_lock_post_id.is_not_null()),
         ModFeaturePost => query.filter(modlog_combined::mod_feature_post_id.is_not_null()),
         ModRemoveComment => query.filter(modlog_combined::mod_remove_comment_id.is_not_null()),
-	ModLockComment => query.filter(modlog_combined::mod_lock_comment_id.is_not_null()),
+        ModLockComment => query.filter(modlog_combined::mod_lock_comment_id.is_not_null()),
         AdminRemoveCommunity => {
           query.filter(modlog_combined::admin_remove_community_id.is_not_null())
         }
@@ -402,9 +402,9 @@ impl ModlogCombinedQuery<'_> {
       None,
       self.page_back,
     )
-      .then_order_by(key::published_at)
+    .then_order_by(key::published_at)
     // Tie breaker
-      .then_order_by(key::id);
+    .then_order_by(key::id);
 
     let res = paginated_query
       .load::<ModlogCombinedViewInternal>(conn)
@@ -932,7 +932,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-      .await?;
+    .await?;
     // Only one is jessica
     assert_eq!(7, modlog_admin_filter.len());
 
@@ -942,7 +942,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-      .await?;
+    .await?;
 
     // Should be 2, and not jessicas
     assert_eq!(2, modlog_community_filter.len());
@@ -953,7 +953,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-      .await?;
+    .await?;
 
     // 2 of these, one is jessicas
     assert_eq!(2, modlog_type_filter.len());

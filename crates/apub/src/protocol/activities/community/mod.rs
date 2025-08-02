@@ -37,11 +37,15 @@ mod tests {
     )?;
 
     test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_page.json")?;
-    test_parse_lemmy_item::<UndoLockPageOrNote>("assets/lemmy/activities/community/undo_lock_page.json")?;
+    test_parse_lemmy_item::<UndoLockPageOrNote>(
+      "assets/lemmy/activities/community/undo_lock_page.json",
+    )?;
 
     test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_note.json")?;
-    test_parse_lemmy_item::<UndoLockPageOrNote>("assets/lemmy/activities/community/undo_lock_note.json")?;
-    
+    test_parse_lemmy_item::<UndoLockPageOrNote>(
+      "assets/lemmy/activities/community/undo_lock_note.json",
+    )?;
+
     test_parse_lemmy_item::<Update>("assets/lemmy/activities/community/update_community.json")?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;

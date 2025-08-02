@@ -60,7 +60,6 @@ pub async fn create_comment(
     true,
   )
   .await?;
-  
 
   let post = post_view.post;
   let community_id = post_view.community.id;
@@ -74,7 +73,7 @@ pub async fn create_comment(
   } else {
     None
   };
-  
+
   // Check if post or parent is locked, no new comments
   let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
@@ -83,7 +82,7 @@ pub async fn create_comment(
   if locked && !is_mod_or_admin {
     Err(LemmyErrorType::Locked)?
   }
-  
+
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {

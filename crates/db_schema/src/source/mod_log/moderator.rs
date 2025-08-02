@@ -20,8 +20,8 @@ use lemmy_db_schema_file::schema::{
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
-  mod_lock_post,
   mod_lock_comment,
+  mod_lock_post,
   mod_remove_comment,
   mod_remove_post,
   mod_transfer_community,
@@ -130,7 +130,6 @@ pub struct ModRemoveCommentForm {
   pub reason: Option<String>,
   pub removed: Option<bool>,
 }
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
