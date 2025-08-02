@@ -45,7 +45,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     let context = context_1.clone();
 
     async move {
-      active_counts(&mut context.pool()).await;
+      active_counts(&mut context.pool(), ONE_DAY).await;
       update_banned_when_expired(&mut context.pool()).await;
     }
   });
@@ -79,6 +79,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     let context = context_1.clone();
 
     async move {
+      all_active_counts(&mut context.pool(), ALL_ACTIVE_INTERVALS).await;
       overwrite_deleted_posts_and_comments(&mut context.pool()).await;
       delete_old_denied_users(&mut context.pool()).await;
       update_instance_software(&mut context.pool(), context.client())
@@ -356,46 +357,154 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
   }
 }
 
-/// Re-calculate the site and community active counts every 12 hours
-async fn active_counts(pool: &mut DbPool<'_>) {
-  info!("Updating active site and community aggregates ...");
+const ONE_DAY: (&str, &str) = ("1 day", "day");
+const ONE_WEEK: (&str, &str) = ("1 week", "week");
+const ONE_MONTH: (&str, &str) = ("1 month", "month");
+const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
+
+const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
+
+#[derive(QueryableByName)]
+struct SiteActivitySelectResult {
+  #[diesel(sql_type = Integer)]
+  site_aggregates_activity: i32,
+}
+
+#[derive(QueryableByName)]
+struct CommunityAggregatesUpdateResult {
+  #[diesel(sql_type = Integer)]
+  community_id: i32,
+}
+
+/// Re-calculate the site and community active counts for a given interval
+async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) {
+  info!(
+    "Updating active site and community aggregates for {}...",
+    interval.0
+  );
 
   let conn = get_conn(pool).await;
 
   match conn {
     Ok(mut conn) => {
-      let intervals = vec![
-        ("1 day", "day"),
-        ("1 week", "week"),
-        ("1 month", "month"),
-        ("6 months", "half_year"),
-      ];
-
-      for i in &intervals {
-        let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
-      i.1, i.0
-    );
-        sql_query(update_site_stmt)
-          .execute(&mut conn)
-          .await
-          .map_err(|e| error!("Failed to update site stats: {e}"))
-          .ok();
-
-        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
-        sql_query(update_community_stmt)
-          .execute(&mut conn)
-          .await
-          .map_err(|e| error!("Failed to update community stats: {e}"))
-          .ok();
-      }
-
-      info!("Done.");
+      process_site_aggregates(&mut conn, interval).await;
+      process_community_aggregates(&mut conn, interval).await;
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");
     }
   }
+}
+
+/// Re-calculate all the active counts
+async fn all_active_counts(pool: &mut DbPool<'_>, intervals: [(&str, &str); 4]) {
+  for i in intervals {
+    active_counts(pool, i).await;
+  }
+}
+
+async fn process_site_aggregates(conn: &mut AsyncPgConnection, interval: (&str, &str)) {
+  // Select the site count result first
+  let site_activity_res = sql_query(format!(
+    "select * from r.site_aggregates_activity('{}')",
+    interval.0
+  ))
+  .get_result::<SiteActivitySelectResult>(conn)
+  .await;
+
+  match site_activity_res {
+    Ok(res) => {
+      let processed_rows = res.site_aggregates_activity;
+
+      // Update the site count
+      sql_query(format!(
+        "update site_aggregates set users_active_{} = $1 where site_id = 1",
+        interval.1,
+      ))
+      .bind::<Integer, _>(processed_rows)
+      .execute(conn)
+      .await
+      .map_err(|e| error!("Failed to update site stats: {e}"))
+      .ok();
+
+      info!(
+        "Finished site_aggregates active_{} (processed {} rows)",
+        interval.1, processed_rows
+      );
+    }
+    Err(e) => {
+      error!("Failed to fetch site activity: {e}");
+    }
+  }
+}
+
+async fn process_community_aggregates(conn: &mut AsyncPgConnection, interval: (&str, &str)) {
+  // Select the community count results into a temp table.
+  let caggs_temp_table = &format!("community_aggregates_temp_table_{}", interval.1);
+
+  // Drop temp table before and after, just in case
+  let drop_caggs_temp_table = &format!("DROP TABLE IF EXISTS {caggs_temp_table}");
+  sql_query(drop_caggs_temp_table).execute(conn).await.ok();
+
+  let create_table_res = sql_query(format!(
+    "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.community_aggregates_activity('{}')",
+    interval.0
+  ))
+  .execute(conn)
+  .await;
+
+  match create_table_res {
+    Ok(_) => {
+      // Split up into 1000 community transaction batches
+      let update_batch_size = 1000;
+      let mut processed_rows_count = 0;
+      let mut prev_community_id_res = Some(0);
+
+      while let Some(prev_community_id) = prev_community_id_res {
+        let result = sql_query(format!(
+          "UPDATE community_aggregates a
+            SET users_active_{} = b.count_
+            FROM (
+              SELECT count_, community_id_
+              FROM {caggs_temp_table}
+              WHERE community_id_ > $1
+              ORDER BY community_id_
+              LIMIT $2
+            ) AS b
+            WHERE a.community_id = b.community_id_
+            RETURNING a.community_id
+            ",
+          interval.1
+        ))
+        .bind::<Integer, _>(prev_community_id)
+        .bind::<Integer, _>(update_batch_size)
+        .get_results::<CommunityAggregatesUpdateResult>(conn)
+        .await;
+
+        match result {
+          Ok(updated_rows) => {
+            processed_rows_count += updated_rows.len();
+            prev_community_id_res = updated_rows.last().map(|row| row.community_id);
+          }
+          Err(e) => {
+            error!("Failed to update community_aggregates: {}", e);
+            break;
+          }
+        };
+      }
+
+      // Drop the temp table just in case
+      sql_query(drop_caggs_temp_table).execute(conn).await.ok();
+
+      info!(
+        "Finished community_aggregates active_{} (processed {} rows)",
+        interval.1, processed_rows_count
+      );
+    }
+    Err(e) => {
+      error!("Failed to fetch community aggregates count: {e}");
+    }
+  };
 }
 
 /// Set banned to false after ban expires
