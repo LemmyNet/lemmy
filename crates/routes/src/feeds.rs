@@ -24,11 +24,7 @@ use lemmy_utils::{
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
-  Category,
-  Channel,
-  EnclosureBuilder,
-  Guid,
-  Item,
+  Category, Channel, EnclosureBuilder, Guid, Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
@@ -642,6 +638,22 @@ fn create_modlog_items(
           &v.community.name, &v.other_person.name
         ),
         &None,
+        settings,
+      ),
+      ModlogCombinedView::ModLockComment(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_lock_comment.published_at,
+        &modlog_url,
+        &format!(
+          "{} comment {}",
+          if v.mod_lock_comment.locked {
+            "Locked"
+          } else {
+            "Unlocked"
+          },
+          &v.comment.content
+        ),
+        &v.mod_lock_comment.reason,
         settings,
       ),
     })

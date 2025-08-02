@@ -1,61 +1,61 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "actor_type_enum"))]
-  pub struct ActorTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "actor_type_enum"))]
+    pub struct ActorTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "comment_sort_type_enum"))]
-  pub struct CommentSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+    pub struct CommentSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_follower_state"))]
-  pub struct CommunityFollowerState;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_follower_state"))]
+    pub struct CommunityFollowerState;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
-  pub struct CommunityNotificationsModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_notifications_mode_enum"))]
+    pub struct CommunityNotificationsModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_visibility"))]
-  pub struct CommunityVisibility;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_visibility"))]
+    pub struct CommunityVisibility;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "federation_mode_enum"))]
+    pub struct FederationModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "listing_type_enum"))]
-  pub struct ListingTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "listing_type_enum"))]
+    pub struct ListingTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "ltree"))]
-  pub struct Ltree;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "ltree"))]
+    pub struct Ltree;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "notification_type_enum"))]
-  pub struct NotificationTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "notification_type_enum"))]
+    pub struct NotificationTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_listing_mode_enum"))]
-  pub struct PostListingModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+    pub struct PostListingModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
-  pub struct PostNotificationsModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_notifications_mode_enum"))]
+    pub struct PostNotificationsModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "post_sort_type_enum"))]
-  pub struct PostSortTypeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_sort_type_enum"))]
+    pub struct PostSortTypeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "registration_mode_enum"))]
-  pub struct RegistrationModeEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "registration_mode_enum"))]
+    pub struct RegistrationModeEnum;
 
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "vote_show_enum"))]
-  pub struct VoteShowEnum;
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "vote_show_enum"))]
+    pub struct VoteShowEnum;
 }
 
 diesel::table! {
@@ -189,6 +189,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        locked -> Bool,
     }
 }
 
@@ -645,6 +646,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    mod_lock_comment (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        comment_id -> Int4,
+        locked -> Bool,
+        reason -> Nullable<Text>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     mod_lock_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -708,6 +720,7 @@ diesel::table! {
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
+        mod_lock_comment_id -> Nullable<Int4>,
     }
 }
 
@@ -1182,6 +1195,8 @@ diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> post (post_id));
+diesel::joinable!(mod_lock_comment -> comment (comment_id));
+diesel::joinable!(mod_lock_comment -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
@@ -1202,6 +1217,7 @@ diesel::joinable!(modlog_combined -> mod_add_to_community (mod_add_to_community_
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
 diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
+diesel::joinable!(modlog_combined -> mod_lock_comment (mod_lock_comment_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
@@ -1254,78 +1270,79 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-  admin_add,
-  admin_allow_instance,
-  admin_ban,
-  admin_block_instance,
-  admin_purge_comment,
-  admin_purge_community,
-  admin_purge_person,
-  admin_purge_post,
-  admin_remove_community,
-  captcha_answer,
-  comment,
-  comment_actions,
-  comment_report,
-  community,
-  community_actions,
-  community_community_follow,
-  community_language,
-  community_report,
-  custom_emoji,
-  custom_emoji_keyword,
-  email_verification,
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  image_details,
-  instance,
-  instance_actions,
-  language,
-  local_image,
-  local_site,
-  local_site_rate_limit,
-  local_site_url_blocklist,
-  local_user,
-  local_user_keyword_block,
-  local_user_language,
-  login_token,
-  mod_add_to_community,
-  mod_ban_from_community,
-  mod_change_community_visibility,
-  mod_feature_post,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_post,
-  mod_transfer_community,
-  modlog_combined,
-  multi_community,
-  multi_community_entry,
-  multi_community_follow,
-  notification,
-  oauth_account,
-  oauth_provider,
-  password_reset_request,
-  person,
-  person_actions,
-  person_content_combined,
-  person_liked_combined,
-  person_saved_combined,
-  post,
-  post_actions,
-  post_report,
-  post_tag,
-  private_message,
-  private_message_report,
-  received_activity,
-  registration_application,
-  remote_image,
-  report_combined,
-  search_combined,
-  secret,
-  sent_activity,
-  site,
-  site_language,
-  tag,
-  tagline,
+    admin_add,
+    admin_allow_instance,
+    admin_ban,
+    admin_block_instance,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
+    admin_remove_community,
+    captcha_answer,
+    comment,
+    comment_actions,
+    comment_report,
+    community,
+    community_actions,
+    community_community_follow,
+    community_language,
+    community_report,
+    custom_emoji,
+    custom_emoji_keyword,
+    email_verification,
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    image_details,
+    instance,
+    instance_actions,
+    language,
+    local_image,
+    local_site,
+    local_site_rate_limit,
+    local_site_url_blocklist,
+    local_user,
+    local_user_keyword_block,
+    local_user_language,
+    login_token,
+    mod_add_to_community,
+    mod_ban_from_community,
+    mod_change_community_visibility,
+    mod_feature_post,
+    mod_lock_comment,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_post,
+    mod_transfer_community,
+    modlog_combined,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    notification,
+    oauth_account,
+    oauth_provider,
+    password_reset_request,
+    person,
+    person_actions,
+    person_content_combined,
+    person_liked_combined,
+    person_saved_combined,
+    post,
+    post_actions,
+    post_report,
+    post_tag,
+    private_message,
+    private_message_report,
+    received_activity,
+    registration_application,
+    remote_image,
+    report_combined,
+    search_combined,
+    secret,
+    sent_activity,
+    site,
+    site_language,
+    tag,
+    tagline,
 );

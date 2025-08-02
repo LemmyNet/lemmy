@@ -229,6 +229,7 @@ impl Object for ApubComment {
       local: Some(false),
       language_id,
       federation_pending: Some(false),
+      locked: Some(false),
     };
     form = plugin_hook_before("before_receive_federated_comment", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);

@@ -1,22 +1,5 @@
 use crate::newtypes::{
-  AdminAddId,
-  AdminAllowInstanceId,
-  AdminBanId,
-  AdminBlockInstanceId,
-  AdminPurgeCommentId,
-  AdminPurgeCommunityId,
-  AdminPurgePersonId,
-  AdminPurgePostId,
-  AdminRemoveCommunityId,
-  ModAddToCommunityId,
-  ModBanFromCommunityId,
-  ModChangeCommunityVisibilityId,
-  ModFeaturePostId,
-  ModLockPostId,
-  ModRemoveCommentId,
-  ModRemovePostId,
-  ModTransferCommunityId,
-  ModlogCombinedId,
+  AdminAddId, AdminAllowInstanceId, AdminBanId, AdminBlockInstanceId, AdminPurgeCommentId, AdminPurgeCommunityId, AdminPurgePersonId, AdminPurgePostId, AdminRemoveCommunityId, ModAddToCommunityId, ModBanFromCommunityId, ModChangeCommunityVisibilityId, ModFeaturePostId, ModLockCommentId, ModLockPostId, ModRemoveCommentId, ModRemovePostId, ModTransferCommunityId, ModlogCombinedId
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -54,4 +37,5 @@ pub struct ModlogCombined {
   pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
   pub mod_remove_post_id: Option<ModRemovePostId>,
   pub mod_transfer_community_id: Option<ModTransferCommunityId>,
+  pub mod_lock_comment_id: Option<ModLockCommentId>
 }

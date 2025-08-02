@@ -28,7 +28,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::Ltree;
+use diesel_ltree::{dsl::LtreeExtensions, Ltree};
 use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
@@ -236,6 +236,20 @@ impl Comment {
       Comment::update(pool, self.id, &form).await?;
     }
     Ok(())
+  }
+
+  pub async fn update_comment_and_children(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    form: &CommentUpdateForm,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(comment::table)
+      .filter(comment::path.contained_by(comment_path))
+      .set(form)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
   }
 }
 
@@ -452,6 +466,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,
+      locked: false,
     };
 
     let child_comment_form = CommentInsertForm::new(
