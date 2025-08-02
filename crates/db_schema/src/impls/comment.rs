@@ -248,7 +248,7 @@ impl Comment {
       .set(form)
       .get_results(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

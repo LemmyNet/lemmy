@@ -928,20 +928,31 @@ test("Lock comment", async () => {
   // 3
 
   let comment1 = await createComment(alpha, post.post_view.post.id);
+  let betaComment1 = await resolveComment(beta, comment1.comment_view.comment);
+  if (!betaComment1) {
+    throw "unable to locate comment on beta";
+  }
+  
   let comment2 = await createComment(alpha, post.post_view.post.id, comment1.comment_view.comment.id);
-
   let betaComment2 = await resolveComment(beta, comment2.comment_view.comment);
   if (!betaComment2) {
     throw "unable to locate comment on beta";
   }
   let comment3 = await createComment(newBetaApi, betaPost.post.id, betaComment2.comment.id);
 
-  // Lock comment 2
+  // Lock comment2 and wait for it to federate
   await lockComment(alpha, true, comment2.comment_view.comment);
+  await delay();
 
+  // Make sure newBeta can't respond to comment3
   await expect(
     createComment(newBetaApi, betaPost.post.id, comment3.comment_view.comment.id)
   ).rejects.toStrictEqual(new LemmyError("locked"));
+
+  // newBeta should still be able to respond to comment1
+  await expect(
+    createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id)
+  ).toBeDefined();
 });
 
 function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {

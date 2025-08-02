@@ -199,7 +199,7 @@ impl Crud for ModLockComment {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -212,7 +212,7 @@ impl Crud for ModLockComment {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
