@@ -10,6 +10,9 @@ CREATE TABLE mod_lock_comment (
     published_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_mod_lock_comment_mod on mod_lock_comment (mod_person_id);
+CREATE INDEX IF NOT EXISTS idx_mod_lock_comment_comment on mod_lock_comment (comment_id);
+
 ALTER TABLE modlog_combined
     ADD COLUMN mod_lock_comment_id integer UNIQUE REFERENCES mod_lock_comment ON UPDATE CASCADE ON DELETE CASCADE;
 
