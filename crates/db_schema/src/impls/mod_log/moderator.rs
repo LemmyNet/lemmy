@@ -59,7 +59,7 @@ impl Crud for ModRemovePost {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -72,7 +72,7 @@ impl Crud for ModRemovePost {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -86,7 +86,7 @@ impl ModRemovePost {
       .values(forms)
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 }
 
@@ -101,7 +101,7 @@ impl Crud for ModLockPost {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -114,7 +114,7 @@ impl Crud for ModLockPost {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -129,7 +129,7 @@ impl Crud for ModFeaturePost {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -142,7 +142,7 @@ impl Crud for ModFeaturePost {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -157,7 +157,7 @@ impl Crud for ModRemoveComment {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -170,7 +170,7 @@ impl Crud for ModRemoveComment {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -184,7 +184,7 @@ impl ModRemoveComment {
       .values(forms)
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 }
 
@@ -227,7 +227,7 @@ impl Crud for ModBanFromCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -240,7 +240,7 @@ impl Crud for ModBanFromCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -255,7 +255,7 @@ impl Crud for ModChangeCommunityVisibility {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -268,7 +268,7 @@ impl Crud for ModChangeCommunityVisibility {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -283,7 +283,7 @@ impl Crud for ModAddToCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -296,7 +296,7 @@ impl Crud for ModAddToCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -311,7 +311,7 @@ impl Crud for ModTransferCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -324,6 +324,6 @@ impl Crud for ModTransferCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

@@ -38,6 +38,6 @@ impl FederationQueueState {
       .set(state)
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateFederationQueueState)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

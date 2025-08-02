@@ -28,7 +28,7 @@ impl LocalSiteUrlBlocklist {
             .values(forms)
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLocalSiteUrlBlocklist)
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)
         }
         .scope_boxed()
       })

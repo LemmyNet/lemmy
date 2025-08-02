@@ -16,7 +16,7 @@ impl LoginToken {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateLoginToken)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   /// Check if the given token is valid for user.

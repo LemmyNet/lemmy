@@ -20,7 +20,7 @@ impl Notification {
       .on_conflict_do_nothing()
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateNotification)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_by_comment_id(
@@ -48,7 +48,7 @@ impl Notification {
     .set(notification::read.eq(true))
     .execute(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateNotification)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn mark_read_by_id_and_person(

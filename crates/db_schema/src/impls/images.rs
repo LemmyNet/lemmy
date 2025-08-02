@@ -30,7 +30,7 @@ impl LocalImage {
             .values(form)
             .get_result::<Self>(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntCreateImage);
+            .with_lemmy_type(LemmyErrorType::CouldntCreate);
 
           ImageDetails::create(&mut conn.into(), image_details_form).await?;
 
@@ -91,7 +91,7 @@ impl RemoteImage {
       .on_conflict_do_nothing()
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateImage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn validate(pool: &mut DbPool<'_>, link_: DbUrl) -> LemmyResult<()> {
@@ -116,6 +116,6 @@ impl ImageDetails {
       .on_conflict_do_nothing()
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateImage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 }

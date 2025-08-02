@@ -22,20 +22,20 @@
     "api-test-tags": "jest -i tags.spec.ts"
   },
   "devDependencies": {
-    "@eslint/js": "^9.26.0",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^22.15.14",
-    "@typescript-eslint/eslint-plugin": "^8.32.0",
-    "@typescript-eslint/parser": "^8.32.0",
-    "eslint": "^9.26.0",
-    "eslint-plugin-prettier": "^5.4.0",
-    "jest": "^29.5.0",
+    "@eslint/js": "^9.29.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.34.1",
+    "@typescript-eslint/parser": "^8.34.1",
+    "eslint": "^9.29.0",
+    "eslint-plugin-prettier": "^5.5.0",
+    "jest": "^30.0.0",
     "joi": "^17.13.3",
-    "lemmy-js-client": "1.0.0-post-tags.3",
+    "lemmy-js-client": "1.0.0-instance-user-blocking.8",
     "prettier": "^3.5.3",
-    "ts-jest": "^29.3.2",
+    "ts-jest": "^29.4.0",
     "tsoa": "^6.6.0",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.32.0"
+    "typescript-eslint": "^8.34.1"
   }
 }

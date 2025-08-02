@@ -15,7 +15,7 @@ impl FederationAllowList {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntAllowInstance)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;

@@ -359,7 +359,7 @@ pub fn check_private_instance(
 /// If private messages are disabled, dont allow them to be sent / received
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
-    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
+    Err(LemmyErrorType::CouldntCreate)?
   } else {
     Ok(())
   }
@@ -746,12 +746,12 @@ pub async fn purge_user_account(
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
   // Leave communities they mod
   CommunityActions::leave_mod_team_for_all_communities(pool, person_id).await?;

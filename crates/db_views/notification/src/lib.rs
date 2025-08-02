@@ -4,7 +4,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -22,9 +21,15 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
-    utils::queries::person1_select,
-    utils::queries::{creator_banned, creator_is_admin, local_user_can_mod, post_tags_fragment},
-    utils::queries::{creator_banned_from_community, creator_is_moderator},
+    utils::queries::{
+      creator_banned,
+      creator_banned_from_community,
+      creator_is_admin,
+      creator_is_moderator,
+      local_user_can_mod,
+      person1_select,
+      post_tags_fragment,
+    },
     Person1AliasAllColumnsTuple,
   },
 };
@@ -60,8 +65,6 @@ struct NotificationViewInternal {
   image_details: Option<ImageDetails>,
   #[cfg_attr(feature = "full", diesel(embed))]
   community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

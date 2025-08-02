@@ -29,7 +29,7 @@ impl Reportable for CommentReport {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateReport)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   /// resolve a comment report
@@ -52,7 +52,7 @@ impl Reportable for CommentReport {
       ))
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn resolve_apub(
@@ -76,7 +76,7 @@ impl Reportable for CommentReport {
     ))
     .execute(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn resolve_all_for_object(
@@ -93,6 +93,6 @@ impl Reportable for CommentReport {
       ))
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

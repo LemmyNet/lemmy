@@ -52,7 +52,7 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn update_removed_for_creator(
@@ -68,7 +68,7 @@ impl Comment {
       ))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   /// Diesel can't update from join unfortunately, so you'll need to loop over these
@@ -178,14 +178,13 @@ impl Comment {
         .set(comment_form)
         .get_result::<Self>(conn)
         .await
-        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     } else {
       insert_into(comment::table)
         .values(comment_form)
         .get_result::<Self>(conn)
         .await
-        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)
     }
+    .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_from_apub_id(
@@ -219,7 +218,7 @@ impl Comment {
       .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published_at)))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
@@ -274,7 +273,7 @@ impl Crud for Comment {
       .set(comment_form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -285,7 +284,7 @@ impl Likeable for CommentActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     insert_into(comment_actions::table)
       .values(form)
@@ -295,7 +294,7 @@ impl Likeable for CommentActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   async fn remove_like(
     pool: &mut DbPool<'_>,
@@ -308,7 +307,7 @@ impl Likeable for CommentActions {
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn remove_all_likes(
@@ -322,7 +321,7 @@ impl Likeable for CommentActions {
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn remove_likes_in_community(
@@ -340,7 +339,7 @@ impl Likeable for CommentActions {
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -356,7 +355,7 @@ impl Saveable for CommentActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
@@ -364,7 +363,7 @@ impl Saveable for CommentActions {
       .set_null(comment_actions::saved_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

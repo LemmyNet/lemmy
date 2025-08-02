@@ -18,7 +18,7 @@ import {
 } from "./shared";
 import { CreateCommunityTag } from "lemmy-js-client/dist/types/CreateCommunityTag";
 import { DeleteCommunityTag } from "lemmy-js-client/dist/types/DeleteCommunityTag";
-import { AddModToCommunity, EditPost } from "lemmy-js-client";
+import { AddModToCommunity } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
