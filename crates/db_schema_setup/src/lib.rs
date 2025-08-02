@@ -413,6 +413,13 @@ mod tests {
       "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
     );
 
+    // Check the current schema
+    assert_eq!(
+      get_foreign_keys_with_missing_indexes(&mut conn)?,
+      Vec::<String>::new(),
+      "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
+    );
+
     // Check for early return
     assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
 
