@@ -6,3 +6,4 @@ DROP TABLE mod_lock_comment;
 
 ALTER TABLE comment
     DROP COLUMN LOCKED;
+
