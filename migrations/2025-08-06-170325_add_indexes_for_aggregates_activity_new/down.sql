@@ -1,0 +1,2 @@
+DROP INDEX idx_post_actions_liked_at, idx_comment_actions_liked_at;
+
