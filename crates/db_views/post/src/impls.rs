@@ -572,7 +572,7 @@ mod tests {
     impls::{PostQuery, PostSortType},
     PostView,
   };
-  use chrono::Utc;
+  use chrono::{DateTime, Days, Utc};
   use diesel_async::SimpleAsyncConnection;
   use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
@@ -2080,10 +2080,17 @@ mod tests {
     Ok(())
   }
 
+  /// Use millis for date checks
+  ///
+  /// Necessary because postgres uses millis, but rust uses micros
+  fn millis(dt: DateTime<Utc>) -> i64 {
+    dt.timestamp_millis()
+  }
+
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_local_user_banned(data: &mut Data) -> LemmyResult<()> {
+  async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
@@ -2101,9 +2108,11 @@ mod tests {
     };
     let banned_post = Post::create(pool, &post_form).await?;
 
+    let expires_at = Utc::now().checked_add_days(Days::new(1));
+
     InstanceActions::ban(
       pool,
-      &InstanceBanForm::new(banned_person.id, data.instance.id, None),
+      &InstanceBanForm::new(banned_person.id, data.instance.id, expires_at),
     )
     .await?;
 
@@ -2119,7 +2128,66 @@ mod tests {
 
     assert!(post_view.creator_banned);
 
-    assert!(post_view.creator_banned);
+    // Make sure the expires at is correct
+    assert_eq!(
+      expires_at.map(millis),
+      post_view.creator_ban_expires_at.map(millis)
+    );
+
+    Person::delete(pool, banned_person.id).await?;
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jarvis");
+
+    let banned_person = Person::create(pool, &banned_person_form).await?;
+
+    let post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        "banned jarvis post".to_string(),
+        banned_person.id,
+        data.community.id,
+      )
+    };
+    let banned_post = Post::create(pool, &post_form).await?;
+
+    let expires_at = Utc::now().checked_add_days(Days::new(1));
+
+    CommunityActions::ban(
+      pool,
+      &CommunityPersonBanForm {
+        ban_expires_at: Some(expires_at),
+        ..CommunityPersonBanForm::new(data.community.id, banned_person.id)
+      },
+    )
+    .await?;
+
+    // Let john read their post
+    let post_view = PostView::read(
+      pool,
+      banned_post.id,
+      Some(&data.john.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert!(post_view.creator_banned_from_community);
+    assert!(!post_view.creator_banned);
+
+    // Make sure the expires at is correct
+    assert_eq!(
+      expires_at.map(millis),
+      post_view.creator_ban_expires_from_community_at.map(millis)
+    );
 
     Person::delete(pool, banned_person.id).await?;
     Ok(())
