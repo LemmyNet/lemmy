@@ -41,7 +41,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{
+    queries::joins::{
       creator_community_instance_actions_join,
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::creator_home_banned,
+  lemmy_db_schema::utils::queries::selects::creator_home_banned,
 };
 
 pub mod api;

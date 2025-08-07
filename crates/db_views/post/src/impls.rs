@@ -32,21 +32,25 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      creator_community_actions_join,
-      creator_community_instance_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      filter_blocked,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      image_details_join,
-      my_community_actions_join,
-      my_instance_communities_actions_join,
-      my_instance_persons_actions_join_1,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-      suggested_communities,
+      filters::{
+        filter_blocked,
+        filter_is_subscribed,
+        filter_not_unlisted_or_is_subscribed,
+        filter_suggested_communities,
+      },
+      joins::{
+        creator_community_actions_join,
+        creator_community_instance_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        image_details_join,
+        my_community_actions_join,
+        my_instance_communities_actions_join,
+        my_instance_persons_actions_join_1,
+        my_local_user_admin_join,
+        my_person_actions_join,
+        my_post_actions_join,
+      },
     },
     seconds_to_pg_interval,
     Commented,
@@ -400,7 +404,7 @@ impl PostQuery<'_> {
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator_at.is_not_null());
       }
-      ListingType::Suggested => query = query.filter(suggested_communities()),
+      ListingType::Suggested => query = query.filter(filter_suggested_communities()),
     }
 
     if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
