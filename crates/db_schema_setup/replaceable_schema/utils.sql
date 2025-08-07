@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
 BEGIN
     RETURN query
     SELECT
-        COALESCE(sum(comments + upvotes + downvotes)::integer, 0) AS count_,
+        COALESCE(sum(coalesce(non_0_comments, 0) + coalesce(non_1_upvotes, 1) + coalesce(non_0_downvotes, 0))::integer, 0) AS count_,
         community_id AS community_id_
     FROM
         post
@@ -242,4 +242,25 @@ BEGIN
     RETURN count_;
 END;
 $$;
+
+CREATE FUNCTION r.add_nullable (n integer, current_non_n_value integer, diff bigint)
+    RETURNS integer
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN nullif (
+coalesce(current_non_n_value, n) + diff, n
+);
+
+CREATE FUNCTION r.add_nullable (n smallint, current_non_n_value smallint, diff bigint)
+    RETURNS smallint
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN nullif (
+coalesce(current_non_n_value, n) + diff, n
+);
+
+CREATE FUNCTION r.add_nullable (n integer, current_non_n_value integer, diff numeric)
+    RETURNS smallint
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN nullif (
+coalesce(current_non_n_value, n) + diff, n
+);
 

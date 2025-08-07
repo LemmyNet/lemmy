@@ -34,16 +34,14 @@ CREATE FUNCTION inner_get_hot_rank (clamped_score_plus_2 integer, non_null_age s
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
     -- Use greatest(2,score+2), so that the hot_rank will be positive and not ignored.
+    -- TODO: figure out why this doesn't work without greatest(2, _)
     log (
-        clamped_score_plus_2) * power (((
+        greatest (2, clamped_score_plus_2)) * power (((
         -- Age in hours
         non_null_age::real / 180) + 2), -1.8
 );
 
 -- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0.
---
--- if the post is from the future, set hot score to 0. otherwise you can game the post to
--- always be on top even with only 1 vote by setting it to the future
 CREATE FUNCTION get_hot_rank (non_1_upvotes integer, non_0_downvotes integer, age smallint)
     RETURNS real
     LANGUAGE sql
@@ -84,9 +82,28 @@ CREATE FUNCTION get_community_hot_rank (non_1_subscribers integer, age smallint)
             CASE WHEN non_1_subscribers IS NULL THEN
                 3
             ELSE
-                2 + non_1_subscribers
+                2 + greatest (0, non_1_subscribers)
             END, age)
     END;
+
+-- if the post is from the future, set age to null. otherwise you can game the post to
+-- always be on top even with only 1 vote by setting it to the future
+CREATE FUNCTION inner_age (n numeric)
+    RETURNS smallint
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN n >= 0
+        AND n <= 32767 THEN
+        n::smallint
+    ELSE
+        NULL
+    END;
+
+CREATE FUNCTION age_of (t timestamp with time zone)
+    RETURNS smallint
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN inner_age (
+extract(microseconds FROM (now() - t)) / 20000000
+);
 
 -- Merge comment_aggregates into comment table
 ALTER TABLE comment
@@ -97,6 +114,10 @@ ALTER TABLE comment
     ADD COLUMN age smallint,
     ADD COLUMN non_0_report_count smallint,
     ADD COLUMN non_0_unresolved_report_count smallint;
+
+-- Default value only for future rows, not for already existing rows
+ALTER TABLE comment
+    ALTER COLUMN non_1_upvotes SET DEFAULT 0;
 
 -- Disable the triggers temporarily
 ALTER TABLE comment DISABLE TRIGGER ALL;
@@ -137,7 +158,7 @@ FROM
     LATERAL (
         SELECT
             new_age >= 0
-            AND new_age <= 20 * 32767 AS comment_is_young)
+            AND new_age <= 32767 AS comment_is_young)
 WHERE
     comment.id = ca.comment_id
     AND (ca.upvotes != 1
@@ -192,6 +213,10 @@ ALTER TABLE post
     ADD COLUMN newest_non_necro_comment_age smallint,
     ADD COLUMN non_0_report_count smallint,
     ADD COLUMN non_0_unresolved_report_count smallint;
+
+-- Default value only for future rows, not for already existing rows
+ALTER TABLE post
+    ALTER COLUMN non_1_upvotes SET DEFAULT 0;
 
 -- Disable the triggers temporarily
 ALTER TABLE post DISABLE TRIGGER ALL;
@@ -248,9 +273,10 @@ FROM
     LATERAL (
         SELECT
             new_age >= 0
-            AND new_age <= 20 * 32767 AS post_is_young,
+            -- maybe the wrong number
+            AND new_age <= 32767 AS post_is_young,
             new_newest_non_necro_comment_age >= 0
-            AND new_newest_non_necro_comment_age <= 20 * 32767 AS comment_is_young)
+            AND new_newest_non_necro_comment_age <= 32767 AS comment_is_young)
 WHERE
     post.id = pa.post_id
     AND (pa.newest_comment_time_necro != pa.published
@@ -367,6 +393,10 @@ ALTER TABLE community
     ADD COLUMN non_0_report_count smallint,
     ADD COLUMN non_0_unresolved_report_count smallint;
 
+-- Default value only for future rows, not for already existing rows
+ALTER TABLE community
+    ALTER COLUMN non_1_subscribers SET DEFAULT 0;
+
 -- Disable the triggers temporarily
 ALTER TABLE community DISABLE TRIGGER ALL;
 
@@ -411,7 +441,7 @@ FROM
     LATERAL (
         SELECT
             new_age >= 0
-            AND new_age <= 20 * 32767 AS community_is_young)
+            AND new_age <= 32767 AS community_is_young)
 WHERE
     community.id = ca.community_id
     AND (ca.subscribers != 1

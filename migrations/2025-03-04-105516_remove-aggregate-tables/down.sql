@@ -1,3 +1,48 @@
+CREATE FUNCTION old_controversy_rank (upvotes numeric, downvotes numeric)
+    RETURNS float
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
+        OR upvotes <= 0 THEN
+        0
+    ELSE
+        (
+            upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
+            downvotes::float / upvotes::float
+        ELSE
+            upvotes::float / downvotes::float
+    END
+    END;
+
+CREATE FUNCTION old_hot_rank (score numeric, published_at timestamp with time zone)
+    RETURNS double precision
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN
+    -- after a week, it will default to 0.
+    CASE WHEN (
+now() - published_at) > '0 days'
+        AND (
+now() - published_at) < '7 days' THEN
+        -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
+        log (
+            greatest (2, score + 2)) / power (((EXTRACT(EPOCH FROM (now() - published_at)) / 3600) + 2), 1.8)
+    ELSE
+        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
+        -- always be on top even with only 1 vote by setting it to the future
+        0.0
+    END;
+
+CREATE FUNCTION old_scaled_rank (score numeric, published_at timestamp with time zone, interactions_month numeric)
+    RETURNS double precision
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE
+    -- Add 2 to avoid divide by zero errors
+    -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
+    -- There may need to be a scale factor multiplied to interactions_month, to make
+    -- the log curve less pronounced. This can be tuned in the future.
+    RETURN (
+        old_hot_rank (score, published_at) / log(2 + interactions_month)
+);
+
 -- move comment_aggregates back into separate table
 CREATE TABLE IF NOT EXISTS comment_aggregates (
     comment_id int PRIMARY KEY NOT NULL REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
@@ -15,15 +60,15 @@ CREATE TABLE IF NOT EXISTS comment_aggregates (
 INSERT INTO comment_aggregates
 SELECT
     id AS comment_id,
-    score,
-    upvotes,
-    downvotes,
+    get_score (non_1_upvotes, non_0_downvotes) AS score,
+    coalesce(non_1_upvotes, 1) AS upvotes,
+    coalesce(non_0_downvotes, 0) AS downvotes,
     published,
-    child_count,
-    hot_rank,
-    controversy_rank,
-    report_count,
-    unresolved_report_count
+    coalesce(non_0_child_count, 0) AS child_count,
+    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
+    old_controversy_rank (coalesce(non_1_upvotes, 1), coalesce(non_0_downvotes, 0)) AS controversy_rank,
+    coalesce(non_0_report_count, 0) AS report_count,
+    coalesce(non_0_unresolved_report_count, 0) AS unresolved_report_count
 FROM
     COMMENT
 ON CONFLICT (comment_id)
@@ -39,14 +84,12 @@ ON CONFLICT (comment_id)
         unresolved_report_count = excluded.unresolved_report_count;
 
 ALTER TABLE comment
-    DROP COLUMN score,
-    DROP COLUMN upvotes,
-    DROP COLUMN downvotes,
-    DROP COLUMN child_count,
-    DROP COLUMN hot_rank,
-    DROP COLUMN controversy_rank,
-    DROP COLUMN report_count,
-    DROP COLUMN unresolved_report_count;
+    DROP COLUMN non_1_upvotes,
+    DROP COLUMN non_0_downvotes,
+    DROP COLUMN non_0_child_count,
+    DROP COLUMN age,
+    DROP COLUMN non_0_report_count,
+    DROP COLUMN non_0_unresolved_report_count;
 
 ALTER TABLE comment_aggregates
     ALTER CONSTRAINT comment_aggregates_comment_id_fkey DEFERRABLE INITIALLY DEFERRED;
@@ -88,24 +131,30 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
 INSERT INTO post_aggregates
 SELECT
     id AS post_id,
-    comments,
-    score,
-    upvotes,
-    downvotes,
+    coalesce(non_0_comments, 0) AS comments,
+    get_score (non_1_upvotes, non_0_downvotes) AS score,
+    coalesce(non_1_upvotes, 1) AS upvotes,
+    coalesce(non_0_downvotes, 0) AS downvotes,
     published,
-    newest_comment_time_necro,
-    newest_comment_time,
+    coalesce(newest_comment_time_necro_after_published, published) AS newest_comment_time_necro,
+    coalesce(newest_comment_time_after_published, published) AS newest_comment_time,
     featured_community,
     featured_local,
-    hot_rank,
-    hot_rank_active,
+    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
+    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), coalesce(newest_comment_time_necro_after_published, published)) AS hot_rank_active,
     community_id,
     creator_id,
-    controversy_rank,
-    instance_id,
-    scaled_rank,
-    report_count,
-    unresolved_report_count
+    old_controversy_rank (coalesce(non_1_upvotes, 1), coalesce(non_0_downvotes, 0)) AS controversy_rank,
+    (
+        SELECT
+            community.instance_id
+        FROM
+            community
+        WHERE
+            community.id = post.community_id) AS instance_id,
+    old_scaled_rank (get_score (non_1_upvotes, non_0_downvotes), published, coalesce(non_0_community_interactions_month, 0)) AS scaled_rank,
+    coalesce(non_0_report_count, 0) AS report_count,
+    coalesce(non_0_unresolved_report_count, 0) AS unresolved_report_count
 FROM
     post
 ON CONFLICT (post_id)
@@ -130,19 +179,16 @@ ON CONFLICT (post_id)
         unresolved_report_count = excluded.unresolved_report_count;
 
 ALTER TABLE post
-    DROP COLUMN comments,
-    DROP COLUMN score,
-    DROP COLUMN upvotes,
-    DROP COLUMN downvotes,
-    DROP COLUMN newest_comment_time_necro,
-    DROP COLUMN newest_comment_time,
-    DROP COLUMN hot_rank,
-    DROP COLUMN hot_rank_active,
-    DROP COLUMN controversy_rank,
-    DROP COLUMN instance_id,
-    DROP COLUMN scaled_rank,
-    DROP COLUMN report_count,
-    DROP COLUMN unresolved_report_count;
+    DROP COLUMN newest_comment_time_necro_after_published,
+    DROP COLUMN newest_comment_time_after_published,
+    DROP COLUMN non_0_community_interactions_month,
+    DROP COLUMN non_0_comments,
+    DROP COLUMN non_1_upvotes,
+    DROP COLUMN non_0_downvotes,
+    DROP COLUMN age,
+    DROP COLUMN newest_non_necro_comment_age,
+    DROP COLUMN non_0_report_count,
+    DROP COLUMN non_0_unresolved_report_count;
 
 ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED,
@@ -250,35 +296,35 @@ CREATE TABLE community_aggregates (
 INSERT INTO community_aggregates
 SELECT
     id AS comment_id,
-    subscribers,
-    posts,
-    comments,
+    coalesce(non_1_subscribers, 1) AS subscribers,
+    coalesce(non_0_posts, 0) AS posts,
+    coalesce(non_0_comments, 0) AS comments,
     published,
-    users_active_day,
-    users_active_week,
-    users_active_month,
-    users_active_half_year,
-    hot_rank,
-    subscribers_local,
-    report_count,
-    unresolved_report_count,
-    interactions_month
+    coalesce(non_0_users_active_day, 0) AS users_active_day,
+    coalesce(non_0_users_active_week, 0) AS users_active_week,
+    coalesce(non_0_users_active_month, 0) AS users_active_month,
+    coalesce(non_0_users_active_half_year, 0) AS users_active_half_year,
+    old_hot_rank (coalesce(non_1_subscribers, 1), published) AS hot_rank,
+    coalesce(non_0_subscribers_local, 0) AS subscribers_local,
+    coalesce(non_0_report_count, 0) AS report_count,
+    coalesce(non_0_unresolved_report_count, 0) AS unresolved_report_count,
+    coalesce(non_0_interactions_month, 0) AS interactions_month
 FROM
     community;
 
 ALTER TABLE community
-    DROP COLUMN subscribers,
-    DROP COLUMN posts,
-    DROP COLUMN comments,
-    DROP COLUMN users_active_day,
-    DROP COLUMN users_active_week,
-    DROP COLUMN users_active_month,
-    DROP COLUMN users_active_half_year,
-    DROP COLUMN hot_rank,
-    DROP COLUMN subscribers_local,
-    DROP COLUMN report_count,
-    DROP COLUMN unresolved_report_count,
-    DROP COLUMN interactions_month;
+    DROP COLUMN non_1_subscribers,
+    DROP COLUMN non_0_posts,
+    DROP COLUMN non_0_comments,
+    DROP COLUMN non_0_users_active_day,
+    DROP COLUMN non_0_users_active_week,
+    DROP COLUMN non_0_users_active_month,
+    DROP COLUMN non_0_users_active_half_year,
+    DROP COLUMN non_0_subscribers_local,
+    DROP COLUMN non_0_interactions_month,
+    DROP COLUMN age,
+    DROP COLUMN non_0_report_count,
+    DROP COLUMN non_0_unresolved_report_count;
 
 ALTER TABLE community
     ALTER CONSTRAINT community_instance_id_fkey NOT DEFERRABLE;
@@ -307,19 +353,19 @@ CREATE TABLE person_aggregates (
 INSERT INTO person_aggregates
 SELECT
     id AS person_id,
-    post_count,
-    post_score,
-    comment_count,
-    comment_score,
+    coalesce(non_0_post_count, 0) AS post_count,
+    coalesce(non_0_post_score, 0) AS post_score,
+    coalesce(non_0_comment_count, 0) AS comment_count,
+    coalesce(non_0_comment_score, 0) AS comment_score,
     published
 FROM
     person;
 
 ALTER TABLE person
-    DROP COLUMN post_count,
-    DROP COLUMN post_score,
-    DROP COLUMN comment_count,
-    DROP COLUMN comment_score;
+    DROP COLUMN non_0_post_count,
+    DROP COLUMN non_0_post_score,
+    DROP COLUMN non_0_comment_count,
+    DROP COLUMN non_0_comment_score;
 
 ALTER TABLE person_aggregates
     ALTER CONSTRAINT person_aggregates_person_id_fkey DEFERRABLE INITIALLY DEFERRED;
@@ -399,4 +445,6 @@ CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USI
 
 ALTER TABLE community_aggregates
     ALTER CONSTRAINT community_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED;
+
+DROP FUNCTION age_of, get_community_hot_rank, get_controversy_rank, get_hot_rank, get_scaled_rank, get_score, inner_age, inner_get_hot_rank, old_controversy_rank, old_hot_rank, old_scaled_rank;
 

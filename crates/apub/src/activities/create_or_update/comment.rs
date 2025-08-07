@@ -156,9 +156,6 @@ impl Activity for CreateOrUpdateNote {
     let like_form = CommentLikeForm::new(comment.creator_id, comment.id, 1);
     CommentActions::like(&mut context.pool(), &like_form).await?;
 
-    // Calculate initial hot_rank
-    Comment::update_hot_rank(&mut context.pool(), comment.id).await?;
-
     let do_send_email =
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;

@@ -10,13 +10,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{
-    functions::{coalesce, hot_rank},
-    get_conn,
-    validate_like,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{functions::coalesce, get_conn, validate_like, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -50,6 +44,7 @@ impl Comment {
         comment::deleted.eq(true),
         comment::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -66,6 +61,7 @@ impl Comment {
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -176,11 +172,13 @@ impl Comment {
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
         .set(comment_form)
+        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     } else {
       insert_into(comment::table)
         .values(comment_form)
+        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     }
@@ -195,6 +193,7 @@ impl Comment {
     let object_id: DbUrl = object_id.into();
     comment::table
       .filter(comment::ap_id.eq(object_id))
+      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -210,15 +209,6 @@ impl Comment {
     } else {
       None
     }
-  }
-  pub async fn update_hot_rank(pool: &mut DbPool<'_>, comment_id: CommentId) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    diesel::update(comment::table.find(comment_id))
-      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published_at)))
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
@@ -236,30 +226,37 @@ impl Comment {
     }
     Ok(())
   }
-}
 
-impl Crud for Comment {
-  type InsertForm = CommentInsertForm;
-  type UpdateForm = CommentUpdateForm;
-  type IdType = CommentId;
-
-  /// Use [[Comment::create]]
-  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> LemmyResult<Self> {
-    debug_assert!(false);
-    Comment::create(pool, comment_form, None).await
-  }
-
-  async fn update(
+  pub async fn update(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    comment_form: &Self::UpdateForm,
+    comment_form: &CommentUpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
       .set(comment_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  pub async fn read(pool: &mut DbPool<'_>, id: CommentId) -> LemmyResult<Self> {
+    let conn = &mut *get_conn(pool).await?;
+    comment::table
+      .find(id)
+      .select(Self::as_select())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn delete(pool: &mut DbPool<'_>, id: CommentId) -> LemmyResult<usize> {
+    let conn = &mut *get_conn(pool).await?;
+    diesel::delete(comment::table.find(id))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 
@@ -443,11 +440,10 @@ mod tests {
       local: true,
       language_id: LanguageId::default(),
       child_count: 1,
-      controversy_rank: 0.0,
       downvotes: 0,
       upvotes: 1,
       score: 1,
-      hot_rank: RANK_DEFAULT,
+      age: Some(0),
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,

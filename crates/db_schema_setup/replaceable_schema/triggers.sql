@@ -26,20 +26,21 @@ BEGIN
                 WITH thing_diff AS ( UPDATE
                         thing AS a
                     SET
-                        score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
-                    FROM (
-                        SELECT
-                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
-            WHERE
-                a.id = diff.thing_id
+                        non_1_upvotes = r.add_nullable (1, a.non_1_upvotes, diff.upvotes), non_0_downvotes = r.add_nullable (0, a.non_0_downvotes, diff.downvotes)
+                        FROM (
+                            SELECT
+                                (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
+                    WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
+                WHERE
+                    a.id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
                 RETURNING
                     a.creator_id AS creator_id, diff.upvotes - diff.downvotes AS score)
             UPDATE
                 person AS a
             SET
-                thing_score = a.thing_score + diff.score FROM (
+                non_0_thing_score = r.add_nullable (0, a.non_0_thing_score, diff.score)
+                FROM (
                     SELECT
                         creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
                 WHERE
@@ -83,7 +84,7 @@ END IF;
 UPDATE
     person AS a
 SET
-    comment_count = a.comment_count + diff.comment_count
+    non_0_comment_count = r.add_nullable (0, a.non_0_comment_count, diff.comment_count)
 FROM (
     SELECT
         (comment).creator_id,
@@ -100,7 +101,7 @@ WHERE
 UPDATE
     comment AS a
 SET
-    child_count = a.child_count + diff.child_count
+    non_0_child_count = r.add_nullable (0, a.non_0_child_count, diff.child_count)
 FROM (
     SELECT
         parent_id,
@@ -137,9 +138,9 @@ WHERE
 UPDATE
     post AS a
 SET
-    comments = a.comments + diff.comments,
-    newest_comment_time_at = GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
-    newest_comment_time_necro_at = GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)
+    non_0_comments = r.add_nullable (0, a.non_0_comments, diff.comments),
+    newest_comment_time_at_after_published = nullif (GREATEST (coalesce(a.newest_comment_time_at_after_published, a.published_at), diff.newest_comment_time_at), a.published_at),
+    newest_comment_time_necro_at_after_published = nullif (GREATEST (coalesce(a.newest_comment_time_necro_at_after_published, a.published_at), diff.newest_comment_time_necro_at), a.published_at)
 FROM (
     SELECT
         post.id AS post_id,
@@ -161,10 +162,10 @@ GROUP BY
 WHERE
     a.id = diff.post_id
     AND (diff.comments,
-        GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
-        GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
-        a.newest_comment_time_at,
-        a.newest_comment_time_necro_at);
+        GREATEST (coalesce(a.newest_comment_time_at_after_published, a.published_at), diff.newest_comment_time_at),
+        GREATEST (coalesce(a.newest_comment_time_necro_at_after_published, a.published_at), diff.newest_comment_time_necro_at)) != (0,
+        coalesce(a.newest_comment_time_at_after_published, a.published_at),
+        coalesce(a.newest_comment_time_necro_at_after_published, a.published_at));
 UPDATE
     local_site AS a
 SET
@@ -187,27 +188,26 @@ BEGIN
     UPDATE
         person AS a
     SET
-        post_count = a.post_count + diff.post_count
-    FROM (
-        SELECT
-            (post).creator_id, coalesce(sum(count_diff), 0) AS post_count
-        FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE
-            r.is_counted (post)
-        GROUP BY (post).creator_id) AS diff
-WHERE
-    a.id = diff.creator_id
-        AND diff.post_count != 0;
+        non_0_post_count = r.add_nullable (0, a.non_0_post_count, diff.post_count)
+        FROM (
+            SELECT
+                (post).creator_id, coalesce(sum(count_diff), 0) AS post_count FROM select_old_and_new_rows AS old_and_new_rows
+            WHERE
+                r.is_counted (post)
+            GROUP BY (post).creator_id) AS diff
+            WHERE
+                a.id = diff.creator_id
+                AND diff.post_count != 0;
 UPDATE
     community AS a
 SET
-    posts = a.posts + diff.posts,
-    comments = a.comments + diff.comments
+    non_0_posts = r.add_nullable (0, a.non_0_posts, diff.posts),
+    non_0_comments = r.add_nullable (0, a.non_0_comments, diff.comments)
 FROM (
     SELECT
         (post).community_id,
         coalesce(sum(count_diff), 0) AS posts,
-        coalesce(sum(count_diff * (post).comments), 0) AS comments
+        coalesce(sum(count_diff * coalesce((post).non_0_comments, 0)), 0) AS comments
     FROM
         select_old_and_new_rows AS old_and_new_rows
     WHERE
@@ -262,16 +262,15 @@ BEGIN
     UPDATE
         community AS a
     SET
-        subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers_local + diff.subscribers_local
-    FROM (
-        SELECT
-            (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
-        FROM select_old_and_new_rows AS old_and_new_rows
-    LEFT JOIN community ON community.id = (community_actions).community_id
-    LEFT JOIN person ON person.id = (community_actions).person_id
-    WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
-WHERE
-    a.id = diff.community_id
+        non_1_subscribers = r.add_nullable (1, a.non_1_subscribers, diff.subscribers), non_0_subscribers_local = r.add_nullable (0, a.non_0_subscribers_local, diff.subscribers_local)
+        FROM (
+            SELECT
+                (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local FROM select_old_and_new_rows AS old_and_new_rows
+        LEFT JOIN community ON community.id = (community_actions).community_id
+        LEFT JOIN person ON person.id = (community_actions).person_id
+        WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
+    WHERE
+        a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
 RETURN NULL;
 END;
@@ -281,14 +280,13 @@ BEGIN
     UPDATE
         post AS a
     SET
-        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
-    FROM (
-        SELECT
-            (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved
-                AND NOT (post_report).violates_instance_rules), 0) AS unresolved_report_count
-FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
-WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-AND a.id = diff.post_id;
+        non_0_report_count = r.add_nullable (0, a.non_0_report_count, diff.report_count), non_0_unresolved_report_count = r.add_nullable (0, a.non_0_unresolved_report_count, diff.unresolved_report_count)
+        FROM (
+            SELECT
+                (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved
+                AND NOT (post_report).violates_instance_rules), 0) AS unresolved_report_count FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
+    WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+        AND a.id = diff.post_id;
 RETURN NULL;
 END;
 $$);
@@ -297,14 +295,13 @@ BEGIN
     UPDATE
         comment AS a
     SET
-        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
-    FROM (
-        SELECT
-            (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved
-                AND NOT (comment_report).violates_instance_rules), 0) AS unresolved_report_count
-FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
-WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-AND a.id = diff.comment_id;
+        non_0_report_count = r.add_nullable (0, a.non_0_report_count, diff.report_count), non_0_unresolved_report_count = r.add_nullable (0, a.non_0_unresolved_report_count, diff.unresolved_report_count)
+        FROM (
+            SELECT
+                (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved
+                AND NOT (comment_report).violates_instance_rules), 0) AS unresolved_report_count FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
+    WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+        AND a.id = diff.comment_id;
 RETURN NULL;
 END;
 $$);
@@ -313,13 +310,12 @@ BEGIN
     UPDATE
         community AS a
     SET
-        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
-    FROM (
-        SELECT
-            (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count
-    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
-WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
-    AND a.id = diff.community_id;
+        non_0_report_count = r.add_nullable (0, a.non_0_report_count, diff.report_count), non_0_unresolved_report_count = r.add_nullable (0, a.non_0_unresolved_report_count, diff.unresolved_report_count)
+        FROM (
+            SELECT
+                (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
+    WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+        AND a.id = diff.community_id;
 RETURN NULL;
 END;
 $$);
@@ -354,6 +350,8 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
     END IF;
+    -- Set age
+    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
     RETURN NEW;
 END
 $$;
@@ -361,6 +359,20 @@ CREATE TRIGGER change_values
     BEFORE INSERT OR UPDATE ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
+CREATE FUNCTION r.community_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set age
+    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER change_values
+    BEFORE INSERT ON community
+    FOR EACH ROW
+    EXECUTE FUNCTION r.community_change_values ();
 CREATE FUNCTION r.post_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -370,9 +382,15 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
-    -- Set aggregates
-    NEW.newest_comment_time_at = NEW.published_at;
-    NEW.newest_comment_time_necro_at = NEW.published_at;
+    -- Set age
+    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
+    -- Set non_0_community_interactions_month
+    NEW.non_0_community_interactions_month = coalesce(NEW.non_0_community_interactions_month, (
+            SELECT
+                community.non_0_interactions_month
+            FROM community
+            WHERE
+                community.id = NEW.community_id));
     RETURN NEW;
 END
 $$;
@@ -689,14 +707,15 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = NEW.score
+        score = get_score (NEW.non_1_upvotes, NEW.non_0_downvotes)
     WHERE
         post_id = NEW.id;
     RETURN NULL;
 END
 $$;
 CREATE TRIGGER search_combined_post_score
-    AFTER UPDATE OF score ON post
+    AFTER UPDATE OF non_1_upvotes,
+    non_0_downvotes ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_post_score_update ();
 -- Comment score
@@ -708,14 +727,15 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = NEW.score
+        score = get_score (NEW.non_1_upvotes, NEW.non_0_downvotes)
     WHERE
         comment_id = NEW.id;
     RETURN NULL;
 END
 $$;
 CREATE TRIGGER search_combined_comment_score
-    AFTER UPDATE OF score ON comment
+    AFTER UPDATE OF non_1_upvotes,
+    non_0_downvotes ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_comment_score_update ();
 -- Person score
@@ -727,14 +747,14 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = NEW.post_score
+        score = coalesce(NEW.non_0_post_score, 0)
     WHERE
         person_id = NEW.id;
     RETURN NULL;
 END
 $$;
 CREATE TRIGGER search_combined_person_score
-    AFTER UPDATE OF post_score ON person
+    AFTER UPDATE OF non_0_post_score ON person
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_person_score_update ();
 -- Community score
@@ -746,13 +766,13 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = NEW.users_active_month
+        score = coalesce(NEW.non_0_users_active_month, 0)
     WHERE
         community_id = NEW.id;
     RETURN NULL;
 END
 $$;
 CREATE TRIGGER search_combined_community_score
-    AFTER UPDATE OF users_active_month ON community
+    AFTER UPDATE OF non_0_users_active_month ON community
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_community_score_update ();

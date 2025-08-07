@@ -413,13 +413,6 @@ mod tests {
       "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
     );
 
-    // Check the current schema
-    assert_eq!(
-      get_foreign_keys_with_missing_indexes(&mut conn)?,
-      Vec::<String>::new(),
-      "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
-    );
-
     // Check for early return
     assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
 
@@ -602,7 +595,7 @@ mod tests {
     assert_eq!(posts[0].4, TEST_COMMUNITY_ID_1);
     assert_eq!(posts[0].5, TEST_USER_ID_1);
 
-    let comments: Vec<(i32, String, String, i32, i32, Ltree, i32)> = comment::table
+    let comments: Vec<(i32, String, String, i32, i32, Ltree, Option<i32>)> = comment::table
       .select((
         comment::id,
         comment::content,
@@ -610,7 +603,7 @@ mod tests {
         comment::post_id,
         comment::creator_id,
         comment::path,
-        comment::upvotes,
+        comment::non_1_upvotes,
       ))
       .order_by(comment::id)
       .load(conn)
@@ -626,7 +619,7 @@ mod tests {
       comments[0].5,
       Ltree(format!("0.{}", TEST_COMMENT_ID_1).to_string())
     );
-    assert_eq!(comments[0].6, 1); // One upvote
+    assert_eq!(comments[0].6, None); // One upvote
 
     assert_eq!(comments[1].0, TEST_COMMENT_ID_2);
     assert_eq!(comments[1].1, COMMENT2_CONTENT);
@@ -637,7 +630,7 @@ mod tests {
       comments[1].5,
       Ltree(format!("0.{}.{}", TEST_COMMENT_ID_1, TEST_COMMENT_ID_2).to_string())
     );
-    assert_eq!(comments[1].6, 0); // Zero upvotes
+    assert_eq!(comments[1].6, Some(0)); // Zero upvotes
 
     // Check comment replies
     let replies: Vec<(Option<i32>, i32)> = notification::table

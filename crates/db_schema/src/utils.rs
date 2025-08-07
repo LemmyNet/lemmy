@@ -1,4 +1,5 @@
 pub mod queries;
+pub mod queryable;
 
 use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
@@ -215,6 +216,230 @@ where
 
   fn get_sql_value() -> Self::SqlValue {
     diesel_ltree::subpath(K::get_sql_value(), 0, -1)
+  }
+}
+
+pub struct ScoreKey<U, D> {
+  pub non_1_upvotes: U,
+  pub non_0_downvotes: D,
+}
+
+impl<U, D, C> CursorKey<C> for ScoreKey<U, D>
+where
+  U: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  D: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+{
+  type SqlType = sql_types::Integer;
+  //type CursorValue = dsl::AsExprOf<i32, sql_types::Integer>;
+  type CursorValue = functions::get_score<U::CursorValue, D::CursorValue>;
+  type SqlValue = functions::get_score<U::SqlValue, D::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    /* TODO: use this when the CursorKey trait is changed to allow non-binded CursorValue
+    let upvotes = U::get_cursor_value(cursor).unwrap_or(1);
+    let downvotes = D::get_cursor_value(cursor).unwrap_or(0);
+    upvotes.saturating_sub(downvotes).into_sql::<sql_types::Integer>()*/
+    functions::get_score(U::get_cursor_value(cursor), D::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::get_score(U::get_sql_value(), D::get_sql_value())
+  }
+}
+
+pub struct ControversyRankKey<U, D> {
+  pub non_1_upvotes: U,
+  pub non_0_downvotes: D,
+}
+
+impl<U, D, C> CursorKey<C> for ControversyRankKey<U, D>
+where
+  U: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  D: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+{
+  type SqlType = sql_types::Float;
+  type CursorValue = functions::get_controversy_rank<U::CursorValue, D::CursorValue>;
+  type SqlValue = functions::get_controversy_rank<U::SqlValue, D::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // make the postgresql server evaluate the expression, because implementations of floating point
+    // operations vary
+    functions::get_controversy_rank(U::get_cursor_value(cursor), D::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::get_controversy_rank(U::get_sql_value(), D::get_sql_value())
+  }
+}
+
+pub struct HotRankKey<U, D, A> {
+  pub non_1_upvotes: U,
+  pub non_0_downvotes: D,
+  pub age: A,
+}
+
+impl<U, D, A, C> CursorKey<C> for HotRankKey<U, D, A>
+where
+  U: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  D: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+{
+  type SqlType = sql_types::Float;
+  type CursorValue = functions::get_hot_rank<U::CursorValue, D::CursorValue, A::CursorValue>;
+  type SqlValue = functions::get_hot_rank<U::SqlValue, D::SqlValue, A::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // make the postgresql server evaluate the expression, because implementations of floating point
+    // operations vary
+    functions::get_hot_rank(
+      U::get_cursor_value(cursor),
+      D::get_cursor_value(cursor),
+      A::get_cursor_value(cursor),
+    )
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::get_hot_rank(U::get_sql_value(), D::get_sql_value(), A::get_sql_value())
+  }
+}
+
+pub struct ScaledRankKey<U, D, A, I> {
+  pub non_1_upvotes: U,
+  pub non_0_downvotes: D,
+  pub age: A,
+  pub non_0_community_interactions_month: I,
+}
+
+impl<U, D, A, I, C> CursorKey<C> for ScaledRankKey<U, D, A, I>
+where
+  U: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  D: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+  I: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+{
+  type SqlType = sql_types::Float;
+  type CursorValue =
+    functions::get_scaled_rank<U::CursorValue, D::CursorValue, A::CursorValue, I::CursorValue>;
+  type SqlValue = functions::get_scaled_rank<U::SqlValue, D::SqlValue, A::SqlValue, I::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // make the postgresql server evaluate the expression, because implementations of floating point
+    // operations vary
+    functions::get_scaled_rank(
+      U::get_cursor_value(cursor),
+      D::get_cursor_value(cursor),
+      A::get_cursor_value(cursor),
+      I::get_cursor_value(cursor),
+    )
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::get_scaled_rank(
+      U::get_sql_value(),
+      D::get_sql_value(),
+      A::get_sql_value(),
+      I::get_sql_value(),
+    )
+  }
+}
+
+pub struct CommunityHotRankKey<U, A> {
+  pub non_1_subscribers: U,
+  pub age: A,
+}
+
+impl<U, A, C> CursorKey<C> for CommunityHotRankKey<U, A>
+where
+  U: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+{
+  type SqlType = sql_types::Float;
+  type CursorValue = functions::get_community_hot_rank<U::CursorValue, A::CursorValue>;
+  type SqlValue = functions::get_community_hot_rank<U::SqlValue, A::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // make the postgresql server evaluate the expression, because implementations of floating point
+    // operations vary
+    functions::get_community_hot_rank(U::get_cursor_value(cursor), A::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::get_community_hot_rank(U::get_sql_value(), A::get_sql_value())
+  }
+}
+
+pub struct Coalesce2NullableKey<A, B>(pub A, pub B);
+
+// TODO: make it generic, not just for smallint/i16
+impl<A, B, C> CursorKey<C> for Coalesce2NullableKey<A, B>
+where
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+  B: CursorKey<C, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+{
+  type SqlType = sql_types::Nullable<sql_types::SmallInt>;
+  //type CursorValue = AsExprOf<Option<i16>, sql_types::Nullable<sql_types::SmallInt>>;
+  type CursorValue =
+    functions::coalesce_2_nullable<sql_types::SmallInt, A::CursorValue, B::CursorValue>;
+  type SqlValue = functions::coalesce_2_nullable<sql_types::SmallInt, A::SqlValue, B::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    /* TODO: use this when the CursorKey trait is changed to allow non-binded CursorValue
+    A::get_cursor_value(cursor).or_else(|| B::get_cursor_value(cursor)).into_sql::<sql_types::Nullable<sql_types::SmallInt>>()*/
+    functions::coalesce_2_nullable(A::get_cursor_value(cursor), B::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::coalesce_2_nullable(A::get_sql_value(), B::get_sql_value())
+  }
+}
+
+pub struct CoalesceKey<A, B>(pub A, pub B);
+
+// TODO: make it generic, not just for time
+impl<A, B, C> CursorKey<C> for CoalesceKey<A, B>
+where
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
+  B: CursorKey<C, SqlType = sql_types::Timestamptz>,
+{
+  type SqlType = sql_types::Timestamptz;
+  type CursorValue = functions::coalesce<sql_types::Timestamptz, A::CursorValue, B::CursorValue>;
+  type SqlValue = functions::coalesce<sql_types::Timestamptz, A::SqlValue, B::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // TODO: use unwrap_or_else when the CursorKey trait is changed to allow non-binded CursorValue
+    functions::coalesce(A::get_cursor_value(cursor), B::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::coalesce(A::get_sql_value(), B::get_sql_value())
+  }
+}
+
+pub struct CoalesceConstKey<const N: i32, A>(pub A);
+
+// TODO: make it generic when `self` parameters are added to this trait
+impl<const N: i32, A, C> CursorKey<C> for CoalesceConstKey<N, A>
+where
+  A: CursorKey<C, SqlType = sql_types::Nullable<sql_types::Integer>>,
+{
+  type SqlType = sql_types::Integer;
+  //type CursorValue = dsl::AsExprOf<i32, sql_types::Integer>;
+  type CursorValue =
+    functions::coalesce<sql_types::Integer, A::CursorValue, dsl::AsExprOf<i32, sql_types::Integer>>;
+  type SqlValue =
+    functions::coalesce<sql_types::Integer, A::SqlValue, dsl::AsExprOf<i32, sql_types::Integer>>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    /* TODO: use this when the CursorKey trait is changed to allow non-binded CursorValue
+    A::get_cursor_value(cursor).unwrap_or(N).into_sql::<sql_types::Integer>()*/
+    functions::coalesce(
+      A::get_cursor_value(cursor),
+      N.into_sql::<sql_types::Integer>(),
+    )
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::coalesce(A::get_sql_value(), N.into_sql::<sql_types::Integer>())
   }
 }
 
@@ -483,16 +708,26 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
 }
 
 pub mod functions {
-  use diesel::sql_types::{Int4, Text, Timestamptz};
+  use diesel::sql_types::{Float, Int2, Int4, Nullable, Text};
 
   define_sql_function! {
-    #[sql_name = "r.hot_rank"]
-    fn hot_rank(score: Int4, time: Timestamptz) -> Double;
+    fn get_score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
   }
 
   define_sql_function! {
-    #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Double;
+    fn get_controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
+  }
+
+  define_sql_function! {
+    fn get_hot_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>) -> Float;
+  }
+
+  define_sql_function! {
+    fn get_scaled_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>, non_0_community_interactions_month: Nullable<Int4>) -> Float;
+  }
+
+  define_sql_function! {
+    fn get_community_hot_rank(non_1_subscribers: Nullable<Int4>, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);

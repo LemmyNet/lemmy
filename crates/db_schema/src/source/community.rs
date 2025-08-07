@@ -1,3 +1,5 @@
+#[cfg(feature = "full")]
+use crate::utils::queryable::ChangeNullTo;
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -19,13 +21,9 @@ use {
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
-)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A community.
@@ -78,26 +76,66 @@ pub struct Community {
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<1, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_1_subscribers))]
   pub subscribers: i32,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_posts))]
   pub posts: i32,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_comments))]
   pub comments: i32,
   /// The number of users with any activity in the last day.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_day))]
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_week))]
   pub users_active_week: i32,
   /// The number of users with any activity in the last month.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_month))]
   pub users_active_month: i32,
   /// The number of users with any activity in the last year.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_half_year))]
   pub users_active_half_year: i32,
-  #[serde(skip)]
-  pub hot_rank: f64,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_subscribers_local))]
   pub subscribers_local: i32,
-  pub report_count: i16,
-  pub unresolved_report_count: i16,
   /// Number of any interactions over the last month.
   #[serde(skip)]
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_interactions_month))]
   pub interactions_month: i32,
+  #[serde(skip)]
+  pub age: Option<i16>,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_report_count))]
+  pub report_count: i16,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_unresolved_report_count))]
+  pub unresolved_report_count: i16,
   pub local_removed: bool,
+}
+
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
+#[cfg_attr(feature = "full", diesel(table_name = community))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
+pub struct CommunityCursorData {
+  pub id: CommunityId,
+  pub name: String,
+  pub published_at: DateTime<Utc>,
+  pub non_1_subscribers: Option<i32>,
+  pub non_0_posts: Option<i32>,
+  pub non_0_comments: Option<i32>,
+  pub non_0_users_active_day: Option<i32>,
+  pub non_0_users_active_week: Option<i32>,
+  pub non_0_users_active_month: Option<i32>,
+  pub non_0_users_active_half_year: Option<i32>,
+  pub non_0_subscribers_local: Option<i32>,
+  pub age: Option<i16>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
