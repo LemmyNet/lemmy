@@ -2,10 +2,17 @@
 -- person_liked: (comment, post)
 -- This one is special, because you use the liked date, not the ordinary published
 -- Updating the history
+CREATE SEQUENCE person_liked_combined_id_seq
+    AS integer START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
 CREATE TABLE person_liked_combined AS
 SELECT
     pa.liked,
-    NULL::int AS id,
+    nextval('person_liked_combined_id_seq'::regclass) AS id,
     pa.person_id,
     pa.post_id,
     NULL::int AS comment_id,
@@ -19,7 +26,7 @@ WHERE
 UNION ALL
 SELECT
     ca.liked,
-    NULL::int,
+    nextval('person_liked_combined_id_seq'::regclass),
     ca.person_id,
     NULL::int,
     ca.comment_id,
@@ -32,8 +39,7 @@ WHERE
     AND p.local = TRUE;
 
 ALTER TABLE person_liked_combined
-    ALTER COLUMN id
-    ADD GENERATED ALWAYS AS IDENTITY,
+    ALTER COLUMN id SET DEFAULT nextval('person_liked_combined_id_seq'::regclass),
     ALTER COLUMN liked SET NOT NULL,
     ALTER COLUMN like_score_is_positive SET NOT NULL,
     ALTER COLUMN person_id SET NOT NULL,
@@ -44,6 +50,8 @@ ALTER TABLE person_liked_combined
     ADD UNIQUE (person_id, comment_id),
     ADD PRIMARY KEY (id),
     ADD CONSTRAINT person_liked_combined_check CHECK (num_nonnulls (post_id, comment_id) = 1);
+
+ALTER SEQUENCE person_liked_combined_id_seq OWNED BY person_liked_combined.id;
 
 CREATE INDEX idx_person_liked_combined ON person_liked_combined (person_id);
 

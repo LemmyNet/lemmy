@@ -436,7 +436,7 @@ ALTER TABLE local_user
     DROP COLUMN show_downvotes,
     DROP COLUMN show_upvote_percentage;
 
-CREATE INDEX idx_search_combined_score ON public.search_combined USING btree (score DESC, id DESC);
+CREATE INDEX idx_search_combined_score ON public.search_combined USING btree (coalesce(non_1_score, 1) DESC, id DESC);
 
 ALTER TABLE site_aggregates
     ALTER CONSTRAINT site_aggregates_site_id_fkey DEFERRABLE INITIALLY DEFERRED;
