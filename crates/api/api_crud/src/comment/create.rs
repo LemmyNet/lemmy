@@ -78,6 +78,8 @@ pub async fn create_comment(
   let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
     .await
     .is_ok();
+  // We only need to check the parent comment here as when we lock a
+  // comment we also lock all of its children.
   let locked = post.locked || parent_opt.as_ref().is_some_and(|p| p.locked);
   if locked && !is_mod_or_admin {
     Err(LemmyErrorType::Locked)?

@@ -612,4 +612,71 @@ mod tests {
 
     Ok(())
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_children() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "mydomain.tld".to_string()).await?;
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "john");
+    let inserted_person = Person::create(pool, &new_person).await?;
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test".into(),
+      "test".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::new(
+      "Post Title".to_string(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let parent_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "Top level".to_string(),
+    );
+    let inserted_parent_comment = Comment::create(pool, &parent_comment_form, None).await?;
+
+    let child_comment_form =
+      CommentInsertForm::new(inserted_person.id, inserted_post.id, "Child".to_string());
+    let inserted_child_comment = Comment::create(
+      pool,
+      &child_comment_form,
+      Some(&inserted_parent_comment.path),
+    )
+    .await?;
+
+    let grandchild_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "Grandchild".to_string(),
+    );
+    let _inserted_grandchild_comment = Comment::create(
+      pool,
+      &grandchild_comment_form,
+      Some(&inserted_child_comment.path),
+    )
+    .await?;
+
+    let lock_form = CommentUpdateForm {
+      locked: Some(true),
+      ..Default::default()
+    };
+
+    let updated_comments =
+      Comment::update_comment_and_children(pool, &inserted_parent_comment.path, &lock_form).await?;
+
+    let locked_comments_num = updated_comments.iter().filter(|c| c.locked).count();
+
+    assert_eq!(3, locked_comments_num);
+
+    Ok(())
+  }
 }
