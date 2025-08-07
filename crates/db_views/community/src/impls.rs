@@ -17,12 +17,16 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      my_community_actions_join,
-      my_instance_communities_actions_join,
-      my_local_user_admin_join,
-      suggested_communities,
+      filters::{
+        filter_is_subscribed,
+        filter_not_unlisted_or_is_subscribed,
+        filter_suggested_communities,
+      },
+      joins::{
+        my_community_actions_join,
+        my_instance_communities_actions_join,
+        my_local_user_admin_join,
+      },
     },
     seconds_to_pg_interval,
     DbPool,
@@ -144,7 +148,7 @@ impl CommunityQuery<'_> {
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator_at.is_not_null())
         }
-        ListingType::Suggested => query.filter(suggested_communities()),
+        ListingType::Suggested => query.filter(filter_suggested_communities()),
       };
     }
 
