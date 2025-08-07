@@ -464,6 +464,7 @@ mod tests {
       local_user: inserted_timmy_local_user.clone(),
       person: inserted_timmy_person.clone(),
       banned: false,
+      ban_expires_at: None,
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;

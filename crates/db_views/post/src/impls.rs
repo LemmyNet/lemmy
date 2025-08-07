@@ -795,17 +795,20 @@ mod tests {
         local_user: inserted_tegan_local_user,
         person: inserted_tegan_person,
         banned: false,
+        ban_expires_at: None,
       };
       let john = LocalUserView {
         local_user: inserted_john_local_user,
         person: inserted_john_person,
         banned: false,
+        ban_expires_at: None,
       };
 
       let bot = LocalUserView {
         local_user: inserted_bot_local_user,
         person: inserted_bot_person,
         banned: false,
+        ban_expires_at: None,
       };
 
       Ok(Data {

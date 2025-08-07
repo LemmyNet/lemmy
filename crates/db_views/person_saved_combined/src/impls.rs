@@ -288,6 +288,7 @@ mod tests {
       local_user: timmy_local_user,
       person: timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");

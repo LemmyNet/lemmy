@@ -545,6 +545,7 @@ mod tests {
       local_user: timmy_local_user,
       person: timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let community_form = CommunityInsertForm {

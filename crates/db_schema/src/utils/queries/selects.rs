@@ -145,7 +145,7 @@ pub fn creator_home_banned() -> _ {
 
 #[diesel::dsl::auto_type]
 /// Checks to see if a creator is banned from their home instance
-fn creator_home_ban_expires() -> _ {
+pub fn creator_home_ban_expires() -> _ {
   creator_home_instance_actions
     .field(instance_actions::ban_expires_at)
     .nullable()

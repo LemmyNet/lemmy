@@ -3525,6 +3525,7 @@ name = "lemmy_db_views_local_user"
 version = "1.0.0-alpha.5"
 dependencies = [
  "actix-web",
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",

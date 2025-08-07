@@ -622,6 +622,7 @@ mod tests {
       local_user: timmy_local_user,
       person: inserted_timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     // Make an admin, to be able to see private message reports.
@@ -633,6 +634,7 @@ mod tests {
       local_user: admin_local_user,
       person: inserted_admin.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");
