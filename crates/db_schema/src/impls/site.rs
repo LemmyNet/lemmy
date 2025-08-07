@@ -57,7 +57,7 @@ impl Crud for Site {
       .set(new_site)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

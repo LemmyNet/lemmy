@@ -335,7 +335,7 @@ pub async fn authenticate_with_oauth(
 
         user_view.local_user.clone()
       } else {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
+        return Err(LemmyErrorType::EmailAlreadyTaken)?;
       }
     } else {
       // No user was found by email => Register as new user

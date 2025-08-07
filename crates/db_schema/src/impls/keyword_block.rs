@@ -37,7 +37,7 @@ impl LocalUserKeywordBlock {
             .filter(local_user_keyword_block::keyword.ne_all(&blocking_keywords))
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateKeywords)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
           let forms = blocking_keywords
             .into_iter()
             .map(|k| LocalUserKeywordBlockForm {
@@ -50,7 +50,7 @@ impl LocalUserKeywordBlock {
             .on_conflict_do_nothing()
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateKeywords)
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)
         }
         .scope_boxed()
       })

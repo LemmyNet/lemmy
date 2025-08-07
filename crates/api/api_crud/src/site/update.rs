@@ -72,6 +72,7 @@ pub async fn update_site(
   );
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);
+  let default_items_per_page = data.default_items_per_page;
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
@@ -98,6 +99,7 @@ pub async fn update_site(
     default_post_listing_type: data.default_post_listing_type,
     default_post_sort_type: data.default_post_sort_type,
     default_post_time_range_seconds,
+    default_items_per_page,
     default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,

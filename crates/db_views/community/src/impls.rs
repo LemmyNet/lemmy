@@ -20,7 +20,7 @@ use lemmy_db_schema::{
       filter_is_subscribed,
       filter_not_unlisted_or_is_subscribed,
       my_community_actions_join,
-      my_instance_actions_community_join,
+      my_instance_communities_actions_join,
       my_local_user_admin_join,
       suggested_communities,
     },
@@ -48,8 +48,8 @@ impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
     let community_actions_join: my_community_actions_join = my_community_actions_join(person_id);
-    let instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(person_id);
+    let instance_actions_community_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(person_id);
 
     community::table
@@ -96,7 +96,7 @@ impl PaginationCursorBuilder for CommunityView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     Community::read(pool, CommunityId(id)).await
   }
 }
@@ -150,7 +150,7 @@ impl CommunityQuery<'_> {
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    query = query.filter(instance_actions::blocked_at.is_null());
+    query = query.filter(instance_actions::blocked_communities_at.is_null());
     query = query.filter(community_actions::blocked_at.is_null());
     if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));

@@ -28,7 +28,10 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::{
+      admin::{AdminBan, AdminBanForm},
+      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    },
   },
   traits::{Bannable, Crud},
 };
@@ -113,7 +116,7 @@ impl Activity for UndoBlockUser {
         }
 
         // write mod log
-        let form = ModBanForm {
+        let form = AdminBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           reason: self.object.summary,
@@ -121,7 +124,7 @@ impl Activity for UndoBlockUser {
           expires_at,
           instance_id: site.instance_id,
         };
-        ModBan::create(&mut context.pool(), &form).await?;
+        AdminBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;

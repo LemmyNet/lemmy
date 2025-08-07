@@ -78,7 +78,7 @@ impl LocalUserLanguage {
             .filter(local_user_language::language_id.ne_all(&lang_ids))
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
           let forms = lang_ids
             .iter()
@@ -98,7 +98,7 @@ impl LocalUserLanguage {
             .do_nothing()
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)
         }
         .scope_boxed()
       })
@@ -156,7 +156,7 @@ impl SiteLanguage {
             .filter(site_language::language_id.ne_all(&lang_ids))
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
           let forms = lang_ids
             .iter()
@@ -173,7 +173,7 @@ impl SiteLanguage {
             .do_nothing()
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
           CommunityLanguage::limit_languages(conn, instance_id).await?;
 
@@ -291,7 +291,7 @@ impl CommunityLanguage {
             .filter(community_language::language_id.ne_all(&lang_ids))
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)?;
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
           // Insert new languages
           insert_into(community_language::table)
@@ -303,7 +303,7 @@ impl CommunityLanguage {
             .do_nothing()
             .execute(conn)
             .await
-            .with_lemmy_type(LemmyErrorType::CouldntUpdateLanguages)
+            .with_lemmy_type(LemmyErrorType::CouldntUpdate)
         }
         .scope_boxed()
       })

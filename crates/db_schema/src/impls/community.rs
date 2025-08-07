@@ -78,7 +78,7 @@ impl Crud for Community {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -96,7 +96,7 @@ impl CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   pub async fn leave(
@@ -108,7 +108,7 @@ impl CommunityActions {
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 }
 
@@ -276,7 +276,7 @@ impl Community {
       .set(community::dsl::subscribers.eq(new_subscribers))
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -480,7 +480,7 @@ impl Bannable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
@@ -490,7 +490,7 @@ impl Bannable for CommunityActions {
       .set_null(community_actions::ban_expires_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -511,7 +511,7 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn follow_accepted(
     pool: &mut DbPool<'_>,
@@ -527,7 +527,7 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn unfollow(
@@ -542,7 +542,7 @@ impl Followable for CommunityActions {
       .set_null(community_actions::follow_approver_id)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -564,7 +564,7 @@ impl Blockable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn unblock(
     pool: &mut DbPool<'_>,
@@ -578,7 +578,7 @@ impl Blockable for CommunityActions {
     .set_null(community_actions::blocked_at)
     .get_result(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn read_block(

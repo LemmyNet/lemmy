@@ -5,7 +5,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     multi_community::MultiCommunity,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -57,8 +56,6 @@ pub(crate) struct SearchCombinedViewInternal {
   pub multi_community: Option<MultiCommunity>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]

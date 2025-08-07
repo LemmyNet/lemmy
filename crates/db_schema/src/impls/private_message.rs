@@ -26,7 +26,7 @@ impl Crud for PrivateMessage {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -39,7 +39,7 @@ impl Crud for PrivateMessage {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -60,7 +60,7 @@ impl PrivateMessage {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_from_apub_id(
@@ -94,7 +94,7 @@ impl PrivateMessage {
       ))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

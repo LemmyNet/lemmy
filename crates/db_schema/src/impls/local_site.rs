@@ -14,7 +14,7 @@ impl LocalSite {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateSite)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn update(pool: &mut DbPool<'_>, form: &LocalSiteUpdateForm) -> LemmyResult<Self> {
@@ -23,7 +23,7 @@ impl LocalSite {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateSite)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete(pool: &mut DbPool<'_>) -> LemmyResult<usize> {
