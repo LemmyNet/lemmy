@@ -268,7 +268,11 @@ pub struct OpenGraphData {
   pub title: Option<String>,
   pub description: Option<String>,
   pub image: Option<DbUrl>,
+  pub image_width: Option<i32>,
+  pub image_height: Option<i32>,
   pub embed_video_url: Option<DbUrl>,
+  pub video_width: Option<i32>,
+  pub video_height: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
