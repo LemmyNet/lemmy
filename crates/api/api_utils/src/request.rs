@@ -323,18 +323,18 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   })
 }
 
-fn extract_opengraph_width_and_height(ogo: Option<&OpengraphObject>) -> (Option<i32>, Option<i32>) {
+fn extract_opengraph_width_and_height(ogo: Option<&OpengraphObject>) -> (Option<u16>, Option<u16>) {
   (
     ogo.and_then(|ogo| extract_opengraph_int_field(ogo, "width")),
     ogo.and_then(|ogo| extract_opengraph_int_field(ogo, "height")),
   )
 }
 
-fn extract_opengraph_int_field(ogo: &OpengraphObject, field: &str) -> Option<i32> {
+fn extract_opengraph_int_field(ogo: &OpengraphObject, field: &str) -> Option<u16> {
   ogo
     .properties
     .get(field)
-    .and_then(|w| w.parse::<i32>().ok())
+    .and_then(|w| w.parse::<u16>().ok())
 }
 
 #[derive(Deserialize, Serialize, Debug)]
