@@ -15,11 +15,11 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
-    comment::{comment_keys as key, Comment, CommentCursorData},
+    comment::{comment_keys as key, CommentCursorData},
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,

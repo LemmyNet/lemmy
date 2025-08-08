@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,

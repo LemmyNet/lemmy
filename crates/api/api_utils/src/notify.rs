@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud},
+  traits::{ApubActor, Blockable},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,

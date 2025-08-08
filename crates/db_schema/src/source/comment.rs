@@ -1,6 +1,9 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::utils::{functions::get_score, queryable::ChangeNullTo};
+use crate::utils::{
+  functions::get_score,
+  queryable::{ChangeNullTo, LikeScore},
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -139,13 +142,12 @@ pub struct CommentUpdateForm {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
@@ -154,6 +156,8 @@ pub struct CommentActions {
   #[serde(skip)]
   pub comment_id: CommentId,
   /// The like / score for the comment.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = LikeScore))]
+  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
   pub like_score: Option<i16>,
   /// When the comment was liked.
   pub liked_at: Option<DateTime<Utc>>,
@@ -161,12 +165,19 @@ pub struct CommentActions {
   pub saved_at: Option<DateTime<Utc>>,
 }
 
+#[cfg(feature = "full")]
+#[derive(Queryable, Selectable, CursorKeysModule)]
+#[diesel(table_name = comment_actions)]
+#[cursor_keys_module(name = comment_actions_keys)]
+pub struct CommentActionsCursorData {
+  pub comment_id: PostId,
+  pub liked_at: Option<DateTime<Utc>>,
+  /// Upvote is greater than downvote.
+  pub like_score_is_positive: Option<bool>,
+}
+
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
+#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,

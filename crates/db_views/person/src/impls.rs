@@ -4,8 +4,8 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::person::{person_keys as key, Person, PersonCursorData},
-  traits::{Crud, PaginationCursorBuilder},
+  source::person::{person_keys as key, PersonCursorData},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,

@@ -22,10 +22,10 @@ use lemmy_db_schema::{
     community::CommunityActions,
     local_user::LocalUser,
     person::Person,
-    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions, PostCursorData},
+    post::{post_actions_keys as pa_key, post_keys as key, PostActionsCursorData, PostCursorData},
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,
@@ -197,7 +197,7 @@ impl PostView {
   pub async fn list_read(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
+    cursor_data: Option<PostActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -232,7 +232,7 @@ impl PostView {
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
+    cursor_data: Option<PostActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -616,7 +616,6 @@ mod tests {
     impls::{PostQuery, PostSortType},
     PostView,
   };
-  use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
   use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{

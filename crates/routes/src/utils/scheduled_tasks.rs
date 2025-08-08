@@ -28,7 +28,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
   utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{

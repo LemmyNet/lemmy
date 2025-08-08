@@ -708,7 +708,7 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
 }
 
 pub mod functions {
-  use diesel::sql_types::{Float, Int2, Int4, Nullable, Text};
+  use diesel::sql_types::{Int2, Int4, Nullable, Text};
 
   define_sql_function! {
     fn get_score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;

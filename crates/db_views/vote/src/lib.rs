@@ -1,6 +1,8 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::source::person::Person;
+#[cfg(feature = "full")]
+use lemmy_db_schema::utils::queryable::NonNullLikeScore;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -18,5 +20,7 @@ pub struct VoteView {
   pub creator: Person,
   pub creator_banned: bool,
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = NonNullLikeScore))]
+  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
   pub score: i16,
 }

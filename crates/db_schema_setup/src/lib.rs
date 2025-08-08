@@ -595,6 +595,7 @@ mod tests {
     assert_eq!(posts[0].4, TEST_COMMUNITY_ID_1);
     assert_eq!(posts[0].5, TEST_USER_ID_1);
 
+    #[allow(clippy::type_complexity)]
     let comments: Vec<(i32, String, String, i32, i32, Ltree, Option<i32>)> = comment::table
       .select((
         comment::id,

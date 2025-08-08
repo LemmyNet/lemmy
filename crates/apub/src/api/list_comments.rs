@@ -14,7 +14,7 @@ use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
   source::{comment::Comment, community::Community},
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_comment::{
   api::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},

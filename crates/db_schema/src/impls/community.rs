@@ -704,7 +704,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
