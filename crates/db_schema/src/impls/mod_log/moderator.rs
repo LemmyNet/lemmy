@@ -4,6 +4,7 @@ use crate::{
     ModBanFromCommunityId,
     ModChangeCommunityVisibilityId,
     ModFeaturePostId,
+    ModLockCommentId,
     ModLockPostId,
     ModRemoveCommentId,
     ModRemovePostId,
@@ -18,6 +19,8 @@ use crate::{
     ModChangeCommunityVisibilityForm,
     ModFeaturePost,
     ModFeaturePostForm,
+    ModLockComment,
+    ModLockCommentForm,
     ModLockPost,
     ModLockPostForm,
     ModRemoveComment,
@@ -37,6 +40,7 @@ use lemmy_db_schema_file::schema::{
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
+  mod_lock_comment,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_post,
@@ -181,6 +185,34 @@ impl ModRemoveComment {
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+}
+
+impl Crud for ModLockComment {
+  type InsertForm = ModLockCommentForm;
+  type UpdateForm = ModLockCommentForm;
+  type IdType = ModLockCommentId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(mod_lock_comment::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(mod_lock_comment::table.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 

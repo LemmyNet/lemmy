@@ -31,7 +31,7 @@ use lemmy_utils::error::LemmyResult;
 pub mod announce;
 pub mod collection_add;
 pub mod collection_remove;
-pub mod lock_page;
+pub mod lock;
 pub mod report;
 pub mod resolve_report;
 pub mod update;

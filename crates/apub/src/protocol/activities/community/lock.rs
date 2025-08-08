@@ -1,3 +1,4 @@
+use crate::post_or_comment_community;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -6,10 +7,9 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
   utils::protocol::InCommunity,
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use strum::Display;
@@ -22,11 +22,11 @@ pub enum LockType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LockPage {
+pub struct LockPageOrNote {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: ObjectId<ApubPost>,
+  pub(crate) object: ObjectId<PostOrComment>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -38,11 +38,11 @@ pub struct LockPage {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UndoLockPage {
+pub struct UndoLockPageOrNote {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: LockPage,
+  pub(crate) object: LockPageOrNote,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -52,10 +52,10 @@ pub struct UndoLockPage {
   pub(crate) summary: Option<String>,
 }
 
-impl InCommunity for LockPage {
+impl InCommunity for LockPageOrNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    let post = self.object.dereference(context).await?;
-    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    let post_or_comment = self.object.dereference(context).await?;
+    let community = post_or_comment_community(&post_or_comment, context).await?;
     Ok(community.into())
   }
 }
