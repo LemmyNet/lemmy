@@ -1,5 +1,5 @@
 ALTER TABLE comment
-    ADD COLUMN locked bool NOT NULL DEFAULT FALSE;
+    ADD COLUMN "locked" bool NOT NULL DEFAULT FALSE;
 
 CREATE TABLE mod_lock_comment (
     id serial PRIMARY KEY,
