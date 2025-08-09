@@ -1,23 +1,25 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
+#[cfg(feature = "full")]
+use crate::utils::{
+  functions::{coalesce, get_score},
+  queryable::{ChangeNullTo, LikeScore},
+};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
+  diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{post, post_actions},
 };
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
-)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post.
@@ -62,29 +64,61 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
-  pub comments: i32,
-  pub score: i32,
-  pub upvotes: i32,
-  pub downvotes: i32,
   #[serde(skip)]
+  #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce::<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
+  #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce::<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub non_0_community_interactions_month: Option<i32>,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_comments))]
+  pub comments: i32,
+  #[diesel(select_expression = get_score(post::non_1_upvotes, post::non_0_downvotes))]
+  pub score: i32,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<1, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_1_upvotes))]
+  pub upvotes: i32,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_downvotes))]
+  pub downvotes: i32,
   #[serde(skip)]
-  pub hot_rank_active: f64,
+  pub age: Option<i16>,
   #[serde(skip)]
-  pub controversy_rank: f64,
-  /// A rank that amplifies smaller communities
-  #[serde(skip)]
-  pub scaled_rank: f64,
+  pub newest_non_necro_comment_age: Option<i16>,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_report_count))]
   pub report_count: i16,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_unresolved_report_count))]
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+}
+
+#[cfg_attr(
+  feature = "full",
+  derive(Clone, Queryable, Selectable, CursorKeysModule)
+)]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
+pub struct PostCursorData {
+  pub id: PostId,
+  pub published_at: DateTime<Utc>,
+  pub featured_community: bool,
+  pub featured_local: bool,
+  pub newest_comment_time_at_after_published: Option<DateTime<Utc>>,
+  pub non_0_community_interactions_month: Option<i32>,
+  pub non_0_comments: Option<i32>,
+  pub non_1_upvotes: Option<i32>,
+  pub non_0_downvotes: Option<i32>,
+  pub age: Option<i16>,
+  pub newest_non_necro_comment_age: Option<i16>,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -173,44 +207,55 @@ pub struct PostUpdateForm {
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = post_actions_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
-  #[serde(skip)]
-  pub person_id: PersonId,
-  #[serde(skip)]
-  pub post_id: PostId,
   /// When the post was read.
   pub read_at: Option<DateTime<Utc>>,
   /// When was the last time you read the comments.
   pub read_comments_at: Option<DateTime<Utc>>,
-  /// The number of comments you read last. Subtract this from total comments to get an unread
-  /// count.
-  pub read_comments_amount: Option<i32>,
   /// When the post was saved.
   pub saved_at: Option<DateTime<Utc>>,
   /// When the post was liked.
   pub liked_at: Option<DateTime<Utc>>,
-  /// The like / score of the post.
-  pub like_score: Option<i16>,
   /// When the post was hidden.
   pub hidden_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub person_id: PersonId,
+  #[serde(skip)]
+  pub post_id: PostId,
+  /// The number of comments you read last. Subtract this from total comments to get an unread
+  /// count.
+  pub read_comments_amount: Option<i32>,
+  /// The like / score of the post.
+  #[cfg_attr(feature = "full", diesel(deserialize_as = LikeScore))]
+  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
+  pub like_score: Option<i16>,
   pub notifications: Option<PostNotificationsMode>,
 }
 
+#[cfg(feature = "full")]
+#[derive(Queryable, Selectable, CursorKeysModule)]
+#[diesel(table_name = post_actions)]
+#[cursor_keys_module(name = post_actions_keys)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct PostActionsCursorData {
+  pub post_id: PostId,
+  pub read_at: Option<DateTime<Utc>>,
+  pub liked_at: Option<DateTime<Utc>>,
+  /// Upvote is greater than downvote.
+  pub like_score_is_positive: Option<bool>,
+  pub hidden_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,

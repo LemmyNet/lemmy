@@ -6,6 +6,7 @@ use crate::{
   PostView,
 };
 use diesel::{
+  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -17,7 +18,10 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_liked::{person_liked_combined_keys as key, PersonLikedCombined},
+  source::combined::person_liked::{
+    person_liked_combined_keys as key,
+    PersonLikedCombinedCursorData,
+  },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     get_conn,
@@ -49,14 +53,14 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub struct PersonLikedCombinedQuery {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
-  pub cursor_data: Option<PersonLikedCombined>,
+  pub cursor_data: Option<PersonLikedCombinedCursorData>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
 impl PaginationCursorBuilder for PersonLikedCombinedView {
-  type CursorData = PersonLikedCombined;
+  type CursorData = PersonLikedCombinedCursorData;
 
   fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
@@ -179,8 +183,8 @@ impl PersonLikedCombinedQuery {
     if let Some(like_type) = self.like_type {
       query = match like_type {
         LikeType::All => query,
-        LikeType::LikedOnly => query.filter(person_liked_combined::like_score.eq(1)),
-        LikeType::DislikedOnly => query.filter(person_liked_combined::like_score.eq(-1)),
+        LikeType::LikedOnly => query.filter(person_liked_combined::like_score_is_positive),
+        LikeType::DislikedOnly => query.filter(not(person_liked_combined::like_score_is_positive)),
       }
     }
 

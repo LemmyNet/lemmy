@@ -1,3 +1,5 @@
+#[cfg(feature = "full")]
+use crate::utils::queryable::ChangeNullTo;
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -13,13 +15,9 @@ use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(
-  feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
-)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = person_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A person.
@@ -56,12 +54,28 @@ pub struct Person {
   /// Whether the person is a bot account.
   pub bot_account: bool,
   pub instance_id: InstanceId,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_post_count))]
   pub post_count: i32,
   #[serde(skip)]
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_post_score))]
   pub post_score: i32,
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_comment_count))]
   pub comment_count: i32,
   #[serde(skip)]
+  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
+  #[cfg_attr(feature = "full", diesel(column_name = non_0_comment_score))]
   pub comment_score: i32,
+}
+
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
+#[cfg_attr(feature = "full", diesel(table_name = person))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = person_keys))]
+pub struct PersonCursorData {
+  pub id: PersonId,
+  pub published_at: DateTime<Utc>,
 }
 
 #[derive(Clone, derive_new::new)]

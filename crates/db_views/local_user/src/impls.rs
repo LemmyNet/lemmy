@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
-    person::{person_keys, Person, PersonInsertForm},
+    person::{person_keys, Person, PersonCursorData, PersonInsertForm},
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
@@ -152,7 +152,7 @@ impl LocalUserView {
 #[derive(Default)]
 pub struct LocalUserQuery {
   pub banned_only: Option<bool>,
-  pub cursor_data: Option<Person>,
+  pub cursor_data: Option<PersonCursorData>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -189,7 +189,10 @@ impl LocalUserQuery {
     let paginated_query = paginate(
       query,
       SortDirection::Desc,
-      self.cursor_data,
+      self.cursor_data.map(|p| PersonCursorData {
+        id: p.id,
+        published_at: p.published_at,
+      }),
       None,
       self.page_back,
     )

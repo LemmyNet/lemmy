@@ -205,10 +205,10 @@ pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::matrix_user_id>,
   AliasedField<aliases::Person1, person::bot_account>,
   AliasedField<aliases::Person1, person::instance_id>,
-  AliasedField<aliases::Person1, person::post_count>,
-  AliasedField<aliases::Person1, person::post_score>,
-  AliasedField<aliases::Person1, person::comment_count>,
-  AliasedField<aliases::Person1, person::comment_score>,
+  AliasedField<aliases::Person1, person::non_0_post_count>,
+  AliasedField<aliases::Person1, person::non_0_post_score>,
+  AliasedField<aliases::Person1, person::non_0_comment_count>,
+  AliasedField<aliases::Person1, person::non_0_comment_score>,
 );
 
 #[cfg(feature = "full")]
@@ -232,18 +232,18 @@ pub type Person2AliasAllColumnsTuple = (
   AliasedField<aliases::Person2, person::matrix_user_id>,
   AliasedField<aliases::Person2, person::bot_account>,
   AliasedField<aliases::Person2, person::instance_id>,
-  AliasedField<aliases::Person2, person::post_count>,
-  AliasedField<aliases::Person2, person::post_score>,
-  AliasedField<aliases::Person2, person::comment_count>,
-  AliasedField<aliases::Person2, person::comment_score>,
+  AliasedField<aliases::Person2, person::non_0_post_count>,
+  AliasedField<aliases::Person2, person::non_0_post_score>,
+  AliasedField<aliases::Person2, person::non_0_comment_count>,
+  AliasedField<aliases::Person2, person::non_0_comment_score>,
 );
 
 #[cfg(feature = "full")]
 /// A helper tuple for more my instance persons actions
 pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,

@@ -19,15 +19,15 @@ DROP INDEX idx_community_users_active_month;
 
 CREATE INDEX idx_community_lower_name ON community USING btree (lower((name)::text));
 
-CREATE INDEX idx_community_hot ON community USING btree (hot_rank DESC);
+CREATE INDEX idx_community_hot ON community USING btree (get_community_hot_rank (non_1_subscribers, age) DESC);
 
 CREATE INDEX idx_community_published ON community USING btree (published DESC);
 
-CREATE INDEX idx_community_subscribers ON community USING btree (subscribers DESC);
+CREATE INDEX idx_community_subscribers ON community USING btree (coalesce(non_1_subscribers, 1) DESC);
 
 CREATE INDEX idx_community_title ON community USING btree (title);
 
-CREATE INDEX idx_community_users_active_month ON community USING btree (users_active_month DESC);
+CREATE INDEX idx_community_users_active_month ON community USING btree (coalesce(non_0_users_active_month, 0) DESC);
 
 -- Drop the missing ones.
 DROP INDEX idx_community_users_active_half_year;

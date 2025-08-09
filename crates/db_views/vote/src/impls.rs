@@ -5,13 +5,14 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
-  source::{comment::CommentActions, post::PostActions},
+  newtypes::{CommentId, InstanceId, PaginationCursor, PostId},
+  source::{comment::CommentActionsCursorData, post::PostActionsCursorData},
   utils::{
     get_conn,
     limit_fetch,
@@ -46,16 +47,23 @@ impl VoteView {
   pub async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActions> {
+  ) -> LemmyResult<PostActionsCursorData> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
 
-    PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      post_actions::table
+        .find((person_id, post_id))
+        .select(PostActionsCursorData::as_select())
+        .first(conn)
+        .await?,
+    )
   }
 
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    cursor_data: Option<PostActions>,
+    cursor_data: Option<PostActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
@@ -86,7 +94,7 @@ impl VoteView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .filter(post_actions::post_id.eq(post_id))
-      .filter(post_actions::like_score.is_not_null())
+      .filter(post_actions::like_score_is_positive.is_not_null())
       .select((
         person::all_columns,
         creator_banned(),
@@ -94,14 +102,14 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        post_actions::like_score.assume_not_null(),
+        post_actions::like_score_is_positive.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
-      .then_order_by(key::like_score)
+      .then_order_by(key::like_score_is_positive)
       // Tie breaker
       .then_order_by(key::liked_at);
 
@@ -121,16 +129,23 @@ impl VoteView {
   pub async fn from_comment_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<CommentActions> {
+  ) -> LemmyResult<CommentActionsCursorData> {
     let [(_, person_id), (_, comment_id)] = cursor.prefixes_and_ids()?;
 
-    CommentActions::read(pool, CommentId(comment_id), PersonId(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      comment_actions::table
+        .find((person_id, comment_id))
+        .select(CommentActionsCursorData::as_select())
+        .first(conn)
+        .await?,
+    )
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    cursor_data: Option<CommentActions>,
+    cursor_data: Option<CommentActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
@@ -160,7 +175,7 @@ impl VoteView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
-      .filter(comment_actions::like_score.is_not_null())
+      .filter(comment_actions::like_score_is_positive.is_not_null())
       .select((
         person::all_columns,
         creator_banned(),
@@ -168,14 +183,14 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        comment_actions::like_score.assume_not_null(),
+        comment_actions::like_score_is_positive.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
-      .then_order_by(key::like_score)
+      .then_order_by(key::like_score_is_positive)
       // Tie breaker
       .then_order_by(key::liked_at);
 

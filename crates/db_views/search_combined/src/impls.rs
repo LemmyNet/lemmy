@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::{
-    combined::search::{search_combined_keys as key, SearchCombined},
+    combined::search::{search_combined_keys as key, SearchCombinedCursorData},
     site::Site,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
@@ -49,6 +49,7 @@ use lemmy_db_schema::{
       suggested_communities,
     },
     seconds_to_pg_interval,
+    CoalesceConstKey,
     DbPool,
   },
   SearchSortType::{self, *},
@@ -167,7 +168,7 @@ impl SearchCombinedView {
 }
 
 impl PaginationCursorBuilder for SearchCombinedView {
-  type CursorData = SearchCombined;
+  type CursorData = SearchCombinedCursorData;
 
   fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
@@ -219,7 +220,7 @@ pub struct SearchCombinedQuery {
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub cursor_data: Option<SearchCombined>,
+  pub cursor_data: Option<SearchCombinedCursorData>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -286,25 +287,25 @@ impl SearchCombinedQuery {
     // Liked / disliked filter
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
-      let liked_disliked_filter = |score: i16| {
+      let liked_disliked_filter = |score: bool| {
         search_combined::post_id
           .is_not_null()
-          .and(post_actions::like_score.eq(score))
+          .and(post_actions::like_score_is_positive.eq(score))
           .or(
             search_combined::comment_id
               .is_not_null()
-              .and(comment_actions::like_score.eq(score)),
+              .and(comment_actions::like_score_is_positive.eq(score)),
           )
       };
 
       if self.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
-          .filter(liked_disliked_filter(1));
+          .filter(liked_disliked_filter(true));
       } else if self.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
-          .filter(liked_disliked_filter(-1));
+          .filter(liked_disliked_filter(false));
       }
     };
 
@@ -386,7 +387,7 @@ impl SearchCombinedQuery {
 
     paginated_query = match sort {
       New | Old => paginated_query.then_order_by(key::published_at),
-      Top => paginated_query.then_order_by(key::score),
+      Top => paginated_query.then_order_by(CoalesceConstKey::<1, _>(key::non_1_score)),
     }
     // finally use unique id as tie breaker
     .then_order_by(key::id);
