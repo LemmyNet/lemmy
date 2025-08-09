@@ -12,7 +12,7 @@ CREATE SEQUENCE person_liked_combined_id_seq
 CREATE TABLE person_liked_combined AS
 SELECT
     pa.liked,
-    nextval('person_liked_combined_id_seq'::regclass) AS id,
+    nextval('person_liked_combined_id_seq'::regclass)::int AS id,
     pa.person_id,
     pa.post_id,
     NULL::int AS comment_id,
@@ -26,7 +26,7 @@ WHERE
 UNION ALL
 SELECT
     ca.liked,
-    nextval('person_liked_combined_id_seq'::regclass),
+    nextval('person_liked_combined_id_seq'::regclass)::int,
     ca.person_id,
     NULL::int,
     ca.comment_id,

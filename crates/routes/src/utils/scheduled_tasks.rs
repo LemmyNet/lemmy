@@ -237,7 +237,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
       SET age = age_of(pa.published_at),
-          newest_non_necro_comment_age = age_of(pa.newest_comment_time_necro)
+          newest_non_necro_comment_age = age_of(coalesce(pa.newest_comment_time_necro_at_after_published, pa.published_at))
       FROM batch, community ca
       WHERE pa.id = batch.id
       AND pa.community_id = ca.id

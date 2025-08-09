@@ -707,7 +707,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = get_score (NEW.non_1_upvotes, NEW.non_0_downvotes)
+        non_1_score = nullif (get_score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
     WHERE
         post_id = NEW.id;
     RETURN NULL;
@@ -727,7 +727,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = get_score (NEW.non_1_upvotes, NEW.non_0_downvotes)
+        non_1_score = nullif (get_score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
     WHERE
         comment_id = NEW.id;
     RETURN NULL;
@@ -747,7 +747,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = coalesce(NEW.non_0_post_score, 0)
+        non_1_score = nullif (coalesce(NEW.non_0_post_score, 0), 1)
     WHERE
         person_id = NEW.id;
     RETURN NULL;
@@ -766,7 +766,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        score = coalesce(NEW.non_0_users_active_month, 0)
+        non_1_score = nullif (coalesce(NEW.non_0_users_active_month, 0), 1)
     WHERE
         community_id = NEW.id;
     RETURN NULL;
