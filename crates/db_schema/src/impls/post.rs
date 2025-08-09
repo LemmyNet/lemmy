@@ -12,7 +12,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Likeable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{
     functions::coalesce,
     get_conn,
@@ -102,8 +102,12 @@ use url::Url;
   }
 }*/
 
-impl Post {
-  pub async fn create(pool: &mut DbPool<'_>, form: &PostInsertForm) -> LemmyResult<Self> {
+impl Crud for Post {
+  type InsertForm = PostInsertForm;
+  type UpdateForm = PostUpdateForm;
+  type IdType = PostId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
@@ -113,10 +117,10 @@ impl Post {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
-  pub async fn update(
+  async fn update(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    new_post: &PostUpdateForm,
+    new_post: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post::table.find(post_id))
@@ -126,25 +130,9 @@ impl Post {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
+}
 
-  pub async fn read(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
-    let conn = &mut *get_conn(pool).await?;
-    post::table
-      .find(id)
-      .select(Self::as_select())
-      .first(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn delete(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<usize> {
-    let conn = &mut *get_conn(pool).await?;
-    diesel::delete(post::table.find(id))
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::Deleted)
-  }
-
+impl Post {
   pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     post::table

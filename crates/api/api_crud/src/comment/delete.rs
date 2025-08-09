@@ -6,7 +6,10 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_user_action,
 };
-use lemmy_db_schema::source::comment::{Comment, CommentUpdateForm};
+use lemmy_db_schema::{
+  source::comment::{Comment, CommentUpdateForm},
+  traits::Crud,
+};
 use lemmy_db_views_comment::{
   api::{CommentResponse, DeleteComment},
   CommentView,

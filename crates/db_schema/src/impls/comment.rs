@@ -9,7 +9,7 @@ use crate::{
     CommentSavedForm,
     CommentUpdateForm,
   },
-  traits::{Likeable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{functions::coalesce, get_conn, validate_like, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
@@ -226,11 +226,23 @@ impl Comment {
     }
     Ok(())
   }
+}
 
-  pub async fn update(
+impl Crud for Comment {
+  type InsertForm = CommentInsertForm;
+  type UpdateForm = CommentUpdateForm;
+  type IdType = CommentId;
+
+  /// Use [[Comment::create]]
+  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> LemmyResult<Self> {
+    debug_assert!(false);
+    Comment::create(pool, comment_form, None).await
+  }
+
+  async fn update(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    comment_form: &CommentUpdateForm,
+    comment_form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
@@ -239,24 +251,6 @@ impl Comment {
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
-  }
-
-  pub async fn read(pool: &mut DbPool<'_>, id: CommentId) -> LemmyResult<Self> {
-    let conn = &mut *get_conn(pool).await?;
-    comment::table
-      .find(id)
-      .select(Self::as_select())
-      .first(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn delete(pool: &mut DbPool<'_>, id: CommentId) -> LemmyResult<usize> {
-    let conn = &mut *get_conn(pool).await?;
-    diesel::delete(comment::table.find(id))
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 

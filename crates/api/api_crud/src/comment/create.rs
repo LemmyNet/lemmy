@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     notification::Notification,
   },
-  traits::Likeable,
+  traits::{Crud, Likeable},
 };
 use lemmy_db_views_comment::api::{CommentResponse, CreateComment};
 use lemmy_db_views_local_user::LocalUserView;

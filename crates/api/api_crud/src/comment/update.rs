@@ -12,6 +12,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::comment::{Comment, CommentUpdateForm},
+  traits::Crud,
 };
 use lemmy_db_views_comment::{
   api::{CommentResponse, EditComment},

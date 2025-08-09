@@ -13,7 +13,10 @@ use lemmy_api_utils::{
     update_post_tags,
   },
 };
-use lemmy_db_schema::source::post::{Post, PostUpdateForm};
+use lemmy_db_schema::{
+  source::post::{Post, PostUpdateForm},
+  traits::Crud,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{ModEditPost, PostResponse},
