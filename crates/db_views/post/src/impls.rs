@@ -2083,11 +2083,11 @@ mod tests {
     Ok(())
   }
 
-  /// Use millis for date checks
+  /// Use microseconds for date checks
   ///
-  /// Necessary because postgres uses millis, but rust uses micros
-  fn millis(dt: DateTime<Utc>) -> i64 {
-    dt.timestamp_millis()
+  /// Necessary because postgres uses micros, but rust uses nanos
+  fn micros(dt: DateTime<Utc>) -> i64 {
+    dt.timestamp_micros()
   }
 
   #[test_context(Data)]
@@ -2133,8 +2133,8 @@ mod tests {
 
     // Make sure the expires at is correct
     assert_eq!(
-      expires_at.map(millis),
-      post_view.creator_ban_expires_at.map(millis)
+      expires_at.map(micros),
+      post_view.creator_ban_expires_at.map(micros)
     );
 
     Person::delete(pool, banned_person.id).await?;
@@ -2188,8 +2188,8 @@ mod tests {
 
     // Make sure the expires at is correct
     assert_eq!(
-      expires_at.map(millis),
-      post_view.creator_ban_expires_from_community_at.map(millis)
+      expires_at.map(micros),
+      post_view.creator_ban_expires_from_community_at.map(micros)
     );
 
     Person::delete(pool, banned_person.id).await?;
