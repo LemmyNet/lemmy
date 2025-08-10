@@ -205,7 +205,7 @@ CREATE INDEX idx_comment_score ON comment USING btree (get_score (non_1_upvotes,
 ALTER TABLE post
     ADD COLUMN newest_comment_time_necro_after_published timestamp with time zone, -- TODO: remove if unused
     ADD COLUMN newest_comment_time_after_published timestamp with time zone,
-    ADD COLUMN non_0_community_interactions_month int,
+    ADD COLUMN non_0_community_interactions_month int, -- TODO: update this when it's updated in community
     ADD COLUMN non_0_comments int,
     ADD COLUMN non_1_upvotes int,
     ADD COLUMN non_0_downvotes int,
