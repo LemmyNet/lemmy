@@ -374,8 +374,6 @@ CREATE INDEX idx_post_young ON post USING btree (published DESC)
 WHERE
     age IS NOT NULL OR newest_non_necro_comment_age IS NOT NULL;
 
-CREATE INDEX idx_post_published ON post USING btree (published DESC);
-
 CREATE INDEX idx_post_published_asc ON post USING btree (reverse_timestamp_sort (published) DESC);
 
 -- merge community_aggregates into community table
