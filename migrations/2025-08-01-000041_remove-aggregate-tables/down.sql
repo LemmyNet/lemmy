@@ -444,5 +444,5 @@ CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USI
 ALTER TABLE community_aggregates
     ALTER CONSTRAINT community_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
-DROP FUNCTION age_of, get_community_hot_rank, get_controversy_rank, get_hot_rank, get_scaled_rank, get_score, inner_age, inner_get_hot_rank, old_controversy_rank, old_hot_rank, old_scaled_rank;
+DROP FUNCTION get_community_hot_rank, get_controversy_rank, get_hot_rank, get_scaled_rank, get_score, inner_get_hot_rank, old_controversy_rank, old_hot_rank, old_scaled_rank;
 

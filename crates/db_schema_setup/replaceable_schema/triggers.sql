@@ -351,7 +351,7 @@ BEGIN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
     END IF;
     -- Set age
-    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
+    NEW.age = coalesce(NEW.age, r.age_of (NEW.published_at));
     RETURN NEW;
 END
 $$;
@@ -365,7 +365,7 @@ CREATE FUNCTION r.community_change_values ()
     AS $$
 BEGIN
     -- Set age
-    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
+    NEW.age = coalesce(NEW.age, r.age_of (NEW.published_at));
     RETURN NEW;
 END
 $$;
@@ -383,7 +383,7 @@ BEGIN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
     -- Set age
-    NEW.age = coalesce(NEW.age, age_of (NEW.published_at));
+    NEW.age = coalesce(NEW.age, r.age_of (NEW.published_at));
     -- Set non_0_community_interactions_month
     NEW.non_0_community_interactions_month = coalesce(NEW.non_0_community_interactions_month, (
             SELECT

@@ -50,12 +50,6 @@ impl From<&VoteType> for i16 {
   }
 }
 
-/*impl From<&VoteType> for bool {
-  fn from(value: &VoteType) -> bool {
-    value == &VoteType::Like
-  }
-}*/
-
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match self.object.dereference(context).await? {

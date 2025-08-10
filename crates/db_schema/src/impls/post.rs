@@ -49,59 +49,6 @@ use lemmy_utils::{
 };
 use url::Url;
 
-// TODO: use the derive macro when it becomes possible
-/*impl Queryable<post::SqlType, Pg> for Post {
-  type Row = (PostId,
-  String,
-
-  Option<DbUrl>,
-
-  Option<String>,
-  PersonId,
-  CommunityId,
-
-  bool,
-
-   bool,
-   DateTime<Utc>,
-  Option<DateTime<Utc>>,
-
-  bool,
-
-  bool,
-
-  Option<String>,
-
-  Option<String>,
-
-   Option<DbUrl>,
-
-  DbUrl,
-   bool,
-  Option<DbUrl>,
-  LanguageId,
-  bool,
-  bool,
-  Option<String>,
-  Option<String>,
-  Option<DateTime<Utc>>,
-   DateTime<Utc>,
-  DateTime<Utc>,
-   Option<i32>,
-  i32,
-  // score is in between here
-   i32,
-   i32,
-   Option<i16>,
-   Option<i16>,
-   i16,
-   i16,
-  bool,);
-  fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-    Ok(Post { id: row.0, name: row.1, url: row.2, body: row.3, creator_id: row.4, community_id: row.5, removed: row.6, locked: row.7, published_at: row.8, updated_at: row.9, deleted: row.10, nsfw: row.11, embed_title: row.12, embed_description: row.13, thumbnail_url: row.14, ap_id: row.15, local: row.16, embed_video_url: row.17, language_id: row.18, featured_community: row.19, featured_local: row.20, url_content_type: row.21, alt_text: row.22, scheduled_publish_time_at: row.23, newest_comment_time_necro_at: row.24, newest_comment_time_at: row.25, non_0_community_interactions_month: row.26, comments: row.27, upvotes: row.28, downvotes: row.29, age: row.30, newest_non_necro_comment_age: row.31, report_count: row.32, unresolved_report_count: row.33, federation_pending: row.34 })
-  }
-}*/
-
 impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;

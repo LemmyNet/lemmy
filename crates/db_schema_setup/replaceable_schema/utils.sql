@@ -1,6 +1,26 @@
 -- Each calculation used in triggers should be a single SQL language
 -- expression so it can be inlined in migrations.
 --
+-- if the post is from the future, set age to null. otherwise you can game the post to
+-- always be on top even with only 1 vote by setting it to the future
+CREATE FUNCTION r.inner_age (minutes numeric)
+    RETURNS smallint
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN minutes >= 0
+        AND minutes <= 10080 THEN
+        minutes::smallint
+    ELSE
+        NULL
+    END;
+
+CREATE FUNCTION r.age_of (t timestamp with time zone)
+    RETURNS smallint
+    LANGUAGE sql
+    -- `STABLE PARALLEL SAFE` is correct for `now()` based on the output of `SELECT provolatile, proparallel FROM pg_proc WHERE proname = 'now'`
+    STABLE PARALLEL SAFE RETURN r.inner_age (
+extract(minutes FROM (now() - t))
+);
+
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
 CREATE FUNCTION r.is_counted (item record)
     RETURNS bool
@@ -243,22 +263,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION r.add_nullable (n integer, current_non_n_value integer, diff bigint)
-    RETURNS integer
-    LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN nullif (
-coalesce(current_non_n_value, n) + diff, n
-);
-
-CREATE FUNCTION r.add_nullable (n smallint, current_non_n_value smallint, diff bigint)
-    RETURNS smallint
-    LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN nullif (
-coalesce(current_non_n_value, n) + diff, n
-);
-
-CREATE FUNCTION r.add_nullable (n integer, current_non_n_value integer, diff numeric)
-    RETURNS smallint
+CREATE FUNCTION r.add_nullable (n numeric, current_non_n_value numeric, diff numeric)
+    RETURNS numeric
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN nullif (
 coalesce(current_non_n_value, n) + diff, n

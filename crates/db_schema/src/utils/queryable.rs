@@ -1,76 +1,74 @@
+//! Wrappers that can be used with the `deserialize_as` attribute when using the `Queryable` derive
+//! macro.
 use diesel::{
   deserialize::{FromStaticSqlRow, Queryable},
   pg::Pg,
 };
 
-pub struct LikeScore(Option<bool>);
+pub struct NullableBoolToIntScore(Option<i16>);
 
-impl From<LikeScore> for Option<i16> {
-  fn from(val: LikeScore) -> Self {
-    val.0.map(|is_positive| if is_positive { 1 } else { -1 })
-  }
-}
+pub struct BoolToIntScore(i16);
 
-impl<ST> Queryable<ST, Pg> for LikeScore
+pub struct ChangeNullTo<const N: i8, T>(T);
+
+impl<ST> Queryable<ST, Pg> for NullableBoolToIntScore
 where
   Option<bool>: FromStaticSqlRow<ST, Pg>,
 {
   type Row = Option<bool>;
-  fn build(value: Self::Row) -> diesel::deserialize::Result<Self> {
-    Ok(LikeScore(value))
+  fn build(is_positive: Self::Row) -> diesel::deserialize::Result<Self> {
+    Ok(NullableBoolToIntScore(is_positive.map(|x| {
+      if x {
+        1
+      } else {
+        -1
+      }
+    })))
   }
 }
 
-pub struct NonNullLikeScore(bool);
-
-impl From<NonNullLikeScore> for i16 {
-  fn from(val: NonNullLikeScore) -> Self {
-    if val.0 {
-      1
-    } else {
-      -1
-    }
-  }
-}
-
-impl<ST> Queryable<ST, Pg> for NonNullLikeScore
+impl<ST> Queryable<ST, Pg> for BoolToIntScore
 where
   bool: FromStaticSqlRow<ST, Pg>,
 {
   type Row = bool;
-  fn build(value: Self::Row) -> diesel::deserialize::Result<Self> {
-    Ok(NonNullLikeScore(value))
-  }
-}
-
-pub struct ChangeNullTo<const N: i8, T>(Option<T>);
-
-/* this won't compile
-
-impl<const N: i8, T: From<i8>> Into<T> for ChangeNullTo<N, T> {
-    fn into(self) -> T {
-        self.0.unwrap_or(T::from(N))
-    }
-}*/
-
-impl<const N: i8> From<ChangeNullTo<N, i32>> for i32 {
-  fn from(val: ChangeNullTo<N, i32>) -> Self {
-    val.0.unwrap_or(i32::from(N))
-  }
-}
-
-impl<const N: i8> From<ChangeNullTo<N, i16>> for i16 {
-  fn from(val: ChangeNullTo<N, i16>) -> Self {
-    val.0.unwrap_or(i16::from(N))
+  fn build(is_positive: Self::Row) -> diesel::deserialize::Result<Self> {
+    Ok(BoolToIntScore(if is_positive { 1 } else { -1 }))
   }
 }
 
 impl<const N: i8, T, U> Queryable<U, Pg> for ChangeNullTo<N, T>
 where
   Option<T>: FromStaticSqlRow<U, Pg>,
+  T: From<i8>,
 {
   type Row = Option<T>;
   fn build(value: Self::Row) -> diesel::deserialize::Result<Self> {
-    Ok(ChangeNullTo(value))
+    Ok(ChangeNullTo(value.unwrap_or(N.into())))
+  }
+}
+
+impl From<NullableBoolToIntScore> for Option<i16> {
+  fn from(value: NullableBoolToIntScore) -> Self {
+    value.0
+  }
+}
+
+impl From<BoolToIntScore> for i16 {
+  fn from(value: BoolToIntScore) -> Self {
+    value.0
+  }
+}
+
+// Generic impl won't compile.
+impl<const N: i8> From<ChangeNullTo<N, Self>> for i16 {
+  fn from(value: ChangeNullTo<N, Self>) -> Self {
+    value.0
+  }
+}
+
+impl<const N: i8> From<ChangeNullTo<N, Self>> for i32 {
+  fn from(value: ChangeNullTo<N, Self>) -> Self {
+    value.0
   }
 }

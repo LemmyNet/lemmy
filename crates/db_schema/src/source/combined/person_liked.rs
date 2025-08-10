@@ -1,6 +1,6 @@
 use crate::newtypes::{CommentId, PersonId, PersonLikedCombinedId, PostId};
 #[cfg(feature = "full")]
-use crate::utils::queryable::NonNullLikeScore;
+use crate::utils::queryable::BoolToIntScore;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -17,7 +17,7 @@ use serde_with::skip_serializing_none;
 /// A combined person_liked table.
 pub struct PersonLikedCombined {
   pub liked_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = NonNullLikeScore))]
+  #[cfg_attr(feature = "full", diesel(deserialize_as = BoolToIntScore))]
   #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
   pub like_score: i16,
   pub person_id: PersonId,

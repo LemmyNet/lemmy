@@ -86,26 +86,6 @@ CREATE FUNCTION get_community_hot_rank (non_1_subscribers integer, age smallint)
             END, age)
     END;
 
--- if the post is from the future, set age to null. otherwise you can game the post to
--- always be on top even with only 1 vote by setting it to the future
-CREATE FUNCTION inner_age (minutes numeric)
-    RETURNS smallint
-    LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN minutes >= 0
-        AND minutes <= 10080 THEN
-        minutes::smallint
-    ELSE
-        NULL
-    END;
-
-CREATE FUNCTION age_of (t timestamp with time zone)
-    RETURNS smallint
-    LANGUAGE sql
-    -- `STABLE PARALLEL SAFE` is correct for `now()` based on the output of `SELECT provolatile, proparallel FROM pg_proc WHERE proname = 'now'`
-    STABLE PARALLEL SAFE RETURN inner_age (
-extract(minutes FROM (now() - t))
-);
-
 -- Merge comment_aggregates into comment table
 ALTER TABLE comment
     ADD COLUMN non_1_upvotes int,

@@ -2,7 +2,7 @@ use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::utils::{
   functions::{coalesce, get_score},
-  queryable::{ChangeNullTo, LikeScore},
+  queryable::{ChangeNullTo, NullableBoolToIntScore},
 };
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
@@ -234,7 +234,7 @@ pub struct PostActions {
   /// count.
   pub read_comments_amount: Option<i32>,
   /// The like / score of the post.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = LikeScore))]
+  #[cfg_attr(feature = "full", diesel(deserialize_as = NullableBoolToIntScore))]
   #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
   pub like_score: Option<i16>,
   pub notifications: Option<PostNotificationsMode>,
