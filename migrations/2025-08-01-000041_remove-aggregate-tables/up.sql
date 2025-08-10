@@ -101,7 +101,8 @@ CREATE FUNCTION inner_age (n numeric)
 CREATE FUNCTION age_of (t timestamp with time zone)
     RETURNS smallint
     LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN inner_age (
+    -- `STABLE PARALLEL SAFE` is correct for `now()` based on the output of `SELECT provolatile, proparallel FROM pg_proc WHERE proname = 'now'`
+    STABLE PARALLEL SAFE RETURN inner_age (
 extract(microseconds FROM (now() - t)) / 20000000
 );
 
