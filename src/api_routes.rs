@@ -220,15 +220,15 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // Community
       .service(
-        resource("/communities")
-          // TODO: Figure out how to handle guard
-          .guard(guard::Post())
-          .wrap(rate_limit.register())
-          .route(post().to(create_community)),
-      )
-      .service(
         scope("/communities")
           .route("", get().to(list_communities))
+          .route(
+            "",
+            post()
+              .to(create_community)
+              .guard(guard::Post())
+              .wrap(rate_limit.register()),
+          )
           .route("/random", get().to(get_random_community))
           .route("{community_id_or_name}", get().to(get_community))
           .service(
