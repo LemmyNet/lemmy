@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::{
-  fmt,
-  fmt::{Display, Formatter},
+  fmt::{self, Display, Formatter},
+  num::ParseIntError,
   ops::Deref,
+  str::FromStr,
 };
 use url::Url;
 #[cfg(feature = "full")]
@@ -68,6 +69,14 @@ pub enum PostOrCommentId {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The community id.
 pub struct CommunityId(pub i32);
+
+impl FromStr for CommunityId {
+  type Err = ParseIntError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    s.parse::<i32>().map(CommunityId)
+  }
+}
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]

@@ -6,6 +6,7 @@ use lemmy_api_utils::{
   utils::{is_admin, is_mod_or_admin},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityUpdateForm},
     images::LocalImage,
@@ -14,7 +15,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
@@ -56,11 +56,12 @@ pub async fn delete_site_banner(
 }
 
 pub async fn delete_community_icon(
-  data: Json<CommunityIdQuery>,
+  community_id: Path<CommunityId>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let community = Community::read(&mut context.pool(), data.id).await?;
+  let community_id = community_id.into_inner();
+  let community = Community::read(&mut context.pool(), community_id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   delete_old_image(&community.icon, &context).await?;
@@ -75,11 +76,12 @@ pub async fn delete_community_icon(
 }
 
 pub async fn delete_community_banner(
-  data: Json<CommunityIdQuery>,
+  community_id: Path<CommunityId>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let community = Community::read(&mut context.pool(), data.id).await?;
+  let community_id = community_id.into_inner();
+  let community = Community::read(&mut context.pool(), community_id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
   delete_old_image(&community.icon, &context).await?;

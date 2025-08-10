@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, slur_regex},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::Community,
     tag::{Tag, TagInsertForm, TagUpdateForm},
@@ -30,17 +31,18 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_community_tag(
+  community_id: Path<CommunityId>,
   data: Json<CreateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
+  let community_id = community_id.into_inner();
   // reuse this existing function for validation
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
 
-  let community_view =
-    CommunityView::read(&mut context.pool(), data.community_id, None, false).await?;
+  let community_view = CommunityView::read(&mut context.pool(), community_id, None, false).await?;
   let community = community_view.community;
 
   // Verify that only mods can create tags
@@ -59,7 +61,7 @@ pub async fn create_community_tag(
     name: data.name.clone(),
     display_name: data.display_name.clone(),
     description: data.description.clone(),
-    community_id: data.community_id,
+    community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
   };

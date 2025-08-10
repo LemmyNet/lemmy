@@ -1,6 +1,6 @@
 use crate::check_report_reason;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -8,6 +8,7 @@ use lemmy_api_utils::{
   utils::slur_regex,
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::Community,
     community_report::{CommunityReport, CommunityReportForm},
@@ -25,16 +26,17 @@ use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_community_report(
+  community_id: Path<CommunityId>,
   data: Json<CreateCommunityReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityReportResponse>> {
+  let community_id = community_id.into_inner();
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
   let person = &local_user_view.person;
-  let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
   let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 

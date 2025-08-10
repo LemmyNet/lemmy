@@ -1,6 +1,6 @@
 use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   build_response::build_community_response,
@@ -15,6 +15,7 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
@@ -32,10 +33,15 @@ use lemmy_utils::{
 };
 
 pub async fn update_community(
+  community_id: Path<CommunityId>,
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  // TODO: Now that community ID isn't coming from EditCommunity body,
+  // maybe it would be better to accept ID or name in the path like
+  // is done when getting a community.
+  let community_id = community_id.into_inner();
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
@@ -56,12 +62,11 @@ pub async fn update_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
   let description = diesel_string_update(data.description.as_deref());
 
-  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
+  let old_community = Community::read(&mut context.pool(), community_id).await?;
 
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(&local_user_view, &old_community, false, &mut context.pool()).await?;
 
-  let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {
     let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
     // check that community languages are a subset of site languages
@@ -84,7 +89,6 @@ pub async fn update_community(
     ..Default::default()
   };
 
-  let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   if old_community.visibility != community.visibility {

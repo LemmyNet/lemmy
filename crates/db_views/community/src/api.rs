@@ -15,7 +15,6 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Add a moderator to a community.
 pub struct AddModToCommunity {
-  pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
 }
@@ -32,7 +31,6 @@ pub struct AddModToCommunityResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ApproveCommunityPendingFollower {
-  pub community_id: CommunityId,
   pub follower_id: PersonId,
   pub approve: bool,
 }
@@ -43,7 +41,6 @@ pub struct ApproveCommunityPendingFollower {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Ban a user from a community.
 pub struct BanFromCommunity {
-  pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
   /// Optionally remove or restore all their data. Useful for new troll accounts.
@@ -82,15 +79,6 @@ pub struct BlockCommunity {
 pub struct BlockCommunityResponse {
   pub community_view: CommunityView,
   pub blocked: bool,
-}
-
-/// Parameter for setting community icon or banner. Can't use POST data here as it already contains
-/// the image data.
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct CommunityIdQuery {
-  pub id: CommunityId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -134,7 +122,6 @@ pub struct CreateCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete your own community.
 pub struct DeleteCommunity {
-  pub community_id: CommunityId,
   pub deleted: bool,
 }
 
@@ -144,7 +131,6 @@ pub struct DeleteCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit a community.
 pub struct EditCommunity {
-  pub community_id: CommunityId,
   /// A longer title.
   pub title: Option<String>,
   /// A sidebar for the community in markdown.
@@ -164,20 +150,14 @@ pub struct EditCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Follow / subscribe to a community.
 pub struct FollowCommunity {
-  pub community_id: CommunityId,
   pub follow: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-// TODO make this into a tagged enum
 /// Get a community. Must provide either an id, or a name.
-pub struct GetCommunity {
-  pub id: Option<CommunityId>,
-  /// Example: star_trek , or star_trek@xyz.tld
-  pub name: Option<String>,
+#[derive(Debug)]
+pub enum CommunityIdOrName<'a> {
+  Id(CommunityId),
+  Name(&'a str),
 }
 
 #[skip_serializing_none]
@@ -257,7 +237,6 @@ pub struct PurgeCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Remove a community (only doable by moderators).
 pub struct RemoveCommunity {
-  pub community_id: CommunityId,
   pub removed: bool,
   pub reason: Option<String>,
 }
@@ -267,7 +246,6 @@ pub struct RemoveCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Transfer a community to a new owner.
 pub struct TransferCommunity {
-  pub community_id: CommunityId,
   pub person_id: PersonId,
 }
 
@@ -341,7 +319,6 @@ pub struct FollowMultiCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a community
 pub struct UpdateCommunityNotifications {
-  pub community_id: CommunityId,
   pub mode: CommunityNotificationsMode,
 }
 
@@ -351,7 +328,6 @@ pub struct UpdateCommunityNotifications {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Create a tag for a community.
 pub struct CreateCommunityTag {
-  pub community_id: CommunityId,
   pub name: String,
   pub display_name: Option<String>,
   pub description: Option<String>,

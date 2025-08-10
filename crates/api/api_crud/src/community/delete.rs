@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, is_top_mod},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };
@@ -16,22 +17,23 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_community(
+  community_id: Path<CommunityId>,
   data: Json<DeleteCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let community_id = community_id.into_inner();
   // Fetch the community mods
   let community_mods =
-    CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await?;
+    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id).await?;
   check_community_mod_action(&local_user_view, &community, true, &mut context.pool()).await?;
 
   // Make sure deleter is the top mod
   is_top_mod(&local_user_view, &community_mods)?;
 
   // Do the delete
-  let community_id = data.community_id;
   let deleted = data.deleted;
   let community = Community::update(
     &mut context.pool(),

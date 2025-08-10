@@ -1,14 +1,7 @@
 use crate::PendingFollow;
-use lemmy_db_schema::newtypes::{CommunityId, PaginationCursor};
+use lemmy_db_schema::newtypes::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct GetCommunityPendingFollowsCount {
-  pub community_id: CommunityId,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

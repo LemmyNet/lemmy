@@ -220,38 +220,50 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // Community
       .service(
-        resource("/community")
+        resource("/communities")
+          // TODO: Figure out how to handle guard
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(post().to(create_community)),
       )
       .service(
-        scope("/community")
-          .route("", get().to(get_community))
-          .route("", put().to(update_community))
+        scope("/communities")
+          .route("", get().to(list_communities))
           .route("/random", get().to(get_random_community))
-          .route("/list", get().to(list_communities))
-          .route("/follow", post().to(follow_community))
-          .route("/report", post().to(create_community_report))
+          .route("{community_id_or_name}", get().to(get_community))
+          .service(
+            scope("/{community_id}")
+              .route("", put().to(update_community))
+              .route("/follow", post().to(follow_community))
+              .route("/report", post().to(create_community_report))
+              .route("/delete", post().to(delete_community))
+              // Mod Actions
+              .route("/remove", post().to(remove_community))
+              .route("/transfer", post().to(transfer_community))
+              .route("/ban_user", post().to(ban_from_community))
+              .route("/mod", post().to(add_mod_to_community))
+              .route("/icon", post().to(upload_community_icon))
+              .route("/icon", delete().to(delete_community_icon))
+              .route("/banner", post().to(upload_community_banner))
+              .route("/banner", delete().to(delete_community_banner))
+              .route("/tags", post().to(create_community_tag)),
+          )
+          // TODO: Figure out resolving path
           .route("/report/resolve", put().to(resolve_community_report))
-          .route("/delete", post().to(delete_community))
-          // Mod Actions
-          .route("/remove", post().to(remove_community))
-          .route("/transfer", post().to(transfer_community))
-          .route("/ban_user", post().to(ban_from_community))
-          .route("/mod", post().to(add_mod_to_community))
-          .route("/icon", post().to(upload_community_icon))
-          .route("/icon", delete().to(delete_community_icon))
-          .route("/banner", post().to(upload_community_banner))
-          .route("/banner", delete().to(delete_community_banner))
-          .route("/tag", post().to(create_community_tag))
+          // TODO: Figure out how to handle tags updating and deleting
           .route("/tag", put().to(update_community_tag))
           .route("/tag", delete().to(delete_community_tag))
-          .route("/notifications", post().to(update_community_notifications))
+          .route(
+            "/{community_id}/notification-settings",
+            post().to(update_community_notifications),
+          )
           .service(
-            scope("/pending_follows")
+            scope("/{community_id}/pending-follows")
+              // TODO: Get pending follows doesn't check community ID for some reason.
+              // It has an option for checking all communities that one moderates,
+              // but it is unclear what happens when one is only interested in a single community.
+              .route("", get().to(get_pending_follows_list))
               .route("/count", get().to(get_pending_follows_count))
-              .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
       )

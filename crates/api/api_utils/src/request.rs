@@ -4,10 +4,12 @@ use crate::{
   utils::proxy_image_link,
 };
 use activitypub_federation::config::Data;
+use actix_web::HttpRequest;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
     post::{Post, PostUpdateForm},
@@ -15,6 +17,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_community::api::CommunityIdOrName;
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -557,6 +560,20 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
+}
+
+/// Parse community ID or name from [`HttpRequest`].
+pub fn parse_community_id_or_name_from_request(
+  req: &HttpRequest,
+) -> Result<CommunityIdOrName, LemmyErrorType> {
+  req
+    .match_info()
+    .get("community_id_or_name")
+    .ok_or(LemmyErrorType::NoIdGiven)
+    .map(|id| {
+      id.parse::<CommunityId>()
+        .map_or_else(|_| CommunityIdOrName::Name(id), CommunityIdOrName::Id)
+    })
 }
 
 #[cfg(test)]

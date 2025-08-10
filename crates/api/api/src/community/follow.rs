@@ -1,11 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_deleted_removed, check_local_user_valid},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityActions, CommunityFollowerForm},
@@ -22,12 +23,14 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_community(
+  community_id: Path<CommunityId>,
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let community_id = community_id.into_inner();
   check_local_user_valid(&local_user_view)?;
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id).await?;
   let person_id = local_user_view.person.id;
 
   if data.follow {
@@ -65,7 +68,6 @@ pub async fn follow_community(
     )?;
   }
 
-  let community_id = data.community_id;
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
