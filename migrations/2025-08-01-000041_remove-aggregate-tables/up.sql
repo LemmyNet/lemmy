@@ -38,10 +38,10 @@ CREATE FUNCTION inner_get_hot_rank (clamped_score_plus_2 integer, non_null_age s
     log (
         greatest (2, clamped_score_plus_2)) * power (((
         -- Age in hours
-        non_null_age::real / 180) + 2), -1.8
+        non_null_age::real / 60) + 2), -1.8
 );
 
--- after approximately a week (20*32767 seconds, stored in `age` as 32767), hot rank will default to 0.
+-- after a week, hot rank will default to 0.
 CREATE FUNCTION get_hot_rank (non_1_upvotes integer, non_0_downvotes integer, age smallint)
     RETURNS real
     LANGUAGE sql
@@ -88,12 +88,12 @@ CREATE FUNCTION get_community_hot_rank (non_1_subscribers integer, age smallint)
 
 -- if the post is from the future, set age to null. otherwise you can game the post to
 -- always be on top even with only 1 vote by setting it to the future
-CREATE FUNCTION inner_age (n numeric)
+CREATE FUNCTION inner_age (minutes numeric)
     RETURNS smallint
     LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN n >= 0
-        AND n <= 32767 THEN
-        n::smallint
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN minutes >= 0
+        AND minutes <= 10080 THEN
+        minutes::smallint
     ELSE
         NULL
     END;
@@ -103,7 +103,7 @@ CREATE FUNCTION age_of (t timestamp with time zone)
     LANGUAGE sql
     -- `STABLE PARALLEL SAFE` is correct for `now()` based on the output of `SELECT provolatile, proparallel FROM pg_proc WHERE proname = 'now'`
     STABLE PARALLEL SAFE RETURN inner_age (
-extract(microseconds FROM (now() - t)) / 20000000
+extract(minutes FROM (now() - t))
 );
 
 -- Merge comment_aggregates into comment table
@@ -155,11 +155,11 @@ FROM
     comment_aggregates AS ca,
     LATERAL (
         SELECT
-            extract(microseconds FROM (now() - ca.published)) / 20000000 AS new_age),
+            extract(minutes FROM (now() - ca.published)) AS new_age),
     LATERAL (
         SELECT
             new_age >= 0
-            AND new_age <= 32767 AS comment_is_young)
+            AND new_age <= 10080 AS comment_is_young)
 WHERE
     comment.id = ca.comment_id
     AND (ca.upvotes != 1
@@ -269,15 +269,15 @@ FROM
     post_aggregates AS pa,
     LATERAL (
         SELECT
-            extract(microseconds FROM (now() - pa.published)) / 20000000 AS new_age,
-            extract(microseconds FROM (now() - pa.newest_comment_time_necro)) / 20000000 AS new_newest_non_necro_comment_age),
+            extract(minutes FROM (now() - pa.published)) AS new_age,
+            extract(minutes FROM (now() - pa.newest_comment_time_necro)) AS new_newest_non_necro_comment_age),
     LATERAL (
         SELECT
             new_age >= 0
             -- maybe the wrong number
-            AND new_age <= 32767 AS post_is_young,
+            AND new_age <= 10080 AS post_is_young,
             new_newest_non_necro_comment_age >= 0
-            AND new_newest_non_necro_comment_age <= 32767 AS comment_is_young)
+            AND new_newest_non_necro_comment_age <= 10080 AS comment_is_young)
 WHERE
     post.id = pa.post_id
     AND (pa.newest_comment_time_necro != pa.published
@@ -436,11 +436,11 @@ FROM
     community_aggregates AS ca,
     LATERAL (
         SELECT
-            extract(microseconds FROM (now() - ca.published)) / 20000000 AS new_age),
+            extract(minutes FROM (now() - ca.published)) AS new_age),
     LATERAL (
         SELECT
             new_age >= 0
-            AND new_age <= 32767 AS community_is_young)
+            AND new_age <= 10080 AS community_is_young)
 WHERE
     community.id = ca.community_id
     AND (ca.subscribers != 1
