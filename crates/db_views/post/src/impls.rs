@@ -2189,7 +2189,7 @@ mod tests {
     // Make sure the expires at is correct
     assert_eq!(
       expires_at.map(micros),
-      post_view.creator_ban_expires_from_community_at.map(micros)
+      post_view.creator_community_ban_expires_at.map(micros)
     );
 
     Person::delete(pool, banned_person.id).await?;

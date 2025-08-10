@@ -437,7 +437,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
-        creator_ban_expires_from_community_at: v.creator_ban_expires_from_community_at,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -457,7 +457,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
-        creator_ban_expires_from_community_at: v.creator_ban_expires_from_community_at,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {

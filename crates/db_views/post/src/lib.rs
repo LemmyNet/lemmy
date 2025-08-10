@@ -99,5 +99,5 @@ pub struct PostView {
       select_expression = creator_ban_expires_from_community()
     )
   )]
-  pub creator_ban_expires_from_community_at: Option<DateTime<Utc>>,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }

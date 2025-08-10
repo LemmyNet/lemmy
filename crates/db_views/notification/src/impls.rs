@@ -299,7 +299,7 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
       creator_banned_from_community: v.creator_banned_from_community,
-      creator_ban_expires_from_community_at: v.creator_ban_expires_from_community_at,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
   } else if let (Some(post), Some(community)) = (v.post, v.community) {
     NotificationData::Post(PostView {
@@ -317,7 +317,7 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
       creator_banned_from_community: v.creator_banned_from_community,
-      creator_ban_expires_from_community_at: v.creator_ban_expires_from_community_at,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
   } else if let Some(private_message) = v.private_message {
     NotificationData::PrivateMessage(PrivateMessageView {

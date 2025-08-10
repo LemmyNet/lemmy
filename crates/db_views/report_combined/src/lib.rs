@@ -108,7 +108,7 @@ pub struct ReportCombinedViewInternal {
       select_expression = creator_ban_expires_from_community()
     )
   )]
-  pub creator_ban_expires_from_community_at: Option<DateTime<Utc>>,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
