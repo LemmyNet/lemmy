@@ -223,8 +223,6 @@ DROP INDEX idx_post_featured_local_published;
 
 DROP INDEX idx_post_featured_local_published_asc;
 
-DROP INDEX idx_post_published;
-
 DROP INDEX idx_post_published_asc;
 
 DROP INDEX idx_search_combined_score;
