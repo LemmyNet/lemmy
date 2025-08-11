@@ -268,14 +268,20 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           ),
       )
       .service(
-        scope("/multi_community")
+        scope("/multi-communities")
+          .route("", get().to(list_multi_communities))
           .route("", post().to(create_multi_community))
-          .route("", put().to(update_multi_community))
-          .route("", get().to(get_multi_community))
-          .route("/entry", post().to(create_multi_community_entry))
-          .route("/entry", delete().to(delete_multi_community_entry))
-          .route("/list", get().to(list_multi_communities))
-          .route("/follow", post().to(follow_multi_community)),
+          .service(
+            scope("/{multi_community_id}")
+              .route("", put().to(update_multi_community))
+              .route("", get().to(get_multi_community))
+              .route("/follow", post().to(follow_multi_community))
+              .service(
+                scope("/entries/{community_id}")
+                  .route("", put().to(create_multi_community_entry))
+                  .route("", delete().to(delete_multi_community_entry)),
+              ),
+          ),
       )
       .route("/federated_instances", get().to(get_federated_instances))
       // Post

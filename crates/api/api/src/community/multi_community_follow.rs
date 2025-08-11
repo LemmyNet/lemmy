@@ -1,11 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_local_user_valid,
 };
 use lemmy_db_schema::{
+  newtypes::MultiCommunityId,
   source::multi_community::{MultiCommunity, MultiCommunityFollowForm},
   traits::Crud,
 };
@@ -16,12 +17,13 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_multi_community(
+  multi_community_id: Path<MultiCommunityId>,
   data: Json<FollowMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let multi_community_id = data.multi_community_id;
+  let multi_community_id = multi_community_id.into_inner();
   let person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;
 

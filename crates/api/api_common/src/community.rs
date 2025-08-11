@@ -11,10 +11,8 @@ pub use lemmy_db_views_community::{
   api::{
     CommunityResponse,
     CreateMultiCommunity,
-    CreateOrDeleteMultiCommunityEntry,
     FollowMultiCommunity,
     GetCommunityResponse,
-    GetMultiCommunity,
     GetMultiCommunityResponse,
     GetRandomCommunity,
     ListCommunities,

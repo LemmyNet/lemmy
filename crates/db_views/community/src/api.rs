@@ -1,6 +1,6 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
+  newtypes::{CommunityId, LanguageId, PaginationCursor, PersonId, TagId},
   source::site::Site,
   CommunitySortType,
 };
@@ -262,18 +262,9 @@ pub struct CreateMultiCommunity {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UpdateMultiCommunity {
-  pub id: MultiCommunityId,
   pub title: Option<String>,
   pub description: Option<String>,
   pub deleted: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct CreateOrDeleteMultiCommunityEntry {
-  pub id: MultiCommunityId,
-  pub community_id: CommunityId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -294,13 +285,6 @@ pub struct ListMultiCommunitiesResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct GetMultiCommunity {
-  pub id: MultiCommunityId,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
   pub communities: Vec<CommunityView>,
@@ -310,7 +294,6 @@ pub struct GetMultiCommunityResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct FollowMultiCommunity {
-  pub multi_community_id: MultiCommunityId,
   pub follow: bool,
 }
 

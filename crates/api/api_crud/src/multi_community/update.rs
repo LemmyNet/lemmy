@@ -1,9 +1,10 @@
 use super::{check_multi_community_creator, send_federation_update};
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
+  newtypes::MultiCommunityId,
   source::multi_community::{MultiCommunity, MultiCommunityUpdateForm},
   traits::Crud,
   utils::diesel_string_update,
@@ -14,11 +15,13 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_multi_community(
+  id: Path<MultiCommunityId>,
   data: Json<UpdateMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_multi_community_creator(data.id, &local_user_view, &context).await?;
+  let id = id.into_inner();
+  check_multi_community_creator(id, &local_user_view, &context).await?;
 
   let form = MultiCommunityUpdateForm {
     title: diesel_string_update(data.title.as_deref()),
@@ -26,7 +29,7 @@ pub async fn update_multi_community(
     deleted: data.deleted,
     updated_at: Some(Utc::now()),
   };
-  let multi = MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
+  let multi = MultiCommunity::update(&mut context.pool(), id, &form).await?;
 
   send_federation_update(multi, local_user_view, &context).await?;
 
