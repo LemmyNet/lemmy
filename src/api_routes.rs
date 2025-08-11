@@ -283,7 +283,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               ),
           ),
       )
-      .route("/federated_instances", get().to(get_federated_instances))
+      .route("/federated-instances", get().to(get_federated_instances))
       // Post
       .service(
         resource("/post")
