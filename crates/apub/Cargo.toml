@@ -62,7 +62,6 @@ enum_delegate = "0.2.0"
 either = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-shear]

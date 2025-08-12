@@ -242,7 +242,6 @@ pub(crate) mod tests {
     traits::Crud,
   };
   use serde::de::DeserializeOwned;
-  use serial_test::serial;
   use url::Url;
 
   async fn init(
@@ -278,7 +277,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_get_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
@@ -317,7 +315,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, _, path) = init(true, CommunityVisibility::Public, &context).await?;
@@ -347,7 +344,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, _, path) = init(false, CommunityVisibility::LocalOnlyPrivate, &context).await?;
@@ -373,7 +369,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_outbox_deleted_user() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;

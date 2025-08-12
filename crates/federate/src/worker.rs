@@ -469,7 +469,6 @@ mod test {
   use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
-  use serial_test::serial;
   use std::sync::{Arc, RwLock};
   use test_context::{test_context, AsyncTestContext};
   use tokio::{
@@ -575,7 +574,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   async fn test_stats(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -615,7 +613,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   async fn test_send_40(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -638,7 +635,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   /// this test sends 15 activities, waits and checks they have all been received, then sends 50,
   /// etc
   async fn test_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
@@ -667,7 +663,6 @@ mod test {
 
   #[test_context(Data)]
   #[tokio::test]
-  #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
@@ -685,7 +680,6 @@ mod test {
 
   #[test_context(Data)]
   #[tokio::test]
-  #[serial]
   async fn test_errors(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;

@@ -355,7 +355,6 @@ mod tests {
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
-  use serial_test::serial;
   // The number of migrations that should be run to set up some test data.
   // Currently, this includes migrations until
   // 2020-04-07-135912_add_user_community_apub_constraints, since there are some mandatory apub
@@ -403,7 +402,6 @@ mod tests {
   const COMMENT2_AP_ID: &str = "https://fedi.example/comment/12346";
 
   #[test]
-  #[serial]
   fn test_schema_setup() -> LemmyResult<()> {
     let o = Options::default();
     let db_url = SETTINGS.get_database_url();

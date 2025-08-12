@@ -206,7 +206,6 @@ mod test {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyError;
-  use serial_test::serial;
   use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
@@ -274,7 +273,6 @@ mod test {
 
   /// Basic test with default params and only active/allowed instances
   #[tokio::test]
-  #[serial]
   async fn test_send_manager() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -290,7 +288,6 @@ mod test {
 
   /// Running with multiple processes should start correct workers
   #[tokio::test]
-  #[serial]
   async fn test_send_manager_processes() -> LemmyResult<()> {
     let active = Arc::new(Mutex::new(vec![]));
     let execute = |count, index, active: Arc<Mutex<Vec<InstanceId>>>| async move {
@@ -315,7 +312,6 @@ mod test {
 
   /// Use blocklist, should not send to blocked instances
   #[tokio::test]
-  #[serial]
   async fn test_send_manager_blocked() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -341,7 +337,6 @@ mod test {
 
   /// Use allowlist, should only send to allowed instance
   #[tokio::test]
-  #[serial]
   async fn test_send_manager_allowed() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -365,7 +360,6 @@ mod test {
 
   /// Mark instance as dead, there should be no worker created for it
   #[tokio::test]
-  #[serial]
   async fn test_send_manager_dead() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 

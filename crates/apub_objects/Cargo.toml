@@ -54,7 +54,6 @@ assert-json-diff = "2.0.2"
 once_cell = { version = "1.21.3" }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-shear]

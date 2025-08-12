@@ -303,7 +303,6 @@ mod tests {
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,
@@ -413,7 +412,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn replies() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

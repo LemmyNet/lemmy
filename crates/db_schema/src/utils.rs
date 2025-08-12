@@ -4,10 +4,7 @@ use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
 use db_pool::{
   r#async::{
-    DatabasePool,
-    DatabasePoolBuilderTrait,
-    DieselAsyncPostgresBackend,
-    DieselDeadpool,
+    DatabasePool, DatabasePoolBuilderTrait, DieselAsyncPostgresBackend, DieselDeadpool,
     ReusableConnectionPool,
   },
   PrivilegedPostgresConfig,
@@ -20,21 +17,18 @@ use diesel::{
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
-    ConnectionError,
-    ConnectionResult,
+    ConnectionError, ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
-  Expression,
-  IntoSql,
+  Expression, IntoSql,
 };
 use diesel_async::{
   async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-    AsyncDieselConnectionManager,
-    ManagerConfig,
+    AsyncDieselConnectionManager, ManagerConfig,
   },
   scoped_futures::ScopedBoxFuture,
   AsyncConnection,
@@ -48,16 +42,11 @@ use lemmy_utils::{
 };
 use rustls::{
   client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
+    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
+  ClientConfig, DigitallySignedStruct, SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
@@ -560,11 +549,15 @@ pub async fn build_db_pool_for_tests(
             let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
               AsyncConnectionWrapper::from(conn);
 
-            lemmy_db_schema_setup::run_with_connection(
-              lemmy_db_schema_setup::Options::default().run(),
-              &mut async_wrapper,
-            )
-            .expect("run migrations");
+            tokio::task::spawn_blocking(move || {
+              lemmy_db_schema_setup::run_with_connection(
+                lemmy_db_schema_setup::Options::default().run(),
+                &mut async_wrapper,
+              )
+              .expect("run migrations")
+            })
+            .await
+            .expect("task panicked");
 
             None
           })
