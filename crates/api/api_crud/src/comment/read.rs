@@ -1,16 +1,17 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Path};
 use lemmy_api_utils::{
   build_response::build_comment_response,
   context::LemmyContext,
   utils::check_private_instance,
 };
-use lemmy_db_views_comment::api::{CommentResponse, GetComment};
+use lemmy_db_schema::newtypes::CommentId;
+use lemmy_db_views_comment::api::CommentResponse;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_comment(
-  data: Query<GetComment>,
+  comment_id: Path<CommentId>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommentResponse>> {
@@ -21,6 +22,12 @@ pub async fn get_comment(
   check_private_instance(&local_user_view, &local_site)?;
 
   Ok(Json(
-    build_comment_response(&context, data.id, local_user_view, local_instance_id).await?,
+    build_comment_response(
+      &context,
+      comment_id.into_inner(),
+      local_user_view,
+      local_instance_id,
+    )
+    .await?,
   ))
 }

@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   build_response::build_comment_response,
@@ -11,6 +11,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::CommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
@@ -25,11 +26,12 @@ use lemmy_utils::{
 };
 
 pub async fn update_comment(
+  comment_id: Path<CommentId>,
   data: Json<EditComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let comment_id = data.comment_id;
+  let comment_id = comment_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
@@ -66,7 +68,6 @@ pub async fn update_comment(
     is_valid_body_field(content, false)?;
   }
 
-  let comment_id = data.comment_id;
   let mut form = CommentUpdateForm {
     content,
     language_id: Some(language_id),

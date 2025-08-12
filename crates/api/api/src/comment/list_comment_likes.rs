@@ -1,5 +1,6 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Path, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin};
+use lemmy_db_schema::newtypes::CommentId;
 use lemmy_db_views_comment::{
   api::{ListCommentLikes, ListCommentLikesResponse},
   CommentView,
@@ -10,15 +11,17 @@ use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment
 pub async fn list_comment_likes(
+  comment_id: Path<CommentId>,
   data: Query<ListCommentLikes>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListCommentLikesResponse>> {
+  let comment_id = comment_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
 
   let comment_view = CommentView::read(
     &mut context.pool(),
-    data.comment_id,
+    comment_id,
     Some(&local_user_view.local_user),
     local_instance_id,
   )
@@ -39,7 +42,7 @@ pub async fn list_comment_likes(
 
   let comment_likes = VoteView::list_for_comment(
     &mut context.pool(),
-    data.comment_id,
+    comment_id,
     cursor_data,
     data.page_back,
     data.limit,

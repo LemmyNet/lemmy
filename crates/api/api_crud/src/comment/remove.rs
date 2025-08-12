@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_comment_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
+  newtypes::CommentId,
   source::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
@@ -23,11 +24,12 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn remove_comment(
+  comment_id: Path<CommentId>,
   data: Json<RemoveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let comment_id = data.comment_id;
+  let comment_id = comment_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
@@ -77,7 +79,7 @@ pub async fn remove_comment(
   // Mod tables
   let form = ModRemoveCommentForm {
     mod_person_id: local_user_view.person.id,
-    comment_id: data.comment_id,
+    comment_id,
     removed: Some(removed),
     reason: data.reason.clone(),
   };

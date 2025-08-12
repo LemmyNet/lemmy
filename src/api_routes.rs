@@ -326,24 +326,34 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       // Comment
       .service(
         // Handle POST to /comment separately to add the comment() rate limitter
-        resource("/comment")
-          .guard(guard::Post())
-          .wrap(rate_limit.comment())
-          .route(post().to(create_comment)),
+        resource("/comment"),
       )
       .service(
-        scope("/comment")
-          .route("", get().to(get_comment))
-          .route("", put().to(update_comment))
-          .route("/delete", post().to(delete_comment))
-          .route("/remove", post().to(remove_comment))
-          .route("/distinguish", post().to(distinguish_comment))
-          .route("/like", post().to(like_comment))
-          .route("/like/list", get().to(list_comment_likes))
-          .route("/save", put().to(save_comment))
-          .route("/list", get().to(list_comments))
-          .route("/list/slim", get().to(list_comments_slim))
-          .route("/report", post().to(create_comment_report))
+        scope("/comments")
+          .route("", get().to(list_comments))
+          // TODO: Maybe this should be handles by a query param to get comments
+          // instead of a separate endpoint
+          .route("/slim", get().to(list_comments_slim))
+          .route(
+            "",
+            post()
+              .to(create_comment)
+              .guard(guard::Post())
+              .wrap(rate_limit.comment()),
+          )
+          .service(
+            scope("/{comment_id}")
+              .route("", get().to(get_comment))
+              .route("", put().to(update_comment))
+              .route("/delete", post().to(delete_comment))
+              .route("/remove", post().to(remove_comment))
+              .route("/distinguish", post().to(distinguish_comment))
+              .route("/like", post().to(like_comment))
+              .route("/likes", get().to(list_comment_likes))
+              .route("/save", put().to(save_comment))
+              .route("/report", post().to(create_comment_report)),
+          )
+          // TODO: Figure out report resolution
           .route("/report/resolve", put().to(resolve_comment_report)),
       )
       // Private Message

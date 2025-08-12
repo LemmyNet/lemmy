@@ -1,6 +1,6 @@
 use crate::check_report_reason;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -8,6 +8,7 @@ use lemmy_api_utils::{
   utils::{check_comment_deleted_or_removed, check_community_user_action, slur_regex},
 };
 use lemmy_db_schema::{
+  newtypes::CommentId,
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
@@ -23,6 +24,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community
 pub async fn create_comment_report(
+  comment_id: Path<CommentId>,
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -33,7 +35,7 @@ pub async fn create_comment_report(
 
   let person = &local_user_view.person;
   let local_instance_id = local_user_view.person.instance_id;
-  let comment_id = data.comment_id;
+  let comment_id = comment_id.into_inner();
   let comment_view = CommentView::read(
     &mut context.pool(),
     comment_id,

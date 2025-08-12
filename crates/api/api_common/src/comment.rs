@@ -3,7 +3,7 @@ pub use lemmy_db_schema::{
   source::comment::{Comment, CommentActions},
 };
 pub use lemmy_db_views_comment::{
-  api::{CommentResponse, GetComment, GetComments, GetCommentsResponse, GetCommentsSlimResponse},
+  api::{CommentResponse, GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   CommentSlimView,
   CommentView,
 };

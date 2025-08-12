@@ -7,7 +7,6 @@ use crate::{
 };
 use lemmy_db_schema::{
   newtypes::{
-    CommentId,
     CommentReportId,
     CommunityId,
     CommunityReportId,
@@ -77,7 +76,6 @@ pub struct CommunityReportResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Report a comment.
 pub struct CreateCommentReport {
-  pub comment_id: CommentId,
   pub reason: String,
   pub violates_instance_rules: Option<bool>,
 }

@@ -1,11 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_community_user_action},
 };
 use lemmy_db_schema::{
+  newtypes::CommentId,
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
 };
@@ -17,15 +18,17 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn distinguish_comment(
+  comment_id: Path<CommentId>,
   data: Json<DistinguishComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
+  let comment_id = comment_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
 
   let orig_comment = CommentView::read(
     &mut context.pool(),
-    data.comment_id,
+    comment_id,
     Some(&local_user_view.local_user),
     local_instance_id,
   )
@@ -58,12 +61,12 @@ pub async fn distinguish_comment(
     ..Default::default()
   };
 
-  let comment = Comment::update(&mut context.pool(), data.comment_id, &form).await?;
+  let comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
   ActivityChannel::submit_activity(SendActivityData::UpdateComment(comment), &context)?;
 
   let comment_view = CommentView::read(
     &mut context.pool(),
-    data.comment_id,
+    comment_id,
     Some(&local_user_view.local_user),
     local_instance_id,
   )

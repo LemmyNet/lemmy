@@ -31,7 +31,6 @@ pub struct CreateComment {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Like a comment.
 pub struct CreateCommentLike {
-  pub comment_id: CommentId,
   /// Must be -1, 0, or 1 .
   pub score: i16,
 }
@@ -42,7 +41,6 @@ pub struct CreateCommentLike {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete your own comment.
 pub struct DeleteComment {
-  pub comment_id: CommentId,
   pub deleted: bool,
 }
 
@@ -52,17 +50,7 @@ pub struct DeleteComment {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Distinguish a comment (IE speak as moderator).
 pub struct DistinguishComment {
-  pub comment_id: CommentId,
   pub distinguished: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Fetch an individual comment.
-pub struct GetComment {
-  pub id: CommentId,
 }
 
 #[skip_serializing_none]
@@ -112,7 +100,6 @@ pub struct GetCommentsSlimResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
-  pub comment_id: CommentId,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -145,7 +132,6 @@ pub struct PurgeComment {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Remove a comment (only doable by mods).
 pub struct RemoveComment {
-  pub comment_id: CommentId,
   pub removed: bool,
   pub reason: Option<String>,
 }
@@ -155,7 +141,6 @@ pub struct RemoveComment {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Save / bookmark a comment.
 pub struct SaveComment {
-  pub comment_id: CommentId,
   pub save: bool,
 }
 
@@ -165,7 +150,6 @@ pub struct SaveComment {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit a comment.
 pub struct EditComment {
-  pub comment_id: CommentId,
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
 }
