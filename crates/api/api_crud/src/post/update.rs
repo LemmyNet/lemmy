@@ -1,6 +1,6 @@
 use super::convert_published_time;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   build_response::build_post_response,
@@ -21,6 +21,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::PostId,
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
@@ -50,10 +51,12 @@ use lemmy_utils::{
 use std::ops::Deref;
 
 pub async fn update_post(
+  post_id: Path<PostId>,
   data: Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  let post_id = post_id.into_inner();
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let url = diesel_url_update(data.url.as_deref())?;
@@ -96,7 +99,6 @@ pub async fn update_post(
     is_valid_url(custom_thumbnail)?;
   }
 
-  let post_id = data.post_id;
   let orig_post =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
 
@@ -143,7 +145,6 @@ pub async fn update_post(
   };
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
-  let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 

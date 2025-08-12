@@ -1,6 +1,6 @@
 use crate::check_report_reason;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -8,6 +8,7 @@ use lemmy_api_utils::{
   utils::{check_community_user_action, check_post_deleted_or_removed, slur_regex},
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
@@ -23,6 +24,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
 pub async fn create_post_report(
+  post_id: Path<PostId>,
   data: Json<CreatePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -32,7 +34,7 @@ pub async fn create_post_report(
   check_report_reason(&reason, &slur_regex)?;
 
   let person = &local_user_view.person;
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
   let post_view =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;

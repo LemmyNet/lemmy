@@ -47,7 +47,6 @@ pub struct CreatePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Like a post.
 pub struct CreatePostLike {
-  pub post_id: PostId,
   /// Score must be -1, 0, or 1.
   pub score: i16,
 }
@@ -57,7 +56,6 @@ pub struct CreatePostLike {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete a post.
 pub struct DeletePost {
-  pub post_id: PostId,
   pub deleted: bool,
 }
 
@@ -67,7 +65,6 @@ pub struct DeletePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit a post.
 pub struct EditPost {
-  pub post_id: PostId,
   pub name: Option<String>,
   pub url: Option<String>,
   /// An optional body for the post in markdown.
@@ -89,7 +86,6 @@ pub struct EditPost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Mods can change some metadata for posts
 pub struct ModEditPost {
-  pub post_id: PostId,
   pub nsfw: Option<bool>,
   pub tags: Option<Vec<TagId>>,
 }
@@ -99,7 +95,6 @@ pub struct ModEditPost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Feature a post (stickies / pins to the top).
 pub struct FeaturePost {
-  pub post_id: PostId,
   pub featured: bool,
   pub feature_type: PostFeatureType,
 }
@@ -109,7 +104,6 @@ pub struct FeaturePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a post
 pub struct UpdatePostNotifications {
-  pub post_id: PostId,
   pub mode: PostNotificationsMode,
 }
 
@@ -212,7 +206,6 @@ pub struct LinkMetadata {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Hide a post from list views
 pub struct HidePost {
-  pub post_id: PostId,
   pub hide: bool,
 }
 
@@ -222,7 +215,6 @@ pub struct HidePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
-  pub post_id: PostId,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -244,7 +236,6 @@ pub struct ListPostLikesResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Lock a post (prevent new comments).
 pub struct LockPost {
-  pub post_id: PostId,
   pub locked: bool,
   pub reason: Option<String>,
 }
@@ -255,7 +246,6 @@ pub struct LockPost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  pub post_id: PostId,
   pub read: bool,
 }
 
@@ -294,7 +284,6 @@ pub struct PurgePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Remove a post (only doable by mods).
 pub struct RemovePost {
-  pub post_id: PostId,
   pub removed: bool,
   pub reason: Option<String>,
 }
@@ -304,7 +293,6 @@ pub struct RemovePost {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Save / bookmark a post.
 pub struct SavePost {
-  pub post_id: PostId,
   pub save: bool,
 }
 

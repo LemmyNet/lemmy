@@ -1,6 +1,7 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::post::{PostActions, PostReadForm, PostSavedForm},
   traits::Saveable,
 };
@@ -12,11 +13,13 @@ use lemmy_db_views_post::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(
+  post_id: Path<PostId>,
   data: Json<SavePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_saved_form = PostSavedForm::new(data.post_id, local_user_view.person.id);
+  let post_id = post_id.into_inner();
+  let post_saved_form = PostSavedForm::new(post_id, local_user_view.person.id);
 
   if data.save {
     PostActions::save(&mut context.pool(), &post_saved_form).await?;
@@ -24,7 +27,6 @@ pub async fn save_post(
     PostActions::unsave(&mut context.pool(), &post_saved_form).await?;
   }
 
-  let post_id = data.post_id;
   let person_id = local_user_view.person.id;
   let local_instance_id = local_user_view.person.instance_id;
   let post_view = PostView::read(

@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::{
     community::Community,
     mod_log::moderator::{ModFeaturePost, ModFeaturePostForm},
@@ -20,11 +21,12 @@ use lemmy_db_views_post::api::{FeaturePost, PostResponse};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn feature_post(
+  post_id: Path<PostId>,
   data: Json<FeaturePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
@@ -35,7 +37,6 @@ pub async fn feature_post(
   }
 
   // Update the post
-  let post_id = data.post_id;
   let new_post: PostUpdateForm = if data.feature_type == PostFeatureType::Community {
     PostUpdateForm {
       featured_community: Some(data.featured),
@@ -52,7 +53,7 @@ pub async fn feature_post(
   // Mod tables
   let form = ModFeaturePostForm {
     mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
+    post_id,
     featured: Some(data.featured),
     is_featured_community: Some(data.feature_type == PostFeatureType::Community),
   };

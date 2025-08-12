@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::{
     community::Community,
     local_user::LocalUser,
@@ -21,11 +22,12 @@ use lemmy_db_views_post::api::{PostResponse, RemovePost};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_post(
+  post_id: Path<PostId>,
   data: Json<RemovePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
 
   // We cannot use PostView to avoid a database read here, as it doesn't return removed items
   // by default. So we would have to pass in `is_mod_or_admin`, but that is impossible without
@@ -44,7 +46,6 @@ pub async fn remove_post(
   .await?;
 
   // Update the post
-  let post_id = data.post_id;
   let removed = data.removed;
   let post = Post::update(
     &mut context.pool(),
@@ -62,7 +63,7 @@ pub async fn remove_post(
   // Mod tables
   let form = ModRemovePostForm {
     mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
+    post_id,
     removed: Some(removed),
     reason: data.reason.clone(),
   };

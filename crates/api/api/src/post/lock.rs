@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::{
     mod_log::moderator::{ModLockPost, ModLockPostForm},
     post::{Post, PostUpdateForm},
@@ -21,11 +22,12 @@ use lemmy_db_views_post::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(
+  post_id: Path<PostId>,
   data: Json<LockPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
 
   let orig_post =
@@ -40,7 +42,6 @@ pub async fn lock_post(
   .await?;
 
   // Update the post
-  let post_id = data.post_id;
   let locked = data.locked;
   let post = Post::update(
     &mut context.pool(),
@@ -55,7 +56,7 @@ pub async fn lock_post(
   // Mod tables
   let form = ModLockPostForm {
     mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
+    post_id,
     locked: Some(locked),
     reason: data.reason.clone(),
   };

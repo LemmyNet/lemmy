@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   build_response::build_post_response,
@@ -14,6 +14,7 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
@@ -27,16 +28,17 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn mod_update_post(
+  post_id: Path<PostId>,
   data: Json<ModEditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  let post_id = post_id.into_inner();
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
-  let post_id = data.post_id;
   let orig_post =
     PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
   let community = orig_post.community;
@@ -57,7 +59,6 @@ pub async fn mod_update_post(
   };
   post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
-  let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 

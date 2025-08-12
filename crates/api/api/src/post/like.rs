@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -8,7 +8,7 @@ use lemmy_api_utils::{
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
-  newtypes::PostOrCommentId,
+  newtypes::{PostId, PostOrCommentId},
   source::{
     person::PersonActions,
     post::{PostActions, PostLikeForm, PostReadForm},
@@ -25,13 +25,14 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn like_post(
+  post_id: Path<PostId>,
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
   let my_person_id = local_user_view.person.id;
 
   check_local_vote_mode(
@@ -51,7 +52,7 @@ pub async fn like_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  let mut like_form = PostLikeForm::new(data.post_id, my_person_id, data.score);
+  let mut like_form = PostLikeForm::new(post_id, my_person_id, data.score);
 
   // Remove any likes first
   PostActions::remove_like(&mut context.pool(), my_person_id, post_id).await?;

@@ -95,7 +95,6 @@ pub struct CreateCommunityReport {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Create a post report.
 pub struct CreatePostReport {
-  pub post_id: PostId,
   pub reason: String,
   pub violates_instance_rules: Option<bool>,
 }

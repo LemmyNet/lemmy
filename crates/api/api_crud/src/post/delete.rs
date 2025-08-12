@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::check_community_user_action,
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
@@ -18,11 +19,12 @@ use lemmy_db_views_post::api::{DeletePost, PostResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_post(
+  post_id: Path<PostId>,
   data: Json<DeletePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  let post_id = data.post_id;
+  let post_id = post_id.into_inner();
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   // Dont delete it if its already been deleted.
@@ -41,7 +43,7 @@ pub async fn delete_post(
   // Update the post
   let post = Post::update(
     &mut context.pool(),
-    data.post_id,
+    post_id,
     &PostUpdateForm {
       deleted: Some(data.deleted),
       ..Default::default()
@@ -54,11 +56,5 @@ pub async fn delete_post(
     &context,
   )?;
 
-  build_post_response(
-    &context,
-    orig_post.community_id,
-    local_user_view,
-    data.post_id,
-  )
-  .await
+  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

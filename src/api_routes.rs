@@ -286,36 +286,42 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .route("/federated-instances", get().to(get_federated_instances))
       // Post
       .service(
-        resource("/post")
-          // Handle POST to /post separately to add the post() rate limitter
-          .guard(guard::Post())
-          .wrap(rate_limit.post())
-          .route(post().to(create_post)),
-      )
-      .service(
         resource("/post/site_metadata")
           .wrap(rate_limit.search())
+          // TODO: Figure out what to do with this
           .route(get().to(get_link_metadata)),
       )
       .service(
-        scope("/post")
-          .route("", get().to(get_post))
-          .route("", put().to(update_post))
-          .route("/delete", post().to(delete_post))
-          .route("/remove", post().to(remove_post))
-          .route("/mark_as_read", post().to(mark_post_as_read))
-          .route("/mark_as_read/many", post().to(mark_posts_as_read))
-          .route("/hide", post().to(hide_post))
-          .route("/lock", post().to(lock_post))
-          .route("/feature", post().to(feature_post))
-          .route("/list", get().to(list_posts))
-          .route("/like", post().to(like_post))
-          .route("/like/list", get().to(list_post_likes))
-          .route("/save", put().to(save_post))
-          .route("/report", post().to(create_post_report))
-          .route("/report/resolve", put().to(resolve_post_report))
-          .route("/notifications", post().to(update_post_notifications))
-          .route("/mod_update", put().to(mod_update_post)),
+        scope("/posts")
+          .route("", get().to(list_posts))
+          .route(
+            "",
+            post()
+              .to(create_post)
+              .guard(guard::Post())
+              .wrap(rate_limit.post()),
+          )
+          .service(
+            scope("/{post_id}")
+              // TODO: Add way to get post with comment ID
+              .route("", get().to(get_post))
+              .route("", put().to(update_post))
+              .route("/delete", post().to(delete_post))
+              .route("/remove", post().to(remove_post))
+              .route("/mark-as-read", post().to(mark_post_as_read))
+              .route("/hide", post().to(hide_post))
+              .route("/lock", post().to(lock_post))
+              .route("/feature", post().to(feature_post))
+              .route("/like", post().to(like_post))
+              .route("/likes", get().to(list_post_likes))
+              .route("/save", put().to(save_post))
+              .route("/report", post().to(create_post_report))
+              .route("/notifications", post().to(update_post_notifications))
+              .route("/mod-update", put().to(mod_update_post)),
+          )
+          .route("/mark-many-as-read", post().to(mark_posts_as_read))
+          // TODO: Figure out report resolve
+          .route("/report/resolve", put().to(resolve_post_report)),
       )
       // Comment
       .service(
