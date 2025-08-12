@@ -1,7 +1,8 @@
 use crate::check_report_reason;
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_db_schema::{
+  newtypes::PrivateMessageId,
   source::{
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
@@ -18,6 +19,7 @@ use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(
+  private_message_id: Path<PrivateMessageId>,
   data: Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -27,7 +29,7 @@ pub async fn create_pm_report(
   check_report_reason(&reason, &slur_regex)?;
 
   let person = &local_user_view.person;
-  let private_message_id = data.private_message_id;
+  let private_message_id = private_message_id.into_inner();
   let private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
 
   // Make sure that only the recipient of the private message can create a report

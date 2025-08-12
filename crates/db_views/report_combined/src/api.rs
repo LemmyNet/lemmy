@@ -13,7 +13,6 @@ use lemmy_db_schema::{
     PaginationCursor,
     PostId,
     PostReportId,
-    PrivateMessageId,
     PrivateMessageReportId,
   },
   ReportType,
@@ -156,7 +155,6 @@ pub struct ResolvePrivateMessageReport {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Create a report for a private message.
 pub struct CreatePrivateMessageReport {
-  pub private_message_id: PrivateMessageId,
   pub reason: String,
 }
 

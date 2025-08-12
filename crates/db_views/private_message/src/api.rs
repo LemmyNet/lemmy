@@ -1,5 +1,5 @@
 use crate::PrivateMessageView;
-use lemmy_db_schema::newtypes::{PersonId, PrivateMessageId};
+use lemmy_db_schema::newtypes::PersonId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -16,7 +16,6 @@ pub struct CreatePrivateMessage {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete a private message.
 pub struct DeletePrivateMessage {
-  pub private_message_id: PrivateMessageId,
   pub deleted: bool,
 }
 
@@ -25,7 +24,6 @@ pub struct DeletePrivateMessage {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit a private message.
 pub struct EditPrivateMessage {
-  pub private_message_id: PrivateMessageId,
   pub content: String,
 }
 

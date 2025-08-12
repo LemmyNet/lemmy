@@ -358,11 +358,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // Private Message
       .service(
-        scope("/private_message")
-          .route("", post().to(create_private_message))
+        scope("/direct-messages/{private_message_id}")
+          // TODO: make this nicer
+          // .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
           .route("/report", post().to(create_pm_report))
+          // TODO: Handle resolving reports
           .route("/report/resolve", put().to(resolve_pm_report)),
       )
       // Reports
