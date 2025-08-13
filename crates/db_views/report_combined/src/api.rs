@@ -6,15 +6,7 @@ use crate::{
   ReportCombinedView,
 };
 use lemmy_db_schema::{
-  newtypes::{
-    CommentReportId,
-    CommunityId,
-    CommunityReportId,
-    PaginationCursor,
-    PostId,
-    PostReportId,
-    PrivateMessageReportId,
-  },
+  newtypes::{CommunityId, PaginationCursor, PostId},
   ReportType,
 };
 use serde::{Deserialize, Serialize};
@@ -119,7 +111,6 @@ pub struct GetReportCountResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a comment report (only doable by mods).
 pub struct ResolveCommentReport {
-  pub report_id: CommentReportId,
   pub resolved: bool,
 }
 
@@ -128,7 +119,6 @@ pub struct ResolveCommentReport {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a community report.
 pub struct ResolveCommunityReport {
-  pub report_id: CommunityReportId,
   pub resolved: bool,
 }
 
@@ -137,7 +127,6 @@ pub struct ResolveCommunityReport {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a post report (mods only).
 pub struct ResolvePostReport {
-  pub report_id: PostReportId,
   pub resolved: bool,
 }
 
@@ -146,7 +135,6 @@ pub struct ResolvePostReport {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a private message report.
 pub struct ResolvePrivateMessageReport {
-  pub report_id: PrivateMessageReportId,
   pub resolved: bool,
 }
 

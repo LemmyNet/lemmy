@@ -1,12 +1,16 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
+use lemmy_db_schema::{
+  newtypes::PostReportId,
+  source::post_report::PostReport,
+  traits::Reportable,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{PostReportResponse, ResolvePostReport},
@@ -16,11 +20,12 @@ use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
 pub async fn resolve_post_report(
+  report_id: Path<PostReportId>,
   data: Json<ResolvePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
-  let report_id = data.report_id;
+  let report_id = report_id.into_inner();
   let person = &local_user_view.person;
   let report =
     ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;

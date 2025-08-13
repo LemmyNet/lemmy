@@ -248,8 +248,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/banner", delete().to(delete_community_banner))
               .route("/tags", post().to(create_community_tag)),
           )
-          // TODO: Figure out resolving path
-          .route("/report/resolve", put().to(resolve_community_report))
           // TODO: Figure out how to handle tags updating and deleting
           .route("/tag", put().to(update_community_tag))
           .route("/tag", delete().to(delete_community_tag))
@@ -319,15 +317,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/notifications", post().to(update_post_notifications))
               .route("/mod-update", put().to(mod_update_post)),
           )
-          .route("/mark-many-as-read", post().to(mark_posts_as_read))
-          // TODO: Figure out report resolve
-          .route("/report/resolve", put().to(resolve_post_report)),
+          .route("/mark-many-as-read", post().to(mark_posts_as_read)),
       )
       // Comment
-      .service(
-        // Handle POST to /comment separately to add the comment() rate limitter
-        resource("/comment"),
-      )
       .service(
         scope("/comments")
           .route("", get().to(list_comments))
@@ -352,9 +344,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/likes", get().to(list_comment_likes))
               .route("/save", put().to(save_comment))
               .route("/report", post().to(create_comment_report)),
-          )
-          // TODO: Figure out report resolution
-          .route("/report/resolve", put().to(resolve_comment_report)),
+          ),
       )
       // Private Message
       .service(
@@ -363,15 +353,25 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           // .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
-          .route("/report", post().to(create_pm_report))
-          // TODO: Handle resolving reports
-          .route("/report/resolve", put().to(resolve_pm_report)),
+          .route("/report", post().to(create_pm_report)),
       )
       // Reports
       .service(
-        scope("/report")
-          .wrap(rate_limit.message())
-          .route("/list", get().to(list_reports)),
+        scope("/reports")
+          .route("", get().to(list_reports).wrap(rate_limit.message()))
+          .route(
+            "/communities/{community_report_id}/resolve",
+            put().to(resolve_community_report),
+          )
+          .route("/posts/{post_id}/resolve", post().to(resolve_post_report))
+          .route(
+            "/comments/{comment_id}/resolve",
+            post().to(resolve_comment_report),
+          )
+          .route(
+            "/direct-messages/{private_message_id}/resolve",
+            post().to(resolve_pm_report),
+          ),
       )
       // User
       .service(

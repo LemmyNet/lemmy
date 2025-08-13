@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_utils::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
+  newtypes::CommunityReportId,
   source::{community_report::CommunityReport, site::Site},
   traits::Reportable,
 };
@@ -18,13 +19,14 @@ use lemmy_db_views_report_combined::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(
+  report_id: Path<CommunityReportId>,
   data: Json<ResolveCommunityReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityReportResponse>> {
   is_admin(&local_user_view)?;
 
-  let report_id = data.report_id;
+  let report_id = report_id.into_inner();
   let person = &local_user_view.person;
   CommunityReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved)
     .await?;
