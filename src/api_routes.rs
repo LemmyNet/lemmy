@@ -359,6 +359,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/reports")
           .route("", get().to(list_reports).wrap(rate_limit.message()))
+          .route("/count", get().to(report_count))
           .route(
             "/communities/{community_report_id}/resolve",
             put().to(resolve_community_report),
@@ -381,15 +382,18 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/register", post().to(register))
           .route("/login", post().to(login))
           .route("/logout", post().to(logout))
-          .route("/password_reset", post().to(reset_password))
-          .route("/get_captcha", get().to(get_captcha))
-          .route("/password_change", post().to(change_password_after_reset))
-          .route("/change_password", put().to(change_password))
+          .route("/reset-password", post().to(reset_password))
+          .route("/captcha", get().to(get_captcha))
+          .route(
+            "/verify-password-reset",
+            post().to(change_password_after_reset),
+          )
+          .route("/change-password", post().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email))
+          .route("/verify-email", post().to(verify_email))
           .route(
-            "/resend_verification_email",
+            "/resend-verification-email",
             post().to(resend_verification_email),
           ),
       )
@@ -398,18 +402,23 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", get().to(get_my_user))
           .service(
             scope("/media")
-              .route("", delete().to(delete_image))
-              .route("/list", get().to(list_media)),
+              .route("", get().to(list_media))
+              .route("/{filename}", delete().to(delete_image)),
           )
-          .route("/notifications", get().to(list_notifications))
+          .service(
+            scope("/notifications")
+              .route("", get().to(list_notifications))
+              .route("/unread-count", get().to(unread_count))
+              .route(
+                "/{notification_id}/mark-as-read",
+                post().to(mark_notification_as_read),
+              )
+              .route("/mark-all-as-read", post().to(mark_all_notifications_read)),
+          )
           .route("/delete", post().to(delete_account))
-          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
-          .route("/mark_as_read", post().to(mark_notification_as_read))
-          .route("/report_count", get().to(report_count))
-          .route("/unread_count", get().to(unread_count))
-          .route("/list_logins", get().to(list_logins))
-          .route("/validate_auth", get().to(validate_auth))
-          .route("/donation_dialog_shown", post().to(donation_dialog_shown))
+          .route("/auth/logins", get().to(list_logins))
+          .route("/auth/validate", post().to(validate_auth))
+          .route("/hide-donation-dialog", post().to(donation_dialog_shown))
           .route("/avatar", post().to(upload_user_avatar))
           .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))

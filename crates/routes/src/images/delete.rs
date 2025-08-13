@@ -1,5 +1,5 @@
 use super::utils::delete_old_image;
-use actix_web::web::*;
+use actix_web::web::{self, *};
 use lemmy_api_utils::{
   context::LemmyContext,
   request::{delete_image_alias, purge_image_from_pictrs},
@@ -127,18 +127,15 @@ pub async fn delete_user_banner(
 
 /// Deletes an image for a specific user.
 pub async fn delete_image(
-  data: Json<DeleteImageParams>,
+  filename: web::Path<String>,
+  _data: Json<DeleteImageParams>, // TODO: remove this type after changing admin routes
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  LocalImage::validate_by_alias_and_user(
-    &mut context.pool(),
-    &data.filename,
-    local_user_view.person.id,
-  )
-  .await?;
+  LocalImage::validate_by_alias_and_user(&mut context.pool(), &filename, local_user_view.person.id)
+    .await?;
 
-  delete_image_alias(&data.filename, &context).await?;
+  delete_image_alias(&filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

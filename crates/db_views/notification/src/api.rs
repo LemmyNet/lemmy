@@ -1,4 +1,3 @@
-use lemmy_db_schema::newtypes::NotificationId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,6 +21,5 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Mark a comment reply as read.
 pub struct MarkNotificationAsRead {
-  pub notification_id: NotificationId,
   pub read: bool,
 }
