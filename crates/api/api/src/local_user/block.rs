@@ -1,6 +1,7 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
 };
@@ -12,11 +13,12 @@ use lemmy_db_views_person::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_person(
+  target_id: Path<PersonId>,
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BlockPersonResponse>> {
-  let target_id = data.person_id;
+  let target_id = target_id.into_inner();
   let my_person_id = local_user_view.person.id;
   let local_instance_id = local_user_view.person.instance_id;
 

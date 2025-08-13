@@ -1,12 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  newtypes::PersonId,
+  newtypes::{CommunityId, PersonId},
   source::{
     community::Community,
     local_user::LocalUser,
@@ -21,15 +21,17 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_community(
+  community_id: Path<CommunityId>,
   data: Json<PurgeCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let community_id = community_id.into_inner();
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
   // Read the community to get its images
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id).await?;
 
   // Also check that you're a higher admin than all the mods
   let community_mod_person_ids =
@@ -46,7 +48,7 @@ pub async fn purge_community(
   )
   .await?;
 
-  Community::delete(&mut context.pool(), data.community_id).await?;
+  Community::delete(&mut context.pool(), community_id).await?;
 
   // Mod tables
   let form = AdminPurgeCommunityForm {

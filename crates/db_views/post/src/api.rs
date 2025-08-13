@@ -274,7 +274,6 @@ pub struct PostResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Purges a post from the database. This will delete all content attached to that post.
 pub struct PurgePost {
-  pub post_id: PostId,
   pub reason: Option<String>,
 }
 

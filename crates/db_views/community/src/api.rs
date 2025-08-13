@@ -227,7 +227,6 @@ pub struct ListCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Purges a community from the database. This will delete all content attached to that community.
 pub struct PurgeCommunity {
-  pub community_id: CommunityId,
   pub reason: Option<String>,
 }
 

@@ -122,7 +122,6 @@ pub struct ListCommentLikesResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Purges a comment from the database. This will delete all content attached to that comment.
 pub struct PurgeComment {
-  pub comment_id: CommentId,
   pub reason: Option<String>,
 }
 

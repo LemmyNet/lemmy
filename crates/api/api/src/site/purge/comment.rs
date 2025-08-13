@@ -1,11 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::is_admin,
 };
 use lemmy_db_schema::{
+  newtypes::CommentId,
   source::{
     comment::Comment,
     local_user::LocalUser,
@@ -19,6 +20,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_comment(
+  comment_id: Path<CommentId>,
   data: Json<PurgeComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -26,7 +28,7 @@ pub async fn purge_comment(
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
-  let comment_id = data.comment_id;
+  let comment_id = comment_id.into_inner();
   let local_instance_id = local_user_view.person.instance_id;
 
   // Read the comment to get the post_id and community

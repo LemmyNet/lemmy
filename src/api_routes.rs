@@ -246,7 +246,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/icon", delete().to(delete_community_icon))
               .route("/banner", post().to(upload_community_banner))
               .route("/banner", delete().to(delete_community_banner))
-              .route("/tags", post().to(create_community_tag)),
+              .route("/tags", post().to(create_community_tag))
+              .route("/purge", post().to(purge_community)),
           )
           // TODO: Figure out how to handle tags updating and deleting
           .route("/tag", put().to(update_community_tag))
@@ -315,7 +316,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/save", put().to(save_post))
               .route("/report", post().to(create_post_report))
               .route("/notifications", post().to(update_post_notifications))
-              .route("/mod-update", put().to(mod_update_post)),
+              .route("/mod-update", put().to(mod_update_post))
+              .route("/purge", post().to(purge_post)),
           )
           .route("/mark-many-as-read", post().to(mark_posts_as_read)),
       )
@@ -343,7 +345,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/like", post().to(like_comment))
               .route("/likes", get().to(list_comment_likes))
               .route("/save", put().to(save_comment))
-              .route("/report", post().to(create_comment_report)),
+              .route("/report", post().to(create_comment_report))
+              .route("/purge", post().to(purge_comment)),
           ),
       )
       // Private Message
@@ -364,13 +367,16 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             "/communities/{community_report_id}/resolve",
             put().to(resolve_community_report),
           )
-          .route("/posts/{post_id}/resolve", post().to(resolve_post_report))
           .route(
-            "/comments/{comment_id}/resolve",
+            "/posts/{post_report_id}/resolve",
+            post().to(resolve_post_report),
+          )
+          .route(
+            "/comments/{comment_report_id}/resolve",
             post().to(resolve_comment_report),
           )
           .route(
-            "/direct-messages/{private_message_id}/resolve",
+            "/direct-messages/{private_message_report_id}/resolve",
             post().to(resolve_pm_report),
           ),
       )
@@ -425,7 +431,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/banner", delete().to(delete_user_banner))
           .service(
             scope("/block")
-              .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route(
                 "/instance/communities",
@@ -454,9 +459,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       // User actions
       .service(
         scope("/person")
+          .route("/block", post().to(user_block_person))
           .route("", get().to(read_person))
           .route("/content", get().to(list_person_content))
-          .route("/note", post().to(user_note_person)),
+          .route("/note", post().to(user_note_person))
+          .route("/purge", post().to(purge_person)),
       )
       // Admin Actions
       .service(
@@ -477,13 +484,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route(
             "/registration_application",
             get().to(get_registration_application),
-          )
-          .service(
-            scope("/purge")
-              .route("/person", post().to(purge_person))
-              .route("/community", post().to(purge_community))
-              .route("/post", post().to(purge_post))
-              .route("/comment", post().to(purge_comment)),
           )
           .service(
             scope("/tagline")

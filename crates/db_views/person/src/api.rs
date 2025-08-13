@@ -53,7 +53,6 @@ pub struct BanPersonResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Block a person.
 pub struct BlockPerson {
-  pub person_id: PersonId,
   pub block: bool,
 }
 
@@ -96,7 +95,6 @@ pub struct GetPersonDetailsResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Purges a person from the database. This will delete all content attached to that person.
 pub struct PurgePerson {
-  pub person_id: PersonId,
   pub reason: Option<String>,
 }
 
