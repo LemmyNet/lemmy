@@ -1,5 +1,4 @@
 use crate::CustomEmojiView;
-use lemmy_db_schema::newtypes::CustomEmojiId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -25,20 +24,11 @@ pub struct CustomEmojiResponse {
   pub custom_emoji: CustomEmojiView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Delete a custom emoji.
-pub struct DeleteCustomEmoji {
-  pub id: CustomEmojiId,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Edit  a custom emoji.
 pub struct EditCustomEmoji {
-  pub id: CustomEmojiId,
   pub category: String,
   #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
   pub image_url: Url,

@@ -500,17 +500,20 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", get().to(list_taglines))
           .route("", post().to(create_tagline))
           .service(
-            scope("{tagline_id}")
-              .route("", put().to(update_tagline))
-              .route("/delete", post().to(delete_tagline)),
+            resource("/{tagline_id}")
+              .route(put().to(update_tagline))
+              .route(delete().to(delete_tagline)),
           ),
       )
       .service(
-        scope("/custom_emoji")
+        scope("/custom-emojis")
+          .route("", get().to(list_custom_emojis))
           .route("", post().to(create_custom_emoji))
-          .route("", put().to(update_custom_emoji))
-          .route("/delete", post().to(delete_custom_emoji))
-          .route("/list", get().to(list_custom_emojis)),
+          .service(
+            resource("/{custom_emoji_id}")
+              .route(put().to(update_custom_emoji))
+              .route(delete().to(delete_custom_emoji)),
+          ),
       )
       .service(
         scope("/oauth_provider")
