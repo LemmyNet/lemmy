@@ -485,13 +485,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             "/registration_application",
             get().to(get_registration_application),
           )
-          .service(
-            scope("/tagline")
-              .route("", post().to(create_tagline))
-              .route("", put().to(update_tagline))
-              .route("/delete", post().to(delete_tagline))
-              .route("/list", get().to(list_taglines)),
-          )
           .route("/ban", post().to(ban_from_site))
           .route("/users", get().to(admin_list_users))
           .route("/leave", post().to(leave_admin))
@@ -499,6 +492,17 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/instance")
               .route("/block", post().to(admin_block_instance))
               .route("/allow", post().to(admin_allow_instance)),
+          ),
+      )
+      // Taglines
+      .service(
+        scope("/taglines")
+          .route("", get().to(list_taglines))
+          .route("", post().to(create_tagline))
+          .service(
+            scope("{tagline_id}")
+              .route("", put().to(update_tagline))
+              .route("/delete", post().to(delete_tagline)),
           ),
       )
       .service(

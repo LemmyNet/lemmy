@@ -1,14 +1,7 @@
 use crate::SiteView;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{
-    InstanceId,
-    LanguageId,
-    MultiCommunityId,
-    OAuthProviderId,
-    PaginationCursor,
-    TaglineId,
-  },
+  newtypes::{InstanceId, LanguageId, MultiCommunityId, OAuthProviderId, PaginationCursor},
   sensitive::SensitiveString,
   source::{
     comment::Comment,
@@ -643,14 +636,6 @@ pub struct CreateTagline {
   pub content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Delete a tagline
-pub struct DeleteTagline {
-  pub id: TaglineId,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -685,7 +670,6 @@ pub struct TaglineResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Update a tagline
 pub struct UpdateTagline {
-  pub id: TaglineId,
   pub content: String,
 }
 

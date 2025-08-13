@@ -1,11 +1,12 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
 use lemmy_db_schema::{
+  newtypes::TaglineId,
   source::tagline::{Tagline, TaglineUpdateForm},
   traits::Crud,
 };
@@ -14,6 +15,7 @@ use lemmy_db_views_site::api::{TaglineResponse, UpdateTagline};
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(
+  id: Path<TaglineId>,
   data: Json<UpdateTagline>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -30,7 +32,7 @@ pub async fn update_tagline(
     updated_at: Some(Some(Utc::now())),
   };
 
-  let tagline = Tagline::update(&mut context.pool(), data.id, &tagline_form).await?;
+  let tagline = Tagline::update(&mut context.pool(), id.into_inner(), &tagline_form).await?;
 
   Ok(Json(TaglineResponse { tagline }))
 }
