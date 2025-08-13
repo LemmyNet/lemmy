@@ -1,6 +1,6 @@
 use crate::newtypes::{CommentId, PersonId, PersonLikedCombinedId, PostId};
 #[cfg(feature = "full")]
-use crate::utils::queryable::BoolToIntScore;
+use crate::utils::bool_to_int_score;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -11,26 +11,21 @@ use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Selectable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = person_liked_combined))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = person_liked_combined_keys))]
 /// A combined person_liked table.
 pub struct PersonLikedCombined {
   pub liked_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = BoolToIntScore))]
-  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score(person_liked_combined::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score<person_liked_combined::like_score_is_positive>))]
   pub like_score: i16,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  pub id: PersonLikedCombinedId,
-}
-
-#[cfg(feature = "full")]
-#[derive(Queryable, Selectable, CursorKeysModule)]
-#[diesel(table_name = person_liked_combined)]
-#[cursor_keys_module(name = person_liked_combined_keys)]
-pub struct PersonLikedCombinedCursorData {
-  pub liked_at: DateTime<Utc>,
   pub id: PersonLikedCombinedId,
 }

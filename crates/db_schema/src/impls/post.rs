@@ -472,6 +472,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -504,6 +505,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -685,6 +687,8 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       score: 1,
+      hot_rank: 0.1370171,
+      hot_rank_active: 0.1370171,
       age: Some(0),
       newest_non_necro_comment_age: None,
       non_0_community_interactions_month: None,

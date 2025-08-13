@@ -18,10 +18,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_liked::{
-    person_liked_combined_keys as key,
-    PersonLikedCombinedCursorData,
-  },
+  source::combined::person_liked::{person_liked_combined_keys as key, PersonLikedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     get_conn,
@@ -53,14 +50,14 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub struct PersonLikedCombinedQuery {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
-  pub cursor_data: Option<PersonLikedCombinedCursorData>,
+  pub cursor_data: Option<PersonLikedCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
 impl PaginationCursorBuilder for PersonLikedCombinedView {
-  type CursorData = PersonLikedCombinedCursorData;
+  type CursorData = PersonLikedCombined;
 
   fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {

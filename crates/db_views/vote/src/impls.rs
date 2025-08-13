@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, InstanceId, PaginationCursor, PostId},
   source::{comment::CommentActionsCursorData, post::PostActionsCursorData},
   utils::{
+    bool_to_int_score,
     get_conn,
     limit_fetch,
     paginate,
@@ -102,7 +103,7 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        post_actions::like_score_is_positive.assume_not_null(),
+        bool_to_int_score(post_actions::like_score_is_positive.assume_not_null()),
       ))
       .limit(limit)
       .into_boxed();
@@ -183,7 +184,7 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        comment_actions::like_score_is_positive.assume_not_null(),
+        bool_to_int_score(comment_actions::like_score_is_positive.assume_not_null()),
       ))
       .limit(limit)
       .into_boxed();

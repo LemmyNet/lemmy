@@ -1,9 +1,6 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::utils::{
-  functions::get_score,
-  queryable::{ChangeNullTo, NullableBoolToIntScore},
-};
+use crate::utils::{bool_to_int_score_nullable, functions::get_score, queryable::ChangeNullTo};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -156,8 +153,8 @@ pub struct CommentActions {
   #[serde(skip)]
   pub comment_id: CommentId,
   /// The like / score for the comment.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = NullableBoolToIntScore))]
-  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(comment_actions::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<comment_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
   /// When the comment was liked.
   pub liked_at: Option<DateTime<Utc>>,

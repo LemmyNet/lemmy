@@ -22,10 +22,10 @@ use lemmy_db_schema::{
     community::CommunityActions,
     local_user::LocalUser,
     person::Person,
-    post::{post_actions_keys as pa_key, post_keys as key, PostActionsCursorData, PostCursorData},
+    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActionsCursorData},
     site::Site,
   },
-  traits::PaginationCursorBuilder,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{
     get_conn,
     limit_fetch,
@@ -49,15 +49,8 @@ use lemmy_db_schema::{
       suggested_communities,
     },
     seconds_to_pg_interval,
-    Coalesce2NullableKey,
-    CoalesceConstKey,
-    CoalesceKey,
     Commented,
-    ControversyRankKey,
     DbPool,
-    HotRankKey,
-    ScaledRankKey,
-    ScoreKey,
   },
 };
 use lemmy_db_schema_file::{
@@ -81,7 +74,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;
 
 impl PaginationCursorBuilder for PostView {
-  type CursorData = PostCursorData;
+  type CursorData = Post;
   fn to_cursor(&self) -> PaginationCursor {
     PaginationCursor::new_single('P', self.post.id.0)
   }
@@ -91,14 +84,7 @@ impl PaginationCursorBuilder for PostView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let [(_, id)] = cursor.prefixes_and_ids()?;
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      post::table
-        .find(id)
-        .select(PostCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    Post::read(pool, PostId(id)).await
   }
 }
 
@@ -285,7 +271,7 @@ pub struct PostQuery<'a> {
   pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
-  pub cursor_data: Option<PostCursorData>,
+  pub cursor_data: Option<Post>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -295,7 +281,7 @@ impl PostQuery<'_> {
     &self,
     site: &Site,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Option<PostCursorData>> {
+  ) -> LemmyResult<Option<Post>> {
     // first get one page for the most popular community to get an upper bound for the page end for
     // the real query. the reason this is needed is that when fetching posts for a single
     // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
@@ -341,7 +327,7 @@ impl PostQuery<'_> {
             Some(
               post::table
                 .find(pv.post.id)
-                .select(PostCursorData::as_select())
+                .select(Post::as_select())
                 .first(conn)
                 .await?,
             )
@@ -360,7 +346,7 @@ impl PostQuery<'_> {
   async fn list_inner(
     self,
     site: &Site,
-    cursor_before_data: Option<PostCursorData>,
+    cursor_before_data: Option<Post>,
     largest_subscribed_for_prefetch: Option<CommunityId>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Vec<PostView>> {
@@ -544,36 +530,14 @@ impl PostQuery<'_> {
 
     // then use the main sort
     pq = match sort {
-      Active => pq.then_order_by(HotRankKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-        age: Coalesce2NullableKey(key::newest_non_necro_comment_age, key::age),
-      }),
-      Hot => pq.then_order_by(HotRankKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-        age: key::age,
-      }),
-      Scaled => pq.then_order_by(ScaledRankKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-        age: key::age,
-        non_0_community_interactions_month: key::non_0_community_interactions_month,
-      }),
-      Controversial => pq.then_order_by(ControversyRankKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-      }),
+      Active => pq.then_order_by(key::hot_rank_active),
+      Hot => pq.then_order_by(key::hot_rank),
+      Scaled => pq.then_order_by(key::scaled_rank),
+      Controversial => pq.then_order_by(key::controversy_rank),
       New | Old => pq.then_order_by(key::published_at),
-      NewComments => pq.then_order_by(CoalesceKey(
-        key::newest_comment_time_at_after_published,
-        key::published_at,
-      )),
-      MostComments => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_comments)),
-      Top => pq.then_order_by(ScoreKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-      }),
+      NewComments => pq.then_order_by(key::newest_comment_time_at),
+      MostComments => pq.then_order_by(key::comments),
+      Top => pq.then_order_by(key::score),
     };
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.

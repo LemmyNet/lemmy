@@ -17,6 +17,7 @@ use diesel::{
   },
   sql_types::{self, Timestamptz},
   Expression,
+  ExpressionMethods,
   IntoSql,
 };
 use diesel_async::{
@@ -61,7 +62,7 @@ const FETCH_LIMIT_DEFAULT: i64 = 20;
 pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
-pub const RANK_DEFAULT: f64 = 0.0001;
+pub const RANK_DEFAULT: f64 = 0.0001; // TODO: maybe remove
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -441,6 +442,38 @@ where
   fn get_sql_value() -> Self::SqlValue {
     functions::coalesce(A::get_sql_value(), N.into_sql::<sql_types::Integer>())
   }
+}
+
+#[expect(non_camel_case_types)]
+pub type bool_to_int_score<T> = dsl::Otherwise<dsl::case_when<T, i16, sql_types::SmallInt>, i16>;
+
+pub fn bool_to_int_score<T>(like_score_is_positive: T) -> bool_to_int_score<T>
+where
+  T: Expression<SqlType = sql_types::Bool>,
+{
+  dsl::case_when::<_, _, sql_types::SmallInt>(like_score_is_positive, 1).otherwise(-1)
+}
+
+#[expect(non_camel_case_types)]
+pub type bool_to_int_score_nullable<T> = dsl::Otherwise<
+  dsl::When<
+    dsl::case_when<dsl::IsNull<T>, Option<i16>, sql_types::Nullable<sql_types::SmallInt>>,
+    T,
+    Option<i16>,
+  >,
+  Option<i16>,
+>;
+
+pub fn bool_to_int_score_nullable<T>(like_score_is_positive: T) -> bool_to_int_score_nullable<T>
+where
+  T: Copy + Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
+{
+  dsl::case_when::<_, _, sql_types::Nullable<sql_types::SmallInt>>(
+    like_score_is_positive.is_null(),
+    None,
+  )
+  .when(like_score_is_positive, Some(1))
+  .otherwise(Some(-1))
 }
 
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output

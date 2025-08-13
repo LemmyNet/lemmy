@@ -1,8 +1,15 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::utils::{
-  functions::{coalesce, get_score},
-  queryable::{ChangeNullTo, NullableBoolToIntScore},
+  bool_to_int_score_nullable,
+  functions::{
+    coalesce,
+    coalesce_2_nullable,
+    get_controversy_rank,
+    get_hot_rank,
+    get_scaled_rank,
+    get_score,
+  },
 };
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
@@ -17,9 +24,13 @@ use {
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post.
@@ -75,50 +86,45 @@ pub struct Post {
   pub newest_comment_time_at: DateTime<Utc>,
   #[serde(skip)]
   pub non_0_community_interactions_month: Option<i32>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_comments))]
+  #[diesel(select_expression = coalesce(post::non_0_comments, 0))]
+  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_0_comments, i32>)]
   pub comments: i32,
   #[diesel(select_expression = get_score(post::non_1_upvotes, post::non_0_downvotes))]
+  #[diesel(select_expression_type = get_score<post::non_1_upvotes, post::non_0_downvotes>)]
   pub score: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<1, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_1_upvotes))]
+  #[diesel(select_expression = coalesce(post::non_1_upvotes, 1))]
+  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_1_upvotes, i32>)]
   pub upvotes: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_downvotes))]
+  #[diesel(select_expression = coalesce(post::non_0_downvotes, 0))]
+  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_0_downvotes, i32>)]
   pub downvotes: i32,
   #[serde(skip)]
   pub age: Option<i16>,
   #[serde(skip)]
   pub newest_non_necro_comment_age: Option<i16>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_report_count))]
+  #[diesel(select_expression = coalesce(post::non_0_report_count, 0))]
+  #[diesel(select_expression_type = coalesce::<sql_types::SmallInt, post::non_0_report_count, i16>)]
   pub report_count: i16,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_unresolved_report_count))]
+  #[diesel(select_expression = coalesce(post::non_0_unresolved_report_count, 0))]
+  #[diesel(select_expression_type = coalesce::<sql_types::SmallInt, post::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
-}
-
-#[cfg_attr(
-  feature = "full",
-  derive(Clone, Queryable, Selectable, CursorKeysModule)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = post))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = post_keys))]
-pub struct PostCursorData {
-  pub id: PostId,
-  pub published_at: DateTime<Utc>,
-  pub featured_community: bool,
-  pub featured_local: bool,
-  pub newest_comment_time_at_after_published: Option<DateTime<Utc>>,
-  pub non_0_community_interactions_month: Option<i32>,
-  pub non_0_comments: Option<i32>,
-  pub non_1_upvotes: Option<i32>,
-  pub non_0_downvotes: Option<i32>,
-  pub age: Option<i16>,
-  pub newest_non_necro_comment_age: Option<i16>,
+  #[serde(skip)]
+  #[diesel(select_expression = get_hot_rank(post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable(post::newest_non_necro_comment_age, post::age)))]
+  #[diesel(select_expression_type = get_hot_rank<post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable<sql_types::SmallInt, post::newest_non_necro_comment_age, post::age>>)]
+  pub hot_rank_active: f32,
+  #[serde(skip)]
+  #[diesel(select_expression = get_hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
+  #[diesel(select_expression_type = get_hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
+  pub hot_rank: f32,
+  #[diesel(select_expression = get_controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
+  #[diesel(select_expression_type = get_controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
+  pub controversy_rank: f32,
+  #[diesel(select_expression = get_scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
+  #[diesel(select_expression_type = get_scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
+  pub scaled_rank: f32,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -234,8 +240,8 @@ pub struct PostActions {
   /// count.
   pub read_comments_amount: Option<i32>,
   /// The like / score of the post.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = NullableBoolToIntScore))]
-  #[cfg_attr(feature = "full", diesel(column_name = like_score_is_positive))]
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(post_actions::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<post_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
   pub notifications: Option<PostNotificationsMode>,
 }
