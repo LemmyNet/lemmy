@@ -527,17 +527,16 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/authenticate", post().to(authenticate_with_oauth)),
       )
       .service(
-        scope("/image")
+        scope("/media")
+          .route("", get().to(list_all_media))
+          .route("", post().to(upload_image).wrap(rate_limit.image()))
           .service(
-            resource("")
-              .wrap(rate_limit.image())
-              .route(post().to(upload_image))
-              .route(delete().to(delete_image_admin)),
+            resource("/{filename}")
+              .route(get().to(get_image))
+              .route(delete().to(delete_image_admin).wrap(rate_limit.image())),
           )
           .route("/proxy", get().to(image_proxy))
-          .route("/health", get().to(pictrs_health))
-          .route("/list", get().to(list_all_media))
-          .route("/{filename}", get().to(get_image)),
+          .route("/health", get().to(pictrs_health)),
       ),
   );
 }

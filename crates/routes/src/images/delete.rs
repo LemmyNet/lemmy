@@ -15,7 +15,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
@@ -128,7 +127,6 @@ pub async fn delete_user_banner(
 /// Deletes an image for a specific user.
 pub async fn delete_image(
   filename: web::Path<String>,
-  _data: Json<DeleteImageParams>, // TODO: remove this type after changing admin routes
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -142,14 +140,14 @@ pub async fn delete_image(
 
 /// Deletes any image, only for admins.
 pub async fn delete_image_admin(
-  data: Json<DeleteImageParams>,
+  filename: web::Path<String>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_admin(&local_user_view)?;
 
   // Use purge, since it should remove any other aliases.
-  purge_image_from_pictrs(&data.filename, &context).await?;
+  purge_image_from_pictrs(&filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }
