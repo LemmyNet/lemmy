@@ -214,7 +214,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route(get().to(search)),
       )
       .service(
-        resource("/resolve_object")
+        // TODO: Isn't this being handled by the search endpoint now?
+        resource("/resolve-object")
           .wrap(rate_limit.search())
           .route(get().to(resolve_object)),
       )
