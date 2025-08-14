@@ -4,8 +4,8 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::person::{person_keys as key, PersonCursorData},
-  traits::PaginationCursorBuilder,
+  source::person::{person_keys as key, Person},
+  traits::{Crud, PaginationCursorBuilder},
   utils::{
     get_conn,
     limit_fetch,
@@ -22,7 +22,7 @@ use lemmy_db_schema_file::schema::{local_user, person};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
-  type CursorData = PersonCursorData;
+  type CursorData = Person;
 
   fn to_cursor(&self) -> PaginationCursor {
     PaginationCursor::new_single('P', self.person.id.0)
@@ -33,14 +33,7 @@ impl PaginationCursorBuilder for PersonView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let [(_, id)] = cursor.prefixes_and_ids()?;
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      person::table
-        .find(id)
-        .select(PersonCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    Person::read(pool, PersonId(id)).await
   }
 }
 
@@ -85,7 +78,7 @@ impl PersonView {
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
-  pub cursor_data: Option<PersonCursorData>,
+  pub cursor_data: Option<Person>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }

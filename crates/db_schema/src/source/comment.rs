@@ -1,12 +1,16 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::utils::{bool_to_int_score_nullable, functions::get_score, queryable::ChangeNullTo};
+use crate::utils::{
+  bool_to_int_score_nullable,
+  functions::{coalesce, get_controversy_rank, get_hot_rank, get_score},
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,
+  diesel::sql_types,
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{comment, comment_actions},
@@ -16,11 +20,12 @@ use {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable)
+  derive(Queryable, Selectable, Associations, Identifiable, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = comment_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A comment.
@@ -51,42 +56,37 @@ pub struct Comment {
   pub distinguished: bool,
   pub language_id: LanguageId,
   #[diesel(select_expression = get_score(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = get_score<comment::non_1_upvotes, comment::non_0_downvotes>)]
   pub score: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<1, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_1_upvotes))]
+  #[diesel(select_expression = coalesce(comment::non_1_upvotes, 1))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_1_upvotes, i32>)]
   pub upvotes: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_downvotes))]
+  #[diesel(select_expression = coalesce(comment::non_0_downvotes, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_downvotes, i32>)]
   pub downvotes: i32,
   /// The total number of children in this comment branch.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_child_count))]
+  #[diesel(select_expression = coalesce(comment::non_0_child_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_child_count, i32>)]
   pub child_count: i32,
   #[serde(skip)]
+  #[diesel(select_expression = get_hot_rank(comment::non_1_upvotes, comment::non_0_downvotes, comment::age))]
+  #[diesel(select_expression_type = get_hot_rank<comment::non_1_upvotes, comment::non_0_downvotes, comment::age>)]
+  pub hot_rank: f32,
+  #[serde(skip)]
+  #[diesel(select_expression = get_controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = get_controversy_rank<comment::non_1_upvotes, comment::non_0_downvotes>)]
+  pub controversy_rank: f32,
+  #[serde(skip)]
   pub age: Option<i16>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_report_count))]
+  #[diesel(select_expression = coalesce(comment::non_0_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_report_count, i16>)]
   pub report_count: i16,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_unresolved_report_count))]
+  #[diesel(select_expression = coalesce(comment::non_0_unresolved_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
-}
-
-#[cfg(feature = "full")]
-#[derive(Queryable, Selectable, CursorKeysModule)]
-#[diesel(table_name = comment)]
-#[cursor_keys_module(name = comment_keys)]
-pub struct CommentCursorData {
-  pub id: CommentId,
-  pub published_at: DateTime<Utc>,
-  pub path: Ltree,
-  pub distinguished: bool,
-  pub non_1_upvotes: Option<i32>,
-  pub non_0_downvotes: Option<i32>,
-  pub age: Option<i16>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

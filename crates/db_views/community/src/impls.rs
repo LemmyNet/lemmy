@@ -6,11 +6,11 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
   source::{
-    community::{community_keys as key, Community, CommunityCursorData},
+    community::{community_keys as key, Community},
     local_user::LocalUser,
     site::Site,
   },
-  traits::PaginationCursorBuilder,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{
     get_conn,
     limit_fetch,
@@ -25,8 +25,6 @@ use lemmy_db_schema::{
       suggested_communities,
     },
     seconds_to_pg_interval,
-    CoalesceConstKey,
-    CommunityHotRankKey,
     DbPool,
     LowerKey,
   },
@@ -89,7 +87,7 @@ impl CommunityView {
 }
 
 impl PaginationCursorBuilder for CommunityView {
-  type CursorData = CommunityCursorData;
+  type CursorData = Community;
   fn to_cursor(&self) -> PaginationCursor {
     PaginationCursor::new_single('C', self.community.id.0)
   }
@@ -99,14 +97,7 @@ impl PaginationCursorBuilder for CommunityView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let [(_, id)] = cursor.prefixes_and_ids()?;
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      community::table
-        .find(id)
-        .select(CommunityCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    Community::read(pool, CommunityId(id)).await
   }
 }
 
@@ -118,7 +109,7 @@ pub struct CommunityQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
   pub multi_community_id: Option<MultiCommunityId>,
-  pub cursor_data: Option<CommunityCursorData>,
+  pub cursor_data: Option<Community>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -187,22 +178,17 @@ impl CommunityQuery<'_> {
     let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
 
     pq = match sort {
-      Hot => pq.then_order_by(CommunityHotRankKey {
-        non_1_subscribers: key::non_1_subscribers,
-        age: key::age,
-      }),
-      Comments => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_comments)),
-      Posts => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_posts)),
+      Hot => pq.then_order_by(key::hot_rank),
+      Comments => pq.then_order_by(key::comments),
+      Posts => pq.then_order_by(key::posts),
       New => pq.then_order_by(key::published_at),
       Old => pq.then_order_by(key::published_at),
-      Subscribers => pq.then_order_by(CoalesceConstKey::<1, _>(key::non_1_subscribers)),
-      SubscribersLocal => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_subscribers_local)),
-      ActiveSixMonths => {
-        pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_users_active_half_year))
-      }
-      ActiveMonthly => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_users_active_month)),
-      ActiveWeekly => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_users_active_week)),
-      ActiveDaily => pq.then_order_by(CoalesceConstKey::<0, _>(key::non_0_users_active_day)),
+      Subscribers => pq.then_order_by(key::subscribers),
+      SubscribersLocal => pq.then_order_by(key::subscribers_local),
+      ActiveSixMonths => pq.then_order_by(key::users_active_half_year),
+      ActiveMonthly => pq.then_order_by(key::users_active_month),
+      ActiveWeekly => pq.then_order_by(key::users_active_week),
+      ActiveDaily => pq.then_order_by(key::users_active_day),
       NameAsc => pq.then_order_by(LowerKey(key::name)),
       NameDesc => pq.then_order_by(LowerKey(key::name)),
     };
@@ -223,6 +209,7 @@ impl MultiCommunityView {
       multi_community::table
         .find(id)
         .inner_join(person::table)
+        .select(Self::as_select())
         .get_result(conn)
         .await?,
     )

@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::utils::queryable::ChangeNullTo;
+use crate::utils::functions::{coalesce, get_community_hot_rank};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -15,15 +15,20 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
+  diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{community, community_actions},
 };
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A community.
@@ -76,66 +81,51 @@ pub struct Community {
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<1, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_1_subscribers))]
+  #[diesel(select_expression = coalesce(community::non_1_subscribers, 1))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_1_subscribers, i32>)]
   pub subscribers: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_posts))]
+  #[diesel(select_expression = coalesce(community::non_0_posts, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_posts, i32>)]
   pub posts: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_comments))]
+  #[diesel(select_expression = coalesce(community::non_0_comments, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_comments, i32>)]
   pub comments: i32,
   /// The number of users with any activity in the last day.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_day))]
+  #[diesel(select_expression = coalesce(community::non_0_users_active_day, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_day, i32>)]
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_week))]
+  #[diesel(select_expression = coalesce(community::non_0_users_active_week, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_week, i32>)]
   pub users_active_week: i32,
   /// The number of users with any activity in the last month.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_month))]
+  #[diesel(select_expression = coalesce(community::non_0_users_active_month, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_month, i32>)]
   pub users_active_month: i32,
   /// The number of users with any activity in the last year.
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_users_active_half_year))]
+  #[diesel(select_expression = coalesce(community::non_0_users_active_half_year, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_half_year, i32>)]
   pub users_active_half_year: i32,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_subscribers_local))]
+  #[diesel(select_expression = coalesce(community::non_0_subscribers_local, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_subscribers_local, i32>)]
   pub subscribers_local: i32,
   /// Number of any interactions over the last month.
   #[serde(skip)]
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i32>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_interactions_month))]
+  #[diesel(select_expression = coalesce(community::non_0_interactions_month, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_interactions_month, i32>)]
   pub interactions_month: i32,
   #[serde(skip)]
   pub age: Option<i16>,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_report_count))]
+  #[diesel(select_expression = coalesce(community::non_0_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_report_count, i16>)]
   pub report_count: i16,
-  #[cfg_attr(feature = "full", diesel(deserialize_as = ChangeNullTo<0, i16>))]
-  #[cfg_attr(feature = "full", diesel(column_name = non_0_unresolved_report_count))]
+  #[diesel(select_expression = coalesce(community::non_0_unresolved_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   pub local_removed: bool,
-}
-
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
-#[cfg_attr(feature = "full", diesel(table_name = community))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = community_keys))]
-pub struct CommunityCursorData {
-  pub id: CommunityId,
-  pub name: String,
-  pub published_at: DateTime<Utc>,
-  pub non_1_subscribers: Option<i32>,
-  pub non_0_posts: Option<i32>,
-  pub non_0_comments: Option<i32>,
-  pub non_0_users_active_day: Option<i32>,
-  pub non_0_users_active_week: Option<i32>,
-  pub non_0_users_active_month: Option<i32>,
-  pub non_0_users_active_half_year: Option<i32>,
-  pub non_0_subscribers_local: Option<i32>,
-  pub age: Option<i16>,
+  #[diesel(select_expression = get_community_hot_rank(community::non_1_subscribers, community::age))]
+  #[diesel(select_expression_type = get_community_hot_rank<community::non_1_subscribers, community::age>)]
+  pub hot_rank: f32,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

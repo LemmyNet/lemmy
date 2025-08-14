@@ -15,11 +15,11 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
-    comment::{comment_keys as key, CommentCursorData},
+    comment::{comment_keys as key, Comment},
     local_user::LocalUser,
     site::Site,
   },
-  traits::PaginationCursorBuilder,
+  traits::{Crud, PaginationCursorBuilder},
   utils::{
     get_conn,
     limit_fetch,
@@ -40,10 +40,7 @@ use lemmy_db_schema::{
       suggested_communities,
     },
     seconds_to_pg_interval,
-    ControversyRankKey,
     DbPool,
-    HotRankKey,
-    ScoreKey,
     Subpath,
   },
 };
@@ -59,7 +56,7 @@ use lemmy_db_schema_file::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for CommentView {
-  type CursorData = CommentCursorData;
+  type CursorData = Comment;
   fn to_cursor(&self) -> PaginationCursor {
     PaginationCursor::new_single('C', self.comment.id.0)
   }
@@ -69,14 +66,7 @@ impl PaginationCursorBuilder for CommentView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let [(_, id)] = cursor.prefixes_and_ids()?;
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      comment::table
-        .find(id)
-        .select(CommentCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    Comment::read(pool, CommentId(id)).await
   }
 }
 
@@ -171,7 +161,7 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
   pub max_depth: Option<i32>,
-  pub cursor_data: Option<CommentCursorData>,
+  pub cursor_data: Option<Comment>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -312,25 +302,10 @@ impl CommentQuery<'_> {
     }
 
     pq = match sort {
-      Hot => pq
-        .then_order_by(HotRankKey {
-          non_1_upvotes: key::non_1_upvotes,
-          non_0_downvotes: key::non_0_downvotes,
-          age: key::age,
-        })
-        .then_order_by(ScoreKey {
-          non_1_upvotes: key::non_1_upvotes,
-          non_0_downvotes: key::non_0_downvotes,
-        }),
-      Controversial => pq.then_order_by(ControversyRankKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-      }),
+      Hot => pq.then_order_by(key::hot_rank).then_order_by(key::score),
+      Controversial => pq.then_order_by(key::controversy_rank),
       Old | New => pq.then_order_by(key::published_at),
-      Top => pq.then_order_by(ScoreKey {
-        non_1_upvotes: key::non_1_upvotes,
-        non_0_downvotes: key::non_0_downvotes,
-      }),
+      Top => pq.then_order_by(key::score),
     };
 
     let res = pq.load::<CommentView>(conn).await?;

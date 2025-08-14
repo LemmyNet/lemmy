@@ -444,6 +444,8 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       score: 1,
+      hot_rank: 0.1370171,
+      controversy_rank: 0.0,
       age: Some(0),
       report_count: 0,
       unresolved_report_count: 0,

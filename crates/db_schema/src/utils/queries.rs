@@ -10,7 +10,7 @@ use crate::{
     person2,
   },
   newtypes::{InstanceId, PersonId},
-  utils::functions::get_score,
+  utils::functions::{get_controversy_rank, get_hot_rank, get_score},
   MyInstancePersonsActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
@@ -19,6 +19,7 @@ use diesel::{
   dsl::{case_when, exists, not},
   expression::SqlLiteral,
   helper_types::{Eq, NotEq, Nullable},
+  sql_types,
   sql_types::Json,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -207,6 +208,32 @@ pub fn local_user_community_can_mod() -> _ {
   am_admin.or(am_moderator).is_not_distinct_from(true)
 }
 
+// TODO: move this
+pub trait NullableExpression {
+  type InnerSqlType;
+}
+impl<ST, T: diesel::expression::Expression<SqlType = sql_types::Nullable<ST>>> NullableExpression
+  for T
+{
+  type InnerSqlType = ST;
+}
+pub fn coalesce<
+  X: NullableExpression
+    + diesel::expression::Expression<SqlType = sql_types::Nullable<X::InnerSqlType>>,
+  Y: diesel::expression::AsExpression<X::InnerSqlType>,
+>(
+  x: X,
+  y: Y,
+) -> crate::utils::functions::coalesce<X::InnerSqlType, X, Y>
+where
+  X::InnerSqlType: diesel::sql_types::SqlType + diesel::sql_types::SingleValue,
+{
+  crate::utils::functions::coalesce(x, y)
+}
+#[expect(non_camel_case_types)]
+pub type coalesce<X, Y> =
+  crate::utils::functions::coalesce<<X as NullableExpression>::InnerSqlType, X, Y>;
+
 /// Selects the comment columns, but gives an empty string for content when
 /// deleted or removed, and you're not a mod/admin.
 #[diesel::dsl::auto_type]
@@ -232,12 +259,18 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::distinguished,
     comment::language_id,
     get_score(comment::non_1_upvotes, comment::non_0_downvotes),
-    comment::non_1_upvotes,
-    comment::non_0_downvotes,
-    comment::non_0_child_count,
+    coalesce(comment::non_1_upvotes, 1i32),
+    coalesce(comment::non_0_downvotes, 0i32),
+    coalesce(comment::non_0_child_count, 0i32),
+    get_hot_rank(
+      comment::non_1_upvotes,
+      comment::non_0_downvotes,
+      comment::age,
+    ),
+    get_controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes),
     comment::age,
-    comment::non_0_report_count,
-    comment::non_0_unresolved_report_count,
+    coalesce(comment::non_0_report_count, 0i16),
+    coalesce(comment::non_0_unresolved_report_count, 0i16),
     comment::federation_pending,
   )
 }
@@ -265,14 +298,50 @@ pub fn community_post_tags_fragment() -> _ {
     .single_value()
 }
 
+#[diesel::dsl::auto_type]
+// `Clone` is required by the `impl<S, C>
+// diesel::internal::table_macro::FieldAliasMapperAssociatedTypesDisjointnessTrick<table, S, C> for
+// table` block proudly found in the implementation of the `table` macro. TODO: maybe open diesel
+// issue
+pub fn person_alias_as_select<
+  S: diesel::query_source::AliasSource<Target = person::table> + Clone,
+>(
+  alias: diesel::query_source::Alias<S>,
+) -> _ {
+  (
+    alias.field(person::id),
+    alias.field(person::name),
+    alias.field(person::display_name),
+    alias.field(person::avatar),
+    alias.field(person::published_at),
+    alias.field(person::updated_at),
+    alias.field(person::ap_id),
+    alias.field(person::bio),
+    alias.field(person::local),
+    alias.field(person::private_key),
+    alias.field(person::public_key),
+    alias.field(person::last_refreshed_at),
+    alias.field(person::banner),
+    alias.field(person::deleted),
+    alias.field(person::inbox_url),
+    alias.field(person::matrix_user_id),
+    alias.field(person::bot_account),
+    alias.field(person::instance_id),
+    coalesce(alias.field(person::non_0_post_count), 0i32),
+    coalesce(alias.field(person::non_0_post_score), 0i32),
+    coalesce(alias.field(person::non_0_comment_count), 0i32),
+    coalesce(alias.field(person::non_0_comment_score), 0i32),
+  )
+}
+
 /// The select for the person1 alias.
 pub fn person1_select() -> Person1AliasAllColumnsTuple {
-  person1.fields(person::all_columns)
+  person_alias_as_select(person1)
 }
 
 /// The select for the person2 alias.
 pub fn person2_select() -> Person2AliasAllColumnsTuple {
-  person2.fields(person::all_columns)
+  person_alias_as_select(person2)
 }
 
 type IsSubscribedType =

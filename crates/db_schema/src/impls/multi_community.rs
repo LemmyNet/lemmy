@@ -21,6 +21,7 @@ use diesel::{
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
@@ -222,6 +223,7 @@ impl MultiCommunity {
     let removed: Vec<Community> = community::table
       .filter(community::id.eq_any(removed))
       .filter(not(community::local))
+      .select(Community::as_select())
       .get_results(conn)
       .await?;
 
@@ -243,6 +245,7 @@ impl MultiCommunity {
     let added: Vec<Community> = community::table
       .filter(community::id.eq_any(added))
       .filter(not(community::local))
+      .select(Community::as_select())
       .get_results(conn)
       .await?;
 

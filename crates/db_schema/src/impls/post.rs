@@ -689,6 +689,8 @@ mod tests {
       score: 1,
       hot_rank: 0.1370171,
       hot_rank_active: 0.1370171,
+      scaled_rank: 0.45516095,
+      controversy_rank: 0.0,
       age: Some(0),
       newest_non_necro_comment_age: None,
       non_0_community_interactions_month: None,

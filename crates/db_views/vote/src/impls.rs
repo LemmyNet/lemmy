@@ -12,7 +12,7 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, InstanceId, PaginationCursor, PostId},
-  source::{comment::CommentActionsCursorData, post::PostActionsCursorData},
+  source::{comment::CommentActionsCursorData, person::Person, post::PostActionsCursorData},
   utils::{
     bool_to_int_score,
     get_conn,
@@ -97,7 +97,7 @@ impl VoteView {
       .filter(post_actions::post_id.eq(post_id))
       .filter(post_actions::like_score_is_positive.is_not_null())
       .select((
-        person::all_columns,
+        Person::as_select(),
         creator_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)
@@ -178,7 +178,7 @@ impl VoteView {
       .filter(comment_actions::comment_id.eq(comment_id))
       .filter(comment_actions::like_score_is_positive.is_not_null())
       .select((
-        person::all_columns,
+        Person::as_select(),
         creator_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)

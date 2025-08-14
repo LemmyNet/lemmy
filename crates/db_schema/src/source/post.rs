@@ -77,36 +77,36 @@ pub struct Post {
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce::<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
   #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce::<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
   #[serde(skip)]
   pub non_0_community_interactions_month: Option<i32>,
   #[diesel(select_expression = coalesce(post::non_0_comments, 0))]
-  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_0_comments, i32>)]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_0_comments, i32>)]
   pub comments: i32,
   #[diesel(select_expression = get_score(post::non_1_upvotes, post::non_0_downvotes))]
   #[diesel(select_expression_type = get_score<post::non_1_upvotes, post::non_0_downvotes>)]
   pub score: i32,
   #[diesel(select_expression = coalesce(post::non_1_upvotes, 1))]
-  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_1_upvotes, i32>)]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_1_upvotes, i32>)]
   pub upvotes: i32,
   #[diesel(select_expression = coalesce(post::non_0_downvotes, 0))]
-  #[diesel(select_expression_type = coalesce::<sql_types::Integer, post::non_0_downvotes, i32>)]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_0_downvotes, i32>)]
   pub downvotes: i32,
   #[serde(skip)]
   pub age: Option<i16>,
   #[serde(skip)]
   pub newest_non_necro_comment_age: Option<i16>,
   #[diesel(select_expression = coalesce(post::non_0_report_count, 0))]
-  #[diesel(select_expression_type = coalesce::<sql_types::SmallInt, post::non_0_report_count, i16>)]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, post::non_0_report_count, i16>)]
   pub report_count: i16,
   #[diesel(select_expression = coalesce(post::non_0_unresolved_report_count, 0))]
-  #[diesel(select_expression_type = coalesce::<sql_types::SmallInt, post::non_0_unresolved_report_count, i16>)]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, post::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
@@ -119,9 +119,11 @@ pub struct Post {
   #[diesel(select_expression = get_hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
   #[diesel(select_expression_type = get_hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
   pub hot_rank: f32,
+  #[serde(skip)]
   #[diesel(select_expression = get_controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
   #[diesel(select_expression_type = get_controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
   pub controversy_rank: f32,
+  #[serde(skip)]
   #[diesel(select_expression = get_scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
   #[diesel(select_expression_type = get_scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
   pub scaled_rank: f32,

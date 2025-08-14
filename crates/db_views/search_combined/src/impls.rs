@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::{
-    combined::search::{search_combined_keys as key, SearchCombinedCursorData},
+    combined::search::{search_combined_keys as key, SearchCombined},
     site::Site,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
@@ -49,7 +49,6 @@ use lemmy_db_schema::{
       suggested_communities,
     },
     seconds_to_pg_interval,
-    CoalesceConstKey,
     DbPool,
   },
   SearchSortType::{self, *},
@@ -168,7 +167,7 @@ impl SearchCombinedView {
 }
 
 impl PaginationCursorBuilder for SearchCombinedView {
-  type CursorData = SearchCombinedCursorData;
+  type CursorData = SearchCombined;
 
   fn to_cursor(&self) -> PaginationCursor {
     let (prefix, id) = match &self {
@@ -220,7 +219,7 @@ pub struct SearchCombinedQuery {
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub cursor_data: Option<SearchCombinedCursorData>,
+  pub cursor_data: Option<SearchCombined>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -387,7 +386,7 @@ impl SearchCombinedQuery {
 
     paginated_query = match sort {
       New | Old => paginated_query.then_order_by(key::published_at),
-      Top => paginated_query.then_order_by(CoalesceConstKey::<1, _>(key::non_1_score)),
+      Top => paginated_query.then_order_by(key::score),
     }
     // finally use unique id as tie breaker
     .then_order_by(key::id);
