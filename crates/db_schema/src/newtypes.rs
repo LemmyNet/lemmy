@@ -284,6 +284,12 @@ pub struct ModRemoveCommentId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct ModLockCommentId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct AdminRemoveCommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]

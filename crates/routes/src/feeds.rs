@@ -644,6 +644,22 @@ fn create_modlog_items(
         &None,
         settings,
       ),
+      ModlogCombinedView::ModLockComment(v) => build_modlog_item(
+        &v.moderator,
+        &v.mod_lock_comment.published_at,
+        &modlog_url,
+        &format!(
+          "{} comment {}",
+          if v.mod_lock_comment.locked {
+            "Locked"
+          } else {
+            "Unlocked"
+          },
+          &v.comment.content
+        ),
+        &v.mod_lock_comment.reason,
+        settings,
+      ),
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 

@@ -189,6 +189,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        locked -> Bool,
     }
 }
 
@@ -648,6 +649,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    mod_lock_comment (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        comment_id -> Int4,
+        locked -> Bool,
+        reason -> Nullable<Text>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     mod_lock_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -711,6 +723,7 @@ diesel::table! {
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
+        mod_lock_comment_id -> Nullable<Int4>,
     }
 }
 
@@ -1185,6 +1198,8 @@ diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> post (post_id));
+diesel::joinable!(mod_lock_comment -> comment (comment_id));
+diesel::joinable!(mod_lock_comment -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
@@ -1205,6 +1220,7 @@ diesel::joinable!(modlog_combined -> mod_add_to_community (mod_add_to_community_
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
 diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
+diesel::joinable!(modlog_combined -> mod_lock_comment (mod_lock_comment_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
@@ -1297,6 +1313,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
+  mod_lock_comment,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_post,
