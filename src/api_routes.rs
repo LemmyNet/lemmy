@@ -231,7 +231,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .wrap(rate_limit.register()),
           )
           .route("/random", get().to(get_random_community))
-          .route("{community_id_or_name}", get().to(get_community))
+          .route("/{community_id_or_name}", get().to(get_community))
           .service(
             scope("/{community_id}")
               .route("", put().to(update_community))
@@ -459,12 +459,18 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // User actions
       .service(
-        scope("/person")
-          .route("/block", post().to(user_block_person))
-          .route("", get().to(read_person))
-          .route("/content", get().to(list_person_content))
-          .route("/note", post().to(user_note_person))
-          .route("/purge", post().to(purge_person)),
+        scope("/people")
+          .service(
+            scope("/{person_id_or_name}")
+              .route("", get().to(read_person))
+              .route("/content", get().to(list_person_content)),
+          )
+          .service(
+            scope("/{person_id}")
+              .route("/block", post().to(user_block_person))
+              .route("/note", post().to(user_note_person))
+              .route("/purge", post().to(purge_person)),
+          ),
       )
       // Admin Actions
       .service(

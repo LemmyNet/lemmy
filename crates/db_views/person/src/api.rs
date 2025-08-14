@@ -4,6 +4,13 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+/// Either person_id, or username are required.
+#[derive(Debug)]
+pub enum PersonIdOrName<'a> {
+  Id(PersonId),
+  Name(&'a str),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -66,19 +73,6 @@ pub struct BlockPersonResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets a person's details.
-///
-/// Either person_id, or username are required.
-pub struct GetPersonDetails {
-  pub person_id: Option<PersonId>,
-  /// Example: dessalines , or dessalines@xyz.tld
-  pub username: Option<String>,
-}
-
-#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -105,6 +99,5 @@ pub struct PurgePerson {
 ///
 /// An empty string deletes the note.
 pub struct NotePerson {
-  pub person_id: PersonId,
   pub note: String,
 }

@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::{
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PersonId},
   source::{
     images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
     post::{Post, PostUpdateForm},
@@ -18,6 +18,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_community::api::CommunityIdOrName;
+use lemmy_db_views_person::api::PersonIdOrName;
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -573,6 +574,20 @@ pub fn parse_community_id_or_name_from_request(
     .map(|id| {
       id.parse::<CommunityId>()
         .map_or_else(|_| CommunityIdOrName::Name(id), CommunityIdOrName::Id)
+    })
+}
+
+/// Parse person ID or name from [`HttpRequest`].
+pub fn parse_person_id_or_name_from_request(
+  req: &HttpRequest,
+) -> Result<PersonIdOrName, LemmyErrorType> {
+  req
+    .match_info()
+    .get("person_id_or_name")
+    .ok_or(LemmyErrorType::NoIdGiven)
+    .map(|id| {
+      id.parse::<PersonId>()
+        .map_or_else(|_| PersonIdOrName::Name(id), PersonIdOrName::Id)
     })
 }
 

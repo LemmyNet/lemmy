@@ -22,14 +22,14 @@ pub async fn get_community(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommunityResponse>> {
-  let community_id = parse_community_id_or_name_from_request(&req)?;
+  let community_id_or_name = parse_community_id_or_name_from_request(&req)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   check_private_instance(&local_user_view, &local_site)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
-  let community_id = match community_id {
+  let community_id = match community_id_or_name {
     CommunityIdOrName::Id(id) => id,
     CommunityIdOrName::Name(name) => {
       resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)

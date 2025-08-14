@@ -45,6 +45,14 @@ impl fmt::Display for PostId {
 /// The person id.
 pub struct PersonId(pub i32);
 
+impl FromStr for PersonId {
+  type Err = ParseIntError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    s.parse::<i32>().map(PersonId)
+  }
+}
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

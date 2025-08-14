@@ -1,9 +1,12 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown, slur_regex},
 };
-use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
+use lemmy_db_schema::{
+  newtypes::PersonId,
+  source::person::{PersonActions, PersonNoteForm},
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::api::NotePerson;
 use lemmy_db_views_site::api::SuccessResponse;
@@ -13,11 +16,12 @@ use lemmy_utils::{
 };
 
 pub async fn user_note_person(
+  target_id: Path<PersonId>,
   data: Json<NotePerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let target_id = data.person_id;
+  let target_id = target_id.into_inner();
   let person_id = local_user_view.person.id;
 
   let slur_regex = slur_regex(&context).await?;
