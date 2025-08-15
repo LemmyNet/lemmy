@@ -1,15 +1,6 @@
 use crate::PostView;
 use lemmy_db_schema::{
-  newtypes::{
-    CommentId,
-    CommunityId,
-    DbUrl,
-    LanguageId,
-    MultiCommunityId,
-    PaginationCursor,
-    PostId,
-    TagId,
-  },
+  newtypes::{CommunityId, DbUrl, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
   PostFeatureType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
@@ -105,17 +96,6 @@ pub struct FeaturePost {
 /// Change notification settings for a post
 pub struct UpdatePostNotifications {
   pub mode: PostNotificationsMode,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-// TODO this should be made into a tagged enum
-/// Get a post. Needs either the post id, or comment_id.
-pub struct GetPost {
-  pub id: Option<PostId>,
-  pub comment_id: Option<CommentId>,
 }
 
 #[skip_serializing_none]

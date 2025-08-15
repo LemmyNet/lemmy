@@ -6,7 +6,6 @@ pub use lemmy_db_views_custom_emoji::{
   api::{
     CreateCustomEmoji,
     CustomEmojiResponse,
-    DeleteCustomEmoji,
     EditCustomEmoji,
     ListCustomEmojis,
     ListCustomEmojisResponse,

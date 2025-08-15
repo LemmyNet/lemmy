@@ -243,7 +243,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               // Mod Actions
               .route("/remove", post().to(remove_community))
               .route("/transfer", post().to(transfer_community))
-              .route("/ban_user", post().to(ban_from_community))
+              .route("/ban-user", post().to(ban_from_community))
               .route("/mod", post().to(add_mod_to_community))
               .route("/icon", post().to(upload_community_icon))
               .route("/icon", delete().to(delete_community_icon))

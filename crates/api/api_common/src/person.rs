@@ -7,10 +7,7 @@ pub use lemmy_db_schema::{
   PersonContentType,
 };
 pub use lemmy_db_views_local_user::LocalUserView;
-pub use lemmy_db_views_person::{
-  api::{GetPersonDetails, GetPersonDetailsResponse},
-  PersonView,
-};
+pub use lemmy_db_views_person::{api::GetPersonDetailsResponse, PersonView};
 
 pub mod actions {
   pub use lemmy_db_schema::newtypes::PersonContentCombinedId;
