@@ -1,5 +1,5 @@
 [workspace.package]
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.6"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -106,40 +106,40 @@ expect_used = "deny"
 as_conversions = "deny"
 
 [workspace.dependencies]
-lemmy_api = { version = "=1.0.0-alpha.5", path = "./crates/api/api" }
-lemmy_api_crud = { version = "=1.0.0-alpha.5", path = "./crates/api/api_crud" }
-lemmy_apub = { version = "=1.0.0-alpha.5", path = "./crates/apub" }
-lemmy_apub_objects = { version = "=1.0.0-alpha.5", path = "./crates/apub_objects" }
-lemmy_utils = { version = "=1.0.0-alpha.5", path = "./crates/utils", default-features = false }
-lemmy_db_schema = { version = "=1.0.0-alpha.5", path = "./crates/db_schema" }
-lemmy_db_schema_file = { version = "=1.0.0-alpha.5", path = "./crates/db_schema_file" }
-lemmy_db_schema_setup = { version = "=1.0.0-alpha.5", path = "./crates/db_schema_setup" }
-lemmy_api_utils = { version = "=1.0.0-alpha.5", path = "./crates/api/api_utils" }
-lemmy_routes = { version = "=1.0.0-alpha.5", path = "./crates/routes" }
-lemmy_federate = { version = "=1.0.0-alpha.5", path = "./crates/federate" }
-lemmy_email = { version = "=1.0.0-alpha.5", path = "./crates/email" }
-lemmy_db_views_comment = { version = "=1.0.0-alpha.5", path = "./crates/db_views/comment" }
-lemmy_db_views_community = { version = "=1.0.0-alpha.5", path = "./crates/db_views/community" }
-lemmy_db_views_community_follower = { version = "=1.0.0-alpha.5", path = "./crates/db_views/community_follower" }
-lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.5", path = "./crates/db_views/community_moderator" }
-lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.5", path = "./crates/db_views/community_person_ban" }
-lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.5", path = "./crates/db_views/custom_emoji" }
-lemmy_db_views_notification = { version = "=1.0.0-alpha.5", path = "./crates/db_views/notification" }
-lemmy_db_views_local_image = { version = "=1.0.0-alpha.5", path = "./crates/db_views/local_image" }
-lemmy_db_views_local_user = { version = "=1.0.0-alpha.5", path = "./crates/db_views/local_user" }
-lemmy_db_views_modlog_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/modlog_combined" }
-lemmy_db_views_person = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person" }
-lemmy_db_views_person_content_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_content_combined" }
-lemmy_db_views_person_liked_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_liked_combined" }
-lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/person_saved_combined" }
-lemmy_db_views_post = { version = "=1.0.0-alpha.5", path = "./crates/db_views/post" }
-lemmy_db_views_private_message = { version = "=1.0.0-alpha.5", path = "./crates/db_views/private_message" }
-lemmy_db_views_readable_federation_state = { version = "=1.0.0-alpha.5", path = "./crates/db_views/readable_federation_state" }
-lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.5", path = "./crates/db_views/registration_applications" }
-lemmy_db_views_report_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/report_combined" }
-lemmy_db_views_search_combined = { version = "=1.0.0-alpha.5", path = "./crates/db_views/search_combined" }
-lemmy_db_views_site = { version = "=1.0.0-alpha.5", path = "./crates/db_views/site" }
-lemmy_db_views_vote = { version = "=1.0.0-alpha.5", path = "./crates/db_views/vote" }
+lemmy_api = { version = "=1.0.0-alpha.6", path = "./crates/api/api" }
+lemmy_api_crud = { version = "=1.0.0-alpha.6", path = "./crates/api/api_crud" }
+lemmy_apub = { version = "=1.0.0-alpha.6", path = "./crates/apub" }
+lemmy_apub_objects = { version = "=1.0.0-alpha.6", path = "./crates/apub_objects" }
+lemmy_utils = { version = "=1.0.0-alpha.6", path = "./crates/utils", default-features = false }
+lemmy_db_schema = { version = "=1.0.0-alpha.6", path = "./crates/db_schema" }
+lemmy_db_schema_file = { version = "=1.0.0-alpha.6", path = "./crates/db_schema_file" }
+lemmy_db_schema_setup = { version = "=1.0.0-alpha.6", path = "./crates/db_schema_setup" }
+lemmy_api_utils = { version = "=1.0.0-alpha.6", path = "./crates/api/api_utils" }
+lemmy_routes = { version = "=1.0.0-alpha.6", path = "./crates/routes" }
+lemmy_federate = { version = "=1.0.0-alpha.6", path = "./crates/federate" }
+lemmy_email = { version = "=1.0.0-alpha.6", path = "./crates/email" }
+lemmy_db_views_comment = { version = "=1.0.0-alpha.6", path = "./crates/db_views/comment" }
+lemmy_db_views_community = { version = "=1.0.0-alpha.6", path = "./crates/db_views/community" }
+lemmy_db_views_community_follower = { version = "=1.0.0-alpha.6", path = "./crates/db_views/community_follower" }
+lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.6", path = "./crates/db_views/community_moderator" }
+lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.6", path = "./crates/db_views/community_person_ban" }
+lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.6", path = "./crates/db_views/custom_emoji" }
+lemmy_db_views_notification = { version = "=1.0.0-alpha.6", path = "./crates/db_views/notification" }
+lemmy_db_views_local_image = { version = "=1.0.0-alpha.6", path = "./crates/db_views/local_image" }
+lemmy_db_views_local_user = { version = "=1.0.0-alpha.6", path = "./crates/db_views/local_user" }
+lemmy_db_views_modlog_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/modlog_combined" }
+lemmy_db_views_person = { version = "=1.0.0-alpha.6", path = "./crates/db_views/person" }
+lemmy_db_views_person_content_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/person_content_combined" }
+lemmy_db_views_person_liked_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/person_liked_combined" }
+lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/person_saved_combined" }
+lemmy_db_views_post = { version = "=1.0.0-alpha.6", path = "./crates/db_views/post" }
+lemmy_db_views_private_message = { version = "=1.0.0-alpha.6", path = "./crates/db_views/private_message" }
+lemmy_db_views_readable_federation_state = { version = "=1.0.0-alpha.6", path = "./crates/db_views/readable_federation_state" }
+lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.6", path = "./crates/db_views/registration_applications" }
+lemmy_db_views_report_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/report_combined" }
+lemmy_db_views_search_combined = { version = "=1.0.0-alpha.6", path = "./crates/db_views/search_combined" }
+lemmy_db_views_site = { version = "=1.0.0-alpha.6", path = "./crates/db_views/site" }
+lemmy_db_views_vote = { version = "=1.0.0-alpha.6", path = "./crates/db_views/vote" }
 activitypub_federation = { version = "0.7.0-beta.6", default-features = false, features = [
   "actix-web",
 ] }
