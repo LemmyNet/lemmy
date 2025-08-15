@@ -6,7 +6,11 @@ use crate::newtypes::{
   PostId,
   SearchCombinedId,
 };
+#[cfg(feature = "full")]
+use crate::utils::functions::coalesce;
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::sql_types;
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
@@ -26,6 +30,8 @@ use serde_with::skip_serializing_none;
 /// A combined table for a search (posts, comments, communities, persons)
 pub struct SearchCombined {
   pub published_at: DateTime<Utc>,
+  #[diesel(select_expression = coalesce(search_combined::non_1_score, 1))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, search_combined::non_1_score, i32>)]
   pub score: i32,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
@@ -33,36 +39,4 @@ pub struct SearchCombined {
   pub person_id: Option<PersonId>,
   pub id: SearchCombinedId,
   pub multi_community_id: Option<MultiCommunityId>,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
-pub struct SearchCombinedPostInsertForm {
-  pub published_at: DateTime<Utc>,
-  pub score: i32,
-  pub post_id: PostId,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
-pub struct SearchCombinedCommentInsertForm {
-  pub published_at: DateTime<Utc>,
-  pub score: i32,
-  pub comment_id: CommentId,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
-pub struct SearchCombinedCommunityInsertForm {
-  pub published_at: DateTime<Utc>,
-  pub score: i32,
-  pub community_id: CommunityId,
-}
-
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
-pub struct SearchCombinedPersonInsertForm {
-  pub published_at: DateTime<Utc>,
-  pub score: i32,
-  pub person_id: PersonId,
 }

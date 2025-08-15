@@ -2,8 +2,11 @@ use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
+  utils::functions::coalesce,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::sql_types;
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
@@ -56,11 +59,19 @@ pub struct Person {
   /// Whether the person is a bot account.
   pub bot_account: bool,
   pub instance_id: InstanceId,
+  #[diesel(select_expression = coalesce(person::non_0_post_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, person::non_0_post_count, i32>)]
   pub post_count: i32,
   #[serde(skip)]
+  #[diesel(select_expression = coalesce(person::non_0_post_score, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, person::non_0_post_score, i32>)]
   pub post_score: i32,
+  #[diesel(select_expression = coalesce(person::non_0_comment_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, person::non_0_comment_count, i32>)]
   pub comment_count: i32,
   #[serde(skip)]
+  #[diesel(select_expression = coalesce(person::non_0_comment_score, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, person::non_0_comment_score, i32>)]
   pub comment_score: i32,
 }
 

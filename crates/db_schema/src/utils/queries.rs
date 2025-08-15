@@ -10,14 +10,16 @@ use crate::{
     person2,
   },
   newtypes::{InstanceId, PersonId},
-  MyInstancePersonsActionsAllColumnsTuple,
+  utils::functions::{coalesce, controversy_rank, hot_rank, score},
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
 use diesel::{
-  dsl::{case_when, exists, not},
+  dsl::{case_when, exists, not, Field},
   expression::SqlLiteral,
-  helper_types::{Eq, NotEq, Nullable},
+  helper_types::{Eq, NotEq},
+  query_source::{Alias, AliasSource},
+  sql_types,
   sql_types::Json,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -206,6 +208,35 @@ pub fn local_user_community_can_mod() -> _ {
   am_admin.or(am_moderator).is_not_distinct_from(true)
 }
 
+// TODO: move this
+/*pub trait NullableExpression {
+  type InnerSqlType;
+}
+
+impl<ST, T: diesel::expression::Expression<SqlType = sql_types::Nullable<ST>>> NullableExpression
+  for T
+{
+  type InnerSqlType = ST;
+}
+
+pub fn coalesce<
+  X: NullableExpression
+    + diesel::expression::Expression<SqlType = sql_types::Nullable<X::InnerSqlType>>,
+  Y: diesel::expression::AsExpression<X::InnerSqlType>,
+>(
+  x: X,
+  y: Y,
+) -> crate::utils::functions::coalesce<X::InnerSqlType, X, Y>
+where
+  X::InnerSqlType: diesel::sql_types::SqlType + diesel::sql_types::SingleValue,
+{
+  crate::utils::functions::coalesce(x, y)
+}
+
+#[expect(non_camel_case_types)]
+pub type coalesce<X, Y> =
+  crate::utils::functions::coalesce<<X as NullableExpression>::InnerSqlType, X, Y>;*/
+
 /// Selects the comment columns, but gives an empty string for content when
 /// deleted or removed, and you're not a mod/admin.
 #[diesel::dsl::auto_type]
@@ -230,14 +261,25 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::path,
     comment::distinguished,
     comment::language_id,
-    comment::score,
-    comment::upvotes,
-    comment::downvotes,
-    comment::child_count,
-    comment::hot_rank,
-    comment::controversy_rank,
-    comment::report_count,
-    comment::unresolved_report_count,
+    score(comment::non_1_upvotes, comment::non_0_downvotes),
+    coalesce::<sql_types::Integer, comment::non_1_upvotes, i32>(comment::non_1_upvotes, 1),
+    coalesce::<sql_types::Integer, comment::non_0_downvotes, i32>(comment::non_0_downvotes, 0),
+    coalesce::<sql_types::Integer, comment::non_0_child_count, i32>(comment::non_0_child_count, 0),
+    hot_rank(
+      comment::non_1_upvotes,
+      comment::non_0_downvotes,
+      comment::age,
+    ),
+    controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes),
+    comment::age,
+    coalesce::<sql_types::SmallInt, comment::non_0_report_count, i16>(
+      comment::non_0_report_count,
+      0,
+    ),
+    coalesce::<sql_types::SmallInt, comment::non_0_unresolved_report_count, i16>(
+      comment::non_0_unresolved_report_count,
+      0,
+    ),
     comment::federation_pending,
   )
 }
@@ -265,14 +307,57 @@ pub fn community_post_tags_fragment() -> _ {
     .single_value()
 }
 
+#[diesel::dsl::auto_type]
+// The `Clone` trait bound was found in the implementation of the `table` macro.
+pub fn person_alias_as_select<S: AliasSource<Target = person::table> + Clone>(
+  alias: Alias<S>,
+) -> _ {
+  (
+    alias.field(person::id),
+    alias.field(person::name),
+    alias.field(person::display_name),
+    alias.field(person::avatar),
+    alias.field(person::published_at),
+    alias.field(person::updated_at),
+    alias.field(person::ap_id),
+    alias.field(person::bio),
+    alias.field(person::local),
+    alias.field(person::private_key),
+    alias.field(person::public_key),
+    alias.field(person::last_refreshed_at),
+    alias.field(person::banner),
+    alias.field(person::deleted),
+    alias.field(person::inbox_url),
+    alias.field(person::matrix_user_id),
+    alias.field(person::bot_account),
+    alias.field(person::instance_id),
+    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_post_count>, i32>(
+      alias.field(person::non_0_post_count),
+      0,
+    ),
+    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_post_score>, i32>(
+      alias.field(person::non_0_post_score),
+      0,
+    ),
+    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_comment_count>, i32>(
+      alias.field(person::non_0_comment_count),
+      0,
+    ),
+    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_comment_score>, i32>(
+      alias.field(person::non_0_comment_score),
+      0,
+    ),
+  )
+}
+
 /// The select for the person1 alias.
 pub fn person1_select() -> Person1AliasAllColumnsTuple {
-  person1.fields(person::all_columns)
+  person_alias_as_select(person1)
 }
 
 /// The select for the person2 alias.
 pub fn person2_select() -> Person2AliasAllColumnsTuple {
-  person2.fields(person::all_columns)
+  person_alias_as_select(person2)
 }
 
 type IsSubscribedType =
@@ -359,13 +444,6 @@ pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
       .eq(person::instance_id)
       .and(instance_actions::person_id.nullable().eq(my_person_id)),
   )
-}
-
-/// The select for the my_instance_persons_actions alias
-pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
-  my_instance_persons_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
 }
 
 /// Your instance actions for the person's instance.

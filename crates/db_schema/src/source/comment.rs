@@ -5,6 +5,11 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,
+  crate::utils::{
+    bool_to_int_score_nullable,
+    functions::{coalesce, controversy_rank, hot_rank, score},
+  },
+  diesel::sql_types,
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{comment, comment_actions},
@@ -49,16 +54,34 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
+  #[diesel(select_expression = score(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = score<comment::non_1_upvotes, comment::non_0_downvotes>)]
   pub score: i32,
+  #[diesel(select_expression = coalesce(comment::non_1_upvotes, 1))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_1_upvotes, i32>)]
   pub upvotes: i32,
+  #[diesel(select_expression = coalesce(comment::non_0_downvotes, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_downvotes, i32>)]
   pub downvotes: i32,
   /// The total number of children in this comment branch.
+  #[diesel(select_expression = coalesce(comment::non_0_child_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_child_count, i32>)]
   pub child_count: i32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  #[diesel(select_expression = hot_rank(comment::non_1_upvotes, comment::non_0_downvotes, comment::age))]
+  #[diesel(select_expression_type = hot_rank<comment::non_1_upvotes, comment::non_0_downvotes, comment::age>)]
+  pub hot_rank: f32,
   #[serde(skip)]
-  pub controversy_rank: f64,
+  #[diesel(select_expression = controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = controversy_rank<comment::non_1_upvotes, comment::non_0_downvotes>)]
+  pub controversy_rank: f32,
+  #[serde(skip)]
+  pub age: Option<i16>,
+  #[diesel(select_expression = coalesce(comment::non_0_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_report_count, i16>)]
   pub report_count: i16,
+  #[diesel(select_expression = coalesce(comment::non_0_unresolved_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
@@ -115,13 +138,12 @@ pub struct CommentUpdateForm {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
@@ -130,6 +152,8 @@ pub struct CommentActions {
   #[serde(skip)]
   pub comment_id: CommentId,
   /// The like / score for the comment.
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(comment_actions::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<comment_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
   /// When the comment was liked.
   pub liked_at: Option<DateTime<Utc>>,
@@ -137,12 +161,19 @@ pub struct CommentActions {
   pub saved_at: Option<DateTime<Utc>>,
 }
 
+#[cfg(feature = "full")]
+#[derive(Queryable, Selectable, CursorKeysModule)]
+#[diesel(table_name = comment_actions)]
+#[cursor_keys_module(name = comment_actions_keys)]
+pub struct CommentActionsCursorData {
+  pub comment_id: PostId,
+  pub liked_at: Option<DateTime<Utc>>,
+  /// Upvote is greater than downvote.
+  pub like_score_is_positive: Option<bool>,
+}
+
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
+#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,

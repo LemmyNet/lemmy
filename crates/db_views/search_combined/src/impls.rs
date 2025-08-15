@@ -286,25 +286,25 @@ impl SearchCombinedQuery {
     // Liked / disliked filter
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
-      let liked_disliked_filter = |score: i16| {
+      let liked_disliked_filter = |score: bool| {
         search_combined::post_id
           .is_not_null()
-          .and(post_actions::like_score.eq(score))
+          .and(post_actions::like_score_is_positive.eq(score))
           .or(
             search_combined::comment_id
               .is_not_null()
-              .and(comment_actions::like_score.eq(score)),
+              .and(comment_actions::like_score_is_positive.eq(score)),
           )
       };
 
       if self.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
-          .filter(liked_disliked_filter(1));
+          .filter(liked_disliked_filter(true));
       } else if self.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
-          .filter(liked_disliked_filter(-1));
+          .filter(liked_disliked_filter(false));
       }
     };
 

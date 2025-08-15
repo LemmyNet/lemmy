@@ -10,13 +10,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{
-    functions::{coalesce, hot_rank},
-    get_conn,
-    validate_like,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{functions::coalesce, get_conn, validate_like, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -50,6 +44,7 @@ impl Comment {
         comment::deleted.eq(true),
         comment::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -66,6 +61,7 @@ impl Comment {
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -176,11 +172,13 @@ impl Comment {
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
         .set(comment_form)
+        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     } else {
       insert_into(comment::table)
         .values(comment_form)
+        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     }
@@ -195,6 +193,7 @@ impl Comment {
     let object_id: DbUrl = object_id.into();
     comment::table
       .filter(comment::ap_id.eq(object_id))
+      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -210,15 +209,6 @@ impl Comment {
     } else {
       None
     }
-  }
-  pub async fn update_hot_rank(pool: &mut DbPool<'_>, comment_id: CommentId) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    diesel::update(comment::table.find(comment_id))
-      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published_at)))
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
@@ -257,6 +247,7 @@ impl Crud for Comment {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
       .set(comment_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -271,6 +262,13 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
+
+    let form = (
+      comment_actions::person_id.eq(form.person_id),
+      comment_actions::comment_id.eq(form.comment_id),
+      comment_actions::like_score_is_positive.eq(form.like_score == 1),
+      comment_actions::liked_at.eq(form.liked_at),
+    );
 
     insert_into(comment_actions::table)
       .values(form)
@@ -289,7 +287,7 @@ impl Likeable for CommentActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(comment_actions::table.find((person_id, comment_id)))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
@@ -303,7 +301,7 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
@@ -321,7 +319,7 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
@@ -382,7 +380,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::build_db_pool_for_tests,
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
@@ -447,7 +445,8 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       score: 1,
-      hot_rank: RANK_DEFAULT,
+      hot_rank: 0.1370171,
+      age: Some(0),
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,

@@ -12,6 +12,7 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
+  SelectableHelper,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -163,16 +164,16 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   process_ranks_in_batches(
     conn,
     "comment",
-    "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.score, a.published_at)",
+    "a.age IS NOT NULL",
+    "SET age = r.age_of(a.published_at)",
   )
   .await?;
 
   process_ranks_in_batches(
     conn,
     "community",
-    "a.hot_rank != 0",
-    "SET hot_rank = r.hot_rank(a.subscribers, a.published_at)",
+    "a.age IS NOT NULL",
+    "SET age = r.age_of(a.published_at)",
   )
   .await?;
 
@@ -244,14 +245,13 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
       r#"WITH batch AS (SELECT pa.id
            FROM post pa
            WHERE pa.published_at > $1
-           AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
+           AND (pa.age IS NOT NULL OR pa.newest_non_necro_comment_age IS NOT NULL)
            ORDER BY pa.published_at
            LIMIT $2
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
-      SET hot_rank = r.hot_rank(pa.score, pa.published_at),
-          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro_at),
-          scaled_rank = r.scaled_rank(pa.score, pa.published_at, ca.interactions_month)
+      SET age = r.age_of(pa.published_at),
+          newest_non_necro_comment_age = r.age_of(coalesce(pa.newest_comment_time_necro_at_after_published, pa.published_at))
       FROM batch, community ca
       WHERE pa.id = batch.id
       AND pa.community_id = ca.id
@@ -450,7 +450,7 @@ async fn process_community_aggregates(
   while let Some(prev_community_id) = prev_community_id_res {
     let updated_rows = sql_query(format!(
       "UPDATE community a
-            SET users_active_{} = b.count_
+            SET non_0_users_active_{} = nullif(b.count_, 0)
             FROM (
               SELECT count_, community_id_
               FROM {caggs_temp_table}
@@ -577,7 +577,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     .filter(not(exists(not_community_banned_action)))
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
-    .select((post::all_columns, community::all_columns))
+    .select((Post::as_select(), Community::as_select()))
     .get_results::<(Post, Community)>(conn)
     .await?;
 

@@ -17,11 +17,7 @@ ALTER TABLE person
     ADD COLUMN matrix_user_id_new text,
     ADD COLUMN bot_account_new boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN ban_expires timestamptz,
-    ADD COLUMN instance_id_new int,
-    ADD COLUMN post_count_new int DEFAULT 0 NOT NULL,
-    ADD COLUMN post_score_new int DEFAULT 0 NOT NULL,
-    ADD COLUMN comment_count_new int DEFAULT 0 NOT NULL,
-    ADD COLUMN comment_score_new int DEFAULT 0 NOT NULL;
+    ADD COLUMN instance_id_new int;
 
 UPDATE
     person
@@ -39,11 +35,7 @@ SET
         inbox_url_new,
         matrix_user_id_new,
         bot_account_new,
-        instance_id_new,
-        post_count_new,
-        post_score_new,
-        comment_count_new,
-        comment_score_new) = (published,
+        instance_id_new) = (published,
         updated,
         ap_id,
         bio,
@@ -56,11 +48,7 @@ SET
         inbox_url,
         matrix_user_id,
         bot_account,
-        instance_id,
-        post_count,
-        post_score,
-        comment_count,
-        comment_score);
+        instance_id);
 
 ALTER TABLE person
     DROP COLUMN published,
@@ -76,11 +64,7 @@ ALTER TABLE person
     DROP COLUMN inbox_url,
     DROP COLUMN matrix_user_id,
     DROP COLUMN bot_account,
-    DROP COLUMN instance_id,
-    DROP COLUMN post_count,
-    DROP COLUMN post_score,
-    DROP COLUMN comment_count,
-    DROP COLUMN comment_score;
+    DROP COLUMN instance_id;
 
 ALTER TABLE person RENAME COLUMN published_new TO published;
 
@@ -109,14 +93,6 @@ ALTER TABLE person RENAME COLUMN matrix_user_id_new TO matrix_user_id;
 ALTER TABLE person RENAME COLUMN bot_account_new TO bot_account;
 
 ALTER TABLE person RENAME COLUMN instance_id_new TO instance_id;
-
-ALTER TABLE person RENAME COLUMN post_count_new TO post_count;
-
-ALTER TABLE person RENAME COLUMN post_score_new TO post_score;
-
-ALTER TABLE person RENAME COLUMN comment_count_new TO comment_count;
-
-ALTER TABLE person RENAME COLUMN comment_score_new TO comment_score;
 
 ALTER TABLE person
     ALTER public_key SET NOT NULL,

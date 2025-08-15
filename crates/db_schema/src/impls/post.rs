@@ -3,6 +3,7 @@ use crate::{
   source::post::{
     Post,
     PostActions,
+    PostActionsCursorData,
     PostHideForm,
     PostInsertForm,
     PostLikeForm,
@@ -13,7 +14,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::{coalesce, hot_rank, scaled_rank},
+    functions::coalesce,
     get_conn,
     now,
     validate_like,
@@ -57,6 +58,7 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -70,6 +72,7 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post::table.find(post_id))
       .set(new_post)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -81,6 +84,7 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     post::table
       .find(id)
+      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -98,6 +102,7 @@ impl Post {
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -115,6 +120,7 @@ impl Post {
       .filter(post::featured_community.eq(true))
       .then_order_by(post::published_at.desc())
       .limit(FETCH_LIMIT_MAX.try_into()?)
+      .select(Self::as_select())
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -151,6 +157,7 @@ impl Post {
         post::deleted.eq(true),
         post::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -203,6 +210,7 @@ impl Post {
       .filter(post::creator_id.eq(creator_id))
       .filter(post::community_id.eq(community_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -221,6 +229,7 @@ impl Post {
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -236,6 +245,7 @@ impl Post {
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -254,6 +264,7 @@ impl Post {
     post::table
       .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())
+      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -269,6 +280,7 @@ impl Post {
 
     diesel::update(post::table.filter(post::ap_id.eq(object_id)))
       .set(post::deleted.eq(true))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -297,34 +309,6 @@ impl Post {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    // Diesel can't update based on a join, which is necessary for the scaled_rank
-    // https://github.com/diesel-rs/diesel/issues/1478
-    // Just select the metrics we need manually, for now, since its a single post anyway
-
-    let interactions_month = community::table
-      .select(community::interactions_month)
-      .inner_join(post::table.on(community::id.eq(post::community_id)))
-      .filter(post::id.eq(post_id))
-      .first::<i32>(conn)
-      .await?;
-
-    diesel::update(post::table.find(post_id))
-      .set((
-        post::hot_rank.eq(hot_rank(post::score, post::published_at)),
-        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro_at)),
-        post::scaled_rank.eq(scaled_rank(
-          post::score,
-          post::published_at,
-          interactions_month,
-        )),
-      ))
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
-  }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/post/{}", self.id))?)
@@ -352,6 +336,13 @@ impl Likeable for PostActions {
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
+    let form = (
+      post_actions::person_id.eq(form.person_id),
+      post_actions::post_id.eq(form.post_id),
+      post_actions::like_score_is_positive.eq(form.like_score == 1),
+      post_actions::liked_at.eq(form.liked_at),
+    );
+
     insert_into(post_actions::table)
       .values(form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -370,7 +361,7 @@ impl Likeable for PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -384,7 +375,7 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -401,7 +392,7 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -481,6 +472,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -513,6 +505,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -534,9 +527,19 @@ impl PostActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+  pub async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActionsCursorData> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, PostId(post_id), PersonId(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      post_actions::table
+        .find((person_id, post_id))
+        .select(PostActionsCursorData::as_select())
+        .first(conn)
+        .await?,
+    )
   }
 
   pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
@@ -605,7 +608,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::build_db_pool_for_tests,
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;
@@ -685,12 +688,15 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       score: 1,
-      hot_rank: RANK_DEFAULT,
-      hot_rank_active: RANK_DEFAULT,
+      hot_rank: 0.1370171,
+      hot_rank_active: 0.1370171,
+      age: Some(0),
+      newest_non_necro_comment_age: None,
+      non_0_community_interactions_month: None,
       newest_comment_time_at: inserted_post.published_at,
       newest_comment_time_necro_at: inserted_post.published_at,
       report_count: 0,
-      scaled_rank: RANK_DEFAULT,
+      scaled_rank: 0.45516095,
       unresolved_report_count: 0,
       federation_pending: false,
     };
