@@ -1,15 +1,14 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::utils::{
-  bool_to_int_score_nullable,
-  functions::{coalesce, coalesce_2_nullable, controversy_rank, hot_rank, scaled_rank, score},
-};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
+  crate::utils::{
+    bool_to_int_score_nullable,
+    functions::{coalesce, coalesce_2_nullable, controversy_rank, hot_rank, scaled_rank, score},
+  },
   diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{post, post_actions},

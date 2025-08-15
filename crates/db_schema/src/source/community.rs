@@ -1,5 +1,3 @@
-#[cfg(feature = "full")]
-use crate::utils::functions::{coalesce, community_hot_rank};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -15,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
+  crate::utils::functions::{coalesce, community_hot_rank},
   diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{community, community_actions},

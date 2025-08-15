@@ -1,15 +1,14 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
-#[cfg(feature = "full")]
-use crate::utils::{
-  bool_to_int_score_nullable,
-  functions::{coalesce, controversy_rank, hot_rank, score},
-};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,
+  crate::utils::{
+    bool_to_int_score_nullable,
+    functions::{coalesce, controversy_rank, hot_rank, score},
+  },
   diesel::sql_types,
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
