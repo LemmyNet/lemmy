@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::utils::functions::{coalesce, get_community_hot_rank};
+use crate::utils::functions::{coalesce, community_hot_rank};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
@@ -123,8 +123,8 @@ pub struct Community {
   #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   pub local_removed: bool,
-  #[diesel(select_expression = get_community_hot_rank(community::non_1_subscribers, community::age))]
-  #[diesel(select_expression_type = get_community_hot_rank<community::non_1_subscribers, community::age>)]
+  #[diesel(select_expression = community_hot_rank(community::non_1_subscribers, community::age))]
+  #[diesel(select_expression_type = community_hot_rank<community::non_1_subscribers, community::age>)]
   pub hot_rank: f32,
 }
 

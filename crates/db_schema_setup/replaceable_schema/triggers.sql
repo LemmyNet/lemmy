@@ -707,7 +707,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        non_1_score = nullif (get_score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
+        non_1_score = nullif (score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
     WHERE
         post_id = NEW.id;
     RETURN NULL;
@@ -727,7 +727,7 @@ BEGIN
     UPDATE
         search_combined
     SET
-        non_1_score = nullif (get_score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
+        non_1_score = nullif (score (NEW.non_1_upvotes, NEW.non_0_downvotes), 1)
     WHERE
         comment_id = NEW.id;
     RETURN NULL;

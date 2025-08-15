@@ -2,7 +2,7 @@ use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::utils::{
   bool_to_int_score_nullable,
-  functions::{coalesce, get_controversy_rank, get_hot_rank, get_score},
+  functions::{coalesce, controversy_rank, hot_rank, score},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -55,8 +55,8 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
-  #[diesel(select_expression = get_score(comment::non_1_upvotes, comment::non_0_downvotes))]
-  #[diesel(select_expression_type = get_score<comment::non_1_upvotes, comment::non_0_downvotes>)]
+  #[diesel(select_expression = score(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = score<comment::non_1_upvotes, comment::non_0_downvotes>)]
   pub score: i32,
   #[diesel(select_expression = coalesce(comment::non_1_upvotes, 1))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_1_upvotes, i32>)]
@@ -69,12 +69,12 @@ pub struct Comment {
   #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_child_count, i32>)]
   pub child_count: i32,
   #[serde(skip)]
-  #[diesel(select_expression = get_hot_rank(comment::non_1_upvotes, comment::non_0_downvotes, comment::age))]
-  #[diesel(select_expression_type = get_hot_rank<comment::non_1_upvotes, comment::non_0_downvotes, comment::age>)]
+  #[diesel(select_expression = hot_rank(comment::non_1_upvotes, comment::non_0_downvotes, comment::age))]
+  #[diesel(select_expression_type = hot_rank<comment::non_1_upvotes, comment::non_0_downvotes, comment::age>)]
   pub hot_rank: f32,
   #[serde(skip)]
-  #[diesel(select_expression = get_controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes))]
-  #[diesel(select_expression_type = get_controversy_rank<comment::non_1_upvotes, comment::non_0_downvotes>)]
+  #[diesel(select_expression = controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes))]
+  #[diesel(select_expression_type = controversy_rank<comment::non_1_upvotes, comment::non_0_downvotes>)]
   pub controversy_rank: f32,
   #[serde(skip)]
   pub age: Option<i16>,

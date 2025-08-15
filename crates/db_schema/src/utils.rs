@@ -519,23 +519,23 @@ pub mod functions {
   use diesel::sql_types::{Int2, Int4, Nullable, Text};
 
   define_sql_function! {
-    fn get_score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
+    fn score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
   }
 
   define_sql_function! {
-    fn get_controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
+    fn controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
   }
 
   define_sql_function! {
-    fn get_hot_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>) -> Float;
+    fn hot_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function! {
-    fn get_scaled_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>, non_0_community_interactions_month: Nullable<Int4>) -> Float;
+    fn scaled_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>, non_0_community_interactions_month: Nullable<Int4>) -> Float;
   }
 
   define_sql_function! {
-    fn get_community_hot_rank(non_1_subscribers: Nullable<Int4>, age: Nullable<Int2>) -> Float;
+    fn community_hot_rank(non_1_subscribers: Nullable<Int4>, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);

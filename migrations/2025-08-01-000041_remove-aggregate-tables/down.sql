@@ -60,12 +60,12 @@ CREATE TABLE IF NOT EXISTS comment_aggregates (
 INSERT INTO comment_aggregates
 SELECT
     id AS comment_id,
-    get_score (non_1_upvotes, non_0_downvotes) AS score,
+    score (non_1_upvotes, non_0_downvotes) AS score,
     coalesce(non_1_upvotes, 1) AS upvotes,
     coalesce(non_0_downvotes, 0) AS downvotes,
     published,
     coalesce(non_0_child_count, 0) AS child_count,
-    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
+    old_hot_rank (score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
     old_controversy_rank (coalesce(non_1_upvotes, 1), coalesce(non_0_downvotes, 0)) AS controversy_rank,
     coalesce(non_0_report_count, 0) AS report_count,
     coalesce(non_0_unresolved_report_count, 0) AS unresolved_report_count
@@ -132,7 +132,7 @@ INSERT INTO post_aggregates
 SELECT
     id AS post_id,
     coalesce(non_0_comments, 0) AS comments,
-    get_score (non_1_upvotes, non_0_downvotes) AS score,
+    score (non_1_upvotes, non_0_downvotes) AS score,
     coalesce(non_1_upvotes, 1) AS upvotes,
     coalesce(non_0_downvotes, 0) AS downvotes,
     published,
@@ -140,8 +140,8 @@ SELECT
     coalesce(newest_comment_time_after_published, published) AS newest_comment_time,
     featured_community,
     featured_local,
-    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
-    old_hot_rank (get_score (non_1_upvotes, non_0_downvotes), coalesce(newest_comment_time_necro_after_published, published)) AS hot_rank_active,
+    old_hot_rank (score (non_1_upvotes, non_0_downvotes), published) AS hot_rank,
+    old_hot_rank (score (non_1_upvotes, non_0_downvotes), coalesce(newest_comment_time_necro_after_published, published)) AS hot_rank_active,
     community_id,
     creator_id,
     old_controversy_rank (coalesce(non_1_upvotes, 1), coalesce(non_0_downvotes, 0)) AS controversy_rank,
@@ -152,7 +152,7 @@ SELECT
             community
         WHERE
             community.id = post.community_id) AS instance_id,
-    old_scaled_rank (get_score (non_1_upvotes, non_0_downvotes), published, coalesce(non_0_community_interactions_month, 0)) AS scaled_rank,
+    old_scaled_rank (score (non_1_upvotes, non_0_downvotes), published, coalesce(non_0_community_interactions_month, 0)) AS scaled_rank,
     coalesce(non_0_report_count, 0) AS report_count,
     coalesce(non_0_unresolved_report_count, 0) AS unresolved_report_count
 FROM
@@ -444,5 +444,5 @@ CREATE UNIQUE INDEX idx_site_aggregates_1_row_only ON public.site_aggregates USI
 ALTER TABLE community_aggregates
     ALTER CONSTRAINT community_aggregates_community_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
-DROP FUNCTION get_community_hot_rank, get_controversy_rank, get_hot_rank, get_scaled_rank, get_score, inner_get_hot_rank, old_controversy_rank, old_hot_rank, old_scaled_rank;
+DROP FUNCTION community_hot_rank, controversy_rank, hot_rank, scaled_rank, score, inner_hot_rank, old_controversy_rank, old_hot_rank, old_scaled_rank;
 

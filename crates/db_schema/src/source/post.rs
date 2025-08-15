@@ -2,14 +2,7 @@ use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::utils::{
   bool_to_int_score_nullable,
-  functions::{
-    coalesce,
-    coalesce_2_nullable,
-    get_controversy_rank,
-    get_hot_rank,
-    get_scaled_rank,
-    get_score,
-  },
+  functions::{coalesce, coalesce_2_nullable, controversy_rank, hot_rank, scaled_rank, score},
 };
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
@@ -89,8 +82,8 @@ pub struct Post {
   #[diesel(select_expression = coalesce(post::non_0_comments, 0))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_0_comments, i32>)]
   pub comments: i32,
-  #[diesel(select_expression = get_score(post::non_1_upvotes, post::non_0_downvotes))]
-  #[diesel(select_expression_type = get_score<post::non_1_upvotes, post::non_0_downvotes>)]
+  #[diesel(select_expression = score(post::non_1_upvotes, post::non_0_downvotes))]
+  #[diesel(select_expression_type = score<post::non_1_upvotes, post::non_0_downvotes>)]
   pub score: i32,
   #[diesel(select_expression = coalesce(post::non_1_upvotes, 1))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_1_upvotes, i32>)]
@@ -112,20 +105,20 @@ pub struct Post {
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
   #[serde(skip)]
-  #[diesel(select_expression = get_hot_rank(post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable(post::newest_non_necro_comment_age, post::age)))]
-  #[diesel(select_expression_type = get_hot_rank<post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable<sql_types::SmallInt, post::newest_non_necro_comment_age, post::age>>)]
+  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable(post::newest_non_necro_comment_age, post::age)))]
+  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable<sql_types::SmallInt, post::newest_non_necro_comment_age, post::age>>)]
   pub hot_rank_active: f32,
   #[serde(skip)]
-  #[diesel(select_expression = get_hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
-  #[diesel(select_expression_type = get_hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
+  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
+  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
   pub hot_rank: f32,
   #[serde(skip)]
-  #[diesel(select_expression = get_controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
-  #[diesel(select_expression_type = get_controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
+  #[diesel(select_expression = controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
+  #[diesel(select_expression_type = controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
   pub controversy_rank: f32,
   #[serde(skip)]
-  #[diesel(select_expression = get_scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
-  #[diesel(select_expression_type = get_scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
+  #[diesel(select_expression = scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
+  #[diesel(select_expression_type = scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
   pub scaled_rank: f32,
 }
 
