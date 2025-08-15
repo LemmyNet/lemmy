@@ -34,9 +34,8 @@ CREATE FUNCTION inner_hot_rank (clamped_score_plus_2 integer, non_null_age small
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
     -- Use greatest(2,score+2), so that the hot_rank will be positive and not ignored.
-    -- TODO: figure out why this doesn't work without greatest(2, _)
     log (
-        greatest (2, clamped_score_plus_2)) * power (((
+        clamped_score_plus_2) * power (((
         -- Age in hours
         non_null_age::real / 60) + 2), -1.8
 );

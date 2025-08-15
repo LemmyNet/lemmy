@@ -68,17 +68,6 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
-  #[serde(skip)]
-  #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
-  /// A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time_necro_at: DateTime<Utc>,
-  #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
-  /// The time of the newest comment in the post.
-  pub newest_comment_time_at: DateTime<Utc>,
-  #[serde(skip)]
-  pub non_0_community_interactions_month: Option<i32>,
   #[diesel(select_expression = coalesce(post::non_0_comments, 0))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_0_comments, i32>)]
   pub comments: i32,
@@ -92,6 +81,33 @@ pub struct Post {
   #[diesel(select_expression_type = coalesce<sql_types::Integer, post::non_0_downvotes, i32>)]
   pub downvotes: i32,
   #[serde(skip)]
+  #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
+  /// A newest comment time, limited to 2 days, to prevent necrobumping
+  pub newest_comment_time_necro_at: DateTime<Utc>,
+  #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
+  /// The time of the newest comment in the post.
+  pub newest_comment_time_at: DateTime<Utc>,
+  #[serde(skip)]
+  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
+  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
+  pub hot_rank: f32,
+  #[serde(skip)]
+  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable(post::newest_non_necro_comment_age, post::age)))]
+  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable<sql_types::SmallInt, post::newest_non_necro_comment_age, post::age>>)]
+  pub hot_rank_active: f32,
+  #[serde(skip)]
+  #[diesel(select_expression = controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
+  #[diesel(select_expression_type = controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
+  pub controversy_rank: f32,
+  #[serde(skip)]
+  #[diesel(select_expression = scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
+  #[diesel(select_expression_type = scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
+  pub scaled_rank: f32,
+  #[serde(skip)]
+  pub non_0_community_interactions_month: Option<i32>,
+  #[serde(skip)]
   pub age: Option<i16>,
   #[serde(skip)]
   pub newest_non_necro_comment_age: Option<i16>,
@@ -104,22 +120,6 @@ pub struct Post {
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
-  #[serde(skip)]
-  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable(post::newest_non_necro_comment_age, post::age)))]
-  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, coalesce_2_nullable<sql_types::SmallInt, post::newest_non_necro_comment_age, post::age>>)]
-  pub hot_rank_active: f32,
-  #[serde(skip)]
-  #[diesel(select_expression = hot_rank(post::non_1_upvotes, post::non_0_downvotes, post::age))]
-  #[diesel(select_expression_type = hot_rank<post::non_1_upvotes, post::non_0_downvotes, post::age>)]
-  pub hot_rank: f32,
-  #[serde(skip)]
-  #[diesel(select_expression = controversy_rank(post::non_1_upvotes, post::non_0_downvotes))]
-  #[diesel(select_expression_type = controversy_rank<post::non_1_upvotes, post::non_0_downvotes>)]
-  pub controversy_rank: f32,
-  #[serde(skip)]
-  #[diesel(select_expression = scaled_rank(post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month))]
-  #[diesel(select_expression_type = scaled_rank<post::non_1_upvotes, post::non_0_downvotes, post::age, post::non_0_community_interactions_month>)]
-  pub scaled_rank: f32,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -217,27 +217,27 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
-  /// When the post was read.
-  pub read_at: Option<DateTime<Utc>>,
-  /// When was the last time you read the comments.
-  pub read_comments_at: Option<DateTime<Utc>>,
-  /// When the post was saved.
-  pub saved_at: Option<DateTime<Utc>>,
-  /// When the post was liked.
-  pub liked_at: Option<DateTime<Utc>>,
-  /// When the post was hidden.
-  pub hidden_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub post_id: PostId,
+  /// When the post was read.
+  pub read_at: Option<DateTime<Utc>>,
+  /// When was the last time you read the comments.
+  pub read_comments_at: Option<DateTime<Utc>>,
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
   pub read_comments_amount: Option<i32>,
+  /// When the post was saved.
+  pub saved_at: Option<DateTime<Utc>>,
+  /// When the post was liked.
+  pub liked_at: Option<DateTime<Utc>>,
   /// The like / score of the post.
   #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(post_actions::like_score_is_positive)))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<post_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
+  /// When the post was hidden.
+  pub hidden_at: Option<DateTime<Utc>>,
   pub notifications: Option<PostNotificationsMode>,
 }
 

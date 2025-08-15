@@ -315,25 +315,13 @@ impl PostQuery<'_> {
         if len < limit {
           None
         } else {
-          // TODO: convert to PostCursorData in a less hacky way
-          let post_view = if self.page_back.unwrap_or_default() {
+          if self.page_back.unwrap_or_default() {
             // for backward pagination, get first element instead
             upper_bound_results.into_iter().next()
           } else {
             upper_bound_results.into_iter().next_back()
-          };
-          if let Some(pv) = post_view {
-            let conn = &mut get_conn(pool).await?;
-            Some(
-              post::table
-                .find(pv.post.id)
-                .select(Post::as_select())
-                .first(conn)
-                .await?,
-            )
-          } else {
-            None
           }
+          .map(|pv| pv.post)
         }
       } else {
         None
@@ -580,6 +568,7 @@ mod tests {
     impls::{PostQuery, PostSortType},
     PostView,
   };
+  use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
   use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
@@ -1728,7 +1717,6 @@ mod tests {
     Ok(())
   }
 
-  /* TODO: PostCursorData
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
@@ -1834,7 +1822,7 @@ mod tests {
 
     Community::delete(pool, inserted_community.id).await?;
     Ok(())
-  }*/
+  }
 
   #[test_context(Data)]
   #[tokio::test]

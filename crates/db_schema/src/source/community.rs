@@ -106,9 +106,18 @@ pub struct Community {
   #[diesel(select_expression = coalesce(community::non_0_users_active_half_year, 0))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_half_year, i32>)]
   pub users_active_half_year: i32,
+  #[diesel(select_expression = community_hot_rank(community::non_1_subscribers, community::age))]
+  #[diesel(select_expression_type = community_hot_rank<community::non_1_subscribers, community::age>)]
+  pub hot_rank: f32,
   #[diesel(select_expression = coalesce(community::non_0_subscribers_local, 0))]
   #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_subscribers_local, i32>)]
   pub subscribers_local: i32,
+  #[diesel(select_expression = coalesce(community::non_0_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_report_count, i16>)]
+  pub report_count: i16,
+  #[diesel(select_expression = coalesce(community::non_0_unresolved_report_count, 0))]
+  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_unresolved_report_count, i16>)]
+  pub unresolved_report_count: i16,
   /// Number of any interactions over the last month.
   #[serde(skip)]
   #[diesel(select_expression = coalesce(community::non_0_interactions_month, 0))]
@@ -116,16 +125,7 @@ pub struct Community {
   pub interactions_month: i32,
   #[serde(skip)]
   pub age: Option<i16>,
-  #[diesel(select_expression = coalesce(community::non_0_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_report_count, i16>)]
-  pub report_count: i16,
-  #[diesel(select_expression = coalesce(community::non_0_unresolved_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_unresolved_report_count, i16>)]
-  pub unresolved_report_count: i16,
   pub local_removed: bool,
-  #[diesel(select_expression = community_hot_rank(community::non_1_subscribers, community::age))]
-  #[diesel(select_expression_type = community_hot_rank<community::non_1_subscribers, community::age>)]
-  pub hot_rank: f32,
 }
 
 #[derive(Debug, Clone, derive_new::new)]

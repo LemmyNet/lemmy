@@ -61,7 +61,6 @@ const FETCH_LIMIT_DEFAULT: i64 = 20;
 pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
-pub const RANK_DEFAULT: f64 = 0.0001; // TODO: maybe remove
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -519,19 +518,19 @@ pub mod functions {
   use diesel::sql_types::{Int2, Int4, Nullable, Text};
 
   define_sql_function! {
-    fn score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
-  }
-
-  define_sql_function! {
-    fn controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
-  }
-
-  define_sql_function! {
     fn hot_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function! {
     fn scaled_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>, non_0_community_interactions_month: Nullable<Int4>) -> Float;
+  }
+
+  define_sql_function! {
+    fn score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
+  }
+
+  define_sql_function! {
+    fn controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
   }
 
   define_sql_function! {

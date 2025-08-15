@@ -33,8 +33,6 @@ pub mod utils;
 
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
-#[cfg(feature = "full")]
-use {diesel::query_source::AliasedField, lemmy_db_schema_file::schema::instance_actions};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -188,14 +186,3 @@ pub type Person1AliasAllColumnsTuple = utils::queries::person_alias_as_select<al
 #[cfg(feature = "full")]
 /// A helper tuple for person 2 alias columns
 pub type Person2AliasAllColumnsTuple = utils::queries::person_alias_as_select<aliases::Person2>;
-
-#[cfg(feature = "full")]
-/// A helper tuple for more my instance persons actions
-pub type MyInstancePersonsActionsAllColumnsTuple = (
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,
-);
