@@ -82,10 +82,8 @@ mod tests {
     test_data::TestData,
     traits::Crud,
   };
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

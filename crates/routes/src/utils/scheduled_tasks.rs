@@ -698,7 +698,6 @@ mod tests {
   };
   use pretty_assertions::assert_eq;
   use reqwest_middleware::ClientBuilder;
-  use serial_test::serial;
 
   #[tokio::test]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
@@ -721,7 +720,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let data = TestData::create(&mut context.pool()).await?;

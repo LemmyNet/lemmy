@@ -79,10 +79,8 @@ mod tests {
     traits::Crud,
   };
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (new_mod, site) = parse_lemmy_person(&context).await?;

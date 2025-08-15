@@ -407,12 +407,10 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_admin_higher_check() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -449,9 +447,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_email_taken() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let darwin_email = "charles.darwin@gmail.com";

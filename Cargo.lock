@@ -600,6 +600,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 
 [[package]]
+name = "bb8"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89aabfae550a5c44b43ab941844ffcd2e993cb6900b342debf59e9ea74acdb8"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
 name = "bcrypt"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1374,6 +1386,22 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+]
+
+[[package]]
+name = "db-pool"
+version = "0.6.0"
+source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021-test#aba15f15f194ce4d0b7a313cf8f077b8b3bec81c"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "deadpool",
+ "diesel",
+ "diesel-async",
+ "futures",
+ "parking_lot",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -3124,7 +3152,6 @@ dependencies = [
  "lemmy_utils",
  "pretty_assertions",
  "regex",
- "serial_test",
  "sitemap-rs",
  "tokio",
  "totp-rs",
@@ -3245,7 +3272,6 @@ dependencies = [
  "reqwest-middleware",
  "serde",
  "serde_json",
- "serial_test",
  "tokio",
  "tracing",
  "url",
@@ -3290,7 +3316,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "strum",
  "tokio",
  "tracing",
@@ -3329,7 +3354,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "stringreader",
  "tokio",
  "tracing",
@@ -3343,6 +3367,7 @@ dependencies = [
  "activitypub_federation",
  "bcrypt",
  "chrono",
+ "db-pool",
  "deadpool",
  "derive-new",
  "diesel",
@@ -3361,7 +3386,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "strum",
  "tokio",
  "tokio-postgres",
@@ -3399,7 +3423,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_utils",
  "pathfinding",
- "serial_test",
  "tracing",
  "unified-diff",
 ]
@@ -3420,7 +3443,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3439,7 +3461,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3458,7 +3479,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3533,7 +3553,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3551,7 +3570,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3588,7 +3606,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3610,7 +3627,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3631,7 +3647,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3652,7 +3667,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3675,7 +3689,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "test-context",
  "tokio",
  "tracing",
@@ -3721,7 +3734,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3741,7 +3753,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3764,7 +3775,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3808,7 +3818,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3852,7 +3861,6 @@ dependencies = [
  "reqwest 0.12.19",
  "serde",
  "serde_json",
- "serial_test",
  "test-context",
  "tokio",
  "tokio-util",
@@ -3899,7 +3907,6 @@ dependencies = [
  "reqwest-middleware",
  "rss",
  "serde",
- "serial_test",
  "tokio",
  "tracing",
  "url",
@@ -5789,15 +5796,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scc"
-version = "2.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22b2d775fb28f245817589471dd49c5edf64237f4a19d10ce9a92ff4651a27f4"
-dependencies = [
- "sdd",
-]
-
-[[package]]
 name = "scoped-futures"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5827,12 +5825,6 @@ dependencies = [
  "ring",
  "untrusted",
 ]
-
-[[package]]
-name = "sdd"
-version = "3.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "584e070911c7017da6cb2eb0788d09f43d789029b5877d3e5ecc8acf86ceee21"
 
 [[package]]
 name = "select"
@@ -5939,31 +5931,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d00caa5193a3c8362ac2b73be6b9e768aa5a4b2f721d8f4b339600c3cb51f8e"
 dependencies = [
  "darling 0.20.11",
- "proc-macro2",
- "quote",
- "syn 2.0.102",
-]
-
-[[package]]
-name = "serial_test"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b258109f244e1d6891bf1053a55d63a5cd4f8f4c30cf9a1280989f80e7a1fa9"
-dependencies = [
- "futures",
- "log",
- "once_cell",
- "parking_lot",
- "scc",
- "serial_test_derive",
-]
-
-[[package]]
-name = "serial_test_derive"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d69265a08751de7844521fd15003ae0a888e035773ba05695c5c759a6f89eef"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.102",
