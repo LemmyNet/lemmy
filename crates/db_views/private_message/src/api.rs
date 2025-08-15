@@ -1,5 +1,4 @@
 use crate::PrivateMessageView;
-use lemmy_db_schema::newtypes::PersonId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -8,7 +7,6 @@ use serde::{Deserialize, Serialize};
 /// Create a private message.
 pub struct CreatePrivateMessage {
   pub content: String,
-  pub recipient_id: PersonId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

@@ -1,8 +1,5 @@
 use crate::RegistrationApplicationView;
-use lemmy_db_schema::{
-  newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
-  sensitive::SensitiveString,
-};
+use lemmy_db_schema::{newtypes::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -12,18 +9,8 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Approves a registration application.
 pub struct ApproveRegistrationApplication {
-  pub id: RegistrationApplicationId,
   pub approve: bool,
   pub deny_reason: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets a registration application for a person
-pub struct GetRegistrationApplication {
-  pub person_id: PersonId,
 }
 
 #[skip_serializing_none]

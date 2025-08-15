@@ -1,8 +1,9 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
+  newtypes::RegistrationApplicationId,
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
@@ -19,11 +20,12 @@ use lemmy_email::account::{send_application_approved_email, send_application_den
 use lemmy_utils::error::LemmyResult;
 
 pub async fn approve_registration_application(
+  app_id: Path<RegistrationApplicationId>,
   data: Json<ApproveRegistrationApplication>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<RegistrationApplicationResponse>> {
-  let app_id = data.id;
+  let app_id = app_id.into_inner();
 
   // Only let admins do this
   is_admin(&local_user_view)?;

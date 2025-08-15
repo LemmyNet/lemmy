@@ -305,7 +305,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           )
           .service(
             scope("/{post_id}")
-              // TODO: Add way to get post with comment ID
               .route("", get().to(get_post))
               .route("", put().to(update_post))
               .route("/delete", post().to(delete_post))
@@ -355,8 +354,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       // Private Message
       .service(
         scope("/direct-messages/{private_message_id}")
-          // TODO: make this nicer
-          // .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
           .route("/report", post().to(create_pm_report)),
@@ -471,29 +468,30 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/{person_id}")
               .route("/block", post().to(user_block_person))
               .route("/note", post().to(user_note_person))
-              .route("/purge", post().to(purge_person)),
+              .route("/send-direct-message", post().to(create_private_message))
+              .route("/purge", post().to(purge_person))
+              .route(
+                "/registration-application",
+                get().to(get_registration_application),
+              ),
+          ),
+      )
+      .service(
+        scope("/registration-applications")
+          .route("", get().to(list_registration_applications))
+          .route(
+            "/count",
+            get().to(get_unread_registration_application_count),
+          )
+          .route(
+            "/{registration_application_id}/approve",
+            post().to(approve_registration_application),
           ),
       )
       // Admin Actions
       .service(
         scope("/admin")
           .route("/add", post().to(add_admin))
-          .route(
-            "/registration_application/count",
-            get().to(get_unread_registration_application_count),
-          )
-          .route(
-            "/registration_application/list",
-            get().to(list_registration_applications),
-          )
-          .route(
-            "/registration_application/approve",
-            put().to(approve_registration_application),
-          )
-          .route(
-            "/registration_application",
-            get().to(get_registration_application),
-          )
           .route("/ban", post().to(ban_from_site))
           .route("/users", get().to(admin_list_users))
           .route("/leave", post().to(leave_admin))
