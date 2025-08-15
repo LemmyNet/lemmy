@@ -305,6 +305,16 @@ CREATE INDEX IF NOT EXISTS idx_post_like_post ON post_like (post_id);
 
 CREATE INDEX idx_comment_like_comment ON comment_like (comment_id);
 
+CREATE INDEX idx_post_hide_post ON post_hide (post_id);
+
+CREATE INDEX idx_post_read_post ON post_read (post_id);
+
+CREATE INDEX idx_post_saved_post ON post_saved (post_id);
+
+CREATE INDEX idx_post_like_published ON post_like (published);
+
+CREATE INDEX idx_comment_like_published ON comment_like (published);
+
 DROP INDEX idx_person_actions_person, idx_person_actions_target, idx_post_actions_person, idx_post_actions_post;
 
 -- Drop `NOT NULL` indexes of columns that still exist
