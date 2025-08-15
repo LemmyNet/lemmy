@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{
   combined::report::ReportCombined,
   comment::{Comment, CommentActions},
@@ -15,13 +16,16 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{
+  lemmy_db_schema::utils::queries::selects::{
+    creator_ban_expires_from_community,
     creator_banned_from_community,
-    creator_banned_within_community,
     creator_is_moderator,
+    creator_local_home_community_ban_expires,
+    creator_local_home_community_banned,
     local_user_is_admin,
     person1_select,
     person2_select,
+    CreatorLocalHomeCommunityBanExpiresType,
   },
   lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,
@@ -82,16 +86,29 @@ pub struct ReportCombinedViewInternal {
   pub creator_is_moderator: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned_within_community()
+      select_expression = creator_local_home_community_banned()
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
+      select_expression = creator_local_home_community_ban_expires()
+     )
+  )]
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()
     )
   )]
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_ban_expires_from_community()
+    )
+  )]
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]

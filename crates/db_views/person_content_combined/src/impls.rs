@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{
+    queries::joins::{
       community_join,
       creator_community_actions_join,
       creator_home_instance_actions_join,
@@ -240,8 +240,10 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
@@ -256,8 +258,10 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     }
   }

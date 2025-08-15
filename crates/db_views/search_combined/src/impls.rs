@@ -34,19 +34,23 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      creator_community_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-      suggested_communities,
+      filters::{
+        filter_is_subscribed,
+        filter_not_unlisted_or_is_subscribed,
+        filter_suggested_communities,
+      },
+      joins::{
+        creator_community_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        creator_local_user_admin_join,
+        image_details_join,
+        my_comment_actions_join,
+        my_community_actions_join,
+        my_local_user_admin_join,
+        my_person_actions_join,
+        my_post_actions_join,
+      },
     },
     seconds_to_pg_interval,
     DbPool,
@@ -338,7 +342,7 @@ impl SearchCombinedQuery {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
-      ListingType::Suggested => query.filter(suggested_communities()),
+      ListingType::Suggested => query.filter(filter_suggested_communities()),
     };
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
@@ -430,8 +434,10 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -448,8 +454,10 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
@@ -469,6 +477,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         is_admin: v.item_creator_is_admin,
         person_actions: v.person_actions,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
       }))
     } else {
       None
@@ -536,6 +545,7 @@ mod tests {
       local_user: timmy_local_user,
       person: timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let community_form = CommunityInsertForm {

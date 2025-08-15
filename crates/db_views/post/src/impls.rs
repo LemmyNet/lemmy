@@ -32,21 +32,25 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      creator_community_actions_join,
-      creator_community_instance_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      filter_blocked,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      image_details_join,
-      my_community_actions_join,
-      my_instance_communities_actions_join,
-      my_instance_persons_actions_join_1,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-      suggested_communities,
+      filters::{
+        filter_blocked,
+        filter_is_subscribed,
+        filter_not_unlisted_or_is_subscribed,
+        filter_suggested_communities,
+      },
+      joins::{
+        creator_community_actions_join,
+        creator_community_instance_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        image_details_join,
+        my_community_actions_join,
+        my_instance_communities_actions_join,
+        my_instance_persons_actions_join_1,
+        my_local_user_admin_join,
+        my_person_actions_join,
+        my_post_actions_join,
+      },
     },
     seconds_to_pg_interval,
     Commented,
@@ -400,7 +404,7 @@ impl PostQuery<'_> {
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator_at.is_not_null());
       }
-      ListingType::Suggested => query = query.filter(suggested_communities()),
+      ListingType::Suggested => query = query.filter(filter_suggested_communities()),
     }
 
     if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
@@ -568,7 +572,7 @@ mod tests {
     impls::{PostQuery, PostSortType},
     PostView,
   };
-  use chrono::Utc;
+  use chrono::{DateTime, Days, Utc};
   use diesel_async::SimpleAsyncConnection;
   use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
@@ -791,17 +795,20 @@ mod tests {
         local_user: inserted_tegan_local_user,
         person: inserted_tegan_person,
         banned: false,
+        ban_expires_at: None,
       };
       let john = LocalUserView {
         local_user: inserted_john_local_user,
         person: inserted_john_person,
         banned: false,
+        ban_expires_at: None,
       };
 
       let bot = LocalUserView {
         local_user: inserted_bot_local_user,
         person: inserted_bot_person,
         banned: false,
+        ban_expires_at: None,
       };
 
       Ok(Data {
@@ -2076,10 +2083,17 @@ mod tests {
     Ok(())
   }
 
+  /// Use microseconds for date checks
+  ///
+  /// Necessary because postgres uses micros, but rust uses nanos
+  fn micros(dt: DateTime<Utc>) -> i64 {
+    dt.timestamp_micros()
+  }
+
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_local_user_banned(data: &mut Data) -> LemmyResult<()> {
+  async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
@@ -2097,9 +2111,11 @@ mod tests {
     };
     let banned_post = Post::create(pool, &post_form).await?;
 
+    let expires_at = Utc::now().checked_add_days(Days::new(1));
+
     InstanceActions::ban(
       pool,
-      &InstanceBanForm::new(banned_person.id, data.instance.id, None),
+      &InstanceBanForm::new(banned_person.id, data.instance.id, expires_at),
     )
     .await?;
 
@@ -2115,7 +2131,66 @@ mod tests {
 
     assert!(post_view.creator_banned);
 
-    assert!(post_view.creator_banned);
+    // Make sure the expires at is correct
+    assert_eq!(
+      expires_at.map(micros),
+      post_view.creator_ban_expires_at.map(micros)
+    );
+
+    Person::delete(pool, banned_person.id).await?;
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jarvis");
+
+    let banned_person = Person::create(pool, &banned_person_form).await?;
+
+    let post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        "banned jarvis post".to_string(),
+        banned_person.id,
+        data.community.id,
+      )
+    };
+    let banned_post = Post::create(pool, &post_form).await?;
+
+    let expires_at = Utc::now().checked_add_days(Days::new(1));
+
+    CommunityActions::ban(
+      pool,
+      &CommunityPersonBanForm {
+        ban_expires_at: Some(expires_at),
+        ..CommunityPersonBanForm::new(data.community.id, banned_person.id)
+      },
+    )
+    .await?;
+
+    // Let john read their post
+    let post_view = PostView::read(
+      pool,
+      banned_post.id,
+      Some(&data.john.local_user),
+      data.instance.id,
+      false,
+    )
+    .await?;
+
+    assert!(post_view.creator_banned_from_community);
+    assert!(!post_view.creator_banned);
+
+    // Make sure the expires at is correct
+    assert_eq!(
+      expires_at.map(micros),
+      post_view.creator_community_ban_expires_at.map(micros)
+    );
 
     Person::delete(pool, banned_person.id).await?;
     Ok(())
