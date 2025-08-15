@@ -102,6 +102,7 @@ use lemmy_api_crud::{
   comment::{
     create::create_comment,
     delete::delete_comment,
+    get_post_for_comment::get_post_for_comment,
     read::get_comment,
     remove::remove_comment,
     update::update_comment,
@@ -235,6 +236,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/{community_id}")
               .route("", put().to(update_community))
+              .route("/post", get().to(get_post_for_comment))
               .route("/follow", post().to(follow_community))
               .route("/report", post().to(create_community_report))
               .route("/delete", post().to(delete_community))

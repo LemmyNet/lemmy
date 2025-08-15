@@ -4,8 +4,12 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
 use lemmy_db_schema::{
-  newtypes::PostId,
-  source::post::{Post, PostActions, PostReadForm},
+  newtypes::CommentId,
+  source::{
+    comment::Comment,
+    post::{Post, PostActions, PostReadForm},
+  },
+  traits::Crud,
   SearchType,
 };
 use lemmy_db_views_community::CommunityView;
@@ -15,12 +19,12 @@ use lemmy_db_views_search_combined::impls::SearchCombinedQuery;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn get_post(
-  post_id: Path<PostId>,
+pub async fn get_post_for_comment(
+  comment_id: Path<CommentId>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let post_id = post_id.into_inner();
+  let comment_id = comment_id.into_inner();
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let local_instance_id = site_view.site.instance_id;
@@ -29,6 +33,11 @@ pub async fn get_post(
 
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
+
+  // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
+  let post_id = Comment::read(&mut context.pool(), comment_id)
+    .await?
+    .post_id;
 
   // Check to see if the person is a mod or admin, to show deleted / removed
   let community_id = Post::read_xx(&mut context.pool(), post_id)
