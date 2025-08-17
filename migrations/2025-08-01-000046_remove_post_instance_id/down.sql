@@ -301,7 +301,7 @@ CREATE INDEX idx_post_language ON post USING btree (language_id);
 CREATE INDEX idx_post_nonzero_hotrank ON post USING btree (published DESC)
 WHERE ((hot_rank <> (0)::double precision) OR (hot_rank_active <> (0)::double precision));
 
-CREATE INDEX idx_post_published ON post USING btree (published DESC);
+CREATE INDEX idx_post_published ON post USING btree (published);
 
 CREATE INDEX idx_post_published_asc ON post USING btree (reverse_timestamp_sort (published) DESC);
 
