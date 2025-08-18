@@ -154,7 +154,7 @@ steps:
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16
       # Run tests
-      - cargo nextest --workspace --no-fail-fast
+      - cargo nextest run --workspace --no-fail-fast
     when: *slow_check_paths
 
   cargo_clippy:
