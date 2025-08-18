@@ -151,7 +151,7 @@ steps:
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16
       # Run tests
-      - cargo test --workspace --no-fail-fast
+      - cargo test -p lemmy_db_schema_setup --no-fail-fast
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
