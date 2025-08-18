@@ -36,6 +36,8 @@ pub(crate) fn get_dump() -> String {
       "--no-table-access-method",
       "--no-tablespaces",
       "--no-large-objects",
+      // Use a fake restrict key, rather than an auto-generated one.
+      // See https://github.com/sqlc-dev/sqlc/issues/4065
       "--restrict-key",
       "empty",
     ])
@@ -45,9 +47,8 @@ pub(crate) fn get_dump() -> String {
 
   // TODO: use exit_ok method when it's stable
   assert!(output.status.success());
-  let out = String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text");
-  println!("output: {out}");
-  out
+
+  String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
 /// Checks dumps returned by [`get_dump`] and panics if they differ in a way that indicates a
