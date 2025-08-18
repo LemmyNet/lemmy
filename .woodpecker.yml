@@ -145,7 +145,6 @@ steps:
       LEMMY_TEST_FAST_FEDERATION: "1"
       LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
-      - cat migrations/2020-04-14-163701_update_views_for_activitypub/down.sql
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'

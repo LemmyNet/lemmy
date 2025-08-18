@@ -43,8 +43,9 @@ pub(crate) fn get_dump() -> String {
 
   // TODO: use exit_ok method when it's stable
   assert!(output.status.success());
-
-  String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
+  let out = String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text");
+  println!("output: {out}");
+  out
 }
 
 /// Checks dumps returned by [`get_dump`] and panics if they differ in a way that indicates a
