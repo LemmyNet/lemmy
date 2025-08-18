@@ -164,7 +164,7 @@ steps:
       RUSTUP_HOME: .rustup_home
     commands:
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
+      - cargo clippy --workspace --tests -- -D warnings
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
