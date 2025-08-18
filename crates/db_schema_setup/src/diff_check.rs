@@ -37,7 +37,7 @@ pub(crate) fn get_dump() -> String {
       "--no-tablespaces",
       "--no-large-objects",
       "--restrict-key",
-      "",
+      "empty",
     ])
     .stderr(Stdio::inherit())
     .output()
