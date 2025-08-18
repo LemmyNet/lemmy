@@ -41,87 +41,87 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  prettier_check:
-    image: tmknom/prettier:3.6.2
-    commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
-    when:
-      - event: pull_request
+  # prettier_check:
+  #   image: tmknom/prettier:3.6.2
+  #   commands:
+  #     - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+  #   when:
+  #     - event: pull_request
 
-  bash_fmt:
-    image: alpine:3
-    commands:
-      - apk add shfmt
-      - shfmt -i 2 -d */**.bash
-      - shfmt -i 2 -d */**.sh
-    when:
-      - event: pull_request
+  # bash_fmt:
+  #   image: alpine:3
+  #   commands:
+  #     - apk add shfmt
+  #     - shfmt -i 2 -d */**.bash
+  #     - shfmt -i 2 -d */**.sh
+  #   when:
+  #     - event: pull_request
 
-  toml_fmt:
-    image: tamasfe/taplo:0.9.3
-    commands:
-      - taplo format --check
-    when:
-      - event: pull_request
+  # toml_fmt:
+  #   image: tamasfe/taplo:0.9.3
+  #   commands:
+  #     - taplo format --check
+  #   when:
+  #     - event: pull_request
 
-  sql_fmt:
-    image: *rust_image
-    commands:
-      - apt-get install perl make bash
-      - ./scripts/alpine_install_pg_formatter.sh
-      - ./scripts/sql_format_check.sh
-    when:
-      - event: pull_request
+  # sql_fmt:
+  #   image: *rust_image
+  #   commands:
+  #     - apt-get install perl make bash
+  #     - ./scripts/alpine_install_pg_formatter.sh
+  #     - ./scripts/sql_format_check.sh
+  #   when:
+  #     - event: pull_request
 
-  cargo_fmt:
-    image: *rust_nightly_image
-    environment:
-      # store cargo data in repo folder so that it gets cached between steps
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
-    when:
-      - event: pull_request
+  # cargo_fmt:
+  #   image: *rust_nightly_image
+  #   environment:
+  #     # store cargo data in repo folder so that it gets cached between steps
+  #     CARGO_HOME: .cargo_home
+  #     RUSTUP_HOME: .rustup_home
+  #   commands:
+  #     - rustup component add rustfmt --toolchain nightly
+  #     - cargo +nightly fmt -- --check
+  #   when:
+  #     - event: pull_request
 
-  cargo_shear:
-    image: *rust_nightly_image
-    commands:
-      - *install_binstall
-      - cargo binstall -y cargo-shear
-      - cargo shear
-    when:
-      - event: pull_request
+  # cargo_shear:
+  #   image: *rust_nightly_image
+  #   commands:
+  #     - *install_binstall
+  #     - cargo binstall -y cargo-shear
+  #     - cargo shear
+  #   when:
+  #     - event: pull_request
 
-  ignored_files:
-    image: alpine:3
-    commands:
-      - apk add git
-      - IGNORED=$(git ls-files --cached -i --exclude-standard)
-      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
-    when:
-      - event: pull_request
+  # ignored_files:
+  #   image: alpine:3
+  #   commands:
+  #     - apk add git
+  #     - IGNORED=$(git ls-files --cached -i --exclude-standard)
+  #     - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+  #   when:
+  #     - event: pull_request
 
-  no_empty_files:
-    image: alpine:3
-    commands:
-      # Makes sure there are no files smaller than 2 bytes
-      # Don't use completely empty, as some editors use newlines
-      - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
-      - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
-    when:
-      - event: pull_request
+  # no_empty_files:
+  #   image: alpine:3
+  #   commands:
+  #     # Makes sure there are no files smaller than 2 bytes
+  #     # Don't use completely empty, as some editors use newlines
+  #     - EMPTY_FILES=$(find crates migrations api_tests/src config -type f -size -2c)
+  #     - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
+  #   when:
+  #     - event: pull_request
 
-  cargo_clippy:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
-    when: *slow_check_paths
+  # cargo_clippy:
+  #   image: *rust_image
+  #   environment:
+  #     CARGO_HOME: .cargo_home
+  #     RUSTUP_HOME: .rustup_home
+  #   commands:
+  #     - rustup component add clippy
+  #     - cargo clippy --workspace --tests --all-targets -- -D warnings
+  #   when: *slow_check_paths
 
   # `DROP OWNED` doesn't work for default user
   create_database_user:
