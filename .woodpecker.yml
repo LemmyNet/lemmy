@@ -146,10 +146,11 @@ steps:
       LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
       # Install pg_dump for the schema setup test (must match server version)
-      - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
+      # - apt update && apt install -y lsb-release
+      - apt-get update && apt-get install -y postgresql-client
+      # - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      # - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      # - apt update && apt install -y postgresql-client-16
       # Run tests
       - cargo test -p lemmy_db_schema_setup --no-fail-fast
     when: *slow_check_paths
