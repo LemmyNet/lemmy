@@ -113,14 +113,14 @@ steps:
     when:
       - event: pull_request
 
-  cargo_clippy:
+  cargo_build:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
       RUSTUP_HOME: .rustup_home
     commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
   # `DROP OWNED` doesn't work for default user
@@ -145,13 +145,26 @@ steps:
       LEMMY_TEST_FAST_FEDERATION: "1"
       LEMMY_CONFIG_LOCATION: /woodpecker/src/github.com/LemmyNet/lemmy/config/config.hjson
     commands:
+      # Install nextest
+      - *install_binstall
+      - cargo binstall cargo-nextest --secure
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16
       # Run tests
-      - cargo test --workspace --no-fail-fast
+      - cargo nextest --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
@@ -181,16 +194,6 @@ steps:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when: *slow_check_paths
-
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
   check_diesel_schema:
