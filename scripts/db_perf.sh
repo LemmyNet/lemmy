@@ -13,7 +13,7 @@ source scripts/start_dev_db.sh
 export LEMMY_CONFIG_LOCATION=$(pwd)/config/config.hjson
 export RUST_BACKTRACE=1
 
-cargo nextest run -p lemmy_db_views_post --features full --no-fail-fast db_perf -- --nocapture
+cargo test -p lemmy_db_views_post --features full --no-fail-fast db_perf -- --nocapture
 
 pg_ctl stop --silent
 
