@@ -56,20 +56,17 @@ where
 }
 
 /// Call a plugin hook which can rewrite data
-pub async fn plugin_hook_before<T>(name: &'static str, data: &T) -> LemmyResult<T>
+pub async fn plugin_hook_before<T>(name: &'static str, data: T) -> LemmyResult<T>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a> + Sync + Send + 'static,
 {
-  // Clone the data, so you don't alter it when moving.
-  let data_cloned = data.clone();
-
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
-    return Ok(data_cloned);
+    return Ok(data);
   }
 
   spawn_blocking(move || {
-    let mut res: Json<T> = data_cloned.into();
+    let mut res: Json<T> = data.into();
     for p in plugins.0 {
       if let Some(plugin) = p.get(name)? {
         let r = plugin

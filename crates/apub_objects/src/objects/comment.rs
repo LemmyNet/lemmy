@@ -230,7 +230,7 @@ impl Object for ApubComment {
       language_id,
       federation_pending: Some(false),
     };
-    form = plugin_hook_before("before_receive_federated_comment", &form).await?;
+    form = plugin_hook_before("before_receive_federated_comment", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
