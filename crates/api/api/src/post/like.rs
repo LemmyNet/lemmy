@@ -68,7 +68,7 @@ pub async fn like_post(
   }
 
   if like_form.like_score != 0 {
-    like_form = plugin_hook_before("before_post_vote", like_form).await?;
+    like_form = plugin_hook_before("before_post_vote", &like_form).await?;
     let like = PostActions::like(&mut context.pool(), &like_form).await?;
     PersonActions::like(
       &mut context.pool(),

@@ -104,7 +104,7 @@ pub async fn create_comment(
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
-  comment_form = plugin_hook_before("before_create_local_comment", comment_form).await?;
+  comment_form = plugin_hook_before("before_create_local_comment", &comment_form).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);

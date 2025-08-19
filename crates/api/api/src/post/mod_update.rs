@@ -55,7 +55,7 @@ pub async fn mod_update_post(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
+  post_form = plugin_hook_before("before_update_local_post", &post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
