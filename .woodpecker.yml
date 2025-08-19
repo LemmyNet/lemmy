@@ -113,15 +113,15 @@ steps:
   #   when:
   #     - event: pull_request
 
-  # cargo_clippy:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo_home
-  #     RUSTUP_HOME: .rustup_home
-  #   commands:
-  #     - rustup component add clippy
-  #     - cargo clippy --workspace --tests --all-targets -- -D warnings
-  #   when: *slow_check_paths
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
 
   # `DROP OWNED` doesn't work for default user
   create_database_user:
@@ -154,15 +154,25 @@ steps:
   #     - cargo test --workspace --no-fail-fast
   #   when: *slow_check_paths
 
-  # # make sure api builds with default features (used by other crates relying on lemmy api)
-  # check_api_common_default_features:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo_home
-  #     RUSTUP_HOME: .rustup_home
-  #   commands:
-  #     - cargo check --package lemmy_api_common
-  #   when: *slow_check_paths
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests -- -D warnings
+    when: *slow_check_paths
+
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  check_api_common_default_features:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo check --package lemmy_api_common
+    when: *slow_check_paths
 
   # lemmy_api_common_doesnt_depend_on_diesel:
   #   image: *rust_image
@@ -183,35 +193,25 @@ steps:
   #     - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
   #   when: *slow_check_paths
 
-  cargo_build:
+  check_diesel_schema:
     image: *rust_image
     environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
       RUSTUP_HOME: .rustup_home
     commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
+      - *install_binstall
+      - cp crates/db_schema_file/src/schema.rs tmp.schema
+      - target/lemmy_server migration --all run
+      - apt-get update && apt-get install -y postgresql-client
+      # diesel_cli@2.2.8 is the last version that supports rust 1.81, which we are currently locked on due to perf regressions on rust 1.82+ :(
+      - cargo binstall --locked diesel_cli@2.2.8 -y
+      - export PATH="$CARGO_HOME/bin:$PATH"
+      - diesel print-schema
+      - diff tmp.schema crates/db_schema_file/src/schema.rs
     when: *slow_check_paths
-
-  # check_diesel_schema:
-  #   image: *rust_image
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     RUST_BACKTRACE: "1"
-  #     CARGO_HOME: .cargo_home
-  #     RUSTUP_HOME: .rustup_home
-  #   commands:
-  #     - *install_binstall
-  #     - cp crates/db_schema_file/src/schema.rs tmp.schema
-  #     - target/lemmy_server migration --all run
-  #     - apt-get update && apt-get install -y postgresql-client
-  #     # diesel_cli@2.2.8 is the last version that supports rust 1.81, which we are currently locked on due to perf regressions on rust 1.82+ :(
-  #     - cargo binstall --locked diesel_cli@2.2.8 -y
-  #     - export PATH="$CARGO_HOME/bin:$PATH"
-  #     - diesel print-schema
-  #     - diff tmp.schema crates/db_schema_file/src/schema.rs
-  #   when: *slow_check_paths
 
   run_federation_tests:
     image: node:22-bookworm-slim
