@@ -112,14 +112,17 @@ test("Delete user", async () => {
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
-  expect((await getPost(user, localPost.id)).post_view.post.deleted).toBe(true);
-  expect((await getPost(user, remotePost.id)).post_view.post.deleted).toBe(
+  expect((await getPost(alpha, localPost.id)).post_view.post.deleted).toBe(
+    true,
+  );
+  expect((await getPost(alpha, remotePost.id)).post_view.post.deleted).toBe(
     true,
   );
   expect(
-    (await getComments(user, localComment.post_id)).comments[0].comment.deleted,
+    (await getComments(alpha, localComment.post_id)).comments[0].comment
+      .deleted,
   ).toBe(true);
-  let comment = await user.getComment({ id: remoteComment.id });
+  let comment = await alpha.getComment({ id: remoteComment.id });
   expect(comment.comment_view.comment.deleted).toBe(true);
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
