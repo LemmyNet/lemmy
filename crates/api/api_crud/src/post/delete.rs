@@ -41,7 +41,7 @@ pub async fn delete_post(
   // Update the post
   let post = Post::update(
     &mut context.pool(),
-    data.post_id,
+    post_id,
     &PostUpdateForm {
       deleted: Some(data.deleted),
       ..Default::default()
@@ -54,11 +54,5 @@ pub async fn delete_post(
     &context,
   )?;
 
-  build_post_response(
-    &context,
-    orig_post.community_id,
-    local_user_view,
-    data.post_id,
-  )
-  .await
+  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }
