@@ -141,8 +141,7 @@ pub async fn update_post(
     scheduled_publish_time_at,
     ..Default::default()
   };
-  // TODO Removing plugin hook before that's breaking tests
-  // post_form = plugin_hook_before("before_update_local_post", post_form).await?;
+  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
