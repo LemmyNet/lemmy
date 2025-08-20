@@ -518,23 +518,19 @@ pub mod functions {
   use diesel::sql_types::{Int2, Int4, Nullable, Text};
 
   define_sql_function! {
-    fn hot_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>) -> Float;
+    fn hot_rank(upvotes: Int4, downvotes: Int4, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function! {
-    fn scaled_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>, age: Nullable<Int2>, non_0_community_interactions_month: Nullable<Int4>) -> Float;
+    fn scaled_rank(upvotes: Int4, downvotes: Int4, age: Nullable<Int2>, community_interactions_month: Int4) -> Float;
   }
 
   define_sql_function! {
-    fn score(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Int4;
+    fn controversy_rank(upvotes: Int4, downvotes: Int4) -> Float;
   }
 
   define_sql_function! {
-    fn controversy_rank(non_1_upvotes: Nullable<Int4>, non_0_downvotes: Nullable<Int4>) -> Float;
-  }
-
-  define_sql_function! {
-    fn community_hot_rank(non_1_subscribers: Nullable<Int4>, age: Nullable<Int2>) -> Float;
+    fn community_hot_rank(subscribers: Int4, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);

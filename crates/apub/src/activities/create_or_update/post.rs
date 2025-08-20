@@ -149,6 +149,9 @@ impl Activity for CreateOrUpdatePage {
     let like_form = PostLikeForm::new(post.id, post.creator_id, 1);
     PostActions::like(&mut context.pool(), &like_form).await?;
 
+    // Calculate initial hot_rank for post
+    Post::update_ranks(&mut context.pool(), post.id).await?;
+
     let do_send_email =
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;

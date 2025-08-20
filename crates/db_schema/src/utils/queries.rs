@@ -261,25 +261,16 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::path,
     comment::distinguished,
     comment::language_id,
-    score(comment::non_1_upvotes, comment::non_0_downvotes),
-    coalesce::<sql_types::Integer, comment::non_1_upvotes, i32>(comment::non_1_upvotes, 1),
-    coalesce::<sql_types::Integer, comment::non_0_downvotes, i32>(comment::non_0_downvotes, 0),
-    coalesce::<sql_types::Integer, comment::non_0_child_count, i32>(comment::non_0_child_count, 0),
-    hot_rank(
-      comment::non_1_upvotes,
-      comment::non_0_downvotes,
-      comment::age,
-    ),
-    controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes),
+    comment::score,
+    comment::upvotes,
+    comment::downvotes,
+    comment::child_count,
+    comment::hot_rank,
+    comment::controversy_rank,
     comment::age,
-    coalesce::<sql_types::SmallInt, comment::non_0_report_count, i16>(
-      comment::non_0_report_count,
-      0,
-    ),
-    coalesce::<sql_types::SmallInt, comment::non_0_unresolved_report_count, i16>(
-      comment::non_0_unresolved_report_count,
-      0,
-    ),
+    comment::report_count,
+    comment::unresolved_report_count,
+    comment::unresolved_report_count,
     comment::federation_pending,
   )
 }
@@ -331,22 +322,10 @@ pub fn person_alias_as_select<S: AliasSource<Target = person::table> + Clone>(
     alias.field(person::matrix_user_id),
     alias.field(person::bot_account),
     alias.field(person::instance_id),
-    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_post_count>, i32>(
-      alias.field(person::non_0_post_count),
-      0,
-    ),
-    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_post_score>, i32>(
-      alias.field(person::non_0_post_score),
-      0,
-    ),
-    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_comment_count>, i32>(
-      alias.field(person::non_0_comment_count),
-      0,
-    ),
-    coalesce::<sql_types::Integer, Field<Alias<S>, person::non_0_comment_score>, i32>(
-      alias.field(person::non_0_comment_score),
-      0,
-    ),
+    alias.field(person::post_count),
+    alias.field(person::post_score),
+    alias.field(person::comment_count),
+    alias.field(person::comment_score),
   )
 }
 

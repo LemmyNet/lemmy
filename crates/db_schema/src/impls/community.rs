@@ -278,7 +278,7 @@ impl Community {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(for_community_id))
-      .set(community::dsl::non_1_subscribers.eq(Some(new_subscribers).filter(|&n| n != 1)))
+      .set(community::dsl::subscribers.eq(ew_subscribers))
       .returning(Self::as_select())
       .get_result(conn)
       .await
@@ -404,7 +404,7 @@ impl CommunityActions {
           .filter(community_actions::followed_at.is_not_null())
           .filter(community_actions::person_id.eq(person_id))
           .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
-          .order_by(coalesce(community::non_0_users_active_month, 0).desc())
+          .order_by(community::users_active_month.desc())
           .select(community::id)
           .first::<CommunityId>(conn)
           .await

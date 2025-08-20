@@ -80,50 +80,24 @@ pub struct Community {
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
-  #[diesel(select_expression = coalesce(community::non_1_subscribers, 1))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_1_subscribers, i32>)]
   pub subscribers: i32,
-  #[diesel(select_expression = coalesce(community::non_0_posts, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_posts, i32>)]
   pub posts: i32,
-  #[diesel(select_expression = coalesce(community::non_0_comments, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_comments, i32>)]
   pub comments: i32,
   /// The number of users with any activity in the last day.
-  #[diesel(select_expression = coalesce(community::non_0_users_active_day, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_day, i32>)]
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
-  #[diesel(select_expression = coalesce(community::non_0_users_active_week, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_week, i32>)]
   pub users_active_week: i32,
   /// The number of users with any activity in the last month.
-  #[diesel(select_expression = coalesce(community::non_0_users_active_month, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_month, i32>)]
   pub users_active_month: i32,
   /// The number of users with any activity in the last year.
-  #[diesel(select_expression = coalesce(community::non_0_users_active_half_year, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_users_active_half_year, i32>)]
   pub users_active_half_year: i32,
-  #[diesel(select_expression = community_hot_rank(community::non_1_subscribers, community::age))]
-  #[diesel(select_expression_type = community_hot_rank<community::non_1_subscribers, community::age>)]
-  pub hot_rank: f32,
-  #[diesel(select_expression = coalesce(community::non_0_subscribers_local, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_subscribers_local, i32>)]
+  pub hot_rank: f64,
   pub subscribers_local: i32,
-  #[diesel(select_expression = coalesce(community::non_0_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_report_count, i16>)]
   pub report_count: i16,
-  #[diesel(select_expression = coalesce(community::non_0_unresolved_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, community::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// Number of any interactions over the last month.
   #[serde(skip)]
-  #[diesel(select_expression = coalesce(community::non_0_interactions_month, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, community::non_0_interactions_month, i32>)]
   pub interactions_month: i32,
-  #[serde(skip)]
-  pub age: Option<i16>,
   pub local_removed: bool,
 }
 

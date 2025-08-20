@@ -692,7 +692,7 @@ mod tests {
       hot_rank_active: 0.1370171,
       age: Some(0),
       newest_non_necro_comment_age: None,
-      non_0_community_interactions_month: None,
+      community_interactions_month: 0,
       newest_comment_time_at: inserted_post.published_at,
       newest_comment_time_necro_at: inserted_post.published_at,
       report_count: 0,

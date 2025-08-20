@@ -1126,7 +1126,6 @@ mod tests {
       child_count: 0,
       hot_rank: 0.0,
       controversy_rank: 0.0,
-      age: Some(0),
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,

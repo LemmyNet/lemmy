@@ -210,6 +210,15 @@ impl Comment {
       None
     }
   }
+  pub async fn update_hot_rank(pool: &mut DbPool<'_>, comment_id: CommentId) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    diesel::update(comment::table.find(comment_id))
+      .set(comment::hot_rank.eq(hot_rank(comment::score, comment::published_at)))
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
   pub fn local_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/comment/{}", self.id))?)
@@ -380,7 +389,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
@@ -445,8 +454,7 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       score: 1,
-      hot_rank: 0.1370171,
-      age: Some(0),
+      hot_rank: RANK_DEFAULT,
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,

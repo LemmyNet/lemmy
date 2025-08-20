@@ -54,34 +54,16 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
-  #[diesel(select_expression = score(comment::non_1_upvotes, comment::non_0_downvotes))]
-  #[diesel(select_expression_type = score<comment::non_1_upvotes, comment::non_0_downvotes>)]
   pub score: i32,
-  #[diesel(select_expression = coalesce(comment::non_1_upvotes, 1))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_1_upvotes, i32>)]
   pub upvotes: i32,
-  #[diesel(select_expression = coalesce(comment::non_0_downvotes, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_downvotes, i32>)]
   pub downvotes: i32,
   /// The total number of children in this comment branch.
-  #[diesel(select_expression = coalesce(comment::non_0_child_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, comment::non_0_child_count, i32>)]
   pub child_count: i32,
   #[serde(skip)]
-  #[diesel(select_expression = hot_rank(comment::non_1_upvotes, comment::non_0_downvotes, comment::age))]
-  #[diesel(select_expression_type = hot_rank<comment::non_1_upvotes, comment::non_0_downvotes, comment::age>)]
-  pub hot_rank: f32,
+  pub hot_rank: f64,
   #[serde(skip)]
-  #[diesel(select_expression = controversy_rank(comment::non_1_upvotes, comment::non_0_downvotes))]
-  #[diesel(select_expression_type = controversy_rank<comment::non_1_upvotes, comment::non_0_downvotes>)]
-  pub controversy_rank: f32,
-  #[serde(skip)]
-  pub age: Option<i16>,
-  #[diesel(select_expression = coalesce(comment::non_0_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_report_count, i16>)]
+  pub controversy_rank: f64,
   pub report_count: i16,
-  #[diesel(select_expression = coalesce(comment::non_0_unresolved_report_count, 0))]
-  #[diesel(select_expression_type = coalesce<sql_types::SmallInt, comment::non_0_unresolved_report_count, i16>)]
   pub unresolved_report_count: i16,
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).

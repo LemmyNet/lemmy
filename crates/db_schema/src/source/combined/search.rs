@@ -30,8 +30,6 @@ use serde_with::skip_serializing_none;
 /// A combined table for a search (posts, comments, communities, persons)
 pub struct SearchCombined {
   pub published_at: DateTime<Utc>,
-  #[diesel(select_expression = coalesce(search_combined::non_1_score, 1))]
-  #[diesel(select_expression_type = coalesce<sql_types::Integer, search_combined::non_1_score, i32>)]
   pub score: i32,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
