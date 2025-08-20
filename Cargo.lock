@@ -3229,7 +3229,6 @@ dependencies = [
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_notification",
- "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_db_views_site",
