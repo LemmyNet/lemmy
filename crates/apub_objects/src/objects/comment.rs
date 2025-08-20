@@ -44,7 +44,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
