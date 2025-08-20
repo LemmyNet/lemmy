@@ -176,17 +176,10 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let local_instance_id = site_view.site.instance_id;
 
-    let is_mod_or_admin = check_is_mod_or_admin(
-      &mut context.pool(),
-      creator.id,
-      community.id,
-      local_instance_id,
-    )
-    .await
-    .is_ok();
+    let is_mod_or_admin = check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
+      .await
+      .is_ok();
     if post.locked && !is_mod_or_admin {
       Err(FederationError::PostIsLocked)?
     } else {

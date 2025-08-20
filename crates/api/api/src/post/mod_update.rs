@@ -42,13 +42,7 @@ pub async fn mod_update_post(
   let community = orig_post.community;
 
   check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
-  check_is_mod_or_admin(
-    &mut context.pool(),
-    local_user_view.person.id,
-    community.id,
-    local_instance_id,
-  )
-  .await?;
+  check_is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community.id).await?;
 
   let mut post_form = PostUpdateForm {
     nsfw: data.nsfw,
