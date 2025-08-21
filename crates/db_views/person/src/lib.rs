@@ -1,9 +1,17 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::person::{Person, PersonActions};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::utils::{functions::coalesce, queries::creator_banned},
+  lemmy_db_schema::utils::{
+    functions::coalesce,
+    queries::selects::{
+      creator_local_home_ban_expires,
+      creator_local_home_banned,
+      CreatorLocalHomeBanExpiresType,
+    },
+  },
   lemmy_db_schema_file::schema::local_user,
 };
 
@@ -31,8 +39,15 @@ pub struct PersonView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_local_home_banned()
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = CreatorLocalHomeBanExpiresType,
+      select_expression = creator_local_home_ban_expires()
+     )
+  )]
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
 }

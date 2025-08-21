@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     get_conn,
     now,
     paginate,
-    queries::creator_home_instance_actions_join,
+    queries::joins::creator_home_instance_actions_join,
     DbPool,
   },
 };
