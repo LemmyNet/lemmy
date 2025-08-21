@@ -218,6 +218,38 @@ where
   }
 }
 
+#[expect(non_camel_case_types)]
+pub type bool_to_int_score<T> = dsl::Otherwise<dsl::case_when<T, i16, sql_types::SmallInt>, i16>;
+
+pub fn bool_to_int_score<T>(like_score_is_positive: T) -> bool_to_int_score<T>
+where
+  T: Expression<SqlType = sql_types::Bool>,
+{
+  dsl::case_when::<_, _, sql_types::SmallInt>(like_score_is_positive, 1).otherwise(-1)
+}
+
+#[expect(non_camel_case_types)]
+pub type bool_to_int_score_nullable<T> = dsl::Otherwise<
+  dsl::When<
+    dsl::case_when<dsl::IsNull<T>, Option<i16>, sql_types::Nullable<sql_types::SmallInt>>,
+    T,
+    Option<i16>,
+  >,
+  Option<i16>,
+>;
+
+pub fn bool_to_int_score_nullable<T>(like_score_is_positive: T) -> bool_to_int_score_nullable<T>
+where
+  T: Copy + Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
+{
+  dsl::case_when::<_, _, sql_types::Nullable<sql_types::SmallInt>>(
+    like_score_is_positive.is_null(),
+    None,
+  )
+  .when(like_score_is_positive, Some(1))
+  .otherwise(Some(-1))
+}
+
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output
 #[derive(QueryId)]
 pub struct Commented<T> {
@@ -483,16 +515,22 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
 }
 
 pub mod functions {
-  use diesel::sql_types::{Int4, Text, Timestamptz};
+  use diesel::sql_types::{Int2, Int4, Nullable, Text};
 
   define_sql_function! {
-    #[sql_name = "r.hot_rank"]
-    fn hot_rank(score: Int4, time: Timestamptz) -> Double;
+    fn hot_rank(upvotes: Int4, downvotes: Int4, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function! {
-    #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Double;
+    fn scaled_rank(upvotes: Int4, downvotes: Int4, age: Nullable<Int2>, community_interactions_month: Int4) -> Float;
+  }
+
+  define_sql_function! {
+    fn controversy_rank(upvotes: Int4, downvotes: Int4) -> Float;
+  }
+
+  define_sql_function! {
+    fn community_hot_rank(subscribers: Int4, age: Nullable<Int2>) -> Float;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);

@@ -195,17 +195,8 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommunityActions {
-  #[serde(skip)]
-  pub person_id: PersonId,
-  #[serde(skip)]
-  pub community_id: CommunityId,
   /// When the community was followed.
   pub followed_at: Option<DateTime<Utc>>,
-  /// The state of the community follow.
-  pub follow_state: Option<CommunityFollowerState>,
-  /// The approver of the community follow.
-  #[serde(skip)]
-  pub follow_approver_id: Option<PersonId>,
   /// When the community was blocked.
   pub blocked_at: Option<DateTime<Utc>>,
   /// When this user became a moderator.
@@ -214,6 +205,15 @@ pub struct CommunityActions {
   pub received_ban_at: Option<DateTime<Utc>>,
   /// When their ban expires.
   pub ban_expires_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub person_id: PersonId,
+  #[serde(skip)]
+  pub community_id: CommunityId,
+  /// The state of the community follow.
+  pub follow_state: Option<CommunityFollowerState>,
+  /// The approver of the community follow.
+  #[serde(skip)]
+  pub follow_approver_id: Option<PersonId>,
   pub notifications: Option<CommunityNotificationsMode>,
 }
 

@@ -272,6 +272,13 @@ impl Likeable for CommentActions {
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
+    let form = (
+      comment_actions::person_id.eq(form.person_id),
+      comment_actions::comment_id.eq(form.comment_id),
+      comment_actions::like_score_is_positive.eq(form.like_score == 1),
+      comment_actions::liked_at.eq(form.liked_at),
+    );
+
     insert_into(comment_actions::table)
       .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
@@ -289,7 +296,7 @@ impl Likeable for CommentActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(comment_actions::table.find((person_id, comment_id)))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
@@ -303,7 +310,7 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await
@@ -321,7 +328,7 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())))
-      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::like_score_is_positive)
       .set_null(comment_actions::liked_at)
       .get_result(conn)
       .await

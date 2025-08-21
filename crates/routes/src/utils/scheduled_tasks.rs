@@ -593,7 +593,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     .filter(not(exists(not_community_banned_action)))
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
-    .select((post::all_columns, community::all_columns))
+    .select((Post::as_select(), Community::as_select()))
     .get_results::<(Post, Community)>(conn)
     .await?;
 

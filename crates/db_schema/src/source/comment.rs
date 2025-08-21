@@ -5,6 +5,11 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,
+  crate::utils::{
+    bool_to_int_score_nullable,
+    functions::{coalesce, controversy_rank, hot_rank, score},
+  },
+  diesel::sql_types,
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{comment, comment_actions},
@@ -115,34 +120,42 @@ pub struct CommentUpdateForm {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
+  derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = comment_actions_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
+  /// When the comment was liked.
+  pub liked_at: Option<DateTime<Utc>>,
+  /// When the comment was saved.
+  pub saved_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
   /// The like / score for the comment.
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(comment_actions::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<comment_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
-  /// When the comment was liked.
+}
+
+#[cfg(feature = "full")]
+#[derive(Queryable, Selectable, CursorKeysModule)]
+#[diesel(table_name = comment_actions)]
+#[cursor_keys_module(name = comment_actions_keys)]
+pub struct CommentActionsCursorData {
+  pub comment_id: PostId,
   pub liked_at: Option<DateTime<Utc>>,
-  /// When the comment was saved.
-  pub saved_at: Option<DateTime<Utc>>,
+  /// Upvote is greater than downvote.
+  pub like_score_is_positive: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
-#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
+#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
