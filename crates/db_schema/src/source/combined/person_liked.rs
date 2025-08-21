@@ -21,11 +21,11 @@ use serde_with::skip_serializing_none;
 /// A combined person_liked table.
 pub struct PersonLikedCombined {
   pub liked_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score(person_liked_combined::like_score_is_positive)))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score<person_liked_combined::like_score_is_positive>))]
-  pub like_score: i16,
+  pub id: PersonLikedCombinedId,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  pub id: PersonLikedCombinedId,
+  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score(person_liked_combined::like_score_is_positive)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score<person_liked_combined::like_score_is_positive>))]
+  pub like_score: i16,
 }

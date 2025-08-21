@@ -67,15 +67,15 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
-  pub comments: i32,
-  pub score: i32,
-  pub upvotes: i32,
-  pub downvotes: i32,
   #[serde(skip)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
+  pub comments: i32,
+  pub score: i32,
+  pub upvotes: i32,
+  pub downvotes: i32,
   #[serde(skip)]
   pub hot_rank: f64,
   #[serde(skip)]
@@ -187,27 +187,27 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
-  #[serde(skip)]
-  pub person_id: PersonId,
-  #[serde(skip)]
-  pub post_id: PostId,
   /// When the post was read.
   pub read_at: Option<DateTime<Utc>>,
   /// When was the last time you read the comments.
   pub read_comments_at: Option<DateTime<Utc>>,
-  /// The number of comments you read last. Subtract this from total comments to get an unread
-  /// count.
-  pub read_comments_amount: Option<i32>,
   /// When the post was saved.
   pub saved_at: Option<DateTime<Utc>>,
   /// When the post was liked.
   pub liked_at: Option<DateTime<Utc>>,
+  /// When the post was hidden.
+  pub hidden_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub person_id: PersonId,
+  #[serde(skip)]
+  pub post_id: PostId,
+  /// The number of comments you read last. Subtract this from total comments to get an unread
+  /// count.
+  pub read_comments_amount: Option<i32>,
   /// The like / score of the post.
   #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(post_actions::like_score_is_positive)))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<post_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
-  /// When the post was hidden.
-  pub hidden_at: Option<DateTime<Utc>>,
   pub notifications: Option<PostNotificationsMode>,
 }
 

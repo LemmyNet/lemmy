@@ -129,6 +129,10 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
+  /// When the comment was liked.
+  pub liked_at: Option<DateTime<Utc>>,
+  /// When the comment was saved.
+  pub saved_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
@@ -137,10 +141,6 @@ pub struct CommentActions {
   #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(comment_actions::like_score_is_positive)))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<comment_actions::like_score_is_positive>))]
   pub like_score: Option<i16>,
-  /// When the comment was liked.
-  pub liked_at: Option<DateTime<Utc>>,
-  /// When the comment was saved.
-  pub saved_at: Option<DateTime<Utc>>,
 }
 
 #[cfg(feature = "full")]
