@@ -1129,6 +1129,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,
+      locked: false,
     };
     assert!(check_comment_depth(&comment).is_ok());
     comment.path = Ltree("0.123.456".to_string());

@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-instance-user-blocking.8
-        version: 1.0.0-instance-user-blocking.8
+        specifier: 1.0.0-comment-lock.0
+        version: 1.0.0-comment-lock.0
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1637,8 +1637,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-instance-user-blocking.8:
-    resolution: {integrity: sha512-hJhb5lJK4iDPb7K2MbodEFT0pliO5mwyL67YqE/opnkUo/LibdsbkSn3Himg6AcdnGv9lWnOUnZbwxrIvGLB1g==}
+  lemmy-js-client@1.0.0-comment-lock.0:
+    resolution: {integrity: sha512-F9Ui5eYuw0A5+Wcw+DUpatGwxsdjtJsJ9T9ptkkuYAVzoEgjXbjVNStdRe7Om0AzKLfVurguoWMj+3s04Hc8nw==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4327,7 +4327,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-instance-user-blocking.8:
+  lemmy-js-client@1.0.0-comment-lock.0:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

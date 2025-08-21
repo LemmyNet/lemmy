@@ -1,7 +1,7 @@
 pub mod announce;
 pub mod collection_add;
 pub mod collection_remove;
-pub mod lock_page;
+pub mod lock;
 pub mod report;
 pub mod resolve_report;
 pub mod update;
@@ -13,7 +13,7 @@ mod tests {
     announce::AnnounceActivity,
     collection_add::CollectionAdd,
     collection_remove::CollectionRemove,
-    lock_page::{LockPage, UndoLockPage},
+    lock::{LockPageOrNote, UndoLockPageOrNote},
     report::Report,
     update::Update,
   };
@@ -36,8 +36,15 @@ mod tests {
       "assets/lemmy/activities/community/remove_featured_post.json",
     )?;
 
-    test_parse_lemmy_item::<LockPage>("assets/lemmy/activities/community/lock_page.json")?;
-    test_parse_lemmy_item::<UndoLockPage>("assets/lemmy/activities/community/undo_lock_page.json")?;
+    test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_page.json")?;
+    test_parse_lemmy_item::<UndoLockPageOrNote>(
+      "assets/lemmy/activities/community/undo_lock_page.json",
+    )?;
+
+    test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_note.json")?;
+    test_parse_lemmy_item::<UndoLockPageOrNote>(
+      "assets/lemmy/activities/community/undo_lock_note.json",
+    )?;
 
     test_parse_lemmy_item::<Update>("assets/lemmy/activities/community/update_community.json")?;
 
