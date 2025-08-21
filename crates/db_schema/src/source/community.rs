@@ -13,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  crate::utils::functions::{coalesce, community_hot_rank},
-  diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{community, community_actions},
 };
@@ -91,6 +89,7 @@ pub struct Community {
   pub users_active_month: i32,
   /// The number of users with any activity in the last year.
   pub users_active_half_year: i32,
+  #[serde(skip)]
   pub hot_rank: f64,
   pub subscribers_local: i32,
   pub report_count: i16,

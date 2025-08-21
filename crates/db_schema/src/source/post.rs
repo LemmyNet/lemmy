@@ -77,17 +77,14 @@ pub struct Post {
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
   #[serde(skip)]
-  pub hot_rank: f32,
+  pub hot_rank: f64,
   #[serde(skip)]
-  pub hot_rank_active: f32,
+  pub hot_rank_active: f64,
   #[serde(skip)]
-  pub controversy_rank: f32,
+  pub controversy_rank: f64,
+  /// A rank that amplifies smaller communities
   #[serde(skip)]
-  pub scaled_rank: f32,
-  #[serde(skip)]
-  pub age: Option<i16>,
-  #[serde(skip)]
-  pub newest_non_necro_comment_age: Option<i16>,
+  pub scaled_rank: f64,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed

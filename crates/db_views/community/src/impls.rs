@@ -209,7 +209,6 @@ impl MultiCommunityView {
       multi_community::table
         .find(id)
         .inner_join(person::table)
-        .select(Self::as_select())
         .get_result(conn)
         .await?,
     )

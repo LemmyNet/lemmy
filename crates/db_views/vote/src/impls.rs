@@ -97,7 +97,7 @@ impl VoteView {
       .filter(post_actions::post_id.eq(post_id))
       .filter(post_actions::like_score_is_positive.is_not_null())
       .select((
-        Person::as_select(),
+        person::all_columns,
         creator_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)
@@ -178,7 +178,7 @@ impl VoteView {
       .filter(comment_actions::comment_id.eq(comment_id))
       .filter(comment_actions::like_score_is_positive.is_not_null())
       .select((
-        Person::as_select(),
+        person::all_columns,
         creator_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)

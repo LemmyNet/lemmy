@@ -16,7 +16,6 @@ use diesel::{
   },
   sql_types::{self, Timestamptz},
   Expression,
-  ExpressionMethods,
   IntoSql,
 };
 use diesel_async::{
@@ -61,6 +60,7 @@ const FETCH_LIMIT_DEFAULT: i64 = 20;
 pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
+pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 

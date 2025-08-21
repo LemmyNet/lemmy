@@ -11,7 +11,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, queries::person_alias_as_select, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -47,7 +47,6 @@ impl Crud for Person {
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
-      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -57,7 +56,6 @@ impl Crud for Person {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -70,7 +68,6 @@ impl Crud for Person {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person::table.find(person_id))
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -89,7 +86,6 @@ impl Person {
       .on_conflict(person::ap_id)
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -135,7 +131,6 @@ impl Person {
         person::deleted.eq(true),
         person::updated_at.eq(Utc::now()),
       ))
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -170,7 +165,6 @@ impl ApubActor for Person {
     person::table
       .filter(person::deleted.eq(false))
       .filter(person::ap_id.eq(object_id))
-      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -184,7 +178,6 @@ impl ApubActor for Person {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = person::table
-      .select(Self::as_select())
       .into_boxed()
       .filter(person::local.eq(true))
       .filter(lower(person::name).eq(from_name.to_lowercase()));
@@ -208,7 +201,7 @@ impl ApubActor for Person {
       .inner_join(instance::table)
       .filter(lower(person::name).eq(person_name.to_lowercase()))
       .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(Self::as_select())
+      .select(person::all_columns)
       .first(conn)
       .await
       .optional()
@@ -325,7 +318,7 @@ impl Blockable for PersonActions {
       .inner_join(
         target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
       )
-      .select(person_alias_as_select(target_person_alias))
+      .select(target_person_alias.fields(person::all_columns))
       .filter(person_actions::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
       .order_by(person_actions::blocked_at)

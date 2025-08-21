@@ -59,7 +59,6 @@ impl Crud for Community {
 
     let community_ = insert_into(community::table)
       .values(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await?;
 
@@ -77,7 +76,6 @@ impl Crud for Community {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(community_id))
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -139,7 +137,6 @@ impl Community {
       .filter_target(coalesce(community::updated_at, community::published_at).lt(timestamp))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await?;
 
@@ -160,7 +157,6 @@ impl Community {
     let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(community::moderators_url.eq(url))
-      .select(Self::as_select())
       .first(conn)
       .await;
 
@@ -169,7 +165,6 @@ impl Community {
     } else {
       let res = community::table
         .filter(community::featured_url.eq(url))
-        .select(Self::as_select())
         .first(conn)
         .await;
       if let Ok(c) = res {
@@ -278,8 +273,7 @@ impl Community {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(for_community_id))
-      .set(community::dsl::subscribers.eq(ew_subscribers))
-      .returning(Self::as_select())
+      .set(community::dsl::subscribers.eq(new_subscribers))
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -612,7 +606,7 @@ impl Blockable for CommunityActions {
     community_actions::table
       .filter(community_actions::blocked_at.is_not_null())
       .inner_join(community::table)
-      .select(Community::as_select())
+      .select(community::all_columns)
       .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
@@ -631,7 +625,6 @@ impl ApubActor for Community {
     let conn = &mut get_conn(pool).await?;
     community::table
       .filter(community::ap_id.eq(object_id))
-      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -645,7 +638,6 @@ impl ApubActor for Community {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
-      .select(Self::as_select())
       .into_boxed()
       .filter(community::local.eq(true))
       .filter(lower(community::name).eq(community_name.to_lowercase()));
@@ -668,7 +660,7 @@ impl ApubActor for Community {
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
       .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(Self::as_select())
+      .select(community::all_columns)
       .first(conn)
       .await
       .optional()
@@ -712,7 +704,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -773,8 +765,7 @@ mod tests {
       users_active_week: 0,
       users_active_month: 0,
       users_active_half_year: 0,
-      hot_rank: 0.1370171,
-      age: Some(0),
+      hot_rank: RANK_DEFAULT,
       subscribers_local: 1,
       report_count: 0,
       unresolved_report_count: 0,

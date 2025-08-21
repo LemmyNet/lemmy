@@ -6,7 +6,6 @@ use crate::{
   PostView,
 };
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,

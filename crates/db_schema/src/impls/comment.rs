@@ -10,7 +10,13 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{functions::coalesce, get_conn, validate_like, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    functions::{coalesce, hot_rank},
+    get_conn,
+    validate_like,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -44,7 +50,6 @@ impl Comment {
         comment::deleted.eq(true),
         comment::updated_at.eq(Utc::now()),
       ))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -61,7 +66,6 @@ impl Comment {
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -172,13 +176,11 @@ impl Comment {
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
         .set(comment_form)
-        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     } else {
       insert_into(comment::table)
         .values(comment_form)
-        .returning(Self::as_select())
         .get_result::<Self>(conn)
         .await
     }
@@ -193,7 +195,6 @@ impl Comment {
     let object_id: DbUrl = object_id.into();
     comment::table
       .filter(comment::ap_id.eq(object_id))
-      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -256,7 +257,6 @@ impl Crud for Comment {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.find(comment_id))
       .set(comment_form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)

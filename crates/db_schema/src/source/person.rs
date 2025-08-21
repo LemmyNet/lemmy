@@ -2,11 +2,8 @@ use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
-  utils::functions::coalesce,
 };
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::sql_types;
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]

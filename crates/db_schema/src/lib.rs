@@ -33,6 +33,11 @@ pub mod utils;
 
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
+#[cfg(feature = "full")]
+use {
+  diesel::query_source::AliasedField,
+  lemmy_db_schema_file::schema::{instance_actions, person},
+};
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
@@ -181,8 +186,65 @@ macro_rules! assert_length {
 
 #[cfg(feature = "full")]
 /// A helper tuple for person 1 alias columns
-pub type Person1AliasAllColumnsTuple = utils::queries::person_alias_as_select<aliases::Person1>;
+pub type Person1AliasAllColumnsTuple = (
+  AliasedField<aliases::Person1, person::id>,
+  AliasedField<aliases::Person1, person::name>,
+  AliasedField<aliases::Person1, person::display_name>,
+  AliasedField<aliases::Person1, person::avatar>,
+  AliasedField<aliases::Person1, person::published_at>,
+  AliasedField<aliases::Person1, person::updated_at>,
+  AliasedField<aliases::Person1, person::ap_id>,
+  AliasedField<aliases::Person1, person::bio>,
+  AliasedField<aliases::Person1, person::local>,
+  AliasedField<aliases::Person1, person::private_key>,
+  AliasedField<aliases::Person1, person::public_key>,
+  AliasedField<aliases::Person1, person::last_refreshed_at>,
+  AliasedField<aliases::Person1, person::banner>,
+  AliasedField<aliases::Person1, person::deleted>,
+  AliasedField<aliases::Person1, person::inbox_url>,
+  AliasedField<aliases::Person1, person::matrix_user_id>,
+  AliasedField<aliases::Person1, person::bot_account>,
+  AliasedField<aliases::Person1, person::instance_id>,
+  AliasedField<aliases::Person1, person::post_count>,
+  AliasedField<aliases::Person1, person::post_score>,
+  AliasedField<aliases::Person1, person::comment_count>,
+  AliasedField<aliases::Person1, person::comment_score>,
+);
 
 #[cfg(feature = "full")]
 /// A helper tuple for person 2 alias columns
-pub type Person2AliasAllColumnsTuple = utils::queries::person_alias_as_select<aliases::Person2>;
+pub type Person2AliasAllColumnsTuple = (
+  AliasedField<aliases::Person2, person::id>,
+  AliasedField<aliases::Person2, person::name>,
+  AliasedField<aliases::Person2, person::display_name>,
+  AliasedField<aliases::Person2, person::avatar>,
+  AliasedField<aliases::Person2, person::published_at>,
+  AliasedField<aliases::Person2, person::updated_at>,
+  AliasedField<aliases::Person2, person::ap_id>,
+  AliasedField<aliases::Person2, person::bio>,
+  AliasedField<aliases::Person2, person::local>,
+  AliasedField<aliases::Person2, person::private_key>,
+  AliasedField<aliases::Person2, person::public_key>,
+  AliasedField<aliases::Person2, person::last_refreshed_at>,
+  AliasedField<aliases::Person2, person::banner>,
+  AliasedField<aliases::Person2, person::deleted>,
+  AliasedField<aliases::Person2, person::inbox_url>,
+  AliasedField<aliases::Person2, person::matrix_user_id>,
+  AliasedField<aliases::Person2, person::bot_account>,
+  AliasedField<aliases::Person2, person::instance_id>,
+  AliasedField<aliases::Person2, person::post_count>,
+  AliasedField<aliases::Person2, person::post_score>,
+  AliasedField<aliases::Person2, person::comment_count>,
+  AliasedField<aliases::Person2, person::comment_score>,
+);
+
+#[cfg(feature = "full")]
+/// A helper tuple for more my instance persons actions
+pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,
+);

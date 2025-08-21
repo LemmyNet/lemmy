@@ -137,8 +137,8 @@ impl CommunityFollowerView {
 
     let mut query = Self::joins()
       .select((
-        Person::as_select(),
-        Community::as_select(),
+        person::all_columns,
+        community::all_columns,
         is_new_instance,
         community_actions::follow_state.nullable(),
       ))
