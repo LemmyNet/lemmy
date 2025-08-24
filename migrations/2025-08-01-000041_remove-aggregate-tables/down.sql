@@ -93,8 +93,8 @@ SELECT
     upvotes,
     downvotes,
     published,
-    newest_comment_time_necro,
-    newest_comment_time,
+    coalesce(newest_comment_time_necro_after_published, published),
+    coalesce(newest_comment_time_after_published, published),
     featured_community,
     featured_local,
     hot_rank,
@@ -102,7 +102,13 @@ SELECT
     community_id,
     creator_id,
     controversy_rank,
-    instance_id,
+    (
+        SELECT
+            community.instance_id
+        FROM
+            community
+        WHERE
+            community.id = post.community_id) AS instance_id,
     scaled_rank,
     report_count,
     unresolved_report_count
@@ -134,12 +140,11 @@ ALTER TABLE post
     DROP COLUMN score,
     DROP COLUMN upvotes,
     DROP COLUMN downvotes,
-    DROP COLUMN newest_comment_time_necro,
-    DROP COLUMN newest_comment_time,
+    DROP COLUMN newest_comment_time_necro_after_published,
+    DROP COLUMN newest_comment_time_after_published,
     DROP COLUMN hot_rank,
     DROP COLUMN hot_rank_active,
     DROP COLUMN controversy_rank,
-    DROP COLUMN instance_id,
     DROP COLUMN scaled_rank,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count;

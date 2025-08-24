@@ -7,7 +7,7 @@ ALTER TABLE comment
     ADD COLUMN hot_rank real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `hot_rank != 0` instead of `hot_rank != 0.0001`
     ADD COLUMN controversy_rank real NOT NULL DEFAULT 0,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL;
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
 
 -- Default values only for future rows
 ALTER TABLE comment
@@ -82,8 +82,8 @@ CREATE INDEX idx_comment_controversy ON comment USING btree (controversy_rank DE
 
 CREATE INDEX idx_comment_hot ON comment USING btree (hot_rank DESC, score DESC);
 
-CREATE INDEX idx_comment_young ON comment USING btree (published)
-WHERE (age IS NOT NULL);
+CREATE INDEX idx_comment_nonzero_hotrank ON comment USING btree (published)
+WHERE (hot_rank <> (0)::double precision);
 
 --CREATE INDEX idx_comment_published on comment USING btree (published DESC);
 CREATE INDEX idx_comment_score ON comment USING btree (score DESC);
@@ -142,7 +142,7 @@ SET
     controversy_rank = pa.controversy_rank,
     scaled_rank = pa.scaled_rank,
     report_count = pa.report_count,
-    unresolved_report_count = pa.unresolved_report_count,
+    unresolved_report_count = pa.unresolved_report_count
 FROM
     post_aggregates AS pa
 WHERE
@@ -295,7 +295,7 @@ SET
     subscribers_local = ca.subscribers_local,
     interactions_month = ca.interactions_month,
     report_count = ca.report_count,
-    unresolved_report_count = ca.unresolved_report_count,
+    unresolved_report_count = ca.unresolved_report_count
 FROM
     community_aggregates AS ca
 WHERE
@@ -307,7 +307,7 @@ WHERE
         OR ca.users_active_week != 0
         OR ca.users_active_month != 0
         OR ca.users_active_half_year != 0
-        OR hot_rank != 0
+        OR ca.hot_rank != 0
         OR ca.subscribers_local != 0
         OR ca.interactions_month != 0
         OR ca.report_count != 0
@@ -335,10 +335,10 @@ WHERE
 -- reindex
 REINDEX TABLE community;
 
-CREATE INDEX idx_community_hot ON public.community USING btree (community_hot_rank (non_1_subscribers, age) DESC);
+CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
-CREATE INDEX idx_community_young ON public.community USING btree (published)
-WHERE (age IS NOT NULL);
+CREATE INDEX idx_community_nonzero_hotrank ON community USING btree (published)
+WHERE (hot_rank <> (0)::double precision);
 
 CREATE INDEX idx_community_subscribers ON public.community USING btree (subscribers DESC);
 
