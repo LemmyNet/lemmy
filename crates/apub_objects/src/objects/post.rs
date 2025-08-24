@@ -375,10 +375,8 @@ mod tests {
   };
   use lemmy_db_schema::source::{community::Community, person::Person, site::Site};
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await?;
@@ -405,7 +403,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let community = parse_lemmy_community(&context).await?;

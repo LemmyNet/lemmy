@@ -251,7 +251,6 @@ pub(crate) mod tests {
     test_data::TestData,
   };
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
@@ -280,7 +279,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -307,7 +305,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -335,7 +332,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_html_to_markdown_sanitize() {
     let parsed = parse_html("<script></script><b>hello</b>");
     assert_eq!(parsed, "**hello**");

@@ -67,13 +67,11 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serde_json::json;
-  use serial_test::serial;
   use url::Url;
 
   #[tokio::test]
-  #[serial]
   async fn receive_activity_duplicate() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let ap_id: DbUrl = Url::parse("http://example.com/activity/531")?.into();
 
@@ -86,9 +84,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn sent_activity_write_read() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let ap_id: DbUrl = Url::parse("http://example.com/activity/412")?.into();
     let data = json!({

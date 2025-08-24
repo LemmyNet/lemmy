@@ -223,10 +223,8 @@ pub(crate) mod tests {
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_lemmy_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await?;
@@ -240,7 +238,6 @@ pub(crate) mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_pleroma_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 

@@ -32,12 +32,10 @@ mod tests {
   use super::*;
   use crate::{source::instance::Instance, utils::build_db_pool_for_tests};
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_allowlist_insert_and_clear() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let instances = vec![
       Instance::read_or_create(pool, "tld1.xyz".to_string()).await?,
