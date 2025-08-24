@@ -22,11 +22,7 @@ WHERE
 CREATE TABLE search_combined AS
 SELECT
     published,
-    CASE WHEN score = 1 THEN
-        NULL
-    ELSE
-        score::int
-    END AS non_1_score,
+    score,
     post_id,
     NULL::int AS comment_id,
     NULL::int AS community_id,
@@ -68,7 +64,7 @@ FROM
 ALTER TABLE search_combined
     ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ALTER COLUMN published SET NOT NULL,
-    ALTER COLUMN non_1_score SET DEFAULT 0,
+    ALTER COLUMN score SET DEFAULT 0,
     ADD CONSTRAINT search_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT search_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT search_combined_community_id_fkey FOREIGN KEY (community_id) REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
@@ -83,5 +79,5 @@ CREATE INDEX idx_search_combined_published ON search_combined (published DESC, i
 
 CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
-CREATE INDEX idx_search_combined_score ON search_combined (coalesce(non_1_score, 1) DESC, id DESC);
+CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
 

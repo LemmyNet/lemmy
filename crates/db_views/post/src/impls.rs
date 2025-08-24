@@ -415,7 +415,7 @@ impl PostQuery<'_> {
 
     // Filter to show only posts with no comments
     if o.no_comments_only.unwrap_or_default() {
-      query = query.filter(post::non_0_comments.is_null());
+      query = query.filter(post::comments.eq(0));
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {

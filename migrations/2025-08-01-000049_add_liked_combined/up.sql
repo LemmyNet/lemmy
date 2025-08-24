@@ -12,6 +12,7 @@ CREATE SEQUENCE person_liked_combined_id_seq
 CREATE TABLE person_liked_combined AS
 SELECT
     pa.liked,
+    -- `ADD COLUMN id serial` is not used for this because it would require either putting the column at the end (might increase the amount of padding bytes) or using an `INSERT` statement (not parallelizable).
     nextval('person_liked_combined_id_seq'::regclass)::int AS id,
     pa.person_id,
     pa.post_id,

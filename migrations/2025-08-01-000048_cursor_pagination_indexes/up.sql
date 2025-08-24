@@ -29,24 +29,24 @@ CREATE INDEX idx_community_hot ON community USING btree (community_hot_rank (non
 
 CREATE INDEX idx_community_published ON community USING btree (published DESC, id DESC);
 
-CREATE INDEX idx_community_subscribers ON community USING btree (coalesce(non_1_subscribers, 1) DESC, id DESC);
+CREATE INDEX idx_community_subscribers ON community USING btree (subscribers DESC, id DESC);
 
 CREATE INDEX idx_community_title ON community USING btree (title DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_month ON community USING btree (coalesce(non_0_users_active_month, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_month ON community USING btree (users_active_month DESC, id DESC);
 
 -- Create a few missing ones
-CREATE INDEX idx_community_users_active_half_year ON community USING btree (coalesce(non_0_users_active_half_year, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_half_year ON community USING btree (users_active_half_year DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_week ON community USING btree (coalesce(non_0_users_active_week, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_week ON community USING btree (users_active_week DESC, id DESC);
 
-CREATE INDEX idx_community_users_active_day ON community USING btree (coalesce(non_0_users_active_day, 0) DESC, id DESC);
+CREATE INDEX idx_community_users_active_day ON community USING btree (users_active_day DESC, id DESC);
 
 CREATE INDEX idx_community_subscribers_local ON community USING btree (coalesce(0, non_0_subscribers_local) DESC, id DESC);
 
-CREATE INDEX idx_community_comments ON community USING btree (coalesce(non_0_comments, 0) DESC, id DESC);
+CREATE INDEX idx_community_comments ON community USING btree (comments DESC, id DESC);
 
-CREATE INDEX idx_community_posts ON community USING btree (coalesce(non_0_posts, 0) DESC, id DESC);
+CREATE INDEX idx_community_posts ON community USING btree (posts DESC, id DESC);
 
 -- Fix the post reverse_timestamp key sorts.
 DROP INDEX idx_post_featured_community_published_asc;
