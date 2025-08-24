@@ -113,14 +113,14 @@ steps:
     when:
       - event: pull_request
 
-  cargo_clippy:
+  cargo_build:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
       RUSTUP_HOME: .rustup_home
     commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
   # `DROP OWNED` doesn't work for default user
@@ -154,6 +154,16 @@ steps:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests -- -D warnings
+    when: *slow_check_paths
+
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
@@ -181,16 +191,6 @@ steps:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when: *slow_check_paths
-
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
   check_diesel_schema:

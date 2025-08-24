@@ -40,7 +40,6 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
 use lemmy_db_views_site::{
   api::{FederatedInstances, InstanceWithFederationState},
   SiteView,
@@ -73,15 +72,15 @@ pub async fn check_is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person_id: PersonId,
   community_id: CommunityId,
-  local_instance_id: InstanceId,
 ) -> LemmyResult<()> {
-  let is_mod =
-    CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
-  if is_mod.is_ok()
-    || PersonView::read(pool, person_id, None, local_instance_id, false)
-      .await
-      .is_ok_and(|t| t.is_admin)
-  {
+  let is_mod = CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id)
+    .await
+    .is_ok();
+  let is_admin = LocalUserView::read_person(pool, person_id)
+    .await
+    .is_ok_and(|t| t.local_user.admin);
+
+  if is_mod || is_admin {
     Ok(())
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
@@ -92,14 +91,15 @@ pub async fn check_is_mod_or_admin(
 pub(crate) async fn check_is_mod_of_any_or_admin(
   pool: &mut DbPool<'_>,
   person_id: PersonId,
-  local_instance_id: InstanceId,
 ) -> LemmyResult<()> {
-  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
-  if is_mod_of_any.is_ok()
-    || PersonView::read(pool, person_id, None, local_instance_id, false)
-      .await
-      .is_ok_and(|t| t.is_admin)
-  {
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id)
+    .await
+    .is_ok();
+  let is_admin = LocalUserView::read_person(pool, person_id)
+    .await
+    .is_ok_and(|t| t.local_user.admin);
+
+  if is_mod_of_any || is_admin {
     Ok(())
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
@@ -112,13 +112,7 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
-  check_is_mod_or_admin(
-    pool,
-    local_user_view.person.id,
-    community_id,
-    local_user_view.person.instance_id,
-  )
-  .await
+  check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -127,7 +121,6 @@ pub async fn is_mod_or_admin_opt(
   community_id: Option<CommunityId>,
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
-    check_local_user_valid(local_user_view)?;
     if let Some(community_id) = community_id {
       is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
@@ -148,7 +141,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_valid(local_user_view)?;
-  check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
+  check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
