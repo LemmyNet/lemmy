@@ -5,10 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  crate::utils::{
-    bool_to_int_score_nullable,
-    functions::{coalesce, coalesce_2_nullable, controversy_rank, hot_rank, scaled_rank, score},
-  },
+  crate::utils::functions::coalesce,
   diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{post, post_actions},
@@ -68,8 +65,12 @@ pub struct Post {
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   #[serde(skip)]
+  #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
+  #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
+  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
   pub comments: i32,
@@ -77,14 +78,14 @@ pub struct Post {
   pub upvotes: i32,
   pub downvotes: i32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub hot_rank: f32,
   #[serde(skip)]
-  pub hot_rank_active: f64,
+  pub hot_rank_active: f32,
   #[serde(skip)]
-  pub controversy_rank: f64,
+  pub controversy_rank: f32,
   /// A rank that amplifies smaller communities
   #[serde(skip)]
-  pub scaled_rank: f64,
+  pub scaled_rank: f32,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
@@ -178,12 +179,13 @@ pub struct PostUpdateForm {
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_actions_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
@@ -204,33 +206,21 @@ pub struct PostActions {
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
   pub read_comments_amount: Option<i32>,
-  /// The like / score of the post.
-  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score_nullable(post_actions::like_score_is_positive)))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score_nullable<post_actions::like_score_is_positive>))]
-  pub like_score: Option<i16>,
+  /// The like / score of the post. Upvote is greater than downvote.
+  pub like_score_is_positive: Option<bool>,
   pub notifications: Option<PostNotificationsMode>,
 }
 
-#[cfg(feature = "full")]
-#[derive(Queryable, Selectable, CursorKeysModule)]
-#[diesel(table_name = post_actions)]
-#[cursor_keys_module(name = post_actions_keys)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct PostActionsCursorData {
-  pub post_id: PostId,
-  pub read_at: Option<DateTime<Utc>>,
-  pub liked_at: Option<DateTime<Utc>>,
-  /// Upvote is greater than downvote.
-  pub like_score_is_positive: Option<bool>,
-  pub hidden_at: Option<DateTime<Utc>>,
-}
-
 #[derive(Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub like_score: i16,
+  pub like_score_is_positive: bool,
   #[new(value = "Utc::now()")]
   pub liked_at: DateTime<Utc>,
 }

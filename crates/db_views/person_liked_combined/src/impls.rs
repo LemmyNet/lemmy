@@ -6,6 +6,7 @@ use crate::{
   PostView,
 };
 use diesel::{
+  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -361,13 +362,13 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, 1);
+    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, true);
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, -1);
+    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, false);
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
-    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, 1);
+    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, true);
     PostActions::like(pool, &post_like_form).await?;
 
     let timmy_liked_all = PersonLikedCombinedQuery::default()
@@ -379,7 +380,12 @@ mod tests {
     if let PersonLikedCombinedView::Post(v) = &timmy_liked_all[0] {
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(Some(1), v.post_actions.as_ref().and_then(|l| l.like_score));
+      assert_eq!(
+        Some(true),
+        v.post_actions
+          .as_ref()
+          .and_then(|l| l.like_score_is_positive)
+      );
     } else {
       panic!("wrong type");
     }
@@ -387,8 +393,10 @@ mod tests {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(false),
+        v.comment_actions
+          .as_ref()
+          .and_then(|l| l.like_score_is_positive)
       );
     } else {
       panic!("wrong type");
@@ -397,8 +405,10 @@ mod tests {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(true),
+        v.comment_actions
+          .as_ref()
+          .and_then(|l| l.like_score_is_positive)
       );
     } else {
       panic!("wrong type");
@@ -416,8 +426,10 @@ mod tests {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(false),
+        v.comment_actions
+          .as_ref()
+          .and_then(|l| l.like_score_is_positive)
       );
     } else {
       panic!("wrong type");

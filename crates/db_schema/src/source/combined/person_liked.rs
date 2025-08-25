@@ -1,6 +1,4 @@
 use crate::newtypes::{CommentId, PersonId, PersonLikedCombinedId, PostId};
-#[cfg(feature = "full")]
-use crate::utils::bool_to_int_score;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -25,7 +23,5 @@ pub struct PersonLikedCombined {
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  #[cfg_attr(feature = "full", diesel(select_expression = bool_to_int_score(person_liked_combined::like_score_is_positive)))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = bool_to_int_score<person_liked_combined::like_score_is_positive>))]
-  pub like_score: i16,
+  pub like_score_is_positive: bool,
 }

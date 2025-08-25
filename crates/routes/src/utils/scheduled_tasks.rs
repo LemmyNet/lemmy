@@ -12,6 +12,7 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
+  SelectableHelper,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -250,7 +251,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
       SET hot_rank = r.hot_rank(pa.score, pa.published_at),
-          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro_at),
+          hot_rank_active = r.hot_rank(pa.score, coalesce(pa.newest_comment_time_necro_at_after_published, pa.published_at)),
           scaled_rank = r.scaled_rank(pa.score, pa.published_at, ca.interactions_month)
       FROM batch, community ca
       WHERE pa.id = batch.id
@@ -771,7 +772,7 @@ mod tests {
       &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
     )
     .await?;
-    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, 1)).await?;
+    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, true)).await?;
 
     active_counts(pool, ONE_DAY).await?;
     all_active_counts(pool).await?;

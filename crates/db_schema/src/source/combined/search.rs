@@ -6,11 +6,7 @@ use crate::newtypes::{
   PostId,
   SearchCombinedId,
 };
-#[cfg(feature = "full")]
-use crate::utils::functions::coalesce;
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use diesel::sql_types;
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]

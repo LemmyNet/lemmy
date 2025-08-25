@@ -30,7 +30,7 @@ BEGIN
                     FROM (
                         SELECT
                             (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score_is_positive), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE NOT (thing_actions).like_score_is_positive), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
+                WHERE (thing_actions).like_score_is_positive IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
                 a.id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
@@ -138,8 +138,8 @@ UPDATE
     post AS a
 SET
     comments = a.comments + diff.comments,
-    newest_comment_time_at = GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
-    newest_comment_time_necro_at = GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)
+    newest_comment_time_at_after_published = GREATEST (a.newest_comment_time_at_after_published, diff.newest_comment_time_at),
+    newest_comment_time_necro_at_after_published = GREATEST (a.newest_comment_time_necro_at_after_published, diff.newest_comment_time_necro_at)
 FROM (
     SELECT
         post.id AS post_id,
@@ -161,10 +161,10 @@ GROUP BY
 WHERE
     a.id = diff.post_id
     AND (diff.comments,
-        GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
-        GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
-        a.newest_comment_time_at,
-        a.newest_comment_time_necro_at);
+        GREATEST (a.newest_comment_time_at_after_published, diff.newest_comment_time_at),
+        GREATEST (a.newest_comment_time_necro_at_after_published, diff.newest_comment_time_necro_at)) != (0,
+        a.newest_comment_time_at_after_published,
+        a.newest_comment_time_necro_at_after_published);
 UPDATE
     local_site AS a
 SET
@@ -370,9 +370,6 @@ BEGIN
     IF NEW.local THEN
         NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
-    -- Set aggregates
-    NEW.newest_comment_time_at = NEW.published_at;
-    NEW.newest_comment_time_necro_at = NEW.published_at;
     RETURN NEW;
 END
 $$;

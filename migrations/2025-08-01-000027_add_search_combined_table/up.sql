@@ -22,7 +22,7 @@ WHERE
 CREATE TABLE search_combined AS
 SELECT
     published,
-    score,
+    score::int,
     post_id,
     NULL::int AS comment_id,
     NULL::int AS community_id,
@@ -64,6 +64,7 @@ FROM
 ALTER TABLE search_combined
     ADD COLUMN id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     ALTER COLUMN published SET NOT NULL,
+    ALTER COLUMN score SET NOT NULL,
     ALTER COLUMN score SET DEFAULT 0,
     ADD CONSTRAINT search_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT search_combined_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,

@@ -13,7 +13,6 @@ use crate::{
   utils::{
     functions::{coalesce, hot_rank},
     get_conn,
-    validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -270,15 +269,6 @@ impl Likeable for CommentActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
-
-    let form = (
-      comment_actions::person_id.eq(form.person_id),
-      comment_actions::comment_id.eq(form.comment_id),
-      comment_actions::like_score_is_positive.eq(form.like_score == 1),
-      comment_actions::liked_at.eq(form.liked_at),
-    );
-
     insert_into(comment_actions::table)
       .values(form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
@@ -469,10 +459,10 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
-    let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
+    let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
 
     let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
-    assert_eq!(Some(1), inserted_comment_like.like_score);
+    assert_eq!(Some(true), inserted_comment_like.like_score_is_positive);
 
     // Comment Saved
     let comment_saved_form = CommentSavedForm::new(inserted_person.id, inserted_comment.id);
@@ -556,7 +546,7 @@ mod tests {
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
+    let comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
 
     CommentActions::like(pool, &comment_like).await?;
 
@@ -567,7 +557,8 @@ mod tests {
     assert_eq!(0, comment_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let comment_dislike = CommentLikeForm::new(another_inserted_person.id, inserted_comment.id, -1);
+    let comment_dislike =
+      CommentLikeForm::new(another_inserted_person.id, inserted_comment.id, false);
 
     CommentActions::like(pool, &comment_dislike).await?;
 

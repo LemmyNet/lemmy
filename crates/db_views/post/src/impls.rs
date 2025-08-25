@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     community::CommunityActions,
     local_user::LocalUser,
     person::Person,
-    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActionsCursorData},
+    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
@@ -183,7 +183,7 @@ impl PostView {
   pub async fn list_read(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActionsCursorData>,
+    cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -218,7 +218,7 @@ impl PostView {
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActionsCursorData>,
+    cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -962,16 +962,16 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, true);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
     assert_eq!(
-      (data.post.id, data.tegan.person.id, Some(1)),
+      (data.post.id, data.tegan.person.id, Some(true)),
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score,
+        inserted_post_like.like_score_is_positive,
       )
     );
 
@@ -989,7 +989,7 @@ mod tests {
       (
         post_listing_single_with_person
           .post_actions
-          .is_some_and(|t| t.like_score == Some(1)),
+          .is_some_and(|t| t.like_score_is_positive == Some(true)),
         // Make sure person actions is none so you don't get a voted_at for your own user
         post_listing_single_with_person.person_actions.is_none(),
         post_listing_single_with_person.post.score,
@@ -1085,20 +1085,20 @@ mod tests {
     );
     let bot_post_2 = Post::create(pool, &bot_post_2).await?;
 
-    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, true);
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
     assert_eq!(
-      (data.bot_post.id, data.tegan.person.id, Some(1)),
+      (data.bot_post.id, data.tegan.person.id, Some(true)),
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score,
+        inserted_post_like.like_score_is_positive,
       )
     );
 
     let inserted_person_like =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
 
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
@@ -1124,7 +1124,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score == Some(1)),
+          .is_some_and(|t| t.like_score_is_positive == Some(true)),
         post_listing
           .person_actions
           .as_ref()
@@ -1140,10 +1140,10 @@ mod tests {
     );
 
     // Do a 2nd like to another post
-    let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, 1);
+    let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, true);
     let _inserted_post_2_like = PostActions::like(pool, &post_2_like_form).await?;
     let inserted_person_like_2 =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(2), Some(0),),
       (
@@ -1160,7 +1160,7 @@ mod tests {
     assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     let person_like_removed =
-      PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
       (
@@ -1172,10 +1172,10 @@ mod tests {
     );
 
     // Now do a downvote
-    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, -1);
+    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, false);
     let _inserted_post_dislike = PostActions::like(pool, &post_like_form).await?;
     let inserted_person_dislike =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, -1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, false).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(1),),
       (
@@ -1200,7 +1200,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score == Some(-1)),
+          .is_some_and(|t| t.like_score_is_positive == Some(false)),
         post_listing
           .person_actions
           .as_ref()

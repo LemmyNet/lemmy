@@ -5,16 +5,14 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::{CommentId, InstanceId, PaginationCursor, PostId},
-  source::{comment::CommentActionsCursorData, person::Person, post::PostActionsCursorData},
+  newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
+  source::{comment::CommentActions, post::PostActions},
   utils::{
-    bool_to_int_score,
     get_conn,
     limit_fetch,
     paginate,
@@ -48,23 +46,16 @@ impl VoteView {
   pub async fn from_post_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActionsCursorData> {
+  ) -> LemmyResult<PostActions> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
 
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      post_actions::table
-        .find((person_id, post_id))
-        .select(PostActionsCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    cursor_data: Option<PostActionsCursorData>,
+    cursor_data: Option<PostActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
@@ -103,7 +94,7 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        bool_to_int_score(post_actions::like_score_is_positive.assume_not_null()),
+        post_actions::like_score_is_positive.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
@@ -130,23 +121,16 @@ impl VoteView {
   pub async fn from_comment_actions_cursor(
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<CommentActionsCursorData> {
+  ) -> LemmyResult<CommentActions> {
     let [(_, person_id), (_, comment_id)] = cursor.prefixes_and_ids()?;
 
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      comment_actions::table
-        .find((person_id, comment_id))
-        .select(CommentActionsCursorData::as_select())
-        .first(conn)
-        .await?,
-    )
+    CommentActions::read(pool, CommentId(comment_id), PersonId(person_id)).await
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    cursor_data: Option<CommentActionsCursorData>,
+    cursor_data: Option<CommentActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
@@ -184,7 +168,7 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        bool_to_int_score(comment_actions::like_score_is_positive.assume_not_null()),
+        comment_actions::like_score_is_positive.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
@@ -260,11 +244,11 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
-    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, 1);
+    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, true);
     PostActions::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
-    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, -1);
+    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, false);
     PostActions::like(pool, &sara_post_vote_form).await?;
 
     let mut expected_post_vote_views = [
@@ -272,13 +256,13 @@ mod tests {
         creator: inserted_sara.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score: -1,
+        score_is_positive: false,
       },
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score: 1,
+        score_is_positive: true,
       },
     ];
     expected_post_vote_views[1].creator.post_count = 1;
@@ -289,11 +273,12 @@ mod tests {
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
-    let timmy_comment_vote_form = CommentLikeForm::new(inserted_timmy.id, inserted_comment.id, -1);
+    let timmy_comment_vote_form =
+      CommentLikeForm::new(inserted_timmy.id, inserted_comment.id, false);
     CommentActions::like(pool, &timmy_comment_vote_form).await?;
 
     // Sara upvotes timmy's comment
-    let sara_comment_vote_form = CommentLikeForm::new(inserted_sara.id, inserted_comment.id, 1);
+    let sara_comment_vote_form = CommentLikeForm::new(inserted_sara.id, inserted_comment.id, true);
     CommentActions::like(pool, &sara_comment_vote_form).await?;
 
     let mut expected_comment_vote_views = [
@@ -301,13 +286,13 @@ mod tests {
         creator: inserted_timmy.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score: -1,
+        score_is_positive: false,
       },
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score: 1,
+        score_is_positive: true,
       },
     ];
     expected_comment_vote_views[0].creator.post_count = 1;

@@ -286,14 +286,14 @@ impl SearchCombinedQuery {
     // Liked / disliked filter
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
-      let liked_disliked_filter = |score: bool| {
+      let liked_disliked_filter = |score_is_positive: bool| {
         search_combined::post_id
           .is_not_null()
-          .and(post_actions::like_score_is_positive.eq(score))
+          .and(post_actions::like_score_is_positive.eq(score_is_positive))
           .or(
             search_combined::comment_id
               .is_not_null()
-              .and(comment_actions::like_score_is_positive.eq(score)),
+              .and(comment_actions::like_score_is_positive.eq(score_is_positive)),
           )
       };
 
@@ -598,22 +598,22 @@ mod tests {
     let comment_in_nsfw_post = Comment::create(pool, &comment_in_nsfw_post_form, None).await?;
 
     // Timmy likes and dislikes a few things
-    let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, 1);
+    let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, true);
     PostActions::like(pool, &timmy_like_post_form).await?;
 
-    let timmy_like_sara_post_form = PostLikeForm::new(sara_post.id, timmy.id, 1);
+    let timmy_like_sara_post_form = PostLikeForm::new(sara_post.id, timmy.id, true);
     PostActions::like(pool, &timmy_like_sara_post_form).await?;
 
-    let timmy_dislike_post_form = PostLikeForm::new(timmy_post_2.id, timmy.id, -1);
+    let timmy_dislike_post_form = PostLikeForm::new(timmy_post_2.id, timmy.id, false);
     PostActions::like(pool, &timmy_dislike_post_form).await?;
 
-    let timmy_like_comment_form = CommentLikeForm::new(timmy.id, timmy_comment.id, 1);
+    let timmy_like_comment_form = CommentLikeForm::new(timmy.id, timmy_comment.id, true);
     CommentActions::like(pool, &timmy_like_comment_form).await?;
 
-    let timmy_like_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment.id, 1);
+    let timmy_like_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment.id, true);
     CommentActions::like(pool, &timmy_like_sara_comment_form).await?;
 
-    let timmy_dislike_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment_2.id, -1);
+    let timmy_dislike_sara_comment_form = CommentLikeForm::new(timmy.id, sara_comment_2.id, false);
     CommentActions::like(pool, &timmy_dislike_sara_comment_form).await?;
 
     Ok(Data {

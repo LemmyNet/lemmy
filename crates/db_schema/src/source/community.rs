@@ -90,13 +90,13 @@ pub struct Community {
   /// The number of users with any activity in the last year.
   pub users_active_half_year: i32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub hot_rank: f32,
   pub subscribers_local: i32,
-  pub report_count: i16,
-  pub unresolved_report_count: i16,
   /// Number of any interactions over the last month.
   #[serde(skip)]
   pub interactions_month: i32,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
   pub local_removed: bool,
 }
 
