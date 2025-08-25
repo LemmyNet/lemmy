@@ -1,13 +1,9 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::tags::CommunityTag,
-  utils::protocol::{
-    AttributedTo,
-    ImageObject,
-    InCommunity,
-    LanguageTag,
-    PersonOrGroupType,
-    Source,
+  utils::{
+    functions::community_from_objects,
+    protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, PersonOrGroupType, Source},
   },
 };
 use activitypub_federation::{
@@ -243,17 +239,8 @@ impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
-        let mut iter = self.to.iter().merge(self.cc.iter());
-        loop {
-          if let Some(cid) = iter.next() {
-            let cid = ObjectId::from(cid.clone());
-            if let Ok(c) = cid.dereference(context).await {
-              break c;
-            }
-          } else {
-            Err(LemmyErrorType::NotFound)?;
-          }
-        }
+        let iter = self.to.iter().merge(self.cc.iter());
+        community_from_objects(iter, context).await?
       }
       AttributedTo::Peertube(p) => {
         p.iter()

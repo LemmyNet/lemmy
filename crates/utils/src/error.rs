@@ -161,6 +161,7 @@ pub enum FederationError {
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
   InvalidFollow(String),
+  InvalidTarget(String),
   Unreachable,
 }
 
