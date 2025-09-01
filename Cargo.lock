@@ -3407,6 +3407,7 @@ dependencies = [
 name = "lemmy_db_views_comment"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "diesel_ltree",
@@ -3523,6 +3524,7 @@ name = "lemmy_db_views_local_user"
 version = "1.0.0-alpha.7"
 dependencies = [
  "actix-web",
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3559,6 +3561,7 @@ dependencies = [
 name = "lemmy_db_views_notification"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3577,6 +3580,7 @@ dependencies = [
 name = "lemmy_db_views_person"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3596,6 +3600,7 @@ dependencies = [
 name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "derive-new",
  "diesel",
  "diesel-async",
@@ -3618,6 +3623,7 @@ dependencies = [
 name = "lemmy_db_views_person_liked_combined"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3639,6 +3645,7 @@ dependencies = [
 name = "lemmy_db_views_person_saved_combined"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3749,6 +3756,7 @@ dependencies = [
 name = "lemmy_db_views_search_combined"
 version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",

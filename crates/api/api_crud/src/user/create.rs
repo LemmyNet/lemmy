@@ -167,6 +167,7 @@ pub async fn register(
           person,
           local_user,
           banned: false,
+          ban_expires_at: None,
         })
       }
       .scope_boxed()
@@ -410,6 +411,7 @@ pub async fn authenticate_with_oauth(
               person,
               local_user,
               banned: false,
+              ban_expires_at: None,
             })
           }
           .scope_boxed()

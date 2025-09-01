@@ -33,7 +33,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{utils::queries::person1_select, Person1AliasAllColumnsTuple},
+  lemmy_db_schema::{utils::queries::selects::person1_select, Person1AliasAllColumnsTuple},
 };
 
 pub mod api;
