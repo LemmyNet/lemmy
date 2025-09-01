@@ -37,8 +37,14 @@ pub async fn mod_update_post(
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let post_id = data.post_id;
-  let orig_post =
-    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    local_instance_id,
+    false,
+  )
+  .await?;
   let community = orig_post.community;
 
   check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
