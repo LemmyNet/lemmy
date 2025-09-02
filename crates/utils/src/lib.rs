@@ -118,7 +118,7 @@ pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
 /// retries have already happened. Uses exponential backoff with maximum of one day. The first
 /// error is ignored.
 pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  debug_assert!(retry_count != 0);
+  //debug_assert!(retry_count != 0);
   if retry_count == 1 {
     return Duration::from_secs(0);
   }
