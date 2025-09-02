@@ -8,7 +8,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
-    comment::{Comment, CommentUpdateForm},
+    comment::Comment,
     mod_log::moderator::{ModLockComment, ModLockCommentForm},
   },
   traits::Crud,
@@ -40,14 +40,12 @@ pub async fn lock_comment(
   )
   .await?;
 
-  let form = CommentUpdateForm {
-    locked: Some(locked),
-    ..Default::default()
-  };
-
-  let comments =
-    Comment::update_comment_and_children(&mut context.pool(), &orig_comment.comment.path, &form)
-      .await?;
+  let comments = Comment::update_locked_for_comment_and_children(
+    &mut context.pool(),
+    &orig_comment.comment.path,
+    locked,
+  )
+  .await?;
   let comment = comments.first().ok_or(LemmyErrorType::NotFound)?;
 
   let form = ModLockCommentForm {

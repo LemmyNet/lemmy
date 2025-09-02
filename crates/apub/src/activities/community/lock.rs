@@ -25,7 +25,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    comment::{Comment, CommentUpdateForm},
+    comment::Comment,
     mod_log::moderator::{ModLockComment, ModLockCommentForm, ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostUpdateForm},
@@ -58,13 +58,13 @@ impl Activity for LockPageOrNote {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let locked = Some(true);
+    let locked = true;
     let reason = self.summary;
 
     match self.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {
-          locked,
+          locked: Some(locked),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
@@ -72,22 +72,19 @@ impl Activity for LockPageOrNote {
         let form = ModLockPostForm {
           mod_person_id: self.actor.dereference(context).await?.id,
           post_id: post.id,
-          locked,
+          locked: Some(locked),
           reason,
         };
         ModLockPost::create(&mut context.pool(), &form).await?;
       }
       PostOrComment::Right(comment) => {
-        let form = CommentUpdateForm {
-          locked,
-          ..Default::default()
-        };
-        Comment::update_comment_and_children(&mut context.pool(), &comment.path, &form).await?;
+        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
+          .await?;
 
         let form = ModLockCommentForm {
           mod_person_id: self.actor.dereference(context).await?.id,
           comment_id: comment.id,
-          locked,
+          locked: Some(locked),
           reason,
         };
         ModLockComment::create(&mut context.pool(), &form).await?;
@@ -121,13 +118,13 @@ impl Activity for UndoLockPageOrNote {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let locked = Some(false);
+    let locked = false;
     let reason = self.summary;
 
     match self.object.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {
-          locked,
+          locked: Some(locked),
           ..Default::default()
         };
 
@@ -136,22 +133,19 @@ impl Activity for UndoLockPageOrNote {
         let form = ModLockPostForm {
           mod_person_id: self.actor.dereference(context).await?.id,
           post_id: post.id,
-          locked,
+          locked: Some(locked),
           reason,
         };
         ModLockPost::create(&mut context.pool(), &form).await?;
       }
       PostOrComment::Right(comment) => {
-        let form = CommentUpdateForm {
-          locked,
-          ..Default::default()
-        };
-        Comment::update_comment_and_children(&mut context.pool(), &comment.path, &form).await?;
+        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
+          .await?;
 
         let form = ModLockCommentForm {
           mod_person_id: self.actor.dereference(context).await?.id,
           comment_id: comment.id,
-          locked,
+          locked: Some(locked),
           reason,
         };
         ModLockComment::create(&mut context.pool(), &form).await?;

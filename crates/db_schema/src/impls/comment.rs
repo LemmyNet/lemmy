@@ -237,7 +237,23 @@ impl Comment {
     Ok(())
   }
 
-  pub async fn update_comment_and_children(
+  /// Updates the locked field for a comment and all its children.
+  pub async fn update_locked_for_comment_and_children(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    locked: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let form = CommentUpdateForm {
+      locked: Some(locked),
+      ..Default::default()
+    };
+    Self::update_comment_and_children(pool, comment_path, &form).await
+  }
+
+  /// A helper function to update comment and all its children.
+  ///
+  /// Don't expose so as to make sure you aren't overwriting data.
+  async fn update_comment_and_children(
     pool: &mut DbPool<'_>,
     comment_path: &Ltree,
     form: &CommentUpdateForm,
