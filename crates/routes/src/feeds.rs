@@ -58,7 +58,7 @@ enum RequestType {
   Community,
   User,
   Front,
-  Inbox,
+  Notifications,
   Modlog,
 }
 
@@ -170,7 +170,7 @@ async fn get_feed(
     "u" => RequestType::User,
     "c" => RequestType::Community,
     "front" => RequestType::Front,
-    "inbox" => RequestType::Inbox,
+    "notifications" => RequestType::Notifications,
     "modlog" => RequestType::Modlog,
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
@@ -183,7 +183,7 @@ async fn get_feed(
     RequestType::Front => {
       get_feed_front(&context, &info.sort_type()?, &info.get_limit(), &param).await
     }
-    RequestType::Inbox => get_feed_inbox(&context, &param).await,
+    RequestType::Notifications => get_feed_notifs(&context, &param).await,
     RequestType::Modlog => get_feed_modlog(&context, &param).await,
   }
   .map_err(ErrorBadRequest)?;
@@ -319,7 +319,7 @@ async fn get_feed_front(
   Ok(channel)
 }
 
-async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
+async fn get_feed_notifs(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
@@ -338,8 +338,8 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Inbox", site_view.site.name),
-    link: format!("{protocol_and_hostname}/inbox"),
+    title: format!("{} - Notifications", site_view.site.name),
+    link: format!("{protocol_and_hostname}/notifications"),
     items,
     ..Default::default()
   };
@@ -385,10 +385,10 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
 }
 
 fn create_reply_and_mention_items(
-  inbox: Vec<NotificationView>,
+  notifs: Vec<NotificationView>,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Item>> {
-  let reply_items: Vec<Item> = inbox
+  let reply_items: Vec<Item> = notifs
     .iter()
     .map(|v| match &v.data {
       NotificationData::Post(post) => {
@@ -412,11 +412,14 @@ fn create_reply_and_mention_items(
         )
       }
       NotificationData::PrivateMessage(pm) => {
-        let inbox_url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+        let notifs_url = format!(
+          "{}/notifications",
+          context.settings().get_protocol_and_hostname()
+        );
         build_item(
           &pm.creator,
           &pm.private_message.published_at,
-          &inbox_url,
+          &notifs_url,
           &pm.private_message.content,
           context.settings(),
         )
