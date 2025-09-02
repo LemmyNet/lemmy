@@ -1,5 +1,5 @@
 use crate::{
-  activities::{community::send_activity_in_community, generate_activity_id, verify_mod_action},
+  activities::{community::send_activity_in_community, generate_activity_id},
   activity_lists::AnnouncableActivities,
   protocol::activities::community::{
     collection_add::CollectionAdd,
@@ -19,7 +19,7 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
-    functions::{generate_to, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -29,11 +29,11 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
-  traits::{Crud, Joinable},
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -132,13 +132,13 @@ impl Activity for CollectionAdd {
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
-          let form = ModAddCommunityForm {
+          let form = ModAddToCommunityForm {
             mod_person_id: actor.id,
             other_person_id: new_mod.id,
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddCommunity::create(&mut context.pool(), &form).await?;
+          ModAddToCommunity::create(&mut context.pool(), &form).await?;
         }
       }
       CollectionType::Featured => {

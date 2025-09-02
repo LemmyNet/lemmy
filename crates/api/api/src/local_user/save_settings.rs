@@ -51,15 +51,15 @@ pub async fn save_user_settings(
   let email_deref = data.email.as_deref().map(str::to_lowercase);
   let email = diesel_string_update(email_deref.as_deref());
 
-  if let Some(Some(email)) = &email {
+  if let Some(Some(email)) = email.clone() {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
+      LocalUser::check_is_email_taken(&mut context.pool(), &email).await?;
       send_verification_email(
         &site_view.local_site,
         &local_user_view,
-        email,
+        email.into(),
         &mut context.pool(),
         context.settings(),
       )
@@ -102,6 +102,7 @@ pub async fn save_user_settings(
   let default_post_sort_type = data.default_post_sort_type;
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);
+  let default_items_per_page = data.default_items_per_page;
   let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
@@ -148,6 +149,7 @@ pub async fn save_user_settings(
     default_post_time_range_seconds,
     default_comment_sort_type,
     default_listing_type,
+    default_items_per_page,
     theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),
     open_links_in_new_tab: data.open_links_in_new_tab,

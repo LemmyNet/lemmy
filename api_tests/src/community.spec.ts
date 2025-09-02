@@ -1,7 +1,6 @@
 jest.setTimeout(120000);
 
 import { AddModToCommunity } from "lemmy-js-client/dist/types/AddModToCommunity";
-import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
   beta,
@@ -31,10 +30,11 @@ import {
   editCommunity,
   unfollows,
   getMyUser,
-  userBlockInstance,
+  userBlockInstanceCommunities,
   resolveBetaCommunity,
   reportCommunity,
   randomString,
+  assertCommunityFederation,
   listReports,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
@@ -45,7 +45,6 @@ import {
   FollowMultiCommunity,
   GetPosts,
   LemmyError,
-  MultiCommunity,
   MultiCommunityView,
   ReportCombinedView,
   ResolveCommunityReport,
@@ -54,26 +53,6 @@ import {
 
 beforeAll(setupLogins);
 afterAll(unfollows);
-
-function assertCommunityFederation(
-  communityOne?: CommunityView,
-  communityTwo?: CommunityView,
-) {
-  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
-  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
-  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
-  expect(communityOne?.community.description).toBe(
-    communityTwo?.community.description,
-  );
-  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
-  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
-  expect(communityOne?.community.published_at).toBe(
-    communityTwo?.community.published_at,
-  );
-  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
-  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
-  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
-}
 
 test("Create community", async () => {
   let communityRes = await createCommunity(alpha);
@@ -451,7 +430,11 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await userBlockInstance(alpha, alphaPost!.community.instance_id, true);
+  await userBlockInstanceCommunities(
+    alpha,
+    alphaPost!.community.instance_id,
+    true,
+  );
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -459,7 +442,11 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await userBlockInstance(alpha, alphaPost!.community.instance_id, false);
+  await userBlockInstanceCommunities(
+    alpha,
+    alphaPost!.community.instance_id,
+    false,
+  );
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");

@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{
+    queries::joins::{
       community_join,
       creator_community_actions_join,
       creator_home_instance_actions_join,
@@ -33,7 +33,6 @@ use lemmy_db_schema::{
       image_details_join,
       my_comment_actions_join,
       my_community_actions_join,
-      my_instance_actions_person_join,
       my_local_user_admin_join,
       my_person_actions_join,
       my_post_actions_join,
@@ -76,8 +75,6 @@ impl PersonContentCombinedViewInternal {
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_actions_person_join: my_instance_actions_person_join =
-      my_instance_actions_person_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -87,17 +84,16 @@ impl PersonContentCombinedViewInternal {
       .inner_join(post_join)
       .inner_join(item_creator_join)
       .inner_join(community_join())
+      .left_join(image_details_join())
       .left_join(creator_community_actions_join())
-      .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
-      .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_person_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(my_local_user_admin_join)
+      .left_join(my_community_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
-      .left_join(image_details_join())
   }
 }
 
@@ -117,11 +113,7 @@ impl PaginationCursorBuilder for PersonContentCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(prefix, id)] = cursor.prefixes_and_ids()?;
 
     let mut query = person_content_combined::table
       .select(Self::CursorData::as_select())
@@ -244,13 +236,14 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         community_actions: v.community_actions,
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else {
       Some(PersonContentCombinedView::Post(PostView {
@@ -261,13 +254,14 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
         community_actions: v.community_actions,
         post_actions: v.post_actions,
         person_actions: v.person_actions,
-        instance_actions: v.instance_actions,
         creator_is_admin: v.item_creator_is_admin,
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     }
   }

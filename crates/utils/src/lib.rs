@@ -5,7 +5,6 @@ cfg_if! {
   if #[cfg(feature = "full")] {
     pub mod cache_header;
     pub mod rate_limit;
-    pub mod request;
     pub mod response;
     pub mod settings;
     pub mod utils;
@@ -49,6 +48,9 @@ pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = Duration::from_secs(0);
 pub const CACHE_DURATION_LARGEST_COMMUNITY: Duration = DAY;
 
 pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
+
+/// Doing DB transactions of bigger batches than this tend to cause seq scans.
+pub const DB_BATCH_SIZE: i64 = 1000;
 
 #[macro_export]
 macro_rules! location_info {

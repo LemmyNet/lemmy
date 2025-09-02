@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunitySortType,
 };
-use lemmy_db_schema_file::enums::{CommunityVisibility, ListingType};
+use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
@@ -126,16 +126,6 @@ pub struct CreateCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Create a tag for a community.
-pub struct CreateCommunityTag {
-  pub community_id: CommunityId,
-  pub display_name: String,
 }
 
 #[skip_serializing_none]
@@ -281,25 +271,6 @@ pub struct TransferCommunity {
   pub person_id: PersonId,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Update a community tag.
-pub struct UpdateCommunityTag {
-  pub tag_id: TagId,
-  pub display_name: String,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Delete a community tag.
-pub struct DeleteCommunityTag {
-  pub tag_id: TagId,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -363,4 +334,45 @@ pub struct GetMultiCommunityResponse {
 pub struct FollowMultiCommunity {
   pub multi_community_id: MultiCommunityId,
   pub follow: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Change notification settings for a community
+pub struct UpdateCommunityNotifications {
+  pub community_id: CommunityId,
+  pub mode: CommunityNotificationsMode,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Create a tag for a community.
+pub struct CreateCommunityTag {
+  pub community_id: CommunityId,
+  pub name: String,
+  pub display_name: Option<String>,
+  pub description: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Make changes to a community tag
+pub struct UpdateCommunityTag {
+  pub tag_id: TagId,
+  pub display_name: Option<String>,
+  pub description: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Delete a community tag.
+pub struct DeleteCommunityTag {
+  pub tag_id: TagId,
 }

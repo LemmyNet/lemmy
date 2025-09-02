@@ -19,6 +19,7 @@ pub mod aliases {
     instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
     instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
     instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
+    instance_actions as my_instance_persons_actions: MyInstancePersonsActions,
     local_user as creator_local_user: CreatorLocalUser,
     person as person1: Person1,
     person as person2: Person2,
@@ -35,7 +36,7 @@ use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use {
   diesel::query_source::AliasedField,
-  lemmy_db_schema_file::schema::{community_actions, instance_actions, person},
+  lemmy_db_schema_file::schema::{instance_actions, person},
 };
 
 #[derive(
@@ -98,12 +99,12 @@ pub enum ModlogActionType {
   ModLockPost,
   ModFeaturePost,
   ModRemoveComment,
-  ModRemoveCommunity,
+  AdminRemoveCommunity,
   ModBanFromCommunity,
-  ModAddCommunity,
+  ModAddToCommunity,
   ModTransferCommunity,
-  ModAdd,
-  ModBan,
+  AdminAdd,
+  AdminBan,
   ModChangeCommunityVisibility,
   AdminPurgePerson,
   AdminPurgeCommunity,
@@ -117,12 +118,12 @@ pub enum ModlogActionType {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
-pub enum InboxDataType {
+pub enum NotificationDataType {
   All,
-  CommentReply,
-  CommentMention,
-  PostMention,
+  Reply,
+  Mention,
   PrivateMessage,
+  Subscribed,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
@@ -238,45 +239,12 @@ pub type Person2AliasAllColumnsTuple = (
 );
 
 #[cfg(feature = "full")]
-/// A helper tuple for creator community actions
-pub type CreatorCommunityActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorCommunityActions, community_actions::community_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::followed_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_state>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::follow_approver_id>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::blocked_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::became_moderator_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::received_ban_at>,
-  AliasedField<aliases::CreatorCommunityActions, community_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator home instance actions.
-pub type CreatorHomeInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorHomeInstanceActions, instance_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator local instance actions.
-pub type CreatorLocalInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorLocalInstanceActions, instance_actions::ban_expires_at>,
-);
-
-#[cfg(feature = "full")]
-/// A helper tuple for creator home instance actions.
-pub type CreatorCommunityInstanceActionsAllColumnsTuple = (
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::person_id>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::instance_id>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::blocked_at>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::received_ban_at>,
-  AliasedField<aliases::CreatorCommunityInstanceActions, instance_actions::ban_expires_at>,
+/// A helper tuple for more my instance persons actions
+pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,
 );

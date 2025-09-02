@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PaginationCursor, PersonId},
   source::{
@@ -5,7 +6,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     multi_community::MultiCommunity,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -24,14 +24,18 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{
+  lemmy_db_schema::utils::queries::selects::{
     community_post_tags_fragment,
-    creator_banned,
+    creator_ban_expires_from_community,
+    creator_banned_from_community,
     creator_is_admin,
+    creator_is_moderator,
+    creator_local_home_ban_expires,
+    creator_local_home_banned,
     local_user_can_mod,
     post_tags_fragment,
+    CreatorLocalHomeBanExpiresType,
   },
-  lemmy_db_schema::utils::queries::{creator_banned_from_community, creator_is_moderator},
   lemmy_db_views_local_user::LocalUserView,
 };
 
@@ -57,8 +61,6 @@ pub(crate) struct SearchCombinedViewInternal {
   pub multi_community: Option<MultiCommunity>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -95,10 +97,17 @@ pub(crate) struct SearchCombinedViewInternal {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_local_home_banned()
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = CreatorLocalHomeBanExpiresType,
+      select_expression = creator_local_home_ban_expires()
+     )
+  )]
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_moderator()
@@ -111,6 +120,12 @@ pub(crate) struct SearchCombinedViewInternal {
     )
   )]
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_ban_expires_from_community()
+    )
+  )]
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

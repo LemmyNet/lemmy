@@ -15,12 +15,11 @@ use crate::{
     },
     post::Post,
   },
-  traits::{ApubActor, Bannable, Blockable, Crud, Followable, Joinable},
+  traits::{ApubActor, Bannable, Blockable, Crud, Followable},
   utils::{
     format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
-    uplete,
     DbPool,
   },
 };
@@ -36,9 +35,10 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
-  schema::{comment, community, community_actions, instance, post},
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
+  schema::{comment, community, community_actions, instance, local_user, post},
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -46,7 +46,6 @@ use lemmy_utils::{
   CACHE_DURATION_LARGEST_COMMUNITY,
 };
 use moka::future::Cache;
-use regex::Regex;
 use std::sync::{Arc, LazyLock};
 use url::Url;
 
@@ -79,13 +78,12 @@ impl Crud for Community {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
-impl Joinable for CommunityActions {
-  type Form = CommunityModeratorForm;
-  async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
+impl CommunityActions {
+  pub async fn join(pool: &mut DbPool<'_>, form: &CommunityModeratorForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(community_actions::table)
       .values(form)
@@ -98,16 +96,19 @@ impl Joinable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  pub async fn leave(
+    pool: &mut DbPool<'_>,
+    form: &CommunityModeratorForm,
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+    uplete(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 }
 
@@ -265,31 +266,17 @@ impl Community {
       .and(community::deleted.eq(false))
   }
 
-  pub fn build_tag_ap_id(&self, tag_name: &str) -> LemmyResult<DbUrl> {
-    #[allow(clippy::expect_used)]
-    // convert a readable name to an id slug that is appended to the community URL to get a unique
-    // tag url (ap_id).
-    static VALID_ID_SLUG: LazyLock<Regex> =
-      LazyLock::new(|| Regex::new(r"[^a-z0-9_-]+").expect("compile regex"));
-    let tag_name_lower = tag_name.to_lowercase();
-    let id_slug = VALID_ID_SLUG.replace_all(&tag_name_lower, "-");
-    if id_slug.is_empty() {
-      Err(LemmyErrorType::InvalidUrl)?
-    }
-    Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
-  }
-
   pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-    new_subscribers: i64,
+    new_subscribers: i32,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(for_community_id))
       .set(community::dsl::subscribers.eq(new_subscribers))
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -311,24 +298,22 @@ impl CommunityActions {
   pub async fn delete_mods_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(
-      community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
-    )
-    .set_null(community_actions::became_moderator_at)
-    .get_result(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotFound)
+    uplete(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
+      .set_null(community_actions::became_moderator_at)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn leave_mod_team_for_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
+    uplete(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
@@ -347,38 +332,6 @@ impl CommunityActions {
       .load::<CommunityId>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  /// Checks to make sure the acting moderator was added earlier than the target moderator
-  pub async fn is_higher_mod_check(
-    pool: &mut DbPool<'_>,
-    for_community_id: CommunityId,
-    mod_person_id: PersonId,
-    target_person_ids: Vec<PersonId>,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    // Build the list of persons
-    let mut persons = target_person_ids;
-    persons.push(mod_person_id);
-    persons.dedup();
-
-    let res = community_actions::table
-      .filter(community_actions::became_moderator_at.is_not_null())
-      .filter(community_actions::community_id.eq(for_community_id))
-      .filter(community_actions::person_id.eq_any(persons))
-      .order_by(community_actions::became_moderator_at)
-      .select(community_actions::person_id)
-      // This does a limit 1 select first
-      .first::<PersonId>(conn)
-      .await?;
-
-    // If the first result sorted by published is the acting mod
-    if res == mod_person_id {
-      Ok(())
-    } else {
-      Err(LemmyErrorType::NotHigherMod)?
-    }
   }
 
   /// Check if we should accept activity in remote community. This requires either:
@@ -455,6 +408,61 @@ impl CommunityActions {
       .await
       .map_err(|_e: Arc<LemmyError>| LemmyErrorType::NotFound.into())
   }
+
+  pub async fn update_notification_state(
+    community_id: CommunityId,
+    person_id: PersonId,
+    new_state: CommunityNotificationsMode,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let form = (
+      community_actions::person_id.eq(person_id),
+      community_actions::community_id.eq(community_id),
+      community_actions::notifications.eq(new_state),
+    );
+
+    insert_into(community_actions::table)
+      .values(form.clone())
+      .on_conflict((
+        community_actions::person_id,
+        community_actions::community_id,
+      ))
+      .do_update()
+      .set(form)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+
+  pub async fn list_subscribers(
+    community_id: CommunityId,
+    is_post: bool,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    let mut query = community_actions::table
+      .inner_join(local_user::table.on(community_actions::person_id.eq(local_user::person_id)))
+      .filter(community_actions::community_id.eq(community_id))
+      .select(local_user::person_id)
+      .into_boxed();
+    if is_post {
+      query = query.filter(
+        community_actions::notifications
+          .eq(CommunityNotificationsMode::AllPosts)
+          .or(community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments)),
+      );
+    } else {
+      query = query.filter(
+        community_actions::notifications.eq(CommunityNotificationsMode::AllPostsAndComments),
+      );
+    }
+    query
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 impl Bannable for CommunityActions {
@@ -472,17 +480,17 @@ impl Bannable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+    uplete(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::received_ban_at)
       .set_null(community_actions::ban_expires_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -503,7 +511,7 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn follow_accepted(
     pool: &mut DbPool<'_>,
@@ -519,22 +527,22 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn unfollow(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((person_id, community_id)))
+    uplete(community_actions::table.find((person_id, community_id)))
       .set_null(community_actions::followed_at)
       .set_null(community_actions::follow_state)
       .set_null(community_actions::follow_approver_id)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -556,21 +564,21 @@ impl Blockable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn unblock(
     pool: &mut DbPool<'_>,
     community_block_form: &Self::Form,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(community_actions::table.find((
+    uplete(community_actions::table.find((
       community_block_form.person_id,
       community_block_form.community_id,
     )))
     .set_null(community_actions::blocked_at)
     .get_result(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn read_block(
@@ -695,8 +703,8 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete, RANK_DEFAULT},
+    traits::{Bannable, Crud, Followable},
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -793,16 +801,6 @@ mod tests {
     let moderator_person_ids = vec![inserted_bobby.id, inserted_artemis.id];
 
     // Make sure bobby is marked as a higher mod than artemis, and vice versa
-    let bobby_higher_check = CommunityActions::is_higher_mod_check(
-      pool,
-      inserted_community.id,
-      inserted_bobby.id,
-      moderator_person_ids.clone(),
-    )
-    .await;
-    assert!(bobby_higher_check.is_ok());
-
-    // Also check the other is_higher_mod_or_admin function just in case
     let bobby_higher_check_2 = LocalUser::is_higher_mod_or_admin_check(
       pool,
       inserted_community.id,
@@ -813,7 +811,7 @@ mod tests {
     assert!(bobby_higher_check_2.is_ok());
 
     // This should throw an error, since artemis was added later
-    let artemis_higher_check = CommunityActions::is_higher_mod_check(
+    let artemis_higher_check = LocalUser::is_higher_mod_or_admin_check(
       pool,
       inserted_community.id,
       inserted_artemis.id,
@@ -854,9 +852,9 @@ mod tests {
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, updated_community);
-    assert_eq!(uplete::Count::only_updated(1), ignored_community);
-    assert_eq!(uplete::Count::only_updated(1), left_community);
-    assert_eq!(uplete::Count::only_deleted(1), unban);
+    assert_eq!(UpleteCount::only_updated(1), ignored_community);
+    assert_eq!(UpleteCount::only_updated(1), left_community);
+    assert_eq!(UpleteCount::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
 

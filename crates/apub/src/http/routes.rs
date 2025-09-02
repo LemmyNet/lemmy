@@ -6,6 +6,7 @@ use crate::http::{
     get_apub_community_http,
     get_apub_community_moderators,
     get_apub_community_outbox,
+    get_apub_community_tag_http,
     get_apub_person_multi_community,
     get_apub_person_multi_community_follows,
   },
@@ -44,6 +45,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route(
       "/c/{community_name}/moderators",
       web::get().to(get_apub_community_moderators),
+    )
+    .route(
+      "/c/{community_name}/tag/{tag_name}",
+      web::get().to(get_apub_community_tag_http),
     )
     .route("/u/{user_name}", web::get().to(get_apub_person_http))
     .route(

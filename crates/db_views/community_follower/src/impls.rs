@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{functions::lower, get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
@@ -63,32 +63,17 @@ impl CommunityFollowerView {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn get_community_follower_inboxes(
-    pool: &mut DbPool<'_>,
-    community_id: CommunityId,
-  ) -> LemmyResult<Vec<DbUrl>> {
-    let conn = &mut get_conn(pool).await?;
-    let res = Self::joins()
-      .filter(community_actions::community_id.eq(community_id))
-      .filter(not(person::local))
-      .select(person::inbox_url)
-      .distinct()
-      .load::<DbUrl>(conn)
-      .await?;
-
-    Ok(res)
-  }
-
   pub async fn count_community_followers(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-  ) -> LemmyResult<i64> {
+  ) -> LemmyResult<i32> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
       .select(count_star())
       .first::<i64>(conn)
       .await
+      .map(i32::try_from)?
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
@@ -100,7 +85,7 @@ impl CommunityFollowerView {
       .filter(community::removed.eq(false))
       .filter(community::local_removed.eq(false))
       .select(Self::as_select())
-      .order_by(community::title)
+      .order_by(lower(community::title))
       .load::<CommunityFollowerView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -275,15 +260,8 @@ impl PaginationCursorBuilder for CommunityFollowerView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let pids = cursor.prefixes_and_ids();
-    let (_, person_id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    let (_, community_id) = pids
-      .get(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
-    CommunityActions::read(pool, CommunityId(*community_id), PersonId(*person_id)).await
+    let [(_, person_id), (_, community_id)] = cursor.prefixes_and_ids()?;
+    CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
   }
 }
 

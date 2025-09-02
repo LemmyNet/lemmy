@@ -35,9 +35,9 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
+      description_length_check,
       is_valid_body_field,
       site_name_length_check,
-      site_or_community_description_length_check,
     },
   },
 };
@@ -147,7 +147,7 @@ pub async fn create_site(
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    Err(LemmyErrorType::SiteAlreadyExists)?
+    Err(LemmyErrorType::AlreadyExists)?
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
@@ -163,7 +163,7 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   check_slurs(&create_site.name, &slur_regex)?;
 
   if let Some(desc) = &create_site.description {
-    site_or_community_description_length_check(desc)?;
+    description_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 
@@ -197,7 +197,7 @@ mod tests {
     let invalid_payloads = [
       (
         "CreateSite attempted on set up LocalSite",
-        LemmyErrorType::SiteAlreadyExists,
+        LemmyErrorType::AlreadyExists,
         &LocalSite {
           site_setup: true,
           private_instance: true,

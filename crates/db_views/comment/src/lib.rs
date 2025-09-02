@@ -1,7 +1,7 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
-  instance::InstanceActions,
   person::{Person, PersonActions},
   post::Post,
   tag::TagsView,
@@ -11,16 +11,17 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{
+  lemmy_db_schema::utils::queries::selects::{
     comment_creator_is_admin,
     comment_select_remove_deletes,
+    creator_ban_expires_from_community,
+    creator_banned_from_community,
+    creator_is_moderator,
+    creator_local_home_community_ban_expires,
+    creator_local_home_community_banned,
     local_user_can_mod_comment,
     post_tags_fragment,
-  },
-  lemmy_db_schema::utils::queries::{
-    creator_banned_from_community,
-    creator_banned_within_community,
-    creator_is_moderator,
+    CreatorLocalHomeCommunityBanExpiresType,
   },
 };
 
@@ -54,8 +55,6 @@ pub struct CommentView {
   pub comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance_actions: Option<InstanceActions>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = comment_creator_is_admin()
@@ -76,10 +75,17 @@ pub struct CommentView {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned_within_community()
+      select_expression = creator_local_home_community_banned()
     )
   )]
   pub creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
+      select_expression = creator_local_home_community_ban_expires()
+     )
+  )]
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_moderator()
@@ -92,6 +98,12 @@ pub struct CommentView {
     )
   )]
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_ban_expires_from_community()
+    )
+  )]
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -106,7 +118,6 @@ pub struct CommentSlimView {
   pub creator: Person,
   pub comment_actions: Option<CommentActions>,
   pub person_actions: Option<PersonActions>,
-  pub instance_actions: Option<InstanceActions>,
   pub creator_is_admin: bool,
   pub can_mod: bool,
   pub creator_banned: bool,

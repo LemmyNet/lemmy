@@ -15,7 +15,7 @@ impl OAuthAccount {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateOauthAccount)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn delete_user_accounts(

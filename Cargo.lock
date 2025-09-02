@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.5"
+version = "0.7.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e58f584c183501d7865b18d8b94c9477f750051ce99d54a399a2f4180667574c"
+checksum = "db2b37b4bda9656b5bcb0ee5fb45a616e98500207519d684305996c329bfd520"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -756,7 +756,7 @@ dependencies = [
  "cap-primitives",
  "cap-std",
  "io-lifetimes",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -773,7 +773,7 @@ dependencies = [
  "maybe-owned",
  "rustix 1.0.7",
  "rustix-linux-procfs",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
  "winx",
 ]
 
@@ -842,7 +842,7 @@ dependencies = [
  "serde_json",
  "syn 2.0.102",
  "tempfile",
- "toml",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -942,9 +942,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.40"
+version = "4.5.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40b6887a1d8685cebccf115538db5c0efe625ccac9696ad45c409d96566e910f"
+checksum = "ed87a9d530bb41a67537289bafcac159cb3ee28460e0a4571123d2a778a6a882"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -952,9 +952,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.40"
+version = "4.5.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0c66c08ce9f0c698cbce5c0279d0bb6ac936d8674174fe48f736533b964f59e"
+checksum = "64f4f3f3c77c94aff3c7e9aac9a2ca1974a5adf392a8bb751e827d6d127ab966"
 dependencies = [
  "anstream",
  "anstyle",
@@ -964,9 +964,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.40"
+version = "4.5.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c7947ae4cc3d851207c1adb5b5e260ff0cca11446b1d6d1423788e442257ce"
+checksum = "ef4f52386a59ca4c860f7393bcf8abd8dfd91ecccc0f774635ff68e92eeef491"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -1397,15 +1397,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "debugid"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
-dependencies = [
- "uuid",
-]
-
-[[package]]
 name = "deprecate-until"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1549,9 +1540,9 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "2.2.11"
+version = "2.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a917a9209950404d5be011c81d081a2692a822f73c3d6af586f0cab5ff50f614"
+checksum = "229850a212cd9b84d4f0290ad9d294afc0ae70fccaa8949dbe8b43ffafa1e20c"
 dependencies = [
  "bitflags 2.9.1",
  "byteorder",
@@ -1599,6 +1590,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.102",
+]
+
+[[package]]
+name = "diesel-uplete"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4712bc03fc34bda37e1e46a7028cc444e2488a63cffdd2fe79f3db227e6900d8"
+dependencies = [
+ "diesel",
+ "tuplex",
 ]
 
 [[package]]
@@ -1903,7 +1904,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cea14ef9355e3beab063703aa9dab15afd25f0667c341310c1e5274bb1d0da18"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1929,8 +1930,9 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "0.0.0+replaced-by-ci"
-source = "git+https://github.com/extism/extism.git?branch=main#2732ca198d6b8234172aa7f9836763d0e0b839f7"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab70991cb6269e8ff06d8f2d9f3321382021e199db5c0b8e4e894c21c4f8e699"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -1941,7 +1943,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "toml",
+ "toml 0.9.2",
  "tracing",
  "tracing-subscriber",
  "ureq",
@@ -1954,8 +1956,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert"
-version = "0.0.0+replaced-by-ci"
-source = "git+https://github.com/extism/extism.git?branch=main#2732ca198d6b8234172aa7f9836763d0e0b839f7"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "214ab4b78db76e62dc9994d9eb8dcb58d227b2792739c1aa25b97c6643ebdc17"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1969,8 +1972,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert-macros"
-version = "0.0.0+replaced-by-ci"
-source = "git+https://github.com/extism/extism.git?branch=main#2732ca198d6b8234172aa7f9836763d0e0b839f7"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f1a478f0a8309f8969ef3ad39d684e20188610627f2b696c00f539ea478632c"
 dependencies = [
  "manyhow",
  "proc-macro-crate",
@@ -1981,8 +1985,9 @@ dependencies = [
 
 [[package]]
 name = "extism-manifest"
-version = "0.0.0+replaced-by-ci"
-source = "git+https://github.com/extism/extism.git?branch=main#2732ca198d6b8234172aa7f9836763d0e0b839f7"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9cfe83ae5d39bfe5401f58679fac24082ef98a4ad6e9fac299a1290b733eef1"
 dependencies = [
  "base64 0.22.1",
  "serde",
@@ -2025,7 +2030,7 @@ checksum = "0ce92ff622d6dadf7349484f42c93271a0d49b7cc4d466a936405bacbe10aa78"
 dependencies = [
  "cfg-if",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2088,7 +2093,7 @@ checksum = "94e7099f6313ecacbe1256e8ff9d617b75d1bcb16a6fddef94866d225a01a14a"
 dependencies = [
  "io-lifetimes",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2194,28 +2199,6 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
-]
-
-[[package]]
-name = "fxhash"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
-name = "fxprof-processed-profile"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27d12c0aed7f1e24276a241aadc4cb8ea9f83000f34bc062b7cc2d51e3b0fabd"
-dependencies = [
- "bitflags 2.9.1",
- "debugid",
- "fxhash",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -2957,7 +2940,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2285ddfe3054097ef4b2fe909ef8c3bcd1ea52a8f0d274416caebeef39f04a65"
 dependencies = [
  "io-lifetimes",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3011,26 +2994,6 @@ name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
-
-[[package]]
-name = "ittapi"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b996fe614c41395cdaedf3cf408a9534851090959d90d54a535f675550b64b1"
-dependencies = [
- "anyhow",
- "ittapi-sys",
- "log",
-]
-
-[[package]]
-name = "ittapi-sys"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52f5385394064fa2c886205dba02598013ce83d3e92d33dbdc0c52fe0e7bf4fc"
-dependencies = [
- "cc",
-]
 
 [[package]]
 name = "jni"
@@ -3122,7 +3085,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "lemmy_api"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3144,10 +3107,10 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_person_liked_combined",
@@ -3155,7 +3118,6 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_reports",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_email",
@@ -3172,7 +3134,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
@@ -3181,10 +3143,10 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_custom_emoji",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_person_liked_combined",
@@ -3194,7 +3156,6 @@ dependencies = [
  "lemmy_db_views_readable_federation_state",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_reports",
  "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
@@ -3203,7 +3164,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -3241,13 +3202,14 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_utils"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
  "actix-web-httpauth",
  "anyhow",
  "chrono",
+ "derive-new",
  "diesel_ltree",
  "either",
  "encoding_rs",
@@ -3266,7 +3228,7 @@ dependencies = [
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_person",
+ "lemmy_db_views_notification",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_db_views_site",
@@ -3293,7 +3255,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3314,6 +3276,7 @@ dependencies = [
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
+ "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3336,7 +3299,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_objects"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3355,6 +3318,7 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_private_message",
  "lemmy_db_views_site",
  "lemmy_utils",
  "moka",
@@ -3373,7 +3337,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "bcrypt",
@@ -3383,14 +3347,15 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",
+ "diesel-uplete",
  "diesel_ltree",
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",
+ "lemmy_db_schema_setup",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
- "regex",
  "rustls 0.23.27",
  "serde",
  "serde_json",
@@ -3402,37 +3367,47 @@ dependencies = [
  "tokio-postgres-rustls",
  "tracing",
  "ts-rs",
- "tuplex",
  "url",
  "uuid",
 ]
 
 [[package]]
 name = "lemmy_db_schema_file"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
+dependencies = [
+ "diesel",
+ "diesel-derive-enum",
+ "diesel-uplete",
+ "diesel_ltree",
+ "serde",
+ "strum",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_schema_setup"
+version = "1.0.0-alpha.7"
 dependencies = [
  "anyhow",
  "chrono",
  "diesel",
- "diesel-derive-enum",
  "diesel_ltree",
  "diesel_migrations",
  "diff",
  "itertools 0.14.0",
+ "lemmy_db_schema_file",
  "lemmy_utils",
  "pathfinding",
- "serde",
  "serial_test",
- "strum",
  "tracing",
- "ts-rs",
  "unified-diff",
 ]
 
 [[package]]
 name = "lemmy_db_views_comment"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "diesel_ltree",
@@ -3452,7 +3427,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3472,7 +3447,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_follower"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "chrono",
  "diesel",
@@ -3490,7 +3465,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_moderator"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3503,7 +3478,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_person_ban"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3515,7 +3490,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_custom_emoji"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3529,27 +3504,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_inbox_combined"
-version = "1.0.0-alpha.5"
-dependencies = [
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_private_message",
- "lemmy_utils",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
-]
-
-[[package]]
 name = "lemmy_db_views_local_image"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3565,9 +3521,10 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_local_user"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "actix-web",
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3584,7 +3541,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_modlog_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3601,9 +3558,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_person"
-version = "1.0.0-alpha.5"
+name = "lemmy_db_views_notification"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_post",
+ "lemmy_db_views_private_message",
+ "lemmy_utils",
+ "serde",
+ "serde_with",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_person"
+version = "1.0.0-alpha.7"
+dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3621,8 +3598,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_content_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "derive-new",
  "diesel",
  "diesel-async",
@@ -3643,8 +3621,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_liked_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3664,8 +3643,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_saved_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3685,11 +3665,12 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_post"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "diesel-uplete",
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
@@ -3710,7 +3691,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_private_message"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3723,7 +3704,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_readable_federation_state"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "chrono",
  "lemmy_db_schema",
@@ -3735,7 +3716,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_registration_applications"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3753,7 +3734,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_report_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "chrono",
  "diesel",
@@ -3762,7 +3743,6 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
- "lemmy_db_views_reports",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -3773,23 +3753,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_reports"
-version = "1.0.0-alpha.5"
-dependencies = [
- "diesel",
- "diesel-async",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_utils",
- "serde",
- "serde_with",
- "ts-rs",
-]
-
-[[package]]
 name = "lemmy_db_views_search_combined"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3812,7 +3779,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_site"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3837,7 +3804,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_vote"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3855,7 +3822,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_email"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "html2text",
  "lemmy_db_schema",
@@ -3865,13 +3832,12 @@ dependencies = [
  "lettre",
  "rosetta-build",
  "rosetta-i18n",
- "tracing",
  "uuid",
 ]
 
 [[package]]
 name = "lemmy_federate"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3905,7 +3871,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -3916,6 +3882,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel-async",
+ "diesel-uplete",
  "futures",
  "futures-util",
  "http 1.3.1",
@@ -3923,10 +3890,10 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
- "lemmy_db_views_inbox_combined",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_notification",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_site",
@@ -3947,7 +3914,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3958,7 +3925,7 @@ dependencies = [
  "lemmy_apub",
  "lemmy_apub_objects",
  "lemmy_db_schema",
- "lemmy_db_schema_file",
+ "lemmy_db_schema_setup",
  "lemmy_db_views_site",
  "lemmy_federate",
  "lemmy_routes",
@@ -3976,7 +3943,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "1.0.0-alpha.5"
+version = "1.0.0-alpha.7"
 dependencies = [
  "actix-extensible-rate-limit",
  "actix-web",
@@ -4001,7 +3968,6 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "regex",
- "reqwest-middleware",
  "serde",
  "serde_json",
  "smart-default",
@@ -4056,7 +4022,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4428,7 +4394,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd01039851e82f8799046eabbb354056283fb265c8ec0996af940f4e85a380ff"
 dependencies = [
  "serde",
- "toml",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -5121,9 +5087,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.13.5"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
+checksum = "7231bd9b3d3d33c86b58adbac74b5ec0ad9f496b19d22801d773636feaa95f3d"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -5131,9 +5097,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.13.5"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
+checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
 dependencies = [
  "anyhow",
  "itertools 0.14.0",
@@ -5254,7 +5220,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5704,7 +5670,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5717,7 +5683,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5891,9 +5857,6 @@ name = "semver"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "serde"
@@ -5933,6 +5896,15 @@ name = "serde_spanned"
 version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40734c41988f7306bb04f0ecf60ec0f3f1caa34290e4e8ea471dcd3346483b83"
 dependencies = [
  "serde",
 ]
@@ -6186,7 +6158,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6380,7 +6352,7 @@ dependencies = [
  "fd-lock",
  "io-lifetimes",
  "rustix 0.38.44",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
  "winx",
 ]
 
@@ -6406,7 +6378,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6699,9 +6671,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
 dependencies = [
  "serde",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
  "toml_edit",
+]
+
+[[package]]
+name = "toml"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed0aee96c12fa71097902e0bb061a5e1ebd766a6636bb605ba401c45c1650eac"
+dependencies = [
+ "indexmap 2.9.0",
+ "serde",
+ "serde_spanned 1.0.0",
+ "toml_datetime 0.7.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow",
 ]
 
 [[package]]
@@ -6714,6 +6701,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_datetime"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bade1c3e902f58d73d3f294cd7f20391c1cb2fbcb643b73566bc773971df91e3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "toml_edit"
 version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6721,9 +6717,18 @@ checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
 dependencies = [
  "indexmap 2.9.0",
  "serde",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
  "toml_write",
+ "winnow",
+]
+
+[[package]]
+name = "toml_parser"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97200572db069e74c512a14117b296ba0a80a30123fbbb5aa1f4a348f639ca30"
+dependencies = [
  "winnow",
 ]
 
@@ -6732,6 +6737,12 @@ name = "toml_write"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+
+[[package]]
+name = "toml_writer"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc842091f2def52017664b53082ecbbeb5c7731092bad69d2c63050401dfd64"
 
 [[package]]
 name = "totp-rs"
@@ -7030,9 +7041,9 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "ureq"
-version = "3.0.11"
+version = "3.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7a3e9af6113ecd57b8c63d3cd76a385b2e3881365f1f489e54f49801d0c83ea"
+checksum = "9f0fde9bc91026e381155f8c67cb354bcd35260b2f4a29bcc84639f762760c39"
 dependencies = [
  "base64 0.22.1",
  "flate2",
@@ -7048,9 +7059,9 @@ dependencies = [
 
 [[package]]
 name = "ureq-proto"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fadf18427d33828c311234884b7ba2afb57143e6e7e69fda7ee883b624661e36"
+checksum = "59db78ad1923f2b1be62b6da81fe80b173605ca0d57f85da2e005382adf693f7"
 dependencies = [
  "base64 0.22.1",
  "http 1.3.1",
@@ -7346,19 +7357,14 @@ version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11976a250672556d1c4c04c6d5d7656ac9192ac9edc42a4587d6c21460010e69"
 dependencies = [
- "addr2line",
  "anyhow",
  "async-trait",
  "bitflags 2.9.1",
  "bumpalo",
  "cc",
  "cfg-if",
- "encoding_rs",
- "fxprof-processed-profile",
- "gimli",
  "hashbrown 0.14.5",
  "indexmap 2.9.0",
- "ittapi",
  "libc",
  "log",
  "mach2",
@@ -7371,10 +7377,8 @@ dependencies = [
  "pulley-interpreter",
  "rayon",
  "rustix 0.38.44",
- "semver",
  "serde",
  "serde_derive",
- "serde_json",
  "smallvec",
  "sptr",
  "target-lexicon",
@@ -7384,11 +7388,9 @@ dependencies = [
  "wasmtime-asm-macros",
  "wasmtime-cache",
  "wasmtime-component-macro",
- "wasmtime-component-util",
  "wasmtime-cranelift",
  "wasmtime-environ",
  "wasmtime-fiber",
- "wasmtime-jit-debug",
  "wasmtime-jit-icache-coherence",
  "wasmtime-math",
  "wasmtime-slab",
@@ -7422,7 +7424,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "sha2",
- "toml",
+ "toml 0.8.23",
  "windows-sys 0.59.0",
  "zstd",
 ]
@@ -7489,7 +7491,6 @@ dependencies = [
  "object",
  "postcard",
  "rustc-demangle",
- "semver",
  "serde",
  "serde_derive",
  "smallvec",
@@ -7497,7 +7498,6 @@ dependencies = [
  "wasm-encoder 0.221.3",
  "wasmparser 0.221.3",
  "wasmprinter",
- "wasmtime-component-util",
 ]
 
 [[package]]
@@ -7513,17 +7513,6 @@ dependencies = [
  "wasmtime-asm-macros",
  "wasmtime-versioned-export-macros",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "wasmtime-jit-debug"
-version = "29.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e7b61488a5ee00c35c8c22de707c36c0aecacf419a3be803a6a2ba5e860f56a"
-dependencies = [
- "object",
- "rustix 0.38.44",
- "wasmtime-versioned-export-macros",
 ]
 
 [[package]]
@@ -7796,7 +7785,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -8108,7 +8097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f3fd376f71958b862e7afb20cfe5a22830e1963462f3a17f49d82a6c1d1f42d"
 dependencies = [
  "bitflags 2.9.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

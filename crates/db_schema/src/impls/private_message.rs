@@ -26,7 +26,7 @@ impl Crud for PrivateMessage {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -39,7 +39,7 @@ impl Crud for PrivateMessage {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -60,23 +60,7 @@ impl PrivateMessage {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)
-  }
-
-  pub async fn mark_all_as_read(
-    pool: &mut DbPool<'_>,
-    for_recipient_id: PersonId,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(
-      private_message::table
-        .filter(private_message::recipient_id.eq(for_recipient_id))
-        .filter(private_message::read.eq(false)),
-    )
-    .set(private_message::read.eq(true))
-    .get_results::<Self>(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn read_from_apub_id(
@@ -110,7 +94,7 @@ impl PrivateMessage {
       ))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -161,7 +145,6 @@ mod tests {
       creator_id: inserted_creator.id,
       recipient_id: inserted_recipient.id,
       deleted: false,
-      read: false,
       updated_at: None,
       published_at: inserted_private_message.published_at,
       ap_id: Url::parse(&format!(
@@ -195,15 +178,6 @@ mod tests {
       },
     )
     .await?;
-    let marked_read_private_message = PrivateMessage::update(
-      pool,
-      inserted_private_message.id,
-      &PrivateMessageUpdateForm {
-        read: Some(true),
-        ..Default::default()
-      },
-    )
-    .await?;
     Person::delete(pool, inserted_creator.id).await?;
     Person::delete(pool, inserted_recipient.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
@@ -212,7 +186,6 @@ mod tests {
     assert_eq!(expected_private_message, updated_private_message);
     assert_eq!(expected_private_message, inserted_private_message);
     assert!(deleted_private_message.deleted);
-    assert!(marked_read_private_message.read);
 
     Ok(())
   }

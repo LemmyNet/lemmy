@@ -6,7 +6,7 @@ use diesel::{
   dsl::{count, exists, not, update, IntervalDsl},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{Integer, Timestamptz},
+  sql_types::{BigInt, Integer, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -14,6 +14,7 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
@@ -46,7 +47,10 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  DB_BATCH_SIZE,
+};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -78,12 +82,15 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   });
 
   let context_1 = context.clone();
-  // Update active counts expired bans and unpublished posts every hour
+  // Hourly tasks:
+  // - Update active daily counts
+  // - Expired bans
+  // - Expired instance blocks
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
     async move {
-      active_counts(&mut context.pool())
+      active_counts(&mut context.pool(), ONE_DAY)
         .await
         .inspect_err(|e| warn!("Failed to update active counts: {e}"))
         .ok();
@@ -100,6 +107,8 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
 
   let context_1 = context.reset_request_count();
   // Daily tasks:
+  // - Update site and community activity counts
+  // - Update local user count
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
@@ -108,6 +117,14 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     let context = context_1.reset_request_count();
 
     async move {
+      all_active_counts(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update active counts: {e}"))
+        .ok();
+      update_local_user_count(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to overwrite deleted posts/comments: {e}"))
@@ -139,12 +156,12 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
 async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating hot ranks for all history...");
 
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
-  process_post_aggregates_ranks_in_batches(&mut conn).await?;
+  process_post_aggregates_ranks_in_batches(conn).await?;
 
   process_ranks_in_batches(
-    &mut conn,
+    conn,
     "comment",
     "a.hot_rank != 0",
     "SET hot_rank = r.hot_rank(a.score, a.published_at)",
@@ -152,7 +169,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   .await?;
 
   process_ranks_in_batches(
-    &mut conn,
+    conn,
     "community",
     "a.hot_rank != 0",
     "SET hot_rank = r.hot_rank(a.subscribers, a.published_at)",
@@ -181,7 +198,6 @@ async fn process_ranks_in_batches(
 ) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -199,7 +215,7 @@ async fn process_ranks_in_batches(
     "#,
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -221,7 +237,6 @@ async fn process_ranks_in_batches(
 async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
   let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
-  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
@@ -244,7 +259,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
-    .bind::<Integer, _>(update_batch_size)
+    .bind::<BigInt, _>(DB_BATCH_SIZE)
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
@@ -262,12 +277,12 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
 }
 
 async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     captcha_answer::table.filter(captcha_answer::published_at.lt(now() - IntervalDsl::minutes(10))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
 
@@ -277,19 +292,19 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()
 /// Clear old activities (this table gets very large)
 async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Clearing old activities...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     sent_activity::table.filter(sent_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
 
   diesel::delete(
     received_activity::table
       .filter(received_activity::published_at.lt(now() - IntervalDsl::days(7))),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
   Ok(())
@@ -304,7 +319,7 @@ async fn delete_old_denied_users(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 /// overwrite posts and comments 30d after deletion
 async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Overwriting deleted posts...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::update(
     post::table
@@ -316,7 +331,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
     post::body.eq(DELETED_REPLACEMENT_TEXT),
     post::name.eq(DELETED_REPLACEMENT_TEXT),
   ))
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
 
   info!("Overwriting deleted comments...");
@@ -327,44 +342,170 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) -> LemmyRes
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   info!("Done.");
   Ok(())
 }
 
-/// Re-calculate the site, community active counts and local user count
-async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  info!("Updating active site and community aggregates ...");
+const ONE_DAY: (&str, &str) = ("1 day", "day");
+const ONE_WEEK: (&str, &str) = ("1 week", "week");
+const ONE_MONTH: (&str, &str) = ("1 month", "month");
+const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 
-  let mut conn = get_conn(pool).await?;
+const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
-  let intervals = vec![
-    ("1 day", "day"),
-    ("1 week", "week"),
-    ("1 month", "month"),
-    ("6 months", "half_year"),
-  ];
+#[derive(QueryableByName)]
+struct SiteActivitySelectResult {
+  #[diesel(sql_type = Integer)]
+  site_aggregates_activity: i32,
+}
 
-  for (full_form, abbr) in &intervals {
-    let update_site_stmt = format!(
-      "update local_site set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
-      abbr, full_form
-    );
-    sql_query(update_site_stmt).execute(&mut conn).await?;
+#[derive(QueryableByName)]
+struct CommunityAggregatesUpdateResult {
+  #[diesel(sql_type = Integer)]
+  community_id: i32,
+}
 
-    let update_community_stmt = format!("update community ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.id = mv.community_id_", abbr, full_form);
-    sql_query(update_community_stmt).execute(&mut conn).await?;
+/// Re-calculate the site and community active counts for a given interval
+async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) -> LemmyResult<()> {
+  info!(
+    "Updating active site and community aggregates for {}...",
+    interval.0
+  );
+
+  let conn = &mut get_conn(pool).await?;
+  process_site_aggregates(conn, interval).await?;
+  process_community_aggregates(
+    conn,
+    interval,
+    "users_active",
+    "community_aggregates_activity",
+  )
+  .await?;
+
+  Ok(())
+}
+
+/// Re-calculate all the active counts
+async fn all_active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  for i in ALL_ACTIVE_INTERVALS {
+    active_counts(pool, i).await?;
+  }
+  let conn = &mut get_conn(pool).await?;
+  process_community_aggregates(
+    conn,
+    ONE_MONTH,
+    "interactions",
+    "community_aggregates_interactions",
+  )
+  .await?;
+  Ok(())
+}
+
+async fn process_site_aggregates(
+  conn: &mut AsyncPgConnection,
+  interval: (&str, &str),
+) -> LemmyResult<()> {
+  // Select the site count result first
+  let site_activity = sql_query(format!(
+    "select * from r.site_aggregates_activity('{}')",
+    interval.0
+  ))
+  .get_result::<SiteActivitySelectResult>(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to fetch site activity: {e}"))?;
+
+  let processed_rows = site_activity.site_aggregates_activity;
+
+  // Update the site count
+  sql_query(format!(
+    "update local_site set users_active_{} = $1",
+    interval.1,
+  ))
+  .bind::<Integer, _>(processed_rows)
+  .execute(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to update site stats: {e}"))
+  .ok();
+
+  info!(
+    "Finished site_aggregates active_{} (processed {} rows)",
+    interval.1, processed_rows
+  );
+
+  Ok(())
+}
+
+async fn process_community_aggregates(
+  conn: &mut AsyncPgConnection,
+  interval: (&str, &str),
+  field_name_prefix: &str,
+  function_name: &str,
+) -> LemmyResult<()> {
+  // Select the community count results into a temp table.
+  let caggs_temp_table = &format!("community_aggregates_temp_table_{}", interval.1);
+
+  // Drop temp table before and after, just in case
+  let drop_caggs_temp_table = &format!("DROP TABLE IF EXISTS {caggs_temp_table}");
+  sql_query(drop_caggs_temp_table).execute(conn).await.ok();
+
+  sql_query(format!(
+    "CREATE TEMP TABLE {caggs_temp_table} AS SELECT * FROM r.{function_name}('{}')",
+    interval.0
+  ))
+  .execute(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to create temp community_aggregates table: {e}"))?;
+
+  // Split up into 1000 community transaction batches
+  let update_batch_size = 1000;
+  let mut processed_rows_count = 0;
+  let mut prev_community_id_res = Some(0);
+
+  while let Some(prev_community_id) = prev_community_id_res {
+    let updated_rows = sql_query(format!(
+      "UPDATE community a
+            SET {field_name_prefix}_{} = b.count_
+            FROM (
+              SELECT count_, community_id_
+              FROM {caggs_temp_table}
+              WHERE community_id_ > $1
+              ORDER BY community_id_
+              LIMIT $2
+            ) AS b
+            WHERE a.id = b.community_id_
+            RETURNING a.id AS community_id
+            ",
+      interval.1
+    ))
+    .bind::<Integer, _>(prev_community_id)
+    .bind::<Integer, _>(update_batch_size)
+    .get_results::<CommunityAggregatesUpdateResult>(conn)
+    .await
+    .inspect_err(|e| warn!("Failed to update community stats: {e}"))?;
+
+    processed_rows_count += updated_rows.len();
+    prev_community_id_res = updated_rows.last().map(|row| row.community_id);
   }
 
-  let update_interactions_stmt = "update community ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.id = mv.community_id_";
-  sql_query(update_interactions_stmt)
-    .execute(&mut conn)
-    .await?;
+  // Drop the temp table just in case
+  sql_query(drop_caggs_temp_table).execute(conn).await.ok();
 
-  let mut conn = get_conn(pool).await?;
+  info!(
+    "Finished community_aggregates {field_name_prefix}_{} (processed {} rows)",
+    interval.1, processed_rows_count
+  );
 
-  let user_count: i64 = local_user::table
+  info!("Done.");
+  Ok(())
+}
+
+async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the local user count...");
+
+  let conn = &mut get_conn(pool).await?;
+  let user_count = local_user::table
     .inner_join(
       person::table.left_join(
         instance_actions::table
@@ -377,12 +518,13 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .filter(instance_actions::received_ban_at.is_null())
     .filter(not(person::deleted))
     .select(count(local_user::id))
-    .get_result(&mut conn)
-    .await?;
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
 
   update(local_site::table)
-    .set((local_site::users.eq(user_count),))
-    .execute(&mut conn)
+    .set(local_site::users.eq(user_count))
+    .execute(conn)
     .await?;
 
   info!("Done.");
@@ -392,37 +534,33 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 /// Set banned to false after ban expires
 async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
-  uplete::new(
-    community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(community_actions::received_ban_at)
-  .set_null(community_actions::ban_expires_at)
-  .as_query()
-  .execute(&mut conn)
-  .await?;
+  uplete(community_actions::table.filter(community_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(community_actions::received_ban_at)
+    .set_null(community_actions::ban_expires_at)
+    .as_query()
+    .execute(conn)
+    .await?;
 
-  uplete::new(
-    instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())),
-  )
-  .set_null(instance_actions::received_ban_at)
-  .set_null(instance_actions::ban_expires_at)
-  .as_query()
-  .execute(&mut conn)
-  .await?;
+  uplete(instance_actions::table.filter(instance_actions::ban_expires_at.lt(now().nullable())))
+    .set_null(instance_actions::received_ban_at)
+    .set_null(instance_actions::ban_expires_at)
+    .as_query()
+    .execute(conn)
+    .await?;
   Ok(())
 }
 
 /// Set banned to false after ban expires
 async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Delete instance blocks when expired ...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   diesel::delete(
     federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
   )
-  .execute(&mut conn)
+  .execute(conn)
   .await?;
   Ok(())
 }
@@ -431,7 +569,7 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()> {
   let pool = &mut context.pool();
   let local_instance_id = SiteView::read_local(pool).await?.instance.id;
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   let not_community_banned_action = community_actions::table
     .find((person::id, community::id))
@@ -456,7 +594,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
     .select((post::all_columns, community::all_columns))
-    .get_results::<(Post, Community)>(&mut conn)
+    .get_results::<(Post, Community)>(conn)
     .await?;
 
   for (post, community) in scheduled_posts {
@@ -486,9 +624,9 @@ async fn update_instance_software(
   client: &ClientWithMiddleware,
 ) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
-  let mut conn = get_conn(pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
-  let instances = instance::table.get_results::<Instance>(&mut conn).await?;
+  let instances = instance::table.get_results::<Instance>(conn).await?;
 
   for instance in instances {
     if let Some(form) = build_update_instance_form(&instance.domain, client).await {
@@ -569,7 +707,15 @@ mod tests {
 
   use super::*;
   use lemmy_api_utils::request::client_builder;
-  use lemmy_db_schema::test_data::TestData;
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm},
+    },
+    test_data::TestData,
+    traits::{Crud, Likeable},
+  };
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
@@ -600,21 +746,61 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
+  async fn test_scheduled_tasks() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let data = TestData::create(&mut context.pool()).await?;
+    let pool = &mut context.pool();
 
-    active_counts(&mut context.pool()).await?;
-    update_hot_ranks(&mut context.pool()).await?;
-    update_banned_when_expired(&mut context.pool()).await?;
-    delete_instance_block_when_expired(&mut context.pool()).await?;
-    clear_old_activities(&mut context.pool()).await?;
-    overwrite_deleted_posts_and_comments(&mut context.pool()).await?;
-    delete_old_denied_users(&mut context.pool()).await?;
-    update_instance_software(&mut context.pool(), context.client()).await?;
-    delete_expired_captcha_answers(&mut context.pool()).await?;
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, 1)).await?;
+
+    active_counts(pool, ONE_DAY).await?;
+    all_active_counts(pool).await?;
+    update_local_user_count(pool).await?;
+    update_hot_ranks(pool).await?;
+    update_banned_when_expired(pool).await?;
+    delete_instance_block_when_expired(pool).await?;
+    clear_old_activities(pool).await?;
+    overwrite_deleted_posts_and_comments(pool).await?;
+    delete_old_denied_users(pool).await?;
+    update_instance_software(pool, context.client()).await?;
+    delete_expired_captcha_answers(pool).await?;
     publish_scheduled_posts(&context).await?;
-    data.delete(&mut context.pool()).await?;
+
+    let community_after = Community::read(pool, community.id).await?;
+    assert_eq!(
+      community_after,
+      Community {
+        posts: 1,
+        users_active_day: 1,
+        users_active_week: 1,
+        users_active_month: 1,
+        users_active_half_year: 1,
+        interactions_month: 1,
+        ..community_after.clone()
+      }
+    );
+
+    data.delete(pool).await?;
     Ok(())
   }
 }

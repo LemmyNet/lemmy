@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
+    mod_log::admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
   },
   traits::{Crud, Reportable},
 };
@@ -50,13 +50,13 @@ pub async fn remove_community(
   .await?;
 
   // Mod tables
-  let form = ModRemoveCommunityForm {
+  let form = AdminRemoveCommunityForm {
     mod_person_id: local_user_view.person.id,
     community_id: data.community_id,
     removed: Some(removed),
     reason: data.reason.clone(),
   };
-  ModRemoveCommunity::create(&mut context.pool(), &form).await?;
+  AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveCommunity {

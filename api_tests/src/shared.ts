@@ -20,18 +20,18 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
-  UserBlockInstanceParams,
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  ListInboxResponse,
-  ListInbox,
-  InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
   PersonView,
+  UserBlockInstanceCommunitiesParams,
+  ListNotifications,
+  ListNotificationsResponse,
+  NotificationDataType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -384,16 +384,16 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function listInbox(
+export async function listNotifications(
   api: LemmyHttp,
-  type_?: InboxDataType,
+  type_?: NotificationDataType,
   unread_only: boolean = false,
-): Promise<ListInboxResponse> {
-  let form: ListInbox = {
+): Promise<ListNotificationsResponse> {
+  let form: ListNotifications = {
     unread_only,
     type_,
   };
-  return api.listInbox(form);
+  return api.listNotifications(form);
 }
 
 export async function resolveComment(
@@ -880,16 +880,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function userBlockInstance(
+export function userBlockInstanceCommunities(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
 ): Promise<SuccessResponse> {
-  let form: UserBlockInstanceParams = {
+  let form: UserBlockInstanceCommunitiesParams = {
     instance_id,
     block,
   };
-  return api.userBlockInstance(form);
+  return api.userBlockInstanceCommunities(form);
 }
 
 export function blockCommunity(
@@ -1044,4 +1044,24 @@ export async function waitUntil<T>(
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
+}
+
+export function assertCommunityFederation(
+  communityOne?: CommunityView,
+  communityTwo?: CommunityView,
+) {
+  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
+  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
+  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
+  expect(communityOne?.community.description).toBe(
+    communityTwo?.community.description,
+  );
+  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
+  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
+  expect(communityOne?.community.published_at).toBe(
+    communityTwo?.community.published_at,
+  );
+  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
+  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
+  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
 }

@@ -76,7 +76,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Joinable},
+    traits::Crud,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

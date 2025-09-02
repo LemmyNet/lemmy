@@ -11,7 +11,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, uplete, DbPool},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -22,6 +22,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{
   instance,
   instance_actions,
@@ -57,7 +58,7 @@ impl Crud for Person {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   async fn update(
     pool: &mut DbPool<'_>,
@@ -69,7 +70,7 @@ impl Crud for Person {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -87,7 +88,7 @@ impl Person {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete_account(
@@ -132,7 +133,7 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePerson)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
@@ -145,7 +146,7 @@ impl Person {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
+    .ok_or(LemmyErrorType::UsernameAlreadyTaken.into())
   }
 }
 
@@ -237,7 +238,7 @@ impl Followable for PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   /// Currently no user following
@@ -249,14 +250,14 @@ impl Followable for PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: Self::IdType,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_id, target_id)))
+    uplete(person_actions::table.find((person_id, target_id)))
       .set_null(person_actions::followed_at)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 }
 
@@ -275,16 +276,16 @@ impl Blockable for PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<uplete::Count> {
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((form.person_id, form.target_id)))
+    uplete(person_actions::table.find((form.person_id, form.target_id)))
       .set_null(person_actions::blocked_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   async fn read_block(
@@ -361,9 +362,9 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-  ) -> LemmyResult<uplete::Count> {
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_id, target_id)))
+    uplete(person_actions::table.find((person_id, target_id)))
       .set_null(person_actions::note)
       .set_null(person_actions::noted_at)
       .get_result(conn)
@@ -462,8 +463,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Followable, Likeable},
-    utils::{build_db_pool_for_tests, uplete},
+    utils::build_db_pool_for_tests,
   };
+  use diesel_uplete::UpleteCount;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -547,7 +549,7 @@ mod tests {
 
     let unfollow =
       PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;
-    assert_eq!(uplete::Count::only_deleted(1), unfollow);
+    assert_eq!(UpleteCount::only_deleted(1), unfollow);
 
     Ok(())
   }

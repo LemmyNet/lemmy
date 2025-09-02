@@ -1,11 +1,16 @@
 use crate::{
   objects::community::ApubCommunity,
+  protocol::tags::CommunityTag,
   utils::protocol::{AttributedTo, Endpoints, ImageObject, LanguageTag, Source},
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::actor::GroupType,
-  protocol::{helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml},
+  protocol::{
+    helpers::{deserialize_last, deserialize_skip_error},
+    public_key::PublicKey,
+    values::MediaTypeHtml,
+  },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -35,10 +40,10 @@ pub struct Group {
   pub(crate) media_type: Option<MediaTypeHtml>,
   // short instance description
   pub summary: Option<String>,
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub icon: Option<ImageObject>,
   /// banner
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_last", default)]
   pub image: Option<ImageObject>,
   // lemmy extension
   pub sensitive: Option<bool>,
@@ -57,4 +62,6 @@ pub struct Group {
   pub updated: Option<DateTime<Utc>>,
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
+  #[serde(default)]
+  pub(crate) tag: Vec<CommunityTag>,
 }

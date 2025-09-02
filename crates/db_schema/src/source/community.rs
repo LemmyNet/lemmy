@@ -4,7 +4,11 @@ use crate::{
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+use lemmy_db_schema_file::enums::{
+  CommunityFollowerState,
+  CommunityNotificationsMode,
+  CommunityVisibility,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -74,25 +78,25 @@ pub struct Community {
   pub description: Option<String>,
   #[serde(skip)]
   pub random_number: i16,
-  pub subscribers: i64,
-  pub posts: i64,
-  pub comments: i64,
+  pub subscribers: i32,
+  pub posts: i32,
+  pub comments: i32,
   /// The number of users with any activity in the last day.
-  pub users_active_day: i64,
+  pub users_active_day: i32,
   /// The number of users with any activity in the last week.
-  pub users_active_week: i64,
+  pub users_active_week: i32,
   /// The number of users with any activity in the last month.
-  pub users_active_month: i64,
+  pub users_active_month: i32,
   /// The number of users with any activity in the last year.
-  pub users_active_half_year: i64,
+  pub users_active_half_year: i32,
   #[serde(skip)]
   pub hot_rank: f64,
-  pub subscribers_local: i64,
+  pub subscribers_local: i32,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// Number of any interactions over the last month.
   #[serde(skip)]
-  pub interactions_month: i64,
+  pub interactions_month: i32,
   pub local_removed: bool,
 }
 
@@ -192,9 +196,9 @@ pub struct CommunityUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommunityActions {
   #[serde(skip)]
-  pub community_id: CommunityId,
-  #[serde(skip)]
   pub person_id: PersonId,
+  #[serde(skip)]
+  pub community_id: CommunityId,
   /// When the community was followed.
   pub followed_at: Option<DateTime<Utc>>,
   /// The state of the community follow.
@@ -210,6 +214,7 @@ pub struct CommunityActions {
   pub received_ban_at: Option<DateTime<Utc>>,
   /// When their ban expires.
   pub ban_expires_at: Option<DateTime<Utc>>,
+  pub notifications: Option<CommunityNotificationsMode>,
 }
 
 #[derive(Clone, derive_new::new)]

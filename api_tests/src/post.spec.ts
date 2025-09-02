@@ -38,9 +38,8 @@ import {
   createCommunity,
   listReports,
   getMyUser,
-  listInbox,
+  listNotifications,
   getModlog,
-  getCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -48,7 +47,6 @@ import {
   AddModToCommunity,
   EditSite,
   EditPost,
-  PersonPostMentionView,
   PostReport,
   PostReportView,
   ReportCombinedView,
@@ -372,7 +370,11 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(beta, postRes.post_view.post, p => !p || p.post.deleted);
+  await waitForPost(
+    beta,
+    postRes.post_view.post,
+    p => p?.post?.deleted || p == undefined,
+  );
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -392,7 +394,7 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta cannot delete the post
   await expect(deletePost(beta, true, betaPost2.post)).rejects.toStrictEqual(
-    new LemmyError("no_post_edit_allowed"),
+    new LemmyError("couldnt_update"),
   );
 });
 
@@ -532,7 +534,7 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.creator_banned!,
+    res => res?.creator_banned == true,
   );
   expect(alphaUserOnBeta1?.creator_banned).toBe(true);
 
@@ -624,15 +626,6 @@ test("Enforce site ban federation for federated user", async () => {
   // User should not be shown to be banned from alpha
   let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view;
   expect(alphaPerson2.banned).toBe(false);
-
-  // but the ban should be indicated by beta community on alpha
-  let communityWithBan = await getCommunity(
-    alphaUserHttp,
-    betaCommunity.community.id,
-  );
-  expect(
-    communityWithBan.community_view.instance_actions?.received_ban_at,
-  ).toBeDefined();
 
   // post to beta community is rejected
   await expect(
@@ -831,7 +824,7 @@ test("Report a post", async () => {
       () =>
         listReports(beta).then(p =>
           p.reports.find(r => {
-            return checkPostReportName(r, gammaReport) && r.resolver != null;
+            return checkPostReportName(r, gammaReport) && !!r.resolver;
           }),
         ),
       res => !!res,
@@ -942,16 +935,15 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listInbox(beta, "PostMention"),
-    m => !!m.inbox[0],
+    () => listNotifications(beta, "Mention"),
+    m => !!m.notifications[0],
   );
 
-  const firstMention = mentionsRes.inbox[0] as PersonPostMentionView;
-  expect(firstMention.post.body).toBeDefined();
-  expect(firstMention.community.local).toBe(true);
+  const firstMention = mentionsRes.notifications[0].data as PostView;
+  expect(firstMention.post!.body).toBeDefined();
+  expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.post.score).toBe(1);
-  expect(firstMention.person_post_mention.post_id).toBe(betaPost.post.id);
+  expect(firstMention.post!.score).toBe(1);
 });
 
 test("Rewrite markdown links", async () => {

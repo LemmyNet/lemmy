@@ -28,8 +28,8 @@ pub fn plugin_hook_after<T>(name: &'static str, data: &T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
-  let plugins = LemmyPlugins::init();
-  if !plugins.loaded(name) {
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
     return Ok(());
   }
 
@@ -60,8 +60,8 @@ pub async fn plugin_hook_before<T>(name: &'static str, data: T) -> LemmyResult<T
 where
   T: Clone + Serialize + for<'a> Deserialize<'a> + Sync + Send + 'static,
 {
-  let plugins = LemmyPlugins::init();
-  if !plugins.loaded(name) {
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
     return Ok(data);
   }
 
@@ -81,7 +81,7 @@ where
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
-  LemmyPlugins::init()
+  LemmyPlugins::get_or_init()
     .0
     .into_iter()
     .map(|p| p.metadata)
@@ -93,7 +93,7 @@ struct LemmyPlugins(Vec<LemmyPlugin>);
 
 #[derive(Clone)]
 struct LemmyPlugin {
-  plugin_pool: Pool<()>,
+  plugin_pool: Pool,
   metadata: PluginMetadata,
 }
 
@@ -109,10 +109,9 @@ impl LemmyPlugin {
     manifest
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
-    let plugin_pool: Pool<()> = Pool::new();
-    let builder = PluginBuilder::new(manifest).with_wasi(true);
-    let metadata: PluginMetadata = builder.clone().build()?.call("metadata", 0)?;
-    plugin_pool.add_builder((), builder);
+    let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
+    let metadata: PluginMetadata = builder()?.call("metadata", 0)?;
+    let plugin_pool: Pool = Pool::new(builder);
     Ok(LemmyPlugin {
       plugin_pool,
       metadata,
@@ -122,7 +121,7 @@ impl LemmyPlugin {
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
     let p = self
       .plugin_pool
-      .get(&(), GET_PLUGIN_TIMEOUT)?
+      .get(GET_PLUGIN_TIMEOUT)?
       .ok_or(anyhow!("plugin timeout"))?;
 
     Ok(if p.plugin().function_exists(name) {
@@ -135,7 +134,7 @@ impl LemmyPlugin {
 
 impl LemmyPlugins {
   /// Load and initialize all plugins
-  fn init() -> Self {
+  fn get_or_init() -> Self {
     // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
     // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
     static PLUGINS: Lazy<LemmyPlugins> = Lazy::new(|| {
@@ -164,14 +163,11 @@ impl LemmyPlugins {
   }
 
   /// Return early if no plugin is loaded for the given hook name
-  fn loaded(&self, _name: &'static str) -> bool {
-    // Check if there is any plugin active for this hook, to avoid unnecessary data cloning
-    // TODO: not currently supported by pool
-    /*
-    if !self.0.iter().any(|p| p.plugin_pool.function_exists(name)) {
-      return Ok(None);
-    }
-    */
-    !self.0.is_empty()
+  fn function_exists(&self, name: &'static str) -> bool {
+    self.0.iter().any(|p| {
+      p.plugin_pool
+        .function_exists(name, GET_PLUGIN_TIMEOUT)
+        .unwrap_or(false)
+    })
   }
 }

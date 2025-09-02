@@ -59,22 +59,34 @@ pub struct InstanceActions {
   pub person_id: PersonId,
   #[serde(skip)]
   pub instance_id: InstanceId,
-  /// When the instance was blocked.
-  pub blocked_at: Option<DateTime<Utc>>,
+  /// When the instance's communities were blocked.
+  pub blocked_communities_at: Option<DateTime<Utc>>,
   /// When this user received a site ban.
   pub received_ban_at: Option<DateTime<Utc>>,
   /// When their ban expires.
   pub ban_expires_at: Option<DateTime<Utc>>,
+  /// When the instance's persons were blocked.
+  pub blocked_persons_at: Option<DateTime<Utc>>,
 }
 
 #[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = instance_actions))]
-pub struct InstanceBlockForm {
+pub struct InstanceCommunitiesBlockForm {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
   #[new(value = "Utc::now()")]
-  pub blocked_at: DateTime<Utc>,
+  pub blocked_communities_at: DateTime<Utc>,
+}
+
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = instance_actions))]
+pub struct InstancePersonsBlockForm {
+  pub person_id: PersonId,
+  pub instance_id: InstanceId,
+  #[new(value = "Utc::now()")]
+  pub blocked_persons_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]

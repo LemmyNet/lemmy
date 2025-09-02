@@ -3,12 +3,12 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
-  build_response::{build_post_response, send_local_notifs},
+  build_response::build_post_response,
   context::LemmyContext,
-  plugins::{plugin_hook_after, plugin_hook_before},
+  notify::NotifyData,
+  plugins::plugin_hook_after,
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
-  tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
@@ -16,11 +16,11 @@ use lemmy_api_utils::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
+    update_post_tags,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  newtypes::PostOrCommentId,
   source::{
     community::Community,
     post::{Post, PostUpdateForm},
@@ -28,7 +28,6 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update},
 };
-use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{EditPost, PostResponse},
@@ -38,7 +37,6 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
-    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -99,24 +97,16 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post =
-    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    local_instance_id,
+    false,
+  )
+  .await?;
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
-
-  if let Some(tags) = &data.tags {
-    // post view does not include communityview.post_tags
-    let community_view =
-      CommunityView::read(&mut context.pool(), orig_post.community.id, None, false).await?;
-    update_post_tags(
-      &context,
-      &orig_post.post,
-      &community_view,
-      tags,
-      &local_user_view,
-    )
-    .await?;
-  }
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
@@ -146,7 +136,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let mut post_form = PostUpdateForm {
+  let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -157,24 +147,25 @@ pub async fn update_post(
     scheduled_publish_time_at,
     ..Default::default()
   };
-  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
+  // TODO this is currently broken
+  // post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
   plugin_hook_after("after_update_local_post", &post_form)?;
 
-  // Scan the post body for user mentions, add those rows
-  let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());
-  send_local_notifs(
-    mentions,
-    PostOrCommentId::Post(updated_post.id),
-    &local_user_view.person,
+  if let Some(tags) = &data.tags {
+    update_post_tags(&orig_post.post, tags, &context).await?;
+  }
+
+  NotifyData::new(
+    updated_post.clone(),
+    None,
+    local_user_view.person.clone(),
+    orig_post.community.clone(),
     false,
-    &context,
-    Some(&local_user_view),
-    local_instance_id,
   )
-  .await?;
+  .send(&context);
 
   // send out federation/webmention if necessary
   match (

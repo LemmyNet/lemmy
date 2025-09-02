@@ -5,7 +5,6 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
-    verify_mod_action,
   },
   activity_lists::AnnouncableActivities,
   protocol::activities::block::block_user::BlockUser,
@@ -22,14 +21,22 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
-  utils::functions::{verify_is_public, verify_person_in_community, verify_visibility},
+  utils::functions::{
+    verify_is_public,
+    verify_mod_action,
+    verify_person_in_community,
+    verify_visibility,
+  },
 };
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::{
+      admin::{AdminBan, AdminBanForm},
+      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    },
   },
   traits::{Bannable, Crud},
 };
@@ -145,7 +152,7 @@ impl Activity for BlockUser {
         }
 
         // write mod log
-        let form = ModBanForm {
+        let form = AdminBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           reason,
@@ -153,7 +160,7 @@ impl Activity for BlockUser {
           expires_at,
           instance_id: site.instance_id,
         };
-        ModBan::create(&mut context.pool(), &form).await?;
+        AdminBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {

@@ -1,15 +1,22 @@
 use crate::{
   newtypes::{
+    AdminAddId,
     AdminAllowInstanceId,
+    AdminBanId,
     AdminBlockInstanceId,
     AdminPurgeCommentId,
     AdminPurgeCommunityId,
     AdminPurgePersonId,
     AdminPurgePostId,
+    AdminRemoveCommunityId,
   },
   source::mod_log::admin::{
+    AdminAdd,
+    AdminAddForm,
     AdminAllowInstance,
     AdminAllowInstanceForm,
+    AdminBan,
+    AdminBanForm,
     AdminBlockInstance,
     AdminBlockInstanceForm,
     AdminPurgeComment,
@@ -20,6 +27,8 @@ use crate::{
     AdminPurgePersonForm,
     AdminPurgePost,
     AdminPurgePostForm,
+    AdminRemoveCommunity,
+    AdminRemoveCommunityForm,
   },
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -27,12 +36,15 @@ use crate::{
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
+  admin_add,
   admin_allow_instance,
+  admin_ban,
   admin_block_instance,
   admin_purge_comment,
   admin_purge_community,
   admin_purge_person,
   admin_purge_post,
+  admin_remove_community,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -47,7 +59,7 @@ impl Crud for AdminPurgePerson {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -60,7 +72,7 @@ impl Crud for AdminPurgePerson {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -75,7 +87,7 @@ impl Crud for AdminPurgeCommunity {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -88,7 +100,7 @@ impl Crud for AdminPurgeCommunity {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -103,7 +115,7 @@ impl Crud for AdminPurgePost {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -116,7 +128,7 @@ impl Crud for AdminPurgePost {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -131,7 +143,7 @@ impl Crud for AdminPurgeComment {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -144,7 +156,7 @@ impl Crud for AdminPurgeComment {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -159,7 +171,7 @@ impl Crud for AdminAllowInstance {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -172,7 +184,7 @@ impl Crud for AdminAllowInstance {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -187,7 +199,7 @@ impl Crud for AdminBlockInstance {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -200,6 +212,90 @@ impl Crud for AdminBlockInstance {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateModlog)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+}
+
+impl Crud for AdminRemoveCommunity {
+  type InsertForm = AdminRemoveCommunityForm;
+  type UpdateForm = AdminRemoveCommunityForm;
+  type IdType = AdminRemoveCommunityId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(admin_remove_community::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(admin_remove_community::table.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+}
+
+impl Crud for AdminBan {
+  type InsertForm = AdminBanForm;
+  type UpdateForm = AdminBanForm;
+  type IdType = AdminBanId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(admin_ban::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(admin_ban::table.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+}
+
+impl Crud for AdminAdd {
+  type InsertForm = AdminAddForm;
+  type UpdateForm = AdminAddForm;
+  type IdType = AdminAddId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(admin_add::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(admin_add::table.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

@@ -13,9 +13,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_reports::{
+use lemmy_db_views_report_combined::{
   api::{CreatePostReport, PostReportResponse},
-  PostReportView,
+  ReportCombinedViewInternal,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
@@ -31,29 +31,36 @@ pub async fn create_post_report(
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
 
-  let person_id = local_user_view.person.id;
+  let person = &local_user_view.person;
   let post_id = data.post_id;
   let local_instance_id = local_user_view.person.instance_id;
-  let post_view =
-    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    local_instance_id,
+    false,
+  )
+  .await?;
 
-  check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  check_post_deleted_or_removed(&post_view.post)?;
+  check_post_deleted_or_removed(&orig_post.post)?;
 
   let report_form = PostReportForm {
-    creator_id: person_id,
+    creator_id: person.id,
     post_id,
-    original_post_name: post_view.post.name,
-    original_post_url: post_view.post.url,
-    original_post_body: post_view.post.body,
+    original_post_name: orig_post.post.name,
+    original_post_url: orig_post.post.url,
+    original_post_body: orig_post.post.body,
     reason,
     violates_instance_rules: data.violates_instance_rules.unwrap_or_default(),
   };
 
   let report = PostReport::report(&mut context.pool(), &report_form).await?;
 
-  let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
+  let post_report_view =
+    ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person).await?;
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
@@ -69,9 +76,9 @@ pub async fn create_post_report(
 
   ActivityChannel::submit_activity(
     SendActivityData::CreateReport {
-      object_id: post_view.post.ap_id.inner().clone(),
+      object_id: orig_post.post.ap_id.inner().clone(),
       actor: local_user_view.person,
-      receiver: Either::Right(post_view.community),
+      receiver: Either::Right(orig_post.community),
       reason: data.reason.clone(),
     },
     &context,

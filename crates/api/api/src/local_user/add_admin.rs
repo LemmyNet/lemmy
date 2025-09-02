@@ -3,7 +3,7 @@ use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::moderator::{ModAdd, ModAddForm},
+    mod_log::admin::{AdminAdd, AdminAddForm},
   },
   traits::Crud,
 };
@@ -44,13 +44,13 @@ pub async fn add_admin(
   .await?;
 
   // Mod tables
-  let form = ModAddForm {
+  let form = AdminAddForm {
     mod_person_id: my_person_id,
     other_person_id: added_local_user.person.id,
     removed: Some(!data.added),
   };
 
-  ModAdd::create(&mut context.pool(), &form).await?;
+  AdminAdd::create(&mut context.pool(), &form).await?;
 
   let admins = PersonQuery {
     admins_only: Some(true),

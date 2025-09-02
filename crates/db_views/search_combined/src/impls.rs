@@ -34,20 +34,23 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      creator_community_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_instance_actions_person_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-      suggested_communities,
+      filters::{
+        filter_is_subscribed,
+        filter_not_unlisted_or_is_subscribed,
+        filter_suggested_communities,
+      },
+      joins::{
+        creator_community_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        creator_local_user_admin_join,
+        image_details_join,
+        my_comment_actions_join,
+        my_community_actions_join,
+        my_local_user_admin_join,
+        my_person_actions_join,
+        my_post_actions_join,
+      },
     },
     seconds_to_pg_interval,
     DbPool,
@@ -133,8 +136,6 @@ impl SearchCombinedViewInternal {
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_actions_person_join: my_instance_actions_person_join =
-      my_instance_actions_person_join(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -145,17 +146,16 @@ impl SearchCombinedViewInternal {
       .left_join(multi_community_join)
       .left_join(item_creator_join)
       .left_join(community_join)
+      .left_join(image_details_join())
       .left_join(creator_community_actions_join())
-      .left_join(my_local_user_admin_join)
       .left_join(creator_local_user_admin_join())
-      .left_join(my_community_actions_join)
-      .left_join(my_instance_actions_person_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(my_local_user_admin_join)
+      .left_join(my_community_actions_join)
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
-      .left_join(image_details_join())
   }
 }
 
@@ -189,11 +189,7 @@ impl PaginationCursorBuilder for SearchCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(prefix, id)] = cursor.prefixes_and_ids()?;
 
     let mut query = search_combined::table
       .select(Self::CursorData::as_select())
@@ -346,7 +342,7 @@ impl SearchCombinedQuery {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
-      ListingType::Suggested => query.filter(suggested_communities()),
+      ListingType::Suggested => query.filter(filter_suggested_communities()),
     };
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
@@ -432,15 +428,16 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         creator,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
         post_tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let (Some(post), Some(creator), Some(community)) =
       (v.post, v.item_creator.clone(), v.community.clone())
@@ -452,20 +449,20 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         creator_is_admin: v.item_creator_is_admin,
         image_details: v.image_details,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
         tags: v.post_tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
         creator_is_moderator: v.creator_is_moderator,
         creator_banned_from_community: v.creator_banned_from_community,
+        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       }))
     } else if let Some(community) = v.community {
       Some(SearchCombinedView::Community(CommunityView {
         community,
         community_actions: v.community_actions,
-        instance_actions: v.instance_actions,
         can_mod: v.can_mod,
         post_tags: v.community_post_tags,
       }))
@@ -480,6 +477,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         is_admin: v.item_creator_is_admin,
         person_actions: v.person_actions,
         creator_banned: v.creator_banned,
+        creator_ban_expires_at: v.creator_ban_expires_at,
       }))
     } else {
       None
@@ -547,6 +545,7 @@ mod tests {
       local_user: timmy_local_user,
       person: timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let community_form = CommunityInsertForm {

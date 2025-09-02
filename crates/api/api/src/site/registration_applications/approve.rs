@@ -63,14 +63,13 @@ pub async fn approve_registration_application(
   if approved_local_user_view.local_user.email.is_some() {
     // Email sending may fail, but this won't revert the application approval
     if data.approve {
-      send_application_approved_email(&approved_local_user_view, context.settings()).await?;
+      send_application_approved_email(&approved_local_user_view, context.settings())?;
     } else {
       send_application_denied_email(
         &approved_local_user_view,
         data.deny_reason.clone(),
         context.settings(),
-      )
-      .await?;
+      )?;
     }
   }
 

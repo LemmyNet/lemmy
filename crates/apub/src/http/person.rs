@@ -11,7 +11,7 @@ use lemmy_utils::{
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct PersonQuery {
+pub(crate) struct PersonQuery {
   user_name: String,
 }
 
