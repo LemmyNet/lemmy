@@ -13,6 +13,7 @@ use crate::{
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
+      context_url,
       generate_to,
       read_from_string_or_source_opt,
       verify_person_in_community,
@@ -176,6 +177,7 @@ impl Object for ApubPost {
       updated: self.updated_at,
       in_reply_to: None,
       tag: tags,
+      context: Some(context_url(&self.ap_id)),
     };
     Ok(page)
   }

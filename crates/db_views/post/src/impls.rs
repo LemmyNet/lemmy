@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,

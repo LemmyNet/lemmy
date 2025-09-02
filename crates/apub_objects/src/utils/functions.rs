@@ -323,6 +323,11 @@ pub fn community_visibility(group: &Group) -> CommunityVisibility {
   }
 }
 
+/// Format context url for a post or comment. Returns plain string for simplicity.
+pub fn context_url(id: &Url) -> String {
+  format!("{id}/context")
+}
+
 /// Verify that mod action in community was performed by a moderator.
 ///
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
