@@ -175,13 +175,14 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    let (post, _) = Box::pin(note.get_parents(context)).await?;
+    let (post, parent_comment) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
     let is_mod_or_admin = check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
       .await
       .is_ok();
-    if post.locked && !is_mod_or_admin {
+    let locked = post.locked || parent_comment.is_some_and(|c| c.locked);
+    if locked && !is_mod_or_admin {
       Err(FederationError::PostIsLocked)?
     } else {
       Ok(())
@@ -223,6 +224,7 @@ impl Object for ApubComment {
       local: Some(false),
       language_id,
       federation_pending: Some(false),
+      locked: None,
     };
     form = plugin_hook_before("before_receive_federated_comment", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
