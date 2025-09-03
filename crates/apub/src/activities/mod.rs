@@ -33,12 +33,9 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
 use lemmy_db_schema::{
-  impls::community::CollectionType,
-  newtypes::DbUrl,
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::Community,
@@ -352,14 +349,4 @@ pub async fn match_outgoing_activities(
   };
   fed_task.await?;
   Ok(())
-}
-
-fn determine_collection_type_from_target(target: Url, ap_id: DbUrl) -> LemmyResult<CollectionType> {
-  if target == generate_moderators_url(&ap_id)?.into() {
-    Ok(CollectionType::Moderators)
-  } else if target == generate_featured_url(&ap_id)?.into() {
-    Ok(CollectionType::Featured)
-  } else {
-    Err(FederationError::InvalidTarget(target.to_string()).into())
-  }
 }

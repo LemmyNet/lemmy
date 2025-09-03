@@ -1,9 +1,5 @@
 use crate::{
-  activities::{
-    community::send_activity_in_community,
-    determine_collection_type_from_target,
-    generate_activity_id,
-  },
+  activities::{community::send_activity_in_community, generate_activity_id},
   activity_lists::AnnouncableActivities,
   protocol::activities::community::{
     collection_add::CollectionAdd,
@@ -16,7 +12,6 @@ use activitypub_federation::{
   kinds::activity::AddType,
   traits::{Activity, Actor, Object},
 };
-use itertools::Itertools;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url},
@@ -24,13 +19,7 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
-    functions::{
-      community_from_objects,
-      generate_to,
-      verify_mod_action,
-      verify_person_in_community,
-      verify_visibility,
-    },
+    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -123,16 +112,8 @@ impl Activity for CollectionAdd {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let objects = self.to.iter().merge(self.cc.iter());
-    let community = community_from_objects(objects, context).await?;
-
-    let collection_type = if community.local {
-      determine_collection_type_from_target(self.target.clone(), community.ap_id.clone())?
-    } else {
-      let (_, collection_type) =
-        Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
-      collection_type
-    };
+    let (community, collection_type) =
+      Community::get_by_collection_url(&mut context.pool(), &self.target.clone().into()).await?;
 
     match collection_type {
       CollectionType::Moderators => {

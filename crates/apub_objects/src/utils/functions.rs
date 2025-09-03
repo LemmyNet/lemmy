@@ -25,7 +25,7 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyResult},
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
@@ -342,23 +342,4 @@ pub async fn verify_mod_action(
 
   let mod_ = mod_id.dereference(context).await?;
   check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
-}
-
-pub async fn community_from_objects<'a, I>(
-  mut objects: I,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<ApubCommunity>
-where
-  I: Iterator<Item = &'a Url>,
-{
-  loop {
-    if let Some(cid) = objects.next() {
-      let cid = ObjectId::<ApubCommunity>::from(cid.clone());
-      if let Ok(c) = cid.dereference(context).await {
-        break Ok(c);
-      }
-    } else {
-      Err(LemmyErrorType::NotFound)?;
-    }
-  }
 }
