@@ -20,6 +20,7 @@ use lemmy_db_schema_file::schema::{
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
+  mod_lock_comment,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_post,
@@ -128,6 +129,31 @@ pub struct ModRemoveCommentForm {
   pub comment_id: CommentId,
   pub reason: Option<String>,
   pub removed: Option<bool>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", diesel(table_name = mod_lock_comment))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// When a moderator locks a comment (prevents new replies to a comment or its children).
+pub struct ModLockComment {
+  pub id: ModLockPostId,
+  pub mod_person_id: PersonId,
+  pub comment_id: PostId,
+  pub locked: bool,
+  pub reason: Option<String>,
+  pub published_at: DateTime<Utc>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = mod_lock_comment))]
+pub struct ModLockCommentForm {
+  pub mod_person_id: PersonId,
+  pub comment_id: CommentId,
+  pub locked: Option<bool>,
+  pub reason: Option<String>,
 }
 
 #[skip_serializing_none]

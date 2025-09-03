@@ -375,6 +375,7 @@ test("Delete a post", async () => {
     postRes.post_view.post,
     p => p?.post?.deleted || p == undefined,
   );
+  await delay();
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);

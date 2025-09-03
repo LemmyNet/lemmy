@@ -71,6 +71,7 @@ use lemmy_db_schema_file::{
     mod_ban_from_community,
     mod_change_community_visibility,
     mod_feature_post,
+    mod_lock_comment,
     mod_lock_post,
     mod_remove_comment,
     mod_remove_post,
@@ -109,7 +110,8 @@ impl ModlogCombinedViewInternal {
         .or(mod_remove_comment::mod_person_id.eq(person::id))
         .or(admin_remove_community::mod_person_id.eq(person::id))
         .or(mod_remove_post::mod_person_id.eq(person::id))
-        .or(mod_transfer_community::mod_person_id.eq(person::id)),
+        .or(mod_transfer_community::mod_person_id.eq(person::id))
+        .or(mod_lock_comment::mod_person_id.eq(person::id)),
     );
 
     let other_person_join = aliases::person1.on(
@@ -139,7 +141,12 @@ impl ModlogCombinedViewInternal {
             .is_not_null()
             .and(post::creator_id.eq(other_person)),
         )
-        .or(mod_transfer_community::other_person_id.eq(other_person)),
+        .or(mod_transfer_community::other_person_id.eq(other_person))
+        .or(
+          mod_lock_comment::id
+            .is_not_null()
+            .and(comment::creator_id.eq(other_person)),
+        ),
     );
 
     let comment_join = comment::table.on(mod_remove_comment::comment_id.eq(comment::id));
@@ -217,6 +224,7 @@ impl ModlogCombinedViewInternal {
       .left_join(admin_remove_community::table)
       .left_join(mod_remove_post::table)
       .left_join(mod_transfer_community::table)
+      .left_join(mod_lock_comment::table)
       .left_join(moderator_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -249,6 +257,7 @@ impl PaginationCursorBuilder for ModlogCombinedView {
       AdminRemoveCommunity(v) => ('O', v.admin_remove_community.id.0),
       ModRemovePost(v) => ('P', v.mod_remove_post.id.0),
       ModTransferCommunity(v) => ('Q', v.mod_transfer_community.id.0),
+      ModLockComment(v) => ('R', v.mod_lock_comment.id.0),
     };
     PaginationCursor::new_single(prefix, id)
   }
@@ -282,6 +291,7 @@ impl PaginationCursorBuilder for ModlogCombinedView {
       'O' => query.filter(modlog_combined::admin_remove_community_id.eq(id)),
       'P' => query.filter(modlog_combined::mod_remove_post_id.eq(id)),
       'Q' => query.filter(modlog_combined::mod_transfer_community_id.eq(id)),
+      'R' => query.filter(modlog_combined::mod_lock_comment_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
 
@@ -349,6 +359,7 @@ impl ModlogCombinedQuery<'_> {
         ModLockPost => query.filter(modlog_combined::mod_lock_post_id.is_not_null()),
         ModFeaturePost => query.filter(modlog_combined::mod_feature_post_id.is_not_null()),
         ModRemoveComment => query.filter(modlog_combined::mod_remove_comment_id.is_not_null()),
+        ModLockComment => query.filter(modlog_combined::mod_lock_comment_id.is_not_null()),
         AdminRemoveCommunity => {
           query.filter(modlog_combined::admin_remove_community_id.is_not_null())
         }
