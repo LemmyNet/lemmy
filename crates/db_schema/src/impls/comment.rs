@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -20,7 +20,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{insert_into, not},
   expression::SelectableHelper,
   update,
   ExpressionMethods,
@@ -235,6 +235,23 @@ impl Comment {
       Comment::update(pool, self.id, &form).await?;
     }
     Ok(())
+  }
+
+  pub async fn read_ap_ids_for_post(
+    post_id: PostId,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<DbUrl>> {
+    let conn = &mut get_conn(pool).await?;
+    comment::table
+      .filter(comment::post_id.eq(post_id))
+      .filter(not(comment::deleted))
+      .filter(not(comment::removed))
+      .filter(not(comment::federation_pending))
+      .order_by(comment::id)
+      .select(comment::ap_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

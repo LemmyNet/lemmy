@@ -4,6 +4,7 @@ use crate::{
     functions::{
       append_attachments_to_comment,
       check_apub_id_valid_with_strictness,
+      context_url,
       generate_to,
       read_from_string_or_source,
       verify_person_in_community,
@@ -137,6 +138,7 @@ impl Object for ApubComment {
       distinguished: Some(self.distinguished),
       language,
       attachment: vec![],
+      context: Some(context_url(&self.ap_id)),
     };
 
     Ok(note)

@@ -77,7 +77,7 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
+  pub async fn read(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     post::table
       .find(id)
