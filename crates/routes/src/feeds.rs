@@ -171,6 +171,8 @@ async fn get_feed(
     "c" => RequestType::Community,
     "front" => RequestType::Front,
     "notifications" => RequestType::Notifications,
+    // TODO also route inbox to notifications. This should probably be deprecated tho.
+    "inbox" => RequestType::Notifications,
     "modlog" => RequestType::Modlog,
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
