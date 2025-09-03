@@ -1,5 +1,5 @@
 use crate::{
-  diesel::dsl::IntervalDsl,
+  diesel::{dsl::IntervalDsl, PgSortExpressionMethods},
   newtypes::{InstanceId, PersonId},
   source::{
     federation_queue_state::FederationQueueState,
@@ -202,7 +202,7 @@ impl Instance {
       .left_join(federation_allowlist::table)
       .left_join(federation_queue_state::table)
       // Show recently updated instances and those with valid metadata first
-      .order((instance::updated_at.desc(), instance::software.is_null()))
+      .order(instance::updated_at.desc().nulls_last())
       .select((
         Self::as_select(),
         Option::<FederationQueueState>::as_select(),
