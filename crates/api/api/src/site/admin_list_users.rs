@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::{
@@ -10,7 +10,7 @@ use lemmy_db_views_person::PersonView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn admin_list_users(
-  data: Json<AdminListUsers>,
+  data: Query<AdminListUsers>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AdminListUsersResponse>> {
