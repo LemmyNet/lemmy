@@ -247,7 +247,7 @@ impl InCommunity for Page {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
-            let cid = ObjectId::from(cid.clone());
+            let cid = ObjectId::<ApubCommunity>::from(cid.clone());
             if let Ok(c) = cid.dereference(context).await {
               break c;
             }

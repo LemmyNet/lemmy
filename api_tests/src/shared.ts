@@ -57,6 +57,7 @@ import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
 import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
+import { GetCommunityResponse } from "lemmy-js-client/dist/types/GetCommunityResponse";
 import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
 import { CreatePostLike } from "lemmy-js-client/dist/types/CreatePostLike";
 import { CommentResponse } from "lemmy-js-client/dist/types/CommentResponse";
@@ -614,7 +615,7 @@ export async function editCommunity(
 export async function getCommunity(
   api: LemmyHttp,
   id: number,
-): Promise<CommunityResponse> {
+): Promise<GetCommunityResponse> {
   let form: GetCommunity = {
     id,
   };
