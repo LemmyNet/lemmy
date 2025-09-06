@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     community::CommunityActions,
     local_user::LocalUser,
     person::Person,
-    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
+    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActionsCursorData},
     site::Site,
   },
   traits::PaginationCursorBuilder,
@@ -187,7 +187,7 @@ impl PostView {
   pub async fn list_read(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
+    cursor_data: Option<PostActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -222,7 +222,7 @@ impl PostView {
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
+    cursor_data: Option<PostActionsCursorData>,
     page_back: Option<bool>,
     limit: Option<i64>,
     no_limit: Option<bool>,
@@ -419,7 +419,7 @@ impl PostQuery<'_> {
 
     // Filter to show only posts with no comments
     if o.no_comments_only.unwrap_or_default() {
-      query = query.filter(post::comments.eq(0));
+      query = query.filter(post::non_0_comments.is_null());
     };
 
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {

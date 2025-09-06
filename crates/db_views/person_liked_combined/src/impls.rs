@@ -179,8 +179,8 @@ impl PersonLikedCombinedQuery {
     if let Some(like_type) = self.like_type {
       query = match like_type {
         LikeType::All => query,
-        LikeType::LikedOnly => query.filter(person_liked_combined::like_score.eq(1)),
-        LikeType::DislikedOnly => query.filter(person_liked_combined::like_score.eq(-1)),
+        LikeType::LikedOnly => query.filter(person_liked_combined::like_score_is_positive),
+        LikeType::DislikedOnly => query.filter(not(person_liked_combined::like_score_is_positive)),
       }
     }
 

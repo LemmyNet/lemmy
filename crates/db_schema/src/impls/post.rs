@@ -3,6 +3,7 @@ use crate::{
   source::post::{
     Post,
     PostActions,
+    PostActionsCursorData,
     PostHideForm,
     PostInsertForm,
     PostLikeForm,
@@ -352,6 +353,13 @@ impl Likeable for PostActions {
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
+    let form = (
+      post_actions::person_id.eq(form.person_id),
+      post_actions::post_id.eq(form.post_id),
+      post_actions::like_score_is_positive.eq(form.like_score == 1),
+      post_actions::liked_at.eq(form.liked_at),
+    );
+
     insert_into(post_actions::table)
       .values(form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -370,7 +378,7 @@ impl Likeable for PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -384,7 +392,7 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -401,7 +409,7 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score)
+      .set_null(post_actions::like_score_is_positive)
       .set_null(post_actions::liked_at)
       .get_result(conn)
       .await
@@ -481,6 +489,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -513,6 +522,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -534,9 +544,19 @@ impl PostActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+  pub async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActionsCursorData> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, PostId(post_id), PersonId(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      post_actions::table
+        .find((person_id, post_id))
+        .select(PostActionsCursorData::as_select())
+        .first(conn)
+        .await?,
+    )
   }
 
   pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
