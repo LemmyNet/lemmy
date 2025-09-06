@@ -6,8 +6,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_nsfw_allowed,
+    generate_featured_url,
     generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     get_url_blocklist,
     is_admin,
     process_markdown_opt,
@@ -93,6 +95,8 @@ pub async fn create_community(
     private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
+    moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+    featured_url: Some(generate_featured_url(&community_ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(
