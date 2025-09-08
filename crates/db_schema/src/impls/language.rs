@@ -5,15 +5,20 @@ use crate::{
   source::language::Language,
   utils::{get_conn, DbPool},
 };
-use diesel::QueryDsl;
+use diesel::{dsl::count, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::language;
+use lemmy_db_schema_file::schema::{language, post};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Language {
+  /// Returns list of all available languages, with most used languages first
   pub async fn read_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     language::table
+      .left_join(post::table)
+      .group_by(language::id)
+      .order_by(count(post::id).desc())
+      .select(language::all_columns)
       .load(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
