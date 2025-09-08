@@ -28,7 +28,10 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{is_valid_body_field, is_valid_display_name},
+  },
 };
 
 pub async fn update_community(
@@ -42,6 +45,11 @@ pub async fn update_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
+  let title = data.title.as_ref().map(|x| x.trim());
+
+  if let Some(title) = &title {
+    is_valid_display_name(title)?;
+  }
 
   let sidebar = diesel_string_update(
     process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)

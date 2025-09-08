@@ -29,6 +29,7 @@ const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
+const DISPLAY_NAME_MAX_LENGTH: usize = 50;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -70,11 +71,10 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
-  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
+pub fn is_valid_display_name(name: &str) -> LemmyResult<()> {
   let check = !name.starts_with('@')
     && !name.starts_with(INVISIBLE_CHARS)
-    && name.chars().count() <= actor_name_max_length
+    && name.chars().count() <= DISPLAY_NAME_MAX_LENGTH
     && !has_newline(name)
     && has_3_permitted_display_chars(name);
   if !check {
@@ -449,21 +449,14 @@ Line3",
 
   #[test]
   fn test_valid_display_name() {
-    let actor_name_max_length = 20;
-    assert!(is_valid_display_name("hello @there", actor_name_max_length).is_ok());
-    assert!(is_valid_display_name("@hello there", actor_name_max_length).is_err());
-    assert!(is_valid_display_name("\u{200d}hello", actor_name_max_length).is_err());
-    assert!(is_valid_display_name(
-      "\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name",
-      actor_name_max_length
-    )
-    .is_ok());
-    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}", actor_name_max_length).is_err());
+    assert!(is_valid_display_name("hello @there").is_ok());
+    assert!(is_valid_display_name("@hello there").is_err());
+    assert!(is_valid_display_name("\u{200d}hello").is_err());
+    assert!(is_valid_display_name("\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name").is_ok());
+    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}").is_err());
 
     // Make sure zero-space with an @ doesn't work
-    assert!(
-      is_valid_display_name(&format!("{}@my name is", '\u{200b}'), actor_name_max_length).is_err()
-    );
+    assert!(is_valid_display_name(&format!("{}@my name is", '\u{200b}')).is_err());
   }
 
   #[test]

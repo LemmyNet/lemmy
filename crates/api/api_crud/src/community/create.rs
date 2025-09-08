@@ -37,7 +37,12 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{description_length_check, is_valid_actor_name, is_valid_body_field},
+    validation::{
+      description_length_check,
+      is_valid_actor_name,
+      is_valid_body_field,
+      is_valid_display_name,
+    },
   },
 };
 
@@ -59,6 +64,8 @@ pub async fn create_community(
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let title = data.title.trim();
+  is_valid_display_name(title)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(sidebar) = &sidebar {

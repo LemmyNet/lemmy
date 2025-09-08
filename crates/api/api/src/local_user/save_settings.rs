@@ -46,7 +46,7 @@ pub async fn save_user_settings(
       .as_deref(),
   );
 
-  let display_name = diesel_string_update(data.display_name.as_deref());
+  let display_name = diesel_string_update(data.display_name.as_deref().map(str::trim));
   let matrix_user_id = diesel_string_update(data.matrix_user_id.as_deref());
   let email_deref = data.email.as_deref().map(str::to_lowercase);
   let email = diesel_string_update(email_deref.as_deref());
@@ -80,10 +80,7 @@ pub async fn save_user_settings(
   }
 
   if let Some(Some(display_name)) = &display_name {
-    is_valid_display_name(
-      display_name.trim(),
-      site_view.local_site.actor_name_max_length,
-    )?;
+    is_valid_display_name(display_name)?;
   }
 
   if let Some(Some(matrix_user_id)) = &matrix_user_id {
