@@ -295,6 +295,7 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     .opengraph
     .images
     .first()
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|ogo| url.join(&ogo.url).ok());
 
@@ -305,6 +306,8 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     .opengraph
     .videos
     .first()
+    // Sometime sites provide `og:video` tags with empty content
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
 
@@ -671,6 +674,11 @@ mod tests {
       (metadata.image_width, metadata.image_height),
       (Some(400), Some(200))
     );
+
+    // Empty urls shouldn't return anything
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content=''></head><body></body></html>";
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
+    assert_eq!(metadata.image, None);
 
     Ok(())
   }
