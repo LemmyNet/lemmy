@@ -1,5 +1,4 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -18,7 +17,7 @@ use lemmy_db_views_post::{impls::PostQuery, PostView};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   cache_header::cache_1hour,
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   settings::structs::Settings,
   utils::markdown::markdown_to_html,
 };
@@ -54,18 +53,19 @@ impl Params {
   }
 }
 
-enum RequestType {
-  Community,
-  User,
-  Front,
-  Notifications,
-  Modlog,
-}
-
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::scope("/feeds")
-      .route("/{type}/{name}.xml", web::get().to(get_feed))
+      .route("/u/{user_name}.xml", web::get().to(get_feed_user))
+      .route("/c/{community_name}.xml", web::get().to(get_feed_community))
+      .route("/front/{jwt}.xml", web::get().to(get_feed_front))
+      .route("/modlog/{jwt}.xml", web::get().to(get_feed_modlog))
+      .route("/notifications/{jwt}.xml", web::get().to(get_feed_notifs))
+      // Also redirect inbox to notifications. This should probably be deprecated tho.
+      .service(web::redirect(
+        "/inbox/{jwt}.xml",
+        "/notifications/{jwt}.xml",
+      ))
       .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
       .route(
         "/local.xml",
@@ -91,30 +91,26 @@ async fn get_all_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  Ok(
-    get_feed_data(
-      &context,
-      ListingType::All,
-      info.sort_type()?,
-      info.get_limit(),
-    )
-    .await?,
+  get_feed_data(
+    &context,
+    ListingType::All,
+    info.sort_type()?,
+    info.get_limit(),
   )
+  .await
 }
 
 async fn get_local_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  Ok(
-    get_feed_data(
-      &context,
-      ListingType::Local,
-      info.sort_type()?,
-      info.get_limit(),
-    )
-    .await?,
+  get_feed_data(
+    &context,
+    ListingType::Local,
+    info.sort_type()?,
+    info.get_limit(),
   )
+  .await
 }
 
 async fn get_feed_data(
@@ -122,7 +118,7 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: PostSortType,
   limit: i64,
-) -> LemmyResult<HttpResponse> {
+) -> Result<HttpResponse, Error> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&None, &site_view.local_site)?;
@@ -150,64 +146,24 @@ async fn get_feed_data(
     channel.set_description(&site_desc);
   }
 
-  let rss = channel.to_string();
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
+  Ok(channel_to_http_res(channel))
 }
 
-async fn get_feed(
+async fn get_feed_user(
   req: HttpRequest,
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let req_type: String = req.match_info().get("type").unwrap_or("none").parse()?;
-  let param: String = req.match_info().get("name").unwrap_or("none").parse()?;
+  let user_name: String = req
+    .match_info()
+    .get("user_name")
+    .unwrap_or("none")
+    .parse()?;
 
-  let request_type = match req_type.as_str() {
-    "u" => RequestType::User,
-    "c" => RequestType::Community,
-    "front" => RequestType::Front,
-    "notifications" => RequestType::Notifications,
-    // TODO also route inbox to notifications. This should probably be deprecated tho.
-    "inbox" => RequestType::Notifications,
-    "modlog" => RequestType::Modlog,
-    _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
-  };
-
-  let builder = match request_type {
-    RequestType::User => get_feed_user(&context, &info.get_limit(), &param).await,
-    RequestType::Community => {
-      get_feed_community(&context, &info.sort_type()?, &info.get_limit(), &param).await
-    }
-    RequestType::Front => {
-      get_feed_front(&context, &info.sort_type()?, &info.get_limit(), &param).await
-    }
-    RequestType::Notifications => get_feed_notifs(&context, &param).await,
-    RequestType::Modlog => get_feed_modlog(&context, &param).await,
-  }
-  .map_err(ErrorBadRequest)?;
-
-  let rss = builder.to_string();
-
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
-}
-
-async fn get_feed_user(
-  context: &LemmyContext,
-  limit: &i64,
-  user_name: &str,
-) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let person = Person::read_from_name(&mut context.pool(), user_name, false)
+  let person = Person::read_from_name(&mut context.pool(), &user_name, false)
     .await?
-    .ok_or(LemmyErrorType::NotFound)?;
+    .ok_or(ErrorBadRequest("not_found"))?;
 
   check_private_instance(&None, &site_view.local_site)?;
 
@@ -216,7 +172,7 @@ async fn get_feed_user(
     type_: Some(PersonContentType::Posts),
     cursor_data: None,
     page_back: None,
-    limit: (Some(*limit)),
+    limit: (Some(info.get_limit())),
     no_limit: None,
   }
   .list(&mut context.pool(), None, site_view.site.instance_id)
@@ -238,29 +194,34 @@ async fn get_feed_user(
     ..Default::default()
   };
 
-  Ok(channel)
+  Ok(channel_to_http_res(channel))
 }
 
 async fn get_feed_community(
-  context: &LemmyContext,
-  sort_type: &PostSortType,
-  limit: &i64,
-  community_name: &str,
-) -> LemmyResult<Channel> {
+  req: HttpRequest,
+  info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let community_name: String = req
+    .match_info()
+    .get("community_name")
+    .unwrap_or("none")
+    .parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let community = Community::read_from_name(&mut context.pool(), community_name, false)
+  let community = Community::read_from_name(&mut context.pool(), &community_name, false)
     .await?
-    .ok_or(LemmyErrorType::NotFound)?;
+    .ok_or(ErrorBadRequest("not_found"))?;
+
   if !community.visibility.can_view_without_login() {
-    return Err(LemmyErrorType::NotFound.into());
+    return Err(ErrorBadRequest("not_found"));
   }
 
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
-    sort: (Some(*sort_type)),
+    sort: (Some(info.sort_type()?)),
     community_id: (Some(community.id)),
-    limit: (Some(*limit)),
+    limit: (Some(info.get_limit())),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -280,25 +241,25 @@ async fn get_feed_community(
     channel.set_description(markdown_to_html(&community_desc));
   }
 
-  Ok(channel)
+  Ok(channel_to_http_res(channel))
 }
 
 async fn get_feed_front(
-  context: &LemmyContext,
-  sort_type: &PostSortType,
-  limit: &i64,
-  jwt: &str,
-) -> LemmyResult<Channel> {
+  req: HttpRequest,
+  info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
     local_user: (Some(&local_user.local_user)),
-    sort: (Some(*sort_type)),
-    limit: (Some(*limit)),
+    sort: (Some(info.sort_type()?)),
+    limit: (Some(info.get_limit())),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -318,12 +279,17 @@ async fn get_feed_front(
     channel.set_description(markdown_to_html(&site_desc));
   }
 
-  Ok(channel)
+  Ok(channel_to_http_res(channel))
 }
 
-async fn get_feed_notifs(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
+async fn get_feed_notifs(
+  req: HttpRequest,
+  _info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -336,7 +302,7 @@ async fn get_feed_notifs(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(notifications, context)?;
+  let items = create_reply_and_mention_items(notifications, &context)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -350,13 +316,18 @@ async fn get_feed_notifs(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
     channel.set_description(&site_desc);
   }
 
-  Ok(channel)
+  Ok(channel_to_http_res(channel))
 }
 
 /// Gets your ModeratorView modlog
-async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
+async fn get_feed_modlog(
+  req: HttpRequest,
+  _info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(jwt, context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let modlog = ModlogCombinedQuery {
@@ -383,7 +354,7 @@ async fn get_feed_modlog(context: &LemmyContext, jwt: &str) -> LemmyResult<Chann
     channel.set_description(&site_desc);
   }
 
-  Ok(channel)
+  Ok(channel_to_http_res(channel))
 }
 
 fn create_reply_and_mention_items(
@@ -849,4 +820,10 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
   }
 
   Ok(items)
+}
+
+fn channel_to_http_res(channel: Channel) -> HttpResponse {
+  HttpResponse::Ok()
+    .content_type("application/rss+xml")
+    .body(channel.to_string())
 }
