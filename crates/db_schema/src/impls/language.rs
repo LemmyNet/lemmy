@@ -62,7 +62,11 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let all = Language::read_all(pool).await?;
+    let mut all = Language::read_all(pool).await?;
+
+    // Languages are returned in order of popularity, so to make this test work we need to
+    // manually sort them by id.
+    all.sort_by(|a, b| a.id.0.cmp(&b.id.0));
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);
