@@ -124,9 +124,9 @@ async fn get_feed_data(
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
-    listing_type: (Some(listing_type)),
-    sort: (Some(sort_type)),
-    limit: (Some(limit)),
+    listing_type: Some(listing_type),
+    sort: Some(sort_type),
+    limit: Some(limit),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -172,7 +172,7 @@ async fn get_feed_user(
     type_: Some(PersonContentType::Posts),
     cursor_data: None,
     page_back: None,
-    limit: (Some(info.get_limit())),
+    limit: Some(info.get_limit()),
     no_limit: None,
   }
   .list(&mut context.pool(), None, site_view.site.instance_id)
@@ -219,9 +219,9 @@ async fn get_feed_community(
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
-    sort: (Some(info.sort_type()?)),
-    community_id: (Some(community.id)),
-    limit: (Some(info.get_limit())),
+    sort: Some(info.sort_type()?),
+    community_id: Some(community.id),
+    limit: Some(info.get_limit()),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
@@ -256,10 +256,10 @@ async fn get_feed_front(
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let posts = PostQuery {
-    listing_type: (Some(ListingType::Subscribed)),
-    local_user: (Some(&local_user.local_user)),
-    sort: (Some(info.sort_type()?)),
-    limit: (Some(info.get_limit())),
+    listing_type: Some(ListingType::Subscribed),
+    local_user: Some(&local_user.local_user),
+    sort: Some(info.sort_type()?),
+    limit: Some(info.get_limit()),
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
