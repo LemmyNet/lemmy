@@ -151,7 +151,8 @@ pub async fn create_comment(
     let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await;
     if let Ok(notif) = notif {
       let person_id = local_user_view.person.id;
-      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, person_id).await?;
+      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, true, person_id)
+        .await?;
     }
   }
 

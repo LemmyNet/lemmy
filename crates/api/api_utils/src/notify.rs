@@ -456,6 +456,7 @@ mod tests {
     Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
+      true,
       data.timmy.person.id,
     )
     .await?;
@@ -471,6 +472,27 @@ mod tests {
     .list(pool, &data.timmy.person)
     .await?;
     assert_length!(0, timmy_inbox_unread);
+
+    // Make sure that marking as unread works
+    Notification::mark_read_by_id_and_person(
+      pool,
+      timmy_inbox[0].notification.id,
+      false,
+      data.timmy.person.id,
+    )
+    .await?;
+
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
+    assert_eq!(1, timmy_unread_replies);
+
+    let timmy_inbox_unread = NotificationQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?;
+    assert_length!(1, timmy_inbox_unread);
 
     cleanup(data, pool).await?;
 
