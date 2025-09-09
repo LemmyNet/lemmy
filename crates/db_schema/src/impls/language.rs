@@ -8,20 +8,30 @@ use crate::{
 use diesel::{dsl::count, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{language, post};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  build_cache,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  CacheLock,
+};
+use std::sync::LazyLock;
 
 impl Language {
   /// Returns list of all available languages, with most used languages first
   pub async fn read_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    language::table
-      .left_join(post::table)
-      .group_by(language::id)
-      .order_by(count(post::id).desc())
-      .select(language::all_columns)
-      .load(conn)
+    static CACHE: CacheLock<Vec<Language>> = LazyLock::new(build_cache);
+    CACHE
+      .try_get_with((), async move {
+        let conn = &mut get_conn(pool).await?;
+        language::table
+          .left_join(post::table)
+          .group_by(language::id)
+          .order_by(count(post::id).desc())
+          .select(language::all_columns)
+          .load(conn)
+          .await
+      })
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .map_err(|_e| LemmyErrorType::NotFound.into())
   }
 
   pub async fn read_from_id(pool: &mut DbPool<'_>, id_: LanguageId) -> LemmyResult<Self> {
