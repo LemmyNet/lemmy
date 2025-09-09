@@ -3877,7 +3877,6 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "actix-web-prom",
- "anyhow",
  "chrono",
  "clokwerk",
  "diesel",
