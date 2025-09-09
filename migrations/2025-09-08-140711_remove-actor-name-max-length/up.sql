@@ -6,6 +6,7 @@ ALTER TABLE local_site
 UPDATE
     person
 SET
+    ap_id = current_setting('lemmy.protocol_and_hostname') || '/u/' || substring(name FROM 1 FOR 20),
     name = substring(name FROM 1 FOR 20)
 WHERE
     length(name) > 20;
@@ -13,21 +14,22 @@ WHERE
 UPDATE
     person
 SET
-    display_name = substring (display_name FROM 1 FOR 20)
+    display_name = substring(display_name FROM 1 FOR 20)
 WHERE
     length(display_name) > 20;
 
 UPDATE
     community
 SET
+    ap_id = current_setting('lemmy.protocol_and_hostname') || '/c/' || substring(name FROM 1 FOR 20),
     name = substring(name FROM 1 FOR 20)
 WHERE
     length(name) > 20;
 
 UPDATE
-  community
+    community
 SET
-    title = substring (title FROM 1 FOR 20)
+    title = substring(title FROM 1 FOR 20)
 WHERE
     length(title) > 20;
 
