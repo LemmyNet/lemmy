@@ -43,7 +43,6 @@ pub(crate) fn get_dump() -> String {
       "empty",
     ])
     .stderr(Stdio::inherit())
-    .stderr(Stdio::inherit())
     .output()
     .expect("failed to start pg_dump process");
 
