@@ -40,7 +40,7 @@ pub async fn add_mod_to_community(
     .await?;
 
     let mods = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
-    if mods.len() == 1 {
+    if !local_user_view.local_user.admin && mods.len() == 1 {
       Err(LemmyErrorType::CannotLeaveMod)?
     }
   }
