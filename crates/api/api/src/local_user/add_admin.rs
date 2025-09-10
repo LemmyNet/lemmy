@@ -12,7 +12,7 @@ use lemmy_db_views_person::{
   api::{AddAdmin, AddAdminResponse},
   impls::PersonQuery,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
   data: Json<AddAdmin>,
@@ -23,6 +23,11 @@ pub async fn add_admin(
 
   // Make sure user is an admin
   is_admin(&local_user_view)?;
+
+  // Cant use this endpoint on yourself (use `/api/v4/admin/leave` instead)
+  if local_user_view.person.id == data.person_id {
+    Err(LemmyErrorType::CannotLeaveAdmin)?
+  }
 
   // If its an admin removal, also check that you're a higher admin
   if !data.added {
