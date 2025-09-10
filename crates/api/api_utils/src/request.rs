@@ -501,17 +501,23 @@ async fn generate_pictrs_thumbnail(
     encode(image_url.as_str()),
     context.settings().pictrs()?.max_thumbnail_size
   );
-
-  let res = context
+  
+  let res = match context
     .pictrs_client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
-    .await?
-    .error_for_status()?
-    .json::<PictrsResponse>()
-    .await?;
-
+    .await
+    .and_then(|r| r.error_for_status())
+    .and_then(|r| r.json::<PictrsResponse>())
+    .await
+  {
+    Ok(response) => response,
+    Err(e) => {
+      warn!("Failed to generate pictrs thumbnail: {e}. Falling back to original URL.");
+      return Ok(image_url.clone());
+    }
+  };
   let image = res
     .files
     .first()
