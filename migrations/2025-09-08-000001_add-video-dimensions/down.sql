@@ -1,4 +1,4 @@
 ALTER TABLE post
-    DROP COLUMN video_width,
-    DROP COLUMN video_height;
+    DROP COLUMN embed_video_width,
+    DROP COLUMN embed_video_height;
 

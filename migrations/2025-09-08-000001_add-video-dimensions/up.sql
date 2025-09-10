@@ -1,4 +1,4 @@
 ALTER TABLE post
-    ADD COLUMN video_width integer,
-    ADD COLUMN video_height integer;
+    ADD COLUMN embed_video_width integer,
+    ADD COLUMN embed_video_height integer;
 
