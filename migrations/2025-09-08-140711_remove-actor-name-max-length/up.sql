@@ -6,42 +6,20 @@ ALTER TABLE local_site
 UPDATE
     person
 SET
-    ap_id = current_setting('lemmy.protocol_and_hostname') || '/u/' || substring(name FROM 1 FOR 20),
-    name = substring(name FROM 1 FOR 20)
+    display_name = substring(display_name FROM 1 FOR 50)
 WHERE
-    length(name) > 20;
-
-UPDATE
-    person
-SET
-    display_name = substring(display_name FROM 1 FOR 20)
-WHERE
-    length(display_name) > 20;
+    length(display_name) > 50;
 
 UPDATE
     community
 SET
-    ap_id = current_setting('lemmy.protocol_and_hostname') || '/c/' || substring(name FROM 1 FOR 20),
-    name = substring(name FROM 1 FOR 20)
+    title = substring(title FROM 1 FOR 50)
 WHERE
-    length(name) > 20;
-
-UPDATE
-    community
-SET
-    title = substring(title FROM 1 FOR 20)
-WHERE
-    length(title) > 20;
+    length(title) > 50;
 
 -- reduce max length of db columns
 ALTER TABLE person
-    ALTER COLUMN name TYPE varchar(20);
-
-ALTER TABLE person
     ALTER COLUMN display_name TYPE varchar(50);
-
-ALTER TABLE community
-    ALTER COLUMN name TYPE varchar(20);
 
 ALTER TABLE community
     ALTER COLUMN title TYPE varchar(50);

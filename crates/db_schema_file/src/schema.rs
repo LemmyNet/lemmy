@@ -224,7 +224,7 @@ diesel::table! {
 
     community (id) {
         id -> Int4,
-        #[max_length = 20]
+        #[max_length = 255]
         name -> Varchar,
         #[max_length = 50]
         title -> Varchar,
@@ -827,7 +827,7 @@ diesel::table! {
 diesel::table! {
     person (id) {
         id -> Int4,
-        #[max_length = 20]
+        #[max_length = 255]
         name -> Varchar,
         #[max_length = 50]
         display_name -> Nullable<Varchar>,
