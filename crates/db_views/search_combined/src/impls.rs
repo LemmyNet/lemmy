@@ -476,8 +476,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person,
         is_admin: v.item_creator_is_admin,
         person_actions: v.person_actions,
-        creator_banned: v.creator_banned,
-        creator_ban_expires_at: v.creator_ban_expires_at,
+        banned: v.creator_banned,
+        ban_expires_at: v.creator_ban_expires_at,
       }))
     } else {
       None
