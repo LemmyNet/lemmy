@@ -24,6 +24,7 @@ import {
   getMyUser,
   getPersonDetails,
   banPersonFromSite,
+  waitForPost,
 } from "./shared";
 import {
   EditSite,
@@ -115,9 +116,7 @@ test("Delete user", async () => {
   expect((await getPost(alpha, localPost.id)).post_view.post.deleted).toBe(
     true,
   );
-  expect((await getPost(alpha, remotePost.id)).post_view.post.deleted).toBe(
-    true,
-  );
+  await waitForPost(alpha, remotePost, p => p?.post.deleted == true);
   expect(
     (await getComments(alpha, localComment.post_id)).comments[0].comment
       .deleted,
