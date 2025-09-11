@@ -65,16 +65,16 @@ pub struct LocalUser {
   /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: bool,
-  /// Whether a user can send / receive private messages
-  pub enable_private_messages: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
-  pub default_comment_sort_type: CommentSortType,
-  /// Whether to automatically mark fetched posts as read.
-  pub auto_mark_fetched_posts_as_read: bool,
   /// The last time a donation request was shown to this user. If this is more than a year ago,
   /// a new notification request should be shown.
   pub last_donation_notification_at: DateTime<Utc>,
+  /// Whether a user can send / receive private messages
+  pub enable_private_messages: bool,
+  pub default_comment_sort_type: CommentSortType,
+  /// Whether to automatically mark fetched posts as read.
+  pub auto_mark_fetched_posts_as_read: bool,
   /// Whether to hide posts containing images/videos
   pub hide_media: bool,
   /// A default time range limit to apply to post sorts, in seconds.
@@ -136,15 +136,15 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub enable_animated_images: Option<bool>,
   #[new(default)]
-  pub enable_private_messages: Option<bool>,
-  #[new(default)]
   pub collapse_bot_comments: Option<bool>,
+  #[new(default)]
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub enable_private_messages: Option<bool>,
   #[new(default)]
   pub default_comment_sort_type: Option<CommentSortType>,
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  #[new(default)]
-  pub last_donation_notification_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub hide_media: Option<bool>,
   #[new(default)]
@@ -187,11 +187,11 @@ pub struct LocalUserUpdateForm {
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
-  pub enable_private_messages: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub last_donation_notification_at: Option<DateTime<Utc>>,
+  pub enable_private_messages: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  pub last_donation_notification_at: Option<DateTime<Utc>>,
   pub hide_media: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub show_score: Option<bool>,
