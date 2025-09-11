@@ -16,13 +16,13 @@ enum CommunityTagType {
 
 /// A tag that a community owns, that is added to a post.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CommunityTag {
   #[serde(rename = "type")]
   kind: CommunityTagType,
   pub id: Url,
-  pub name: String,
-  /// custom field
-  pub display_name: Option<String>,
+  pub name: Option<String>,
+  pub preferred_username: String,
   pub content: Option<String>,
 }
 
@@ -31,8 +31,8 @@ impl CommunityTag {
     CommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
-      name: tag.name,
-      display_name: tag.display_name,
+      name: tag.display_name,
+      preferred_username: tag.name,
       content: tag.description,
     }
   }
@@ -40,8 +40,8 @@ impl CommunityTag {
   pub fn to_insert_form(&self, community_id: CommunityId) -> TagInsertForm {
     TagInsertForm {
       ap_id: self.id.clone().into(),
-      name: self.name.clone(),
-      display_name: self.display_name.clone(),
+      name: self.preferred_username.clone(),
+      display_name: self.name.clone(),
       description: self.content.clone(),
       community_id,
       deleted: Some(false),
