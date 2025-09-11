@@ -39,6 +39,7 @@ pub async fn add_mod_to_community(
     )
     .await?;
 
+    // Dont allow the last community mod to remove himself
     let mods = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
     if !local_user_view.local_user.admin && mods.len() == 1 {
       Err(LemmyErrorType::CannotLeaveMod)?

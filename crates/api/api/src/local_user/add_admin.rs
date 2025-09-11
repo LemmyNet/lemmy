@@ -24,15 +24,25 @@ pub async fn add_admin(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  // Cant use this endpoint on yourself (use `/api/v4/admin/leave` instead)
-  if local_user_view.person.id == data.person_id {
-    Err(LemmyErrorType::CannotLeaveAdmin)?
-  }
-
   // If its an admin removal, also check that you're a higher admin
   if !data.added {
     LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id])
       .await?;
+
+    // Dont allow removing the last admin
+    let admins = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(
+      None,
+      local_user_view.person.instance_id,
+      &mut context.pool(),
+    )
+    .await?;
+    if admins.len() == 1 {
+      Err(LemmyErrorType::CannotLeaveAdmin)?
+    }
   }
 
   // Make sure that the person_id added is local
