@@ -250,6 +250,8 @@ pub async fn generate_post_link_metadata(
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
+    embed_video_width: Some(metadata.opengraph_data.video_width.map(i32::from)),
+    embed_video_height: Some(metadata.opengraph_data.video_height.map(i32::from)),
     thumbnail_url: Some(thumbnail_url),
     url_content_type: Some(metadata.content_type),
     ..Default::default()

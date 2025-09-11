@@ -943,6 +943,8 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        embed_video_width -> Nullable<Int4>,
+        embed_video_height -> Nullable<Int4>,
     }
 }
 

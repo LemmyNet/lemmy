@@ -672,6 +672,8 @@ mod tests {
       embed_title: None,
       embed_description: None,
       embed_video_url: None,
+      embed_video_width: None,
+      embed_video_height: None,
       thumbnail_url: None,
       ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))?.into(),
       local: true,
