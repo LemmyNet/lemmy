@@ -240,17 +240,16 @@ steps:
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     settings:
-      repo: |
-        dessalines/lemmy
-        ghcr.io/lemmynet/lemmy
       dockerfile: docker/Dockerfile
       logins:
         - registry: https://index.docker.io/v1/
+          repo: dessalines/lemmy
           username:
             from_secret: docker_username
           password:
             from_secret: docker_password
         - registry: https://ghcr.io
+          repo: lemmynet/lemmy
           username:
             from_secret: github_username
           password:
