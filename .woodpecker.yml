@@ -258,6 +258,7 @@ steps:
       build_args:
         RUST_RELEASE_MODE: release
       tag: dev
+      auto_tag: true
     when:
       - event: tag
 
