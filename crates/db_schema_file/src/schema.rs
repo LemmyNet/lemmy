@@ -226,7 +226,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         title -> Varchar,
         sidebar -> Nullable<Text>,
         removed -> Bool,
@@ -459,7 +459,6 @@ diesel::table! {
         legal_information -> Nullable<Text>,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
-        actor_name_max_length -> Int4,
         federation_enabled -> Bool,
         captcha_enabled -> Bool,
         #[max_length = 255]
@@ -830,7 +829,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
         published_at -> Timestamptz,

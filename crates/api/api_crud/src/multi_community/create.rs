@@ -21,7 +21,7 @@ pub async fn create_multi_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  is_valid_display_name(&data.name, site_view.local_site.actor_name_max_length)?;
+  is_valid_display_name(&data.name)?;
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
