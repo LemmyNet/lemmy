@@ -377,3 +377,12 @@ impl ModActionNotify for ModLockPost {
     }
   }
 }
+
+impl ModActionNotify for ModLockComment {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_lock_comment_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
+    }
+  }
+}
