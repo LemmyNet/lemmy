@@ -55,7 +55,7 @@ use {
 pub struct AdminAllowInstanceParams {
   pub instance: String,
   pub allow: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -64,7 +64,7 @@ pub struct AdminAllowInstanceParams {
 pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
-  pub reason: Option<String>,
+  pub reason: String,
   pub expires_at: Option<DateTime<Utc>>,
 }
 

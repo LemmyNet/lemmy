@@ -178,7 +178,7 @@ mod tests {
       john.id,
       sara.id,
       true,
-      &Some("a remove reason".to_string()),
+      "a remove reason",
       &context,
     )
     .await?;
@@ -255,7 +255,7 @@ mod tests {
       john.id,
       sara.id,
       false,
-      &Some("a restore reason".to_string()),
+      "a restore reason",
       &context,
     )
     .await?;

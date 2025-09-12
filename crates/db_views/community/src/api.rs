@@ -49,7 +49,7 @@ pub struct BanFromCommunity {
   /// Optionally remove or restore all their data. Useful for new troll accounts.
   /// If ban is true, then this means remove. If ban is false, it means restore.
   pub remove_or_restore_data: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
@@ -210,7 +210,7 @@ pub struct GetRandomCommunity {
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -248,7 +248,7 @@ pub struct ListCommunitiesResponse {
 /// Purges a community from the database. This will delete all content attached to that community.
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -259,7 +259,7 @@ pub struct PurgeCommunity {
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
