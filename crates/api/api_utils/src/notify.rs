@@ -275,12 +275,6 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-// TODO: call directly from each api endpoint and federation handler
-/*
-remaining:
-- mod_lock_post_id
-- mod_lock_comment_id
-*/
 pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
 where
   T: ModActionNotify + Send + 'static,

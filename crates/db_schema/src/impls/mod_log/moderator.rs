@@ -368,3 +368,12 @@ impl ModActionNotify for ModBanFromCommunity {
     }
   }
 }
+
+impl ModActionNotify for ModLockPost {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_lock_post_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
+    }
+  }
+}

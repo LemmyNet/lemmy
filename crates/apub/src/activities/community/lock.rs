@@ -14,7 +14,7 @@ use activitypub_federation::{
   kinds::activity::UndoType,
   traits::Activity,
 };
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, PostOrComment},
   utils::{
@@ -75,7 +75,8 @@ impl Activity for LockPageOrNote {
           locked: Some(locked),
           reason,
         };
-        ModLockPost::create(&mut context.pool(), &form).await?;
+        let action = ModLockPost::create(&mut context.pool(), &form).await?;
+        notify_mod_action(action, post.creator_id, &context);
       }
       PostOrComment::Right(comment) => {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
@@ -87,7 +88,8 @@ impl Activity for LockPageOrNote {
           locked: Some(locked),
           reason,
         };
-        ModLockComment::create(&mut context.pool(), &form).await?;
+        let action = ModLockComment::create(&mut context.pool(), &form).await?;
+        notify_mod_action(action, comment.creator_id, &context);
       }
     }
 
