@@ -219,7 +219,7 @@ pub(crate) async fn get_apub_community_tag_http(
     .await?
     .into_iter()
     .map(CommunityTag::to_json)
-    .find(|t| t.name == info.tag_name)
+    .find(|t| t.preferred_username == info.tag_name)
     .ok_or(LemmyErrorType::NotFound)?;
 
   Ok(create_http_response(tag, &FEDERATION_CONTEXT)?)

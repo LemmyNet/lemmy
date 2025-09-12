@@ -32,7 +32,7 @@
     {
       "type": "CommunityPostTag",
       "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
-      "name": "news"
+      "preferredUsername": "news"
     }
   ],
   "context": "https://enterprise.lemmy.ml/post/55143/context",
