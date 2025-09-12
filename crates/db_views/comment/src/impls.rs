@@ -26,17 +26,19 @@ use lemmy_db_schema::{
     now,
     paginate,
     queries::{
-      creator_community_actions_join,
-      creator_community_instance_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      filter_blocked,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_instance_actions_community_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      suggested_communities,
+      filters::{filter_blocked, filter_suggested_communities},
+      joins::{
+        creator_community_actions_join,
+        creator_community_instance_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        my_comment_actions_join,
+        my_community_actions_join,
+        my_instance_communities_actions_join,
+        my_instance_persons_actions_join_1,
+        my_local_user_admin_join,
+        my_person_actions_join,
+      },
     },
     seconds_to_pg_interval,
     DbPool,
@@ -64,7 +66,7 @@ impl PaginationCursorBuilder for CommentView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     Comment::read(pool, CommentId(id)).await
   }
 }
@@ -78,8 +80,10 @@ impl CommentView {
       my_community_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
     let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_actions_community_join: my_instance_actions_community_join =
-      my_instance_actions_community_join(my_person_id);
+    let my_instance_communities_actions_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(my_person_id);
+    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+      my_instance_persons_actions_join_1(my_person_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
@@ -88,15 +92,16 @@ impl CommentView {
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community_join)
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
+      .left_join(creator_community_actions_join())
+      .left_join(creator_local_instance_actions_join)
       .left_join(my_community_actions_join)
       .left_join(my_comment_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_local_user_admin_join)
-      .left_join(my_instance_actions_community_join)
-      .left_join(creator_home_instance_actions_join())
-      .left_join(creator_community_instance_actions_join())
-      .left_join(creator_local_instance_actions_join)
-      .left_join(creator_community_actions_join())
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
   }
 
   pub async fn read(
@@ -138,7 +143,6 @@ impl CommentView {
       creator: self.creator,
       comment_actions: self.comment_actions,
       person_actions: self.person_actions,
-      instance_actions: self.instance_actions,
       creator_is_admin: self.creator_is_admin,
       can_mod: self.can_mod,
       creator_banned: self.creator_banned,
@@ -199,7 +203,7 @@ impl CommentQuery<'_> {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
-      ListingType::Suggested => query.filter(suggested_communities()),
+      ListingType::Suggested => query.filter(filter_suggested_communities()),
     };
 
     if !o.local_user.show_bot_accounts() {
@@ -460,6 +464,7 @@ mod tests {
       local_user: inserted_timmy_local_user.clone(),
       person: inserted_timmy_person.clone(),
       banned: false,
+      ban_expires_at: None,
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;

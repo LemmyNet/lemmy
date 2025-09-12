@@ -67,7 +67,7 @@ impl LocalUser {
       Err(Error::QueryBuilderError(_)) => Ok(0),
       other => other,
     }
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> LemmyResult<usize> {
@@ -90,7 +90,7 @@ impl LocalUser {
       .set((local_user::password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
@@ -99,7 +99,7 @@ impl LocalUser {
       .set(local_user::email_verified.eq(true))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn set_all_users_registration_applications_accepted(
@@ -110,7 +110,7 @@ impl LocalUser {
       .set(local_user::accepted_application.eq(true))
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn delete_old_denied_local_users(pool: &mut DbPool<'_>) -> LemmyResult<usize> {
@@ -150,7 +150,7 @@ impl LocalUser {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
+    .ok_or(LemmyErrorType::EmailAlreadyTaken.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView
@@ -211,8 +211,16 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
-    let blocked_instances = instance_actions::table
-      .filter(instance_actions::blocked_at.is_not_null())
+    let blocked_instances_communities = instance_actions::table
+      .filter(instance_actions::blocked_communities_at.is_not_null())
+      .filter(instance_actions::person_id.eq(person_id_))
+      .inner_join(instance::table)
+      .select(instance::domain)
+      .get_results(conn)
+      .await?;
+
+    let blocked_instances_persons = instance_actions::table
+      .filter(instance_actions::blocked_persons_at.is_not_null())
       .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
@@ -227,7 +235,8 @@ impl LocalUser {
       saved_comments,
       blocked_communities,
       blocked_users,
-      blocked_instances,
+      blocked_instances_communities,
+      blocked_instances_persons,
     })
   }
 
@@ -382,7 +391,8 @@ pub struct UserBackupLists {
   pub saved_comments: Vec<DbUrl>,
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
-  pub blocked_instances: Vec<String>,
+  pub blocked_instances_communities: Vec<String>,
+  pub blocked_instances_persons: Vec<String>,
 }
 
 #[cfg(test)]

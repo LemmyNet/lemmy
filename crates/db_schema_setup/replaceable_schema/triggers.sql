@@ -574,6 +574,7 @@ CALL r.create_person_liked_combined_trigger ('comment');
 -- mod_remove_community
 -- mod_remove_post
 -- mod_transfer_community
+-- mod_lock_comment
 CREATE PROCEDURE r.create_modlog_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
@@ -602,17 +603,18 @@ CALL r.create_modlog_combined_trigger ('admin_purge_comment');
 CALL r.create_modlog_combined_trigger ('admin_purge_community');
 CALL r.create_modlog_combined_trigger ('admin_purge_person');
 CALL r.create_modlog_combined_trigger ('admin_purge_post');
-CALL r.create_modlog_combined_trigger ('mod_add');
-CALL r.create_modlog_combined_trigger ('mod_add_community');
-CALL r.create_modlog_combined_trigger ('mod_ban');
+CALL r.create_modlog_combined_trigger ('admin_add');
+CALL r.create_modlog_combined_trigger ('mod_add_to_community');
+CALL r.create_modlog_combined_trigger ('admin_ban');
 CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
 CALL r.create_modlog_combined_trigger ('mod_change_community_visibility');
 CALL r.create_modlog_combined_trigger ('mod_lock_post');
 CALL r.create_modlog_combined_trigger ('mod_remove_comment');
-CALL r.create_modlog_combined_trigger ('mod_remove_community');
+CALL r.create_modlog_combined_trigger ('admin_remove_community');
 CALL r.create_modlog_combined_trigger ('mod_remove_post');
 CALL r.create_modlog_combined_trigger ('mod_transfer_community');
+CALL r.create_modlog_combined_trigger ('mod_lock_comment');
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()
     RETURNS TRIGGER

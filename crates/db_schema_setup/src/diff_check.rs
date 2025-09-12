@@ -5,6 +5,7 @@ use lemmy_utils::settings::SETTINGS;
 use pathfinding::matrix::Matrix;
 use std::{
   borrow::Cow,
+  io::Write,
   process::{Command, Stdio},
 };
 
@@ -36,13 +37,21 @@ pub(crate) fn get_dump() -> String {
       "--no-table-access-method",
       "--no-tablespaces",
       "--no-large-objects",
+      // Use a fake restrict key, rather than an auto-generated one.
+      // See https://github.com/sqlc-dev/sqlc/issues/4065
+      "--restrict-key",
+      "empty",
     ])
     .stderr(Stdio::inherit())
     .output()
     .expect("failed to start pg_dump process");
 
-  // TODO: use exit_ok method when it's stable
-  assert!(output.status.success());
+  if !output.status.success() {
+    std::io::stdout()
+      .write_all(&output.stdout)
+      .expect("write to stdout");
+    std::process::exit(1);
+  }
 
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }

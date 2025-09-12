@@ -83,6 +83,17 @@ pub struct EditPost {
   pub tags: Option<Vec<TagId>>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Mods can change some metadata for posts
+pub struct ModEditPost {
+  pub post_id: PostId,
+  pub nsfw: Option<bool>,
+  pub tags: Option<Vec<TagId>>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -257,7 +268,11 @@ pub struct OpenGraphData {
   pub title: Option<String>,
   pub description: Option<String>,
   pub image: Option<DbUrl>,
+  pub image_width: Option<u16>,
+  pub image_height: Option<u16>,
   pub embed_video_url: Option<DbUrl>,
+  pub video_width: Option<u16>,
+  pub video_height: Option<u16>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

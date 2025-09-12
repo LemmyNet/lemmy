@@ -4,6 +4,7 @@ use lemmy_api::{
     distinguish::distinguish_comment,
     like::like_comment,
     list_comment_likes::list_comment_likes,
+    lock::lock_comment,
     save::save_comment,
   },
   community::{
@@ -52,7 +53,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
-    user_block_instance::user_block_instance,
+    user_block_instance::{user_block_instance_communities, user_block_instance_persons},
     validate_auth::validate_auth,
     verify_email::verify_email,
   },
@@ -65,6 +66,7 @@ use lemmy_api::{
     lock::lock_post,
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
+    mod_update::mod_update_post,
     save::save_post,
     update_notifications::update_post_notifications,
   },
@@ -80,7 +82,6 @@ use lemmy_api::{
     admin_block_instance::admin_block_instance,
     admin_list_users::admin_list_users,
     federated_instances::get_federated_instances,
-    leave_admin::leave_admin,
     list_all_media::list_all_media,
     mod_log::get_mod_log,
     purge::{
@@ -295,7 +296,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/notifications", post().to(update_post_notifications)),
+          .route("/notifications", post().to(update_post_notifications))
+          .route("/mod_update", put().to(mod_update_post)),
       )
       // Comment
       .service(
@@ -315,6 +317,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
+          .route("/lock", post().to(lock_comment))
           .route("/list", get().to(list_comments))
           .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
@@ -380,7 +383,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/block")
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
-              .route("/instance", post().to(user_block_instance)),
+              .route(
+                "/instance/communities",
+                post().to(user_block_instance_communities),
+              )
+              .route("/instance/persons", post().to(user_block_instance_persons)),
           )
           .route("/saved", get().to(list_person_saved))
           .route("/read", get().to(list_person_read))
@@ -443,7 +450,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/ban", post().to(ban_from_site))
           .route("/users", get().to(admin_list_users))
-          .route("/leave", post().to(leave_admin))
           .service(
             scope("/instance")
               .route("/block", post().to(admin_block_instance))

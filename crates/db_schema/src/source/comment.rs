@@ -49,9 +49,9 @@ pub struct Comment {
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
+  pub score: i32,
+  pub upvotes: i32,
+  pub downvotes: i32,
   /// The total number of children in this comment branch.
   pub child_count: i32,
   #[serde(skip)]
@@ -63,6 +63,8 @@ pub struct Comment {
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  /// Whether the comment is locked.
+  pub locked: bool,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -93,6 +95,8 @@ pub struct CommentInsertForm {
   pub language_id: Option<LanguageId>,
   #[new(default)]
   pub federation_pending: Option<bool>,
+  #[new(default)]
+  pub locked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -109,6 +113,7 @@ pub struct CommentUpdateForm {
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
   pub federation_pending: Option<bool>,
+  pub locked: Option<bool>,
 }
 
 #[skip_serializing_none]

@@ -47,9 +47,7 @@ pub async fn get_post(
   };
 
   // Check to see if the person is a mod or admin, to show deleted / removed
-  let community_id = Post::read_xx(&mut context.pool(), post_id)
-    .await?
-    .community_id;
+  let community_id = Post::read(&mut context.pool(), post_id).await?.community_id;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),

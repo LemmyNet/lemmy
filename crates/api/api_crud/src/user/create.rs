@@ -167,6 +167,7 @@ pub async fn register(
           person,
           local_user,
           banned: false,
+          ban_expires_at: None,
         })
       }
       .scope_boxed()
@@ -335,7 +336,7 @@ pub async fn authenticate_with_oauth(
 
         user_view.local_user.clone()
       } else {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
+        return Err(LemmyErrorType::EmailAlreadyTaken)?;
       }
     } else {
       // No user was found by email => Register as new user
@@ -410,6 +411,7 @@ pub async fn authenticate_with_oauth(
               person,
               local_user,
               banned: false,
+              ban_expires_at: None,
             })
           }
           .scope_boxed()

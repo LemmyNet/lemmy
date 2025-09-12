@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     get_conn,
     now,
     paginate,
-    queries::creator_home_instance_actions_join,
+    queries::joins::creator_home_instance_actions_join,
     DbPool,
   },
 };
@@ -225,7 +225,7 @@ impl PaginationCursorBuilder for LocalUserView {
     cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
-    let id = cursor.first_id()?;
+    let [(_, id)] = cursor.prefixes_and_ids()?;
     Person::read(pool, PersonId(id)).await
   }
 }

@@ -25,12 +25,44 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", cursor_keys_module(name = search_combined_keys))]
 /// A combined table for a search (posts, comments, communities, persons)
 pub struct SearchCombined {
-  pub id: SearchCombinedId,
   pub published_at: DateTime<Utc>,
-  pub score: i64,
+  pub score: i32,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub community_id: Option<CommunityId>,
   pub person_id: Option<PersonId>,
+  pub id: SearchCombinedId,
   pub multi_community_id: Option<MultiCommunityId>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
+pub struct SearchCombinedPostInsertForm {
+  pub published_at: DateTime<Utc>,
+  pub score: i32,
+  pub post_id: PostId,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
+pub struct SearchCombinedCommentInsertForm {
+  pub published_at: DateTime<Utc>,
+  pub score: i32,
+  pub comment_id: CommentId,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
+pub struct SearchCombinedCommunityInsertForm {
+  pub published_at: DateTime<Utc>,
+  pub score: i32,
+  pub community_id: CommunityId,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = search_combined))]
+pub struct SearchCombinedPersonInsertForm {
+  pub published_at: DateTime<Utc>,
+  pub score: i32,
+  pub person_id: PersonId,
 }

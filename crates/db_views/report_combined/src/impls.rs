@@ -41,7 +41,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_fetch,
     paginate,
-    queries::{
+    queries::joins::{
       creator_community_instance_actions_join,
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
@@ -311,11 +311,7 @@ impl PaginationCursorBuilder for ReportCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let pids = cursor.prefixes_and_ids();
-    let (prefix, id) = pids
-      .as_slice()
-      .first()
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let [(prefix, id)] = cursor.prefixes_and_ids()?;
 
     let mut query = report_combined::table
       .select(Self::CursorData::as_select())
@@ -626,6 +622,7 @@ mod tests {
       local_user: timmy_local_user,
       person: inserted_timmy.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     // Make an admin, to be able to see private message reports.
@@ -637,6 +634,7 @@ mod tests {
       local_user: admin_local_user,
       person: inserted_admin.clone(),
       banned: false,
+      ban_expires_at: None,
     };
 
     let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");

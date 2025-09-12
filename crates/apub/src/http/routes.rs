@@ -1,17 +1,18 @@
 use crate::http::{
-  comment::get_apub_comment,
+  comment::{get_apub_comment, get_apub_comment_context},
   community::{
     get_apub_community_featured,
     get_apub_community_followers,
     get_apub_community_http,
     get_apub_community_moderators,
     get_apub_community_outbox,
+    get_apub_community_tag_http,
     get_apub_person_multi_community,
     get_apub_person_multi_community_follows,
   },
   get_activity,
   person::{get_apub_person_http, get_apub_person_outbox},
-  post::get_apub_post,
+  post::{get_apub_post, get_apub_post_context},
   shared_inbox,
   site::{get_apub_site_http, get_apub_site_outbox},
 };
@@ -45,6 +46,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       "/c/{community_name}/moderators",
       web::get().to(get_apub_community_moderators),
     )
+    .route(
+      "/c/{community_name}/tag/{tag_name}",
+      web::get().to(get_apub_community_tag_http),
+    )
     .route("/u/{user_name}", web::get().to(get_apub_person_http))
     .route(
       "/u/{user_name}/outbox",
@@ -59,7 +64,15 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       web::get().to(get_apub_person_multi_community_follows),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))
+    .route(
+      "/post/{post_id}/context",
+      web::get().to(get_apub_post_context),
+    )
     .route("/comment/{comment_id}", web::get().to(get_apub_comment))
+    .route(
+      "/comment/{comment_id}/context",
+      web::get().to(get_apub_comment_context),
+    )
     .route("/activities/{type_}/{id}", web::get().to(get_activity));
 
   cfg.service(

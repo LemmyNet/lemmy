@@ -102,7 +102,10 @@ impl NotifyData {
     let pool = &mut context.pool();
     // TODO: this needs too many queries for each user
     PersonActions::read_block(pool, potential_blocker_id, self.post.creator_id).await?;
-    InstanceActions::read_block(pool, potential_blocker_id, self.community.instance_id).await?;
+    InstanceActions::read_communities_block(pool, potential_blocker_id, self.community.instance_id)
+      .await?;
+    InstanceActions::read_persons_block(pool, potential_blocker_id, self.creator.instance_id)
+      .await?;
     CommunityActions::read_block(pool, potential_blocker_id, self.post.community_id).await?;
     let post_notifications = PostActions::read(pool, self.post.id, potential_blocker_id)
       .await
@@ -275,7 +278,6 @@ pub async fn notify_private_message(
 /*
 TODO
 
-The following actions need to notify (both from api and federation):
 ModRemoveComment
 ModRemoveCommunity -> actually an admin action, needs rename. should notify all community mods?
 ModRemovePost
@@ -319,6 +321,7 @@ where
     // TODO: Send email
     // TODO: How to handle email text, do we add a separate translation string for each mod action?
     //       Or a single text with `mod_action_type` mentioned in the subject/body.
+    //       https://github.com/LemmyNet/lemmy-ui/issues/31
     Ok(())
   })
 }
@@ -335,7 +338,7 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
-      instance::{Instance, InstanceActions, InstanceBlockForm},
+      instance::{Instance, InstanceActions, InstancePersonsBlockForm},
       notification::{Notification, NotificationInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
@@ -504,6 +507,7 @@ mod tests {
     Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
+      true,
       data.timmy.person.id,
     )
     .await?;
@@ -519,6 +523,27 @@ mod tests {
     .list(pool, &data.timmy.person)
     .await?;
     assert_length!(0, timmy_inbox_unread);
+
+    // Make sure that marking as unread works
+    Notification::mark_read_by_id_and_person(
+      pool,
+      timmy_inbox[0].notification.id,
+      false,
+      data.timmy.person.id,
+    )
+    .await?;
+
+    let timmy_unread_replies =
+      NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
+    assert_eq!(1, timmy_unread_replies);
+
+    let timmy_inbox_unread = NotificationQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?;
+    assert_length!(1, timmy_inbox_unread);
 
     cleanup(data, pool).await?;
 
@@ -767,16 +792,19 @@ mod tests {
 
     // Make sure instance_blocks are working
     let timmy_blocks_instance_form =
-      InstanceBlockForm::new(data.timmy.person.id, data.sara.person.instance_id);
+      InstancePersonsBlockForm::new(data.timmy.person.id, data.sara.person.instance_id);
 
-    let inserted_instance_block = InstanceActions::block(pool, &timmy_blocks_instance_form).await?;
+    let inserted_instance_block =
+      InstanceActions::block_persons(pool, &timmy_blocks_instance_form).await?;
 
-    assert_eq!(data.timmy.person.id, inserted_instance_block.person_id);
     assert_eq!(
-      data.sara.person.instance_id,
-      inserted_instance_block.instance_id
+      (data.timmy.person.id, data.sara.person.instance_id, true),
+      (
+        inserted_instance_block.person_id,
+        inserted_instance_block.instance_id,
+        inserted_instance_block.blocked_persons_at.is_some()
+      )
     );
-    assert!(inserted_instance_block.blocked_at.is_some());
 
     let timmy_messages: Vec<_> = NotificationQuery {
       unread_only: Some(true),

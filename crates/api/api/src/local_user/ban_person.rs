@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModBan, ModBanForm},
+    mod_log::admin::{AdminBan, AdminBanForm},
   },
   traits::{Bannable, Crud},
 };
@@ -65,7 +65,7 @@ pub async fn ban_from_site(
   };
 
   // Mod tables
-  let form = ModBanForm {
+  let form = AdminBanForm {
     mod_person_id: my_person_id,
     other_person_id: data.person_id,
     reason: data.reason.clone(),
@@ -74,7 +74,7 @@ pub async fn ban_from_site(
     instance_id: local_user_view.person.instance_id,
   };
 
-  ModBan::create(&mut context.pool(), &form).await?;
+  AdminBan::create(&mut context.pool(), &form).await?;
 
   let person_view = PersonView::read(
     &mut context.pool(),

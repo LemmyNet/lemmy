@@ -49,7 +49,6 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   VERSION,
 };
-use mimalloc::MiMalloc;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
@@ -57,8 +56,9 @@ use std::{ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+#[cfg_attr(target_arch = "x86_64", global_allocator)]
+#[cfg(target_arch = "x86_64")]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
@@ -155,7 +155,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url())?;
+    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
 
     #[cfg(debug_assertions)]
     if all && subcommand == MigrationSubcommand::Run {

@@ -1,5 +1,6 @@
 use crate::{
   api::{
+    fetch_limit_with_default,
     listing_type_with_default,
     post_sort_type_with_default,
     post_time_range_seconds_with_default,
@@ -30,10 +31,10 @@ pub async fn list_posts(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostsResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = &site_view.local_site;
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
     Some(
       resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
@@ -55,20 +56,17 @@ pub async fn list_posts(
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user,
-    &site_view.local_site,
+    local_site,
     community_id,
   ));
 
   let sort = Some(post_sort_type_with_default(
-    data.sort,
-    local_user,
-    &site_view.local_site,
+    data.sort, local_user, local_site,
   ));
-  let time_range_seconds = post_time_range_seconds_with_default(
-    data.time_range_seconds,
-    local_user,
-    &site_view.local_site,
-  );
+  let time_range_seconds =
+    post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
+  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
+
   let keyword_blocks = if let Some(local_user) = local_user {
     Some(LocalUserKeywordBlock::read(&mut context.pool(), local_user.id).await?)
   } else {

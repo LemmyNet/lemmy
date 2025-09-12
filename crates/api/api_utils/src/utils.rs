@@ -8,7 +8,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::{PostTag, Tag},
   },
   traits::{Crud, Likeable},
   utils::DbPool,
@@ -39,7 +40,6 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
 use lemmy_db_views_site::{
   api::{FederatedInstances, InstanceWithFederationState},
   SiteView,
@@ -60,7 +60,7 @@ use lemmy_utils::{
 };
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -72,15 +72,15 @@ pub async fn check_is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person_id: PersonId,
   community_id: CommunityId,
-  local_instance_id: InstanceId,
 ) -> LemmyResult<()> {
-  let is_mod =
-    CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
-  if is_mod.is_ok()
-    || PersonView::read(pool, person_id, None, local_instance_id, false)
-      .await
-      .is_ok_and(|t| t.is_admin)
-  {
+  let is_mod = CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id)
+    .await
+    .is_ok();
+  let is_admin = LocalUserView::read_person(pool, person_id)
+    .await
+    .is_ok_and(|t| t.local_user.admin);
+
+  if is_mod || is_admin {
     Ok(())
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
@@ -91,14 +91,15 @@ pub async fn check_is_mod_or_admin(
 pub(crate) async fn check_is_mod_of_any_or_admin(
   pool: &mut DbPool<'_>,
   person_id: PersonId,
-  local_instance_id: InstanceId,
 ) -> LemmyResult<()> {
-  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
-  if is_mod_of_any.is_ok()
-    || PersonView::read(pool, person_id, None, local_instance_id, false)
-      .await
-      .is_ok_and(|t| t.is_admin)
-  {
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id)
+    .await
+    .is_ok();
+  let is_admin = LocalUserView::read_person(pool, person_id)
+    .await
+    .is_ok_and(|t| t.local_user.admin);
+
+  if is_mod_of_any || is_admin {
     Ok(())
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
@@ -111,13 +112,7 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
-  check_is_mod_or_admin(
-    pool,
-    local_user_view.person.id,
-    community_id,
-    local_user_view.person.instance_id,
-  )
-  .await
+  check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -126,7 +121,6 @@ pub async fn is_mod_or_admin_opt(
   community_id: Option<CommunityId>,
 ) -> LemmyResult<()> {
   if let Some(local_user_view) = local_user_view {
-    check_local_user_valid(local_user_view)?;
     if let Some(community_id) = community_id {
       is_mod_or_admin(pool, local_user_view, community_id).await
     } else {
@@ -147,7 +141,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_valid(local_user_view)?;
-  check_is_mod_of_any_or_admin(pool, person.id, person.instance_id).await
+  check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -180,7 +174,7 @@ pub fn is_top_mod(
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
-  read_comments: i64,
+  read_comments: i32,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let person_post_agg_form = PostReadCommentsForm::new(post_id, person_id, read_comments);
@@ -358,7 +352,7 @@ pub fn check_private_instance(
 /// If private messages are disabled, dont allow them to be sent / received
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
-    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
+    Err(LemmyErrorType::CouldntCreate)?
   } else {
     Ok(())
   }
@@ -485,6 +479,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
+// `local_site` is optional so that tests work easily
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
   let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
@@ -524,16 +519,20 @@ pub async fn purge_post_images(
 }
 
 /// Delete local images attributed to a person
-async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  let pictrs_uploads = LocalImageView::get_all_by_person_id(&mut context.pool(), person_id).await?;
+fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) {
+  let context_ = context.clone();
+  spawn_try_task(async move {
+    let pictrs_uploads =
+      LocalImageView::get_all_by_person_id(&mut context_.pool(), person_id).await?;
 
-  // Delete their images
-  for upload in pictrs_uploads {
-    delete_image_alias(&upload.local_image.pictrs_alias, context)
-      .await
-      .ok();
-  }
-  Ok(())
+    // Delete their images
+    for upload in pictrs_uploads {
+      delete_image_alias(&upload.local_image.pictrs_alias, &context_)
+        .await
+        .ok();
+    }
+    Ok(())
+  });
 }
 
 /// Removes or restores user data.
@@ -548,7 +547,7 @@ pub async fn remove_or_restore_user_data(
 
   // These actions are only possible when removing, not restoring
   if removed {
-    delete_local_user_images(banned_person_id, context).await?;
+    delete_local_user_images(banned_person_id, context);
 
     // Update the fields to None
     Person::update(
@@ -735,17 +734,17 @@ pub async fn purge_user_account(
 
   // Delete their local images, if they're a local user
   // No need to update avatar and banner, those are handled in Person::delete_account
-  delete_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(person_id, context);
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
 
   // Leave communities they mod
   CommunityActions::leave_mod_team_for_all_communities(pool, person_id).await?;
@@ -1004,6 +1003,24 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
+pub async fn update_post_tags(
+  post: &Post,
+  tag_ids: &[TagId],
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  // validate tags
+  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id)
+    .await?
+    .into_iter()
+    .map(|t| t.id)
+    .collect::<HashSet<_>>();
+  if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
+    return Err(LemmyErrorType::TagNotInCommunity.into());
+  }
+  PostTag::update(&mut context.pool(), post, tag_ids).await?;
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -1112,6 +1129,7 @@ mod tests {
       report_count: 0,
       unresolved_report_count: 0,
       federation_pending: false,
+      locked: false,
     };
     assert!(check_comment_depth(&comment).is_ok());
     comment.path = Ltree("0.123.456".to_string());

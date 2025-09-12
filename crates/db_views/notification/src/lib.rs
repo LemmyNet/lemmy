@@ -1,10 +1,10 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    instance::InstanceActions,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -22,9 +22,18 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
-    utils::queries::person1_select,
-    utils::queries::{creator_banned, creator_is_admin, local_user_can_mod, post_tags_fragment},
-    utils::queries::{creator_banned_from_community, creator_is_moderator},
+    utils::queries::selects::{
+      creator_ban_expires_from_community,
+      creator_banned_from_community,
+      creator_is_admin,
+      creator_is_moderator,
+      creator_local_home_ban_expires,
+      creator_local_home_banned,
+      local_user_can_mod,
+      person1_select,
+      post_tags_fragment,
+      CreatorLocalHomeBanExpiresType,
+    },
     Person1AliasAllColumnsTuple,
   },
 };
@@ -61,8 +70,6 @@ struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   community_actions: Option<CommunityActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  instance_actions: Option<InstanceActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
   post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   person_actions: Option<PersonActions>,
@@ -88,10 +95,17 @@ struct NotificationViewInternal {
   can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_banned()
+      select_expression = creator_local_home_banned()
     )
   )]
   creator_banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = CreatorLocalHomeBanExpiresType,
+      select_expression = creator_local_home_ban_expires()
+     )
+  )]
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_moderator()
@@ -104,6 +118,12 @@ struct NotificationViewInternal {
     )
   )]
   creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_ban_expires_from_community()
+    )
+  )]
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

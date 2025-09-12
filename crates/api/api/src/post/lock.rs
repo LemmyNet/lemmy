@@ -28,8 +28,14 @@ pub async fn lock_post(
   let post_id = data.post_id;
   let local_instance_id = local_user_view.person.instance_id;
 
-  let orig_post =
-    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    local_instance_id,
+    false,
+  )
+  .await?;
 
   check_community_mod_action(
     &local_user_view,

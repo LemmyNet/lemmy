@@ -9,7 +9,6 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
-  tags::update_post_tags,
   utils::{
     check_community_user_action,
     check_nsfw_allowed,
@@ -18,6 +17,7 @@ use lemmy_api_utils::{
     process_markdown_opt,
     send_webmention,
     slur_regex,
+    update_post_tags,
   },
 };
 use lemmy_db_schema::{
@@ -140,14 +140,7 @@ pub async fn create_post(
   plugin_hook_after("after_create_local_post", &inserted_post)?;
 
   if let Some(tags) = &data.tags {
-    update_post_tags(
-      &context,
-      &inserted_post,
-      &community_view,
-      tags,
-      &local_user_view,
-    )
-    .await?;
+    update_post_tags(&inserted_post, tags, &context).await?;
   }
 
   let community_id = community.id;

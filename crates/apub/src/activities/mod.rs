@@ -3,7 +3,7 @@ use crate::{
     block::{send_ban_from_community, send_ban_from_site},
     community::{
       collection_add::{send_add_mod_to_community, send_feature_post},
-      lock_page::send_lock_post,
+      lock::send_lock,
       update::{send_update_community, send_update_multi_community},
     },
     create_or_update::private_message::send_create_or_update_pm,
@@ -33,9 +33,11 @@ use following::send_accept_or_reject_follow;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_is_mod_or_admin,
 };
-use lemmy_apub_objects::{objects::person::ApubPerson, utils::functions::GetActorType};
+use lemmy_apub_objects::{
+  objects::{person::ApubPerson, PostOrComment},
+  utils::functions::GetActorType,
+};
 use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, SentActivity, SentActivityForm},
@@ -44,7 +46,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -67,36 +68,6 @@ async fn verify_person(
   let person = person_id.dereference(context).await?;
   InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   Ok(())
-}
-
-/// Verify that mod action in community was performed by a moderator.
-///
-/// * `mod_id` - Activitypub ID of the mod or admin who performed the action
-/// * `object_id` - Activitypub ID of the actor or object that is being moderated
-/// * `community` - The community inside which moderation is happening
-pub(crate) async fn verify_mod_action(
-  mod_id: &ObjectId<ApubPerson>,
-  community: &Community,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  // mod action comes from the same instance as the community, so it was presumably done
-  // by an instance admin.
-  // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == community.ap_id.domain() {
-    return Ok(());
-  }
-
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_instance_id = site_view.site.instance_id;
-
-  let mod_ = mod_id.dereference(context).await?;
-  check_is_mod_or_admin(
-    &mut context.pool(),
-    mod_.id,
-    community.id,
-    local_instance_id,
-  )
-  .await
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
@@ -223,7 +194,14 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockPost(post, actor, locked, reason) => {
-        send_lock_post(post, actor, locked, reason, context).await
+        send_lock(
+          PostOrComment::Left(post.into()),
+          actor,
+          locked,
+          reason,
+          context,
+        )
+        .await
       }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
@@ -249,6 +227,16 @@ pub async fn match_outgoing_activities(
         let deletable = DeletableObjects::Comment(comment.into());
         send_apub_delete_in_community(
           moderator, community, deletable, reason, is_removed, &context,
+        )
+        .await
+      }
+      LockComment(comment, actor, locked, reason) => {
+        send_lock(
+          PostOrComment::Right(comment.into()),
+          actor,
+          locked,
+          reason,
+          context,
         )
         .await
       }

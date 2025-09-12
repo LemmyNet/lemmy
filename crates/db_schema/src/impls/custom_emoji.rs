@@ -26,7 +26,7 @@ impl Crud for CustomEmoji {
       .values(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateEmoji)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
@@ -39,7 +39,7 @@ impl Crud for CustomEmoji {
       .set(new_custom_emoji)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateEmoji)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -53,7 +53,7 @@ impl CustomEmojiKeyword {
       .values(form)
       .get_results::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateEmoji)
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
   pub async fn delete(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;

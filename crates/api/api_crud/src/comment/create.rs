@@ -67,14 +67,6 @@ pub async fn create_comment(
   check_community_user_action(&local_user_view, &post_view.community, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
-  // Check if post is locked, no new comments
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
-    .await
-    .is_ok();
-  if post.locked && !is_mod_or_admin {
-    Err(LemmyErrorType::Locked)?
-  }
-
   // Fetch the parent, if it exists
   let parent_opt = if let Some(parent_id) = data.parent_id {
     Comment::read(&mut context.pool(), parent_id).await.ok()
@@ -82,11 +74,22 @@ pub async fn create_comment(
     None
   };
 
+  // Check if post or parent is locked, no new comments
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view, community_id)
+    .await
+    .is_ok();
+  // We only need to check the parent comment here as when we lock a
+  // comment we also lock all of its children.
+  let locked = post.locked || parent_opt.as_ref().is_some_and(|p| p.locked);
+  if locked && !is_mod_or_admin {
+    Err(LemmyErrorType::Locked)?
+  }
+
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      Err(LemmyErrorType::CouldntCreateComment)?
+      Err(LemmyErrorType::CouldntCreate)?
     }
     check_comment_depth(parent)?;
   }
@@ -148,7 +151,8 @@ pub async fn create_comment(
     let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await;
     if let Ok(notif) = notif {
       let person_id = local_user_view.person.id;
-      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, person_id).await?;
+      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, true, person_id)
+        .await?;
     }
   }
 

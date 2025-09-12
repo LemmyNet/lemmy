@@ -6,8 +6,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_nsfw_allowed,
+    generate_featured_url,
     generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     get_url_blocklist,
     is_admin,
     process_markdown_opt,
@@ -35,11 +37,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      site_or_community_description_length_check,
-    },
+    validation::{description_length_check, is_valid_actor_name, is_valid_body_field},
   },
 };
 
@@ -69,7 +67,7 @@ pub async fn create_community(
 
   let description = data.description.clone();
   if let Some(desc) = &description {
-    site_or_community_description_length_check(desc)?;
+    description_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 
@@ -85,7 +83,7 @@ pub async fn create_community(
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
   let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
-    Err(LemmyErrorType::CommunityAlreadyExists)?
+    Err(LemmyErrorType::AlreadyExists)?
   }
 
   let keypair = generate_actor_keypair()?;
@@ -97,6 +95,8 @@ pub async fn create_community(
     private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
+    moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+    featured_url: Some(generate_featured_url(&community_ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(

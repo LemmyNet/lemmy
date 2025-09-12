@@ -9,6 +9,8 @@ pub mod combined;
 pub mod comment;
 pub mod comment_report;
 pub mod community;
+#[cfg(feature = "full")]
+pub mod community_community_follow;
 pub mod community_report;
 pub mod custom_emoji;
 pub mod custom_emoji_keyword;
@@ -34,7 +36,6 @@ pub mod password_reset_request;
 pub mod person;
 pub mod post;
 pub mod post_report;
-pub mod post_tag;
 pub mod private_message;
 pub mod private_message_report;
 pub mod registration_application;

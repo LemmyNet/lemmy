@@ -37,7 +37,7 @@ use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
-use webpage::HTML;
+use webpage::{OpengraphObject, HTML};
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
@@ -250,6 +250,8 @@ pub async fn generate_post_link_metadata(
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
+    embed_video_width: Some(metadata.opengraph_data.video_width.map(i32::from)),
+    embed_video_height: Some(metadata.opengraph_data.video_height.map(i32::from)),
     thumbnail_url: Some(thumbnail_url),
     url_content_type: Some(metadata.content_type),
     ..Default::default()
@@ -295,21 +297,49 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     .opengraph
     .images
     .first()
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|ogo| url.join(&ogo.url).ok());
+
+  let (og_image_width, og_image_height) =
+    extract_opengraph_width_and_height(page.opengraph.images.first());
+
   let og_embed_url = page
     .opengraph
     .videos
     .first()
+    // Sometime sites provide `og:video` tags with empty content
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
+
+  let (og_video_width, og_video_height) =
+    extract_opengraph_width_and_height(page.opengraph.videos.first());
 
   Ok(OpenGraphData {
     title: og_title.or(page_title),
     description: og_description.or(page_description),
     image: og_image.map(Into::into),
+    image_width: og_image_width,
+    image_height: og_image_height,
     embed_video_url: og_embed_url.map(Into::into),
+    video_width: og_video_width,
+    video_height: og_video_height,
   })
+}
+
+fn extract_opengraph_width_and_height(ogo: Option<&OpengraphObject>) -> (Option<u16>, Option<u16>) {
+  (
+    ogo.and_then(|ogo| extract_opengraph_int_field(ogo, "width")),
+    ogo.and_then(|ogo| extract_opengraph_int_field(ogo, "height")),
+  )
+}
+
+fn extract_opengraph_int_field(ogo: &OpengraphObject, field: &str) -> Option<u16> {
+  ogo
+    .properties
+    .get(field)
+    .and_then(|w| w.parse::<u16>().ok())
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -638,6 +668,19 @@ mod tests {
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg")?.into())
     );
+
+    // image width and height
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'><meta property='og:image:width' content='400' /><meta property='og:image:height' content='200' /></head><body></body></html>";
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
+    assert_eq!(
+      (metadata.image_width, metadata.image_height),
+      (Some(400), Some(200))
+    );
+
+    // Empty urls shouldn't return anything
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content=''></head><body></body></html>";
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
+    assert_eq!(metadata.image, None);
 
     Ok(())
   }

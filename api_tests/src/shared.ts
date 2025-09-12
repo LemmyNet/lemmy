@@ -20,18 +20,18 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
-  UserBlockInstanceParams,
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  InboxDataType,
   GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
   PersonView,
+  UserBlockInstanceCommunitiesParams,
   ListNotifications,
   ListNotificationsResponse,
+  NotificationDataType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -43,6 +43,7 @@ import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
 import { GetPost } from "lemmy-js-client/dist/types/GetPost";
 import { GetPostResponse } from "lemmy-js-client/dist/types/GetPostResponse";
+import { LockComment } from "lemmy-js-client/dist/types/LockComment";
 import { LockPost } from "lemmy-js-client/dist/types/LockPost";
 import { Login } from "lemmy-js-client/dist/types/Login";
 import { Post } from "lemmy-js-client/dist/types/Post";
@@ -56,6 +57,7 @@ import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
 import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
+import { GetCommunityResponse } from "lemmy-js-client/dist/types/GetCommunityResponse";
 import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
 import { CreatePostLike } from "lemmy-js-client/dist/types/CreatePostLike";
 import { CommentResponse } from "lemmy-js-client/dist/types/CommentResponse";
@@ -364,6 +366,18 @@ export async function getPost(
   return api.getPost(form);
 }
 
+export async function lockComment(
+  api: LemmyHttp,
+  locked: boolean,
+  comment: Comment,
+): Promise<CommentResponse> {
+  let form: LockComment = {
+    comment_id: comment.id,
+    locked,
+  };
+  return api.lockComment(form);
+}
+
 export async function getComments(
   api: LemmyHttp,
   post_id?: number,
@@ -386,7 +400,7 @@ export async function getUnreadCount(
 
 export async function listNotifications(
   api: LemmyHttp,
-  type_?: InboxDataType,
+  type_?: NotificationDataType,
   unread_only: boolean = false,
 ): Promise<ListNotificationsResponse> {
   let form: ListNotifications = {
@@ -601,7 +615,7 @@ export async function editCommunity(
 export async function getCommunity(
   api: LemmyHttp,
   id: number,
-): Promise<CommunityResponse> {
+): Promise<GetCommunityResponse> {
   let form: GetCommunity = {
     id,
   };
@@ -880,16 +894,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function userBlockInstance(
+export function userBlockInstanceCommunities(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
 ): Promise<SuccessResponse> {
-  let form: UserBlockInstanceParams = {
+  let form: UserBlockInstanceCommunitiesParams = {
     instance_id,
     block,
   };
-  return api.userBlockInstance(form);
+  return api.userBlockInstanceCommunities(form);
 }
 
 export function blockCommunity(
@@ -1044,4 +1058,24 @@ export async function waitUntil<T>(
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
+}
+
+export function assertCommunityFederation(
+  communityOne?: CommunityView,
+  communityTwo?: CommunityView,
+) {
+  expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
+  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
+  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
+  expect(communityOne?.community.description).toBe(
+    communityTwo?.community.description,
+  );
+  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
+  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
+  expect(communityOne?.community.published_at).toBe(
+    communityTwo?.community.published_at,
+  );
+  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
+  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
+  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
 }

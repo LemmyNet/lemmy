@@ -46,7 +46,6 @@ use lemmy_utils::{
   CACHE_DURATION_LARGEST_COMMUNITY,
 };
 use moka::future::Cache;
-use regex::Regex;
 use std::sync::{Arc, LazyLock};
 use url::Url;
 
@@ -79,7 +78,7 @@ impl Crud for Community {
       .set(form)
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -97,7 +96,7 @@ impl CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 
   pub async fn leave(
@@ -109,7 +108,7 @@ impl CommunityActions {
       .set_null(community_actions::became_moderator_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::AlreadyExists)
   }
 }
 
@@ -267,31 +266,17 @@ impl Community {
       .and(community::deleted.eq(false))
   }
 
-  pub fn build_tag_ap_id(&self, tag_name: &str) -> LemmyResult<DbUrl> {
-    #[allow(clippy::expect_used)]
-    // convert a readable name to an id slug that is appended to the community URL to get a unique
-    // tag url (ap_id).
-    static VALID_ID_SLUG: LazyLock<Regex> =
-      LazyLock::new(|| Regex::new(r"[^a-z0-9_-]+").expect("compile regex"));
-    let tag_name_lower = tag_name.to_lowercase();
-    let id_slug = VALID_ID_SLUG.replace_all(&tag_name_lower, "-");
-    if id_slug.is_empty() {
-      Err(LemmyErrorType::InvalidUrl)?
-    }
-    Ok(Url::parse(&format!("{}/tag/{}", self.ap_id, &id_slug))?.into())
-  }
-
   pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-    new_subscribers: i64,
+    new_subscribers: i32,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(for_community_id))
       .set(community::dsl::subscribers.eq(new_subscribers))
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -495,7 +480,7 @@ impl Bannable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<UpleteCount> {
@@ -505,7 +490,7 @@ impl Bannable for CommunityActions {
       .set_null(community_actions::ban_expires_at)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -526,7 +511,7 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn follow_accepted(
     pool: &mut DbPool<'_>,
@@ -542,7 +527,7 @@ impl Followable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn unfollow(
@@ -557,7 +542,7 @@ impl Followable for CommunityActions {
       .set_null(community_actions::follow_approver_id)
       .get_result(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
@@ -579,7 +564,7 @@ impl Blockable for CommunityActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn unblock(
     pool: &mut DbPool<'_>,
@@ -593,7 +578,7 @@ impl Blockable for CommunityActions {
     .set_null(community_actions::blocked_at)
     .get_result(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   async fn read_block(
