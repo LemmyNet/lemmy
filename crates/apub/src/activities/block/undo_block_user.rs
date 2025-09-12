@@ -4,8 +4,8 @@ use crate::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
     generate_activity_id,
-    mod_action_default_reason,
     send_lemmy_activity,
+    MOD_ACTION_DEFAULT_REASON,
   },
   activity_lists::AnnouncableActivities,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
@@ -102,7 +102,7 @@ impl Activity for UndoBlockUser {
     let reason = self
       .object
       .summary
-      .unwrap_or_else(mod_action_default_reason);
+      .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
     let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Left(site) => {
