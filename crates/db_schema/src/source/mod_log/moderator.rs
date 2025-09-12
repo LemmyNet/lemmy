@@ -5,6 +5,7 @@ use crate::newtypes::{
   ModBanFromCommunityId,
   ModChangeCommunityVisibilityId,
   ModFeaturePostId,
+  ModLockCommentId,
   ModLockPostId,
   ModRemoveCommentId,
   ModRemovePostId,
@@ -139,9 +140,9 @@ pub struct ModRemoveCommentForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator locks a comment (prevents new replies to a comment or its children).
 pub struct ModLockComment {
-  pub id: ModLockPostId,
+  pub id: ModLockCommentId,
   pub mod_person_id: PersonId,
-  pub comment_id: PostId,
+  pub comment_id: CommentId,
   pub locked: bool,
   pub reason: Option<String>,
   pub published_at: DateTime<Utc>,
