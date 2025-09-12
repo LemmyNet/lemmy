@@ -712,6 +712,7 @@ pub struct ResolveObject {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "type_")]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),
