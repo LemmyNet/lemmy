@@ -105,7 +105,6 @@ pub async fn update_site(
     application_email_admins: data.application_email_admins,
     updated_at: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
-    actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),

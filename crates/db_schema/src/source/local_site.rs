@@ -44,8 +44,6 @@ pub struct LocalSite {
   pub application_email_admins: bool,
   /// An optional regex to filter words.
   pub slur_filter_regex: Option<String>,
-  /// The max actor name length.
-  pub actor_name_max_length: i32,
   /// Whether federation is enabled.
   pub federation_enabled: bool,
   /// Whether captcha is enabled.
@@ -125,8 +123,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub slur_filter_regex: Option<String>,
   #[new(default)]
-  pub actor_name_max_length: Option<i32>,
-  #[new(default)]
   pub federation_enabled: Option<bool>,
   #[new(default)]
   pub captcha_enabled: Option<bool>,
@@ -180,7 +176,6 @@ pub struct LocalSiteUpdateForm {
   pub legal_information: Option<Option<String>>,
   pub application_email_admins: Option<bool>,
   pub slur_filter_regex: Option<Option<String>>,
-  pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,

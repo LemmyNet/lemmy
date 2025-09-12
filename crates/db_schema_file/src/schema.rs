@@ -226,7 +226,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         title -> Varchar,
         sidebar -> Nullable<Text>,
         removed -> Bool,
@@ -459,7 +459,6 @@ diesel::table! {
         legal_information -> Nullable<Text>,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
-        actor_name_max_length -> Int4,
         federation_enabled -> Bool,
         captcha_enabled -> Bool,
         #[max_length = 255]
@@ -559,11 +558,11 @@ diesel::table! {
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
-        enable_private_messages -> Bool,
         collapse_bot_comments -> Bool,
+        last_donation_notification_at -> Timestamptz,
+        enable_private_messages -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
-        last_donation_notification_at -> Timestamptz,
         hide_media -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
@@ -831,7 +830,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
         published_at -> Timestamptz,
