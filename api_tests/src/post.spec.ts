@@ -535,9 +535,9 @@ test("Enforce site ban federation for local user", async () => {
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.creator_banned == true,
+    res => res?.banned == true,
   );
-  expect(alphaUserOnBeta1?.creator_banned).toBe(true);
+  expect(alphaUserOnBeta1?.banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(
@@ -593,7 +593,7 @@ test("Enforce site ban federation for federated user", async () => {
   await followBeta(alphaUserHttp);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
-  expect(alphaUserOnBeta2?.creator_banned).toBe(false);
+  expect(alphaUserOnBeta2?.banned).toBe(false);
 
   if (!alphaUserOnBeta2?.person) {
     throw "Missing alpha person";
