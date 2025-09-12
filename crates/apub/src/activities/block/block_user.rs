@@ -4,6 +4,7 @@ use crate::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
     generate_activity_id,
+    mod_action_default_reason,
     send_lemmy_activity,
   },
   activity_lists::AnnouncableActivities,
@@ -49,7 +50,7 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: Option<bool>,
-    reason: Option<String>,
+    reason: String,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
@@ -62,7 +63,7 @@ impl BlockUser {
       target: target.id().clone().into(),
       kind: BlockType::Block,
       remove_data,
-      summary: reason,
+      summary: Some(reason),
       id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
     })
@@ -73,7 +74,7 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: bool,
-    reason: Option<String>,
+    reason: String,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
@@ -134,7 +135,7 @@ impl Activity for BlockUser {
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
-    let reason = self.summary;
+    let reason = self.summary.unwrap_or_else(mod_action_default_reason);
     let pool = &mut context.pool();
     match target {
       SiteOrCommunity::Left(site) => {

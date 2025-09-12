@@ -2,6 +2,7 @@ use crate::{
   activities::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
+    mod_action_default_reason,
   },
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
@@ -103,6 +104,7 @@ pub(in crate::activities) async fn receive_remove_action(
   reason: Option<String>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  let reason = reason.unwrap_or_else(mod_action_default_reason);
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {

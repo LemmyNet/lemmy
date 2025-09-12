@@ -4,6 +4,7 @@ use crate::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
     generate_activity_id,
+    mod_action_default_reason,
     send_lemmy_activity,
   },
   activity_lists::AnnouncableActivities,
@@ -44,7 +45,7 @@ impl UndoBlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     restore_data: bool,
-    reason: Option<String>,
+    reason: String,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
@@ -98,6 +99,10 @@ impl Activity for UndoBlockUser {
     let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
+    let reason = self
+      .object
+      .summary
+      .unwrap_or_else(mod_action_default_reason);
     let pool = &mut context.pool();
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Left(site) => {
@@ -108,7 +113,7 @@ impl Activity for UndoBlockUser {
         if self.restore_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user unbanned from home instance, restore all content
-            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+            remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &reason, context)
               .await?;
           } else {
             update_removed_for_instance(&blocked_person, &site, false, pool).await?;
@@ -119,7 +124,7 @@ impl Activity for UndoBlockUser {
         let form = AdminBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.object.summary,
+          reason,
           banned: Some(false),
           expires_at,
           instance_id: site.instance_id,
@@ -137,7 +142,7 @@ impl Activity for UndoBlockUser {
             mod_person.id,
             blocked_person.id,
             false,
-            &None,
+            &reason,
             &mut context.pool(),
           )
           .await?;
@@ -148,7 +153,7 @@ impl Activity for UndoBlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.object.summary,
+          reason,
           banned: Some(false),
           expires_at,
         };

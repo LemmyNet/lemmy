@@ -3,6 +3,7 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
+    mod_action_default_reason,
   },
   activity_lists::AnnouncableActivities,
   post_or_comment_community,
@@ -59,7 +60,7 @@ impl Activity for LockPageOrNote {
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let locked = true;
-    let reason = self.summary;
+    let reason = self.summary.unwrap_or_else(mod_action_default_reason);
 
     match self.object.dereference(context).await? {
       PostOrComment::Left(post) => {
@@ -119,7 +120,7 @@ impl Activity for UndoLockPageOrNote {
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let locked = false;
-    let reason = self.summary;
+    let reason = self.summary.unwrap_or_else(mod_action_default_reason);
 
     match self.object.object.dereference(context).await? {
       PostOrComment::Left(post) => {
@@ -160,7 +161,7 @@ pub(crate) async fn send_lock(
   object: PostOrComment,
   actor: Person,
   locked: bool,
-  reason: Option<String>,
+  reason: String,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community: ApubCommunity = post_or_comment_community(&object, &context).await?.into();
@@ -178,7 +179,7 @@ pub(crate) async fn send_lock(
     cc: vec![community_id.clone()],
     kind: LockType::Lock,
     id,
-    summary: reason.clone(),
+    summary: Some(reason.clone()),
   };
   let activity = if locked {
     AnnouncableActivities::Lock(lock)
@@ -191,7 +192,7 @@ pub(crate) async fn send_lock(
       kind: UndoType::Undo,
       id,
       object: lock,
-      summary: reason,
+      summary: Some(reason),
     };
     AnnouncableActivities::UndoLock(undo)
   };

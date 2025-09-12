@@ -43,10 +43,11 @@ impl Activity for UndoDelete {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    if self.object.summary.is_some() {
+    if let Some(reason) = self.object.summary {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,
         self.object.object.id(),
+        reason,
         context,
       )
       .await
@@ -82,6 +83,7 @@ impl UndoDelete {
   pub(in crate::activities) async fn receive_undo_remove_action(
     actor: &ApubPerson,
     object: &Url,
+    reason: String,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     match DeletableObjects::read_from_db(object, context).await? {
@@ -93,7 +95,7 @@ impl UndoDelete {
           mod_person_id: actor.id,
           community_id: community.id,
           removed: Some(false),
-          reason: None,
+          reason,
         };
         AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(
@@ -111,7 +113,7 @@ impl UndoDelete {
           mod_person_id: actor.id,
           post_id: post.id,
           removed: Some(false),
-          reason: None,
+          reason,
         };
         ModRemovePost::create(&mut context.pool(), &form).await?;
         Post::update(
@@ -129,7 +131,7 @@ impl UndoDelete {
           mod_person_id: actor.id,
           comment_id: comment.id,
           removed: Some(false),
-          reason: None,
+          reason,
         };
         ModRemoveComment::create(&mut context.pool(), &form).await?;
         Comment::update(

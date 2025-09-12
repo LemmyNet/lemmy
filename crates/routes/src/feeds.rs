@@ -429,7 +429,7 @@ fn create_modlog_items(
           },
           &v.instance.domain
         ),
-        &v.admin_allow_instance.reason,
+        Some(&v.admin_allow_instance.reason),
         settings,
       ),
       ModlogCombinedView::AdminBlockInstance(v) => build_modlog_item(
@@ -445,7 +445,7 @@ fn create_modlog_items(
           },
           &v.instance.domain
         ),
-        &v.admin_block_instance.reason,
+        Some(&v.admin_block_instance.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgeComment(v) => build_modlog_item(
@@ -453,7 +453,7 @@ fn create_modlog_items(
         &v.admin_purge_comment.published_at,
         &modlog_url,
         "Admin purged comment",
-        &v.admin_purge_comment.reason,
+        Some(&v.admin_purge_comment.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgeCommunity(v) => build_modlog_item(
@@ -461,7 +461,7 @@ fn create_modlog_items(
         &v.admin_purge_community.published_at,
         &modlog_url,
         "Admin purged community",
-        &v.admin_purge_community.reason,
+        Some(&v.admin_purge_community.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgePerson(v) => build_modlog_item(
@@ -469,7 +469,7 @@ fn create_modlog_items(
         &v.admin_purge_person.published_at,
         &modlog_url,
         "Admin purged person",
-        &v.admin_purge_person.reason,
+        Some(&v.admin_purge_person.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgePost(v) => build_modlog_item(
@@ -477,7 +477,7 @@ fn create_modlog_items(
         &v.admin_purge_post.published_at,
         &modlog_url,
         "Admin purged post",
-        &v.admin_purge_post.reason,
+        Some(&v.admin_purge_post.reason),
         settings,
       ),
       ModlogCombinedView::AdminAdd(v) => build_modlog_item(
@@ -489,7 +489,7 @@ fn create_modlog_items(
           removed_added_str(v.admin_add.removed),
           &v.other_person.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModAddToCommunity(v) => build_modlog_item(
@@ -502,7 +502,7 @@ fn create_modlog_items(
           &v.other_person.name,
           &v.community.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::AdminBan(v) => build_modlog_item(
@@ -514,7 +514,7 @@ fn create_modlog_items(
           banned_unbanned_str(v.admin_ban.banned),
           &v.other_person.name
         ),
-        &v.admin_ban.reason,
+        Some(&v.admin_ban.reason),
         settings,
       ),
       ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
@@ -527,7 +527,7 @@ fn create_modlog_items(
           &v.other_person.name,
           &v.community.name
         ),
-        &v.mod_ban_from_community.reason,
+        Some(&v.mod_ban_from_community.reason),
         settings,
       ),
       ModlogCombinedView::ModFeaturePost(v) => build_modlog_item(
@@ -543,7 +543,7 @@ fn create_modlog_items(
           },
           &v.post.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModChangeCommunityVisibility(v) => build_modlog_item(
@@ -554,7 +554,7 @@ fn create_modlog_items(
           "Changed /c/{} visibility to {}",
           &v.community.name, &v.mod_change_community_visibility.visibility
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModLockPost(v) => build_modlog_item(
@@ -570,7 +570,7 @@ fn create_modlog_items(
           },
           &v.post.name
         ),
-        &v.mod_lock_post.reason,
+        Some(&v.mod_lock_post.reason),
         settings,
       ),
       ModlogCombinedView::ModRemoveComment(v) => build_modlog_item(
@@ -582,7 +582,7 @@ fn create_modlog_items(
           removed_restored_str(v.mod_remove_comment.removed),
           &v.comment.content
         ),
-        &v.mod_remove_comment.reason,
+        Some(&v.mod_remove_comment.reason),
         settings,
       ),
       ModlogCombinedView::AdminRemoveCommunity(v) => build_modlog_item(
@@ -594,7 +594,7 @@ fn create_modlog_items(
           removed_restored_str(v.admin_remove_community.removed),
           &v.community.name
         ),
-        &v.admin_remove_community.reason,
+        Some(&v.admin_remove_community.reason),
         settings,
       ),
       ModlogCombinedView::ModRemovePost(v) => build_modlog_item(
@@ -606,7 +606,7 @@ fn create_modlog_items(
           removed_restored_str(v.mod_remove_post.removed),
           &v.post.name
         ),
-        &v.mod_remove_post.reason,
+        Some(&v.mod_remove_post.reason),
         settings,
       ),
       ModlogCombinedView::ModTransferCommunity(v) => build_modlog_item(
@@ -617,7 +617,7 @@ fn create_modlog_items(
           "Tranferred /c/{} to /u/{}",
           &v.community.name, &v.other_person.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModLockComment(v) => build_modlog_item(
@@ -633,7 +633,7 @@ fn create_modlog_items(
           },
           &v.comment.content
         ),
-        &v.mod_lock_comment.reason,
+        Some(&v.mod_lock_comment.reason),
         settings,
       ),
     })
@@ -671,7 +671,7 @@ fn build_modlog_item(
   published: &DateTime<Utc>,
   url: &str,
   action: &str,
-  reason: &Option<String>,
+  reason: Option<&String>,
   settings: &Settings,
 ) -> LemmyResult<Item> {
   let guid = Some(Guid {
@@ -694,7 +694,7 @@ fn build_modlog_item(
     pub_date: Some(published.to_rfc2822()),
     link: Some(url.to_owned()),
     guid,
-    description: reason.clone(),
+    description: reason.cloned(),
     ..Default::default()
   })
 }
