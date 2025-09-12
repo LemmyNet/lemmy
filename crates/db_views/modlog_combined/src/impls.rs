@@ -1095,7 +1095,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       comment_id: data.comment.id,
       locked: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModLockComment::create(pool, &form).await?;
 
