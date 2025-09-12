@@ -1,4 +1,5 @@
 use crate::{
+  impls::mod_log::mod_action_notify_type,
   newtypes::{
     AdminAddId,
     AdminAllowInstanceId,
@@ -9,28 +10,32 @@ use crate::{
     AdminPurgePersonId,
     AdminPurgePostId,
     AdminRemoveCommunityId,
+    PersonId,
   },
-  source::mod_log::admin::{
-    AdminAdd,
-    AdminAddForm,
-    AdminAllowInstance,
-    AdminAllowInstanceForm,
-    AdminBan,
-    AdminBanForm,
-    AdminBlockInstance,
-    AdminBlockInstanceForm,
-    AdminPurgeComment,
-    AdminPurgeCommentForm,
-    AdminPurgeCommunity,
-    AdminPurgeCommunityForm,
-    AdminPurgePerson,
-    AdminPurgePersonForm,
-    AdminPurgePost,
-    AdminPurgePostForm,
-    AdminRemoveCommunity,
-    AdminRemoveCommunityForm,
+  source::{
+    mod_log::admin::{
+      AdminAdd,
+      AdminAddForm,
+      AdminAllowInstance,
+      AdminAllowInstanceForm,
+      AdminBan,
+      AdminBanForm,
+      AdminBlockInstance,
+      AdminBlockInstanceForm,
+      AdminPurgeComment,
+      AdminPurgeCommentForm,
+      AdminPurgeCommunity,
+      AdminPurgeCommunityForm,
+      AdminPurgePerson,
+      AdminPurgePersonForm,
+      AdminPurgePost,
+      AdminPurgePostForm,
+      AdminRemoveCommunity,
+      AdminRemoveCommunityForm,
+    },
+    notification::NotificationInsertForm,
   },
-  traits::Crud,
+  traits::{Crud, ModActionNotify},
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, QueryDsl};
@@ -297,5 +302,14 @@ impl Crud for AdminAdd {
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+}
+
+impl ModActionNotify for AdminRemoveCommunity {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      admin_remove_community_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
   }
 }

@@ -250,8 +250,6 @@ pub trait PaginationCursorBuilder {
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }
 
-// TODO: this trait can also be used for feeds.rs
 pub trait ModActionNotify {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
-  fn target_person_id(&self) -> PersonId;
 }

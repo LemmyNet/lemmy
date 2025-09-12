@@ -1,4 +1,5 @@
 use crate::{
+  impls::mod_log::mod_action_notify_type,
   newtypes::{
     ModAddToCommunityId,
     ModBanFromCommunityId,
@@ -39,19 +40,16 @@ use crate::{
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{
-  enums::NotificationTypes,
-  schema::{
-    mod_add_to_community,
-    mod_ban_from_community,
-    mod_change_community_visibility,
-    mod_feature_post,
-    mod_lock_comment,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_post,
-    mod_transfer_community,
-  },
+use lemmy_db_schema_file::schema::{
+  mod_add_to_community,
+  mod_ban_from_community,
+  mod_change_community_visibility,
+  mod_feature_post,
+  mod_lock_comment,
+  mod_lock_post,
+  mod_remove_comment,
+  mod_remove_post,
+  mod_transfer_community,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -342,15 +340,12 @@ impl ModActionNotify for ModRemoveComment {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
   }
-  fn target_person_id(&self) -> PersonId {
-    todo!()
-  }
 }
-
-fn mod_action_notify_type(removed: bool) -> NotificationTypes {
-  if removed {
-    NotificationTypes::ModAction
-  } else {
-    NotificationTypes::RevertModAction
+impl ModActionNotify for ModRemovePost {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_remove_post_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
   }
 }

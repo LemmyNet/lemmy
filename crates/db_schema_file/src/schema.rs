@@ -790,7 +790,6 @@ diesel::table! {
         mod_remove_comment_id -> Nullable<Int4>,
         admin_remove_community_id -> Nullable<Int4>,
         mod_remove_post_id -> Nullable<Int4>,
-        mod_transfer_community_id -> Nullable<Int4>,
         mod_lock_comment_id -> Nullable<Int4>,
     }
 }
@@ -1254,7 +1253,6 @@ diesel::joinable!(notification -> mod_lock_comment (mod_lock_comment_id));
 diesel::joinable!(notification -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(notification -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(notification -> mod_remove_post (mod_remove_post_id));
-diesel::joinable!(notification -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));

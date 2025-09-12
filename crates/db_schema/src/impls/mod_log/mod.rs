@@ -1,5 +1,15 @@
+use lemmy_db_schema_file::enums::NotificationTypes;
+
 pub mod admin;
 pub mod moderator;
+
+fn mod_action_notify_type(removed: bool) -> NotificationTypes {
+  if removed {
+    NotificationTypes::ModAction
+  } else {
+    NotificationTypes::RevertModAction
+  }
+}
 
 #[cfg(test)]
 mod tests {

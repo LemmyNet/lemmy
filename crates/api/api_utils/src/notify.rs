@@ -275,47 +275,29 @@ pub async fn notify_private_message(
   Ok(())
 }
 
+// TODO: call directly from each api endpoint and federation handler
 /*
-TODO
-
-This function should be called directly from each api endpoint and federation handler to create
-the notification.
-
-ModRemoveComment
-ModRemoveCommunity -> actually an admin action, needs rename. should notify all community mods?
-ModRemovePost
-ModBan -> ban user from site, needs rename
-ModBanFromCommunity
-ModLockPost
-ModAdd -> add instance admin, needs rename
-ModAddCommunity
-ModFeaturePost
-ModChangeCommunityVisibility -> should this notify and if so who?
-ModTransferCommunity -> notify both old and new top mods?
-
-Purges should be secret and not notify:
-- AdminPurgeComment
-- AdminPurgeCommunity
-- AdminPurgePerson
-- AdminPurgePost
-
-These dont affect any specific user and dont need to notify:
-- AdminAllowInstance
-- AdminBlockInstance
+remaining:
+- admin_add_id,
+- mod_add_to_community_id,
+- admin_ban_id,
+- mod_ban_from_community_id
+- mod_feature_post_id
+- mod_lock_post_id
+- mod_lock_comment_id
 */
-pub fn notify_mod_action<T>(action: T, context: &LemmyContext)
+pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
 where
   T: ModActionNotify + Send + 'static,
 {
   let context = context.clone();
   spawn_try_task(async move {
-    let Ok(local_recipient) =
-      LocalUserView::read_person(&mut context.pool(), action.target_person_id()).await
+    let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
     else {
       return Ok(());
     };
 
-    let form = action.insert_form(local_recipient.person.id);
+    let form = action.insert_form(target_id);
     Notification::create(&mut context.pool(), &[form]).await?;
 
     // TODO: Send email
