@@ -278,6 +278,9 @@ pub async fn notify_private_message(
 /*
 TODO
 
+This function should be called directly from each api endpoint and federation handler to create
+the notification.
+
 ModRemoveComment
 ModRemoveCommunity -> actually an admin action, needs rename. should notify all community mods?
 ModRemovePost
@@ -290,7 +293,7 @@ ModFeaturePost
 ModChangeCommunityVisibility -> should this notify and if so who?
 ModTransferCommunity -> notify both old and new top mods?
 
-Purges should probably be secret:
+Purges should be secret and not notify:
 - AdminPurgeComment
 - AdminPurgeCommunity
 - AdminPurgePerson
@@ -312,10 +315,7 @@ where
       return Ok(());
     };
 
-    // TODO: Is there any good way to get the ModlogCombinedId here? Otherwise we need to get rid
-    //       of triggers and insert to ModlogCombined from Rust. Or otherwise the `notification`
-    //       table would need a separate column for each possible mod action.
-    let form = NotificationInsertForm::new_mod_action(todo!(), local_recipient.person.id, todo!());
+    let form = action.insert_form(local_recipient.person.id);
     Notification::create(&mut context.pool(), &[form]).await?;
 
     // TODO: Send email

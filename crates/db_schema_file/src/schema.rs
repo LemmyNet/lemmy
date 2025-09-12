@@ -782,6 +782,7 @@ diesel::table! {
         kind -> NotificationTypeEnum,
         post_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
+        mod_remove_comment_id -> Nullable<Int4>,
     }
 }
 

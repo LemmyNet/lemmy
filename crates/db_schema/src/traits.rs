@@ -1,7 +1,7 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
+  source::notification::NotificationInsertForm,
   utils::{get_conn, DbPool},
-  ModlogActionType,
 };
 use diesel::{
   associations::HasTable,
@@ -252,9 +252,6 @@ pub trait PaginationCursorBuilder {
 
 // TODO: this trait can also be used for feeds.rs
 pub trait ModActionNotify {
-  fn kind() -> ModlogActionType;
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
   fn target_person_id(&self) -> PersonId;
-  fn reason(&self) -> &str;
-  // True if this mod action restores a comment that was previously removed, or unbans a user etc
-  fn is_revert(&self) -> bool;
 }

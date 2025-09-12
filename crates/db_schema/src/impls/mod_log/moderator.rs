@@ -11,42 +11,47 @@ use crate::{
     ModTransferCommunityId,
     PersonId,
   },
-  source::mod_log::moderator::{
-    ModAddToCommunity,
-    ModAddToCommunityForm,
-    ModBanFromCommunity,
-    ModBanFromCommunityForm,
-    ModChangeCommunityVisibility,
-    ModChangeCommunityVisibilityForm,
-    ModFeaturePost,
-    ModFeaturePostForm,
-    ModLockComment,
-    ModLockCommentForm,
-    ModLockPost,
-    ModLockPostForm,
-    ModRemoveComment,
-    ModRemoveCommentForm,
-    ModRemovePost,
-    ModRemovePostForm,
-    ModTransferCommunity,
-    ModTransferCommunityForm,
+  source::{
+    mod_log::moderator::{
+      ModAddToCommunity,
+      ModAddToCommunityForm,
+      ModBanFromCommunity,
+      ModBanFromCommunityForm,
+      ModChangeCommunityVisibility,
+      ModChangeCommunityVisibilityForm,
+      ModFeaturePost,
+      ModFeaturePostForm,
+      ModLockComment,
+      ModLockCommentForm,
+      ModLockPost,
+      ModLockPostForm,
+      ModRemoveComment,
+      ModRemoveCommentForm,
+      ModRemovePost,
+      ModRemovePostForm,
+      ModTransferCommunity,
+      ModTransferCommunityForm,
+    },
+    notification::NotificationInsertForm,
   },
   traits::{Crud, ModActionNotify},
   utils::{get_conn, DbPool},
-  ModlogActionType,
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  mod_add_to_community,
-  mod_ban_from_community,
-  mod_change_community_visibility,
-  mod_feature_post,
-  mod_lock_comment,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_post,
-  mod_transfer_community,
+use lemmy_db_schema_file::{
+  enums::NotificationTypes,
+  schema::{
+    mod_add_to_community,
+    mod_ban_from_community,
+    mod_change_community_visibility,
+    mod_feature_post,
+    mod_lock_comment,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_post,
+    mod_transfer_community,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -331,16 +336,21 @@ impl Crud for ModTransferCommunity {
 }
 
 impl ModActionNotify for ModRemoveComment {
-  fn kind() -> ModlogActionType {
-    ModlogActionType::ModRemoveComment
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_remove_comment_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
   }
   fn target_person_id(&self) -> PersonId {
     todo!()
   }
-  fn reason(&self) -> &str {
-    todo!()
-  }
-  fn is_revert(&self) -> bool {
-    todo!()
+}
+
+fn mod_action_notify_type(removed: bool) -> NotificationTypes {
+  if removed {
+    NotificationTypes::ModAction
+  } else {
+    NotificationTypes::RevertModAction
   }
 }

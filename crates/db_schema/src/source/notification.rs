@@ -1,6 +1,6 @@
 use crate::newtypes::{
   CommentId,
-  ModlogCombinedId,
+  ModRemoveCommentId,
   NotificationId,
   PersonId,
   PostId,
@@ -33,26 +33,29 @@ pub struct Notification {
   pub kind: NotificationTypes,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
+  pub mod_remove_comment_id: Option<ModRemoveCommentId>,
 }
 
-#[cfg_attr(feature = "full", derive(Insertable))]
+#[cfg_attr(feature = "full", derive(Insertable, derive_new::new))]
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
-  pub comment_id: Option<CommentId>,
   pub kind: NotificationTypes,
+  #[new(default)]
+  pub comment_id: Option<CommentId>,
+  #[new(default)]
   pub post_id: Option<PostId>,
+  #[new(default)]
   pub private_message_id: Option<PrivateMessageId>,
+  #[new(default)]
+  pub mod_remove_comment_id: Option<ModRemoveCommentId>,
 }
 
 impl NotificationInsertForm {
   pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationTypes) -> Self {
     Self {
       post_id: Some(post_id),
-      comment_id: None,
-      private_message_id: None,
-      recipient_id,
-      kind,
+      ..Self::new(recipient_id, kind)
     }
   }
   pub fn new_comment(
@@ -61,27 +64,14 @@ impl NotificationInsertForm {
     kind: NotificationTypes,
   ) -> Self {
     Self {
-      post_id: None,
       comment_id: Some(comment_id),
-      private_message_id: None,
-      recipient_id,
-      kind,
+      ..Self::new(recipient_id, kind)
     }
   }
   pub fn new_private_message(private_message_id: PrivateMessageId, recipient_id: PersonId) -> Self {
     Self {
-      post_id: None,
-      comment_id: None,
       private_message_id: Some(private_message_id),
-      recipient_id,
-      kind: NotificationTypes::PrivateMessage,
+      ..Self::new(recipient_id, NotificationTypes::PrivateMessage)
     }
-  }
-  pub fn new_mod_action(
-    id: ModlogCombinedId,
-    recipient_id: PersonId,
-    kind: NotificationTypes,
-  ) -> Self {
-    todo!()
   }
 }

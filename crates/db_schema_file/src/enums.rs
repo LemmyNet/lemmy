@@ -281,4 +281,6 @@ pub enum NotificationTypes {
   Reply,
   Subscribed,
   PrivateMessage,
+  ModAction,
+  RevertModAction,
 }
