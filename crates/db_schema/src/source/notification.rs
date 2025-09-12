@@ -1,6 +1,16 @@
 use crate::newtypes::{
+  AdminAddId,
+  AdminBanId,
+  AdminRemoveCommunityId,
   CommentId,
+  ModAddToCommunityId,
+  ModBanFromCommunityId,
+  ModFeaturePostId,
+  ModLockCommentId,
+  ModLockPostId,
   ModRemoveCommentId,
+  ModRemovePostId,
+  ModTransferCommunityId,
   NotificationId,
   PersonId,
   PostId,
@@ -33,7 +43,17 @@ pub struct Notification {
   pub kind: NotificationTypes,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
+  pub admin_add_id: Option<AdminAddId>,
+  pub mod_add_to_community_id: Option<ModAddToCommunityId>,
+  pub admin_ban_id: Option<AdminBanId>,
+  pub mod_ban_from_community_id: Option<ModBanFromCommunityId>,
+  pub mod_feature_post_id: Option<ModFeaturePostId>,
+  pub mod_lock_post_id: Option<ModLockPostId>,
   pub mod_remove_comment_id: Option<ModRemoveCommentId>,
+  pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
+  pub mod_remove_post_id: Option<ModRemovePostId>,
+  pub mod_transfer_community_id: Option<ModTransferCommunityId>,
+  pub mod_lock_comment_id: Option<ModLockCommentId>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, derive_new::new))]
@@ -48,7 +68,27 @@ pub struct NotificationInsertForm {
   #[new(default)]
   pub private_message_id: Option<PrivateMessageId>,
   #[new(default)]
+  pub admin_add_id: Option<AdminAddId>,
+  #[new(default)]
+  pub mod_add_to_community_id: Option<ModAddToCommunityId>,
+  #[new(default)]
+  pub admin_ban_id: Option<AdminBanId>,
+  #[new(default)]
+  pub mod_ban_from_community_id: Option<ModBanFromCommunityId>,
+  #[new(default)]
+  pub mod_feature_post_id: Option<ModFeaturePostId>,
+  #[new(default)]
+  pub mod_lock_post_id: Option<ModLockPostId>,
+  #[new(default)]
   pub mod_remove_comment_id: Option<ModRemoveCommentId>,
+  #[new(default)]
+  pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
+  #[new(default)]
+  pub mod_remove_post_id: Option<ModRemovePostId>,
+  #[new(default)]
+  pub mod_transfer_community_id: Option<ModTransferCommunityId>,
+  #[new(default)]
+  pub mod_lock_comment_id: Option<ModLockCommentId>,
 }
 
 impl NotificationInsertForm {
