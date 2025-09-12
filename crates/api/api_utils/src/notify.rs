@@ -278,11 +278,6 @@ pub async fn notify_private_message(
 // TODO: call directly from each api endpoint and federation handler
 /*
 remaining:
-- admin_add_id,
-- mod_add_to_community_id,
-- admin_ban_id,
-- mod_ban_from_community_id
-- mod_feature_post_id
 - mod_lock_post_id
 - mod_lock_comment_id
 */

@@ -5,7 +5,6 @@ use crate::newtypes::{
   CommentId,
   ModAddToCommunityId,
   ModBanFromCommunityId,
-  ModFeaturePostId,
   ModLockCommentId,
   ModLockPostId,
   ModRemoveCommentId,
@@ -46,7 +45,6 @@ pub struct Notification {
   pub mod_add_to_community_id: Option<ModAddToCommunityId>,
   pub admin_ban_id: Option<AdminBanId>,
   pub mod_ban_from_community_id: Option<ModBanFromCommunityId>,
-  pub mod_feature_post_id: Option<ModFeaturePostId>,
   pub mod_lock_post_id: Option<ModLockPostId>,
   pub mod_remove_comment_id: Option<ModRemoveCommentId>,
   pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
@@ -73,8 +71,6 @@ pub struct NotificationInsertForm {
   pub admin_ban_id: Option<AdminBanId>,
   #[new(default)]
   pub mod_ban_from_community_id: Option<ModBanFromCommunityId>,
-  #[new(default)]
-  pub mod_feature_post_id: Option<ModFeaturePostId>,
   #[new(default)]
   pub mod_lock_post_id: Option<ModLockPostId>,
   #[new(default)]

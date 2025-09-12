@@ -341,11 +341,30 @@ impl ModActionNotify for ModRemoveComment {
     }
   }
 }
+
 impl ModActionNotify for ModRemovePost {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_remove_post_id: Some(self.id),
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
+  }
+}
+
+impl ModActionNotify for ModAddToCommunity {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_add_to_community_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
+  }
+}
+
+impl ModActionNotify for ModBanFromCommunity {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_ban_from_community_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
     }
   }
 }

@@ -313,3 +313,21 @@ impl ModActionNotify for AdminRemoveCommunity {
     }
   }
 }
+
+impl ModActionNotify for AdminAdd {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      admin_add_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+    }
+  }
+}
+
+impl ModActionNotify for AdminBan {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      admin_ban_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
+    }
+  }
+}
