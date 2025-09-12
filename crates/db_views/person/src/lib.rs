@@ -42,12 +42,12 @@ pub struct PersonView {
       select_expression = creator_local_home_banned()
     )
   )]
-  pub creator_banned: bool,
+  pub banned: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = CreatorLocalHomeBanExpiresType,
       select_expression = creator_local_home_ban_expires()
      )
   )]
-  pub creator_ban_expires_at: Option<DateTime<Utc>>,
+  pub ban_expires_at: Option<DateTime<Utc>>,
 }

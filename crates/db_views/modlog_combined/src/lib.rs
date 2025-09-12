@@ -135,6 +135,7 @@ pub struct ModLockCommentView {
   pub moderator: Option<Person>,
   pub other_person: Person,
   pub comment: Comment,
+  pub post: Post,
   pub community: Community,
 }
 
