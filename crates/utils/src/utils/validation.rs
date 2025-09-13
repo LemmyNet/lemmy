@@ -29,12 +29,14 @@ const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
+const ACTOR_NAME_MAX_LENGTH: usize = 20;
+const DISPLAY_NAME_MAX_LENGTH: usize = 50;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
+pub fn is_valid_actor_name(name: &str) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
@@ -43,9 +45,8 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: i32) -> LemmyResul
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
-  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
   min_length_check(name, 3, LemmyErrorType::InvalidName)?;
-  max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
+  max_length_check(name, ACTOR_NAME_MAX_LENGTH, LemmyErrorType::InvalidName)?;
   if VALID_ACTOR_NAME_REGEX.is_match(name) {
     Ok(())
   } else {
@@ -70,11 +71,10 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: i32) -> LemmyResult<()> {
-  let actor_name_max_length: usize = actor_name_max_length.try_into()?;
+pub fn is_valid_display_name(name: &str) -> LemmyResult<()> {
   let check = !name.starts_with('@')
     && !name.starts_with(INVISIBLE_CHARS)
-    && name.chars().count() <= actor_name_max_length
+    && name.chars().count() <= DISPLAY_NAME_MAX_LENGTH
     && !has_newline(name)
     && has_3_permitted_display_chars(name);
   if !check {
@@ -420,50 +420,41 @@ mod tests {
 
   #[test]
   fn test_valid_actor_name() {
-    let actor_name_max_length = 20;
-    assert!(is_valid_actor_name("Hello_98", actor_name_max_length).is_ok());
-    assert!(is_valid_actor_name("ten", actor_name_max_length).is_ok());
-    assert!(is_valid_actor_name("تجريب", actor_name_max_length).is_ok());
-    assert!(is_valid_actor_name("تجريب_123", actor_name_max_length).is_ok());
-    assert!(is_valid_actor_name("Владимир", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("Hello_98",).is_ok());
+    assert!(is_valid_actor_name("ten",).is_ok());
+    assert!(is_valid_actor_name("تجريب",).is_ok());
+    assert!(is_valid_actor_name("تجريب_123",).is_ok());
+    assert!(is_valid_actor_name("Владимир",).is_ok());
 
     // mixed scripts
-    assert!(is_valid_actor_name("تجريب_abc", actor_name_max_length).is_err());
-    assert!(is_valid_actor_name("Влад_abc", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("تجريب_abc",).is_err());
+    assert!(is_valid_actor_name("Влад_abc",).is_err());
     // dash
-    assert!(is_valid_actor_name("Hello-98", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Hello-98",).is_err());
     // too short
-    assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("a",).is_err());
     // empty
-    assert!(is_valid_actor_name("", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("",).is_err());
     // newline
     assert!(is_valid_actor_name(
       r"Line1
 
 Line3",
-      actor_name_max_length
     )
     .is_err());
-    assert!(is_valid_actor_name("Line1\nLine3", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Line1\nLine3",).is_err());
   }
 
   #[test]
   fn test_valid_display_name() {
-    let actor_name_max_length = 20;
-    assert!(is_valid_display_name("hello @there", actor_name_max_length).is_ok());
-    assert!(is_valid_display_name("@hello there", actor_name_max_length).is_err());
-    assert!(is_valid_display_name("\u{200d}hello", actor_name_max_length).is_err());
-    assert!(is_valid_display_name(
-      "\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name",
-      actor_name_max_length
-    )
-    .is_ok());
-    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}", actor_name_max_length).is_err());
+    assert!(is_valid_display_name("hello @there").is_ok());
+    assert!(is_valid_display_name("@hello there").is_err());
+    assert!(is_valid_display_name("\u{200d}hello").is_err());
+    assert!(is_valid_display_name("\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name").is_ok());
+    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}").is_err());
 
     // Make sure zero-space with an @ doesn't work
-    assert!(
-      is_valid_display_name(&format!("{}@my name is", '\u{200b}'), actor_name_max_length).is_err()
-    );
+    assert!(is_valid_display_name(&format!("{}@my name is", '\u{200b}')).is_err());
   }
 
   #[test]

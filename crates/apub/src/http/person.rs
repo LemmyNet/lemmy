@@ -1,9 +1,5 @@
-use crate::protocol::collections::empty_outbox::EmptyOutbox;
-use activitypub_federation::{
-  actix_web::response::create_http_response,
-  config::Data,
-  traits::Object,
-};
+use crate::protocol::collections::url_collection::UrlCollection;
+use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
 use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_objects::objects::person::ApubPerson;
@@ -41,7 +37,6 @@ pub(crate) async fn get_apub_person_outbox(
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  let outbox_id = generate_outbox_url(&person.ap_id)?.into();
-  let outbox = EmptyOutbox::new(outbox_id)?;
-  Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
+  let outbox_id = generate_outbox_url(&person.ap_id)?.to_string();
+  UrlCollection::new_empty_response(outbox_id)
 }

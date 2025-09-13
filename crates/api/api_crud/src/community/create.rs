@@ -6,8 +6,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
     check_nsfw_allowed,
+    generate_featured_url,
     generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     get_url_blocklist,
     is_admin,
     process_markdown_opt,
@@ -35,7 +37,12 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{description_length_check, is_valid_actor_name, is_valid_body_field},
+    validation::{
+      description_length_check,
+      is_valid_actor_name,
+      is_valid_body_field,
+      is_valid_display_name,
+    },
   },
 };
 
@@ -57,6 +64,8 @@ pub async fn create_community(
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let title = data.title.trim();
+  is_valid_display_name(title)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(sidebar) = &sidebar {
@@ -69,7 +78,7 @@ pub async fn create_community(
     check_slurs(desc, &slur_regex)?;
   }
 
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
+  is_valid_actor_name(&data.name)?;
 
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
@@ -93,6 +102,8 @@ pub async fn create_community(
     private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
+    moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+    featured_url: Some(generate_featured_url(&community_ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(

@@ -250,6 +250,8 @@ pub async fn generate_post_link_metadata(
     embed_title: Some(metadata.opengraph_data.title),
     embed_description: Some(metadata.opengraph_data.description),
     embed_video_url: Some(metadata.opengraph_data.embed_video_url),
+    embed_video_width: Some(metadata.opengraph_data.video_width.map(i32::from)),
+    embed_video_height: Some(metadata.opengraph_data.video_height.map(i32::from)),
     thumbnail_url: Some(thumbnail_url),
     url_content_type: Some(metadata.content_type),
     ..Default::default()
@@ -295,6 +297,7 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     .opengraph
     .images
     .first()
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|ogo| url.join(&ogo.url).ok());
 
@@ -305,6 +308,8 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     .opengraph
     .videos
     .first()
+    // Sometime sites provide `og:video` tags with empty content
+    .filter(|v| !v.url.is_empty())
     // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
 
@@ -669,6 +674,11 @@ mod tests {
       (metadata.image_width, metadata.image_height),
       (Some(400), Some(200))
     );
+
+    // Empty urls shouldn't return anything
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content=''></head><body></body></html>";
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
+    assert_eq!(metadata.image, None);
 
     Ok(())
   }

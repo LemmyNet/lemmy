@@ -650,6 +650,52 @@ test("Remote mods can edit communities", async () => {
   );
 });
 
+test("Remote mods can add mods", async () => {
+  let alphaCommunity = await createCommunity(alpha);
+
+  let betaCommunity = await resolveCommunity(
+    beta,
+    alphaCommunity.community_view.community.ap_id,
+  );
+  if (!betaCommunity?.community) {
+    throw "Missing beta community";
+  }
+  let betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
+  let gammaOnBeta = await resolvePerson(beta, "lemmy_gamma@lemmy-gamma:8561");
+
+  // Follow so we get activities
+  await followCommunity(beta, true, betaCommunity.community.id);
+
+  let form: AddModToCommunity = {
+    community_id: alphaCommunity.community_view.community.id,
+    person_id: betaOnAlpha?.person.id as number,
+    added: true,
+  };
+  await alpha.addModToCommunity(form);
+
+  await delay(500);
+
+  let form2: AddModToCommunity = {
+    community_id: betaCommunity.community.id,
+    person_id: gammaOnBeta?.person.id as number,
+    added: true,
+  };
+  await beta.addModToCommunity(form2);
+
+  await delay(500);
+
+  let betaCommunity2 = await getCommunity(beta, betaCommunity.community.id);
+
+  expect(betaCommunity2.moderators.length).toBe(3);
+
+  let alphaCommunity2 = await getCommunity(
+    alpha,
+    alphaCommunity.community_view.community.id,
+  );
+
+  expect(alphaCommunity2.moderators.length).toBe(3);
+});
+
 test("Community name with non-ascii chars", async () => {
   const name = "това_ме_ядосва" + Math.random().toString().slice(2, 6);
   let communityRes = await createCommunity(alpha, name);

@@ -118,6 +118,17 @@ pub struct ListCommentLikes {
   pub limit: Option<i64>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Locks a comment and its children, IE prevents new replies.
+pub struct LockComment {
+  pub comment_id: CommentId,
+  pub locked: bool,
+  pub reason: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]

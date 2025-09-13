@@ -1,7 +1,10 @@
+use crate::protocol::collections::url_collection::UrlCollection;
 use activitypub_federation::{
+  actix_web::response::create_http_response,
   config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
 };
+use actix_web::HttpResponse;
 use community_featured::ApubCommunityFeatured;
 use community_follower::ApubCommunityFollower;
 use community_moderators::ApubCommunityModerators;
@@ -15,7 +18,8 @@ use lemmy_apub_objects::{
     protocol::{AttributedTo, PersonOrGroupType},
   },
 };
-use lemmy_utils::spawn_try_task;
+use lemmy_db_schema::source::{comment::Comment, post::Post};
+use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
 
 pub(crate) mod community_featured;
 pub(crate) mod community_follower;
@@ -55,4 +59,34 @@ pub fn fetch_community_collections(
     }
     Ok(())
   });
+}
+
+impl UrlCollection {
+  pub(crate) async fn new_response(
+    post: &Post,
+    id: String,
+    context: &LemmyContext,
+  ) -> LemmyResult<HttpResponse> {
+    let mut ordered_items = vec![post.ap_id.clone().into()];
+    let comments = Comment::read_ap_ids_for_post(post.id, &mut context.pool()).await?;
+    ordered_items.extend(comments.into_iter().map(Into::into));
+    let collection = Self {
+      r#type: Default::default(),
+      id,
+      total_items: ordered_items.len().try_into()?,
+      ordered_items,
+    };
+    Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+  }
+
+  /// Empty placeholder outbox used for Person, Instance, which dont implement a proper outbox.
+  pub(crate) fn new_empty_response(id: String) -> LemmyResult<HttpResponse> {
+    let collection = Self {
+      r#type: Default::default(),
+      id,
+      ordered_items: vec![],
+      total_items: 0,
+    };
+    Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+  }
 }

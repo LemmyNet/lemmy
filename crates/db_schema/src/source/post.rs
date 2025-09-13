@@ -85,6 +85,8 @@ pub struct Post {
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
   /// accepted by the community (by receiving it back via federation).
   pub federation_pending: bool,
+  pub embed_video_width: Option<i32>,
+  pub embed_video_height: Option<i32>,
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
@@ -120,6 +122,10 @@ pub struct PostInsertForm {
   pub embed_description: Option<String>,
   #[new(default)]
   pub embed_video_url: Option<DbUrl>,
+  #[new(default)]
+  pub embed_video_width: Option<i32>,
+  #[new(default)]
+  pub embed_video_height: Option<i32>,
   #[new(default)]
   pub thumbnail_url: Option<DbUrl>,
   #[new(default)]
@@ -158,6 +164,8 @@ pub struct PostUpdateForm {
   pub embed_title: Option<Option<String>>,
   pub embed_description: Option<Option<String>>,
   pub embed_video_url: Option<Option<DbUrl>>,
+  pub embed_video_width: Option<Option<i32>>,
+  pub embed_video_height: Option<Option<i32>>,
   pub thumbnail_url: Option<Option<DbUrl>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,

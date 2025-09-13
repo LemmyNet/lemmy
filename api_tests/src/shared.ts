@@ -43,6 +43,7 @@ import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
 import { GetPost } from "lemmy-js-client/dist/types/GetPost";
 import { GetPostResponse } from "lemmy-js-client/dist/types/GetPostResponse";
+import { LockComment } from "lemmy-js-client/dist/types/LockComment";
 import { LockPost } from "lemmy-js-client/dist/types/LockPost";
 import { Login } from "lemmy-js-client/dist/types/Login";
 import { Post } from "lemmy-js-client/dist/types/Post";
@@ -56,6 +57,7 @@ import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
 import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
+import { GetCommunityResponse } from "lemmy-js-client/dist/types/GetCommunityResponse";
 import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
 import { CreatePostLike } from "lemmy-js-client/dist/types/CreatePostLike";
 import { CommentResponse } from "lemmy-js-client/dist/types/CommentResponse";
@@ -364,6 +366,18 @@ export async function getPost(
   return api.getPost(form);
 }
 
+export async function lockComment(
+  api: LemmyHttp,
+  locked: boolean,
+  comment: Comment,
+): Promise<CommentResponse> {
+  let form: LockComment = {
+    comment_id: comment.id,
+    locked,
+  };
+  return api.lockComment(form);
+}
+
 export async function getComments(
   api: LemmyHttp,
   post_id?: number,
@@ -601,7 +615,7 @@ export async function editCommunity(
 export async function getCommunity(
   api: LemmyHttp,
   id: number,
-): Promise<CommunityResponse> {
+): Promise<GetCommunityResponse> {
   let form: GetCommunity = {
     id,
   };

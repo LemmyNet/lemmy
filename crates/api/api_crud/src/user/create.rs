@@ -167,6 +167,7 @@ pub async fn register(
           person,
           local_user,
           banned: false,
+          ban_expires_at: None,
         })
       }
       .scope_boxed()
@@ -410,6 +411,7 @@ pub async fn authenticate_with_oauth(
               person,
               local_user,
               banned: false,
+              ban_expires_at: None,
             })
           }
           .scope_boxed()
@@ -443,7 +445,7 @@ async fn create_person(
   conn: &mut AsyncPgConnection,
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
-  is_valid_actor_name(&username, site_view.local_site.actor_name_max_length)?;
+  is_valid_actor_name(&username)?;
   let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
 
   // Register the new person

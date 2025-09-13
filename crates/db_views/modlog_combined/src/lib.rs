@@ -19,6 +19,7 @@ use lemmy_db_schema::source::{
       ModBanFromCommunity,
       ModChangeCommunityVisibility,
       ModFeaturePost,
+      ModLockComment,
       ModLockPost,
       ModRemoveComment,
       ModRemovePost,
@@ -33,7 +34,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{utils::queries::person1_select, Person1AliasAllColumnsTuple},
+  lemmy_db_schema::{utils::queries::selects::person1_select, Person1AliasAllColumnsTuple},
 };
 
 pub mod api;
@@ -118,6 +119,22 @@ pub struct ModLockPostView {
   pub mod_lock_post: ModLockPost,
   pub moderator: Option<Person>,
   pub other_person: Person,
+  pub post: Post,
+  pub community: Community,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// When a moderator locks a comment (prevents replies to it or its children).
+pub struct ModLockCommentView {
+  pub mod_lock_comment: ModLockComment,
+  pub moderator: Option<Person>,
+  pub other_person: Person,
+  pub comment: Comment,
   pub post: Post,
   pub community: Community,
 }
@@ -311,6 +328,8 @@ pub(crate) struct ModlogCombinedViewInternal {
   pub mod_remove_post: Option<ModRemovePost>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_transfer_community: Option<ModTransferCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub mod_lock_comment: Option<ModLockComment>,
   // Specific fields
 
   // Shared
@@ -356,4 +375,5 @@ pub enum ModlogCombinedView {
   AdminRemoveCommunity(AdminRemoveCommunityView),
   ModRemovePost(ModRemovePostView),
   ModTransferCommunity(ModTransferCommunityView),
+  ModLockComment(ModLockCommentView),
 }

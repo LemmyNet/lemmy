@@ -37,7 +37,6 @@ lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 activitypub_federation = { workspace = true }
 actix-web = { workspace = true, features = ["cookies"] }
-anyhow = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }

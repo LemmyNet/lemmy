@@ -189,6 +189,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        locked -> Bool,
     }
 }
 
@@ -225,7 +226,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         title -> Varchar,
         sidebar -> Nullable<Text>,
         removed -> Bool,
@@ -458,7 +459,6 @@ diesel::table! {
         legal_information -> Nullable<Text>,
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
-        actor_name_max_length -> Int4,
         federation_enabled -> Bool,
         captcha_enabled -> Bool,
         #[max_length = 255]
@@ -558,11 +558,11 @@ diesel::table! {
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
-        enable_private_messages -> Bool,
         collapse_bot_comments -> Bool,
+        last_donation_notification_at -> Timestamptz,
+        enable_private_messages -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
-        last_donation_notification_at -> Timestamptz,
         hide_media -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
@@ -648,6 +648,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    mod_lock_comment (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        comment_id -> Int4,
+        locked -> Bool,
+        reason -> Nullable<Text>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     mod_lock_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -711,6 +722,7 @@ diesel::table! {
         mod_remove_post_id -> Nullable<Int4>,
         mod_transfer_community_id -> Nullable<Int4>,
         mod_change_community_visibility_id -> Nullable<Int4>,
+        mod_lock_comment_id -> Nullable<Int4>,
     }
 }
 
@@ -817,7 +829,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 255]
         name -> Varchar,
-        #[max_length = 255]
+        #[max_length = 50]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
         published_at -> Timestamptz,
@@ -930,6 +942,8 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
+        embed_video_width -> Nullable<Int4>,
+        embed_video_height -> Nullable<Int4>,
     }
 }
 
@@ -1185,6 +1199,8 @@ diesel::joinable!(mod_change_community_visibility -> community (community_id));
 diesel::joinable!(mod_change_community_visibility -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
 diesel::joinable!(mod_feature_post -> post (post_id));
+diesel::joinable!(mod_lock_comment -> comment (comment_id));
+diesel::joinable!(mod_lock_comment -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> person (mod_person_id));
 diesel::joinable!(mod_lock_post -> post (post_id));
 diesel::joinable!(mod_remove_comment -> comment (comment_id));
@@ -1205,6 +1221,7 @@ diesel::joinable!(modlog_combined -> mod_add_to_community (mod_add_to_community_
 diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
 diesel::joinable!(modlog_combined -> mod_change_community_visibility (mod_change_community_visibility_id));
 diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
+diesel::joinable!(modlog_combined -> mod_lock_comment (mod_lock_comment_id));
 diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
 diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
 diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
@@ -1297,6 +1314,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   mod_ban_from_community,
   mod_change_community_visibility,
   mod_feature_post,
+  mod_lock_comment,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_post,

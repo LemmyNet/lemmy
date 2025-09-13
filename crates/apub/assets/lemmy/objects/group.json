@@ -47,7 +47,7 @@
     {
       "type": "CommunityPostTag",
       "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
-      "name": "news"
+      "preferredUsername": "news"
     }
   ],
   "published": "2019-06-02T16:43:50.799554Z",

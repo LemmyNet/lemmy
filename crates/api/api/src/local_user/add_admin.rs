@@ -12,7 +12,7 @@ use lemmy_db_views_person::{
   api::{AddAdmin, AddAdminResponse},
   impls::PersonQuery,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
   data: Json<AddAdmin>,
@@ -28,6 +28,21 @@ pub async fn add_admin(
   if !data.added {
     LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id])
       .await?;
+
+    // Dont allow removing the last admin
+    let admins = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(
+      None,
+      local_user_view.person.instance_id,
+      &mut context.pool(),
+    )
+    .await?;
+    if admins.len() == 1 {
+      Err(LemmyErrorType::CannotLeaveAdmin)?
+    }
   }
 
   // Make sure that the person_id added is local

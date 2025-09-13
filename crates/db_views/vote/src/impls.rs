@@ -17,9 +17,8 @@ use lemmy_db_schema::{
     limit_fetch,
     paginate,
     queries::{
-      creator_banned,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
+      joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+      selects::creator_local_home_banned,
     },
     DbPool,
   },
@@ -89,7 +88,7 @@ impl VoteView {
       .filter(post_actions::like_score.is_not_null())
       .select((
         person::all_columns,
-        creator_banned(),
+        creator_local_home_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)
           .nullable()
@@ -163,7 +162,7 @@ impl VoteView {
       .filter(comment_actions::like_score.is_not_null())
       .select((
         person::all_columns,
-        creator_banned(),
+        creator_local_home_banned(),
         creator_community_actions
           .field(community_actions::received_ban_at)
           .nullable()

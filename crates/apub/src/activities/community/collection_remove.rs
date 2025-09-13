@@ -109,6 +109,7 @@ impl Activity for CollectionRemove {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+
     match collection_type {
       CollectionType::Moderators => {
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)

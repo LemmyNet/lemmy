@@ -25,6 +25,7 @@ pub enum LemmyErrorType {
   EmailNotVerified,
   EmailRequired,
   CannotLeaveAdmin,
+  CannotLeaveMod,
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
   ImageUrlMissingPathSegments,
