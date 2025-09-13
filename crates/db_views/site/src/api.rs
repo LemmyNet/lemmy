@@ -129,7 +129,6 @@ pub struct CreateSite {
   pub application_email_admins: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub slur_filter_regex: Option<String>,
-  pub actor_name_max_length: Option<i32>,
   pub rate_limit_message_max_requests: Option<i32>,
   pub rate_limit_message_interval_seconds: Option<i32>,
   pub rate_limit_post_max_requests: Option<i32>,
@@ -228,8 +227,6 @@ pub struct EditSite {
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// A regex string of items to filter.
   pub slur_filter_regex: Option<String>,
-  /// The max length of actor names.
-  pub actor_name_max_length: Option<i32>,
   /// The number of messages allowed in a given time frame.
   pub rate_limit_message_max_requests: Option<i32>,
   pub rate_limit_message_interval_seconds: Option<i32>,
@@ -712,6 +709,7 @@ pub struct ResolveObject {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "type_")]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),

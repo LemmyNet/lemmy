@@ -179,7 +179,8 @@ test("Create user with accept-language", async () => {
   let site = await getSite(user);
   let langs = site.all_languages
     .filter(a => my_user.discussion_languages.includes(a.id))
-    .map(l => l.code);
+    .map(l => l.code)
+    .sort();
   // should have languages from accept header, as well as "undetermined"
   // which is automatically enabled by backend
   expect(langs).toStrictEqual(["de", "en", "fr"]);

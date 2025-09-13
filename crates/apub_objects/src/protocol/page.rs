@@ -70,10 +70,11 @@ pub struct Page {
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
   /// Contains hashtags and post tags.
   /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<HashtagOrLemmyTag>,
+  pub(crate) context: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -246,7 +247,7 @@ impl InCommunity for Page {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
-            let cid = ObjectId::from(cid.clone());
+            let cid = ObjectId::<ApubCommunity>::from(cid.clone());
             if let Ok(c) = cid.dereference(context).await {
               break c;
             }

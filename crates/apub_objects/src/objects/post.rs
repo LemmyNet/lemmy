@@ -13,6 +13,7 @@ use crate::{
   utils::{
     functions::{
       check_apub_id_valid_with_strictness,
+      context_url,
       generate_to,
       read_from_string_or_source_opt,
       verify_person_in_community,
@@ -176,6 +177,7 @@ impl Object for ApubPost {
       updated: self.updated_at,
       in_reply_to: None,
       tag: tags,
+      context: Some(context_url(&self.ap_id)),
     };
     Ok(page)
   }
@@ -285,6 +287,7 @@ impl Object for ApubPost {
       .await?,
     );
 
+    let orig_post = Post::read_from_apub_id(&mut context.pool(), page.id.clone().into()).await;
     let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
@@ -310,11 +313,15 @@ impl Object for ApubPost {
     let post_ = post.clone();
     let context_ = context.clone();
 
-    // Generates a post thumbnail in background task, because some sites can be very slow to
-    // respond.
-    spawn_try_task(
-      async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
-    );
+    // Avoid regenerating metadata if the post already existed with the same url
+    let no_generate_metadata = orig_post.ok().flatten().is_some_and(|p| p.url == post.url);
+    if !no_generate_metadata {
+      // Generates a post thumbnail in background task, because some sites can be very slow to
+      // respond.
+      spawn_try_task(
+        async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
+      );
+    }
 
     Ok(post.into())
   }

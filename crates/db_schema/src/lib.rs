@@ -99,6 +99,7 @@ pub enum ModlogActionType {
   ModLockPost,
   ModFeaturePost,
   ModRemoveComment,
+  ModLockComment,
   AdminRemoveCommunity,
   ModBanFromCommunity,
   ModAddToCommunity,

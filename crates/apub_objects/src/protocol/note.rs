@@ -61,6 +61,7 @@ pub struct Note {
   pub(crate) language: Option<LanguageTag>,
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
+  pub(crate) context: Option<String>,
 }
 
 impl Note {

@@ -6,7 +6,7 @@ use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
   notify::NotifyData,
-  plugins::plugin_hook_after,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
@@ -97,8 +97,14 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post =
-    PostView::read(&mut context.pool(), post_id, None, local_instance_id, false).await?;
+  let orig_post = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    local_instance_id,
+    false,
+  )
+  .await?;
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
@@ -130,7 +136,7 @@ pub async fn update_post(
     (_, _) => None,
   };
 
-  let post_form = PostUpdateForm {
+  let mut post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
     body,
@@ -141,8 +147,7 @@ pub async fn update_post(
     scheduled_publish_time_at,
     ..Default::default()
   };
-  // TODO this is currently broken
-  // post_form = plugin_hook_before("before_update_local_post", post_form).await?;
+  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;

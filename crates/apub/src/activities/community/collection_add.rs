@@ -113,7 +113,8 @@ impl Activity for CollectionAdd {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.clone().into()).await?;
+
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)

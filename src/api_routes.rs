@@ -4,6 +4,7 @@ use lemmy_api::{
     distinguish::distinguish_comment,
     like::like_comment,
     list_comment_likes::list_comment_likes,
+    lock::lock_comment,
     save::save_comment,
   },
   community::{
@@ -81,7 +82,6 @@ use lemmy_api::{
     admin_block_instance::admin_block_instance,
     admin_list_users::admin_list_users,
     federated_instances::get_federated_instances,
-    leave_admin::leave_admin,
     list_all_media::list_all_media,
     mod_log::get_mod_log,
     purge::{
@@ -317,6 +317,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
+          .route("/lock", post().to(lock_comment))
           .route("/list", get().to(list_comments))
           .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
@@ -449,7 +450,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/ban", post().to(ban_from_site))
           .route("/users", get().to(admin_list_users))
-          .route("/leave", post().to(leave_admin))
           .service(
             scope("/instance")
               .route("/block", post().to(admin_block_instance))

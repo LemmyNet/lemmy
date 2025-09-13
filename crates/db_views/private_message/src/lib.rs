@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::person1_select,
+  lemmy_db_schema::utils::queries::selects::person1_select,
   lemmy_db_schema::Person1AliasAllColumnsTuple,
 };
 

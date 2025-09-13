@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
@@ -38,6 +38,12 @@ pub async fn add_mod_to_community(
       vec![data.person_id],
     )
     .await?;
+
+    // Dont allow the last community mod to remove himself
+    let mods = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+    if !local_user_view.local_user.admin && mods.len() == 1 {
+      Err(LemmyErrorType::CannotLeaveMod)?
+    }
   }
 
   // If user is admin and community is remote, explicitly check that he is a

@@ -9,7 +9,10 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::{community_post_tags_fragment, local_user_community_can_mod},
+  lemmy_db_schema::utils::queries::selects::{
+    community_post_tags_fragment,
+    local_user_community_can_mod,
+  },
 };
 
 pub mod api;

@@ -19,7 +19,6 @@ use lemmy_db_views_community::{
   CommunityView,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -34,10 +33,7 @@ pub async fn create_community_tag(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
-  // reuse this existing function for validation
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_site = site_view.local_site;
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length)?;
+  is_valid_actor_name(&data.name)?;
 
   let community_view =
     CommunityView::read(&mut context.pool(), data.community_id, None, false).await?;

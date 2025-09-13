@@ -57,6 +57,7 @@ pub enum SendActivityData {
     community: Community,
     reason: Option<String>,
   },
+  LockComment(Comment, Person, bool, Option<String>),
   LikePostOrComment {
     object_id: DbUrl,
     actor: Person,

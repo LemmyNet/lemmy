@@ -23,20 +23,22 @@ use lemmy_db_schema::{
     limit_fetch,
     paginate,
     queries::{
-      community_join,
-      creator_community_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      filter_blocked,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_instance_communities_actions_join,
-      my_instance_persons_actions_join_1,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
+      filters::filter_blocked,
+      joins::{
+        community_join,
+        creator_community_actions_join,
+        creator_home_instance_actions_join,
+        creator_local_instance_actions_join,
+        creator_local_user_admin_join,
+        image_details_join,
+        my_comment_actions_join,
+        my_community_actions_join,
+        my_instance_communities_actions_join,
+        my_instance_persons_actions_join_1,
+        my_local_user_admin_join,
+        my_person_actions_join,
+        my_post_actions_join,
+      },
     },
     DbPool,
   },
@@ -294,8 +296,10 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       post_tags: v.post_tags,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
+      creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
       creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
   } else if let (Some(post), Some(community)) = (v.post, v.community) {
     NotificationData::Post(PostView {
@@ -310,8 +314,10 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       tags: v.post_tags,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
+      creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
       creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
   } else if let Some(private_message) = v.private_message {
     NotificationData::PrivateMessage(PrivateMessageView {

@@ -1,9 +1,10 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{local_user::LocalUser, person::Person};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
-  lemmy_db_schema::utils::queries::creator_home_banned,
+  lemmy_db_schema::utils::queries::selects::{creator_home_ban_expires, creator_home_banned},
 };
 
 pub mod api;
@@ -27,4 +28,10 @@ pub struct LocalUserView {
     )
   )]
   pub banned: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_home_ban_expires()
+     )
+  )]
+  pub ban_expires_at: Option<DateTime<Utc>>,
 }
