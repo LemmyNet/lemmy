@@ -297,7 +297,7 @@ pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
 
 pub fn limit_fetch_check(limit: i64) -> LemmyResult<i64> {
   if !(1..=FETCH_LIMIT_MAX.try_into()?).contains(&limit) {
-    return Err(LemmyErrorType::InvalidFetchLimit.into());
+    Err(LemmyErrorType::InvalidFetchLimit.into())
   } else {
     Ok(limit)
   }
