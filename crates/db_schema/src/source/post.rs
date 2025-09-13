@@ -195,8 +195,8 @@ pub struct PostActions {
   pub read_comments_at: Option<DateTime<Utc>>,
   /// When the post was saved.
   pub saved_at: Option<DateTime<Utc>>,
-  /// When the post was liked.
-  pub liked_at: Option<DateTime<Utc>>,
+  /// When the post was upvoted or downvoted.
+  pub voted_at: Option<DateTime<Utc>>,
   /// When the post was hidden.
   pub hidden_at: Option<DateTime<Utc>>,
   #[serde(skip)]
@@ -206,8 +206,8 @@ pub struct PostActions {
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
   pub read_comments_amount: Option<i32>,
-  /// The like / score of the post. Upvote is greater than downvote.
-  pub like_score_is_positive: Option<bool>,
+  /// True if upvoted, false if downvoted. Upvote is greater than downvote.
+  pub vote_is_upvote: Option<bool>,
   pub notifications: Option<PostNotificationsMode>,
 }
 

@@ -125,16 +125,16 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
-  /// When the comment was liked.
-  pub liked_at: Option<DateTime<Utc>>,
+  /// When the comment was upvoted or downvoted.
+  pub voted_at: Option<DateTime<Utc>>,
   /// When the comment was saved.
   pub saved_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
-  /// The like / score for the comment. Upvote is greater than downvote.
-  pub like_score_is_positive: Option<bool>,
+  /// True if upvoted, false if downvoted. Upvote is greater than downvote.
+  pub vote_is_upvote: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]

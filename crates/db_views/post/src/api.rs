@@ -48,7 +48,7 @@ pub struct CreatePost {
 /// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
-  pub score_is_positive: Option<bool>,
+  pub is_upvote: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
