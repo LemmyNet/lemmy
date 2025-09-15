@@ -556,7 +556,6 @@ diesel::table! {
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
-        enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
         last_donation_notification_at -> Timestamptz,
