@@ -2,7 +2,7 @@ use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessag
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use lemmy_db_schema_file::enums::NotificationTypes;
+use lemmy_db_schema_file::enums::NotificationType;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::notification;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ pub struct Notification {
   pub comment_id: Option<CommentId>,
   pub read: bool,
   pub published_at: DateTime<Utc>,
-  pub kind: NotificationTypes,
+  pub kind: NotificationType,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
 }
@@ -33,13 +33,13 @@ pub struct Notification {
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
   pub comment_id: Option<CommentId>,
-  pub kind: NotificationTypes,
+  pub kind: NotificationType,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
 }
 
 impl NotificationInsertForm {
-  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationTypes) -> Self {
+  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
       post_id: Some(post_id),
       comment_id: None,
@@ -51,7 +51,7 @@ impl NotificationInsertForm {
   pub fn new_comment(
     comment_id: CommentId,
     recipient_id: PersonId,
-    kind: NotificationTypes,
+    kind: NotificationType,
   ) -> Self {
     Self {
       post_id: None,
@@ -67,7 +67,7 @@ impl NotificationInsertForm {
       comment_id: None,
       private_message_id: Some(private_message_id),
       recipient_id,
-      kind: NotificationTypes::PrivateMessage,
+      kind: NotificationType::PrivateMessage,
     }
   }
 }
