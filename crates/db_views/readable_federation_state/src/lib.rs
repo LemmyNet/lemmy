@@ -13,5 +13,5 @@ pub struct ReadableFederationState {
   #[serde(flatten)]
   internal_state: FederationQueueState,
   /// timestamp of the next retry attempt (null if fail count is 0)
-  next_retry: Option<DateTime<Utc>>,
+  next_retry_at: Option<DateTime<Utc>>,
 }
