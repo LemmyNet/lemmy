@@ -2,6 +2,7 @@ use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
   source::notification::NotificationInsertForm,
   utils::{get_conn, DbPool},
+  ModlogActionType,
 };
 use diesel::{
   associations::HasTable,
@@ -252,4 +253,5 @@ pub trait PaginationCursorBuilder {
 
 pub trait ModActionNotify {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
+  fn kind(&self) -> ModlogActionType;
 }

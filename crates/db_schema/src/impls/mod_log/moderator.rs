@@ -37,6 +37,7 @@ use crate::{
   },
   traits::{Crud, ModActionNotify},
   utils::{get_conn, DbPool},
+  ModlogActionType,
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -340,6 +341,9 @@ impl ModActionNotify for ModRemoveComment {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
   }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModRemoveComment
+  }
 }
 
 impl ModActionNotify for ModRemovePost {
@@ -348,6 +352,9 @@ impl ModActionNotify for ModRemovePost {
       mod_remove_post_id: Some(self.id),
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
+  }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModRemovePost
   }
 }
 
@@ -358,6 +365,9 @@ impl ModActionNotify for ModAddToCommunity {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
   }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModAddToCommunity
+  }
 }
 
 impl ModActionNotify for ModBanFromCommunity {
@@ -366,6 +376,9 @@ impl ModActionNotify for ModBanFromCommunity {
       mod_ban_from_community_id: Some(self.id),
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
     }
+  }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModBanFromCommunity
   }
 }
 
@@ -376,6 +389,9 @@ impl ModActionNotify for ModLockPost {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
     }
   }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModLockPost
+  }
 }
 
 impl ModActionNotify for ModLockComment {
@@ -384,5 +400,8 @@ impl ModActionNotify for ModLockComment {
       mod_lock_comment_id: Some(self.id),
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
     }
+  }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModLockComment
   }
 }

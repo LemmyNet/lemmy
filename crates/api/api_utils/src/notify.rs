@@ -287,12 +287,22 @@ where
     };
 
     let form = action.insert_form(target_id);
+    let is_revert = form.kind == NotificationTypes::RevertModAction;
     Notification::create(&mut context.pool(), &[form]).await?;
 
-    // TODO: Send email
-    // TODO: How to handle email text, do we add a separate translation string for each mod action?
-    //       Or a single text with `mod_action_type` mentioned in the subject/body.
-    //       https://github.com/LemmyNet/lemmy-ui/issues/31
+    let modlog_url = format!(
+      "{}/modlog?userId={}&actionType={}",
+      context.settings().get_protocol_and_hostname(),
+      local_recipient.person.id.0,
+      action.kind()
+    );
+    let d = NotificationEmailData::ModAction { is_revert };
+    send_notification_email(
+      local_recipient,
+      Url::parse(&modlog_url)?.into(),
+      d,
+      context.settings(),
+    );
     Ok(())
   })
 }

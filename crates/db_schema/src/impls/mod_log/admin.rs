@@ -37,6 +37,7 @@ use crate::{
   },
   traits::{Crud, ModActionNotify},
   utils::{get_conn, DbPool},
+  ModlogActionType,
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -312,6 +313,9 @@ impl ModActionNotify for AdminRemoveCommunity {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
   }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::AdminRemoveCommunity
+  }
 }
 
 impl ModActionNotify for AdminAdd {
@@ -321,6 +325,9 @@ impl ModActionNotify for AdminAdd {
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
     }
   }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::AdminAdd
+  }
 }
 
 impl ModActionNotify for AdminBan {
@@ -329,5 +336,8 @@ impl ModActionNotify for AdminBan {
       admin_ban_id: Some(self.id),
       ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
     }
+  }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::AdminBan
   }
 }

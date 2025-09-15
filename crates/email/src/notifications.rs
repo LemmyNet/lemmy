@@ -29,6 +29,9 @@ pub enum NotificationEmailData<'a> {
     sender: &'a Person,
     content: &'a String,
   },
+  ModAction {
+    is_revert: bool,
+  },
 }
 
 pub fn send_notification_email(
@@ -107,6 +110,19 @@ pub fn send_notification_email(
         lang.notification_private_message_subject(sender_name),
         lang.notification_private_message_body(inbox_link, &content, sender_name),
       )
+    }
+    NotificationEmailData::ModAction { is_revert } => {
+      if is_revert {
+        (
+          lang.notification_mod_action_subject().to_string(),
+          lang.notification_mod_action_body(inbox_link),
+        )
+      } else {
+        (
+          lang.notification_mod_action_reverted_subject().to_string(),
+          lang.notification_mod_action_reverted_body(inbox_link),
+        )
+      }
     }
   };
 
