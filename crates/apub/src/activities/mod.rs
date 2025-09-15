@@ -59,7 +59,7 @@ pub mod deletion;
 pub mod following;
 pub mod voting;
 
-const MOD_ACTION_DEFAULT_REASON: &'static str = "No reason provided";
+const MOD_ACTION_DEFAULT_REASON: &str = "No reason provided";
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
