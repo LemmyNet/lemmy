@@ -152,7 +152,6 @@ pub async fn save_user_settings(
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,
     post_listing_mode: data.post_listing_mode,
-    enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
     enable_private_messages: data.enable_private_messages,
     collapse_bot_comments: data.collapse_bot_comments,

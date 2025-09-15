@@ -523,8 +523,6 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
-  pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: Option<bool>,
