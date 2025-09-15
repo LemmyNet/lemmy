@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_opt_number_update, diesel_string_update},
+  utils::{diesel_opt_number_update, diesel_string_update, limit_fetch_check},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
@@ -99,7 +99,12 @@ pub async fn save_user_settings(
   let default_post_sort_type = data.default_post_sort_type;
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);
+
   let default_items_per_page = data.default_items_per_page;
+  if let Some(default_items_per_page) = default_items_per_page {
+    limit_fetch_check(default_items_per_page.into())?;
+  };
+
   let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
@@ -159,7 +164,7 @@ pub async fn save_user_settings(
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     hide_media: data.hide_media,
     // Update the vote display modes
-    show_score: data.show_scores,
+    show_score: data.show_score,
     show_upvotes: data.show_upvotes,
     show_downvotes: data.show_downvotes,
     show_upvote_percentage: data.show_upvote_percentage,

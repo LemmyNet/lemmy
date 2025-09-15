@@ -533,7 +533,7 @@ pub struct SaveUserSettings {
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
-  pub show_scores: Option<bool>,
+  pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
   pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
