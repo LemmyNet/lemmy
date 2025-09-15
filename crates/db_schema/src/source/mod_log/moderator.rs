@@ -42,7 +42,7 @@ pub struct ModRemovePost {
   pub id: ModRemovePostId,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: bool,
   pub published_at: DateTime<Utc>,
 }
@@ -52,7 +52,7 @@ pub struct ModRemovePost {
 pub struct ModRemovePostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: Option<bool>,
 }
 
@@ -69,7 +69,7 @@ pub struct ModLockPost {
   pub post_id: PostId,
   pub locked: bool,
   pub published_at: DateTime<Utc>,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -78,7 +78,7 @@ pub struct ModLockPostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub locked: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -118,7 +118,7 @@ pub struct ModRemoveComment {
   pub id: ModRemoveCommentId,
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: bool,
   pub published_at: DateTime<Utc>,
 }
@@ -128,7 +128,7 @@ pub struct ModRemoveComment {
 pub struct ModRemoveCommentForm {
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: Option<bool>,
 }
 
@@ -144,7 +144,7 @@ pub struct ModLockComment {
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
   pub locked: bool,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -154,7 +154,7 @@ pub struct ModLockCommentForm {
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
   pub locked: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -170,7 +170,7 @@ pub struct ModBanFromCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: bool,
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
@@ -182,7 +182,7 @@ pub struct ModBanFromCommunityForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: Option<bool>,
   pub expires_at: Option<DateTime<Utc>>,
 }

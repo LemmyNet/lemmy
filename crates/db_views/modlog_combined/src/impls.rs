@@ -821,7 +821,7 @@ mod tests {
       instance_id: data.instance.id,
       admin_person_id: data.timmy.id,
       allowed: true,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminAllowInstance::create(pool, &form).await?;
 
@@ -829,33 +829,33 @@ mod tests {
       instance_id: data.instance.id,
       admin_person_id: data.timmy.id,
       blocked: true,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminBlockInstance::create(pool, &form).await?;
 
     let form = AdminPurgeCommentForm {
       admin_person_id: data.timmy.id,
       post_id: data.post.id,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminPurgeComment::create(pool, &form).await?;
 
     let form = AdminPurgeCommunityForm {
       admin_person_id: data.timmy.id,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminPurgeCommunity::create(pool, &form).await?;
 
     let form = AdminPurgePersonForm {
       admin_person_id: data.timmy.id,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminPurgePerson::create(pool, &form).await?;
 
     let form = AdminPurgePostForm {
       admin_person_id: data.timmy.id,
       community_id: data.community.id,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminPurgePost::create(pool, &form).await?;
 
@@ -1059,7 +1059,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       other_person_id: data.jessica.id,
       banned: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
       expires_at: None,
       instance_id: data.instance.id,
     };
@@ -1070,7 +1070,7 @@ mod tests {
       other_person_id: data.jessica.id,
       community_id: data.community.id,
       banned: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
       expires_at: None,
     };
     ModBanFromCommunity::create(pool, &form).await?;
@@ -1087,7 +1087,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       post_id: data.post.id,
       locked: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModLockPost::create(pool, &form).await?;
 
@@ -1095,7 +1095,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       comment_id: data.comment.id,
       locked: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModLockComment::create(pool, &form).await?;
 
@@ -1103,7 +1103,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       comment_id: data.comment.id,
       removed: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModRemoveComment::create(pool, &form).await?;
 
@@ -1111,7 +1111,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       community_id: data.community.id,
       removed: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminRemoveCommunity::create(pool, &form).await?;
 
@@ -1119,7 +1119,7 @@ mod tests {
       mod_person_id: data.timmy.id,
       post_id: data.post.id,
       removed: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModRemovePost::create(pool, &form).await?;
 
@@ -1142,7 +1142,7 @@ mod tests {
       mod_person_id: data.jessica.id,
       post_id: data.post_2.id,
       removed: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModRemovePost::create(pool, &form).await?;
 
@@ -1150,7 +1150,7 @@ mod tests {
       mod_person_id: data.jessica.id,
       comment_id: data.comment_2.id,
       removed: Some(true),
-      reason: None,
+      reason: "reason".to_string(),
     };
     ModRemoveComment::create(pool, &form).await?;
 
@@ -1469,7 +1469,7 @@ mod tests {
       instance_id: data.instance.id,
       admin_person_id: data.timmy.id,
       allowed: true,
-      reason: None,
+      reason: "reason".to_string(),
     };
     AdminAllowInstance::create(pool, &form).await?;
 

@@ -211,6 +211,7 @@ export async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,
+    reason: "allow",
   };
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {
@@ -288,6 +289,7 @@ export async function removePost(
   let form: RemovePost = {
     post_id: post.id,
     removed,
+    reason: "remove",
   };
   return api.removePost(form);
 }
@@ -313,6 +315,7 @@ export async function lockPost(
   let form: LockPost = {
     post_id: post.id,
     locked,
+    reason: "lock",
   };
   return api.lockPost(form);
 }
@@ -374,6 +377,7 @@ export async function lockComment(
   let form: LockComment = {
     comment_id: comment.id,
     locked,
+    reason: "lock",
   };
   return api.lockComment(form);
 }
@@ -473,6 +477,7 @@ export async function banPersonFromSite(
     person_id,
     ban,
     remove_or_restore_data,
+    reason: "ban",
   };
   return api.banPerson(form);
 }
@@ -489,6 +494,7 @@ export async function banPersonFromCommunity(
     community_id,
     remove_or_restore_data,
     ban,
+    reason: "ban",
   };
   return api.banFromCommunity(form);
 }
@@ -574,6 +580,7 @@ export async function removeComment(
   let form: RemoveComment = {
     comment_id,
     removed,
+    reason: "remove",
   };
   return api.removeComment(form);
 }
@@ -652,6 +659,7 @@ export async function removeCommunity(
   let form: RemoveCommunity = {
     community_id,
     removed,
+    reason: "remove",
   };
   return api.removeCommunity(form);
 }
@@ -1016,7 +1024,7 @@ export async function purgeAllPosts(api: LemmyHttp) {
   let res = await api.getPosts({ type_: "All", limit: 50 });
   await Promise.allSettled(
     Array.from(new Set(res.posts.map(p => p.post.id)))
-      .map(post_id => api.purgePost({ post_id }))
+      .map(post_id => api.purgePost({ post_id, reason: "purge" }))
       // Ignore errors
       .map(p => p.catch(e => e)),
   );

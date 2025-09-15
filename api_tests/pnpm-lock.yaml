@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-rename-person-banned.0
-        version: 1.0.0-rename-person-banned.0
+        specifier: 1.0.0-mod-reason-mandatory.0
+        version: 1.0.0-mod-reason-mandatory.0
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1637,8 +1637,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-rename-person-banned.0:
-    resolution: {integrity: sha512-O6N5jNZmjjUXUda/p+QW8dvfXxztQ7+ilcU01x5IecKuIp6nFIr46ybjSsVj2t6CedOSb/JI/j5EKgdiAo+Csg==}
+  lemmy-js-client@1.0.0-mod-reason-mandatory.0:
+    resolution: {integrity: sha512-xo8O+RCdVtwtfK06fF+bLhMXHGyKOSxmhLg4aO50/JttMAT38uwDlQKSuDKhL/nySrO4yq7fFEzlRgbzM0Kpog==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4327,7 +4327,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-rename-person-banned.0:
+  lemmy-js-client@1.0.0-mod-reason-mandatory.0:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

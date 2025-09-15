@@ -74,7 +74,7 @@ diesel::table! {
         instance_id -> Int4,
         admin_person_id -> Int4,
         allowed -> Bool,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -84,7 +84,7 @@ diesel::table! {
         id -> Int4,
         mod_person_id -> Int4,
         other_person_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         banned -> Bool,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
@@ -98,7 +98,7 @@ diesel::table! {
         instance_id -> Int4,
         admin_person_id -> Int4,
         blocked -> Bool,
-        reason -> Nullable<Text>,
+        reason -> Text,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
     }
@@ -109,7 +109,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         post_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -118,7 +118,7 @@ diesel::table! {
     admin_purge_community (id) {
         id -> Int4,
         admin_person_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -127,7 +127,7 @@ diesel::table! {
     admin_purge_person (id) {
         id -> Int4,
         admin_person_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -137,7 +137,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         community_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -147,7 +147,7 @@ diesel::table! {
         id -> Int4,
         mod_person_id -> Int4,
         community_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         removed -> Bool,
         published_at -> Timestamptz,
     }
@@ -615,7 +615,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         community_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         banned -> Bool,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
@@ -652,7 +652,7 @@ diesel::table! {
         mod_person_id -> Int4,
         comment_id -> Int4,
         locked -> Bool,
-        reason -> Nullable<Text>,
+        reason -> Text,
         published_at -> Timestamptz,
     }
 }
@@ -664,7 +664,7 @@ diesel::table! {
         post_id -> Int4,
         locked -> Bool,
         published_at -> Timestamptz,
-        reason -> Nullable<Text>,
+        reason -> Text,
     }
 }
 
@@ -673,7 +673,7 @@ diesel::table! {
         id -> Int4,
         mod_person_id -> Int4,
         comment_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         removed -> Bool,
         published_at -> Timestamptz,
     }
@@ -684,7 +684,7 @@ diesel::table! {
         id -> Int4,
         mod_person_id -> Int4,
         post_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         removed -> Bool,
         published_at -> Timestamptz,
     }
