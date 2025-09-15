@@ -159,7 +159,7 @@ pub async fn save_user_settings(
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     hide_media: data.hide_media,
     // Update the vote display modes
-    show_score: data.show_scores,
+    show_score: data.show_score,
     show_upvotes: data.show_upvotes,
     show_downvotes: data.show_downvotes,
     show_upvote_percentage: data.show_upvote_percentage,
