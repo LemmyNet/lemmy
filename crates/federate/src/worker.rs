@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{ActualDbPool, DbPool},
+  utils::{DbPool, GenericDbPool},
 };
 use lemmy_utils::{
   error::LemmyResult,
@@ -65,7 +65,7 @@ pub(crate) struct InstanceWorker {
   federation_worker_config: FederationWorkerConfig,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
-  pool: ActualDbPool,
+  pool: GenericDbPool,
   inbox_collector: RealCommunityInboxCollector,
   // regularily send stats back to the SendManager
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
@@ -89,9 +89,8 @@ impl InstanceWorker {
     stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   ) -> LemmyResult<()> {
     let pool = config.to_request_data().inner_pool().clone();
-    let state = FederationQueueState::load(&mut DbPool::Pool(&pool), instance.id).await?;
-    let (report_send_result, receive_send_result) =
-      tokio::sync::mpsc::unbounded_channel::<SendActivityResult>();
+    let state = FederationQueueState::load(&mut DbPool::from(&pool), instance.id).await?;
+    let (report_send_result, receive_send_result) = mpsc::unbounded_channel::<SendActivityResult>();
     let mut worker = InstanceWorker {
       inbox_collector: RealCommunityInboxCollector::new_real(
         pool.clone(),
@@ -442,7 +441,7 @@ impl InstanceWorker {
   }
 
   fn pool(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+    DbPool::from(&self.pool)
   }
 }
 
@@ -470,7 +469,6 @@ mod test {
   use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
   use serde_json::{json, Value};
-  use serial_test::serial;
   use std::sync::{Arc, RwLock};
   use test_context::{test_context, AsyncTestContext};
   use tokio::{
@@ -576,7 +574,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   async fn test_stats(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -616,7 +613,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   async fn test_send_40(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -639,7 +635,6 @@ mod test {
   #[test_context(Data)]
   #[tokio::test]
   #[traced_test]
-  #[serial]
   /// this test sends 15 activities, waits and checks they have all been received, then sends 50,
   /// etc
   async fn test_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
@@ -668,7 +663,6 @@ mod test {
 
   #[test_context(Data)]
   #[tokio::test]
-  #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
@@ -686,7 +680,6 @@ mod test {
 
   #[test_context(Data)]
   #[tokio::test]
-  #[serial]
   async fn test_errors(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;

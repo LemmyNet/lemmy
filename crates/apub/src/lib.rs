@@ -8,7 +8,7 @@ use lemmy_apub_objects::{
   objects::PostOrComment,
   utils::functions::{check_apub_id_valid, local_site_data_cached},
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud, utils::ActualDbPool};
+use lemmy_db_schema::{source::community::Community, traits::Crud, utils::GenericDbPool};
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
@@ -50,7 +50,7 @@ pub(crate) async fn post_or_comment_community(
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 
 #[derive(Clone)]
-pub struct VerifyUrlData(pub ActualDbPool);
+pub struct VerifyUrlData(pub GenericDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
