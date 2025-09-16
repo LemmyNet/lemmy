@@ -1,19 +1,22 @@
-use crate::newtypes::{
-  AdminAddId,
-  AdminBanId,
-  AdminRemoveCommunityId,
-  CommentId,
-  ModAddToCommunityId,
-  ModBanFromCommunityId,
-  ModLockCommentId,
-  ModLockPostId,
-  ModRemoveCommentId,
-  ModRemovePostId,
-  ModTransferCommunityId,
-  NotificationId,
-  PersonId,
-  PostId,
-  PrivateMessageId,
+use crate::{
+  newtypes::{
+    AdminAddId,
+    AdminBanId,
+    AdminRemoveCommunityId,
+    CommentId,
+    ModAddToCommunityId,
+    ModBanFromCommunityId,
+    ModLockCommentId,
+    ModLockPostId,
+    ModRemoveCommentId,
+    ModRemovePostId,
+    ModTransferCommunityId,
+    NotificationId,
+    PersonId,
+    PostId,
+    PrivateMessageId,
+  },
+  source::private_message::PrivateMessage,
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -104,10 +107,13 @@ impl NotificationInsertForm {
       ..Self::new(recipient_id, kind)
     }
   }
-  pub fn new_private_message(private_message_id: PrivateMessageId, recipient_id: PersonId) -> Self {
+  pub fn new_private_message(private_message: &PrivateMessage) -> Self {
     Self {
-      private_message_id: Some(private_message_id),
-      ..Self::new(recipient_id, NotificationType::PrivateMessage)
+      private_message_id: Some(private_message.id),
+      ..Self::new(
+        private_message.recipient_id,
+        NotificationType::PrivateMessage,
+      )
     }
   }
 }

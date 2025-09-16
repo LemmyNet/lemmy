@@ -177,10 +177,6 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    LocalUser::delete(pool, data.alice_local_user.id).await?;
-    LocalUser::delete(pool, data.bob_local_user.id).await?;
-    Person::delete(pool, data.alice.id).await?;
-    Person::delete(pool, data.bob.id).await?;
     Instance::delete(pool, data.bob.instance_id).await?;
     Ok(())
   }

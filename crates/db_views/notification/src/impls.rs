@@ -377,3 +377,72 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
     data,
   })
 }
+
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{impls::NotificationQuery, NotificationView};
+  use lemmy_db_schema::{
+    assert_length,
+    source::{
+      instance::Instance,
+      notification::{Notification, NotificationInsertForm},
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+    },
+    traits::Crud,
+    utils::{build_db_pool_for_tests, DbPool},
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  struct Data {
+    alice: Person,
+    bob: Person,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let alice_form = PersonInsertForm::test_form(instance.id, "alice");
+    let alice = Person::create(pool, &alice_form).await?;
+
+    let bob_form = PersonInsertForm::test_form(instance.id, "bob");
+    let bob = Person::create(pool, &bob_form).await?;
+
+    Ok(Data { alice, bob })
+  }
+
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Instance::delete(pool, data.bob.instance_id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_private_message() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
+    assert_eq!(0, count);
+    let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
+    assert_length!(0, notifs);
+
+    let form = &PrivateMessageInsertForm::new(data.bob.id, data.alice.id, "my message".to_string());
+    let pm = PrivateMessage::create(pool, form).await?;
+    let form = NotificationInsertForm::new_private_message(&pm);
+    Notification::create(pool, &[form]).await?;
+
+    let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
+    assert_eq!(1, count);
+    let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
+    assert_length!(1, notifs);
+    dbg!(&notifs);
+
+    cleanup(data, pool).await
+  }
+}

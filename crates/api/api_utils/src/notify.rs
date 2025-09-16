@@ -253,8 +253,7 @@ pub async fn notify_private_message(
     return Ok(());
   };
 
-  let form =
-    NotificationInsertForm::new_private_message(view.private_message.id, local_recipient.person.id);
+  let form = NotificationInsertForm::new_private_message(&view.private_message);
   Notification::create(&mut context.pool(), &[form]).await?;
 
   if is_create {
