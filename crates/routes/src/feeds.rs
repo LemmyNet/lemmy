@@ -397,6 +397,7 @@ fn create_reply_and_mention_items(
           context.settings(),
         )
       }
+      _ => todo!(),
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 

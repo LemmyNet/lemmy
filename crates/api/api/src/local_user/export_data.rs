@@ -58,6 +58,7 @@ pub async fn export_data(
     NotificationData::Post(p) => Post(p.post),
     NotificationData::Comment(c) => Comment(c.comment),
     NotificationData::PrivateMessage(pm) => PrivateMessage(pm.private_message),
+    _ => todo!(), // should modlog items also be exported?
   })
   .collect();
 

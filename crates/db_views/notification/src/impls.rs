@@ -46,7 +46,23 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
-  schema::{comment, notification, person, post, private_message},
+  schema::{
+    admin_add,
+    admin_ban,
+    admin_remove_community,
+    comment,
+    mod_add_to_community,
+    mod_ban_from_community,
+    mod_lock_comment,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_post,
+    mod_transfer_community,
+    notification,
+    person,
+    post,
+    private_message,
+  },
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -130,6 +146,16 @@ impl NotificationView {
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
+      .left_join(admin_add::table)
+      .left_join(mod_add_to_community::table)
+      .left_join(admin_ban::table)
+      .left_join(mod_ban_from_community::table)
+      .left_join(mod_lock_post::table)
+      .left_join(mod_lock_comment::table)
+      .left_join(mod_remove_comment::table)
+      .left_join(mod_remove_post::table)
+      .left_join(admin_remove_community::table)
+      .left_join(mod_transfer_community::table)
   }
 
   /// Gets the number of unread mentions
@@ -323,6 +349,26 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator: v.creator,
       recipient: v.recipient,
     })
+  } else if let Some(admin_add) = v.admin_add {
+    NotificationData::AdminAdd(admin_add)
+  } else if let Some(mod_add_to_community) = v.mod_add_to_community {
+    NotificationData::ModAddToCommunity(mod_add_to_community)
+  } else if let Some(admin_ban) = v.admin_ban {
+    NotificationData::AdminBan(admin_ban)
+  } else if let Some(mod_ban_from_community) = v.mod_ban_from_community {
+    NotificationData::ModBanFromCommunity(mod_ban_from_community)
+  } else if let Some(mod_lock_post) = v.mod_lock_post {
+    NotificationData::ModLockPost(mod_lock_post)
+  } else if let Some(mod_lock_comment) = v.mod_lock_comment {
+    NotificationData::ModLockComment(mod_lock_comment)
+  } else if let Some(mod_remove_post) = v.mod_remove_post {
+    NotificationData::ModRemovePost(mod_remove_post)
+  } else if let Some(mod_remove_comment) = v.mod_remove_comment {
+    NotificationData::ModRemoveComment(mod_remove_comment)
+  } else if let Some(admin_remove_community) = v.admin_remove_community {
+    NotificationData::AdminRemoveCommunity(admin_remove_community)
+  } else if let Some(mod_transfer_community) = v.mod_transfer_community {
+    NotificationData::ModTransferCommunity(mod_transfer_community)
   } else {
     return None;
   };
