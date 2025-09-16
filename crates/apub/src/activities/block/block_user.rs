@@ -162,7 +162,7 @@ impl Activity for BlockUser {
           instance_id: site.instance_id,
         };
         let action = AdminBan::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), blocked_person.id, &context);
+        notify_mod_action(action.clone(), blocked_person.id, context);
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -197,7 +197,7 @@ impl Activity for BlockUser {
           expires_at,
         };
         let action = ModBanFromCommunity::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), blocked_person.id, &context);
+        notify_mod_action(action.clone(), blocked_person.id, context);
       }
     }
 

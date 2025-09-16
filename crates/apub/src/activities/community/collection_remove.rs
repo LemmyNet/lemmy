@@ -129,7 +129,7 @@ impl Activity for CollectionRemove {
           removed: Some(true),
         };
         let action = ModAddToCommunity::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), remove_mod.id, &context);
+        notify_mod_action(action.clone(), remove_mod.id, context);
 
         // TODO: send websocket notification about removed mod
       }

@@ -141,7 +141,7 @@ impl Activity for CollectionAdd {
             removed: Some(false),
           };
           let action = ModAddToCommunity::create(&mut context.pool(), &form).await?;
-          notify_mod_action(action.clone(), new_mod.id, &context);
+          notify_mod_action(action.clone(), new_mod.id, context);
         }
       }
       CollectionType::Featured => {

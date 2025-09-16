@@ -76,7 +76,7 @@ impl Activity for LockPageOrNote {
           reason,
         };
         let action = ModLockPost::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action, post.creator_id, &context);
+        notify_mod_action(action, post.creator_id, context);
       }
       PostOrComment::Right(comment) => {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
@@ -89,7 +89,7 @@ impl Activity for LockPageOrNote {
           reason,
         };
         let action = ModLockComment::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action, comment.creator_id, &context);
+        notify_mod_action(action, comment.creator_id, context);
       }
     }
 
