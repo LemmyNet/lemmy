@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::source::{
   email_verification::EmailVerification,
   local_user::{LocalUser, LocalUserUpdateForm},
@@ -21,6 +21,7 @@ pub async fn verify_email(
   let verification = EmailVerification::read_for_token(&mut context.pool(), &token).await?;
   let local_user_id = verification.local_user_id;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  check_local_user_valid(&local_user_view)?;
 
   // Check if their email has already been verified once, before this
   let email_already_verified = local_user_view.local_user.email_verified;

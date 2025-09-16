@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{check_local_user_valid, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -36,6 +36,7 @@ pub async fn save_user_settings(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let slur_regex = slur_regex(&context).await?;

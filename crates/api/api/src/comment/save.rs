@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::comment::{CommentActions, CommentSavedForm},
   traits::Saveable,
@@ -16,6 +16,7 @@ pub async fn save_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let comment_saved_form = CommentSavedForm::new(local_user_view.person.id, data.comment_id);
 
   if data.save {
