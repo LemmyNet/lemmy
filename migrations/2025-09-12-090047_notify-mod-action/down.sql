@@ -13,8 +13,7 @@ ALTER TABLE notification
 ALTER TYPE notification_type_enum RENAME TO notification_type_enum__;
 
 DELETE FROM notification
-WHERE kind = 'ModAction'
-    OR kind = 'RevertModAction';
+WHERE kind = 'ModAction';
 
 -- create the new enum
 CREATE TYPE notification_type_enum AS ENUM (

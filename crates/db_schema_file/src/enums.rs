@@ -282,5 +282,4 @@ pub enum NotificationType {
   Subscribed,
   PrivateMessage,
   ModAction,
-  RevertModAction,
 }

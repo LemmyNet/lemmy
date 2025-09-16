@@ -1,5 +1,4 @@
 use crate::{
-  impls::mod_log::mod_action_notify_type,
   newtypes::{
     ModAddToCommunityId,
     ModBanFromCommunityId,
@@ -41,16 +40,19 @@ use crate::{
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  mod_add_to_community,
-  mod_ban_from_community,
-  mod_change_community_visibility,
-  mod_feature_post,
-  mod_lock_comment,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_post,
-  mod_transfer_community,
+use lemmy_db_schema_file::{
+  enums::NotificationType,
+  schema::{
+    mod_add_to_community,
+    mod_ban_from_community,
+    mod_change_community_visibility,
+    mod_feature_post,
+    mod_lock_comment,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_post,
+    mod_transfer_community,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -338,11 +340,17 @@ impl ModActionNotify for ModRemoveComment {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_remove_comment_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModRemoveComment
+  }
+  fn is_revert(&self) -> bool {
+    self.removed
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
 
@@ -350,11 +358,17 @@ impl ModActionNotify for ModRemovePost {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_remove_post_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModRemovePost
+  }
+  fn is_revert(&self) -> bool {
+    self.removed
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
 
@@ -362,11 +376,17 @@ impl ModActionNotify for ModAddToCommunity {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_add_to_community_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModAddToCommunity
+  }
+  fn is_revert(&self) -> bool {
+    self.removed
+  }
+  fn reason(&self) -> Option<&str> {
+    None
   }
 }
 
@@ -374,11 +394,17 @@ impl ModActionNotify for ModBanFromCommunity {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_ban_from_community_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModBanFromCommunity
+  }
+  fn is_revert(&self) -> bool {
+    self.banned
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
 
@@ -386,11 +412,17 @@ impl ModActionNotify for ModLockPost {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_lock_post_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModLockPost
+  }
+  fn is_revert(&self) -> bool {
+    self.locked
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
 
@@ -398,10 +430,16 @@ impl ModActionNotify for ModLockComment {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       mod_lock_comment_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.locked))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::ModLockComment
+  }
+  fn is_revert(&self) -> bool {
+    self.locked
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }

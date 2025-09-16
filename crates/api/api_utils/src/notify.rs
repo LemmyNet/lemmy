@@ -287,7 +287,6 @@ where
     };
 
     let form = action.insert_form(target_id);
-    let is_revert = form.kind == NotificationType::RevertModAction;
     Notification::create(&mut context.pool(), &[form]).await?;
 
     let modlog_url = format!(
@@ -296,7 +295,11 @@ where
       local_recipient.person.id.0,
       action.kind()
     );
-    let d = NotificationEmailData::ModAction { is_revert };
+    let d = NotificationEmailData::ModAction {
+      kind: action.kind(),
+      reason: action.reason(),
+      is_revert: action.is_revert(),
+    };
     send_notification_email(
       local_recipient,
       Url::parse(&modlog_url)?.into(),

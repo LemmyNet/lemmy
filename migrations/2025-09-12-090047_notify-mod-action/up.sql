@@ -14,9 +14,6 @@ ALTER TABLE notification
 ALTER TYPE notification_type_enum
     ADD value 'ModAction';
 
-ALTER TYPE notification_type_enum
-    ADD value 'RevertModAction';
-
 -- add indexes
 CREATE INDEX idx_notification_admin_add_id ON notification (admin_add_id);
 

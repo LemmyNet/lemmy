@@ -1,5 +1,4 @@
 use crate::{
-  impls::mod_log::mod_action_notify_type,
   newtypes::{
     AdminAddId,
     AdminAllowInstanceId,
@@ -41,16 +40,19 @@ use crate::{
 };
 use diesel::{dsl::insert_into, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  admin_add,
-  admin_allow_instance,
-  admin_ban,
-  admin_block_instance,
-  admin_purge_comment,
-  admin_purge_community,
-  admin_purge_person,
-  admin_purge_post,
-  admin_remove_community,
+use lemmy_db_schema_file::{
+  enums::NotificationType,
+  schema::{
+    admin_add,
+    admin_allow_instance,
+    admin_ban,
+    admin_block_instance,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
+    admin_remove_community,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -310,11 +312,17 @@ impl ModActionNotify for AdminRemoveCommunity {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       admin_remove_community_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::AdminRemoveCommunity
+  }
+  fn is_revert(&self) -> bool {
+    self.removed
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
 
@@ -322,11 +330,17 @@ impl ModActionNotify for AdminAdd {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       admin_add_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.removed))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::AdminAdd
+  }
+  fn is_revert(&self) -> bool {
+    self.removed
+  }
+  fn reason(&self) -> Option<&str> {
+    None
   }
 }
 
@@ -334,10 +348,16 @@ impl ModActionNotify for AdminBan {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
     NotificationInsertForm {
       admin_ban_id: Some(self.id),
-      ..NotificationInsertForm::new(recipient_id, mod_action_notify_type(self.banned))
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
     }
   }
   fn kind(&self) -> ModlogActionType {
     ModlogActionType::AdminBan
+  }
+  fn is_revert(&self) -> bool {
+    self.banned
+  }
+  fn reason(&self) -> Option<&str> {
+    Some(&self.reason)
   }
 }
