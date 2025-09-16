@@ -9,6 +9,7 @@ use crate::newtypes::{
   ModLockPostId,
   ModRemoveCommentId,
   ModRemovePostId,
+  ModTransferCommunityId,
   NotificationId,
   PersonId,
   PostId,
@@ -50,6 +51,7 @@ pub struct Notification {
   pub admin_remove_community_id: Option<AdminRemoveCommunityId>,
   pub mod_remove_post_id: Option<ModRemovePostId>,
   pub mod_lock_comment_id: Option<ModLockCommentId>,
+  pub mod_transfer_community_id: Option<ModTransferCommunityId>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, derive_new::new))]
@@ -81,6 +83,8 @@ pub struct NotificationInsertForm {
   pub mod_remove_post_id: Option<ModRemovePostId>,
   #[new(default)]
   pub mod_lock_comment_id: Option<ModLockCommentId>,
+  #[new(default)]
+  pub mod_transfer_community_id: Option<ModTransferCommunityId>,
 }
 
 impl NotificationInsertForm {

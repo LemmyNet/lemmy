@@ -443,3 +443,21 @@ impl ModActionNotify for ModLockComment {
     Some(&self.reason)
   }
 }
+
+impl ModActionNotify for ModTransferCommunity {
+  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm {
+    NotificationInsertForm {
+      mod_transfer_community_id: Some(self.id),
+      ..NotificationInsertForm::new(recipient_id, NotificationType::ModAction)
+    }
+  }
+  fn kind(&self) -> ModlogActionType {
+    ModlogActionType::ModTransferCommunity
+  }
+  fn is_revert(&self) -> bool {
+    false
+  }
+  fn reason(&self) -> Option<&str> {
+    None
+  }
+}
