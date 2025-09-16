@@ -119,6 +119,7 @@ test("Purge user, uploaded image removed", async () => {
   let my_user = await getMyUser(user);
   const purgeForm: PurgePerson = {
     person_id: my_user.local_user_view.person.id,
+    reason: "purge",
   };
   const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
@@ -153,6 +154,7 @@ test("Purge post, linked image removed", async () => {
   // purge post
   const purgeForm: PurgePost = {
     post_id: post.post_view.post.id,
+    reason: "purge",
   };
   const delete_ = await beta.purgePost(purgeForm);
   expect(delete_.success).toBe(true);

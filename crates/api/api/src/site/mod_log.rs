@@ -174,14 +174,7 @@ mod tests {
     );
 
     // Remove the user data
-    remove_or_restore_user_data(
-      john.id,
-      sara.id,
-      true,
-      &Some("a remove reason".to_string()),
-      &context,
-    )
-    .await?;
+    remove_or_restore_user_data(john.id, sara.id, true, "a remove reason", &context).await?;
 
     // Verify that their posts and comments are removed.
     // Posts
@@ -251,14 +244,7 @@ mod tests {
     );
 
     // Now restore the content, and make sure it got appended
-    remove_or_restore_user_data(
-      john.id,
-      sara.id,
-      false,
-      &Some("a restore reason".to_string()),
-      &context,
-    )
-    .await?;
+    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", &context).await?;
 
     // Posts
     let post_modlog = ModlogCombinedQuery {

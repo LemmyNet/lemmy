@@ -1,13 +1,13 @@
-use lemmy_db_schema_file::enums::NotificationTypes;
+use lemmy_db_schema_file::enums::NotificationType;
 
 pub mod admin;
 pub mod moderator;
 
-fn mod_action_notify_type(removed: bool) -> NotificationTypes {
+fn mod_action_notify_type(removed: bool) -> NotificationType {
   if removed {
-    NotificationTypes::ModAction
+    NotificationType::ModAction
   } else {
-    NotificationTypes::RevertModAction
+    NotificationType::RevertModAction
   }
 }
 
@@ -75,7 +75,7 @@ mod tests {
     let mod_remove_post_form = ModRemovePostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: None,
     };
     let inserted_mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form).await?;
@@ -84,7 +84,7 @@ mod tests {
       id: inserted_mod_remove_post.id,
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: true,
       published_at: inserted_mod_remove_post.published_at,
     };
@@ -95,7 +95,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
       locked: None,
-      reason: None,
+      reason: "reason".to_string(),
     };
     let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form).await?;
     let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id).await?;
@@ -104,7 +104,7 @@ mod tests {
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
       locked: true,
-      reason: None,
+      reason: "reason".to_string(),
       published_at: inserted_mod_lock_post.published_at,
     };
 
@@ -132,7 +132,7 @@ mod tests {
     let mod_remove_comment_form = ModRemoveCommentForm {
       mod_person_id: inserted_mod.id,
       comment_id: inserted_comment.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: None,
     };
     let inserted_mod_remove_comment =
@@ -143,7 +143,7 @@ mod tests {
       id: inserted_mod_remove_comment.id,
       comment_id: inserted_comment.id,
       mod_person_id: inserted_mod.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: true,
       published_at: inserted_mod_remove_comment.published_at,
     };
@@ -153,7 +153,7 @@ mod tests {
     let admin_remove_community_form = AdminRemoveCommunityForm {
       mod_person_id: inserted_mod.id,
       community_id: inserted_community.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: None,
     };
     let inserted_admin_remove_community =
@@ -164,7 +164,7 @@ mod tests {
       id: inserted_admin_remove_community.id,
       community_id: inserted_community.id,
       mod_person_id: inserted_mod.id,
-      reason: None,
+      reason: "reason".to_string(),
       removed: true,
       published_at: inserted_admin_remove_community.published_at,
     };
@@ -175,7 +175,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       community_id: inserted_community.id,
-      reason: None,
+      reason: "reason".to_string(),
       banned: None,
       expires_at: None,
     };
@@ -188,7 +188,7 @@ mod tests {
       community_id: inserted_community.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "reason".to_string(),
       banned: true,
       expires_at: None,
       published_at: inserted_mod_ban_from_community.published_at,
@@ -199,7 +199,7 @@ mod tests {
     let admin_ban_form = AdminBanForm {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "reason".to_string(),
       banned: None,
       expires_at: None,
       instance_id: inserted_instance.id,
@@ -210,7 +210,7 @@ mod tests {
       id: inserted_admin_ban.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "reason".to_string(),
       banned: true,
       expires_at: None,
       published_at: inserted_admin_ban.published_at,

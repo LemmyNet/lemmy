@@ -59,6 +59,8 @@ pub mod deletion;
 pub mod following;
 pub mod voting;
 
+const MOD_ACTION_DEFAULT_REASON: &str = "No reason provided";
+
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
 async fn verify_person(
@@ -187,7 +189,7 @@ pub async fn match_outgoing_activities(
           moderator,
           community,
           DeletableObjects::Post(post.into()),
-          reason.or_else(|| Some(String::new())),
+          Some(reason),
           removed,
           &context,
         )
@@ -226,7 +228,12 @@ pub async fn match_outgoing_activities(
         let is_removed = comment.removed;
         let deletable = DeletableObjects::Comment(comment.into());
         send_apub_delete_in_community(
-          moderator, community, deletable, reason, is_removed, &context,
+          moderator,
+          community,
+          deletable,
+          Some(reason),
+          is_removed,
+          &context,
         )
         .await
       }
@@ -279,7 +286,7 @@ pub async fn match_outgoing_activities(
           moderator,
           community,
           deletable,
-          reason.clone().or_else(|| Some(String::new())),
+          Some(reason),
           removed,
           &context,
         )

@@ -526,7 +526,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   var allow_instance_params: AdminAllowInstanceParams = {
     instance: "lemmy-alpha",
     allow: false,
-    reason: undefined,
+    reason: "allow",
   };
   await beta.adminAllowInstance(allow_instance_params);
   await longDelay();
