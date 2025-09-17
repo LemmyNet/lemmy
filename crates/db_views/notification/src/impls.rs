@@ -128,6 +128,13 @@ impl NotificationView {
       creator_local_instance_actions_join(my_person.instance_id);
 
     notification::table
+      .left_join(admin_remove_community::table)
+      .left_join(mod_ban_from_community::table)
+      .left_join(mod_lock_post::table)
+      .left_join(mod_lock_comment::table)
+      .left_join(mod_remove_comment::table)
+      .left_join(mod_remove_post::table)
+      .left_join(mod_transfer_community::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
@@ -149,13 +156,6 @@ impl NotificationView {
       .left_join(admin_add::table)
       .left_join(mod_add_to_community::table)
       .left_join(admin_ban::table)
-      .left_join(mod_ban_from_community::table)
-      .left_join(mod_lock_post::table)
-      .left_join(mod_lock_comment::table)
-      .left_join(mod_remove_comment::table)
-      .left_join(mod_remove_post::table)
-      .left_join(admin_remove_community::table)
-      .left_join(mod_transfer_community::table)
   }
 
   /// Gets the number of unread mentions
@@ -382,7 +382,7 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{impls::NotificationQuery, NotificationView};
+  use crate::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -441,7 +441,13 @@ mod tests {
     assert_eq!(1, count);
     let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
     assert_length!(1, notifs);
-    dbg!(&notifs);
+    assert_eq!(Some(pm.id), notifs[0].notification.private_message_id);
+    assert_eq!(pm.recipient_id, notifs[0].notification.recipient_id);
+    assert!(!notifs[0].notification.read);
+    let NotificationData::PrivateMessage(notif_pm) = &notifs[0].data else {
+      panic!();
+    };
+    assert_eq!(pm, notif_pm.private_message);
 
     cleanup(data, pool).await
   }
