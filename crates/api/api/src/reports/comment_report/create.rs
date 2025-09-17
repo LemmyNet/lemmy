@@ -5,7 +5,12 @@ use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_comment_deleted_or_removed, check_community_user_action, slur_regex},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_user_action,
+    check_local_user_valid,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::comment_report::{CommentReport, CommentReportForm},
@@ -27,6 +32,7 @@ pub async fn create_comment_report(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReportResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;

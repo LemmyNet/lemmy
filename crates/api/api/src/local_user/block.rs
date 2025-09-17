@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::person::{PersonActions, PersonBlockForm},
   traits::Blockable,
@@ -16,6 +16,7 @@ pub async fn user_block_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BlockPersonResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let target_id = data.person_id;
   let my_person_id = local_user_view.person.id;
   let local_instance_id = local_user_view.person.instance_id;

@@ -275,6 +275,7 @@ pub async fn check_community_mod_action(
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  check_local_user_valid(local_user_view)?;
   is_mod_or_admin(pool, local_user_view, community.id).await?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
 

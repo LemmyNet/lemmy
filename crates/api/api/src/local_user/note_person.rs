@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{get_url_blocklist, process_markdown, slur_regex},
+  utils::{check_local_user_valid, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
 use lemmy_db_views_local_user::LocalUserView;
@@ -17,6 +17,7 @@ pub async fn user_note_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
 
