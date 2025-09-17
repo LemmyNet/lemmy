@@ -93,6 +93,7 @@ pub struct LocalSite {
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
   pub suggested_communities: Option<MultiCommunityId>,
+  #[serde(skip)]
   pub multi_comm_follower: PersonId,
   pub default_items_per_page: i32,
 }
