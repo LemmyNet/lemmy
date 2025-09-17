@@ -16,7 +16,7 @@ pub struct GetCommunityPendingFollowsCountResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListCommunityPendingFollows {
   /// Only shows the unapproved applications
-  pub pending_only: Option<bool>,
+  pub unread_only: Option<bool>,
   // Only for admins, show pending follows for communities which you dont moderate
   pub all_communities: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,

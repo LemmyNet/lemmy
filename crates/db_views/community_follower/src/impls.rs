@@ -30,10 +30,12 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
+    //let moderator_join = aliases::person1.on();
     community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+    //  .inner_join(moderator_join)
   }
   /// return a list of local community ids and remote inboxes that at least one user of the given
   /// instance has followed
@@ -94,10 +96,8 @@ impl CommunityFollowerView {
   pub async fn list_approval_required(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    // TODO: if this is true dont check for community mod, but only check for local community
-    //       also need to check is_admin()
     all_communities: bool,
-    pending_only: bool,
+    unread_only: bool,
     cursor_data: Option<CommunityActions>,
     page_back: Option<bool>,
     limit: Option<i64>,
@@ -150,7 +150,7 @@ impl CommunityFollowerView {
         .filter(community_actions::became_moderator_at.is_not_null())
         .filter(community_actions::person_id.eq(person_id));
     }
-    if pending_only {
+    if unread_only {
       query =
         query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
     }
@@ -281,8 +281,14 @@ impl PendingFollow {
 mod tests {
   use super::*;
   use lemmy_db_schema::{
+    assert_length,
     source::{
-      community::{CommunityActions, CommunityFollowerForm, CommunityInsertForm},
+      community::{
+        CommunityActions,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModeratorForm,
+      },
       instance::Instance,
       person::PersonInsertForm,
     },
@@ -351,6 +357,90 @@ mod tests {
     )
     .await;
     assert!(has_followers.is_ok());
+
+    Instance::delete(pool, local_instance.id).await?;
+    Instance::delete(pool, remote_instance.id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_pending_followers() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    // insert local community
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let community_form = CommunityInsertForm::new(
+      local_instance.id,
+      "test_community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
+
+    // insert local mod
+    let mod_form =
+      PersonInsertForm::new("name".to_string(), "pubkey".to_string(), local_instance.id);
+    let mod_ = Person::create(pool, &mod_form).await?;
+
+    let moderator_form = CommunityModeratorForm::new(community.id, mod_.id);
+    CommunityActions::join(pool, &moderator_form).await?;
+
+    // insert remote user
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
+    let person_form =
+      PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
+    let person = Person::create(pool, &person_form).await?;
+
+    // check that counts are initially 0
+    let count = CommunityFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(0, count);
+    let list =
+      CommunityFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
+        .await?;
+    assert_length!(0, list);
+
+    // user is not allowed to post
+    let posting_allowed =
+      CommunityFollowerView::check_private_community_action(pool, person.id, &community).await;
+    assert!(posting_allowed.is_err());
+
+    // send follow request
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      person.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
+
+    // now there should be a pending follow
+    let count = CommunityFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(1, count);
+    let list =
+      CommunityFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
+        .await?;
+    assert_length!(1, list);
+
+    // approve the follow
+    CommunityActions::follow_accepted(pool, community.id, person.id).await?;
+
+    // now the user can post
+    let posting_allowed =
+      CommunityFollowerView::check_private_community_action(pool, person.id, &community).await;
+    assert!(posting_allowed.is_ok());
+
+    // check counts again
+    let count = CommunityFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(0, count);
+    let list =
+      CommunityFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
+        .await?;
+    assert_length!(0, list);
+    let list_all =
+      CommunityFollowerView::list_approval_required(pool, mod_.id, false, false, None, None, None)
+        .await?;
+    assert_length!(1, list_all);
 
     Instance::delete(pool, local_instance.id).await?;
     Instance::delete(pool, remote_instance.id).await?;

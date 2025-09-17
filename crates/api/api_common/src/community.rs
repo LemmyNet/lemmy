@@ -60,7 +60,6 @@ pub mod actions {
     };
     pub use lemmy_db_views_community_follower::{
       api::{
-        GetCommunityPendingFollowsCount,
         GetCommunityPendingFollowsCountResponse,
         ListCommunityPendingFollows,
         ListCommunityPendingFollowsResponse,
