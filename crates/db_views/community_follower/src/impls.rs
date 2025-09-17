@@ -144,7 +144,7 @@ impl CommunityFollowerView {
       ))
       .limit(limit)
       .into_boxed();
-    if all_communities {
+    if !all_communities {
       // if param is false, only return items for communities where user is a mod
       query = query
         .filter(community_actions::became_moderator_at.is_not_null())
@@ -179,11 +179,12 @@ impl CommunityFollowerView {
 
   pub async fn count_approval_required(
     pool: &mut DbPool<'_>,
-    community_id: CommunityId,
+    person_id: PersonId,
   ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
-      .filter(community_actions::community_id.eq(community_id))
+      .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(community_actions::person_id.eq(person_id))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
       .select(count(community_actions::community_id))
       .first::<i64>(conn)
