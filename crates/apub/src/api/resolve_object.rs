@@ -34,9 +34,7 @@ pub(super) async fn resolve_object_internal(
 ) -> LemmyResult<SearchCombinedView> {
   use SearchCombinedView::*;
 
-  // If we get a valid personId back we can safely assume that the user is authenticated,
-  // if there's no personId then the JWT was missing or invalid.
-  let is_authenticated = local_user_view.is_some();
+  let is_authenticated = local_user_view.as_ref().is_some_and(|l| !l.banned);
 
   let object = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
