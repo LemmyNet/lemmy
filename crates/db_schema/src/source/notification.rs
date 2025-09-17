@@ -57,7 +57,8 @@ pub struct Notification {
   pub mod_transfer_community_id: Option<ModTransferCommunityId>,
 }
 
-#[cfg_attr(feature = "full", derive(Insertable, derive_new::new))]
+#[derive(derive_new::new)]
+#[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
