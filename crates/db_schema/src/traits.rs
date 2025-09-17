@@ -255,5 +255,5 @@ pub trait ModActionNotify {
   fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
   fn kind(&self) -> ModlogActionType;
   fn is_revert(&self) -> bool;
-  fn reason<'a>(&'a self) -> Option<&'a str>;
+  fn reason(&self) -> Option<&str>;
 }

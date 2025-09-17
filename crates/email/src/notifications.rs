@@ -119,7 +119,7 @@ pub fn send_notification_email(
       reason,
       is_revert,
     } => {
-      // TODO: AdminAdd and ModAddToCommunity dont have any reason
+      // Some actions like AdminAdd and ModAddToCommunity dont have any reason
       let reason = reason.unwrap_or_default();
       if is_revert {
         (
