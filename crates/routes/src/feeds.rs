@@ -196,6 +196,8 @@ async fn get_feed_user(
   Ok(channel_to_http_res(channel))
 }
 
+/// Takes a user/community name either in the format `name` or `name@example.com`. Splits
+/// it on `@` and returns a tuple of name and optional domain.
 fn split_name(name: String) -> (String, Option<String>) {
   if let Some(split) = name.split_once('@') {
     (split.0.to_string(), Some(split.1.to_string()))
