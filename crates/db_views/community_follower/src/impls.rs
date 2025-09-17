@@ -13,6 +13,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  aliases,
   newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
   source::{
     community::{community_actions_keys as key, Community, CommunityActions},
@@ -30,12 +31,16 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    //let moderator_join = aliases::person1.on();
+    let moderator_join = aliases::person1.on(
+      community_actions::person_id
+        .eq(person::id)
+        .and(community_actions::became_moderator_at.is_not_null()),
+    );
     community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-    //  .inner_join(moderator_join)
+      .left_join(moderator_join)
   }
   /// return a list of local community ids and remote inboxes that at least one user of the given
   /// instance has followed
@@ -183,8 +188,7 @@ impl CommunityFollowerView {
   ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
-      .filter(community_actions::became_moderator_at.is_not_null())
-      .filter(community_actions::person_id.eq(person_id))
+      .filter(aliases::person1.id.eq(person_id))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
       .select(count(community_actions::community_id))
       .first::<i64>(conn)
@@ -371,12 +375,15 @@ mod tests {
 
     // insert local community
     let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-    let community_form = CommunityInsertForm::new(
-      local_instance.id,
-      "test_community_3".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        local_instance.id,
+        "test_community_3".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
     let community = Community::create(pool, &community_form).await?;
 
     // insert local mod
