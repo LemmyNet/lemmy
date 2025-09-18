@@ -5,6 +5,7 @@ use diesel::{
   select,
   BoolExpressionMethods,
   ExpressionMethods,
+  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
@@ -54,8 +55,8 @@ impl CommunityFollowerView {
       .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .inner_join(mod_community_actions_join)
-      .inner_join(moderator_join)
+      .left_join(mod_community_actions_join)
+      .left_join(moderator_join)
   }
   /// return a list of local community ids and remote inboxes that at least one user of the given
   /// instance has followed
@@ -125,40 +126,37 @@ impl CommunityFollowerView {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
-    // check if the community already has an accepted follower from the same instance
+    // subquery to check if the community already has an accepted follower from the same instance
     let ca_person_id = community_actions_instance_check.field(community_actions::person_id);
     let ca_community_id = community_actions_instance_check.field(community_actions::community_id);
     let ca_follow_state = community_actions_instance_check.field(community_actions::follow_state);
     let p_person_id = person_instance_check.field(person::id);
     let p_instance_id = person_instance_check.field(person::instance_id);
 
-    let is_new_instance = not(exists(
-      person_instance_check
-        .inner_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id)))
-        .into_boxed(),
-      /*
-      .filter(
-        person::instance_id
-          .eq(p_instance_id)
-          .and(ca_community_id.eq(community::id))
-          .and(ca_follow_state.eq(CommunityFollowerState::Accepted)),
-      )
-      */
-    ));
+    let is_new_instance = person_instance_check
+      .left_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id)))
+      .into_boxed()
+      .filter(person::instance_id.eq(p_instance_id))
+      .filter(community::id.eq(ca_community_id))
+      .filter(ca_follow_state.eq(CommunityFollowerState::Accepted))
+      .select(1_i32.into_sql::<diesel::sql_types::Integer>());
 
+    // the main query
     let mut query = Self::joins()
       .select((
         person::all_columns,
         community::all_columns,
-        is_new_instance,
+        not(exists(is_new_instance)),
         community_actions::follow_state.nullable(),
       ))
       .limit(limit)
       .into_boxed();
+
+    // if param is false, only return items for communities where user is a mod
     if !all_communities {
-      // if param is false, only return items for communities where user is a mod
       query = query.filter(aliases::person1.field(person::id).eq(mod_id));
     }
+
     if unread_only {
       query =
         query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
