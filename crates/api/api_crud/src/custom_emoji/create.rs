@@ -31,7 +31,9 @@ pub async fn create_custom_emoji(
   };
   let emoji = CustomEmoji::create(&mut context.pool(), &emoji_form).await?;
 
-  CustomEmojiKeyword::create_from_keywords(&mut context.pool(), emoji.id, &data.keywords).await?;
+  if let Some(keywords) = &data.keywords {
+    CustomEmojiKeyword::create_from_keywords(&mut context.pool(), emoji.id, keywords).await?;
+  }
 
   let view = CustomEmojiView::get(&mut context.pool(), emoji.id).await?;
   Ok(Json(CustomEmojiResponse { custom_emoji: view }))
