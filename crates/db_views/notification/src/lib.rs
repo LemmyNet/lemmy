@@ -53,6 +53,9 @@ use {
 pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+pub mod tests;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
