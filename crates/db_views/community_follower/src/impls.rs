@@ -134,14 +134,15 @@ impl CommunityFollowerView {
 
     let is_new_instance = not(exists(
       person_instance_check
-        .inner_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id))),
+        .inner_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id)))
+        .into_boxed(),
       /*
       .filter(
         person::instance_id
           .eq(p_instance_id)
           .and(ca_community_id.eq(community::id))
           .and(ca_follow_state.eq(CommunityFollowerState::Accepted)),
-      ),
+      )
       */
     ));
 
@@ -149,7 +150,7 @@ impl CommunityFollowerView {
       .select((
         person::all_columns,
         community::all_columns,
-        //is_new_instance,
+        is_new_instance,
         community_actions::follow_state.nullable(),
       ))
       .limit(limit)
@@ -168,24 +169,16 @@ impl CommunityFollowerView {
       .then_order_by(key::followed_at);
 
     let res = paginated_query
-      .load::<(
-        Person,
-        Community, //bool,
-        Option<CommunityFollowerState>,
-      )>(conn)
+      .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
       .await?;
     Ok(
       res
         .into_iter()
         .map(
-          |(
-            person,
-            community, //is_new_instance,
-            follow_state,
-          )| PendingFollow {
+          |(person, community, is_new_instance, follow_state)| PendingFollow {
             person,
             community,
-            is_new_instance: true,
+            is_new_instance,
             follow_state,
           },
         )
