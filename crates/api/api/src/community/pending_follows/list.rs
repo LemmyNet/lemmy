@@ -28,7 +28,7 @@ pub async fn get_pending_follows_list(
     &mut context.pool(),
     local_user_view.person.id,
     all_communities,
-    data.pending_only.unwrap_or_default(),
+    data.unread_only.unwrap_or_default(),
     cursor_data,
     data.page_back,
     data.limit,
