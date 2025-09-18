@@ -249,7 +249,7 @@ impl InCommunity for Page {
           if let Some(cid) = iter.next() {
             // to and cc fields can also contain this value to indicate a public object.
             // Skip it to avoid unnecessary http requests.
-            if cid == "https://www.w3.org/ns/activitystreams#Public" {
+            if cid.as_str() == "https://www.w3.org/ns/activitystreams#Public" {
               continue;
             }
             let cid = ObjectId::<ApubCommunity>::from(cid.clone());
