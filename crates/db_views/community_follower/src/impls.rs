@@ -28,7 +28,9 @@ use lemmy_db_schema_file::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-diesel::alias!(community_actions as mod_community_actions: ModCommunityActions);
+diesel::alias!(community_actions as mod_community_actions: ModCommunityActions,
+person as person_instance_check: PersonInstanceCheck,
+community_actions as community_actions_instance_check: CommunityActionInstanceCheck);
 
 impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -122,35 +124,25 @@ impl CommunityFollowerView {
   ) -> LemmyResult<Vec<PendingFollow>> {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
-    let (person_alias, community_follower_alias) = diesel::alias!(
-      person as person_alias,
-      community_actions as community_follower_alias
-    );
 
     // check if the community already has an accepted follower from the same instance
+    let ca_person_id = community_actions_instance_check.field(community_actions::person_id);
+    let ca_community_id = community_actions_instance_check.field(community_actions::community_id);
+    let ca_follow_state = community_actions_instance_check.field(community_actions::follow_state);
+    let p_person_id = person_instance_check.field(person::id);
+    let p_instance_id = person_instance_check.field(person::instance_id);
+
     let is_new_instance = not(exists(
-      person_alias
-        .inner_join(
-          community_follower_alias.on(
-            person_alias
-              .field(person::id)
-              .eq(community_follower_alias.field(community_actions::person_id)),
-          ),
-        )
-        .filter(
-          person::instance_id
-            .eq(person_alias.field(person::instance_id))
-            .and(
-              community_follower_alias
-                .field(community_actions::community_id)
-                .eq(community_actions::community_id),
-            )
-            .and(
-              community_follower_alias
-                .field(community_actions::follow_state)
-                .eq(CommunityFollowerState::Accepted),
-            ),
-        ),
+      person_instance_check
+        .inner_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id))),
+      /*
+      .filter(
+        person::instance_id
+          .eq(p_instance_id)
+          .and(ca_community_id.eq(community::id))
+          .and(ca_follow_state.eq(CommunityFollowerState::Accepted)),
+      ),
+      */
     ));
 
     let mut query = Self::joins()
@@ -193,7 +185,7 @@ impl CommunityFollowerView {
           )| PendingFollow {
             person,
             community,
-            is_new_instance: true, //is_new_instance,
+            is_new_instance: true,
             follow_state,
           },
         )
@@ -206,11 +198,6 @@ impl CommunityFollowerView {
     mod_id: PersonId,
   ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
-    let res: Vec<_> = Self::joins()
-      .select((person::id, aliases::person1.field(person::id)))
-      .get_results::<(PersonId, PersonId)>(conn)
-      .await?;
-    dbg!(&res);
     Self::joins()
       .filter(aliases::person1.field(person::id).eq(mod_id))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
@@ -414,7 +401,6 @@ mod tests {
     let mod_form =
       PersonInsertForm::new("name".to_string(), "pubkey".to_string(), local_instance.id);
     let mod_ = Person::create(pool, &mod_form).await?;
-    dbg!(mod_.id);
 
     let moderator_form = CommunityModeratorForm::new(community.id, mod_.id);
     CommunityActions::join(pool, &moderator_form).await?;
@@ -424,7 +410,6 @@ mod tests {
     let person_form =
       PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
     let person = Person::create(pool, &person_form).await?;
-    dbg!(person.id);
 
     // check that counts are initially 0
     let count = CommunityFollowerView::count_approval_required(pool, mod_.id).await?;
@@ -454,6 +439,12 @@ mod tests {
       CommunityFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
         .await?;
     assert_length!(1, list);
+    assert_eq!(person.id, list[0].person.id);
+    assert_eq!(community.id, list[0].community.id);
+    assert_eq!(
+      Some(CommunityFollowerState::ApprovalRequired),
+      list[0].follow_state
+    );
     assert!(list[0].is_new_instance);
 
     // approve the follow
@@ -475,6 +466,13 @@ mod tests {
       CommunityFollowerView::list_approval_required(pool, mod_.id, false, false, None, None, None)
         .await?;
     assert_length!(1, list_all);
+    assert_eq!(person.id, list_all[0].person.id);
+    assert_eq!(community.id, list_all[0].community.id);
+    assert_eq!(
+      Some(CommunityFollowerState::Accepted),
+      list_all[0].follow_state
+    );
+    assert!(!list_all[0].is_new_instance);
 
     Instance::delete(pool, local_instance.id).await?;
     Instance::delete(pool, remote_instance.id).await?;
