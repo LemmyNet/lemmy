@@ -25,7 +25,7 @@ pub async fn create_custom_emoji(
 
   let emoji_form = CustomEmojiInsertForm {
     shortcode: data.shortcode.to_lowercase().trim().to_string(),
-    image_url: data.image_url.clone().into(),
+    image_url: data.image_url.clone(),
     alt_text: data.alt_text.clone(),
     category: data.category.clone(),
   };

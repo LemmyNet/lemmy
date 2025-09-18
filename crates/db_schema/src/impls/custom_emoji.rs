@@ -47,7 +47,7 @@ impl CustomEmojiKeyword {
   pub async fn create_from_keywords(
     pool: &mut DbPool<'_>,
     for_custom_emoji_id: CustomEmojiId,
-    keywords: &Vec<String>,
+    keywords: &[String],
   ) -> LemmyResult<Vec<Self>> {
     let forms = keywords
       .iter()
