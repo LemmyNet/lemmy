@@ -31,9 +31,10 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
+    let mod_id = aliases::person1.field(person::id);
     let moderator_join = aliases::person1.on(
       community_actions::person_id
-        .eq(person::id)
+        .eq(mod_id)
         .and(community_actions::became_moderator_at.is_not_null()),
     );
     community_actions::table
@@ -100,7 +101,7 @@ impl CommunityFollowerView {
 
   pub async fn list_approval_required(
     pool: &mut DbPool<'_>,
-    person_id: PersonId,
+    mod_id: PersonId,
     all_communities: bool,
     unread_only: bool,
     cursor_data: Option<CommunityActions>,
@@ -144,16 +145,14 @@ impl CommunityFollowerView {
       .select((
         person::all_columns,
         community::all_columns,
-        is_new_instance,
+        //is_new_instance,
         community_actions::follow_state.nullable(),
       ))
       .limit(limit)
       .into_boxed();
     if !all_communities {
       // if param is false, only return items for communities where user is a mod
-      query = query
-        .filter(community_actions::became_moderator_at.is_not_null())
-        .filter(community_actions::person_id.eq(person_id));
+      //query = query.filter(aliases::person1.field(person::id).eq(mod_id));
     }
     if unread_only {
       query =
@@ -165,16 +164,24 @@ impl CommunityFollowerView {
       .then_order_by(key::followed_at);
 
     let res = paginated_query
-      .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
+      .load::<(
+        Person,
+        Community, //bool,
+        Option<CommunityFollowerState>,
+      )>(conn)
       .await?;
     Ok(
       res
         .into_iter()
         .map(
-          |(person, community, is_new_instance, follow_state)| PendingFollow {
+          |(
+            person,
+            community, //is_new_instance,
+            follow_state,
+          )| PendingFollow {
             person,
             community,
-            is_new_instance,
+            is_new_instance: false, //is_new_instance,
             follow_state,
           },
         )
@@ -184,11 +191,11 @@ impl CommunityFollowerView {
 
   pub async fn count_approval_required(
     pool: &mut DbPool<'_>,
-    person_id: PersonId,
+    mod_id: PersonId,
   ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
-      .filter(aliases::person1.id.eq(person_id))
+      //.filter(aliases::person1.field(person::id).eq(mod_id))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
       .select(count(community_actions::community_id))
       .first::<i64>(conn)
