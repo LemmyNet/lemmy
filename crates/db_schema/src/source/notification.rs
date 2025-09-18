@@ -62,9 +62,9 @@ pub struct Notification {
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
+  pub kind: NotificationType,
   #[new(default)]
   pub comment_id: Option<CommentId>,
-  pub kind: NotificationType,
   #[new(default)]
   pub post_id: Option<PostId>,
   #[new(default)]

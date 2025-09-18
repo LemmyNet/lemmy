@@ -128,6 +128,9 @@ impl NotificationView {
       creator_local_instance_actions_join(my_person.instance_id);
 
     notification::table
+      .left_join(admin_add::table)
+      .left_join(mod_add_to_community::table)
+      .left_join(admin_ban::table)
       .left_join(admin_remove_community::table)
       .left_join(mod_ban_from_community::table)
       .left_join(mod_lock_post::table)
@@ -153,9 +156,6 @@ impl NotificationView {
       .left_join(my_post_actions_join)
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
-      .left_join(admin_add::table)
-      .left_join(mod_add_to_community::table)
-      .left_join(admin_ban::table)
   }
 
   /// Gets the number of unread mentions
