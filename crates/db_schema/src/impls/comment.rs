@@ -333,8 +333,8 @@ impl Likeable for CommentActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(comment_actions::table.find((person_id, comment_id)))
-      .set_null(comment_actions::like_score_is_positive)
-      .set_null(comment_actions::liked_at)
+      .set_null(comment_actions::vote_is_upvote)
+      .set_null(comment_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -347,8 +347,8 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::person_id.eq(creator_id)))
-      .set_null(comment_actions::like_score_is_positive)
-      .set_null(comment_actions::liked_at)
+      .set_null(comment_actions::vote_is_upvote)
+      .set_null(comment_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -365,8 +365,8 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(comment_actions::table.filter(comment_actions::comment_id.eq_any(comment_ids.clone())))
-      .set_null(comment_actions::like_score_is_positive)
-      .set_null(comment_actions::liked_at)
+      .set_null(comment_actions::vote_is_upvote)
+      .set_null(comment_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -510,7 +510,7 @@ mod tests {
     let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
 
     let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
-    assert_eq!(Some(true), inserted_comment_like.like_score_is_positive);
+    assert_eq!(Some(true), inserted_comment_like.vote_is_upvote);
 
     // Comment Saved
     let comment_saved_form = CommentSavedForm::new(inserted_person.id, inserted_comment.id);

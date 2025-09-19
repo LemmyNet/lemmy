@@ -512,7 +512,7 @@ mod tests {
     assert!(read_comment_views_with_person[0]
       .comment_actions
       .as_ref()
-      .is_some_and(|x| x.like_score_is_positive == Some(true)));
+      .is_some_and(|x| x.vote_is_upvote == Some(true)));
     assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment

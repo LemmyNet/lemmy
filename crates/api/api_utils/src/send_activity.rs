@@ -62,7 +62,7 @@ pub enum SendActivityData {
     object_id: DbUrl,
     actor: Person,
     community: Community,
-    previous_score_is_positive: Option<bool>,
+    previous_is_upvote: Option<bool>,
     new_score_is_positive: Option<bool>,
   },
   FollowCommunity(Community, Person, bool),

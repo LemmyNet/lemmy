@@ -161,9 +161,7 @@ mod tests {
     assert_eq!(1, post_view_1.post.score);
     assert_eq!(
       Some(true),
-      post_view_1
-        .post_actions
-        .and_then(|pa| pa.like_score_is_positive)
+      post_view_1.post_actions.and_then(|pa| pa.vote_is_upvote)
     );
 
     // Read saras comment to make sure it has a like
@@ -174,7 +172,7 @@ mod tests {
       Some(true),
       comment_view_1
         .comment_actions
-        .and_then(|ca| ca.like_score_is_positive)
+        .and_then(|ca| ca.vote_is_upvote)
     );
 
     // Remove the user data
@@ -245,9 +243,7 @@ mod tests {
     assert_eq!(0, post_view_1.post.score);
     assert_eq!(
       None,
-      post_view_1
-        .post_actions
-        .and_then(|pa| pa.like_score_is_positive)
+      post_view_1.post_actions.and_then(|pa| pa.vote_is_upvote)
     );
 
     // comment
@@ -258,7 +254,7 @@ mod tests {
       None,
       comment_view_1
         .comment_actions
-        .and_then(|ca| ca.like_score_is_positive)
+        .and_then(|ca| ca.vote_is_upvote)
     );
 
     // Now restore the content, and make sure it got appended

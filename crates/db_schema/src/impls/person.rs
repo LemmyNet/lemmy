@@ -376,15 +376,11 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    like_score_is_positive: bool,
+    vote_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = if like_score_is_positive {
-      (1, 0)
-    } else {
-      (0, 1)
-    };
+    let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
 
     let voted_at = Utc::now();
 
@@ -416,15 +412,11 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    previous_score_is_positive: bool,
+    previous_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = if previous_score_is_positive {
-      (-1, 0)
-    } else {
-      (0, -1)
-    };
+    let (upvotes_inc, downvotes_inc) = if previous_is_upvote { (-1, 0) } else { (0, -1) };
     let voted_at = Utc::now();
 
     insert_into(person_actions::table)

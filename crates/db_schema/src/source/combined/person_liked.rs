@@ -23,5 +23,5 @@ pub struct PersonLikedCombined {
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  pub like_score_is_positive: bool,
+  pub vote_is_upvote: bool,
 }

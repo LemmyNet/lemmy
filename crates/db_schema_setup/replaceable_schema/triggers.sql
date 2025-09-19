@@ -29,8 +29,8 @@ BEGIN
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score_is_positive), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE NOT (thing_actions).like_score_is_positive), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                WHERE (thing_actions).like_score_is_positive IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
+                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).vote_is_upvote), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE NOT (thing_actions).vote_is_upvote), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
+                WHERE (thing_actions).vote_is_upvote IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
                 a.id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
@@ -513,26 +513,26 @@ BEGIN
                     WHERE p.person_id = OLD.person_id
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.liked_at IS NOT NULL AND (
+                    IF NEW.voted_at IS NOT NULL AND (
                         SELECT
                             local
                         FROM
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked_at, like_score_is_positive, person_id, thing_id)
-                            VALUES (NEW.liked_at, NEW.like_score_is_positive, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_liked_combined (liked_at, vote_is_upvote, person_id, thing_id)
+                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
-                    IF NEW.liked_at IS NOT NULL AND (
+                    IF NEW.voted_at IS NOT NULL AND (
                         SELECT
                             local
                         FROM
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked_at, like_score_is_positive, person_id, thing_id)
-                            VALUES (NEW.liked_at, NEW.like_score_is_positive, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_liked_combined (liked_at, vote_is_upvote, person_id, thing_id)
+                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
                         -- If liked gets set as null, delete the row
                     ELSE
                         DELETE FROM person_liked_combined AS p
@@ -543,7 +543,7 @@ BEGIN
                 RETURN NULL;
             END $$;
     CREATE TRIGGER person_liked_combined
-        AFTER INSERT OR DELETE OR UPDATE OF liked_at ON thing_actions
+        AFTER INSERT OR DELETE OR UPDATE OF voted_at ON thing_actions
         FOR EACH ROW
         EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
     $b$,

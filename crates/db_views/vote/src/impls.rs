@@ -85,7 +85,7 @@ impl VoteView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .filter(post_actions::post_id.eq(post_id))
-      .filter(post_actions::like_score_is_positive.is_not_null())
+      .filter(post_actions::vote_is_upvote.is_not_null())
       .select((
         person::all_columns,
         creator_local_home_banned(),
@@ -93,16 +93,16 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        post_actions::like_score_is_positive.assume_not_null(),
+        post_actions::vote_is_upvote.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
-      .then_order_by(key::like_score_is_positive)
+      .then_order_by(key::vote_is_upvote)
       // Tie breaker
-      .then_order_by(key::liked_at);
+      .then_order_by(key::voted_at);
 
     paginated_query
       .load::<Self>(conn)
@@ -159,7 +159,7 @@ impl VoteView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
-      .filter(comment_actions::like_score_is_positive.is_not_null())
+      .filter(comment_actions::vote_is_upvote.is_not_null())
       .select((
         person::all_columns,
         creator_local_home_banned(),
@@ -167,16 +167,16 @@ impl VoteView {
           .field(community_actions::received_ban_at)
           .nullable()
           .is_not_null(),
-        comment_actions::like_score_is_positive.assume_not_null(),
+        comment_actions::vote_is_upvote.assume_not_null(),
       ))
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
-      .then_order_by(key::like_score_is_positive)
+      .then_order_by(key::vote_is_upvote)
       // Tie breaker
-      .then_order_by(key::liked_at);
+      .then_order_by(key::voted_at);
 
     paginated_query
       .load::<Self>(conn)
@@ -255,13 +255,13 @@ mod tests {
         creator: inserted_sara.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score_is_positive: false,
+        is_upvote: false,
       },
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score_is_positive: true,
+        is_upvote: true,
       },
     ];
     expected_post_vote_views[1].creator.post_count = 1;
@@ -285,13 +285,13 @@ mod tests {
         creator: inserted_timmy.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score_is_positive: false,
+        is_upvote: false,
       },
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned: false,
         creator_banned_from_community: false,
-        score_is_positive: true,
+        is_upvote: true,
       },
     ];
     expected_comment_vote_views[0].creator.post_count = 1;

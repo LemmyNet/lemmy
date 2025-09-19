@@ -385,8 +385,8 @@ impl Likeable for PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score_is_positive)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -399,8 +399,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score_is_positive)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -416,8 +416,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score_is_positive)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -721,7 +721,7 @@ mod tests {
     let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
-    assert_eq!(Some(true), inserted_post_like.like_score_is_positive);
+    assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
 
     // Post Save
     let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id);

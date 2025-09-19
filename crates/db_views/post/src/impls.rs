@@ -978,7 +978,7 @@ mod tests {
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score_is_positive,
+        inserted_post_like.vote_is_upvote,
       )
     );
 
@@ -996,7 +996,7 @@ mod tests {
       (
         post_listing_single_with_person
           .post_actions
-          .is_some_and(|t| t.like_score_is_positive == Some(true)),
+          .is_some_and(|t| t.vote_is_upvote == Some(true)),
         // Make sure person actions is none so you don't get a voted_at for your own user
         post_listing_single_with_person.person_actions.is_none(),
         post_listing_single_with_person.post.score,
@@ -1100,7 +1100,7 @@ mod tests {
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score_is_positive,
+        inserted_post_like.vote_is_upvote,
       )
     );
 
@@ -1131,7 +1131,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score_is_positive == Some(true)),
+          .is_some_and(|t| t.vote_is_upvote == Some(true)),
         post_listing
           .person_actions
           .as_ref()
@@ -1207,7 +1207,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score_is_positive == Some(false)),
+          .is_some_and(|t| t.vote_is_upvote == Some(false)),
         post_listing
           .person_actions
           .as_ref()

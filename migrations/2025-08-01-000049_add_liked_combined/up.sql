@@ -17,7 +17,7 @@ SELECT
     pa.person_id,
     pa.post_id,
     NULL::int AS comment_id,
-    pa.like_score_is_positive
+    pa.vote_is_upvote
 FROM
     post_actions pa
     INNER JOIN person p ON pa.person_id = p.id
@@ -31,7 +31,7 @@ SELECT
     ca.person_id,
     NULL::int,
     ca.comment_id,
-    ca.like_score_is_positive
+    ca.vote_is_upvote
 FROM
     comment_actions ca
     INNER JOIN person p ON ca.person_id = p.id
@@ -42,7 +42,7 @@ WHERE
 ALTER TABLE person_liked_combined
     ALTER COLUMN id SET DEFAULT nextval('person_liked_combined_id_seq'::regclass),
     ALTER COLUMN liked SET NOT NULL,
-    ALTER COLUMN like_score_is_positive SET NOT NULL,
+    ALTER COLUMN vote_is_upvote SET NOT NULL,
     ALTER COLUMN person_id SET NOT NULL,
     ADD CONSTRAINT person_liked_combined_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT person_liked_combined_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,

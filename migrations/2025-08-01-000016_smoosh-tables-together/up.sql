@@ -9,7 +9,7 @@ SELECT
     max(saved) AS saved,
     person_id,
     comment_id,
-    max(like_score) = 1 AS like_score_is_positive -- `null = 1` returns null
+    max(like_score) = 1 AS vote_is_upvote -- `null = 1` returns null
 FROM (
     SELECT
         person_id,
@@ -42,17 +42,17 @@ ALTER TABLE comment_actions
     ADD PRIMARY KEY (person_id, comment_id),
     ADD CONSTRAINT comment_actions_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT comment_actions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD CONSTRAINT comment_actions_check_liked CHECK (((liked IS NULL) = (like_score_is_positive IS NULL)));
+    ADD CONSTRAINT comment_actions_check_liked CHECK (((liked IS NULL) = (vote_is_upvote IS NULL)));
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
--- a group (e.g. `liked IS NOT NULL` and `like_score_is_positive IS NOT NULL` both work)
+-- a group (e.g. `liked IS NOT NULL` and `vote_is_upvote IS NOT NULL` both work)
 CREATE INDEX idx_comment_actions_person ON comment_actions (person_id);
 
 CREATE INDEX idx_comment_actions_comment ON comment_actions (comment_id);
 
 CREATE INDEX idx_comment_actions_liked_not_null ON comment_actions (person_id, comment_id)
 WHERE
-    liked IS NOT NULL OR like_score_is_positive IS NOT NULL;
+    liked IS NOT NULL OR vote_is_upvote IS NOT NULL;
 
 CREATE INDEX idx_comment_actions_saved_not_null ON comment_actions (person_id, comment_id)
 WHERE
@@ -71,7 +71,7 @@ SELECT
     person_id,
     post_id,
     cast(max(read_comments_amount) AS int) AS read_comments_amount,
-    max(like_score) = 1 AS like_score_is_positive -- `null = 1` returns null
+    max(like_score) = 1 AS vote_is_upvote -- `null = 1` returns null
 FROM (
     SELECT
         person_id,
@@ -151,7 +151,7 @@ ALTER TABLE post_actions
     ADD PRIMARY KEY (person_id, post_id),
     ADD CONSTRAINT post_actions_person_id_fkey FOREIGN KEY (person_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT post_actions_post_id_fkey FOREIGN KEY (post_id) REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD CONSTRAINT post_actions_check_liked CHECK (((liked IS NULL) = (like_score_is_positive IS NULL))),
+    ADD CONSTRAINT post_actions_check_liked CHECK (((liked IS NULL) = (vote_is_upvote IS NULL))),
     ADD CONSTRAINT post_actions_check_read_comments CHECK (((read_comments IS NULL) = (read_comments_amount IS NULL)));
 
 -- Create indexes
@@ -173,7 +173,7 @@ WHERE
 
 CREATE INDEX idx_post_actions_liked_not_null ON post_actions (person_id, post_id)
 WHERE
-    liked IS NOT NULL OR like_score_is_positive IS NOT NULL;
+    liked IS NOT NULL OR vote_is_upvote IS NOT NULL;
 
 CREATE INDEX idx_post_actions_hidden_not_null ON post_actions (person_id, post_id)
 WHERE
@@ -376,7 +376,7 @@ WHERE
 -- `(liked, like_score)`, the query planner might othewise assume that `(TRUE, FALSE)` and `(TRUE, TRUE)`
 -- are equally likely when only `(TRUE, TRUE)` is possible, which would make it severely underestimate
 -- the efficiency of using the index)
-CREATE statistics comment_actions_liked_stat ON (liked IS NULL), (like_score_is_positive IS NULL)
+CREATE statistics comment_actions_liked_stat ON (liked IS NULL), (vote_is_upvote IS NULL)
 FROM comment_actions;
 
 CREATE statistics community_actions_followed_stat ON (followed IS NULL), (follow_state IS NULL)
@@ -388,6 +388,6 @@ FROM person_actions;
 CREATE statistics post_actions_read_comments_stat ON (read_comments IS NULL), (read_comments_amount IS NULL)
 FROM post_actions;
 
-CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score_is_positive IS NULL), (post_id IS NULL)
+CREATE statistics post_actions_liked_stat ON (liked IS NULL), (vote_is_upvote IS NULL), (post_id IS NULL)
 FROM post_actions;
 

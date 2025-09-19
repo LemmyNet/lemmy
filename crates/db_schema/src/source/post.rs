@@ -228,9 +228,9 @@ pub struct PostActions {
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub like_score_is_positive: bool,
+  pub vote_is_upvote: bool,
   #[new(value = "Utc::now()")]
-  pub liked_at: DateTime<Utc>,
+  pub voted_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]

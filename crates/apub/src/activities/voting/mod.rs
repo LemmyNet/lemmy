@@ -38,7 +38,7 @@ pub(crate) async fn send_like_activity(
   object_id: DbUrl,
   actor: Person,
   community: Community,
-  previous_score_is_positive: Option<bool>,
+  previous_is_upvote: Option<bool>,
   new_score_is_positive: Option<bool>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -53,7 +53,7 @@ pub(crate) async fn send_like_activity(
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
     // undo a previous vote
-    let previous_vote_type = if previous_score_is_positive == Some(true) {
+    let previous_vote_type = if previous_is_upvote == Some(true) {
       VoteType::Like
     } else {
       VoteType::Dislike

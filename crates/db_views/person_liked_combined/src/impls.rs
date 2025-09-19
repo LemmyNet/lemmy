@@ -180,8 +180,8 @@ impl PersonLikedCombinedQuery {
     if let Some(like_type) = self.like_type {
       query = match like_type {
         LikeType::All => query,
-        LikeType::LikedOnly => query.filter(person_liked_combined::like_score_is_positive),
-        LikeType::DislikedOnly => query.filter(not(person_liked_combined::like_score_is_positive)),
+        LikeType::LikedOnly => query.filter(person_liked_combined::vote_is_upvote),
+        LikeType::DislikedOnly => query.filter(not(person_liked_combined::vote_is_upvote)),
       }
     }
 
@@ -387,9 +387,7 @@ mod tests {
       assert_eq!(data.timmy.id, v.post.creator_id);
       assert_eq!(
         Some(true),
-        v.post_actions
-          .as_ref()
-          .and_then(|l| l.like_score_is_positive)
+        v.post_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -399,9 +397,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(false),
-        v.comment_actions
-          .as_ref()
-          .and_then(|l| l.like_score_is_positive)
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -411,9 +407,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(true),
-        v.comment_actions
-          .as_ref()
-          .and_then(|l| l.like_score_is_positive)
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -432,9 +426,7 @@ mod tests {
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
         Some(false),
-        v.comment_actions
-          .as_ref()
-          .and_then(|l| l.like_score_is_positive)
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");

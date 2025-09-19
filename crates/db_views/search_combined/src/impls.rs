@@ -293,11 +293,11 @@ impl SearchCombinedQuery {
       let liked_disliked_filter = |score_is_positive: bool| {
         search_combined::post_id
           .is_not_null()
-          .and(post_actions::like_score_is_positive.eq(score_is_positive))
+          .and(post_actions::vote_is_upvote.eq(score_is_positive))
           .or(
             search_combined::comment_id
               .is_not_null()
-              .and(comment_actions::like_score_is_positive.eq(score_is_positive)),
+              .and(comment_actions::vote_is_upvote.eq(score_is_positive)),
           )
       };
 

@@ -195,11 +195,11 @@ diesel::table! {
 
 diesel::table! {
     comment_actions (person_id, comment_id) {
-        liked_at -> Nullable<Timestamptz>,
+        voted_at -> Nullable<Timestamptz>,
         saved_at -> Nullable<Timestamptz>,
         person_id -> Int4,
         comment_id -> Int4,
-        like_score_is_positive -> Nullable<Bool>,
+        vote_is_upvote -> Nullable<Bool>,
     }
 }
 
@@ -886,7 +886,7 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
-        like_score_is_positive -> Bool,
+        vote_is_upvote -> Bool,
     }
 }
 
@@ -955,12 +955,12 @@ diesel::table! {
         read_at -> Nullable<Timestamptz>,
         read_comments_at -> Nullable<Timestamptz>,
         saved_at -> Nullable<Timestamptz>,
-        liked_at -> Nullable<Timestamptz>,
+        voted_at -> Nullable<Timestamptz>,
         hidden_at -> Nullable<Timestamptz>,
         person_id -> Int4,
         post_id -> Int4,
         read_comments_amount -> Nullable<Int4>,
-        like_score_is_positive -> Nullable<Bool>,
+        vote_is_upvote -> Nullable<Bool>,
         notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }

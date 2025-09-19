@@ -134,7 +134,7 @@ INSERT INTO post_like (post_id, person_id, score, published)
 SELECT
     post_id,
     person_id,
-    CASE WHEN like_score_is_positive THEN
+    CASE WHEN vote_is_upvote THEN
         1
     ELSE
         -1
@@ -190,7 +190,7 @@ INSERT INTO comment_like (comment_id, person_id, score, published)
 SELECT
     comment_id,
     person_id,
-    CASE WHEN like_score_is_positive THEN
+    CASE WHEN vote_is_upvote THEN
         1
     ELSE
         -1
