@@ -4,7 +4,7 @@ use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
-    custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
+    custom_emoji_keyword::CustomEmojiKeyword,
   },
   traits::Crud,
 };
@@ -23,20 +23,16 @@ pub async fn create_custom_emoji(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let emoji_form = CustomEmojiInsertForm::new(
-    data.shortcode.to_lowercase().trim().to_string(),
-    data.clone().image_url.into(),
-    data.alt_text.to_string(),
-    data.category.to_string(),
-  );
+  let emoji_form = CustomEmojiInsertForm {
+    shortcode: data.shortcode.to_lowercase().trim().to_string(),
+    image_url: data.image_url.clone(),
+    alt_text: data.alt_text.clone(),
+    category: data.category.clone(),
+  };
   let emoji = CustomEmoji::create(&mut context.pool(), &emoji_form).await?;
-  let mut keywords = vec![];
-  for keyword in &data.keywords {
-    let keyword_form =
-      CustomEmojiKeywordInsertForm::new(emoji.id, keyword.to_lowercase().trim().to_string());
-    keywords.push(keyword_form);
-  }
-  CustomEmojiKeyword::create(&mut context.pool(), keywords).await?;
+
+  CustomEmojiKeyword::create_from_keywords(&mut context.pool(), emoji.id, &data.keywords).await?;
+
   let view = CustomEmojiView::get(&mut context.pool(), emoji.id).await?;
   Ok(Json(CustomEmojiResponse { custom_emoji: view }))
 }

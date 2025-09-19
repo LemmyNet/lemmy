@@ -3500,7 +3500,6 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
- "url",
 ]
 
 [[package]]
