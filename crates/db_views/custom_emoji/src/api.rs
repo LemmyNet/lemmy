@@ -12,7 +12,7 @@ pub struct CreateCustomEmoji {
   pub shortcode: String,
   pub image_url: DbUrl,
   pub alt_text: String,
-  pub keywords: Option<Vec<String>>,
+  pub keywords: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
