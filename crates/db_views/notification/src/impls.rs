@@ -45,7 +45,7 @@ use lemmy_db_schema::{
   NotificationDataType,
 };
 use lemmy_db_schema_file::{
-  enums::NotificationTypes,
+  enums::NotificationType,
   schema::{comment, notification, person, post, private_message},
 };
 use lemmy_db_views_post::PostView;
@@ -245,17 +245,15 @@ impl NotificationQuery {
     if let Some(type_) = self.type_ {
       query = match type_ {
         NotificationDataType::All => query,
-        NotificationDataType::Reply => {
-          query.filter(notification::kind.eq(NotificationTypes::Reply))
-        }
+        NotificationDataType::Reply => query.filter(notification::kind.eq(NotificationType::Reply)),
         NotificationDataType::Mention => {
-          query.filter(notification::kind.eq(NotificationTypes::Mention))
+          query.filter(notification::kind.eq(NotificationType::Mention))
         }
         NotificationDataType::PrivateMessage => {
-          query.filter(notification::kind.eq(NotificationTypes::PrivateMessage))
+          query.filter(notification::kind.eq(NotificationType::PrivateMessage))
         }
         NotificationDataType::Subscribed => {
-          query.filter(notification::kind.eq(NotificationTypes::Subscribed))
+          query.filter(notification::kind.eq(NotificationType::Subscribed))
         }
       }
     }

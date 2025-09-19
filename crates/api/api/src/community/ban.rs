@@ -46,9 +46,7 @@ pub async fn ban_from_community(
   )
   .await?;
 
-  if let Some(reason) = &data.reason {
-    is_valid_body_field(reason, false)?;
-  }
+  is_valid_body_field(&data.reason, false)?;
 
   let community_user_ban_form = CommunityPersonBanForm {
     ban_expires_at: Some(expires_at),

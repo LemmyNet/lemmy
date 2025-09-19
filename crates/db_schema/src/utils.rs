@@ -290,14 +290,17 @@ pub fn fuzzy_search(q: &str) -> String {
 
 pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
   Ok(match limit {
-    Some(limit) => {
-      if !(1..=FETCH_LIMIT_MAX.try_into()?).contains(&limit) {
-        return Err(LemmyErrorType::InvalidFetchLimit.into());
-      }
-      limit
-    }
+    Some(limit) => limit_fetch_check(limit)?,
     None => FETCH_LIMIT_DEFAULT,
   })
+}
+
+pub fn limit_fetch_check(limit: i64) -> LemmyResult<i64> {
+  if !(1..=FETCH_LIMIT_MAX.try_into()?).contains(&limit) {
+    Err(LemmyErrorType::InvalidFetchLimit.into())
+  } else {
+    Ok(limit)
+  }
 }
 
 /// Takes an API optional text input, and converts it to an optional diesel DB update.

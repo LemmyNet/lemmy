@@ -40,7 +40,7 @@ use serde_with::skip_serializing_none;
 pub struct AdminPurgePerson {
   pub id: AdminPurgePersonId,
   pub admin_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -48,7 +48,7 @@ pub struct AdminPurgePerson {
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_person))]
 pub struct AdminPurgePersonForm {
   pub admin_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -62,7 +62,7 @@ pub struct AdminPurgePersonForm {
 pub struct AdminPurgeCommunity {
   pub id: AdminPurgeCommunityId,
   pub admin_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -70,7 +70,7 @@ pub struct AdminPurgeCommunity {
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_community))]
 pub struct AdminPurgeCommunityForm {
   pub admin_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -85,7 +85,7 @@ pub struct AdminPurgePost {
   pub id: AdminPurgePostId,
   pub admin_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -94,7 +94,7 @@ pub struct AdminPurgePost {
 pub struct AdminPurgePostForm {
   pub admin_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -109,7 +109,7 @@ pub struct AdminPurgeComment {
   pub id: AdminPurgeCommentId,
   pub admin_person_id: PersonId,
   pub post_id: PostId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -118,7 +118,7 @@ pub struct AdminPurgeComment {
 pub struct AdminPurgeCommentForm {
   pub admin_person_id: PersonId,
   pub post_id: PostId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -140,7 +140,7 @@ pub struct AdminAllowInstance {
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub allowed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
   pub published_at: DateTime<Utc>,
 }
 
@@ -151,7 +151,7 @@ pub struct AdminAllowInstanceForm {
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub allowed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -173,7 +173,7 @@ pub struct AdminBlockInstance {
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub blocked: bool,
-  pub reason: Option<String>,
+  pub reason: String,
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
 }
@@ -185,7 +185,7 @@ pub struct AdminBlockInstanceForm {
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub blocked: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -200,7 +200,7 @@ pub struct AdminRemoveCommunity {
   pub id: AdminRemoveCommunityId,
   pub mod_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: bool,
   pub published_at: DateTime<Utc>,
 }
@@ -210,7 +210,7 @@ pub struct AdminRemoveCommunity {
 pub struct AdminRemoveCommunityForm {
   pub mod_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub removed: Option<bool>,
 }
 
@@ -226,7 +226,7 @@ pub struct AdminBan {
   pub id: AdminBanId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: bool,
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
@@ -238,7 +238,7 @@ pub struct AdminBan {
 pub struct AdminBanForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: Option<bool>,
   pub expires_at: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,

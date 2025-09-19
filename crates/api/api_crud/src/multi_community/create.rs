@@ -1,7 +1,10 @@
 use crate::multi_community::get_multi;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_local_user_valid, slur_regex},
+};
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
   traits::Crud,
@@ -20,6 +23,7 @@ pub async fn create_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   is_valid_display_name(&data.name)?;
 

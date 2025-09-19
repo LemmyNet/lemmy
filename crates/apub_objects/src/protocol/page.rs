@@ -247,6 +247,11 @@ impl InCommunity for Page {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
+            // to and cc fields can also contain this value to indicate a public object.
+            // Skip it to avoid unnecessary http requests.
+            if cid.as_str() == "https://www.w3.org/ns/activitystreams#Public" {
+              continue;
+            }
             let cid = ObjectId::<ApubCommunity>::from(cid.clone());
             if let Ok(c) = cid.dereference(context).await {
               break c;

@@ -245,7 +245,7 @@ pub struct ListPostLikesResponse {
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -288,7 +288,7 @@ pub struct PostResponse {
 /// Purges a post from the database. This will delete all content attached to that post.
 pub struct PurgePost {
   pub post_id: PostId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -299,7 +299,7 @@ pub struct PurgePost {
 pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

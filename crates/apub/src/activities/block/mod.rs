@@ -35,7 +35,7 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyRe
 pub(crate) async fn send_ban_from_site(
   moderator: Person,
   banned_user: Person,
-  reason: Option<String>,
+  reason: String,
   remove_or_restore_data: Option<bool>,
   ban: bool,
   expires: Option<i64>,

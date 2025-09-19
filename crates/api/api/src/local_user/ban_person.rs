@@ -34,9 +34,7 @@ pub async fn ban_from_site(
   // Also make sure you're a higher admin than the target
   LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id]).await?;
 
-  if let Some(reason) = &data.reason {
-    is_valid_body_field(reason, false)?;
-  }
+  is_valid_body_field(&data.reason, false)?;
 
   let expires_at = check_expire_time(data.expires_at)?;
 

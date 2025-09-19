@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
-  NotificationTypes,
+  NotificationType,
   PostNotificationsMode,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -40,7 +40,7 @@ struct CollectedNotifyData<'a> {
   person_id: PersonId,
   local_url: DbUrl,
   data: NotificationEmailData<'a>,
-  kind: NotificationTypes,
+  kind: NotificationType,
 }
 
 impl NotifyData {
@@ -170,7 +170,7 @@ impl NotifyData {
         parent_comment,
         post: &self.post,
       },
-      kind: NotificationTypes::Reply,
+      kind: NotificationType::Reply,
     }])
   }
 
@@ -197,7 +197,7 @@ impl NotifyData {
           content: self.content().clone(),
           person: &self.creator,
         },
-        kind: NotificationTypes::Mention,
+        kind: NotificationType::Mention,
       })
     }
     Ok(res)
@@ -234,7 +234,7 @@ impl NotifyData {
         person_id,
         local_url: self.link(context)?.into(),
         data: d,
-        kind: NotificationTypes::Subscribed,
+        kind: NotificationType::Subscribed,
       });
     }
 
@@ -297,7 +297,7 @@ mod tests {
     utils::{build_db_pool_for_tests, DbPool},
     NotificationDataType,
   };
-  use lemmy_db_schema_file::enums::NotificationTypes;
+  use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_views_private_message::PrivateMessageView;
@@ -447,7 +447,7 @@ mod tests {
         data.timmy.person.id,
         timmy_inbox[0].notification.recipient_id
       );
-      assert_eq!(NotificationTypes::Reply, timmy_inbox[0].notification.kind);
+      assert_eq!(NotificationType::Reply, timmy_inbox[0].notification.kind);
     } else {
       panic!("wrong type")
     };
@@ -510,7 +510,7 @@ mod tests {
     let timmy_mention_sara_form = NotificationInsertForm::new_comment(
       data.timmy_comment.id,
       data.sara.person.id,
-      NotificationTypes::Mention,
+      NotificationType::Mention,
     );
     Notification::create(pool, &[timmy_mention_sara_form]).await?;
 
@@ -518,7 +518,7 @@ mod tests {
     let jessica_mention_sara_form = NotificationInsertForm::new_post(
       data.jessica_post.id,
       data.sara.person.id,
-      NotificationTypes::Mention,
+      NotificationType::Mention,
     );
     Notification::create(pool, &[jessica_mention_sara_form]).await?;
 
@@ -539,7 +539,7 @@ mod tests {
       panic!("wrong type")
     }
     assert_eq!(data.sara.person.id, sara_inbox[0].notification.recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[0].notification.kind);
+    assert_eq!(NotificationType::Mention, sara_inbox[0].notification.kind);
 
     if let NotificationData::Comment(comment) = &sara_inbox[1].data {
       assert_eq!(data.timmy_comment.id, comment.comment.id);
@@ -549,7 +549,7 @@ mod tests {
       panic!("wrong type");
     }
     assert_eq!(data.sara.person.id, sara_inbox[1].notification.recipient_id);
-    assert_eq!(NotificationTypes::Mention, sara_inbox[1].notification.kind);
+    assert_eq!(NotificationType::Mention, sara_inbox[1].notification.kind);
 
     // Sara blocks timmy, and make sure these counts are now empty
     let sara_blocks_timmy_form = PersonBlockForm::new(data.sara.person.id, data.timmy.person.id);
@@ -566,7 +566,7 @@ mod tests {
 
     // Make sure the comment mention which timmy made is the hidden one
     assert_eq!(
-      NotificationTypes::Mention,
+      NotificationType::Mention,
       sara_inbox_after_block[0].notification.kind
     );
 
@@ -583,7 +583,7 @@ mod tests {
     assert_length!(2, sara_inbox_mentions_only);
 
     assert_eq!(
-      NotificationTypes::Mention,
+      NotificationType::Mention,
       sara_inbox_mentions_only[0].notification.kind
     );
 
@@ -606,7 +606,7 @@ mod tests {
 
     // Make sure the post mention which jessica made is the hidden one
     assert_eq!(
-      NotificationTypes::Mention,
+      NotificationType::Mention,
       sara_inbox_after_hide_bots[0].notification.kind
     );
 

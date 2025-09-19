@@ -236,7 +236,6 @@ mod tests {
         infinite_scroll_enabled: sara_local_user.infinite_scroll_enabled,
         post_listing_mode: sara_local_user.post_listing_mode,
         totp_2fa_enabled: sara_local_user.totp_2fa_enabled,
-        enable_keyboard_navigation: sara_local_user.enable_keyboard_navigation,
         enable_animated_images: sara_local_user.enable_animated_images,
         enable_private_messages: sara_local_user.enable_private_messages,
         collapse_bot_comments: sara_local_user.collapse_bot_comments,

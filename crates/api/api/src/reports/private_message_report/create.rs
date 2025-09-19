@@ -1,6 +1,9 @@
 use crate::check_report_reason;
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_local_user_valid, slur_regex},
+};
 use lemmy_db_schema::{
   source::{
     private_message::PrivateMessage,
@@ -22,6 +25,7 @@ pub async fn create_pm_report(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;

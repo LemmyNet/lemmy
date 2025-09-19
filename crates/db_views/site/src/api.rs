@@ -55,7 +55,7 @@ use {
 pub struct AdminAllowInstanceParams {
   pub instance: String,
   pub allow: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -64,7 +64,7 @@ pub struct AdminAllowInstanceParams {
 pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
-  pub reason: Option<String>,
+  pub reason: String,
   pub expires_at: Option<DateTime<Utc>>,
 }
 
@@ -523,8 +523,6 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
-  pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: Option<bool>,
@@ -533,7 +531,7 @@ pub struct SaveUserSettings {
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
-  pub show_scores: Option<bool>,
+  pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
   pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
