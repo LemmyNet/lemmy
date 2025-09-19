@@ -41,25 +41,6 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  check_diesel_schema:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - *install_binstall
-      - cp crates/db_schema_file/src/schema.rs tmp.schema
-      - target/lemmy_server migration --all run
-      - apt-get update && apt-get install -y postgresql-client
-      - cargo binstall --locked diesel_cli@2.3.2 -y
-      - export PATH="$CARGO_HOME/bin:$PATH"
-      - diesel print-schema
-      - diff tmp.schema crates/db_schema_file/src/schema.rs
-    when: *slow_check_paths
-
   prettier_check:
     image: tmknom/prettier:3.6.2
     commands:
@@ -140,6 +121,25 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
+  check_diesel_schema:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - *install_binstall
+      - cp crates/db_schema_file/src/schema.rs tmp.schema
+      - target/lemmy_server migration --all run
+      - apt-get update && apt-get install -y postgresql-client
+      - cargo binstall diesel_cli@2.3.2 -y
+      - export PATH="$CARGO_HOME/bin:$PATH"
+      - diesel print-schema
+      - diff tmp.schema crates/db_schema_file/src/schema.rs
     when: *slow_check_paths
 
   # `DROP OWNED` doesn't work for default user
