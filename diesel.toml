@@ -5,3 +5,4 @@ patch_file = "crates/db_schema_file/diesel_ltree.patch"
 custom_type_derives = ["diesel::query_builder::QueryId"]
 # This table is in the db_schema_setup crate instead.
 filter = { except_tables = ["previously_run_sql"] }
+allow_tables_to_appear_in_same_query_config = "fk_related_tables"

@@ -29,7 +29,7 @@ lemmy_db_schema_file = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 rosetta-i18n = { workspace = true }
 html2text = { workspace = true }
-lettre = { version = "0.11.17", default-features = false, features = [
+lettre = { version = "0.11.18", default-features = false, features = [
   "builder",
   "smtp-transport",
   "tokio1-rustls-tls",

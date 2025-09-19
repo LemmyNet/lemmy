@@ -1,8 +1,8 @@
-diff --git a/crates/db_schema/src/schema.rs b/crates/db_schema/src/schema.rs
-index 255c6422..f2ccf5e2 100644
---- a/crates/db_schema/src/schema.rs
-+++ b/crates/db_schema/src/schema.rs
-@@ -76,13 +76,13 @@ diesel::table! {
+diff --git a/crates/db_schema_file/src/schema.rs b/crates/db_schema_file/src/schema.rs
+index 6ad3e103b..2ce0b554f 100644
+--- a/crates/db_schema_file/src/schema.rs
++++ b/crates/db_schema_file/src/schema.rs
+@@ -160,13 +160,13 @@ diesel::table! {
          published_at -> Timestamptz,
      }
  }
@@ -17,3 +17,14 @@ index 255c6422..f2ccf5e2 100644
          creator_id -> Int4,
          post_id -> Int4,
          content -> Text,
+@@ -1333,8 +1333,10 @@ diesel::allow_tables_to_appear_in_same_query!(
+   registration_application,
+   report_combined,
+   search_combined,
+   site,
+   site_language,
+   tag,
++  person_actions,
++  image_details,
+ );
+ diesel::allow_tables_to_appear_in_same_query!(custom_emoji, custom_emoji_keyword,);
