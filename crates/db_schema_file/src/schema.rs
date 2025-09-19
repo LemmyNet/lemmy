@@ -163,7 +163,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use diesel_ltree::sql_types::Ltree;
+    use super::sql_types::Ltree;
 
     comment (id) {
         id -> Int4,
