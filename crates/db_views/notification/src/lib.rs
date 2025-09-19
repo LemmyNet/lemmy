@@ -5,6 +5,18 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
+    mod_log::{
+      admin::{AdminAdd, AdminBan, AdminRemoveCommunity},
+      moderator::{
+        ModAddToCommunity,
+        ModBanFromCommunity,
+        ModLockComment,
+        ModLockPost,
+        ModRemoveComment,
+        ModRemovePost,
+        ModTransferCommunity,
+      },
+    },
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -41,6 +53,9 @@ use {
 pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+pub mod tests;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
@@ -75,6 +90,26 @@ struct NotificationViewInternal {
   person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   comment_actions: Option<CommentActions>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  admin_add: Option<AdminAdd>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_add_to_community: Option<ModAddToCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  admin_ban: Option<AdminBan>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_ban_from_community: Option<ModBanFromCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_lock_post: Option<ModLockPost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_lock_comment: Option<ModLockComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_remove_post: Option<ModRemovePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_remove_comment: Option<ModRemoveComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  admin_remove_community: Option<AdminRemoveCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  mod_transfer_community: Option<ModTransferCommunity>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_admin()
@@ -142,6 +177,16 @@ pub enum NotificationData {
   Comment(CommentView),
   Post(PostView),
   PrivateMessage(PrivateMessageView),
+  AdminAdd(AdminAdd),
+  ModAddToCommunity(ModAddToCommunity),
+  AdminBan(AdminBan),
+  ModBanFromCommunity(ModBanFromCommunity),
+  ModLockPost(ModLockPost),
+  ModLockComment(ModLockComment),
+  ModRemovePost(ModRemovePost),
+  ModRemoveComment(ModRemoveComment),
+  AdminRemoveCommunity(AdminRemoveCommunity),
+  ModTransferCommunity(ModTransferCommunity),
 }
 
 #[skip_serializing_none]

@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_comment_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -54,7 +55,8 @@ pub async fn lock_comment(
     locked: Some(locked),
     reason: data.reason.clone(),
   };
-  ModLockComment::create(&mut context.pool(), &form).await?;
+  let action = ModLockComment::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action, comment.creator_id, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockComment(

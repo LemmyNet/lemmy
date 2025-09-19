@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -66,7 +67,8 @@ pub async fn remove_post(
     removed: Some(removed),
     reason: data.reason.clone(),
   };
-  ModRemovePost::create(&mut context.pool(), &form).await?;
+  let action = ModRemovePost::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action, post.creator_id, context.app_data());
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {

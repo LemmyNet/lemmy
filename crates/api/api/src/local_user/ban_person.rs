@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
@@ -72,7 +73,8 @@ pub async fn ban_from_site(
     instance_id: local_user_view.person.instance_id,
   };
 
-  AdminBan::create(&mut context.pool(), &form).await?;
+  let action = AdminBan::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action.clone(), data.person_id, &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),

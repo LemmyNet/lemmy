@@ -371,40 +371,51 @@ fn create_reply_and_mention_items(
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = notifs
     .iter()
-    .map(|v| match &v.data {
+    .flat_map(|v| match &v.data {
       NotificationData::Post(post) => {
-        let mention_url = post.post.local_url(context.settings())?;
-        build_item(
+        let mention_url = post.post.local_url(context.settings()).ok()?;
+        Some(build_item(
           &post.creator,
           &post.post.published_at,
           mention_url.as_str(),
           &post.post.body.clone().unwrap_or_default(),
           context.settings(),
-        )
+        ))
       }
       NotificationData::Comment(comment) => {
-        let reply_url = comment.comment.local_url(context.settings())?;
-        build_item(
+        let reply_url = comment.comment.local_url(context.settings()).ok()?;
+        Some(build_item(
           &comment.creator,
           &comment.comment.published_at,
           reply_url.as_str(),
           &comment.comment.content,
           context.settings(),
-        )
+        ))
       }
       NotificationData::PrivateMessage(pm) => {
         let notifs_url = format!(
           "{}/notifications",
           context.settings().get_protocol_and_hostname()
         );
-        build_item(
+        Some(build_item(
           &pm.creator,
           &pm.private_message.published_at,
           &notifs_url,
           &pm.private_message.content,
           context.settings(),
-        )
+        ))
       }
+      // skip modlog items
+      NotificationData::AdminAdd(_)
+      | NotificationData::ModAddToCommunity(_)
+      | NotificationData::AdminBan(_)
+      | NotificationData::ModBanFromCommunity(_)
+      | NotificationData::ModLockPost(_)
+      | NotificationData::ModLockComment(_)
+      | NotificationData::ModRemovePost(_)
+      | NotificationData::ModRemoveComment(_)
+      | NotificationData::AdminRemoveCommunity(_)
+      | NotificationData::ModTransferCommunity(_) => None,
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 

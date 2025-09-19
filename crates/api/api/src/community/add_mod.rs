@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -61,7 +62,7 @@ pub async fn add_mod_to_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  conn
+  let action = conn
     .run_transaction(|conn| {
       async move {
         // Update in local database
@@ -81,13 +82,14 @@ pub async fn add_mod_to_community(
           removed: Some(!tx_data.added),
         };
 
-        ModAddToCommunity::create(&mut conn.into(), &form).await?;
+        let action = ModAddToCommunity::create(&mut conn.into(), &form).await?;
 
-        Ok(())
+        Ok(action)
       }
       .scope_boxed()
     })
     .await?;
+  notify_mod_action(action.clone(), tx_data.person_id, &context);
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

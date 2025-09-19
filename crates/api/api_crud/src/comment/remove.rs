@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_comment_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -81,7 +82,8 @@ pub async fn remove_comment(
     removed: Some(removed),
     reason: data.reason.clone(),
   };
-  ModRemoveComment::create(&mut context.pool(), &form).await?;
+  let action = ModRemoveComment::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action, updated_comment.creator_id, context.app_data());
 
   let updated_comment_id = updated_comment.id;
 
