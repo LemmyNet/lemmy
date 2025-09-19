@@ -55,11 +55,11 @@ pub struct VerifyUrlData(pub ActualDbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), ActivityPubError> {
+    use FederationError::*;
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .map_err(|e| ActivityPubError::Other(format!("Cant read local site data: {e}")))?;
 
-    use FederationError::*;
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
         error_type:
