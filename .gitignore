@@ -30,3 +30,6 @@ bindings
 
 # database dumps
 *.sqldump
+
+# diesel
+migrations/.diesel_lock
