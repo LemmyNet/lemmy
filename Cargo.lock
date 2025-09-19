@@ -2674,9 +2674,9 @@ dependencies = [
 
 [[package]]
 name = "i-love-jesus"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b5e51efc960620644b96980488cc2e487046cbd9440e334c189a4b604076312"
+checksum = "39783f5be73851223e4b720dd6edb434b39fa91a7bbaf41ed8995a9585d3c181"
 dependencies = [
  "diesel",
  "i-love-jesus-macros",
@@ -2684,10 +2684,11 @@ dependencies = [
 
 [[package]]
 name = "i-love-jesus-macros"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7c7baa75cd83700828568381ac84fe5c068d4cfd67cdfbdc4aa29db98d0facd"
+checksum = "6708c2296b2e4d9e3451a7fda5e45b639272e6cfd8b44fe9350a66888c7c8dd2"
 dependencies = [
+ "proc-macro2",
  "quote",
  "syn 2.0.106",
 ]
