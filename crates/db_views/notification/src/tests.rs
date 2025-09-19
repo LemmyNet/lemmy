@@ -2,7 +2,7 @@ use crate::{impls::NotificationQuery, NotificationData, NotificationView};
 use lemmy_db_schema::{
   assert_length,
   source::{
-    community::{Community, CommunityActions, CommunityInsertForm},
+    community::{Community, CommunityInsertForm},
     instance::Instance,
     notification::{Notification, NotificationInsertForm},
     person::{Person, PersonInsertForm},
@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{build_db_pool_for_tests, DbPool},
 };
-use lemmy_db_schema_file::enums::CommunityNotificationsMode;
+use lemmy_db_schema_file::enums::NotificationType;
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;
 use serial_test::serial;
@@ -91,17 +91,12 @@ async fn test_post() -> LemmyResult<()> {
   );
   let community = Community::create(pool, &community_form).await?;
 
-  // follow community notifs
-  CommunityActions::update_notification_state(
-    community.id,
-    data.alice.id,
-    CommunityNotificationsMode::AllPosts,
-    pool,
-  )
-  .await?;
-
   let post_form = PostInsertForm::new("title".to_string(), data.bob.id, community.id);
   let post = Post::create(pool, &post_form).await?;
+
+  let notif_form =
+    NotificationInsertForm::new_post(post.id, data.alice.id, NotificationType::Subscribed);
+  Notification::create(pool, &[notif_form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
