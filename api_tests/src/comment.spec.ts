@@ -290,7 +290,7 @@ test("Unlike a comment", async () => {
   expect(gammaComment1?.creator.local).toBe(false);
   expect(gammaComment1?.comment.score).toBe(1);
 
-  let unlike = await likeComment(alpha, 0, commentRes.comment_view.comment);
+  let unlike = await likeComment(alpha, undefined, commentRes.comment_view.comment);
   expect(unlike.comment_view.comment.score).toBe(0);
 
   // Make sure that comment is unliked on beta
@@ -328,7 +328,7 @@ test("Federated comment like", async () => {
     throw "Missing beta comment";
   }
 
-  let like = await likeComment(beta, 1, betaComment.comment);
+  let like = await likeComment(beta, true, betaComment.comment);
   expect(like.comment_view.comment.score).toBe(2);
 
   // Get the post from alpha, check the likes

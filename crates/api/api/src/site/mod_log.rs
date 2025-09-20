@@ -138,7 +138,7 @@ mod tests {
     let post_form_1 = PostInsertForm::new("A test post tubular".into(), sara.id, community.id);
     let post_1 = Post::create(pool, &post_form_1).await?;
 
-    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, 1);
+    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, true);
     let _post_like_1 = PostActions::like(pool, &post_like_form_1).await?;
 
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
@@ -148,7 +148,7 @@ mod tests {
       CommentInsertForm::new(sara.id, post_1.id, "A test comment tubular".into());
     let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
 
-    let comment_like_form_1 = CommentLikeForm::new(sara.id, comment_1.id, 1);
+    let comment_like_form_1 = CommentLikeForm::new(sara.id, comment_1.id, true);
     let _comment_like_1 = CommentActions::like(pool, &comment_like_form_1).await?;
 
     let comment_form_2 =
@@ -160,8 +160,8 @@ mod tests {
       PostView::read(pool, post_1.id, Some(&sara_local_user), instance.id, false).await?;
     assert_eq!(1, post_view_1.post.score);
     assert_eq!(
-      Some(1),
-      post_view_1.post_actions.and_then(|pa| pa.like_score)
+      Some(true),
+      post_view_1.post_actions.and_then(|pa| pa.vote_is_upvote)
     );
 
     // Read saras comment to make sure it has a like
@@ -169,8 +169,10 @@ mod tests {
       CommentView::read(pool, comment_1.id, Some(&sara_local_user), instance.id).await?;
     assert_eq!(1, comment_view_1.post.score);
     assert_eq!(
-      Some(1),
-      comment_view_1.comment_actions.and_then(|ca| ca.like_score)
+      Some(true),
+      comment_view_1
+        .comment_actions
+        .and_then(|ca| ca.vote_is_upvote)
     );
 
     // Remove the user data
@@ -232,7 +234,10 @@ mod tests {
     let post_view_1 =
       PostView::read(pool, post_1.id, Some(&sara_local_user), instance.id, false).await?;
     assert_eq!(0, post_view_1.post.score);
-    assert_eq!(None, post_view_1.post_actions.and_then(|pa| pa.like_score));
+    assert_eq!(
+      None,
+      post_view_1.post_actions.and_then(|pa| pa.vote_is_upvote)
+    );
 
     // comment
     let comment_view_1 =
@@ -240,7 +245,9 @@ mod tests {
     assert_eq!(0, comment_view_1.post.score);
     assert_eq!(
       None,
-      comment_view_1.comment_actions.and_then(|ca| ca.like_score)
+      comment_view_1
+        .comment_actions
+        .and_then(|ca| ca.vote_is_upvote)
     );
 
     // Now restore the content, and make sure it got appended

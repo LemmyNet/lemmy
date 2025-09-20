@@ -55,12 +55,12 @@ pub struct InstanceForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct InstanceActions {
+  /// When the instance's communities were blocked.
+  pub blocked_communities_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub instance_id: InstanceId,
-  /// When the instance's communities were blocked.
-  pub blocked_communities_at: Option<DateTime<Utc>>,
   /// When this user received a site ban.
   pub received_ban_at: Option<DateTime<Utc>>,
   /// When their ban expires.
