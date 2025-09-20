@@ -31,7 +31,7 @@ use diesel_ltree::{dsl::LtreeExtensions, Ltree};
 use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;

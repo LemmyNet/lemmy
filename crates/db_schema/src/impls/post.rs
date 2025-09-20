@@ -42,7 +42,7 @@ use lemmy_db_schema_file::{
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
