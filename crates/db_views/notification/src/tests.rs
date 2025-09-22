@@ -4,6 +4,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityInsertForm},
     instance::Instance,
+    mod_log::moderator::{ModRemovePost, ModRemovePostForm},
     notification::{Notification, NotificationInsertForm},
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
@@ -108,6 +109,31 @@ async fn test_post() -> LemmyResult<()> {
     panic!();
   };
   assert_eq!(post, notif_post.post);
+
+  // create a notification entry for removed post
+  let mod_remove_post_form = ModRemovePostForm {
+    mod_person_id: data.bob.id,
+    post_id: post.id,
+    reason: "reason".to_string(),
+    removed: Some(true),
+  };
+  let mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form).await?;
+  let notif_form = NotificationInsertForm {
+    mod_remove_post_id: Some(mod_remove_post.id),
+    ..NotificationInsertForm::new(data.alice.id, NotificationType::ModAction)
+  };
+  Notification::create(pool, &[notif_form]).await?;
+
+  let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
+  assert_eq!(1, count);
+  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
+  assert_length!(1, notifs);
+  assert_eq!(Some(post.id), notifs[0].notification.post_id);
+  assert!(!notifs[0].notification.read);
+  let NotificationData::ModRemovePost(notif_remove_post) = &notifs[0].data else {
+    panic!();
+  };
+  assert_eq!(&mod_remove_post, notif_remove_post);
 
   cleanup(data, pool).await
 }
