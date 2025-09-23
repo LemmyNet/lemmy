@@ -1,10 +1,9 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
-use lemmy_db_views_community_follower::{
+use lemmy_db_views_community_follower_approval::{
   api::{ListCommunityPendingFollows, ListCommunityPendingFollowsResponse},
-  CommunityFollowerView,
-  PendingFollow,
+  PendingFollowerView,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
@@ -19,12 +18,12 @@ pub async fn get_pending_follows_list(
     data.all_communities.unwrap_or_default() && local_user_view.local_user.admin;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(CommunityFollowerView::from_cursor(cursor, &mut context.pool()).await?)
+    Some(PendingFollowerView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
 
-  let items = CommunityFollowerView::list_approval_required(
+  let items = PendingFollowerView::list_approval_required(
     &mut context.pool(),
     local_user_view.person.id,
     all_communities,
@@ -35,8 +34,8 @@ pub async fn get_pending_follows_list(
   )
   .await?;
 
-  let next_page = items.last().map(PendingFollow::to_cursor);
-  let prev_page = items.first().map(PendingFollow::to_cursor);
+  let next_page = items.last().map(|x| x.to_cursor());
+  let prev_page = items.first().map(|x| x.to_cursor());
 
   Ok(Json(ListCommunityPendingFollowsResponse {
     items,
