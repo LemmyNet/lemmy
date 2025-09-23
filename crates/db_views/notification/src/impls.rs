@@ -242,7 +242,7 @@ impl NotificationQuery {
     }
 
     // Filters
-    if dbg!(self.unread_only.unwrap_or_default()) {
+    if self.unread_only.unwrap_or_default() {
       query = query
         // The recipient filter (IE only show replies to you)
         .filter(notification::recipient_id.eq(my_person.id))
@@ -305,7 +305,6 @@ impl NotificationQuery {
 }
 
 fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
-  dbg!(&v);
   let data = if let (Some(comment), Some(post), Some(community), Some(creator)) = (
     v.comment,
     v.post.clone(),

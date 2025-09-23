@@ -101,15 +101,15 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
-  assert_length!(1, notifs);
-  assert_eq!(Some(post.id), notifs[0].notification.post_id);
-  assert!(!notifs[0].notification.read);
-  let NotificationData::Post(notif_post) = &notifs[0].data else {
+  let notifs1 = NotificationQuery::default().list(pool, &data.alice).await?;
+  assert_length!(1, notifs1);
+  assert_eq!(Some(post.id), notifs1[0].notification.post_id);
+  assert!(!notifs1[0].notification.read);
+  let NotificationData::Post(notif_post) = &notifs1[0].data else {
     panic!();
   };
   assert_eq!(post, notif_post.post);
-  Notification::mark_read_by_id_and_person(pool, notifs[0].notification.id, true, data.alice.id)
+  Notification::mark_read_by_id_and_person(pool, notifs1[0].notification.id, true, data.alice.id)
     .await?;
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(0, count);
@@ -130,22 +130,24 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs = NotificationQuery {
+  let notifs2 = NotificationQuery {
     unread_only: Some(true),
     ..Default::default()
   }
   .list(pool, &data.alice)
   .await?;
-  assert_length!(1, notifs);
+  assert_length!(1, notifs2);
   assert_eq!(
     Some(mod_remove_post.id),
-    notifs[0].notification.mod_remove_post_id
+    notifs2[0].notification.mod_remove_post_id
   );
-  assert!(!notifs[0].notification.read);
-  let NotificationData::ModRemovePost(notif_remove_post) = &notifs[0].data else {
+  assert!(!notifs2[0].notification.read);
+  let NotificationData::ModRemovePost(notif_remove_post) = &notifs2[0].data else {
     panic!();
   };
   assert_eq!(&mod_remove_post, notif_remove_post);
 
+  Notification::delete(pool, notifs1[0].notification.id).await?;
+  Notification::delete(pool, notifs2[0].notification.id).await?;
   cleanup(data, pool).await
 }
