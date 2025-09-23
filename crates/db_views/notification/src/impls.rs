@@ -5,6 +5,7 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -180,8 +181,8 @@ impl NotificationView {
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
-    if show_bot_accounts {
-      query = query.filter(not(person::bot_account));
+    if !show_bot_accounts {
+      query = query.filter(person::bot_account.is_distinct_from(true));
     }
 
     query
@@ -261,8 +262,8 @@ impl NotificationQuery {
       );
     }
 
-    if self.show_bot_accounts.unwrap_or_default() {
-      query = query.filter(not(person::bot_account));
+    if !self.show_bot_accounts.unwrap_or_default() {
+      query = query.filter(person::bot_account.is_distinct_from(true));
     };
 
     // Dont show replies from blocked users or instances
