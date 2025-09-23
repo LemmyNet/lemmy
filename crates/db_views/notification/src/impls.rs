@@ -142,7 +142,7 @@ impl NotificationView {
       .left_join(comment_join)
       .left_join(post_join)
       .left_join(community_join())
-      .inner_join(item_creator_join)
+      .left_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
@@ -180,7 +180,7 @@ impl NotificationView {
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
-    if !show_bot_accounts {
+    if show_bot_accounts {
       query = query.filter(not(person::bot_account));
     }
 
@@ -242,7 +242,7 @@ impl NotificationQuery {
     }
 
     // Filters
-    if self.unread_only.unwrap_or_default() {
+    if dbg!(self.unread_only.unwrap_or_default()) {
       query = query
         // The recipient filter (IE only show replies to you)
         .filter(notification::recipient_id.eq(my_person.id))
@@ -261,7 +261,7 @@ impl NotificationQuery {
       );
     }
 
-    if !(self.show_bot_accounts.unwrap_or_default()) {
+    if self.show_bot_accounts.unwrap_or_default() {
       query = query.filter(not(person::bot_account));
     };
 
@@ -305,14 +305,18 @@ impl NotificationQuery {
 }
 
 fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
-  let data = if let (Some(comment), Some(post), Some(community)) =
-    (v.comment, v.post.clone(), v.community.clone())
-  {
+  dbg!(&v);
+  let data = if let (Some(comment), Some(post), Some(community), Some(creator)) = (
+    v.comment,
+    v.post.clone(),
+    v.community.clone(),
+    v.creator.clone(),
+  ) {
     NotificationData::Comment(CommentView {
       comment,
       post,
       community,
-      creator: v.creator,
+      creator,
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
@@ -325,11 +329,13 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator_banned_from_community: v.creator_banned_from_community,
       creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
-  } else if let (Some(post), Some(community)) = (v.post, v.community) {
+  } else if let (Some(post), Some(community), Some(creator)) =
+    (v.post, v.community, v.creator.clone())
+  {
     NotificationData::Post(PostView {
       post,
       community,
-      creator: v.creator,
+      creator,
       image_details: v.image_details,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
@@ -343,10 +349,10 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator_banned_from_community: v.creator_banned_from_community,
       creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
-  } else if let Some(private_message) = v.private_message {
+  } else if let (Some(private_message), Some(creator)) = (v.private_message, v.creator) {
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
-      creator: v.creator,
+      creator,
       recipient: v.recipient,
     })
   } else if let Some(admin_add) = v.admin_add {

@@ -57,7 +57,7 @@ pub mod impls;
 #[expect(clippy::indexing_slicing)]
 pub mod tests;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 struct NotificationViewInternal {
@@ -72,7 +72,7 @@ struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  creator: Person,
+  creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Person1AliasAllColumnsTuple,

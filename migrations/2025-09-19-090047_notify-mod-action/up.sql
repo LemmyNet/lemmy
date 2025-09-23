@@ -16,6 +16,7 @@ ALTER TYPE notification_type_enum
     ADD value 'ModAction';
 
 ALTER TABLE notification
+    DROP CONSTRAINT notification_check,
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id, admin_add_id, mod_add_to_community_id, admin_ban_id, mod_ban_from_community_id, mod_lock_post_id, mod_remove_post_id, mod_lock_comment_id, mod_remove_comment_id, admin_remove_community_id, mod_transfer_community_id) = 1);
 
 -- add indexes

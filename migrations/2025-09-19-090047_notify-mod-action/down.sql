@@ -30,6 +30,7 @@ ALTER TABLE notification
     USING kind::text::notification_type_enum;
 
 ALTER TABLE notification
+    DROP CONSTRAINT notification_check,
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id) = 1);
 
 -- drop the old enum

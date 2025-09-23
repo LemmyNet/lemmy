@@ -109,6 +109,10 @@ async fn test_post() -> LemmyResult<()> {
     panic!();
   };
   assert_eq!(post, notif_post.post);
+  Notification::mark_read_by_id_and_person(pool, notifs[0].notification.id, true, data.alice.id)
+    .await?;
+  let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
+  assert_eq!(0, count);
 
   // create a notification entry for removed post
   let mod_remove_post_form = ModRemovePostForm {
@@ -126,9 +130,17 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
+  let notifs = NotificationQuery {
+    unread_only: Some(true),
+    ..Default::default()
+  }
+  .list(pool, &data.alice)
+  .await?;
   assert_length!(1, notifs);
-  assert_eq!(Some(post.id), notifs[0].notification.post_id);
+  assert_eq!(
+    Some(mod_remove_post.id),
+    notifs[0].notification.mod_remove_post_id
+  );
   assert!(!notifs[0].notification.read);
   let NotificationData::ModRemovePost(notif_remove_post) = &notifs[0].data else {
     panic!();
