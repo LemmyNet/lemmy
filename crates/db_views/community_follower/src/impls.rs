@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::CommunityFollowerState,
-  schema::{community, community_actions, person},
+  schema::{community, community_actions, person, sql_types::CommunityVisibility},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -78,6 +78,8 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .filter(community::local_removed.eq(false))
+      // Exclude private community follows which still need to be approved by a mod
+      .filter(community_actions::follow_state.ne(CommunityFollowerState::ApprovalRequired))
       .select(Self::as_select())
       .order_by(lower(community::title))
       .load::<CommunityFollowerView>(conn)
