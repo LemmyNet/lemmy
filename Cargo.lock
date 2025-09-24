@@ -3104,7 +3104,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
- "lemmy_db_views_community_follower",
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
@@ -3224,7 +3223,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
- "lemmy_db_views_community_follower",
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_community_person_ban",
@@ -3455,14 +3453,11 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
- "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
- "tokio",
  "ts-rs",
 ]
 
@@ -3470,7 +3465,6 @@ dependencies = [
 name = "lemmy_db_views_community_follower_approval"
 version = "1.0.0-alpha.7"
 dependencies = [
- "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
