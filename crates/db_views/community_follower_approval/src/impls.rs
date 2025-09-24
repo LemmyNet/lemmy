@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{get_conn, limit_fetch, paginate, queries::selects::person1_select, DbPool},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
@@ -27,34 +27,33 @@ use lemmy_db_schema_file::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-diesel::alias!(community_actions as mod_community_actions: ModCommunityActions,
+diesel::alias!(community_actions as follower_community_actions: FollowerCommunityActions,
 person as person_instance_check: PersonInstanceCheck,
 community_actions as community_actions_instance_check: CommunityActionInstanceCheck);
 
 impl PendingFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
-    let mod_community_actions_join = mod_community_actions
-      .on(community::id.eq(mod_community_actions.field(community_actions::community_id)));
-    let mod_id = aliases::person1.field(person::id);
-    let moderator_join = aliases::person1.on(
-      mod_community_actions
+    let follower_community_actions_join = follower_community_actions
+      .on(community::id.eq(follower_community_actions.field(community_actions::community_id)));
+    let follower_id = aliases::person1.field(person::id);
+    let follower_join = aliases::person1.on(
+      follower_community_actions
         .field(community_actions::person_id)
-        .eq(mod_id)
+        .eq(follower_id)
         .and(
-          mod_community_actions
-            .field(community_actions::became_moderator_at)
+          follower_community_actions
+            .field(community_actions::followed_at)
             .is_not_null(),
         )
-        .and(community::id.eq(mod_community_actions.field(community_actions::community_id))),
+        .and(community::id.eq(follower_community_actions.field(community_actions::community_id))),
     );
 
     community_actions::table
-      .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .left_join(mod_community_actions_join)
-      .left_join(moderator_join)
+      .inner_join(follower_community_actions_join)
+      .inner_join(follower_join)
   }
 
   pub async fn list_approval_required(
@@ -86,23 +85,30 @@ impl PendingFollowerView {
 
     // the main query
     let mut query = Self::joins()
+      .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(community::visibility.eq(CommunityVisibility::Private))
       .select((
-        person::all_columns,
+        person1_select(),
         community::all_columns,
         not(exists(is_new_instance)),
-        community_actions::follow_state.nullable(),
+        follower_community_actions
+          .field(community_actions::follow_state)
+          .nullable(),
       ))
       .limit(limit)
       .into_boxed();
 
     // if param is false, only return items for communities where user is a mod
     if !all_communities {
-      query = query.filter(aliases::person1.field(person::id).eq(mod_id));
+      query = query.filter(person::id.eq(mod_id));
     }
 
     if unread_only {
-      query =
-        query.filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired));
+      query = query.filter(
+        follower_community_actions
+          .field(community_actions::follow_state)
+          .eq(CommunityFollowerState::ApprovalRequired),
+      );
     }
 
     // Sorting by published
@@ -133,8 +139,14 @@ impl PendingFollowerView {
   ) -> LemmyResult<i64> {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
-      .filter(aliases::person1.field(person::id).eq(mod_id))
-      .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
+      .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(community::visibility.eq(CommunityVisibility::Private))
+      .filter(person::id.eq(mod_id))
+      .filter(
+        follower_community_actions
+          .field(community_actions::follow_state)
+          .eq(CommunityFollowerState::ApprovalRequired),
+      )
       .select(count(community_actions::community_id))
       .first::<i64>(conn)
       .await
@@ -145,12 +157,10 @@ impl PendingFollowerView {
     from_person_id: PersonId,
     community: &Community,
   ) -> LemmyResult<()> {
-    if community.visibility != CommunityVisibility::Private {
-      return Ok(());
-    }
     let conn = &mut get_conn(pool).await?;
     select(exists(
       Self::joins()
+        .filter(community::visibility.eq(CommunityVisibility::Private))
         .filter(community_actions::community_id.eq(community.id))
         .filter(community_actions::person_id.eq(from_person_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
@@ -168,8 +178,9 @@ impl PendingFollowerView {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       Self::joins()
+        .filter(community::visibility.eq(CommunityVisibility::Private))
         .filter(community_actions::community_id.eq(community_id))
-        .filter(person::instance_id.eq(instance_id))
+        .filter(aliases::person1.field(person::instance_id).eq(instance_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
     ))
     .get_result::<bool>(conn)
@@ -227,12 +238,15 @@ mod tests {
 
     // insert local community
     let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-    let community_form = CommunityInsertForm::new(
-      local_instance.id,
-      "test_community_3".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        local_instance.id,
+        "test_community_3".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
     let community = Community::create(pool, &community_form).await?;
 
     // insert remote user
@@ -278,7 +292,7 @@ mod tests {
       pool,
     )
     .await;
-    assert!(has_followers.is_ok());
+    assert!(dbg!(has_followers).is_ok());
 
     Instance::delete(pool, local_instance.id).await?;
     Instance::delete(pool, remote_instance.id).await?;
