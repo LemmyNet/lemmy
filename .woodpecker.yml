@@ -202,7 +202,7 @@ steps:
       # Run all migrations
       - diesel migration run
       - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync --restrict-key=empty -f before.sqldump
       # Make sure that the newest migration is revertable without the `r` schema
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
@@ -213,7 +213,7 @@ steps:
       - diesel migration redo
       # Check for changes in the schema, which would be caused by an incorrect migration
       - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync --restrict-key=empty -f after.sqldump
       - diff before.sqldump after.sqldump
     when: *slow_check_paths
 
