@@ -20,7 +20,7 @@ use lemmy_db_schema::source::{
   community::Community,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
   error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
@@ -134,7 +134,7 @@ async fn check_community_content_fetchable(
         signing_actor::<SiteOrMultiOrCommunityOrUser>(request, None, context).await?;
       if community.local {
         Ok(
-          CommunityFollowerView::check_has_followers_from_instance(
+          PendingFollowerView::check_has_followers_from_instance(
             community.id,
             get_instance_id(&signing_actor),
             &mut context.pool(),
