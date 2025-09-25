@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::CommunityFollowerState,
-  schema::{community, community_actions, person, sql_types::CommunityVisibility},
+  schema::{community, community_actions, person},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
