@@ -80,6 +80,7 @@ impl CommunityFollowerView {
       .filter(community::local_removed.eq(false))
       // Exclude private community follows which still need to be approved by a mod
       .filter(community_actions::follow_state.ne(CommunityFollowerState::ApprovalRequired))
+      .filter(community_actions::follow_state.ne(CommunityFollowerState::Denied))
       .select(Self::as_select())
       .order_by(lower(community::title))
       .load::<CommunityFollowerView>(conn)
