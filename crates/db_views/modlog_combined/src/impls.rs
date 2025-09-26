@@ -3,10 +3,6 @@ use crate::{
   AdminAllowInstanceView,
   AdminBanView,
   AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
   AdminRemoveCommunityView,
   ModAddToCommunityView,
   ModBanFromCommunityView,
@@ -59,10 +55,6 @@ use lemmy_db_schema_file::{
     admin_allow_instance,
     admin_ban,
     admin_block_instance,
-    admin_purge_comment,
-    admin_purge_community,
-    admin_purge_person,
-    admin_purge_post,
     admin_remove_community,
     comment,
     community,
@@ -159,8 +151,9 @@ impl ModlogCombinedViewInternal {
     );
 
     let post_join = post::table.on(
-        mod_feature_post::post_id.eq(post::id)
-      //.or(admin_purge_comment::post_id.eq(post::id))
+      mod_feature_post::post_id
+        .eq(post::id)
+        //.or(admin_purge_comment::post_id.eq(post::id))
         .or(mod_lock_post::post_id.eq(post::id))
         .or(
           mod_remove_comment::id
@@ -176,8 +169,9 @@ impl ModlogCombinedViewInternal {
     );
 
     let community_join = community::table.on(
-        mod_add_to_community::community_id.eq(community::id)
-      //.or(admin_purge_post::community_id.eq(community::id))
+      mod_add_to_community::community_id
+        .eq(community::id)
+        //.or(admin_purge_post::community_id.eq(community::id))
         .or(mod_ban_from_community::community_id.eq(community::id))
         .or(
           mod_feature_post::id
@@ -694,14 +688,6 @@ mod tests {
           AdminBanForm,
           AdminBlockInstance,
           AdminBlockInstanceForm,
-          AdminPurgeComment,
-          AdminPurgeCommentForm,
-          AdminPurgeCommunity,
-          AdminPurgeCommunityForm,
-          AdminPurgePerson,
-          AdminPurgePersonForm,
-          AdminPurgePost,
-          AdminPurgePostForm,
           AdminRemoveCommunity,
           AdminRemoveCommunityForm,
         },
@@ -837,6 +823,7 @@ mod tests {
     };
     AdminBlockInstance::create(pool, &form).await?;
 
+    /*
     let form = AdminPurgeCommentForm {
       admin_person_id: data.timmy.id,
       post_id: data.post.id,
@@ -862,6 +849,7 @@ mod tests {
       reason: "reason".to_string(),
     };
     AdminPurgePost::create(pool, &form).await?;
+    */
 
     let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.timmy.id,
@@ -879,7 +867,7 @@ mod tests {
     ModChangeCommunityVisibility::create(pool, &form).await?;
 
     let modlog = ModlogCombinedQuery::default().list(pool).await?;
-    assert_eq!(8, modlog.len());
+    assert_eq!(4, modlog.len());
 
     if let ModlogCombinedView::ModChangeCommunityVisibility(v) = &modlog[0] {
       assert_eq!(
@@ -909,6 +897,7 @@ mod tests {
       panic!("wrong type");
     }
 
+    /*
     if let ModlogCombinedView::AdminPurgePost(v) = &modlog[2] {
       assert_eq!(data.community.id, v.admin_purge_post.community_id);
       assert_eq!(data.community.id, v.community.id);
@@ -948,9 +937,10 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+    */
 
     // Make sure the report types are correct
-    if let ModlogCombinedView::AdminBlockInstance(v) = &modlog[6] {
+    if let ModlogCombinedView::AdminBlockInstance(v) = &modlog[2] {
       assert_eq!(data.instance.id, v.admin_block_instance.instance_id);
       assert_eq!(data.instance.id, v.instance.id);
       assert_eq!(
@@ -961,7 +951,7 @@ mod tests {
       panic!("wrong type");
     }
 
-    if let ModlogCombinedView::AdminAllowInstance(v) = &modlog[7] {
+    if let ModlogCombinedView::AdminAllowInstance(v) = &modlog[3] {
       assert_eq!(data.instance.id, v.admin_allow_instance.instance_id);
       assert_eq!(data.instance.id, v.instance.id);
       assert_eq!(
@@ -980,7 +970,7 @@ mod tests {
     .list(pool)
     .await?;
     // Only one is jessica
-    assert_eq!(7, modlog_admin_filter.len());
+    assert_eq!(3, modlog_admin_filter.len());
 
     // Filter by community
     let modlog_community_filter = ModlogCombinedQuery {
@@ -991,7 +981,7 @@ mod tests {
     .await?;
 
     // Should be 2, and not jessicas
-    assert_eq!(2, modlog_community_filter.len());
+    assert_eq!(1, modlog_community_filter.len());
 
     // Filter by type
     let modlog_type_filter = ModlogCombinedQuery {
