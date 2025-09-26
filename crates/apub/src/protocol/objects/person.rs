@@ -41,6 +41,7 @@ pub struct Person {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) icon: Option<ImageObject>,
   /// user banner
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) image: Option<ImageObject>,
   pub(crate) matrix_user_id: Option<String>,
   pub(crate) endpoints: Option<Endpoints>,
