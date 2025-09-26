@@ -20,12 +20,9 @@ use {
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_moderator,
-    creator_local_home_community_ban_expires,
-    creator_local_home_community_banned,
     local_user_is_admin,
     person1_select,
     person2_select,
-    CreatorLocalHomeCommunityBanExpiresType,
   },
   lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,
@@ -84,6 +81,7 @@ pub struct ReportCombinedViewInternal {
     )
   )]
   pub creator_is_moderator: bool,
+  /*
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_local_home_community_banned()
@@ -97,6 +95,7 @@ pub struct ReportCombinedViewInternal {
      )
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
+  */
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()
