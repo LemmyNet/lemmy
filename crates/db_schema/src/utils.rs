@@ -56,6 +56,7 @@ use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
+pub const PAGE_LIMIT_MAX: i64 = 10;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
@@ -256,8 +257,10 @@ pub fn limit_and_offset(
 ) -> Result<(i64, i64), diesel::result::Error> {
   let page = match page {
     Some(page) => {
-      if page < 1 {
-        return Err(QueryBuilderError("Page is < 1".into()));
+      if !(1..=PAGE_LIMIT_MAX).contains(&page) {
+        return Err(QueryBuilderError(
+          format!("Page limit is > {PAGE_LIMIT_MAX}").into(),
+        ));
       }
       page
     }
