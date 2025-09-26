@@ -150,21 +150,20 @@ async fn get_feed_data(
 }
 
 async fn get_feed_user(
-  req: HttpRequest,
   info: web::Query<Params>,
+  name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let user_name: String = req
-    .match_info()
-    .get("user_name")
-    .unwrap_or("none")
-    .parse()?;
+  let (name, domain) = split_name(name.into_inner());
+
+  let person = if let Some(domain) = domain {
+    Person::read_from_name_and_domain(&mut context.pool(), &name, &domain).await?
+  } else {
+    Person::read_from_name(&mut context.pool(), &name, false).await?
+  }
+  .ok_or(ErrorBadRequest("not_found"))?;
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let person = Person::read_from_name(&mut context.pool(), &user_name, false)
-    .await?
-    .ok_or(ErrorBadRequest("not_found"))?;
-
   check_private_instance(&None, &site_view.local_site)?;
 
   let content = PersonContentCombinedQuery {
@@ -197,25 +196,34 @@ async fn get_feed_user(
   Ok(channel_to_http_res(channel))
 }
 
+/// Takes a user/community name either in the format `name` or `name@example.com`. Splits
+/// it on `@` and returns a tuple of name and optional domain.
+fn split_name(name: String) -> (String, Option<String>) {
+  if let Some(split) = name.split_once('@') {
+    (split.0.to_string(), Some(split.1.to_string()))
+  } else {
+    (name, None)
+  }
+}
+
 async fn get_feed_community(
-  req: HttpRequest,
   info: web::Query<Params>,
+  name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let community_name: String = req
-    .match_info()
-    .get("community_name")
-    .unwrap_or("none")
-    .parse()?;
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let community = Community::read_from_name(&mut context.pool(), &community_name, false)
-    .await?
-    .ok_or(ErrorBadRequest("not_found"))?;
+  let (name, domain) = split_name(name.into_inner());
+  let community = if let Some(domain) = domain {
+    Community::read_from_name_and_domain(&mut context.pool(), &name, &domain).await?
+  } else {
+    Community::read_from_name(&mut context.pool(), &name, false).await?
+  }
+  .ok_or(ErrorBadRequest("not_found"))?;
 
   if !community.visibility.can_view_without_login() {
     return Err(ErrorBadRequest("not_found"));
   }
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {

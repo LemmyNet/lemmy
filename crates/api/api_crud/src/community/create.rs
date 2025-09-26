@@ -5,6 +5,7 @@ use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   utils::{
+    check_local_user_valid,
     check_nsfw_allowed,
     generate_featured_url,
     generate_followers_url,
@@ -51,6 +52,7 @@ pub async fn create_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 

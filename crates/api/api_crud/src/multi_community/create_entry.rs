@@ -4,7 +4,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_deleted_removed,
+  utils::{check_community_deleted_removed, check_local_user_valid},
 };
 use lemmy_db_schema::{
   source::{
@@ -24,6 +24,7 @@ pub async fn create_multi_community_entry(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let multi = check_multi_community_creator(data.id, &local_user_view, &context).await?;
 
   let community = Community::read(&mut context.pool(), data.community_id).await?;

@@ -5,7 +5,13 @@ use lemmy_api_utils::{
   notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_private_messages_enabled, get_url_blocklist, process_markdown, slur_regex},
+  utils::{
+    check_local_user_valid,
+    check_private_messages_enabled,
+    get_url_blocklist,
+    process_markdown,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -26,6 +32,7 @@ pub async fn create_private_message(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
