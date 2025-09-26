@@ -37,14 +37,8 @@ use {
     utils::queries::selects::{
       creator_ban_expires_from_community,
       creator_banned_from_community,
-      creator_is_admin,
-      creator_is_moderator,
-      creator_local_home_ban_expires,
-      creator_local_home_banned,
-      local_user_can_mod,
       person1_select,
       post_tags_fragment,
-      CreatorLocalHomeBanExpiresType,
     },
     Person1AliasAllColumnsTuple,
   },
@@ -112,16 +106,19 @@ struct NotificationViewInternal {
   mod_transfer_community: Option<ModTransferCommunity>,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
-  creator_is_admin: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
       select_expression = post_tags_fragment()
     )
   )]
   post_tags: TagsView,
+  /*
+    TODO: temporarily commented out because compilation is too slow
+          https://github.com/LemmyNet/lemmy/issues/6012
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
+  creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -147,6 +144,7 @@ struct NotificationViewInternal {
     )
   )]
   creator_is_moderator: bool,
+  */
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()

@@ -28,15 +28,11 @@ use lemmy_db_schema::{
       joins::{
         community_join,
         creator_community_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        creator_local_user_admin_join,
         image_details_join,
         my_comment_actions_join,
         my_community_actions_join,
         my_instance_communities_actions_join,
         my_instance_persons_actions_join_1,
-        my_local_user_admin_join,
         my_person_actions_join,
         my_post_actions_join,
       },
@@ -118,15 +114,17 @@ impl NotificationView {
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person.id));
     let my_comment_actions_join: my_comment_actions_join =
       my_comment_actions_join(Some(my_person.id));
-    let my_local_user_admin_join: my_local_user_admin_join =
-      my_local_user_admin_join(Some(my_person.id));
     let my_instance_communities_actions_join: my_instance_communities_actions_join =
       my_instance_communities_actions_join(Some(my_person.id));
     let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
       my_instance_persons_actions_join_1(Some(my_person.id));
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
+    /*
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(my_person.instance_id);
+    let my_local_user_admin_join: my_local_user_admin_join =
+      my_local_user_admin_join(Some(my_person.id));
+    */
 
     notification::table
       .left_join(admin_add::table)
@@ -147,10 +145,14 @@ impl NotificationView {
       .inner_join(recipient_join)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
+      /*
+        TODO: temporarily commented out because compilation is too slow
+              https://github.com/LemmyNet/lemmy/issues/6012
       .left_join(creator_local_user_admin_join())
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_local_user_admin_join)
+      */
       .left_join(my_community_actions_join)
       .left_join(my_instance_communities_actions_join)
       .left_join(my_instance_persons_actions_join_1)
@@ -320,14 +322,23 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
-      creator_is_admin: v.creator_is_admin,
+      creator_is_admin: false,
       post_tags: v.post_tags,
+      can_mod: false,
+      creator_banned: false,
+      creator_ban_expires_at: None,
+      creator_is_moderator: false,
+      creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      /*
+        TODO: temporarily commented out because compilation is too slow
+        https://github.com/LemmyNet/lemmy/issues/6012
+      creator_is_admin: v.creator_is_admin,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
-      creator_banned_from_community: v.creator_banned_from_community,
-      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      */
     })
   } else if let (Some(post), Some(community), Some(creator)) =
     (v.post, v.community, v.creator.clone())
@@ -340,14 +351,23 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       community_actions: v.community_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,
-      creator_is_admin: v.creator_is_admin,
+      creator_is_admin: false,
       tags: v.post_tags,
+      can_mod: false,
+      creator_banned: false,
+      creator_ban_expires_at: None,
+      creator_is_moderator: false,
+      creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      /*
+        TODO: temporarily commented out because compilation is too slow
+        https://github.com/LemmyNet/lemmy/issues/6012
+      creator_is_admin: v.creator_is_admin,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
-      creator_banned_from_community: v.creator_banned_from_community,
-      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      */
     })
   } else if let (Some(private_message), Some(creator)) = (v.private_message, v.creator) {
     NotificationData::PrivateMessage(PrivateMessageView {
