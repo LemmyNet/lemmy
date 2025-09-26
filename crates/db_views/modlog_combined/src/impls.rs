@@ -97,10 +97,12 @@ impl ModlogCombinedViewInternal {
       admin_allow_instance::admin_person_id
         .eq(person::id)
         .or(admin_block_instance::admin_person_id.eq(person::id))
+        /*
         .or(admin_purge_comment::admin_person_id.eq(person::id))
         .or(admin_purge_community::admin_person_id.eq(person::id))
         .or(admin_purge_person::admin_person_id.eq(person::id))
         .or(admin_purge_post::admin_person_id.eq(person::id))
+        */
         .or(admin_add::mod_person_id.eq(person::id))
         .or(mod_add_to_community::mod_person_id.eq(person::id))
         .or(admin_ban::mod_person_id.eq(person::id))
@@ -157,9 +159,8 @@ impl ModlogCombinedViewInternal {
     );
 
     let post_join = post::table.on(
-      admin_purge_comment::post_id
-        .eq(post::id)
-        .or(mod_feature_post::post_id.eq(post::id))
+        mod_feature_post::post_id.eq(post::id)
+      //.or(admin_purge_comment::post_id.eq(post::id))
         .or(mod_lock_post::post_id.eq(post::id))
         .or(
           mod_remove_comment::id
@@ -175,9 +176,8 @@ impl ModlogCombinedViewInternal {
     );
 
     let community_join = community::table.on(
-      admin_purge_post::community_id
-        .eq(community::id)
-        .or(mod_add_to_community::community_id.eq(community::id))
+        mod_add_to_community::community_id.eq(community::id)
+      //.or(admin_purge_post::community_id.eq(community::id))
         .or(mod_ban_from_community::community_id.eq(community::id))
         .or(
           mod_feature_post::id
@@ -224,10 +224,12 @@ impl ModlogCombinedViewInternal {
     modlog_combined::table
       .left_join(admin_allow_instance::table)
       .left_join(admin_block_instance::table)
+      /*
       .left_join(admin_purge_comment::table)
       .left_join(admin_purge_community::table)
       .left_join(admin_purge_person::table)
       .left_join(admin_purge_post::table)
+      */
       .left_join(admin_add::table)
       .left_join(mod_add_to_community::table)
       .left_join(admin_ban::table)
@@ -483,6 +485,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
           admin: v.moderator,
         },
       ))
+    /*
     } else if let (Some(admin_purge_comment), Some(post)) = (v.admin_purge_comment, v.post.clone())
     {
       Some(ModlogCombinedView::AdminPurgeComment(
@@ -512,6 +515,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
         admin: v.moderator,
         community,
       }))
+    */
     } else if let (Some(admin_add), Some(other_person)) = (v.admin_add, v.other_person.clone()) {
       Some(ModlogCombinedView::AdminAdd(AdminAddView {
         admin_add,

@@ -84,6 +84,7 @@ pub struct ReportCombinedViewInternal {
     )
   )]
   pub creator_is_moderator: bool,
+  /*
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_local_home_community_banned()
@@ -97,6 +98,7 @@ pub struct ReportCombinedViewInternal {
      )
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
+  */
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()

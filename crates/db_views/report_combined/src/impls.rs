@@ -171,9 +171,11 @@ impl ReportCombinedViewInternal {
       .left_join(resolver_join)
       .left_join(community_join)
       .left_join(creator_community_actions_join)
+      /*
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_instance_actions_join())
+      */
       .left_join(local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
@@ -495,7 +497,8 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         person_actions: v.person_actions,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: v.creator_banned,
+        creator_banned: false,
+        //creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
@@ -524,7 +527,8 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         person_actions: v.person_actions,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: v.creator_banned,
+        creator_banned: false,
+        //creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
@@ -541,7 +545,8 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
           private_message_creator,
           resolver: v.resolver,
           creator_is_admin: v.creator_is_admin,
-          creator_banned: v.creator_banned,
+        creator_banned: false,
+        //creator_banned: v.creator_banned,
         },
       ))
     } else if let (Some(community), Some(community_report)) = (v.community, v.community_report) {
@@ -552,7 +557,8 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         resolver: v.resolver,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: v.creator_banned,
+        creator_banned: false,
+        //creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else {
