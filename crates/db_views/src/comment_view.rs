@@ -111,8 +111,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let all_joins = move |query: comment_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>| {
+  let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     let is_local_user_banned_from_community_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
     > = if let Some(person_id) = my_person_id {
@@ -145,10 +144,10 @@ fn queries<'a>() -> Queries<
       };
 
     query
-      .inner_join(comment::table)
-      .inner_join(person::table.on(person::id.eq(comment::creator_id)))
-      .inner_join(post::table.on(post::id.eq(comment::post_id)))
-      .inner_join(community::table.on(community::id.eq(post::community_id)))
+      .inner_join(person::table)
+      .inner_join(post::table)
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(comment_aggregates::table)
       .left_join(
         comment_saved::table.on(
           comment::id
@@ -176,9 +175,7 @@ fn queries<'a>() -> Queries<
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_local_user): (CommentId, Option<&'a LocalUser>)| async move {
     let mut query = all_joins(
-      comment_aggregates::table
-        .filter(comment_aggregates::comment_id.eq(comment_id))
-        .into_boxed(),
+      comment::table.find(comment_id).into_boxed(),
       my_local_user.person_id(),
     );
     query = my_local_user.visible_communities_only(query);
@@ -193,10 +190,7 @@ fn queries<'a>() -> Queries<
       .local_user_id()
       .unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      comment_aggregates::table.into_boxed(),
-      options.local_user.person_id(),
-    );
+    let mut query = all_joins(comment::table.into_boxed(), options.local_user.person_id());
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -349,8 +343,8 @@ fn queries<'a>() -> Queries<
       CommentSortType::Controversial => {
         query.then_order_by(comment_aggregates::controversy_rank.desc())
       }
-      CommentSortType::New => query.then_order_by(comment_aggregates::published.desc()),
-      CommentSortType::Old => query.then_order_by(comment_aggregates::published.asc()),
+      CommentSortType::New => query.then_order_by(comment::published.desc()),
+      CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
     };
 
