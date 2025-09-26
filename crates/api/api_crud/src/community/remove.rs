@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, is_admin},
 };
@@ -15,6 +16,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_community::api::{CommunityResponse, RemoveCommunity};
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
@@ -56,7 +58,10 @@ pub async fn remove_community(
     removed: Some(removed),
     reason: data.reason.clone(),
   };
-  AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+  let action = AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+  for m in CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await? {
+    notify_mod_action(action.clone(), m.moderator.id, context.app_data());
+  }
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveCommunity {

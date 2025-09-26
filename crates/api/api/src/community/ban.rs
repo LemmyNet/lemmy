@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
@@ -56,7 +57,7 @@ pub async fn ban_from_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  conn
+  let action = conn
     .run_transaction(|conn| {
       async move {
         if tx_data.ban {
@@ -94,13 +95,14 @@ pub async fn ban_from_community(
           expires_at,
         };
 
-        ModBanFromCommunity::create(&mut conn.into(), &form).await?;
+        let action = ModBanFromCommunity::create(&mut conn.into(), &form).await?;
 
-        Ok(())
+        Ok(action)
       }
       .scope_boxed()
     })
     .await?;
+  notify_mod_action(action.clone(), data.person_id, &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),

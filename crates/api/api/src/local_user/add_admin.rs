@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
@@ -65,7 +65,8 @@ pub async fn add_admin(
     removed: Some(!data.added),
   };
 
-  AdminAdd::create(&mut context.pool(), &form).await?;
+  let action = AdminAdd::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action.clone(), added_local_user.person.id, &context);
 
   let admins = PersonQuery {
     admins_only: Some(true),
