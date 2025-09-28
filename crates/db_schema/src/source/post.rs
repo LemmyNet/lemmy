@@ -65,12 +65,12 @@ pub struct Post {
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   #[serde(skip)]
-  #[diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>))]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro_at: DateTime<Utc>,
-  #[diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at))]
-  #[diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at)))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>))]
   /// The time of the newest comment in the post.
   pub newest_comment_time_at: DateTime<Utc>,
   pub comments: i32,
