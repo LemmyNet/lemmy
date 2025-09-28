@@ -290,7 +290,11 @@ test("Unlike a comment", async () => {
   expect(gammaComment1?.creator.local).toBe(false);
   expect(gammaComment1?.comment.score).toBe(1);
 
-  let unlike = await likeComment(alpha, undefined, commentRes.comment_view.comment);
+  let unlike = await likeComment(
+    alpha,
+    undefined,
+    commentRes.comment_view.comment,
+  );
   expect(unlike.comment_view.comment.score).toBe(0);
 
   // Make sure that comment is unliked on beta
