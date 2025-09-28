@@ -80,8 +80,8 @@ pub async fn like_comment(
     .ok();
   }
 
-  if let Some(is_positive) = data.is_upvote {
-    let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, is_positive);
+  if let Some(is_upvote) = data.is_upvote {
+    let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, is_upvote);
     like_form = plugin_hook_before("before_comment_vote", like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;
     PersonActions::like(
@@ -101,7 +101,7 @@ pub async fn like_comment(
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
       previous_is_upvote,
-      new_score_is_positive: data.is_upvote,
+      new_is_upvote: data.is_upvote,
     },
     &context,
   )?;

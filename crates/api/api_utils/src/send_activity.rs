@@ -63,7 +63,7 @@ pub enum SendActivityData {
     actor: Person,
     community: Community,
     previous_is_upvote: Option<bool>,
-    new_score_is_positive: Option<bool>,
+    new_is_upvote: Option<bool>,
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),

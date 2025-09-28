@@ -39,7 +39,7 @@ pub(crate) async fn send_like_activity(
   actor: Person,
   community: Community,
   previous_is_upvote: Option<bool>,
-  new_score_is_positive: Option<bool>,
+  new_is_upvote: Option<bool>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let object_id: ObjectId<PostOrComment> = object_id.into();
@@ -47,7 +47,7 @@ pub(crate) async fn send_like_activity(
   let community: ApubCommunity = community.into();
 
   let empty = ActivitySendTargets::empty();
-  if let Some(s) = new_score_is_positive {
+  if let Some(s) = new_is_upvote {
     let vote = Vote::new(object_id, &actor, s.into(), &context)?;
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await

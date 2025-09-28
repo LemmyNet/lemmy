@@ -290,14 +290,14 @@ impl SearchCombinedQuery {
     // Liked / disliked filter
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
-      let liked_disliked_filter = |score_is_positive: bool| {
+      let liked_disliked_filter = |should_be_upvote: bool| {
         search_combined::post_id
           .is_not_null()
-          .and(post_actions::vote_is_upvote.eq(score_is_positive))
+          .and(post_actions::vote_is_upvote.eq(should_be_upvote))
           .or(
             search_combined::comment_id
               .is_not_null()
-              .and(comment_actions::vote_is_upvote.eq(score_is_positive)),
+              .and(comment_actions::vote_is_upvote.eq(should_be_upvote)),
           )
       };
 
