@@ -523,7 +523,7 @@ export async function followCommunity(
 
 export async function likePost(
   api: LemmyHttp,
-  is_upvote?: boolean,
+  is_upvote: boolean | undefined,
   post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
@@ -587,7 +587,7 @@ export async function removeComment(
 
 export async function likeComment(
   api: LemmyHttp,
-  is_upvote?: boolean,
+  is_upvote: boolean | undefined,
   comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
