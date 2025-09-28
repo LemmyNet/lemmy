@@ -1,13 +1,19 @@
 use crate::error::{LemmyError, LemmyErrorType};
-use actix_web::{dev::ServiceResponse, middleware::ErrorHandlerResponse, HttpResponse};
+use actix_web::{
+  dev::ServiceResponse,
+  middleware::ErrorHandlerResponse,
+  HttpRequest,
+  HttpResponse,
+};
 
 pub fn jsonify_plain_text_errors<BODY>(
   res: ServiceResponse<BODY>,
 ) -> actix_web::Result<ErrorHandlerResponse<BODY>> {
   let maybe_error = res.response().error();
+  let is_rate_limit_error = res.status() == 429;
 
   // This function is only expected to be called for errors, so if there is no error, return
-  if maybe_error.is_none() {
+  if maybe_error.is_none() && !is_rate_limit_error {
     return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
   }
   // We're assuming that any LemmyError is already in JSON format, so we don't need to do anything
@@ -17,14 +23,24 @@ pub fn jsonify_plain_text_errors<BODY>(
     }
   }
 
+  // convert other errors to json format
   let (req, res_parts) = res.into_parts();
   let lemmy_err_type = if let Some(error) = res_parts.error() {
     LemmyErrorType::Unknown(error.to_string())
+  } else if is_rate_limit_error {
+    LemmyErrorType::TooManyRequests
   } else {
     LemmyErrorType::Unknown("couldnt build json".into())
   };
+  build_error_response(req, res_parts, lemmy_err_type)
+}
 
-  let response = HttpResponse::build(res_parts.status()).json(lemmy_err_type);
+fn build_error_response<BODY>(
+  req: HttpRequest,
+  res_parts: HttpResponse<BODY>,
+  err: LemmyErrorType,
+) -> actix_web::Result<ErrorHandlerResponse<BODY>> {
+  let response = HttpResponse::build(res_parts.status()).json(err);
 
   let service_response = ServiceResponse::new(req, response);
   Ok(ErrorHandlerResponse::Response(
@@ -96,6 +112,20 @@ mod tests {
       anyhow_error_service,
       StatusCode::BAD_REQUEST,
       "{\"error\":\"unknown\",\"message\":\"This is the inner error\"}",
+    )
+    .await;
+  }
+
+  #[actix_web::test]
+  async fn test_rate_limit_error() {
+    async fn lemmy_error_service() -> actix_web::Result<HttpResponse> {
+      Ok(HttpResponse::TooManyRequests().finish())
+    }
+
+    check_for_jsonification(
+      lemmy_error_service,
+      StatusCode::TOO_MANY_REQUESTS,
+      "{\"error\":\"too_many_requests\"}",
     )
     .await;
   }

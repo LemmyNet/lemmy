@@ -44,7 +44,7 @@ tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.15"
+tokio-util = "0.7.16"
 
 [dev-dependencies]
 serial_test = { workspace = true }

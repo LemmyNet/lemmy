@@ -4,91 +4,91 @@ UPDATE
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_ban
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_block_instance
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_purge_comment
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_purge_community
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_purge_person
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_purge_post
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     admin_remove_community
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     mod_ban_from_community
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     mod_lock_comment
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     mod_lock_post
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     mod_remove_comment
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 UPDATE
     mod_remove_post
 SET
     reason = 'No reason given'
 WHERE
-    reason = NULL;
+    reason IS NULL;
 
 -- set not null
 ALTER TABLE admin_allow_instance
