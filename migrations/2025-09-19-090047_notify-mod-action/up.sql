@@ -25,23 +25,43 @@ ALTER TABLE notification
 -- add indexes
 CREATE INDEX idx_notification_unread ON notification (read);
 
-CREATE INDEX idx_notification_admin_add_id ON notification (admin_add_id);
+CREATE INDEX idx_notification_admin_add_id ON notification (admin_add_id)
+WHERE
+    admin_add_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_add_to_community_id ON notification (mod_add_to_community_id);
+CREATE INDEX idx_notification_mod_add_to_community_id ON notification (mod_add_to_community_id)
+WHERE
+    mod_add_to_community_id IS NOT NULL;
 
-CREATE INDEX idx_notification_admin_ban_id ON notification (admin_ban_id);
+CREATE INDEX idx_notification_admin_ban_id ON notification (admin_ban_id)
+WHERE
+    admin_ban_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_ban_from_community_id ON notification (mod_ban_from_community_id);
+CREATE INDEX idx_notification_mod_ban_from_community_id ON notification (mod_ban_from_community_id)
+WHERE
+    mod_ban_from_community_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_lock_post_id ON notification (mod_lock_post_id);
+CREATE INDEX idx_notification_mod_lock_post_id ON notification (mod_lock_post_id)
+WHERE
+    mod_lock_post_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_remove_comment_id ON notification (mod_remove_comment_id);
+CREATE INDEX idx_notification_mod_remove_comment_id ON notification (mod_remove_comment_id)
+WHERE
+    mod_remove_comment_id IS NOT NULL;
 
-CREATE INDEX idx_notification_admin_remove_community_id ON notification (admin_remove_community_id);
+CREATE INDEX idx_notification_admin_remove_community_id ON notification (admin_remove_community_id)
+WHERE
+    admin_remove_community_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_remove_post_id ON notification (mod_remove_post_id);
+CREATE INDEX idx_notification_mod_remove_post_id ON notification (mod_remove_post_id)
+WHERE
+    mod_remove_post_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_lock_comment_id ON notification (mod_lock_comment_id);
+CREATE INDEX idx_notification_mod_lock_comment_id ON notification (mod_lock_comment_id)
+WHERE
+    mod_lock_comment_id IS NOT NULL;
 
-CREATE INDEX idx_notification_mod_transfer_community_id ON notification (mod_transfer_community_id);
+CREATE INDEX idx_notification_mod_transfer_community_id ON notification (mod_transfer_community_id)
+WHERE
+    mod_transfer_community_id IS NOT NULL;
 
