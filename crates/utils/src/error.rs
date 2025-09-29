@@ -134,6 +134,7 @@ pub enum LemmyErrorType {
   MultiCommunityUpdateWrongUser,
   CannotCombineCommunityIdAndMultiCommunityId,
   MultiCommunityEntryLimitReached,
+  TooManyRequests,
 }
 
 /// Federation related errors, these dont need to be translated.
