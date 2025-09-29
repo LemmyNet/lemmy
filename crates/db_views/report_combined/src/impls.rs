@@ -37,7 +37,17 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{
+    get_conn,
+    limit_fetch,
+    paginate,
+    queries::joins::{
+      creator_community_instance_actions_join,
+      creator_home_instance_actions_join,
+      creator_local_instance_actions_join,
+    },
+    DbPool,
+  },
   ReportType,
 };
 use lemmy_db_schema_file::schema::{
@@ -61,7 +71,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: PersonId, _local_instance_id: InstanceId) -> _ {
+  fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let report_creator = person::id;
     let item_creator = aliases::person1.field(person::id);
     let resolver = aliases::person2.field(person::id).nullable();
@@ -127,8 +137,8 @@ impl ReportCombinedViewInternal {
             .eq(item_creator),
         ),
     );
-    //let creator_local_instance_actions_join: creator_local_instance_actions_join =
-    //  creator_local_instance_actions_join(local_instance_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
 
     let post_actions_join = post_actions::table.on(
       post_actions::post_id
@@ -161,11 +171,9 @@ impl ReportCombinedViewInternal {
       .left_join(resolver_join)
       .left_join(community_join)
       .left_join(creator_community_actions_join)
-      /*
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(creator_community_instance_actions_join())
-      */
       .left_join(local_user_join)
       .left_join(community_actions_join)
       .left_join(post_actions_join)
@@ -487,8 +495,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         person_actions: v.person_actions,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: false,
-        //creator_banned: v.creator_banned,
+        creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
@@ -517,8 +524,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         person_actions: v.person_actions,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: false,
-        //creator_banned: v.creator_banned,
+        creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else if let (
@@ -535,8 +541,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
           private_message_creator,
           resolver: v.resolver,
           creator_is_admin: v.creator_is_admin,
-          creator_banned: false,
-          //creator_banned: v.creator_banned,
+          creator_banned: v.creator_banned,
         },
       ))
     } else if let (Some(community), Some(community_report)) = (v.community, v.community_report) {
@@ -547,8 +552,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         resolver: v.resolver,
         creator_is_admin: v.creator_is_admin,
         creator_is_moderator: v.creator_is_moderator,
-        creator_banned: false,
-        //creator_banned: v.creator_banned,
+        creator_banned: v.creator_banned,
         creator_banned_from_community: v.creator_banned_from_community,
       }))
     } else {
