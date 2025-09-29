@@ -299,6 +299,8 @@ pub(crate) struct ModlogCombinedViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_block_instance: Option<AdminBlockInstance>,
   /*
+    Temporarily disabled to speed up compilation
+    https://github.com/LemmyNet/lemmy/issues/6012
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_comment: Option<AdminPurgeComment>,
   #[cfg_attr(feature = "full", diesel(embed))]

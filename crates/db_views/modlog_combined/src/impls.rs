@@ -90,6 +90,8 @@ impl ModlogCombinedViewInternal {
         .eq(person::id)
         .or(admin_block_instance::admin_person_id.eq(person::id))
         /*
+        Temporarily disabled to speed up compilation
+          https://github.com/LemmyNet/lemmy/issues/6012
         .or(admin_purge_comment::admin_person_id.eq(person::id))
         .or(admin_purge_community::admin_person_id.eq(person::id))
         .or(admin_purge_person::admin_person_id.eq(person::id))
@@ -153,6 +155,7 @@ impl ModlogCombinedViewInternal {
     let post_join = post::table.on(
       mod_feature_post::post_id
         .eq(post::id)
+        // https://github.com/LemmyNet/lemmy/issues/6012
         //.or(admin_purge_comment::post_id.eq(post::id))
         .or(mod_lock_post::post_id.eq(post::id))
         .or(
@@ -171,6 +174,7 @@ impl ModlogCombinedViewInternal {
     let community_join = community::table.on(
       mod_add_to_community::community_id
         .eq(community::id)
+        // https://github.com/LemmyNet/lemmy/issues/6012
         //.or(admin_purge_post::community_id.eq(community::id))
         .or(mod_ban_from_community::community_id.eq(community::id))
         .or(
@@ -219,6 +223,8 @@ impl ModlogCombinedViewInternal {
       .left_join(admin_allow_instance::table)
       .left_join(admin_block_instance::table)
       /*
+        Temporarily disabled to speed up compilation
+        https://github.com/LemmyNet/lemmy/issues/6012
       .left_join(admin_purge_comment::table)
       .left_join(admin_purge_community::table)
       .left_join(admin_purge_person::table)
@@ -480,6 +486,8 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
         },
       ))
     /*
+      Temporarily disabled to speed up compilation
+      https://github.com/LemmyNet/lemmy/issues/6012
     } else if let (Some(admin_purge_comment), Some(post)) = (v.admin_purge_comment, v.post.clone())
     {
       Some(ModlogCombinedView::AdminPurgeComment(
@@ -824,6 +832,8 @@ mod tests {
     AdminBlockInstance::create(pool, &form).await?;
 
     /*
+      Temporarily disabled to speed up compilation
+      https://github.com/LemmyNet/lemmy/issues/6012
     let form = AdminPurgeCommentForm {
       admin_person_id: data.timmy.id,
       post_id: data.post.id,
@@ -898,6 +908,8 @@ mod tests {
     }
 
     /*
+      Temporarily disabled to speed up compilation
+      https://github.com/LemmyNet/lemmy/issues/6012
     if let ModlogCombinedView::AdminPurgePost(v) = &modlog[2] {
       assert_eq!(data.community.id, v.admin_purge_post.community_id);
       assert_eq!(data.community.id, v.community.id);
