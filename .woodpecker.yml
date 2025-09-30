@@ -154,7 +154,8 @@ steps:
     when: *slow_check_paths
 
   cargo_clippy:
-    image: *rust_image
+    # use clippy from 1.81, otherwise there are too many errors
+    image: "rust:1.81"
     environment:
       CARGO_HOME: .cargo_home
     commands:
