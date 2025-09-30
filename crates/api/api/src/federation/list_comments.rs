@@ -1,4 +1,4 @@
-use crate::stuff::{
+use crate::federation::{
   comment_sort_type_with_default,
   fetch_limit_with_default,
   fetcher::resolve_ap_identifier,

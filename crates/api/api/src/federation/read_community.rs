@@ -1,4 +1,4 @@
-use crate::stuff::fetcher::resolve_ap_identifier;
+use crate::federation::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{

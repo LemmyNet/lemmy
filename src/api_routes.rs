@@ -97,7 +97,7 @@ use lemmy_api::{
       unread_count::get_unread_registration_application_count,
     },
   },
-  stuff::{
+  federation::{
     list_comments::{list_comments, list_comments_slim},
     list_person_content::list_person_content,
     list_posts::list_posts,

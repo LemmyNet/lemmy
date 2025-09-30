@@ -1,4 +1,4 @@
-use crate::stuff::{fetcher::resolve_ap_identifier, resolve_object::resolve_object_internal};
+use crate::federation::{fetcher::resolve_ap_identifier, resolve_object::resolve_object_internal};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use futures::future::join;

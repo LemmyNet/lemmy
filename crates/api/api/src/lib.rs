@@ -16,7 +16,7 @@ pub mod post;
 pub mod reports;
 pub mod site;
 pub mod sitemap;
-pub mod stuff;
+pub mod federation;
 
 /// Converts the captcha to a base64 encoded wav audio file
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {

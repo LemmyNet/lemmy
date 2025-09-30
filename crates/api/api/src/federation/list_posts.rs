@@ -1,4 +1,4 @@
-use crate::stuff::{
+use crate::federation::{
   fetch_limit_with_default,
   fetcher::resolve_ap_identifier,
   listing_type_with_default,

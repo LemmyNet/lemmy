@@ -1,4 +1,4 @@
-use crate::stuff::fetcher::resolve_ap_identifier;
+use crate::federation::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::person::ApubPerson;
