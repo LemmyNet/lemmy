@@ -159,7 +159,6 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      - rustup toolchain add 1.81
       - rustup component add --toolchain 1.81 clippy
       - cargo +1.81 clippy --workspace --tests --all-targets --features console -- -D warnings
     when: *slow_check_paths
