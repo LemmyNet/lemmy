@@ -105,6 +105,8 @@ unused_async = "deny"
 map_err_ignore = "deny"
 expect_used = "deny"
 as_conversions = "deny"
+large_futures = "deny"
+large_stack_frames = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-alpha.9", path = "./crates/api/api" }

@@ -79,7 +79,7 @@ pub async fn local_site_data_cached(pool: &mut DbPool<'_>) -> LemmyResult<Arc<Lo
       .build()
   });
   Ok(
-    CACHE
+    Box::pin(CACHE
       .try_get_with((), async {
         let (local_site, allowed_instances, blocked_instances) =
           lemmy_db_schema::try_join_with_pool!(pool => (
@@ -96,7 +96,7 @@ pub async fn local_site_data_cached(pool: &mut DbPool<'_>) -> LemmyResult<Arc<Lo
           allowed_instances,
           blocked_instances,
         }))
-      })
+      }))
       .await.map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))?
   )
 }
