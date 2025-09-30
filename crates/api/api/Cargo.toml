@@ -26,7 +26,6 @@ lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
-lemmy_apub = { workspace = true, features = ["full"] }
 lemmy_apub_objects = { workspace = true, features = ["full"] }
 lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
@@ -71,6 +70,7 @@ futures = { workspace = true }
 serde = { workspace = true }
 itertools = { workspace = true }
 serde_json = { workspace = true }
+diesel = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

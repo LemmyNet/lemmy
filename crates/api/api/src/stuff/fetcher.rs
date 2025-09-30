@@ -4,11 +4,9 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use diesel::NotFound;
-use either::Either::*;
 use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::SiteOrMultiOrCommunityOrUser;
-use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
+use lemmy_db_schema::traits::ApubActor;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
@@ -16,7 +14,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 ///
 /// In case the requesting user is logged in and the object was not found locally, it is attempted
 /// to fetch via webfinger from the original instance.
-pub async fn resolve_ap_identifier<ActorType, DbActor>(
+pub(crate) async fn resolve_ap_identifier<ActorType, DbActor>(
   identifier: &str,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
@@ -61,14 +59,5 @@ where
         .ok_or(NotFound)?
         .into(),
     )
-  }
-}
-
-pub(crate) fn get_instance_id(s: &SiteOrMultiOrCommunityOrUser) -> InstanceId {
-  match s {
-    Left(Left(s)) => s.instance_id,
-    Left(Right(m)) => m.instance_id,
-    Right(Left(u)) => u.instance_id,
-    Right(Right(c)) => c.instance_id,
   }
 }

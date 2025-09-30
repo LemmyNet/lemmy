@@ -6,8 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetcher::get_instance_id,
-  http::check_community_fetchable,
+  http::{check_community_fetchable, get_instance_id},
 };
 use activitypub_federation::{
   actix_web::{response::create_http_response, signing_actor},

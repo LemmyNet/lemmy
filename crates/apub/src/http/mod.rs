@@ -1,4 +1,4 @@
-use crate::{activity_lists::SharedInboxActivities, fetcher::get_instance_id};
+use crate::activity_lists::SharedInboxActivities;
 use activitypub_federation::{
   actix_web::{
     inbox::{receive_activity_with_hook, ReceiveActivityHook},
@@ -13,11 +13,15 @@ use actix_web::{
   HttpRequest,
   HttpResponse,
 };
+use either::Either;
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
 use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity};
-use lemmy_db_schema::source::{
-  activity::{ReceivedActivity, SentActivity},
-  community::Community,
+use lemmy_db_schema::{
+  newtypes::InstanceId,
+  source::{
+    activity::{ReceivedActivity, SentActivity},
+    community::Community,
+  },
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -155,5 +159,15 @@ async fn check_community_content_fetchable(
       }
     }
     LocalOnlyPublic | LocalOnlyPrivate => Err(LemmyErrorType::NotFound.into()),
+  }
+}
+
+pub(in crate::http) fn get_instance_id(s: &SiteOrMultiOrCommunityOrUser) -> InstanceId {
+  use Either::*;
+  match s {
+    Left(Left(s)) => s.instance_id,
+    Left(Right(m)) => m.instance_id,
+    Right(Left(u)) => u.instance_id,
+    Right(Right(c)) => c.instance_id,
   }
 }

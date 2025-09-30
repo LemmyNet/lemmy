@@ -47,7 +47,6 @@ strum = { workspace = true }
 url = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
-itertools = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }

@@ -1,4 +1,4 @@
-use crate::stuff::resolve_object::resolve_object_internal;
+use crate::stuff::{fetcher::resolve_ap_identifier, resolve_object::resolve_object_internal};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use futures::future::join;
@@ -6,7 +6,6 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_apub::fetcher::resolve_ap_identifier;
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
 use lemmy_db_views_local_user::LocalUserView;
