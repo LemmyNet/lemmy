@@ -143,7 +143,7 @@ impl LocalUserView {
       true => LocalUserInsertForm::test_form_admin(person.id),
       false => LocalUserInsertForm::test_form(person.id),
     };
-    let local_user = LocalUser::create(pool, &user_form, vec![]).await?;
+    let local_user = Box::pin(LocalUser::create(pool, &user_form, vec![])).await?;
 
     LocalUserView::read(pool, local_user.id).await
   }

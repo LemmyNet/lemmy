@@ -60,13 +60,13 @@ impl Activity for Delete {
       )
       .await
     } else {
-      receive_delete_action(
+      Box::pin(receive_delete_action(
         self.object.id(),
         &self.actor,
         true,
         self.remove_data,
         context,
-      )
+      ))
       .await
     }
   }

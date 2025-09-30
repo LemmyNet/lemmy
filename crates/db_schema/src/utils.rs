@@ -382,7 +382,7 @@ fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgC
       .with_no_client_auth();
 
       let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
-      let (client, conn) = tokio_postgres::connect(config, tls)
+      let (client, conn) = Box::pin(tokio_postgres::connect(config, tls))
         .await
         .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
       tokio::spawn(async move {

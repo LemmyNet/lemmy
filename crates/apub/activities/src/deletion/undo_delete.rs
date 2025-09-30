@@ -50,7 +50,14 @@ impl Activity for UndoDelete {
       )
       .await
     } else {
-      receive_delete_action(self.object.object.id(), &self.actor, false, None, context).await
+      Box::pin(receive_delete_action(
+        self.object.object.id(),
+        &self.actor,
+        false,
+        None,
+        context,
+      ))
+      .await
     }
   }
 }

@@ -35,13 +35,15 @@ impl Collection for ApubCommunityOutbox {
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site = Site::read_local(&mut data.pool()).await?;
 
-    let post_views = PostQuery {
-      community_id: Some(owner.id),
-      sort: Some(PostSortType::New),
-      limit: Some(FETCH_LIMIT_MAX.try_into()?),
-      ..Default::default()
-    }
-    .list(&site, &mut data.pool())
+    let post_views = Box::pin(
+      PostQuery {
+        community_id: Some(owner.id),
+        sort: Some(PostSortType::New),
+        limit: Some(FETCH_LIMIT_MAX.try_into()?),
+        ..Default::default()
+      }
+      .list(&site, &mut data.pool()),
+    )
     .await?;
 
     let mut ordered_items = vec![];

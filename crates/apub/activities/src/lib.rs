@@ -157,7 +157,7 @@ pub async fn match_outgoing_activities(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let context = context.clone();
-  let fed_task = async {
+  Box::pin(async {
     use SendActivityData::*;
     match data {
       CreatePost(post) => {
@@ -198,23 +198,35 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockPost(post, actor, locked, reason) => {
-        send_lock(
+        Box::pin(send_lock(
           PostOrComment::Left(post.into()),
           actor,
           locked,
           reason,
           context,
-        )
+        ))
         .await
       }
       FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) => {
         let creator_id = comment.creator_id;
-        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+        Box::pin(CreateOrUpdateNote::send(
+          comment,
+          creator_id,
+          CreateOrUpdateType::Create,
+          context,
+        ))
+        .await
       }
       UpdateComment(comment) => {
         let creator_id = comment.creator_id;
-        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Update, context).await
+        Box::pin(CreateOrUpdateNote::send(
+          comment,
+          creator_id,
+          CreateOrUpdateType::Update,
+          context,
+        ))
+        .await
       }
       DeleteComment(comment, actor, community) => {
         let is_deleted = comment.deleted;
@@ -240,13 +252,13 @@ pub async fn match_outgoing_activities(
         .await
       }
       LockComment(comment, actor, locked, reason) => {
-        send_lock(
+        Box::pin(send_lock(
           PostOrComment::Right(comment.into()),
           actor,
           locked,
           reason,
           context,
-        )
+        ))
         .await
       }
       LikePostOrComment {
@@ -305,7 +317,16 @@ pub async fn match_outgoing_activities(
         community_id,
         target,
         data,
-      } => send_ban_from_community(moderator, community_id, target, data, context).await,
+      } => {
+        Box::pin(send_ban_from_community(
+          moderator,
+          community_id,
+          target,
+          data,
+          context,
+        ))
+        .await
+      }
       BanFromSite {
         moderator,
         banned_user,
@@ -314,7 +335,7 @@ pub async fn match_outgoing_activities(
         ban,
         expires_at,
       } => {
-        send_ban_from_site(
+        Box::pin(send_ban_from_site(
           moderator,
           banned_user,
           reason,
@@ -322,7 +343,7 @@ pub async fn match_outgoing_activities(
           ban,
           expires_at,
           context,
-        )
+        ))
         .await
       }
       CreatePrivateMessage(pm) => {
@@ -375,8 +396,8 @@ pub async fn match_outgoing_activities(
         send_update_multi_community(multi, actor, context).await
       }
     }
-  };
-  fed_task.await?;
+  })
+  .await?;
   Ok(())
 }
 

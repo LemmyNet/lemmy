@@ -305,10 +305,13 @@ impl PostQuery<'_> {
         let largest_subscribed =
           CommunityActions::fetch_largest_subscribed_community(pool, person_id).await?;
 
-        let upper_bound_results = self
-          .clone()
-          .list_inner(site, None, largest_subscribed, pool)
-          .await?;
+        let upper_bound_results = Box::pin(self.clone().list_inner(
+          site,
+          None,
+          largest_subscribed,
+          pool,
+        ))
+        .await?;
 
         let limit = limit_fetch(self.limit)?;
 
@@ -555,12 +558,14 @@ impl PostQuery<'_> {
   }
 
   pub async fn list(&self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PostView>> {
-    let cursor_before_data = self.prefetch_cursor_before_data(site, pool).await?;
+    let cursor_before_data = Box::pin(self.prefetch_cursor_before_data(site, pool)).await?;
 
-    self
-      .clone()
-      .list_inner(site, cursor_before_data, None, pool)
-      .await
+    Box::pin(
+      self
+        .clone()
+        .list_inner(site, cursor_before_data, None, pool),
+    )
+    .await
   }
 }
 

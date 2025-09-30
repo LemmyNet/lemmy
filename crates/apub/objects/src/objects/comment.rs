@@ -120,7 +120,7 @@ impl Object for ApubComment {
       post.ap_id.clone().into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
-    let maa = collect_non_local_mentions(&self, context).await?;
+    let maa = Box::pin(collect_non_local_mentions(&self, context)).await?;
 
     let note = Note {
       r#type: NoteType::Note,

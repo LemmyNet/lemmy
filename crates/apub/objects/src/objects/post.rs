@@ -318,9 +318,9 @@ impl Object for ApubPost {
     if !no_generate_metadata {
       // Generates a post thumbnail in background task, because some sites can be very slow to
       // respond.
-      spawn_try_task(
-        async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
-      );
+      spawn_try_task(Box::pin(async move {
+        generate_post_link_metadata(post_, None, |_| None, context_).await
+      }));
     }
 
     Ok(post.into())
