@@ -1,6 +1,6 @@
-use lemmy_apub::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub::fetcher::resolve_ap_identifier;
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},

@@ -3,8 +3,8 @@ use actix_web::web::{Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::post::PostActions;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person_content_combined::api::{ListPersonRead, ListPersonReadResponse};
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_site::api::{ListPersonRead, ListPersonReadResponse};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_read(
