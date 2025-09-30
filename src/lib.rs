@@ -24,9 +24,9 @@ use lemmy_apub::{
 };
 use lemmy_apub_activities::{handle_outgoing_activities, match_outgoing_activities};
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
+use lemmy_apub_send::{Opts, SendManager};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_views_site::SiteView;
-use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{
   feeds,
   middleware::{

@@ -3400,6 +3400,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_apub_send"
+version = "1.0.0-alpha.9"
+dependencies = [
+ "activitypub_federation",
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "either",
+ "futures",
+ "lemmy_api_utils",
+ "lemmy_apub_objects",
+ "lemmy_db_schema",
+ "lemmy_db_schema_file",
+ "lemmy_db_views_community_follower",
+ "lemmy_utils",
+ "mockall",
+ "moka",
+ "reqwest 0.12.23",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "test-context",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-test",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "lemmy_db_schema"
 version = "1.0.0-alpha.9"
 dependencies = [
@@ -3897,40 +3931,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_federate"
-version = "1.0.0-alpha.9"
-dependencies = [
- "activitypub_federation",
- "actix-web",
- "anyhow",
- "async-trait",
- "chrono",
- "diesel",
- "diesel-async",
- "either",
- "futures",
- "lemmy_api_utils",
- "lemmy_apub_objects",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_db_views_community_follower",
- "lemmy_utils",
- "mockall",
- "moka",
- "reqwest 0.12.23",
- "serde",
- "serde_json",
- "serial_test",
- "test-context",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-test",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "lemmy_routes"
 version = "1.0.0-alpha.9"
 dependencies = [
@@ -3985,10 +3985,10 @@ dependencies = [
  "lemmy_apub",
  "lemmy_apub_activities",
  "lemmy_apub_objects",
+ "lemmy_apub_send",
  "lemmy_db_schema",
  "lemmy_db_schema_setup",
  "lemmy_db_views_site",
- "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
  "mimalloc",
