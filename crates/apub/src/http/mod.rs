@@ -1,4 +1,3 @@
-use crate::activity_lists::SharedInboxActivities;
 use activitypub_federation::{
   actix_web::{
     inbox::{receive_activity_with_hook, ReceiveActivityHook},
@@ -15,6 +14,7 @@ use actix_web::{
 };
 use either::Either;
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
+use lemmy_apub_activities::activity_lists::SharedInboxActivities;
 use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity};
 use lemmy_db_schema::{
   newtypes::InstanceId,

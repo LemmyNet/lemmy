@@ -23,6 +23,16 @@ use lemmy_api::{
     transfer::transfer_community,
     update_notifications::update_community_notifications,
   },
+  federation::{
+    list_comments::{list_comments, list_comments_slim},
+    list_person_content::list_person_content,
+    list_posts::list_posts,
+    read_community::get_community,
+    read_person::read_person,
+    resolve_object::resolve_object,
+    search::search,
+    user_settings_backup::{export_settings, import_settings},
+  },
   local_user::{
     add_admin::add_admin,
     ban_person::ban_from_site,
@@ -96,16 +106,6 @@ use lemmy_api::{
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
-  },
-  federation::{
-    list_comments::{list_comments, list_comments_slim},
-    list_person_content::list_person_content,
-    list_posts::list_posts,
-    read_community::get_community,
-    read_person::read_person,
-    resolve_object::resolve_object,
-    search::search,
-    user_settings_backup::{export_settings, import_settings},
   },
 };
 use lemmy_api_crud::{

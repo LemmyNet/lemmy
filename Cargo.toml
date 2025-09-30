@@ -73,6 +73,7 @@ members = [
   "crates/api/api_common",
   "crates/api/api_utils",
   "crates/apub",
+  "crates/apub_activities",
   "crates/apub_objects",
   "crates/federate",
   "crates/routes",
@@ -109,6 +110,7 @@ as_conversions = "deny"
 lemmy_api = { version = "=1.0.0-alpha.9", path = "./crates/api/api" }
 lemmy_api_crud = { version = "=1.0.0-alpha.9", path = "./crates/api/api_crud" }
 lemmy_apub = { version = "=1.0.0-alpha.9", path = "./crates/apub" }
+lemmy_apub_activities = { version = "=1.0.0-alpha.9", path = "./crates/apub_activities" }
 lemmy_apub_objects = { version = "=1.0.0-alpha.9", path = "./crates/apub_objects" }
 lemmy_utils = { version = "=1.0.0-alpha.9", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.9", path = "./crates/db_schema" }
@@ -229,6 +231,7 @@ diesel-uplete = { version = "0.2.0" }
 lemmy_api = { workspace = true }
 lemmy_api_crud = { workspace = true }
 lemmy_apub = { workspace = true }
+lemmy_apub_activities = { workspace = true }
 lemmy_apub_objects = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }

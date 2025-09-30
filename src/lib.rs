@@ -18,11 +18,11 @@ use lemmy_api_utils::{
   utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
-  activities::{handle_outgoing_activities, match_outgoing_activities},
   collections::fetch_community_collections,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
+use lemmy_apub_activities::{handle_outgoing_activities, match_outgoing_activities};
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_db_views_site::SiteView;
