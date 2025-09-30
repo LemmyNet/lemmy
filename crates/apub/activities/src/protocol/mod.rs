@@ -56,76 +56,76 @@ mod tests {
 
   #[test]
   fn test_parse_smithereen_activities() -> LemmyResult<()> {
-    test_json::<CreateOrUpdateNote>("assets/smithereen/activities/create_note.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/smithereen/activities/create_note.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_pleroma_activities() -> LemmyResult<()> {
-    test_json::<CreateOrUpdateNote>("assets/pleroma/activities/create_note.json")?;
-    test_json::<Delete>("assets/pleroma/activities/delete.json")?;
-    test_json::<Follow>("assets/pleroma/activities/follow.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/pleroma/activities/create_note.json")?;
+    test_json::<Delete>("../apub/assets/pleroma/activities/delete.json")?;
+    test_json::<Follow>("../apub/assets/pleroma/activities/follow.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_mastodon_activities() -> LemmyResult<()> {
-    test_json::<CreateOrUpdateNote>("assets/mastodon/activities/create_note.json")?;
-    test_json::<Delete>("assets/mastodon/activities/delete.json")?;
-    test_json::<Follow>("assets/mastodon/activities/follow.json")?;
-    test_json::<UndoFollow>("assets/mastodon/activities/undo_follow.json")?;
-    test_json::<Vote>("assets/mastodon/activities/like_page.json")?;
-    test_json::<UndoVote>("assets/mastodon/activities/undo_like_page.json")?;
-    test_json::<Report>("assets/mastodon/activities/flag.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/mastodon/activities/create_note.json")?;
+    test_json::<Delete>("../apub/assets/mastodon/activities/delete.json")?;
+    test_json::<Follow>("../apub/assets/mastodon/activities/follow.json")?;
+    test_json::<UndoFollow>("../apub/assets/mastodon/activities/undo_follow.json")?;
+    test_json::<Vote>("../apub/assets/mastodon/activities/like_page.json")?;
+    test_json::<UndoVote>("../apub/assets/mastodon/activities/undo_like_page.json")?;
+    test_json::<Report>("../apub/assets/mastodon/activities/flag.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_lotide_activities() -> LemmyResult<()> {
-    test_json::<Follow>("assets/lotide/activities/follow.json")?;
-    test_json::<CreateOrUpdatePage>("assets/lotide/activities/create_page.json")?;
-    test_json::<CreateOrUpdatePage>("assets/lotide/activities/create_page_image.json")?;
-    test_json::<CreateOrUpdateNote>("assets/lotide/activities/create_note_reply.json")?;
+    test_json::<Follow>("../apub/assets/lotide/activities/follow.json")?;
+    test_json::<CreateOrUpdatePage>("../apub/assets/lotide/activities/create_page.json")?;
+    test_json::<CreateOrUpdatePage>("../apub/assets/lotide/activities/create_page_image.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/lotide/activities/create_note_reply.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_friendica_activities() -> LemmyResult<()> {
-    test_json::<CreateOrUpdatePage>("assets/friendica/activities/create_page_1.json")?;
-    test_json::<CreateOrUpdatePage>("assets/friendica/activities/create_page_2.json")?;
-    test_json::<CreateOrUpdateNote>("assets/friendica/activities/create_note.json")?;
-    test_json::<CreateOrUpdateNote>("assets/friendica/activities/update_note.json")?;
-    test_json::<Delete>("assets/friendica/activities/delete.json")?;
-    test_json::<Vote>("assets/friendica/activities/like_page.json")?;
-    test_json::<Vote>("assets/friendica/activities/dislike_page.json")?;
-    test_json::<UndoVote>("assets/friendica/activities/undo_dislike_page.json")?;
+    test_json::<CreateOrUpdatePage>("../apub/assets/friendica/activities/create_page_1.json")?;
+    test_json::<CreateOrUpdatePage>("../apub/assets/friendica/activities/create_page_2.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/friendica/activities/create_note.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/friendica/activities/update_note.json")?;
+    test_json::<Delete>("../apub/assets/friendica/activities/delete.json")?;
+    test_json::<Vote>("../apub/assets/friendica/activities/like_page.json")?;
+    test_json::<Vote>("../apub/assets/friendica/activities/dislike_page.json")?;
+    test_json::<UndoVote>("../apub/assets/friendica/activities/undo_dislike_page.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_gnusocial_activities() -> LemmyResult<()> {
-    test_json::<CreateOrUpdatePage>("assets/gnusocial/activities/create_page.json")?;
-    test_json::<CreateOrUpdateNote>("assets/gnusocial/activities/create_note.json")?;
-    test_json::<Vote>("assets/gnusocial/activities/like_note.json")?;
+    test_json::<CreateOrUpdatePage>("../apub/assets/gnusocial/activities/create_page.json")?;
+    test_json::<CreateOrUpdateNote>("../apub/assets/gnusocial/activities/create_note.json")?;
+    test_json::<Vote>("../apub/assets/gnusocial/activities/like_note.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_peertube_activities() -> LemmyResult<()> {
-    test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json")?;
+    test_json::<AnnounceActivity>("../apub/assets/peertube/activities/announce_video.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_mbin_activities() -> LemmyResult<()> {
-    test_json::<AcceptFollow>("assets/mbin/activities/accept.json")?;
-    test_json::<Report>("assets/mbin/activities/flag.json")?;
+    test_json::<AcceptFollow>("../apub/assets/mbin/activities/accept.json")?;
+    test_json::<Report>("../apub/assets/mbin/activities/flag.json")?;
     Ok(())
   }
 
   #[test]
   fn test_parse_wordpress_activities() -> LemmyResult<()> {
-    test_json::<AnnounceActivity>("assets/wordpress/activities/announce.json")?;
+    test_json::<AnnounceActivity>("../apub/assets/wordpress/activities/announce.json")?;
     Ok(())
   }
 }

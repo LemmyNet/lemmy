@@ -23,34 +23,34 @@ mod tests {
   #[test]
   fn test_parse_lemmy_community_activities() -> LemmyResult<()> {
     test_parse_lemmy_item::<AnnounceActivity>(
-      "assets/lemmy/activities/community/announce_create_page.json",
+      "../apub/assets/lemmy/activities/community/announce_create_page.json",
     )?;
 
-    test_parse_lemmy_item::<CollectionAdd>("assets/lemmy/activities/community/add_mod.json")?;
-    test_parse_lemmy_item::<CollectionRemove>("assets/lemmy/activities/community/remove_mod.json")?;
+    test_parse_lemmy_item::<CollectionAdd>("../apub/assets/lemmy/activities/community/add_mod.json")?;
+    test_parse_lemmy_item::<CollectionRemove>("../apub/assets/lemmy/activities/community/remove_mod.json")?;
 
     test_parse_lemmy_item::<CollectionAdd>(
-      "assets/lemmy/activities/community/add_featured_post.json",
+      "../apub/assets/lemmy/activities/community/add_featured_post.json",
     )?;
     test_parse_lemmy_item::<CollectionRemove>(
-      "assets/lemmy/activities/community/remove_featured_post.json",
+      "../apub/assets/lemmy/activities/community/remove_featured_post.json",
     )?;
 
-    test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_page.json")?;
+    test_parse_lemmy_item::<LockPageOrNote>("../apub/assets/lemmy/activities/community/lock_page.json")?;
     test_parse_lemmy_item::<UndoLockPageOrNote>(
-      "assets/lemmy/activities/community/undo_lock_page.json",
+      "../apub/assets/lemmy/activities/community/undo_lock_page.json",
     )?;
 
-    test_parse_lemmy_item::<LockPageOrNote>("assets/lemmy/activities/community/lock_note.json")?;
+    test_parse_lemmy_item::<LockPageOrNote>("../apub/assets/lemmy/activities/community/lock_note.json")?;
     test_parse_lemmy_item::<UndoLockPageOrNote>(
-      "assets/lemmy/activities/community/undo_lock_note.json",
+      "../apub/assets/lemmy/activities/community/undo_lock_note.json",
     )?;
 
-    test_parse_lemmy_item::<Update>("assets/lemmy/activities/community/update_community.json")?;
+    test_parse_lemmy_item::<Update>("../apub/assets/lemmy/activities/community/update_community.json")?;
 
-    test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
+    test_parse_lemmy_item::<Report>("../apub/assets/lemmy/activities/community/report_page.json")?;
     test_parse_lemmy_item::<ResolveReport>(
-      "assets/lemmy/activities/community/resolve_report_page.json",
+      "../apub/assets/lemmy/activities/community/resolve_report_page.json",
     )?;
 
     Ok(())

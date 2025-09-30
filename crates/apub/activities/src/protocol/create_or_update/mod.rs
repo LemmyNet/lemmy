@@ -17,25 +17,25 @@ mod tests {
   #[test]
   fn test_parse_lemmy_create_or_update() -> LemmyResult<()> {
     test_parse_lemmy_item::<CreateOrUpdatePage>(
-      "assets/lemmy/activities/create_or_update/create_page.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_page.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdatePage>(
-      "assets/lemmy/activities/create_or_update/update_page.json",
+      "../apub/assets/lemmy/activities/create_or_update/update_page.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdateNote>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
-      "assets/lemmy/activities/create_or_update/create_private_message.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_private_message.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdateNoteWrapper>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdateNoteWrapper>(
-      "assets/lemmy/activities/create_or_update/create_private_message.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_private_message.json",
     )?;
-    test_parse_lemmy_item::<NoteWrapper>("assets/lemmy/objects/comment.json")?;
-    test_parse_lemmy_item::<NoteWrapper>("assets/lemmy/objects/private_message.json")?;
+    test_parse_lemmy_item::<NoteWrapper>("../apub/assets/lemmy/objects/comment.json")?;
+    test_parse_lemmy_item::<NoteWrapper>("../apub/assets/lemmy/objects/private_message.json")?;
     Ok(())
   }
 }

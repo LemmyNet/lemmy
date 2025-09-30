@@ -107,24 +107,24 @@ mod tests {
   #[test]
   fn test_shared_inbox() -> LemmyResult<()> {
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/deletion/delete_user.json",
+      "../apub/assets/lemmy/activities/deletion/delete_user.json",
     )?;
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/following/accept.json",
+      "../apub/assets/lemmy/activities/following/accept.json",
     )?;
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_private_message.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_private_message.json",
     )?;
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/following/follow.json",
+      "../apub/assets/lemmy/activities/following/follow.json",
     )?;
     test_parse_lemmy_item::<SharedInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
+      "../apub/assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
-    test_json::<SharedInboxActivities>("assets/mastodon/activities/follow.json")?;
+    test_json::<SharedInboxActivities>("../apub/assets/mastodon/activities/follow.json")?;
     Ok(())
   }
 }
