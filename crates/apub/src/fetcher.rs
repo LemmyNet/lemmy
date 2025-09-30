@@ -12,13 +12,11 @@ use lemmy_db_schema::{newtypes::InstanceId, traits::ApubActor};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
-pub mod search;
-
 /// Resolve actor identifier like `!news@example.com` to user or community object.
 ///
 /// In case the requesting user is logged in and the object was not found locally, it is attempted
 /// to fetch via webfinger from the original instance.
-pub(crate) async fn resolve_ap_identifier<ActorType, DbActor>(
+pub async fn resolve_ap_identifier<ActorType, DbActor>(
   identifier: &str,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,

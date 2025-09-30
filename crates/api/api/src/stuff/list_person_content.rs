@@ -1,4 +1,3 @@
-use super::resolve_person_id_from_id_or_username;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
@@ -12,6 +11,8 @@ use lemmy_db_views_person_content_combined::{
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
+
+use crate::stuff::resolve_person_id_from_id_or_username;
 
 pub async fn list_person_content(
   data: Query<ListPersonContent>,

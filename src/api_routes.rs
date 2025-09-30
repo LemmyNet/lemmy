@@ -157,7 +157,7 @@ use lemmy_api_crud::{
     my_user::get_my_user,
   },
 };
-use lemmy_apub::api::{
+use lemmy_api::stuff::{
   list_comments::{list_comments, list_comments_slim},
   list_person_content::list_person_content,
   list_posts::list_posts,

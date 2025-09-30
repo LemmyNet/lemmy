@@ -13,7 +13,7 @@ pub mod comment;
 pub mod community;
 pub mod local_user;
 pub mod post;
-pub mod reports;
+pub mod reports;pub mod stuff;
 pub mod site;
 pub mod sitemap;
 

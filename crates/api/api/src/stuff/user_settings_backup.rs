@@ -267,7 +267,7 @@ where
 #[expect(clippy::indexing_slicing)]
 pub(crate) mod tests {
   use super::*;
-  use crate::api::user_settings_backup::{export_settings, import_settings};
+  use crate::stuff::user_settings_backup::{export_settings, import_settings};
   use actix_web::web::Json;
   use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{

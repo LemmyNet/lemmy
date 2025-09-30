@@ -1,8 +1,11 @@
-use crate::fetcher::search::{search_query_to_object_id, search_query_to_object_id_local};
-use activitypub_federation::config::Data;
+use activitypub_federation::{
+  config::Data,
+  fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+};
 use actix_web::web::{Json, Query};
 use either::Either::*;
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
@@ -11,6 +14,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
 use lemmy_db_views_site::{api::ResolveObject, SiteView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use url::Url;
 
 pub async fn resolve_object(
   data: Query<ResolveObject>,
@@ -157,4 +161,39 @@ mod tests {
       panic!("invalid resolve object response");
     }
   }
+}
+
+/// Converts search query to object id. The query can either be an URL, which will be treated as
+/// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
+/// which gets resolved to an URL.
+async fn search_query_to_object_id(
+  mut query: String,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<SearchableObjects> {
+  Ok(match Url::parse(&query) {
+    Ok(url) => {
+      // its already an url, just go with it
+      ObjectId::from(url).dereference(context).await?
+    }
+    Err(_) => {
+      // not an url, try to resolve via webfinger
+      if query.starts_with('!') || query.starts_with('@') {
+        query.remove(0);
+      }
+      Left(Right(
+        webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
+      ))
+    }
+  })
+}
+
+/// Converts a search query to an object id.  The query MUST bbe a URL which will bbe treated
+/// as the ObjectId directly.  If the query is a webfinger identifier (@user@example.com or
+/// !community@example.com) this method will return an error.
+async fn search_query_to_object_id_local(
+  query: &str,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<SearchableObjects> {
+  let url = Url::parse(query)?;
+  ObjectId::from(url).dereference_local(context).await
 }
