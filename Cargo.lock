@@ -3715,7 +3715,6 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
- "lemmy_db_views_community",
  "lemmy_db_views_local_user",
  "lemmy_db_views_vote",
  "lemmy_utils",
