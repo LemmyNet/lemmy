@@ -17,8 +17,12 @@ mod tests {
     test_parse_lemmy_item::<Delete>("../apub/assets/lemmy/activities/deletion/remove_note.json")?;
     test_parse_lemmy_item::<Delete>("../apub/assets/lemmy/activities/deletion/delete_page.json")?;
 
-    test_parse_lemmy_item::<UndoDelete>("../apub/assets/lemmy/activities/deletion/undo_remove_note.json")?;
-    test_parse_lemmy_item::<UndoDelete>("../apub/assets/lemmy/activities/deletion/undo_delete_page.json")?;
+    test_parse_lemmy_item::<UndoDelete>(
+      "../apub/assets/lemmy/activities/deletion/undo_remove_note.json",
+    )?;
+    test_parse_lemmy_item::<UndoDelete>(
+      "../apub/assets/lemmy/activities/deletion/undo_delete_page.json",
+    )?;
     test_parse_lemmy_item::<Delete>(
       "../apub/assets/lemmy/activities/deletion/delete_private_message.json",
     )?;
@@ -26,7 +30,9 @@ mod tests {
       "../apub/assets/lemmy/activities/deletion/undo_delete_private_message.json",
     )?;
 
-    test_parse_lemmy_item::<DeleteUser>("../apub/assets/lemmy/activities/deletion/delete_user.json")?;
+    test_parse_lemmy_item::<DeleteUser>(
+      "../apub/assets/lemmy/activities/deletion/delete_user.json",
+    )?;
     Ok(())
   }
 }

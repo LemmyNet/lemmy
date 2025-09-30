@@ -26,8 +26,12 @@ mod tests {
       "../apub/assets/lemmy/activities/community/announce_create_page.json",
     )?;
 
-    test_parse_lemmy_item::<CollectionAdd>("../apub/assets/lemmy/activities/community/add_mod.json")?;
-    test_parse_lemmy_item::<CollectionRemove>("../apub/assets/lemmy/activities/community/remove_mod.json")?;
+    test_parse_lemmy_item::<CollectionAdd>(
+      "../apub/assets/lemmy/activities/community/add_mod.json",
+    )?;
+    test_parse_lemmy_item::<CollectionRemove>(
+      "../apub/assets/lemmy/activities/community/remove_mod.json",
+    )?;
 
     test_parse_lemmy_item::<CollectionAdd>(
       "../apub/assets/lemmy/activities/community/add_featured_post.json",
@@ -36,17 +40,23 @@ mod tests {
       "../apub/assets/lemmy/activities/community/remove_featured_post.json",
     )?;
 
-    test_parse_lemmy_item::<LockPageOrNote>("../apub/assets/lemmy/activities/community/lock_page.json")?;
+    test_parse_lemmy_item::<LockPageOrNote>(
+      "../apub/assets/lemmy/activities/community/lock_page.json",
+    )?;
     test_parse_lemmy_item::<UndoLockPageOrNote>(
       "../apub/assets/lemmy/activities/community/undo_lock_page.json",
     )?;
 
-    test_parse_lemmy_item::<LockPageOrNote>("../apub/assets/lemmy/activities/community/lock_note.json")?;
+    test_parse_lemmy_item::<LockPageOrNote>(
+      "../apub/assets/lemmy/activities/community/lock_note.json",
+    )?;
     test_parse_lemmy_item::<UndoLockPageOrNote>(
       "../apub/assets/lemmy/activities/community/undo_lock_note.json",
     )?;
 
-    test_parse_lemmy_item::<Update>("../apub/assets/lemmy/activities/community/update_community.json")?;
+    test_parse_lemmy_item::<Update>(
+      "../apub/assets/lemmy/activities/community/update_community.json",
+    )?;
 
     test_parse_lemmy_item::<Report>("../apub/assets/lemmy/activities/community/report_page.json")?;
     test_parse_lemmy_item::<ResolveReport>(

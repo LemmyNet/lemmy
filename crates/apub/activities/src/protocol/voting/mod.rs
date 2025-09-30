@@ -12,8 +12,12 @@ mod tests {
     test_parse_lemmy_item::<Vote>("../apub/assets/lemmy/activities/voting/like_note.json")?;
     test_parse_lemmy_item::<Vote>("../apub/assets/lemmy/activities/voting/dislike_page.json")?;
 
-    test_parse_lemmy_item::<UndoVote>("../apub/assets/lemmy/activities/voting/undo_like_note.json")?;
-    test_parse_lemmy_item::<UndoVote>("../apub/assets/lemmy/activities/voting/undo_dislike_page.json")?;
+    test_parse_lemmy_item::<UndoVote>(
+      "../apub/assets/lemmy/activities/voting/undo_like_note.json",
+    )?;
+    test_parse_lemmy_item::<UndoVote>(
+      "../apub/assets/lemmy/activities/voting/undo_dislike_page.json",
+    )?;
     Ok(())
   }
 }
