@@ -157,7 +157,7 @@ pub async fn match_outgoing_activities(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let context = context.clone();
-  let fed_task = async {
+  Box::pin(async {
     use SendActivityData::*;
     match data {
       CreatePost(post) => {
@@ -375,8 +375,8 @@ pub async fn match_outgoing_activities(
         send_update_multi_community(multi, actor, context).await
       }
     }
-  };
-  fed_task.await?;
+  })
+  .await?;
   Ok(())
 }
 
