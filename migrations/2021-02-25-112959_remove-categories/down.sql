@@ -4,8 +4,7 @@ CREATE TABLE category (
 );
 
 INSERT INTO category (name)
-VALUES
-    ('Discussion'),
+    VALUES ('Discussion'),
     ('Humor/Memes'),
     ('Gaming'),
     ('Movies'),
