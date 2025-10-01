@@ -12,6 +12,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
@@ -137,7 +138,8 @@ impl Activity for CollectionAdd {
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddToCommunity::create(&mut context.pool(), &form).await?;
+          let action = ModAddToCommunity::create(&mut context.pool(), &form).await?;
+          notify_mod_action(action.clone(), new_mod.id, context);
         }
       }
       CollectionType::Featured => {
