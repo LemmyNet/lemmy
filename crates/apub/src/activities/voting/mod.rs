@@ -38,8 +38,8 @@ pub(crate) async fn send_like_activity(
   object_id: DbUrl,
   actor: Person,
   community: Community,
-  previous_score: Option<i16>,
-  new_score: i16,
+  previous_is_upvote: Option<bool>,
+  new_is_upvote: Option<bool>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let object_id: ObjectId<PostOrComment> = object_id.into();
@@ -47,13 +47,13 @@ pub(crate) async fn send_like_activity(
   let community: ApubCommunity = community.into();
 
   let empty = ActivitySendTargets::empty();
-  // score of 1 means upvote, -1 downvote, 0 undo a previous vote
-  if new_score != 0 {
-    let vote = Vote::new(object_id, &actor, new_score.try_into()?, &context)?;
+  if let Some(s) = new_is_upvote {
+    let vote = Vote::new(object_id, &actor, s.into(), &context)?;
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
-    let previous_vote_type = if previous_score.unwrap_or_default() > 0 {
+    // undo a previous vote
+    let previous_vote_type = if previous_is_upvote == Some(true) {
       VoteType::Like
     } else {
       VoteType::Dislike

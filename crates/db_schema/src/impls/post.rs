@@ -16,7 +16,6 @@ use crate::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
-    validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -43,7 +42,7 @@ use lemmy_db_schema_file::{
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
@@ -57,6 +56,7 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -70,6 +70,7 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post::table.find(post_id))
       .set(new_post)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -81,6 +82,7 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     post::table
       .find(id)
+      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -98,6 +100,7 @@ impl Post {
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -115,6 +118,7 @@ impl Post {
       .filter(post::featured_community.eq(true))
       .then_order_by(post::published_at.desc())
       .limit(FETCH_LIMIT_MAX.try_into()?)
+      .select(Self::as_select())
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -151,6 +155,7 @@ impl Post {
         post::deleted.eq(true),
         post::updated_at.eq(Utc::now()),
       ))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -203,6 +208,7 @@ impl Post {
       .filter(post::creator_id.eq(creator_id))
       .filter(post::community_id.eq(community_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -221,6 +227,7 @@ impl Post {
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -236,6 +243,7 @@ impl Post {
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -254,6 +262,7 @@ impl Post {
     post::table
       .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())
+      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -269,6 +278,7 @@ impl Post {
 
     diesel::update(post::table.filter(post::ap_id.eq(object_id)))
       .set(post::deleted.eq(true))
+      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -314,13 +324,20 @@ impl Post {
     diesel::update(post::table.find(post_id))
       .set((
         post::hot_rank.eq(hot_rank(post::score, post::published_at)),
-        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro_at)),
+        post::hot_rank_active.eq(hot_rank(
+          post::score,
+          coalesce(
+            post::newest_comment_time_necro_at_after_published,
+            post::published_at,
+          ),
+        )),
         post::scaled_rank.eq(scaled_rank(
           post::score,
           post::published_at,
           interactions_month,
         )),
       ))
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -350,8 +367,6 @@ impl Likeable for PostActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
-
     insert_into(post_actions::table)
       .values(form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -370,8 +385,8 @@ impl Likeable for PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -384,8 +399,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -401,8 +416,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -481,6 +496,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -513,6 +529,7 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -534,7 +551,10 @@ impl PostActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+  pub async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActions> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
@@ -698,10 +718,10 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
-    assert_eq!(Some(1), inserted_post_like.like_score);
+    assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
 
     // Post Save
     let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id);
@@ -801,7 +821,7 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
 
     PostActions::like(pool, &post_like).await?;
 
@@ -813,7 +833,7 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, -1);
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, false);
 
     PostActions::like(pool, &post_dislike).await?;
 
