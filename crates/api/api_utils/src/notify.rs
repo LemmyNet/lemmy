@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud},
+  traits::{ApubActor, Blockable, Crud, ModActionNotify},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -253,8 +253,7 @@ pub async fn notify_private_message(
     return Ok(());
   };
 
-  let form =
-    NotificationInsertForm::new_private_message(view.private_message.id, local_recipient.person.id);
+  let form = NotificationInsertForm::new_private_message(&view.private_message);
   Notification::create(&mut context.pool(), &[form]).await?;
 
   if is_create {
@@ -273,6 +272,41 @@ pub async fn notify_private_message(
     }
   }
   Ok(())
+}
+
+pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
+where
+  T: ModActionNotify + Send + 'static,
+{
+  let context = context.clone();
+  spawn_try_task(async move {
+    let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
+    else {
+      return Ok(());
+    };
+
+    let form = action.insert_form(target_id);
+    Notification::create(&mut context.pool(), &[form]).await?;
+
+    let modlog_url = format!(
+      "{}/modlog?userId={}&actionType={}",
+      context.settings().get_protocol_and_hostname(),
+      local_recipient.person.id.0,
+      action.kind()
+    );
+    let d = NotificationEmailData::ModAction {
+      kind: action.kind(),
+      reason: action.reason(),
+      is_revert: action.is_revert(),
+    };
+    send_notification_email(
+      local_recipient,
+      Url::parse(&modlog_url)?.into(),
+      d,
+      context.settings(),
+    );
+    Ok(())
+  })
 }
 
 #[cfg(test)]

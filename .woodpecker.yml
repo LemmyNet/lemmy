@@ -16,7 +16,6 @@ variables:
         include: [
             # rust source code
             "crates/**",
-            "src/**",
             "**/Cargo.toml",
             "Cargo.lock",
             # database migrations

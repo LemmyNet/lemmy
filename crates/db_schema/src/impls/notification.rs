@@ -4,6 +4,7 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
+  delete,
   dsl::{insert_into, update},
   ExpressionMethods,
   QueryDsl,
@@ -67,5 +68,14 @@ impl Notification {
     .execute(conn)
     .await
     .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// Only for tests
+  pub async fn delete(pool: &mut DbPool<'_>, id: NotificationId) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    delete(notification::table.filter(notification::id.eq(id)))
+      .execute(conn)
+      .await?;
+    Ok(())
   }
 }
