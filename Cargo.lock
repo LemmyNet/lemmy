@@ -3609,8 +3609,11 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
+ "serial_test",
+ "tokio",
  "ts-rs",
 ]
 

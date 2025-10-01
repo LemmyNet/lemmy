@@ -18,6 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_apub_objects::{
@@ -163,7 +164,8 @@ impl Activity for BlockUser {
           expires_at,
           instance_id: site.instance_id,
         };
-        AdminBan::create(&mut context.pool(), &form).await?;
+        let action = AdminBan::create(&mut context.pool(), &form).await?;
+        notify_mod_action(action.clone(), blocked_person.id, context);
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -197,7 +199,8 @@ impl Activity for BlockUser {
           banned: Some(true),
           expires_at,
         };
-        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        let action = ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        notify_mod_action(action.clone(), blocked_person.id, context);
       }
     }
 

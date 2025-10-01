@@ -145,7 +145,6 @@ mod tests {
     alice: Person,
     alice_local_user: LocalUser,
     bob: Person,
-    bob_local_user: LocalUser,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -165,22 +164,15 @@ mod tests {
       ..PersonInsertForm::test_form(instance.id, "bob")
     };
     let bob = Person::create(pool, &bob_form).await?;
-    let bob_local_user_form = LocalUserInsertForm::test_form(bob.id);
-    let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
     Ok(Data {
       alice,
       alice_local_user,
       bob,
-      bob_local_user,
     })
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    LocalUser::delete(pool, data.alice_local_user.id).await?;
-    LocalUser::delete(pool, data.bob_local_user.id).await?;
-    Person::delete(pool, data.alice.id).await?;
-    Person::delete(pool, data.bob.id).await?;
     Instance::delete(pool, data.bob.instance_id).await?;
     Ok(())
   }

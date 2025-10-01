@@ -7,7 +7,7 @@ use crate::{
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   source::{
@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
@@ -117,7 +118,10 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+      let action = AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+      for m in CommunityModeratorView::for_community(&mut context.pool(), community.id).await? {
+        notify_mod_action(action.clone(), m.moderator.id, context.app_data());
+      }
       Community::update(
         &mut context.pool(),
         community.id,
@@ -136,7 +140,8 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemovePost::create(&mut context.pool(), &form).await?;
+      let action = ModRemovePost::create(&mut context.pool(), &form).await?;
+      notify_mod_action(action, post.creator_id, context.app_data());
       Post::update(
         &mut context.pool(),
         post.id,
@@ -155,7 +160,8 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemoveComment::create(&mut context.pool(), &form).await?;
+      let action = ModRemoveComment::create(&mut context.pool(), &form).await?;
+      notify_mod_action(action, comment.creator_id, context.app_data());
       Comment::update(
         &mut context.pool(),
         comment.id,
