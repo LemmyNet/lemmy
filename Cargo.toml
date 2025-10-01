@@ -8,24 +8,6 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
 rust-version = "1.81"
 
-[package]
-name = "lemmy_server"
-version.workspace = true
-edition.workspace = true
-description.workspace = true
-license.workspace = true
-homepage.workspace = true
-documentation.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-publish = false
-
-[lib]
-doctest = false
-
-[lints]
-workspace = true
-
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
 lto = "fat"
@@ -36,9 +18,6 @@ codegen-units = 1 # Reduce parallel code generation.
 # out temporarily, but make sure to leave this in the main branch.
 [profile.dev]
 debug = 0
-
-[features]
-default = []
 
 [workspace]
 members = [
@@ -77,7 +56,11 @@ members = [
   "crates/apub/objects",
   "crates/apub/send",
   "crates/routes",
+  "crates/server",
 ]
+resolver = "2"
+# This line can be removed after upgrading to resolver = 3
+incompatible-rust-versions = "fallback"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
@@ -227,34 +210,6 @@ extism = { version = "1.12.0", default-features = false, features = [
 extism-convert = "1.12.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
-
-[dependencies]
-lemmy_api = { workspace = true }
-lemmy_api_crud = { workspace = true }
-lemmy_apub = { workspace = true }
-lemmy_apub_activities = { workspace = true }
-lemmy_apub_objects = { workspace = true }
-lemmy_utils = { workspace = true }
-lemmy_db_schema = { workspace = true }
-lemmy_db_schema_setup = { workspace = true }
-lemmy_api_utils = { workspace = true }
-lemmy_routes = { workspace = true }
-lemmy_apub_send = { workspace = true }
-lemmy_db_views_site = { workspace = true }
-activitypub_federation = { workspace = true }
-actix-web = { workspace = true }
-tracing = { workspace = true }
-tracing-actix-web = { workspace = true }
-tracing-subscriber = { workspace = true }
-reqwest-middleware = { workspace = true }
-reqwest-tracing = { workspace = true }
-serde_json = { workspace = true }
-rustls = { workspace = true }
-tokio.workspace = true
-clap = { workspace = true }
-
-[target.'cfg(target_arch = "x86_64")'.dependencies]
-mimalloc = "0.1.48"
 
 # Speedup RSA key generation
 # https://github.com/RustCrypto/RSA/blob/master/README.md#example
