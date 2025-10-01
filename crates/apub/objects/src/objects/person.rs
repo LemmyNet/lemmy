@@ -217,11 +217,10 @@ pub(crate) mod tests {
   use super::*;
   use crate::{
     objects::instance::ApubSite,
-    protocol::instance::Instance,
     utils::test::{file_to_json_object, parse_lemmy_person},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -229,13 +228,13 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (person, site) = parse_lemmy_person(&context).await?;
+    let (person, _) = parse_lemmy_person(&context).await?;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(39));
 
-    cleanup((person, site), &context).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -245,11 +244,12 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
-    let mut json: Instance = file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
+    let mut json: crate::protocol::instance::Instance =
+      file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
     json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubSite::verify(&json, &url, &context).await?;
-    let site = ApubSite::from_json(json, &context).await?;
+    ApubSite::from_json(json, &context).await?;
 
     let json = file_to_json_object("../apub/assets/pleroma/objects/person.json")?;
     ApubPerson::verify(&json, &url, &context).await?;
@@ -261,16 +261,7 @@ pub(crate) mod tests {
     assert_eq!(context.request_count(), 0);
     assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
 
-    cleanup((person, site), &context).await?;
-    Ok(())
-  }
-
-  async fn cleanup(
-    (person, site): (ApubPerson, ApubSite),
-    context: &LemmyContext,
-  ) -> LemmyResult<()> {
-    DbPerson::delete(&mut context.pool(), person.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 }

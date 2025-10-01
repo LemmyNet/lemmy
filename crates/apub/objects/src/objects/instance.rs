@@ -222,6 +222,7 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
 pub(crate) mod tests {
   use super::*;
   use crate::utils::test::parse_lemmy_instance;
+  use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -237,7 +238,7 @@ pub(crate) mod tests {
       Some(15)
     );
 
-    Site::delete(&mut context.pool(), site.id).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 }

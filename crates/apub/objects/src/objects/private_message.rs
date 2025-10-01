@@ -181,7 +181,7 @@ mod tests {
     utils::test::{file_to_json_object, parse_lemmy_instance},
   };
   use assert_json_diff::assert_json_include;
-  use lemmy_db_schema::{source::site::Site, test_data::TestData};
+  use lemmy_db_schema::test_data::TestData;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -201,23 +201,13 @@ mod tests {
     Ok((person1, person2, site))
   }
 
-  async fn cleanup(
-    (person1, person2, site): (ApubPerson, ApubPerson, ApubSite),
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
-    Person::delete(&mut context.pool(), person1.id).await?;
-    Person::delete(&mut context.pool(), person2.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
-    Ok(())
-  }
-
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_pm() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
-    let data = prepare_comment_test(&url, &context).await?;
+    prepare_comment_test(&url, &context).await?;
     let json: PrivateMessage =
       file_to_json_object("../apub/assets/lemmy/objects/private_message.json")?;
     ApubPrivateMessage::verify(&json, &url, &context).await?;
@@ -227,13 +217,11 @@ mod tests {
     assert_eq!(pm.content.len(), 20);
     assert_eq!(context.request_count(), 0);
 
-    let pm_id = pm.id;
     let to_apub = pm.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
 
-    DbPrivateMessage::delete(&mut context.pool(), pm_id).await?;
-    cleanup(data, &context).await?;
     test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -243,7 +231,7 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
-    let data = prepare_comment_test(&url, &context).await?;
+    prepare_comment_test(&url, &context).await?;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;
     let json = file_to_json_object("../apub/assets/pleroma/objects/chat_message.json")?;
     ApubPrivateMessage::verify(&json, &pleroma_url, &context).await?;
@@ -253,9 +241,8 @@ mod tests {
     assert_eq!(pm.content.len(), 3);
     assert_eq!(context.request_count(), 0);
 
-    DbPrivateMessage::delete(&mut context.pool(), pm.id).await?;
-    cleanup(data, &context).await?;
     test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 }

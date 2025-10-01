@@ -292,7 +292,7 @@ impl GetActorType for ApubCommunity {
 pub(crate) mod tests {
   use super::*;
   use crate::utils::test::{parse_lemmy_community, parse_lemmy_instance};
-  use lemmy_db_schema::source::site::Site;
+  use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -300,7 +300,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let site = parse_lemmy_instance(&context).await?;
+    parse_lemmy_instance(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
     assert_eq!(community.title, "Ten Forward");
@@ -316,8 +316,7 @@ pub(crate) mod tests {
       Some("A description of ten forward.".into())
     );
 
-    Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 }

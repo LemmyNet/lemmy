@@ -380,7 +380,7 @@ mod tests {
     objects::ApubPerson,
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
-  use lemmy_db_schema::source::{community::Community, person::Person, site::Site};
+  use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -388,8 +388,8 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (person, site) = parse_lemmy_person(&context).await?;
-    let community = parse_lemmy_community(&context).await?;
+    parse_lemmy_person(&context).await?;
+    parse_lemmy_community(&context).await?;
 
     let json = file_to_json_object("../apub/assets/lemmy/objects/page.json")?;
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143")?;
@@ -404,10 +404,7 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    Post::delete(&mut context.pool(), post.id).await?;
-    Person::delete(&mut context.pool(), person.id).await?;
-    Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -415,19 +412,17 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let community = parse_lemmy_community(&context).await?;
+    parse_lemmy_community(&context).await?;
 
     let json = file_to_json_object("../apub/assets/mastodon/objects/person.json")?;
-    let person = ApubPerson::from_json(json, &context).await?;
+    ApubPerson::from_json(json, &context).await?;
 
     let json = file_to_json_object("../apub/assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
-    Post::delete(&mut context.pool(), post.id).await?;
-    Person::delete(&mut context.pool(), person.id).await?;
-    Community::delete(&mut context.pool(), community.id).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 }

@@ -70,6 +70,7 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
+      instance::Instance,
       post::{Post, PostInsertForm},
     },
     test_data::TestData,
@@ -151,6 +152,7 @@ mod tests {
     }
 
     data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
 
     Ok(())
   }

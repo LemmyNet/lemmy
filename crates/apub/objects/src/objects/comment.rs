@@ -250,10 +250,7 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_db_schema::{
-    source::{local_site::LocalSite, site::Site},
-    test_data::TestData,
-  };
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -271,25 +268,13 @@ pub(crate) mod tests {
     Ok((person, community, post, site))
   }
 
-  async fn cleanup(
-    (person, community, post, site): (ApubPerson, ApubCommunity, ApubPost, ApubSite),
-    context: &LemmyContext,
-  ) -> LemmyResult<()> {
-    Post::delete(&mut context.pool(), post.id).await?;
-    Community::delete(&mut context.pool(), community.id).await?;
-    Person::delete(&mut context.pool(), person.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
-    LocalSite::delete(&mut context.pool()).await?;
-    Ok(())
-  }
-
   #[tokio::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
-    let data = prepare_comment_test(&url, &context).await?;
+    prepare_comment_test(&url, &context).await?;
 
     let json: Note = file_to_json_object("../apub/assets/lemmy/objects/comment.json")?;
     ApubComment::verify(&json, &url, &context).await?;
@@ -300,13 +285,11 @@ pub(crate) mod tests {
     assert!(!comment.local);
     assert_eq!(context.request_count(), 0);
 
-    let comment_id = comment.id;
     let to_apub = comment.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(&mut context.pool(), comment_id).await?;
-    cleanup(data, &context).await?;
     test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 
@@ -316,7 +299,7 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
-    let data = prepare_comment_test(&url, &context).await?;
+    prepare_comment_test(&url, &context).await?;
 
     let pleroma_url =
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")?;
@@ -332,9 +315,8 @@ pub(crate) mod tests {
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 
-    Comment::delete(&mut context.pool(), comment.id).await?;
-    cleanup(data, &context).await?;
     test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
 
