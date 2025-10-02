@@ -85,7 +85,7 @@ impl Object for ApubSite {
     )
   }
 
-  async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
     Err(FederationError::CantDeleteSite.into())
   }
 

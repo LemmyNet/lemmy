@@ -69,7 +69,7 @@ impl Object for ApubMultiCommunity {
     )
   }
 
-  async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     Err(LemmyErrorType::NotFound.into())
   }
 

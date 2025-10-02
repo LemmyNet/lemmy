@@ -26,6 +26,7 @@ where
     + Actor
     + From<DbActor>
     + Send
+    + Sync
     + 'static,
   for<'de2> <ActorType as Object>::Kind: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
