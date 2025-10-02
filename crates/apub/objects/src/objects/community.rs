@@ -101,7 +101,7 @@ impl Object for ApubCommunity {
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = CommunityUpdateForm {
       deleted: Some(true),
       ..Default::default()

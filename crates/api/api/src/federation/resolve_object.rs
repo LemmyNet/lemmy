@@ -4,8 +4,12 @@ use activitypub_federation::{
 };
 use actix_web::web::{Json, Query};
 use either::Either::*;
-use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_is_mod_or_admin, check_private_instance},
+};
 use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
+use lemmy_db_schema::newtypes::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
@@ -49,7 +53,8 @@ pub(super) async fn resolve_object_internal(
   }
   .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-  let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
+  let my_person_id_opt = local_user_view.as_ref().map(|l| l.person.id);
+  let my_person_id = my_person_id_opt.unwrap_or(PersonId(-1));
   let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
   let is_admin = local_user.as_ref().map(|l| l.admin).unwrap_or_default();
   let pool = &mut context.pool();
@@ -57,13 +62,16 @@ pub(super) async fn resolve_object_internal(
 
   Ok(match object {
     Left(Left(Left(p))) => {
-      Post(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_admin).await?)
+      let is_mod = check_is_mod_or_admin(pool, my_person_id, p.community_id)
+        .await
+        .is_ok();
+      Post(PostView::read(pool, p.id, local_user.as_ref(), local_instance_id, is_mod).await?)
     }
     Left(Left(Right(c))) => {
       Comment(CommentView::read(pool, c.id, local_user.as_ref(), local_instance_id).await?)
     }
     Left(Right(Left(u))) => {
-      Person(PersonView::read(pool, u.id, my_person_id, local_instance_id, is_admin).await?)
+      Person(PersonView::read(pool, u.id, my_person_id_opt, local_instance_id, is_admin).await?)
     }
     Left(Right(Right(c))) => {
       Community(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
