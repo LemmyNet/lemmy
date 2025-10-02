@@ -150,6 +150,10 @@ ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_instance_id_fkey DEFERRABLE INITIALLY DEFERRED,
     ALTER CONSTRAINT post_aggregates_post_id_fkey DEFERRABLE INITIALLY DEFERRED;
 
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_creator ON post_aggregates USING btree (creator_id);
+
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_community ON post_aggregates USING btree (community_id);
+
 CREATE INDEX IF NOT EXISTS idx_post_aggregates_community_active ON post_aggregates USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, post_id DESC);
 
 CREATE INDEX IF NOT EXISTS idx_post_aggregates_community_controversy ON post_aggregates USING btree (community_id, featured_local DESC, controversy_rank DESC, post_id DESC);
