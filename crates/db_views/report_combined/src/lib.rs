@@ -146,6 +146,7 @@ pub struct PrivateMessageReportView {
   pub resolver: Option<Person>,
   pub creator_is_admin: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -167,7 +168,9 @@ pub struct CommentReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -183,7 +186,9 @@ pub struct CommunityReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -204,5 +209,7 @@ pub struct PostReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
