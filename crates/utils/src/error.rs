@@ -103,7 +103,6 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   CouldntCreateImageCaptcha,
   InvalidUrlScheme,
-  CouldntSendWebmention,
   ContradictingFilters,
   /// Thrown when an API call is submitted with more than 1000 array elements, see
   /// [[MAX_API_PARAM_ELEMENTS]]
@@ -119,7 +118,6 @@ pub enum LemmyErrorType {
   OauthLoginFailed,
   OauthRegistrationClosed,
   NotFound,
-  CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
   CannotCombineFederationBlocklistAndAllowlist,
@@ -164,6 +162,8 @@ pub enum FederationError {
   ObjectIsNotPrivate,
   InvalidFollow(String),
   Unreachable,
+  CouldntSendWebmention,
+  CommunityHasNoFollowers,
 }
 
 cfg_if! {
