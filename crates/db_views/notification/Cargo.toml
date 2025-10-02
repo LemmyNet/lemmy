@@ -23,6 +23,9 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_private_message/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_comment/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
@@ -42,3 +45,6 @@ serde_with = { workspace = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
+serial_test = { workspace = true }
+tokio = { workspace = true }
+pretty_assertions = { workspace = true }

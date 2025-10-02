@@ -298,6 +298,9 @@ pub(crate) struct ModlogCombinedViewInternal {
   pub admin_allow_instance: Option<AdminAllowInstance>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_block_instance: Option<AdminBlockInstance>,
+  /*
+    Temporarily disabled to speed up compilation
+    https://github.com/LemmyNet/lemmy/issues/6012
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_comment: Option<AdminPurgeComment>,
   #[cfg_attr(feature = "full", diesel(embed))]
@@ -306,6 +309,7 @@ pub(crate) struct ModlogCombinedViewInternal {
   pub admin_purge_person: Option<AdminPurgePerson>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_post: Option<AdminPurgePost>,
+  */
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_add: Option<AdminAdd>,
   #[cfg_attr(feature = "full", diesel(embed))]

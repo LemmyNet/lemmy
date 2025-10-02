@@ -14,9 +14,13 @@ CREATE INDEX idx_admin_purge_post_admin ON admin_purge_post (admin_person_id);
 
 CREATE INDEX idx_mod_remove_comment_comment ON mod_remove_comment (comment_id);
 
-CREATE INDEX idx_person_liked_combined_comment ON person_liked_combined (comment_id);
+CREATE INDEX idx_person_liked_combined_comment ON person_liked_combined (comment_id)
+WHERE
+    comment_id IS NOT NULL;
 
-CREATE INDEX idx_person_saved_combined_comment ON person_saved_combined (comment_id);
+CREATE INDEX idx_person_saved_combined_comment ON person_saved_combined (comment_id)
+WHERE
+    comment_id IS NOT NULL;
 
 CREATE INDEX idx_comment_report_creator ON comment_report (creator_id);
 
@@ -68,7 +72,9 @@ CREATE INDEX idx_oauth_account_user ON oauth_account (local_user_id);
 
 CREATE INDEX idx_password_reset_request_user ON password_reset_request (local_user_id);
 
-CREATE INDEX idx_modlog_combined_mod_change_community_visibility_id ON modlog_combined (mod_change_community_visibility_id);
+CREATE INDEX idx_modlog_combined_mod_change_community_visibility_id ON modlog_combined (mod_change_community_visibility_id)
+WHERE
+    mod_change_community_visibility_id IS NOT NULL;
 
 CREATE INDEX idx_mod_add_community_mod ON mod_add_community (mod_person_id);
 
@@ -94,7 +100,9 @@ CREATE INDEX idx_mod_transfer_community_mod ON mod_transfer_community (mod_perso
 
 CREATE INDEX idx_local_site_multi_comm_follower ON local_site (multi_comm_follower);
 
-CREATE INDEX idx_search_combined_multi_community ON search_combined (multi_community_id);
+CREATE INDEX idx_search_combined_multi_community ON search_combined (multi_community_id)
+WHERE
+    multi_community_id IS NOT NULL;
 
 CREATE INDEX idx_mod_add_community_other_person ON mod_add_community (other_person_id);
 
@@ -114,9 +122,13 @@ CREATE INDEX idx_mod_lock_post_post ON mod_lock_post (post_id);
 
 CREATE INDEX idx_mod_remove_post_post ON mod_remove_post (post_id);
 
-CREATE INDEX idx_person_liked_combined_post ON person_liked_combined (post_id);
+CREATE INDEX idx_person_liked_combined_post ON person_liked_combined (post_id)
+WHERE
+    post_id IS NOT NULL;
 
-CREATE INDEX idx_person_saved_combined_post ON person_saved_combined (post_id);
+CREATE INDEX idx_person_saved_combined_post ON person_saved_combined (post_id)
+WHERE
+    post_id IS NOT NULL;
 
 CREATE INDEX idx_private_message_recipient ON private_message (recipient_id);
 

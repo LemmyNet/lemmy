@@ -23,7 +23,6 @@ full = [
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
   "lemmy_db_views_person/full",
-  "lemmy_db_views_post/full",
   "lemmy_db_views_readable_federation_state/full",
   "extism",
   "extism-convert",
@@ -37,7 +36,6 @@ ts-rs = [
   "lemmy_db_views_community_moderator/ts-rs",
   "lemmy_db_views_local_user/ts-rs",
   "lemmy_db_views_person/ts-rs",
-  "lemmy_db_views_post/ts-rs",
   "lemmy_db_views_readable_federation_state/ts-rs",
 ]
 
@@ -49,7 +47,6 @@ lemmy_db_views_community_follower = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_person = { workspace = true }
-lemmy_db_views_post = { workspace = true }
 lemmy_db_views_readable_federation_state = { workspace = true }
 chrono = { workspace = true }
 diesel = { workspace = true, optional = true }

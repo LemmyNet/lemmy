@@ -2,6 +2,7 @@ use crate::{inbox_link, send::send_email, user_language};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{comment::Comment, community::Community, person::Person, post::Post},
+  ModlogActionType,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
@@ -28,6 +29,11 @@ pub enum NotificationEmailData<'a> {
   PrivateMessage {
     sender: &'a Person,
     content: &'a String,
+  },
+  ModAction {
+    kind: ModlogActionType,
+    reason: Option<&'a str>,
+    is_revert: bool,
   },
 }
 
@@ -107,6 +113,27 @@ pub fn send_notification_email(
         lang.notification_private_message_subject(sender_name),
         lang.notification_private_message_body(inbox_link, &content, sender_name),
       )
+    }
+    NotificationEmailData::ModAction {
+      kind,
+      reason,
+      is_revert,
+    } => {
+      // Some actions like AdminAdd and ModAddToCommunity dont have any reason
+      let reason = reason.unwrap_or_default();
+      if is_revert {
+        (
+          lang.notification_mod_action_subject(kind).to_string(),
+          lang.notification_mod_action_body(reason, inbox_link),
+        )
+      } else {
+        (
+          lang
+            .notification_mod_action_reverted_subject(kind)
+            .to_string(),
+          lang.notification_mod_action_reverted_body(reason, inbox_link),
+        )
+      }
     }
   };
 

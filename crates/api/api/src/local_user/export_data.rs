@@ -54,10 +54,21 @@ pub async fn export_data(
   .list(pool, &local_user_view.person)
   .await?
   .into_iter()
-  .map(|u| match u.data {
-    NotificationData::Post(p) => Post(p.post),
-    NotificationData::Comment(c) => Comment(c.comment),
-    NotificationData::PrivateMessage(pm) => PrivateMessage(pm.private_message),
+  .flat_map(|u| match u.data {
+    NotificationData::Post(p) => Some(Post(p.post)),
+    NotificationData::Comment(c) => Some(Comment(c.comment)),
+    NotificationData::PrivateMessage(pm) => Some(PrivateMessage(pm.private_message)),
+    // skip modlog items
+    NotificationData::AdminAdd(_)
+    | NotificationData::ModAddToCommunity(_)
+    | NotificationData::AdminBan(_)
+    | NotificationData::ModBanFromCommunity(_)
+    | NotificationData::ModLockPost(_)
+    | NotificationData::ModLockComment(_)
+    | NotificationData::ModRemovePost(_)
+    | NotificationData::ModRemoveComment(_)
+    | NotificationData::AdminRemoveCommunity(_)
+    | NotificationData::ModTransferCommunity(_) => None,
   })
   .collect();
 
