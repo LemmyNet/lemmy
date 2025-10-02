@@ -1,12 +1,12 @@
 [workspace.package]
 version = "1.0.0-alpha.9"
-edition = "2021"
+edition = "2024"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
-rust-version = "1.81"
+rust-version = "1.90"
 
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
@@ -59,9 +59,7 @@ members = [
   "crates/routes",
   "crates/server",
 ]
-resolver = "2"
-# This line can be removed after upgrading to resolver = 3
-incompatible-rust-versions = "fallback"
+resolver = "3"
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
