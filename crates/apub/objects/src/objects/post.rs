@@ -107,7 +107,7 @@ impl Object for ApubPost {
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
         deleted: Some(true),

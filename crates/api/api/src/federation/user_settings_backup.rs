@@ -235,7 +235,7 @@ async fn fetch_and_import<Kind, Fut>(
   import_fn: impl FnMut((ObjectId<Kind>, Data<LemmyContext>)) -> Fut,
 ) -> LemmyResult<String>
 where
-  Kind: Object + Send + 'static,
+  Kind: Object + Send + Sync + 'static,
   for<'de2> <Kind as Object>::Kind: Deserialize<'de2>,
   Fut: Future<Output = LemmyResult<()>>,
 {
