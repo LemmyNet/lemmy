@@ -76,7 +76,9 @@ pub(super) async fn resolve_object_internal(
     Left(Right(Right(c))) => {
       Community(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
     }
-    Right(multi) => MultiCommunity(MultiCommunityView::read(pool, multi.id).await?),
+    Right(multi) => {
+      MultiCommunity(MultiCommunityView::read(pool, multi.id, my_person_id_opt).await?)
+    }
   })
 }
 

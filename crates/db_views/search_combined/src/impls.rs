@@ -470,6 +470,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
       Some(SearchCombinedView::MultiCommunity(MultiCommunityView {
         multi,
         owner: creator.clone(),
+        follow_state: None,
       }))
     } else if let Some(person) = v.item_creator {
       Some(SearchCombinedView::Person(PersonView {

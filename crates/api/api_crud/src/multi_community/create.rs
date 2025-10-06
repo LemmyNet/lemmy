@@ -51,5 +51,8 @@ pub async fn create_multi_community(
     )
   };
   let multi = MultiCommunity::create(&mut context.pool(), &form).await?;
-  get_multi(multi.id, context).await
+
+  // TODO what about following your own community?
+  //
+  get_multi(multi.id, context, Some(local_user_view)).await
 }

@@ -35,6 +35,7 @@ use lemmy_db_schema_file::schema::{
   community_actions,
   instance_actions,
   local_user,
+  multi_community_follow,
   person,
   post,
   post_tag,
@@ -318,4 +319,10 @@ pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActions
   my_instance_persons_actions
     .fields(instance_actions::all_columns)
     .nullable()
+}
+
+// The select for the multi_community_follow_state
+#[diesel::dsl::auto_type]
+pub fn multi_community_follow_state_select() -> _ {
+  multi_community_follow::follow_state.nullable()
 }
