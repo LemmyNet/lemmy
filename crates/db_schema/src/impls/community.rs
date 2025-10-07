@@ -41,7 +41,7 @@ use lemmy_db_schema_file::{
   schema::{comment, community, community_actions, instance, local_user, post},
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
   CACHE_DURATION_LARGEST_COMMUNITY,
 };
@@ -358,7 +358,7 @@ impl CommunityActions {
       .get_result::<bool>(conn)
       .await?
       .then_some(())
-      .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
+      .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
   }
 
   pub async fn approve_follower(

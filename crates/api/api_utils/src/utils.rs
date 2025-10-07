@@ -45,7 +45,14 @@ use lemmy_db_views_site::{
   SiteView,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{
+    LemmyError,
+    LemmyErrorExt,
+    LemmyErrorExt2,
+    LemmyErrorType,
+    LemmyResult,
+    UntranslatedError,
+  },
   rate_limit::{ActionType, BucketConfig},
   settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
@@ -982,7 +989,7 @@ pub fn send_webmention(post: Post, community: &Community) {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
         }
       });
     }

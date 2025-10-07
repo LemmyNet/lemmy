@@ -25,7 +25,7 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyResult},
+  error::{LemmyError, LemmyResult, UntranslatedError},
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
@@ -108,7 +108,7 @@ pub async fn check_apub_id_valid_with_strictness(
 ) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(FederationError::UrlWithoutDomain)?
+    .ok_or(UntranslatedError::UrlWithoutDomain)?
     .to_string();
   let local_instance = context.settings().get_hostname_without_port()?;
   if domain == local_instance {
@@ -132,10 +132,10 @@ pub async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id
       .domain()
-      .ok_or(FederationError::UrlWithoutDomain)?
+      .ok_or(UntranslatedError::UrlWithoutDomain)?
       .to_string();
     if !allowed_and_local.contains(&domain) {
-      Err(FederationError::FederationDisabledByStrictAllowList)?
+      Err(UntranslatedError::FederationDisabledByStrictAllowList)?
     }
   }
   Ok(())
@@ -151,7 +151,7 @@ pub async fn check_apub_id_valid_with_strictness(
 pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(FederationError::UrlWithoutDomain)?
+    .ok_or(UntranslatedError::UrlWithoutDomain)?
     .to_string();
 
   if !local_site_data
@@ -160,7 +160,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    Err(FederationError::FederationDisabled)?
+    Err(UntranslatedError::FederationDisabled)?
   }
 
   if local_site_data
@@ -168,7 +168,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .iter()
     .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(FederationError::DomainBlocked(domain.clone()))?
+    Err(UntranslatedError::DomainBlocked(domain.clone()))?
   }
 
   // Only check this if there are instances in the allowlist
@@ -178,7 +178,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
       .iter()
       .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(FederationError::DomainNotInAllowList(domain))?
+    Err(UntranslatedError::DomainNotInAllowList(domain))?
   }
 
   Ok(())
@@ -278,7 +278,7 @@ pub async fn verify_person_in_site_or_community(
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(FederationError::ObjectIsNotPublic)?
+    Err(UntranslatedError::ObjectIsNotPublic)?
   } else {
     Ok(())
   }
@@ -290,8 +290,8 @@ pub fn verify_visibility(to: &[Url], cc: &[Url], community: &ApubCommunity) -> L
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
-    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
-    Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
+    Public | Unlisted if !object_is_public => Err(UntranslatedError::ObjectIsNotPublic)?,
+    Private if object_is_public => Err(UntranslatedError::ObjectIsNotPrivate)?,
     _ => Ok(()),
   }
 }

@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   },
   traits::Followable,
 };
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl UndoFollow {
@@ -77,7 +77,7 @@ impl Activity for UndoFollow {
       return Ok(());
     }
 
-    let person = actor.left().ok_or(FederationError::InvalidFollow(
+    let person = actor.left().ok_or(UntranslatedError::InvalidFollow(
       "Groups can only follow public groups".to_string(),
     ))?;
     InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
