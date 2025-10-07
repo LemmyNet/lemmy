@@ -60,10 +60,9 @@ pub struct BlockPerson {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The response for a person block.
-pub struct BlockPersonResponse {
+/// A person response for actions done to a person.
+pub struct PersonResponse {
   pub person_view: PersonView,
-  pub blocked: bool,
 }
 
 #[skip_serializing_none]

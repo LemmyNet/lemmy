@@ -6,7 +6,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{BlockPerson, BlockPersonResponse},
+  api::{BlockPerson, PersonResponse},
   PersonView,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -15,7 +15,7 @@ pub async fn user_block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BlockPersonResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   check_local_user_valid(&local_user_view)?;
   let target_id = data.person_id;
   let my_person_id = local_user_view.person.id;
@@ -50,8 +50,5 @@ pub async fn user_block_person(
     false,
   )
   .await?;
-  Ok(Json(BlockPersonResponse {
-    person_view,
-    blocked: data.block,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }
