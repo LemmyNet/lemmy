@@ -2,7 +2,7 @@ use activitypub_federation::{config::UrlVerifier, error::Error as ActivityPubErr
 use async_trait::async_trait;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::utils::ActualDbPool;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, UntranslatedError};
 use url::Url;
 
 pub mod collections;
@@ -19,7 +19,7 @@ pub struct VerifyUrlData(pub ActualDbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), ActivityPubError> {
-    use FederationError::*;
+    use UntranslatedError::*;
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .map_err(|e| ActivityPubError::Other(format!("Cant read local site data: {e}")))?;
@@ -27,21 +27,21 @@ impl UrlVerifier for VerifyUrlData {
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
         error_type:
-          LemmyErrorType::FederationError {
+          LemmyErrorType::UntranslatedError {
             error: Some(FederationDisabled),
           },
         ..
       } => ActivityPubError::Other("Federation disabled".into()),
       LemmyError {
         error_type:
-          LemmyErrorType::FederationError {
+          LemmyErrorType::UntranslatedError {
             error: Some(DomainBlocked(domain)),
           },
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is blocked")),
       LemmyError {
         error_type:
-          LemmyErrorType::FederationError {
+          LemmyErrorType::UntranslatedError {
             error: Some(DomainNotInAllowList(domain)),
           },
         ..

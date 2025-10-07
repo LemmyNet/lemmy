@@ -5,7 +5,7 @@ use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
   utils::protocol::InCommunity,
 };
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use url::Url;
@@ -33,7 +33,7 @@ impl TryFrom<i16> for VoteType {
     match value {
       1 => Ok(VoteType::Like),
       -1 => Ok(VoteType::Dislike),
-      _ => Err(FederationError::InvalidVoteValue.into()),
+      _ => Err(UntranslatedError::InvalidVoteValue.into()),
     }
   }
 }
