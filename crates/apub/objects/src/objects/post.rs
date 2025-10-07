@@ -101,7 +101,7 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      Post::read_from_apub_id(&mut context.pool(), object_id)
+      Post::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )

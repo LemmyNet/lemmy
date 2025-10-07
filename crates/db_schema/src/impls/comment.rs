@@ -11,7 +11,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::{coalesce, hot_rank},
+    functions::{coalesce, hot_rank, lower},
     get_conn,
     validate_like,
     DbPool,
@@ -189,12 +189,11 @@ impl Comment {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     comment::table
-      .filter(comment::ap_id.eq(object_id))
+      .filter(lower(comment::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()

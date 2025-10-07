@@ -3,7 +3,11 @@ use crate::{
   newtypes::{DbUrl, PersonId, PrivateMessageId},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    DbPool,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
@@ -65,12 +69,11 @@ impl PrivateMessage {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     private_message::table
-      .filter(private_message::ap_id.eq(object_id))
+      .filter(lower(private_message::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()

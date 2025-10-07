@@ -70,7 +70,7 @@ impl Object for ApubPrivateMessage {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      DbPrivateMessage::read_from_apub_id(&mut context.pool(), object_id)
+      DbPrivateMessage::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )

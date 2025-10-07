@@ -83,7 +83,7 @@ impl Object for ApubComment {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      Comment::read_from_apub_id(&mut context.pool(), object_id)
+      Comment::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )

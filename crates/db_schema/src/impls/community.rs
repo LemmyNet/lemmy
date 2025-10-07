@@ -624,7 +624,7 @@ impl ApubActor for Community {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::ap_id.eq(object_id))
+      .filter(lower(community::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()

@@ -2,7 +2,7 @@ use crate::{
   diesel::OptionalExtension,
   newtypes::{ActivityId, DbUrl},
   source::activity::{ReceivedActivity, SentActivity, SentActivityForm},
-  utils::{get_conn, DbPool},
+  utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -23,7 +23,7 @@ impl SentActivity {
     use lemmy_db_schema_file::schema::sent_activity::dsl::{ap_id, sent_activity};
     let conn = &mut get_conn(pool).await?;
     sent_activity
-      .filter(ap_id.eq(object_id))
+      .filter(lower(ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
