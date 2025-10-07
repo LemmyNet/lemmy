@@ -320,9 +320,3 @@ pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActions
     .fields(instance_actions::all_columns)
     .nullable()
 }
-
-// The select for the multi_community_follow_state
-#[diesel::dsl::auto_type]
-pub fn multi_community_follow_state_select() -> _ {
-  multi_community_follow::follow_state.nullable()
-}
