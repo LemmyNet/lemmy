@@ -26,7 +26,7 @@ pub mod actions {
       newtypes::RegistrationApplicationId,
       source::registration_application::RegistrationApplication,
     };
-    pub use lemmy_db_views_person::api::{BanPerson, BanPersonResponse, PurgePerson};
+    pub use lemmy_db_views_person::api::{BanPerson, PurgePerson};
     pub use lemmy_db_views_registration_applications::{
       api::{GetRegistrationApplication, RegistrationApplicationResponse},
       RegistrationApplicationView,
