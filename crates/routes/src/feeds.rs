@@ -5,7 +5,7 @@ use lemmy_api_utils::{
   utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
-  source::{community::Community, person::Person},
+  source::{community::Community, multi_community::MultiCommunity, person::Person},
   traits::ApubActor,
   PersonContentType,
 };
@@ -58,6 +58,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     web::scope("/feeds")
       .route("/u/{user_name}.xml", web::get().to(get_feed_user))
       .route("/c/{community_name}.xml", web::get().to(get_feed_community))
+      .route(
+        "/c/{multi_name}.xml",
+        web::get().to(get_feed_multi_community),
+      )
       .route("/front/{jwt}.xml", web::get().to(get_feed_front))
       .route("/modlog/{jwt}.xml", web::get().to(get_feed_modlog))
       .route("/notifications/{jwt}.xml", web::get().to(get_feed_notifs))
@@ -120,7 +124,6 @@ async fn get_feed_data(
   limit: i64,
 ) -> Result<HttpResponse, Error> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
@@ -132,21 +135,10 @@ async fn get_feed_data(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
+  let title = format!("{} - {}", site_view.site.name, listing_type);
+  let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, listing_type),
-    link: context.settings().get_protocol_and_hostname(),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, items, site_view))
 }
 
 async fn get_feed_user(
@@ -181,16 +173,10 @@ async fn get_feed_user(
     .cloned()
     .collect::<Vec<PostView>>();
 
+  let title = format!("{} - {}", site_view.site.name, person.name);
+  let link = person.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-  let channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, person.name),
-    link: person.ap_id.to_string(),
-    items,
-    ..Default::default()
-  };
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, items, site_view))
 }
 
 /// Takes a user/community name either in the format `name` or `name@example.com`. Splits
@@ -229,21 +215,38 @@ async fn get_feed_community(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
+  let title = format!("{} - {}", site_view.site.name, community.name);
+  let link = community.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
+  Ok(send_feed_response(title, link, items, site_view))
+}
 
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, community.name),
-    link: community.ap_id.to_string(),
-    items,
+async fn get_feed_multi_community(
+  info: web::Query<Params>,
+  name: web::Path<String>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let (name, domain) = split_name(&name);
+  let multi_community = MultiCommunity::read_from_name(&mut context.pool(), &name, domain, false)
+    .await?
+    .ok_or(ErrorBadRequest("not_found"))?;
+
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  check_private_instance(&None, &site_view.local_site)?;
+
+  let posts = PostQuery {
+    sort: Some(info.sort_type()?),
+    multi_community_id: Some(multi_community.id),
+    limit: Some(info.get_limit()),
     ..Default::default()
-  };
-
-  if let Some(community_desc) = community.description {
-    channel.set_description(markdown_to_html(&community_desc));
   }
+  .list(&site_view.site, &mut context.pool())
+  .await?;
 
-  Ok(channel_to_http_res(channel))
+  let title = format!("{} - {}", site_view.site.name, multi_community.name);
+  let link = multi_community.ap_id.to_string();
+  let items = create_post_items(posts, context.settings())?;
+  Ok(send_feed_response(title, link, items, site_view))
 }
 
 async fn get_feed_front(
@@ -267,12 +270,22 @@ async fn get_feed_front(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let title = format!("{} - Subscribed", site_view.site.name);
+  let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
+  Ok(send_feed_response(title, link, items, site_view))
+}
+
+fn send_feed_response(
+  title: String,
+  link: String,
+  items: Vec<Item>,
+  site_view: SiteView,
+) -> HttpResponse {
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Subscribed", site_view.site.name),
-    link: protocol_and_hostname,
+    title,
+    link,
     items,
     ..Default::default()
   };
@@ -281,7 +294,9 @@ async fn get_feed_front(
     channel.set_description(markdown_to_html(&site_desc));
   }
 
-  Ok(channel_to_http_res(channel))
+  HttpResponse::Ok()
+    .content_type("application/rss+xml")
+    .body(channel.to_string())
 }
 
 async fn get_feed_notifs(
@@ -304,21 +319,11 @@ async fn get_feed_notifs(
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+
+  let title = format!("{} - Notifications", site_view.site.name);
+  let link = format!("{protocol_and_hostname}/notifications");
   let items = create_reply_and_mention_items(notifications, &context)?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Notifications", site_view.site.name),
-    link: format!("{protocol_and_hostname}/notifications"),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, items, site_view))
 }
 
 /// Gets your ModeratorView modlog
@@ -342,21 +347,10 @@ async fn get_feed_modlog(
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let title = format!("{} - Modlog", local_user.person.name);
+  let link = format!("{protocol_and_hostname}/modlog");
   let items = create_modlog_items(modlog, context.settings())?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Modlog", local_user.person.name),
-    link: format!("{protocol_and_hostname}/modlog"),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, items, site_view))
 }
 
 fn create_reply_and_mention_items(
@@ -833,10 +827,4 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
   }
 
   Ok(items)
-}
-
-fn channel_to_http_res(channel: Channel) -> HttpResponse {
-  HttpResponse::Ok()
-    .content_type("application/rss+xml")
-    .body(channel.to_string())
 }
