@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -107,7 +107,7 @@ pub(crate) async fn receive_remove_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        Err(FederationError::OnlyLocalAdminCanRemoveCommunity)?
+        Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
       let form = AdminRemoveCommunityForm {

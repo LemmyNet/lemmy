@@ -46,12 +46,12 @@ use lemmy_db_views_site::{
 };
 use lemmy_utils::{
   error::{
-    FederationError,
     LemmyError,
     LemmyErrorExt,
     LemmyErrorExt2,
     LemmyErrorType,
     LemmyResult,
+    UntranslatedError,
   },
   rate_limit::{ActionType, BucketConfig},
   settings::{structs::PictrsImageMode, SETTINGS},
@@ -989,7 +989,7 @@ pub fn send_webmention(post: Post, community: &Community) {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(FederationError::CouldntSendWebmention.into()),
+          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
         }
       });
     }

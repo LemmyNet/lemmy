@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
+/// Errors used in the API, all of these are translated in lemmy-ui.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
-// TODO: order these based on the crate they belong to (utils, federation, db, api)
 pub enum LemmyErrorType {
   BlockKeywordTooShort,
   BlockKeywordTooLong,
@@ -121,9 +121,9 @@ pub enum LemmyErrorType {
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
   CannotCombineFederationBlocklistAndAllowlist,
-  FederationError {
+  UntranslatedError {
     #[cfg_attr(feature = "ts-rs", ts(optional))]
-    error: Option<FederationError>,
+    error: Option<UntranslatedError>,
   },
   CouldntParsePaginationToken,
   PluginError(String),
@@ -135,12 +135,12 @@ pub enum LemmyErrorType {
   TooManyRequests,
 }
 
-/// Federation related errors, these dont need to be translated.
+/// These errors are only used for federation or internally and dont need to be translated.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[non_exhaustive]
-pub enum FederationError {
+pub enum UntranslatedError {
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
@@ -242,20 +242,20 @@ cfg_if! {
       }
     }
 
-    impl From<FederationError> for LemmyError {
-      fn from(error_type: FederationError) -> Self {
+    impl From<UntranslatedError> for LemmyError {
+      fn from(error_type: UntranslatedError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
-          error_type: LemmyErrorType::FederationError { error: Some(error_type) },
+          error_type: LemmyErrorType::UntranslatedError { error: Some(error_type) },
           inner,
           context: Backtrace::capture(),
         }
       }
     }
 
-    impl From<FederationError> for LemmyErrorType {
-      fn from(error: FederationError) -> Self {
-        LemmyErrorType::FederationError { error: Some(error) }
+    impl From<UntranslatedError> for LemmyErrorType {
+      fn from(error: UntranslatedError) -> Self {
+        LemmyErrorType::UntranslatedError { error: Some(error) }
       }
     }
 

@@ -1,1 +1,1 @@
-pub use lemmy_utils::error::{FederationError, LemmyErrorType};
+pub use lemmy_utils::error::{LemmyErrorType, UntranslatedError};
