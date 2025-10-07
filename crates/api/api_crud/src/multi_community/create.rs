@@ -1,13 +1,12 @@
-use crate::multi_community::get_multi;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{check_local_user_valid, slur_regex},
+  utils::{check_local_user_valid, get_multi_community, slur_regex},
 };
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
-  traits::Crud,
+  traits::{ApubActor, Crud},
 };
 use lemmy_db_views_community::api::{CreateMultiCommunity, GetMultiCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
@@ -29,11 +28,7 @@ pub async fn create_multi_community(
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
-  let ap_id = Url::parse(&format!(
-    "{}/m/{}",
-    context.settings().get_protocol_and_hostname(),
-    &data.name
-  ))?;
+  let ap_id = MultiCommunity::generate_local_actor_url(&data.name, context.settings())?;
   let following_url = Url::parse(&format!("{}/following", ap_id))?;
 
   let form = MultiCommunityInsertForm {
@@ -51,5 +46,5 @@ pub async fn create_multi_community(
     )
   };
   let multi = MultiCommunity::create(&mut context.pool(), &form).await?;
-  get_multi(multi.id, context).await
+  get_multi_community(multi.id, &context).await
 }
