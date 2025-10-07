@@ -33,7 +33,7 @@ pub enum LemmyErrorType {
   PictrsApiKeyNotProvided,
   NoContentTypeHeader,
   NotAnImageType,
-  InvalidImageUpload,
+  InvalidImageUpload(String),
   ImageUploadDisabled,
   NotAModOrAdmin,
   NotTopMod,
