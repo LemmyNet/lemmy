@@ -184,7 +184,7 @@ impl NotifyData {
     let mut res = vec![];
     for mention in mentions {
       let Ok(Some(person)) =
-        Person::read_from_name(&mut context.pool(), &mention.name, false).await
+        Person::read_from_name(&mut context.pool(), &mention.name, None, false).await
       else {
         // Ignore error if user is remote
         continue;

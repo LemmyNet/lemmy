@@ -154,14 +154,11 @@ async fn get_feed_user(
   name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let (name, domain) = split_name(name.into_inner());
+  let (name, domain) = split_name(&name);
 
-  let person = if let Some(domain) = domain {
-    Person::read_from_name_and_domain(&mut context.pool(), &name, &domain).await?
-  } else {
-    Person::read_from_name(&mut context.pool(), &name, false).await?
-  }
-  .ok_or(ErrorBadRequest("not_found"))?;
+  let person = Person::read_from_name(&mut context.pool(), &name, domain, false)
+    .await?
+    .ok_or(ErrorBadRequest("not_found"))?;
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&None, &site_view.local_site)?;
@@ -198,9 +195,9 @@ async fn get_feed_user(
 
 /// Takes a user/community name either in the format `name` or `name@example.com`. Splits
 /// it on `@` and returns a tuple of name and optional domain.
-fn split_name(name: String) -> (String, Option<String>) {
+fn split_name<'a>(name: &'a str) -> (&'a str, Option<&'a str>) {
   if let Some(split) = name.split_once('@') {
-    (split.0.to_string(), Some(split.1.to_string()))
+    (split.0, Some(split.1))
   } else {
     (name, None)
   }
@@ -211,13 +208,10 @@ async fn get_feed_community(
   name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let (name, domain) = split_name(name.into_inner());
-  let community = if let Some(domain) = domain {
-    Community::read_from_name_and_domain(&mut context.pool(), &name, &domain).await?
-  } else {
-    Community::read_from_name(&mut context.pool(), &name, false).await?
-  }
-  .ok_or(ErrorBadRequest("not_found"))?;
+  let (name, domain) = split_name(&name);
+  let community = Community::read_from_name(&mut context.pool(), &name, domain, false)
+    .await?
+    .ok_or(ErrorBadRequest("not_found"))?;
 
   if !community.visibility.can_view_without_login() {
     return Err(ErrorBadRequest("not_found"));
