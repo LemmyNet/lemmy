@@ -4,7 +4,7 @@ use lemmy_db_schema::source::{
   person::Person,
   tag::TagsView,
 };
-use lemmy_db_schema_file::{enums::CommunityFollowerState, schema::multi_community_follow};
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -14,6 +14,7 @@ use {
     community_post_tags_fragment,
     local_user_community_can_mod,
   },
+  lemmy_db_schema_file::schema::multi_community_follow,
 };
 
 pub mod api;
