@@ -89,7 +89,7 @@ impl Object for ApubComment {
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
         deleted: Some(true),
