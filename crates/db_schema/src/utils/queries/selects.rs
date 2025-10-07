@@ -35,7 +35,6 @@ use lemmy_db_schema_file::schema::{
   community_actions,
   instance_actions,
   local_user,
-  multi_community_follow,
   person,
   post,
   post_tag,
