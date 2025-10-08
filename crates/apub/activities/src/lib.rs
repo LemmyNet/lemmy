@@ -46,7 +46,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -76,7 +76,7 @@ async fn verify_person(
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(FederationError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
+    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }

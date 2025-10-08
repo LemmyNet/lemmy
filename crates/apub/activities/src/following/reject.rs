@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
 };
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl RejectFollow {
@@ -59,7 +59,7 @@ impl Activity for RejectFollow {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
     let actor = self.object.actor.dereference(context).await?;
-    let person = actor.left().ok_or(FederationError::Unreachable)?;
+    let person = actor.left().ok_or(UntranslatedError::Unreachable)?;
 
     // remove the follow
     CommunityActions::unfollow(&mut context.pool(), person.id, community.id).await?;

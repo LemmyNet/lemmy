@@ -16,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{BanPerson, BanPersonResponse},
+  api::{BanPerson, PersonResponse},
   PersonView,
 };
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
@@ -25,7 +25,7 @@ pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BanPersonResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   let local_instance_id = local_user_view.person.instance_id;
   let my_person_id = local_user_view.person.id;
 
@@ -97,8 +97,5 @@ pub async fn ban_from_site(
     &context,
   )?;
 
-  Ok(Json(BanPersonResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }

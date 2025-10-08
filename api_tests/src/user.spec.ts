@@ -24,6 +24,7 @@ import {
   getMyUser,
   getPersonDetails,
   banPersonFromSite,
+  delay,
 } from "./shared";
 import {
   EditSite,
@@ -103,6 +104,9 @@ test("Delete user", async () => {
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
+
+  // Wait, in order to make sure it federates
+  await delay(1_000);
   await expect(getMyUser(user)).rejects.toStrictEqual(
     new LemmyError("incorrect_login"),
   );
@@ -247,7 +251,7 @@ test("Make sure banned user can delete their account", async () => {
     true,
     false,
   );
-  expect(banUser.banned).toBe(true);
+  expect(banUser.person_view.banned).toBe(true);
 
   // Make sure post is there
   let postAfterBan = await getPost(alpha, postId);

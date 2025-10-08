@@ -13,12 +13,13 @@ pub async fn list_multi_communities(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListMultiCommunitiesResponse>> {
-  let followed_by = if let Some(true) = data.followed_only {
-    local_user_view.map(|l| l.person.id)
-  } else {
-    None
-  };
-  let multi_communities =
-    MultiCommunityView::list(&mut context.pool(), data.creator_id, followed_by).await?;
+  let my_person_id = local_user_view.map(|l| l.person.id);
+  let multi_communities = MultiCommunityView::list(
+    &mut context.pool(),
+    data.creator_id,
+    my_person_id,
+    data.followed_only.unwrap_or_default(),
+  )
+  .await?;
   Ok(Json(ListMultiCommunitiesResponse { multi_communities }))
 }

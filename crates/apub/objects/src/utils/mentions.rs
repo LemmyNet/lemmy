@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_utils::{
-  error::{FederationError, LemmyResult},
+  error::{LemmyResult, UntranslatedError},
   utils::mention::scrape_text_for_mentions,
 };
 use serde::{Deserialize, Serialize};
@@ -58,7 +58,7 @@ pub(crate) async fn collect_non_local_mentions(
       &parent_creator
         .id()
         .domain()
-        .ok_or(FederationError::UrlWithoutDomain)?
+        .ok_or(UntranslatedError::UrlWithoutDomain)?
     )),
     kind: MentionType::Mention,
   };
