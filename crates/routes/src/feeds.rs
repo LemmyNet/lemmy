@@ -148,7 +148,7 @@ async fn get_feed_user(
 ) -> Result<HttpResponse, Error> {
   let (name, domain) = split_name(&name);
 
-  let person = Person::read_from_name(&mut context.pool(), &name, domain, false)
+  let person = Person::read_from_name(&mut context.pool(), name, domain, false)
     .await?
     .ok_or(ErrorBadRequest("not_found"))?;
 
@@ -181,7 +181,7 @@ async fn get_feed_user(
 
 /// Takes a user/community name either in the format `name` or `name@example.com`. Splits
 /// it on `@` and returns a tuple of name and optional domain.
-fn split_name<'a>(name: &'a str) -> (&'a str, Option<&'a str>) {
+fn split_name(name: &str) -> (&str, Option<&str>) {
   if let Some(split) = name.split_once('@') {
     (split.0, Some(split.1))
   } else {
@@ -195,7 +195,7 @@ async fn get_feed_community(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let (name, domain) = split_name(&name);
-  let community = Community::read_from_name(&mut context.pool(), &name, domain, false)
+  let community = Community::read_from_name(&mut context.pool(), name, domain, false)
     .await?
     .ok_or(ErrorBadRequest("not_found"))?;
 
@@ -227,7 +227,7 @@ async fn get_feed_multi_community(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let (name, domain) = split_name(&name);
-  let multi_community = MultiCommunity::read_from_name(&mut context.pool(), &name, domain, false)
+  let multi_community = MultiCommunity::read_from_name(&mut context.pool(), name, domain, false)
     .await?
     .ok_or(ErrorBadRequest("not_found"))?;
 
