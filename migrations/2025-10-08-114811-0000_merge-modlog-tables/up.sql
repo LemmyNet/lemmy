@@ -24,8 +24,8 @@ CREATE TYPE modlog_kind AS enum (
 CREATE TABLE modlog (
     id serial PRIMARY KEY,
     kind modlog_kind NOT NULL,
-    -- For some actions reason is quite pointless, make it optional? (eg add admin, feature post)
-    reason text NOT NULL,
+    -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
+    reason text,
     is_revert boolean NOT NULL,
     mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     target_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -44,10 +44,9 @@ ALTER TABLE modlog
     ADD CHECK (num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 1);
 
 -- copy old data to new table
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_person_id, published_at)
+INSERT INTO modlog (kind, is_revert, mod_id, target_person_id, published_at)
 SELECT
     'AdminAdd',
-    'no reason provided',
     removed,
     mod_person_id,
     other_person_id,
@@ -119,10 +118,9 @@ FROM
 -- INSERT INTO modlog (kind, reason, is_revert, mod_id, target_person_id, published_at)
 -- SELECT 'AdminPurgePerson',reason, FALSE,admin_person_id, person_id, published_at
 -- FROM admin_purge_person;
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_person_id, published_at)
+INSERT INTO modlog (kind, is_revert, mod_id, target_person_id, published_at)
 SELECT
     'ModAddToCommunity',
-    'No reason provided',
     removed,
     mod_person_id,
     other_person_id,
@@ -143,10 +141,9 @@ SELECT
 FROM
     mod_ban_from_community;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, is_revert, mod_id, target_post_id, published_at)
 SELECT
     'ModFeaturePost',
-    'No reason provided',
     featured,
     mod_person_id,
     post_id,
@@ -154,10 +151,9 @@ SELECT
 FROM
     mod_feature_post;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_community_id, published_at)
+INSERT INTO modlog (kind, is_revert, mod_id, target_community_id, published_at)
 SELECT
     'ModChangeCommunityVisibility',
-    'No reason provided',
     FALSE,
     mod_person_id,
     community_id,
@@ -220,10 +216,9 @@ SELECT
 FROM
     mod_remove_post;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_community_id, target_person_id, published_at)
+INSERT INTO modlog (kind, is_revert, mod_id, target_community_id, target_person_id, published_at)
 SELECT
     'ModTransferCommunity',
-    'No reason provided',
     FALSE,
     mod_person_id,
     community_id,
