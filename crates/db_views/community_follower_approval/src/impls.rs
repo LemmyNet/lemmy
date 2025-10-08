@@ -218,6 +218,7 @@ impl PaginationCursorBuilder for PendingFollowerView {
 }
 
 #[cfg(test)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
   use crate::PendingFollowerView;
