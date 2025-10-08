@@ -10,7 +10,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
+  newtypes::{NameOrId, PaginationCursor},
   source::{comment::Comment, community::Community},
   traits::{Crud, PaginationCursorBuilder},
 };
@@ -40,14 +40,13 @@ async fn list_comments_common(
 
   check_private_instance(&local_user_view, local_site)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
+  let community_id = match &data.community_name_or_id {
+    NameOrId::Id(id) => Some(*id),
+    NameOrId::Name(name) => Some(
       resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
-    .map(|c| c.id)
-  } else {
-    data.community_id
+    .map(|c| c.id),
   };
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(

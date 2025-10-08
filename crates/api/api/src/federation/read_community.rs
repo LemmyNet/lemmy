@@ -6,7 +6,10 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt, read_site_for_actor},
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
-use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
+use lemmy_db_schema::{
+  newtypes::NameOrId,
+  source::{actor_language::CommunityLanguage, community::Community},
+};
 use lemmy_db_views_community::{
   api::{GetCommunity, GetCommunityResponse},
   CommunityView,
@@ -27,9 +30,9 @@ pub async fn get_community(
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
-  let community_id = match data.0 {
-    GetCommunity::Id(id) => id,
-    GetCommunity::Name(name) => {
+  let community_id = match &data.name_or_id {
+    NameOrId::Id(id) => *id,
+    NameOrId::Name(name) => {
       resolve_ap_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
         .await?
         .id

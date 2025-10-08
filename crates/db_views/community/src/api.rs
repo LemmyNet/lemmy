@@ -1,6 +1,14 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
+  newtypes::{
+    CommunityId,
+    LanguageId,
+    MultiCommunityId,
+    NameOrId,
+    PaginationCursor,
+    PersonId,
+    TagId,
+  },
   source::site::Site,
   CommunitySortType,
 };
@@ -169,13 +177,11 @@ pub struct FollowCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[serde(untagged)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Get a community. Must provide either an id, or a name (eg star_trek or star_trek@xyz.tld).
-pub enum GetCommunity {
-  Name(String),
-  Id(CommunityId),
+pub struct GetCommunity {
+  pub name_or_id: NameOrId<CommunityId>,
 }
 
 #[skip_serializing_none]

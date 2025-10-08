@@ -10,7 +10,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::PostId,
+  newtypes::{NameOrId, PostId},
   source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::PaginationCursorBuilder,
 };
@@ -33,14 +33,13 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
+  let community_id = match &data.community_name_or_id {
+    NameOrId::Id(id) => Some(*id),
+    NameOrId::Name(name) => Some(
       resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?,
     )
-    .map(|c| c.id)
-  } else {
-    data.community_id
+    .map(|c| c.id),
   };
   let multi_community_id = data.multi_community_id;
   let show_hidden = data.show_hidden;

@@ -68,7 +68,6 @@ pub enum LemmyErrorType {
   EmailAlreadyTaken,
   UsernameAlreadyTaken,
   PersonIsBannedFromCommunity,
-  NoIdGiven,
   IncorrectLogin,
   NoEmailSetup,
   LocalSiteNotSetup,

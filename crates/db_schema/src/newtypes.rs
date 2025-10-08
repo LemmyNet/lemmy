@@ -508,3 +508,12 @@ impl PaginationCursor {
       .map_err(|_vec| LemmyErrorType::CouldntParsePaginationToken.into())
   }
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[serde(untagged)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum NameOrId<T> {
+  Name(String),
+  Id(T),
+}
